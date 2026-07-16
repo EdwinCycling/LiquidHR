@@ -30,7 +30,7 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 ## Laatst geverifieerd
 
 - Herstelmigratie `20260715173629_restore_employee_subresource_grants.sql` is live: Data API-rechten en benodigde `EXECUTE`-rechten voor RLS-helpers van adressen, relaties en vrije veldwaarden zijn hersteld. De medewerkersdetailpagina van Edwin Testbeheerder laadt weer volledig op localhost:3000.
-- Vitest: 46 bestanden en 181 tests geslaagd.
+- Vitest: 46 bestanden en 182 tests geslaagd.
 - HeRa: een lege lijst met gesprekken toont na een geslaagde API-response nu de lege toestand in plaats van een oneindige spinner. Een lokaal testgesprek met de geconfigureerde Gemini-provider gaf antwoord in circa 2,2 seconden zonder browsererrors; het testgesprek is daarna verwijderd.
 - ESLint, strict TypeScript, i18n-pariteit en productiebuild geslaagd.
 - Dertien live Supabase database-/isolatietests geslaagd.

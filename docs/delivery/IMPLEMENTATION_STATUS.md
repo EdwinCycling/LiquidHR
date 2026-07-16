@@ -76,7 +76,7 @@ Laatste controle: 2026-07-16.
 - Tijdhub/reminders zijn lokaal op poort 3000 in een ingelogde browsersessie geverifieerd: persoonlijke reminder aanmaken/afronden, HR-reminder voor iedereen publiceren, sidebar-badge en countdown, en annuleren. De weergave is ook op 390px gecontroleerd zonder horizontale overflow.
 - De eerder gemelde `POST /api/context/administration 400` is lokaal gereproduceerd en opgelost; de wissel naar de Operations-administratie gaf daarna `200` en de UI selecteerde de nieuwe context.
 - De detailpagina van Edwin Testbeheerder is na de RLS-herstelmigratie lokaal op poort 3000 succesvol geladen; adres-, relatie- en vrije-veldqueries geven geen 403 meer.
-- Vitest: 46 testbestanden, 181 tests geslaagd.
+- Vitest: 46 testbestanden, 182 tests geslaagd.
 - HeRa is lokaal browsermatig getest met een lege gesprekslijst, een nieuw gesprek en de vraag `Welke reminders heb ik?`; de API gaf `200`, HeRa antwoordde en het testgesprek is verwijderd.
 - ESLint zonder waarschuwingen, strict TypeScript, 11 NL/EN-namespaces en Next.js-productiebuild (26 pagina's) geslaagd.
 - Lokale productiebuild luistert op `http://localhost:3000` en blijft actief; login is desktop en op 390px zonder consolefouten gecontroleerd.
