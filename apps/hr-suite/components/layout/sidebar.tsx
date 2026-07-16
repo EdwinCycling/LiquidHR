@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import {
   Building2,
+  LayoutDashboard,
   LogOut,
   Menu,
   Network,
@@ -33,6 +34,7 @@ import type { ReminderItem } from '@/lib/reminders/reminder-service'
 
 interface SidebarLabels {
   appName: string
+  dashboard: string
   version: string
   departments: string
   hera: string
@@ -91,6 +93,7 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const links = [
+    { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true },
     { href: '/hera', label: labels.hera, icon: Sparkles, visible: true },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/departments', label: labels.departments, icon: Building2, visible: canReadDepartments },

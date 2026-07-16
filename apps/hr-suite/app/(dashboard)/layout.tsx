@@ -114,6 +114,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         email={email}
         labels={{
           appName: common('appName'),
+          dashboard: navigation('dashboard'),
           version: `${common('version')} ${APP_VERSION}`,
           hera: navigation('hera'),
           departments: navigation('departments'),
