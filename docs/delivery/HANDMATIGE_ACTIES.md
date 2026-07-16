@@ -74,6 +74,8 @@ Gebruik `npx supabase db reset --linked` uitsluitend wanneer dit remote project 
 
 ## Status van de punten 1 t/m 6
 
+Voor de GitHub/Vercel-publicatie ontbreekt op deze werkplek nog externe aanmelding: installeer of maak `gh` beschikbaar en voer `gh auth login` uit; voer daarna `npx vercel login` uit en voltooi de device-flow. Vervolgens kan de agent branch `agent/points-1-6` veilig pushen en het GitHub-project aan Vercel koppelen.
+
 | Punt | Status | Wat blokkeert volledige afronding |
 |---|---|---|
 | 1. Klok en reminders | Gedeeltelijk | Schema, RLS, API, Tijdhub/reminderpagina en live browserflow werken. De databaseproef, advisors en CLI-typegeneratie moeten nog worden herhaald met een gekoppelde Supabase CLI. |
