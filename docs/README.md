@@ -39,7 +39,8 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 | Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE |
 | Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | NIET GESTART |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | NIET GESTART |
-| HR-chatbot | [`requirements/chatbot/HR_CHATBOT_AGENT.md`](requirements/chatbot/HR_CHATBOT_AGENT.md) | CONCEPT | NIET GESTART |
+| HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | NIET GESTART |
+| Historische HR-chatbotblauwdruk | [`requirements/chatbot/HR_CHATBOT_AGENT.md`](requirements/chatbot/HR_CHATBOT_AGENT.md) | VERVANGEN | NIET GESTART |
 | Chatbot lees/schrijftools | [`requirements/chatbot/HR_CHATBOT_LEES_EN_SCHRIJFTOOLS.md`](requirements/chatbot/HR_CHATBOT_LEES_EN_SCHRIJFTOOLS.md) | CONCEPT | NIET GESTART |
 | Chatbot transactietools | [`requirements/chatbot/HR_CHATBOT_TRANSACTIONELE_TOOLS.md`](requirements/chatbot/HR_CHATBOT_TRANSACTIONELE_TOOLS.md) | CONCEPT | NIET GESTART |
 

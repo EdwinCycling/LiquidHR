@@ -1,3 +1,5 @@
+> **Status: VERVANGEN.** Dit historische concept is opgevolgd door [`HERA_AI_AGENT.md`](HERA_AI_AGENT.md). Gebruik het nieuwe document voor implementatie; dit bestand blijft alleen als ontwerpgeschiedenis bewaard.
+
 Dit is de ultieme integratie die al onze eerdere modules (Core HR, Contracten, Hiërarchie, Vrije Velden, Liquid Display en Autorisatie) samenbrengt. Een AI-chatbot die niet alleen kan praten, maar ook **acties kan uitvoeren** (een AI Agent), is de meest innovatieve feature die je kunt bouwen.
 
 Om dit veilig, meertalig en met verschillende "levels van praten" op te zetten, moeten we wegblijven van het gevaarlijke idee dat de AI rechtstreeks in de database schrijft of zoekt. We bouwen dit op via **Secure Tool-Use (Function Calling)** en een **Human-in-the-Loop** bevestigingssysteem.
