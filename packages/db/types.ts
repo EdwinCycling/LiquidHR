@@ -14,6 +14,22 @@ export type Database = {
   }
   public: {
     Tables: {
+      personal_dashboards: {
+        Row: { created_at: string; id: string; is_default: boolean; name: string; owner_user_id: string; tenant_id: string; updated_at: string }
+        Insert: { created_at?: string; id?: string; is_default?: boolean; name: string; owner_user_id: string; tenant_id: string; updated_at?: string }
+        Update: { created_at?: string; id?: string; is_default?: boolean; name?: string; owner_user_id?: string; tenant_id?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "personal_dashboards_tenant_id_fkey"; columns: ["tenant_id"]; isOneToOne: false; referencedRelation: "tenants"; referencedColumns: ["id"] },
+        ]
+      }
+      personal_dashboard_widgets: {
+        Row: { created_at: string; dashboard_id: string; id: string; position: number; settings: Json; tenant_id: string; updated_at: string; widget_type: string }
+        Insert: { created_at?: string; dashboard_id: string; id?: string; position: number; settings?: Json; tenant_id: string; updated_at?: string; widget_type: string }
+        Update: { created_at?: string; dashboard_id?: string; id?: string; position?: number; settings?: Json; tenant_id?: string; updated_at?: string; widget_type?: string }
+        Relationships: [
+          { foreignKeyName: "personal_dashboard_widgets_dashboard_same_tenant_fkey"; columns: ["tenant_id", "dashboard_id"]; isOneToOne: false; referencedRelation: "personal_dashboards"; referencedColumns: ["tenant_id", "id"] },
+        ]
+      }
       ai_action_drafts: {
         Row: {
           confirmed_at: string | null
