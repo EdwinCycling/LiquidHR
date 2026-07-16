@@ -14,6 +14,223 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_action_drafts: {
+        Row: {
+          confirmed_at: string | null
+          conversation_id: string
+          created_at: string
+          executed_at: string | null
+          expires_at: string
+          failure_code: string | null
+          id: string
+          idempotency_key: string
+          owner_user_id: string
+          payload: Json
+          status: Database["public"]["Enums"]["ai_draft_status"]
+          summary: string
+          tenant_id: string
+          tool_name: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          executed_at?: string | null
+          expires_at: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key?: string
+          owner_user_id: string
+          payload?: Json
+          status?: Database["public"]["Enums"]["ai_draft_status"]
+          summary: string
+          tenant_id: string
+          tool_name: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          executed_at?: string | null
+          expires_at?: string
+          failure_code?: string | null
+          id?: string
+          idempotency_key?: string
+          owner_user_id?: string
+          payload?: Json
+          status?: Database["public"]["Enums"]["ai_draft_status"]
+          summary?: string
+          tenant_id?: string
+          tool_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_action_drafts_conversation_same_tenant_fkey"
+            columns: ["tenant_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          id: string
+          origin_channel: string
+          owner_user_id: string
+          summary: string | null
+          summary_cursor_at: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          id?: string
+          origin_channel?: string
+          owner_user_id: string
+          summary?: string | null
+          summary_cursor_at?: string | null
+          tenant_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          id?: string
+          origin_channel?: string
+          owner_user_id?: string
+          summary?: string | null
+          summary_cursor_at?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_administration_same_tenant_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memory_items: {
+        Row: {
+          category: Database["public"]["Enums"]["ai_memory_category"]
+          consented_at: string
+          content: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          source_conversation_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["ai_memory_category"]
+          consented_at?: string
+          content: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          source_conversation_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["ai_memory_category"]
+          consented_at?: string
+          content?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          source_conversation_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_items_source_conversation_same_tenant_fkey"
+            columns: ["tenant_id", "source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_memory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          external_message_id: string | null
+          id: string
+          model_id: string | null
+          origin_channel: string
+          owner_user_id: string
+          role: Database["public"]["Enums"]["ai_message_role"]
+          tenant_id: string
+          visible_tool_name: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          external_message_id?: string | null
+          id?: string
+          model_id?: string | null
+          origin_channel?: string
+          owner_user_id: string
+          role: Database["public"]["Enums"]["ai_message_role"]
+          tenant_id: string
+          visible_tool_name?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          external_message_id?: string | null
+          id?: string
+          model_id?: string | null
+          origin_channel?: string
+          owner_user_id?: string
+          role?: Database["public"]["Enums"]["ai_message_role"]
+          tenant_id?: string
+          visible_tool_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_same_tenant_fkey"
+            columns: ["tenant_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       administrations: {
         Row: {
           coc_number: string | null
@@ -3126,6 +3343,9 @@ export type Database = {
       }
     }
     Enums: {
+      ai_draft_status: "PENDING" | "CONFIRMED" | "CANCELLED" | "EXPIRED" | "EXECUTED" | "FAILED"
+      ai_memory_category: "PREFERENCE" | "WORKING_CONTEXT"
+      ai_message_role: "USER" | "ASSISTANT" | "TOOL"
       analog_clock_style: "CLASSIC" | "MINIMAL" | "LIQUID"
       access_scope_type: "TENANT" | "ADMINISTRATION"
       clock_mode: "ANALOG" | "DIGITAL" | "HIDDEN"
@@ -3344,6 +3564,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_draft_status: ["PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "EXECUTED", "FAILED"],
+      ai_memory_category: ["PREFERENCE", "WORKING_CONTEXT"],
+      ai_message_role: ["USER", "ASSISTANT", "TOOL"],
       access_scope_type: ["TENANT", "ADMINISTRATION"],
       administration_mode: ["SEPARATE", "COMBINED"],
       contract_type: [
