@@ -3,6 +3,7 @@
 import { Download, Edit3, LoaderCircle, Menu, MessageCircleHeart, Plus, Send, Sparkles, Trash2 } from 'lucide-react'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { getHeRaScreenState } from './hera-chat-state'
+import { requestJson } from './hera-request'
 
 export interface HeRaLabels {
   title: string
@@ -58,9 +59,7 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   }, [detail])
 
   async function request<T>(url: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(url, init)
-    if (!response.ok) throw new Error('HERA_REQUEST_FAILED')
-    return response.json() as Promise<T>
+    return requestJson<T>(url, init)
   }
 
   async function loadConversation(conversationId: string) {

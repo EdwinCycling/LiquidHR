@@ -102,7 +102,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-dvh min-h-0 overflow-hidden bg-background">
       <Sidebar
         activeAdministrationId={context.administration?.id ?? null}
         administrations={context.administrations}
@@ -150,7 +150,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         settingsLabels={settingsLabels}
         tenantName={context.tenant.name}
       />
-      <main className="min-w-0 flex-1 overflow-auto pt-16 md:pt-0">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0">{children}</main>
     </div>
   )
 }

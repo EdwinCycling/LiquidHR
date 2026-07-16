@@ -15,9 +15,9 @@ Laatste controle: 2026-07-16.
 | Gedeelde databasetypes | GEÏMPLEMENTEERD | `packages/db/types.ts`; opnieuw genereren na iedere migratie |
 | Documentatierouting | GEÏMPLEMENTEERD | Root `AGENTS.md`, architectuurindex, deze status en verplichte `CURRENT_CONTEXT.md`-overdracht voor nieuwe/fork-chats |
 
-| Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef, advisor-run en CLI-typegeneratie moeten nog met gekoppelde Supabase CLI worden herhaald. |
+| Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
 | Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
-| HeRa AI-agent | GEDEELTELIJK | Leidend requirementdocument, persoonlijke conversation-/memory-/draftschema's met RLS, Gemini-adapter, veilige leestools, reminderconceptbevestiging, export, API en navigatie zijn aanwezig. De migratie, RLS-proef, advisor/typegeneratie, browser-eindtest en productieprivacyconfiguratie wachten op gekoppelde Supabase en deploymentsecrets. |
+| HeRa AI-agent | GEDEELTELIJK | Leidend requirementdocument, persoonlijke conversation-/memory-/draftschema's met RLS, Gemini-adapter, veilige leestools, reminderconceptbevestiging, export, API en navigatie zijn aanwezig. De browser-eindtest en productieprivacyconfiguratie blijven open; vastlopende clientrequests geven nu na een begrensde wachttijd een herstelbare fout. |
 
 ## Core HR, organisatie en autorisatie
 

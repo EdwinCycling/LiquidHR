@@ -115,7 +115,7 @@ export function Sidebar({
         <button aria-label={labels.closeMenu} className="fixed inset-0 z-40 bg-sidebar/70 md:hidden" onClick={() => setMobileOpen(false)} type="button" />
       ) : null}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-200 md:sticky md:top-0 md:z-20 md:min-h-screen md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-20' : 'md:w-72'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-200 md:sticky md:top-0 md:z-20 md:min-h-0 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-20' : 'md:w-72'}`}>
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed ? (
             <div className="flex min-w-0 items-center gap-3">
@@ -149,7 +149,7 @@ export function Sidebar({
           </div>
         ) : null}
 
-        <nav aria-label={labels.navigation} className="flex-1 px-3">
+        <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
           {links.filter((link) => link.visible).map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
             const Icon = link.icon
@@ -165,14 +165,14 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className={`border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
+        <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
           <div className={collapsed ? 'grid place-items-center gap-2' : 'flex flex-col gap-4'} title={collapsed ? labels.timeHub : undefined}>
             <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} />
             <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} />
           </div>
         </div>
 
-        <div className="border-t border-sidebar-border p-3">
+        <div className="shrink-0 border-t border-sidebar-border p-3">
           <SettingsModal
             collapsed={collapsed}
             labels={settingsLabels}

@@ -22,6 +22,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - Organogram is gebouwd als beveiligde, read-only verkenner zonder drag-and-drop. HeRa heeft een leidende requirement, RLS-migratie, Gemini-adapter, veilige persoonlijke reminderconcepten, API-laag en navigatie; de UI-slice en live databaseverificatie lopen nog.
 - Tijdhub: iedere zichtbare sidebar-reminder opent een toegankelijke Liquid-detailkaart met type, tijd, acties en een link naar Reminderbeheer. De OrgChart-link staat voorlopig plat en altijd zichtbaar in de linkerbalk; de route houdt zijn server-side autorisatie.
 - Persoonlijke Liquid Dashboard is gebouwd als startpagina: meerdere eigen dashboards, naam/dupliceren/verwijderen/wisselen, expliciet opslaan van toegankelijke widgetvolgorde en vier gesloten widgets. Vrije Liquid Display-query's en generatieve widgets zijn bewust nog niet aanwezig.
+- Dashboardlayout houdt de linker navigatie, klok en reminders vast op viewporthoogte; alleen de hoofdcontent scrollt. HeRa toont na een vastlopende API-call een herstelbare fout in plaats van een oneindige spinner. De klok voorkomt SSR-hydrationverschillen door pas na mount de tijd te starten.
 
 De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPLEMENTATION_STATUS.md`.
 
@@ -33,7 +34,7 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 - Dertien live Supabase database-/isolatietests geslaagd.
 - De nieuwe transactionele databaseproef voor TWK, rollback en kostenverdeling is aanvullend geslaagd.
 - Tijdhub/reminders: persoonlijke reminder aanmaken/afronden, HR-publicatie voor iedereen, sidebar-badge/countdown en annuleren zijn in een ingelogde browser op localhost:3000 geslaagd. De 390px-weergave heeft geen horizontale overflow.
-- Productiebuild draait lokaal op `http://localhost:3000`; de loginpagina laadt desktop en op 390px zonder consolefouten. De publieke ngrok-preview is na de eenmalige waarschuwing bereikbaar. De beschermde detailroute kon zonder geldige browsersessie niet visueel end-to-end worden geopend.
+- Productiebuild draait lokaal op `http://localhost:3000`; de loginpagina laadt desktop en op 390px. De beschermde detailroute kon zonder geldige browsersessie niet visueel end-to-end worden geopend. De eerdere klok-hydrationwaarschuwing is in code opgelost.
 - De laatst gebruikte ngrok-URL was `https://unmerited-diuretically-angeline.ngrok-free.dev`; dit is tijdelijk en moet bij hervatten opnieuw worden gecontroleerd.
 - Supabase-plugin is verbonden met project `wnpfloqpjvaacobppbpk` (`LiquidHR`, `ACTIVE_HEALTHY`). De app-runtime en pluginverbinding werken; een lokale CLI-login is hiervoor niet vereist.
 - Vercel-plugin is verbonden met project `liquid-hr-hr-suite`. De eerste productiebuild compileerde volledig maar faalde door een dubbel outputpad; `vercel.json` gebruikt nu `.next` passend bij Vercels Root Directory `apps/hr-suite`.
