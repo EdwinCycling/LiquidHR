@@ -83,6 +83,29 @@ export const timelineMutationSchema = z.discriminatedUnion('timeline', [
   laborConditionMutation, scheduleMutation, salaryMutation, costAllocationMutation,
 ])
 
+const combinedTimelineMutationItemSchema = z.discriminatedUnion('timeline', [
+  z.object({ timeline: z.literal('LABOR_CONDITIONS'), payload: z.object({ conditionGroup: z.string().trim().min(1).max(160) }).strict() }).strict(),
+  z.object({ timeline: z.literal('SCHEDULE'), payload: z.object({
+    scheduleType: z.enum(['HOURS_PER_DAY', 'HOURS_AND_AVG_DAYS', 'HOURS_AND_SPECIFIC_DAYS', 'TIMES_PER_DAY']),
+    startWeek: z.number().int().min(1).max(53).default(1), averageDaysPerWeek: z.number().min(0).max(7), averageHoursPerWeek: z.number().min(0).max(168), partTimeFactor: z.number().min(0).max(2), timeForTimeAccrual: z.number().min(0).default(0),
+    mondayHours: nullableNumber, tuesdayHours: nullableNumber, wednesdayHours: nullableNumber, thursdayHours: nullableNumber, fridayHours: nullableNumber, saturdayHours: nullableNumber, sundayHours: nullableNumber,
+  }).strict() }).strict(),
+  z.object({ timeline: z.literal('SALARY'), payload: salaryPayload }).strict(),
+  z.object({ timeline: z.literal('COST_ALLOCATION'), payload: costAllocationMutation.shape.payload }).strict(),
+])
+
+export const combinedTimelineMutationSchema = z.object({
+  effectiveOn: dateOnly,
+  reason: z.string().trim().min(1).max(500),
+  mutations: z.array(combinedTimelineMutationItemSchema).min(2).max(4).superRefine((items, context) => {
+    if (new Set(items.map((item) => item.timeline)).size !== items.length) {
+      context.addIssue({ code: 'custom', path: ['mutations'], message: 'COMBINED_TIMELINE_DUPLICATE' })
+    }
+  }),
+  warningCodes: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
+  acknowledgements: z.record(z.string(), z.union([z.boolean(), z.string()])).default({}),
+}).strict()
+
 export const rollbackTimelineSchema = z.object({
   effectiveOn: dateOnly,
   reason: z.string().trim().min(1).max(500),
@@ -117,6 +140,7 @@ export const chainAssessmentRequestSchema = z.object({
 }).strict()
 
 export type TimelineMutationInput = z.infer<typeof timelineMutationSchema>
+export type CombinedTimelineMutationInput = z.infer<typeof combinedTimelineMutationSchema>
 export type RollbackTimelineInput = z.infer<typeof rollbackTimelineSchema>
 export type ProfileLinkInput = z.infer<typeof profileLinkSchema>
 export type FollowUpInput = z.infer<typeof followUpSchema>

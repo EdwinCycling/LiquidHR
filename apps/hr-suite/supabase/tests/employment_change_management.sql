@@ -44,6 +44,22 @@ begin
     raise exception 'Het wijzigingspakket is niet toegepast.';
   end if;
 
+  change_id := public.apply_combined_employment_timeline_mutation(
+    test_employment_id, '2026-04-01',
+    '[
+      {"timeline":"LABOR_CONDITIONS","payload":{"conditionGroup":"Gecombineerd"}},
+      {"timeline":"SCHEDULE","payload":{"scheduleType":"HOURS_AND_AVG_DAYS","startWeek":1,"averageDaysPerWeek":4,"averageHoursPerWeek":32,"partTimeFactor":0.8,"timeForTimeAccrual":0}}
+    ]'::jsonb,
+    'Arbeidsvoorwaarden en rooster samen wijzigen', array[]::text[], '{}'::jsonb
+  );
+  if (select domains from public.employment_change_sets where id = change_id) <> array['LABOR_CONDITIONS', 'SCHEDULE'] then
+    raise exception 'Het gecombineerde pakket bevat niet precies de verwachte domeinen.';
+  end if;
+  if (select count(*) from public.employment_labor_conditions where employment_id = test_employment_id and change_set_id = change_id) <> 1
+     or (select count(*) from public.employment_schedules where employment_id = test_employment_id and change_set_id = change_id) <> 1 then
+    raise exception 'De gecombineerde wijziging is niet atomair op beide tijdlijnen vastgelegd.';
+  end if;
+
   perform public.rollback_latest_employment_timeline(
     test_employment_id, 'LABOR_CONDITIONS', '2026-07-01', 'Geplande mutatie intrekken'
   );

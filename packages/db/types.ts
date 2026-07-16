@@ -3046,6 +3046,17 @@ export type Database = {
         }
         Returns: string
       }
+      apply_combined_employment_timeline_mutation: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_mutations: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: string
+      }
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
         Returns: undefined

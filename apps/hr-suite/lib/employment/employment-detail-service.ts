@@ -2,6 +2,7 @@ import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type {
+  CombinedTimelineMutationInput,
   FollowUpInput,
   ChainAssessmentRequestInput,
   ProfileLinkInput,
@@ -120,6 +121,26 @@ export async function applyTimelineMutation(employmentId: string, input: Timelin
     requested_timeline: input.timeline,
     requested_effective_on: input.effectiveOn,
     requested_payload: input.payload as Json,
+    requested_reason: input.reason,
+    requested_warning_codes: input.warningCodes,
+    requested_acknowledgements: input.acknowledgements as Json,
+  })
+  if (error || !data) throwDatabaseError(error?.message ?? 'EMPLOYMENT_CHANGE_FAILED')
+  return data
+}
+
+export async function applyCombinedTimelineMutation(
+  employmentId: string,
+  input: CombinedTimelineMutationInput,
+): Promise<string> {
+  const requiresSalaryWrite = input.mutations.some((mutation) => mutation.timeline === 'SALARY')
+  await loadEmploymentForAction(employmentId, 'contract:write')
+  if (requiresSalaryWrite) await loadEmploymentForAction(employmentId, 'salary:write')
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('apply_combined_employment_timeline_mutation', {
+    requested_employment_id: employmentId,
+    requested_effective_on: input.effectiveOn,
+    requested_mutations: input.mutations as Json,
     requested_reason: input.reason,
     requested_warning_codes: input.warningCodes,
     requested_acknowledgements: input.acknowledgements as Json,

@@ -77,7 +77,7 @@ Gebruik `npx supabase db reset --linked` uitsluitend wanneer dit remote project 
 | Punt | Status | Wat blokkeert volledige afronding |
 |---|---|---|
 | 1. Klok en reminders | Gedeeltelijk | Schema, RLS, API, Tijdhub/reminderpagina en live browserflow werken. De databaseproef, advisors en CLI-typegeneratie moeten nog worden herhaald met een gekoppelde Supabase CLI. |
-| 2. Dienstverbandflow | Gedeeltelijk | Multi-domeinwijziging, basis/IKV- en organisatieformulieren, nieuwe persoonskaartflow en externe ketenhistorie ontbreken nog. |
+| 2. Dienstverbandflow | Gedeeltelijk | Atomaire multi-domeinroute, validatie en migratie zijn lokaal gereed; de migratie/test moeten nog tegen Supabase worden uitgevoerd. Basis/IKV- en organisatieformulieren, nieuwe persoonskaartflow en externe ketenhistorie volgen nog. |
 | 3. Auth en deployment | Gedeeltelijk | Codebasis/GitHub zijn klaar; SMTP, Google OAuth, Vercel-koppeling en publieke verificatie ontbreken. |
 | 4. Afwezigheid en workflow | Niet gestart | Leidend datamodel, API/UI en resolver ontbreken. |
 | 5. Multitenancy-afwerking | Gedeeltelijk | Bestaande fundering werkt; nieuwe domeinen moeten nog tenant-/administratiescope en isolatietests krijgen. |
