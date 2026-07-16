@@ -132,7 +132,7 @@ function SearchableFilter({ name, value, options, allLabel, searchLabel, emptyLa
           <label className="relative block">
             <span className="sr-only">{searchLabel}</span>
             <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
-            <input aria-controls={listId} className="h-10 w-full rounded-xl border bg-surface-raised pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-focus focus:ring-2 focus:ring-focus/20" onChange={(event) => setSearch(event.target.value)} placeholder={searchLabel} role="combobox" type="search" value={search} />
+            <input aria-controls={listId} className="h-10 w-full rounded-xl border bg-surface-raised pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-focus focus:ring-2 focus:ring-focus/20" onChange={(event) => setSearch(event.target.value)} placeholder={searchLabel} type="search" value={search} />
           </label>
           <div className="mt-2 max-h-64 space-y-1 overflow-y-auto" id={listId} role="listbox">
             <button aria-selected={!value} className="flex min-h-10 w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-muted-foreground outline-none hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground" onClick={() => select('')} role="option" type="button">{allLabel}{!value ? <Check aria-hidden="true" size={15} /> : null}</button>

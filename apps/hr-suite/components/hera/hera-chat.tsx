@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Edit3, LoaderCircle, Menu, MessageCircleHeart, Plus, Send, Sparkles, Trash2, X } from 'lucide-react'
+import { Download, Edit3, LoaderCircle, Menu, MessageCircleHeart, Plus, Send, Sparkles, Trash2 } from 'lucide-react'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { getHeRaScreenState } from './hera-chat-state'
 
@@ -90,7 +90,12 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
     }
   }
 
-  useEffect(() => { void loadConversations() }, [])
+  useEffect(() => {
+    const startup = window.setTimeout(() => { void loadConversations() }, 0)
+    return () => window.clearTimeout(startup)
+  // De eerste lijst wordt bewust één keer na de client-mount geladen.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function createConversation() {
     setIsLoading(true)
