@@ -243,6 +243,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_required: boolean
+          show_in_organization_chart_filter: boolean
           key: string
           label_en: string
           label_nl: string
@@ -265,6 +266,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_required?: boolean
+          show_in_organization_chart_filter?: boolean
           key: string
           label_en: string
           label_nl: string
@@ -287,6 +289,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_required?: boolean
+          show_in_organization_chart_filter?: boolean
           key?: string
           label_en?: string
           label_nl?: string
