@@ -2,9 +2,9 @@
 
 Dit document bevat alleen acties die een eigenaar/beheerder buiten de codebase moet uitvoeren. Geheimen, wachtwoorden en tokens horen nooit in dit document of in GitHub.
 
-## Nu nodig om verder te bouwen
+## Nu nodig om volledige verificatie en deployment af te ronden
 
-### 1. Supabase-database bereikbaar maken
+### 1. Supabase CLI-koppeling voor verificatie
 
 Kies één route.
 
@@ -24,7 +24,7 @@ Kies één route.
    npx supabase status
    ```
 
-4. Geef daarna in deze chat door dat `supabase status` volledig healthy toont. De agent kan dan migraties, RLS en database-tests lokaal uitvoeren.
+4. Geef daarna in deze chat door dat `supabase status` volledig healthy toont. De agent kan dan databaseproeven, advisors en typegeneratie lokaal uitvoeren.
 
 **Bestaand Supabase-project**
 
@@ -41,7 +41,7 @@ Kies één route.
    npx supabase link --project-ref wnpfloqpjvaacobppbpk
    ```
 
-3. Geef daarna in deze chat door dat de koppeling gelukt is. De agent voert dan eerst `npx supabase db push --dry-run` uit, en past pas na controle de migraties toe.
+3. Geef daarna in deze chat door dat de koppeling gelukt is. De reminder-migraties zijn al live toegepast; de agent voert dan databaseproeven, advisors en `supabase gen types` uit. Gebruik alleen een dry-run voordat nieuwe, nog niet toegepaste migraties worden gepusht.
 
 Gebruik `npx supabase db reset --linked` uitsluitend wanneer dit remote project aantoonbaar een wegwerp-testomgeving is: die opdracht verwijdert alle remote data.
 
@@ -76,7 +76,7 @@ Gebruik `npx supabase db reset --linked` uitsluitend wanneer dit remote project 
 
 | Punt | Status | Wat blokkeert volledige afronding |
 |---|---|---|
-| 1. Klok en reminders | Gedeeltelijk | Klokinstellingen/-weergave en migratie staan klaar; schema, RLS, API, Tijdhub/reminderpagina en live databaseverificatie ontbreken nog. |
+| 1. Klok en reminders | Gedeeltelijk | Schema, RLS, API, Tijdhub/reminderpagina en live browserflow werken. De databaseproef, advisors en CLI-typegeneratie moeten nog worden herhaald met een gekoppelde Supabase CLI. |
 | 2. Dienstverbandflow | Gedeeltelijk | Multi-domeinwijziging, basis/IKV- en organisatieformulieren, nieuwe persoonskaartflow en externe ketenhistorie ontbreken nog. |
 | 3. Auth en deployment | Gedeeltelijk | Codebasis/GitHub zijn klaar; SMTP, Google OAuth, Vercel-koppeling en publieke verificatie ontbreken. |
 | 4. Afwezigheid en workflow | Niet gestart | Leidend datamodel, API/UI en resolver ontbreken. |

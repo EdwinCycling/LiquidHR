@@ -1,4 +1,7 @@
 {
+  "appearanceTab": "Appearance",
+  "timeHubTab": "Time Hub",
+  "clockPreview": "Preview",
   "title": "Personal settings",
   "subtitle": "Your preferences apply in every customer environment.",
   "open": "Open personal settings",

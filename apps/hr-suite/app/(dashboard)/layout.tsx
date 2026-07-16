@@ -9,6 +9,7 @@ import { getTranslator } from '@/lib/i18n/server'
 import { APP_VERSION } from '@/lib/app-version'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { createClient } from '@/lib/supabase/server'
+import { listMyReminders } from '@/lib/reminders/reminder-service'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const supabase = await createClient()
@@ -33,12 +34,14 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     can('department:read'), can('employee:read'), can('authorization:read'), can('custom-fields:write'),
   ])
 
-  const [preferences, common, navigation, settings, auth] = await Promise.all([
+  const [preferences, common, navigation, settings, auth, reminderMessages, reminders] = await Promise.all([
     getUserPreferences(),
     getTranslator('common'),
     getTranslator('navigation'),
     getTranslator('settings'),
     getTranslator('auth'),
+    getTranslator('reminders'),
+    listMyReminders(20).catch(() => []),
   ])
   const settingsLabels: SettingsModalLabels = {
     open: settings('open'),
@@ -60,6 +63,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     classic: settings('classic'),
     minimal: settings('minimal'),
     liquid: settings('liquid'),
+    appearanceTab: settings('appearanceTab'),
+    timeHubTab: settings('timeHubTab'),
+    clockPreview: settings('clockPreview'),
     save: common('save'),
     cancel: common('cancel'),
     saving: settings('saving'),
@@ -125,6 +131,19 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           signOut: auth('signOut'),
         }}
         preferences={preferences}
+        locale={preferences.locale}
+        reminders={reminders}
+        reminderLabels={{
+          timeHub: reminderMessages('timeHub'),
+          openAll: reminderMessages('openAll'),
+          pendingCount: reminderMessages('pendingCount', { count: '{count}' }),
+          empty: reminderMessages('empty'),
+          dueTitle: reminderMessages('dueTitle'),
+          complete: reminderMessages('complete'),
+          dismiss: reminderMessages('dismiss'),
+          snooze: reminderMessages('snooze'),
+          close: reminderMessages('close'),
+        }}
         settingsLabels={settingsLabels}
         tenantName={context.tenant.name}
       />

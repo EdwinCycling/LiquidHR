@@ -16,6 +16,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
 import { Clock } from '@/components/layout/clock'
+import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import {
   SettingsModal,
   type SettingsModalLabels,
@@ -25,6 +26,8 @@ import type {
   AdministrationSwitcherMode,
 } from '@/lib/context/administration-context'
 import type { UserPreferences } from '@/lib/preferences/user-preferences'
+import type { Locale } from '@/lib/i18n/config'
+import type { ReminderItem } from '@/lib/reminders/reminder-service'
 
 interface SidebarLabels {
   appName: string
@@ -58,6 +61,9 @@ interface SidebarProps {
   labels: SidebarLabels
   preferences: UserPreferences
   settingsLabels: SettingsModalLabels
+  reminderLabels: TimeHubLabels
+  reminders: ReminderItem[]
+  locale: Locale
 }
 
 export function Sidebar({
@@ -73,6 +79,9 @@ export function Sidebar({
   labels,
   preferences,
   settingsLabels,
+  reminderLabels,
+  reminders,
+  locale,
 }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -148,9 +157,9 @@ export function Sidebar({
         </nav>
 
         <div className={`border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
-          <div className={collapsed ? 'grid place-items-center' : 'flex items-center gap-3'} title={collapsed ? 'Tijdhub' : undefined}>
+          <div className={collapsed ? 'grid place-items-center gap-2' : 'flex flex-col gap-4'} title={collapsed ? labels.timeHub : undefined}>
             <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} />
-            {!collapsed && preferences.clockMode === 'HIDDEN' ? <span className="text-sm text-sidebar-muted">{labels.timeHub}</span> : null}
+            <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} />
           </div>
         </div>
 

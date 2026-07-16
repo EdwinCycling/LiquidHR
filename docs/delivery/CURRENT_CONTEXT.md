@@ -17,7 +17,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - Nieuwe contracten krijgen datumgebonden, niet-blokkerend ketenadvies voor het huidige en vanaf 2028 aangekondigde regime.
 - Demo-inrichting bevat 50 medewerkers in de hoofdtenant en 10 in een tweede tenant.
 - GitHub is lokaal geïnitialiseerd en de huidige werkstand staat op `https://github.com/EdwinCycling/LiquidHR.git`, branch `main`, commit `81bde2c`.
-- Klokvoorkeuren, klokcomponenten, i18n en de nieuwe reminder-migratie staan lokaal klaar; de migratie is nog niet toegepast omdat lokale Supabase/Docker niet draait en de map niet aan een remote Supabase-project is gelinkt.
+- Tijdhub/reminders is als eerste slice live in Supabase: klokvoorkeuren, persoonlijke en HR-reminders, RLS, API-routes, Tijdhub, instellingen en NL/EN zijn gebouwd. De drie reminder-migraties zijn live toegepast; een RLS-recursie en een ongeldige `auth.users`-lookup in publicatie zijn hersteld.
 - Handmatige externe acties staan centraal in `docs/delivery/HANDMATIGE_ACTIES.md`. Het centrale applicatieversienummer staat in `apps/hr-suite/lib/app-version.ts` en is nu `1.20260716.1`.
 
 De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPLEMENTATION_STATUS.md`.
@@ -29,6 +29,7 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 - ESLint, strict TypeScript, i18n-pariteit en productiebuild geslaagd.
 - Dertien live Supabase database-/isolatietests geslaagd.
 - De nieuwe transactionele databaseproef voor TWK, rollback en kostenverdeling is aanvullend geslaagd.
+- Tijdhub/reminders: persoonlijke reminder aanmaken/afronden, HR-publicatie voor iedereen, sidebar-badge/countdown en annuleren zijn in een ingelogde browser op localhost:3000 geslaagd. De 390px-weergave heeft geen horizontale overflow.
 - Productiebuild draait lokaal op `http://localhost:3000`; de loginpagina laadt desktop en op 390px zonder consolefouten. De publieke ngrok-preview is na de eenmalige waarschuwing bereikbaar. De beschermde detailroute kon zonder geldige browsersessie niet visueel end-to-end worden geopend.
 - De laatst gebruikte ngrok-URL was `https://unmerited-diuretically-angeline.ngrok-free.dev`; dit is tijdelijk en moet bij hervatten opnieuw worden gecontroleerd.
 - Vercel is nog niet gekoppeld; de Vercel CLI is beschikbaar maar de CLI-sessie is niet ingelogd.
@@ -36,6 +37,8 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale validatie altijd geforceerd op poort 3000 en test relevante flows ook in een echte browser op mobiel formaat.
 
 ## Eerstvolgend open werk
+
+0. Herhaal voor reminders de transactionele databaseproef, Supabase advisors en typegeneratie zodra de Supabase CLI aan het project is gekoppeld.
 
 1. Maak `direct meenemen` werkelijk één multi-domein, atomair wijzigingspakket; `later opvolgen` wordt al opgeslagen.
 2. Voeg mutatieformulieren op de detailroute toe voor basis/IKV en organisatieplaatsing; deze tabs lezen nu wel alle tijdblokken.

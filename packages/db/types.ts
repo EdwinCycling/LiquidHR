@@ -2807,6 +2807,187 @@ export type Database = {
           },
         ]
       }
+      reminder_recipients: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          effective_remind_at: string
+          employee_id: string | null
+          id: string
+          last_popup_at: string | null
+          reminder_id: string
+          snoozed_from: string | null
+          status: Database["public"]["Enums"]["reminder_recipient_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          effective_remind_at: string
+          employee_id?: string | null
+          id?: string
+          last_popup_at?: string | null
+          reminder_id: string
+          snoozed_from?: string | null
+          status?: Database["public"]["Enums"]["reminder_recipient_status"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          effective_remind_at?: string
+          employee_id?: string | null
+          id?: string
+          last_popup_at?: string | null
+          reminder_id?: string
+          snoozed_from?: string | null
+          status?: Database["public"]["Enums"]["reminder_recipient_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_recipients_employee_same_tenant_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_recipients_reminder_same_tenant_fkey"
+            columns: ["tenant_id", "reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      reminder_targets: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          department_id: string | null
+          employee_id: string | null
+          id: string
+          reminder_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          employee_id?: string | null
+          id?: string
+          reminder_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          employee_id?: string | null
+          id?: string
+          reminder_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_targets_department_same_scope_fkey"
+            columns: ["tenant_id", "administration_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_targets_employee_same_tenant_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_targets_reminder_same_tenant_fkey"
+            columns: ["tenant_id", "reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          administration_id: string | null
+          cancelled_at: string | null
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          id: string
+          published_at: string | null
+          remind_at: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          status: Database["public"]["Enums"]["reminder_status"]
+          target_type: Database["public"]["Enums"]["reminder_target_type"]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          remind_at: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          status?: Database["public"]["Enums"]["reminder_status"]
+          target_type: Database["public"]["Enums"]["reminder_target_type"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          remind_at?: string
+          reminder_type?: Database["public"]["Enums"]["reminder_type"]
+          status?: Database["public"]["Enums"]["reminder_status"]
+          target_type?: Database["public"]["Enums"]["reminder_target_type"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_administration_same_tenant_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           analog_clock_style: Database["public"]["Enums"]["analog_clock_style"]
@@ -2869,6 +3050,28 @@ export type Database = {
         Args: { requested_termination_id: string }
         Returns: undefined
       }
+      create_hr_reminder: {
+        Args: {
+          requested_administration_id: string | null
+          requested_description: string | null
+          requested_remind_at: string
+          requested_target_ids?: string[]
+          requested_target_type: Database["public"]["Enums"]["reminder_target_type"]
+          requested_tenant_id: string
+          requested_title: string
+        }
+        Returns: string
+      }
+      create_personal_reminder: {
+        Args: {
+          requested_administration_id: string | null
+          requested_description: string | null
+          requested_remind_at: string
+          requested_tenant_id: string
+          requested_title: string
+        }
+        Returns: string
+      }
       next_custom_field_value: {
         Args: { p_definition_id: string }
         Returns: number
@@ -2885,6 +3088,27 @@ export type Database = {
           requested_timeline: string
         }
         Returns: string
+      }
+      publish_reminder: {
+        Args: { requested_reminder_id: string }
+        Returns: number
+      }
+      update_personal_reminder: {
+        Args: {
+          requested_description: string | null
+          requested_remind_at: string
+          requested_reminder_id: string
+          requested_title: string
+        }
+        Returns: undefined
+      }
+      update_reminder_recipient: {
+        Args: {
+          requested_action: string
+          requested_recipient_id: string
+          requested_remind_at?: string | null
+        }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,6 +1,6 @@
 # Implementatiestatus Liquid HR
 
-Laatste controle: 2026-07-15.
+Laatste controle: 2026-07-16.
 
 ## Fundering
 
@@ -14,6 +14,8 @@ Laatste controle: 2026-07-15.
 | Persoonlijke thema's | GEÏMPLEMENTEERD | Zes thema's, instellingenmodal, DB-first voorkeuren en cookie/default-fallback |
 | Gedeelde databasetypes | GEÏMPLEMENTEERD | `packages/db/types.ts`; opnieuw genereren na iedere migratie |
 | Documentatierouting | GEÏMPLEMENTEERD | Root `AGENTS.md`, architectuurindex, deze status en verplichte `CURRENT_CONTEXT.md`-overdracht voor nieuwe/fork-chats |
+
+| Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef, advisor-run en CLI-typegeneratie moeten nog met gekoppelde Supabase CLI worden herhaald. |
 
 ## Core HR, organisatie en autorisatie
 
@@ -57,6 +59,7 @@ Laatste controle: 2026-07-15.
 
 ## Security en handmatige productieconfiguratie
 
+- Tijdhub/reminders: de drie migraties `20260716081000_add_time_hub_reminders.sql`, `20260716090000_fix_reminder_recipient_rls_recursion.sql` en `20260716092000_fix_reminder_publish_auth_lookup.sql` zijn live toegepast. Een RLS-recursie in de recipient-selectie en een niet-toegestane `auth.users`-lookup in publicatie zijn daarmee hersteld.
 - Alle nieuwe publieke tabellen hebben RLS en policies in dezelfde migratie. Tenant- en administratiescope wordt zowel in de servicelaag als database-side afgedwongen.
 - RLS-policyhelpers voor medewerkerssubresources en vrije veldwaarden hebben expliciete `EXECUTE`-rechten voor `authenticated`; dit is live hersteld in migratie `20260715173629_restore_employee_subresource_grants.sql` en met een regressiecontrole afgedekt.
 - Supabase security advisor meldt alleen dat leaked-password protection nog uitstaat. Dit moet handmatig worden ingeschakeld onder **Authentication → Providers/Password → Leaked password protection**.
@@ -68,6 +71,7 @@ Laatste controle: 2026-07-15.
 
 ## Verificatiebewijs
 
+- Tijdhub/reminders zijn lokaal op poort 3000 in een ingelogde browsersessie geverifieerd: persoonlijke reminder aanmaken/afronden, HR-reminder voor iedereen publiceren, sidebar-badge en countdown, en annuleren. De weergave is ook op 390px gecontroleerd zonder horizontale overflow.
 - De detailpagina van Edwin Testbeheerder is na de RLS-herstelmigratie lokaal op poort 3000 succesvol geladen; adres-, relatie- en vrije-veldqueries geven geen 403 meer.
 - Vitest: 26 testbestanden, 121 tests geslaagd.
 - ESLint zonder waarschuwingen, strict TypeScript, 11 NL/EN-namespaces en Next.js-productiebuild (26 pagina's) geslaagd.

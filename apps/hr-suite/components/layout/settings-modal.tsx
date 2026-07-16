@@ -8,6 +8,7 @@ import {
   type PreferencesActionState,
 } from '@/app/actions/update-user-preferences'
 import { ANALOG_CLOCK_STYLES, UI_THEMES, type UserPreferences } from '@/lib/preferences/user-preferences'
+import { Clock } from '@/components/layout/clock'
 
 type UiTheme = (typeof UI_THEMES)[number]
 const initialPreferencesActionState: PreferencesActionState = { code: 'idle' }
@@ -32,6 +33,9 @@ export interface SettingsModalLabels {
   classic: string
   minimal: string
   liquid: string
+  appearanceTab: string
+  timeHubTab: string
+  clockPreview: string
   save: string
   cancel: string
   saving: string
@@ -65,6 +69,7 @@ export function SettingsModal({
   const [theme, setTheme] = useState<UiTheme>(preferences.theme)
   const [clockMode, setClockMode] = useState(preferences.clockMode)
   const [analogClockStyle, setAnalogClockStyle] = useState(preferences.analogClockStyle)
+  const [activeTab, setActiveTab] = useState<'appearance' | 'timeHub'>('appearance')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -147,6 +152,11 @@ export function SettingsModal({
           </header>
 
           <div className="overflow-y-auto px-5 py-6 sm:px-7">
+            <div aria-label={labels.title} className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-muted p-1" role="tablist">
+              <button aria-selected={activeTab === 'appearance'} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === 'appearance' ? 'bg-surface shadow-sm' : 'text-muted-foreground'}`} onClick={() => setActiveTab('appearance')} role="tab" type="button">{labels.appearanceTab}</button>
+              <button aria-selected={activeTab === 'timeHub'} className={`rounded-lg px-3 py-2 text-sm font-semibold ${activeTab === 'timeHub' ? 'bg-surface shadow-sm' : 'text-muted-foreground'}`} onClick={() => setActiveTab('timeHub')} role="tab" type="button">{labels.timeHubTab}</button>
+            </div>
+            <div hidden={activeTab !== 'appearance'}>
             <fieldset>
               <legend className="text-sm font-semibold text-foreground">{labels.language}</legend>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.languageHelp}</p>
@@ -213,8 +223,9 @@ export function SettingsModal({
                 })}
               </div>
             </fieldset>
+            </div>
 
-            <fieldset className="mt-7">
+            <fieldset hidden={activeTab !== 'timeHub'}>
               <legend className="text-sm font-semibold text-foreground">{labels.clock}</legend>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.clockHelp}</p>
               <div className="mt-3 grid grid-cols-3 gap-3">
@@ -235,6 +246,9 @@ export function SettingsModal({
                   </select>
                 </div>
               ) : null}
+              <div className="mt-5 flex min-h-24 items-center justify-center rounded-xl border bg-sidebar p-4 text-sidebar-foreground">
+                <div className="text-center"><span className="mb-3 block text-xs font-semibold text-sidebar-muted">{labels.clockPreview}</span><Clock mode={clockMode} style={analogClockStyle} /></div>
+              </div>
             </fieldset>
 
             {feedback ? (
