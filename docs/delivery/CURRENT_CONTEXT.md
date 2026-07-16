@@ -21,6 +21,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - Handmatige externe acties staan centraal in `docs/delivery/HANDMATIGE_ACTIES.md`. Het centrale applicatieversienummer staat in `apps/hr-suite/lib/app-version.ts` en is nu `1.20260716.2`.
 - Organogram is gebouwd als beveiligde, read-only verkenner zonder drag-and-drop. HeRa heeft een leidende requirement, RLS-migratie, Gemini-adapter, veilige persoonlijke reminderconcepten, API-laag en navigatie; de UI-slice en live databaseverificatie lopen nog.
 - Tijdhub: iedere zichtbare sidebar-reminder opent een toegankelijke Liquid-detailkaart met type, tijd, acties en een link naar Reminderbeheer. De OrgChart-link staat voorlopig plat en altijd zichtbaar in de linkerbalk; de route houdt zijn server-side autorisatie.
+- Persoonlijke Liquid Dashboard is gebouwd als startpagina: meerdere eigen dashboards, naam/dupliceren/verwijderen/wisselen, expliciet opslaan van toegankelijke widgetvolgorde en vier gesloten widgets. Vrije Liquid Display-query's en generatieve widgets zijn bewust nog niet aanwezig.
 
 De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPLEMENTATION_STATUS.md`.
 

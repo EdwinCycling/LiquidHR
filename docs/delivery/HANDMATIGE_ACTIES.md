@@ -130,7 +130,13 @@ Meld je in een normale browser aan en voer uit:
 4. Klik **Reminderbeheer** en controleer dat de juiste reminder op de overzichtspagina zichtbaar is.
 5. Open HeRa, maak een gesprek, exporteer het gesprek en verwijder het daarna. Bevestig alleen een reminderconcept dat je zelf hebt gecontroleerd.
 6. Test dezelfde flow op mobiele breedte (ongeveer 390 px); controleer dat de popup geen horizontale scroll heeft en de acties onder elkaar kunnen staan.
-7. Geef per punt `geslaagd` of de exacte foutmelding/URL door. Dan kan ik gericht eventuele laatste fouten herstellen.
+7. Open daarna **Dashboard** als eerste item in de linkerbalk. Controleer dat dit ook de startpagina is wanneer je de applicatie opnieuw opent.
+8. Maak een nieuw dashboard, geef het een herkenbare naam, wissel erheen en vernieuw de browser. Controleer dat je keuze behouden blijft.
+9. Kies **Bewerken**, verwijder één widget, verplaats een andere met Omhoog/Omlaag en kies eerst **Annuleren**. Controleer dat de oorspronkelijke indeling terugkomt.
+10. Herhaal de wijziging en kies **Opslaan**. Vernieuw de pagina en controleer dat de nieuwe indeling behouden blijft.
+11. Dupliceer het dashboard, controleer dat de kopie een eigen naam en dezelfde widgets heeft, en verwijder daarna uitsluitend de kopie. Het oorspronkelijke dashboard moet blijven bestaan.
+12. Controleer op ongeveer 390 px breedte dat Dashboard, HeRa, OrgChart en Reminderbeheer bereikbaar blijven en dat geen horizontale scroll ontstaat.
+13. Geef per punt `geslaagd` of de exacte foutmelding/URL door. Dan kan ik gericht eventuele laatste fouten herstellen.
 
 ## Nu nodig om volledige verificatie en deployment af te ronden
 
