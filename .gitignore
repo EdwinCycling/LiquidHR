@@ -6,6 +6,7 @@ node_modules/
 .env.local
 .env.*.local
 .vercel/
+.worktrees/
 *.log
 *.tsbuildinfo
 supabase/.temp/
