@@ -73,4 +73,4 @@ Deel daarna alleen de GitHub-accountnaam, nooit een token.
 
 ## Versienummer
 
-Het centrale versienummer staat in `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. Huidige versie: `1.20260716.2`.
+Het centrale versienummer staat in `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. Huidige versie: `1.20260716.3`.
