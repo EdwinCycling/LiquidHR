@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   Users,
   X,
 } from 'lucide-react'
@@ -34,6 +35,7 @@ interface SidebarLabels {
   appName: string
   version: string
   departments: string
+  hera: string
   organizationChart: string
   employees: string
   authorization: string
@@ -91,6 +93,7 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const links = [
+    { href: '/hera', label: labels.hera, icon: Sparkles, visible: true },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/departments', label: labels.departments, icon: Building2, visible: canReadDepartments },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart },

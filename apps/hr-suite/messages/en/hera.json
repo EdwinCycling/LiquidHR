@@ -1,0 +1,20 @@
+{
+  "title": "HeRa",
+  "subtitle": "Your personal HR partner",
+  "newConversation": "New conversation",
+  "emptyTitle": "How can I help?",
+  "emptyDescription": "Ask HeRa for an explanation, your own reminders, or a safe proposal.",
+  "composerPlaceholder": "Ask HeRa a question…",
+  "send": "Send",
+  "sending": "HeRa is thinking…",
+  "deleteConversation": "Delete conversation",
+  "exportConversation": "Export conversation",
+  "renameConversation": "Rename conversation",
+  "memoryConsent": "May HeRa remember this for future conversations?",
+  "saveMemory": "Remember",
+  "cancel": "Cancel",
+  "confirmDraft": "Confirm reminder",
+  "draftExpires": "This draft expires after 15 minutes.",
+  "error": "HeRa cannot answer right now. Please try again shortly.",
+  "noConversations": "No conversations yet"
+}

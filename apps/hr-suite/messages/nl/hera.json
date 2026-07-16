@@ -1,0 +1,20 @@
+{
+  "title": "HeRa",
+  "subtitle": "Je persoonlijke HR-partner",
+  "newConversation": "Nieuw gesprek",
+  "emptyTitle": "Waarmee kan ik je helpen?",
+  "emptyDescription": "Vraag HeRa om uitleg, je eigen reminders of een veilig voorstel.",
+  "composerPlaceholder": "Stel je vraag aan HeRa…",
+  "send": "Versturen",
+  "sending": "HeRa denkt mee…",
+  "deleteConversation": "Gesprek verwijderen",
+  "exportConversation": "Gesprek exporteren",
+  "renameConversation": "Gesprek hernoemen",
+  "memoryConsent": "Mag HeRa dit voor volgende gesprekken onthouden?",
+  "saveMemory": "Onthouden",
+  "cancel": "Annuleren",
+  "confirmDraft": "Bevestig reminder",
+  "draftExpires": "Dit concept verloopt na 15 minuten.",
+  "error": "HeRa kan nu niet antwoorden. Probeer het zo opnieuw.",
+  "noConversations": "Nog geen gesprekken"
+}
