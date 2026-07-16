@@ -3,5 +3,5 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "buildCommand": "npm run build --workspace @liquid-hr/hr-suite",
-  "outputDirectory": "apps/hr-suite/.next"
+  "outputDirectory": ".next"
 }

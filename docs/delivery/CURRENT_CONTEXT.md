@@ -35,15 +35,16 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 - Tijdhub/reminders: persoonlijke reminder aanmaken/afronden, HR-publicatie voor iedereen, sidebar-badge/countdown en annuleren zijn in een ingelogde browser op localhost:3000 geslaagd. De 390px-weergave heeft geen horizontale overflow.
 - Productiebuild draait lokaal op `http://localhost:3000`; de loginpagina laadt desktop en op 390px zonder consolefouten. De publieke ngrok-preview is na de eenmalige waarschuwing bereikbaar. De beschermde detailroute kon zonder geldige browsersessie niet visueel end-to-end worden geopend.
 - De laatst gebruikte ngrok-URL was `https://unmerited-diuretically-angeline.ngrok-free.dev`; dit is tijdelijk en moet bij hervatten opnieuw worden gecontroleerd.
-- Vercel is nog niet gekoppeld; de Vercel CLI is beschikbaar maar de CLI-sessie is niet ingelogd.
+- Supabase-plugin is verbonden met project `wnpfloqpjvaacobppbpk` (`LiquidHR`, `ACTIVE_HEALTHY`). De app-runtime en pluginverbinding werken; een lokale CLI-login is hiervoor niet vereist.
+- Vercel-plugin is verbonden met project `liquid-hr-hr-suite`. De eerste productiebuild compileerde volledig maar faalde door een dubbel outputpad; `vercel.json` gebruikt nu `.next` passend bij Vercels Root Directory `apps/hr-suite`.
 
 Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale validatie altijd geforceerd op poort 3000 en test relevante flows ook in een echte browser op mobiel formaat.
 
 ## Eerstvolgend open werk
 
-0. Herhaal voor reminders de transactionele databaseproef, Supabase advisors en typegeneratie zodra de Supabase CLI aan het project is gekoppeld.
+0. Herhaal voor reminders de transactionele databaseproef; advisors en typegeneratie zijn via de Supabase-plugin beschikbaar.
 
-0a. Pas `20260716092637_add_hera_ai_agent.sql` toe, voer `supabase/tests/hera_ai_agent.sql`, advisors en typegeneratie uit zodra Docker of de remote CLI-link beschikbaar is. Configureer `GEMINI_KEY` en `GEMINI_MODEL` server-only in iedere deployomgeving; de vrije Gemini-tier is uitsluitend voor testdata.
+0a. Voer `supabase/tests/hera_ai_agent.sql` uit. De HeRa-, gecombineerde dienstverband-, OrgChart- en dashboardmigraties zijn via de Supabase-plugin live toegepast. Configureer `GEMINI_KEY` en `GEMINI_MODEL` server-only in iedere deployomgeving; de vrije Gemini-tier is uitsluitend voor testdata.
 
 1. Maak `direct meenemen` werkelijk één multi-domein, atomair wijzigingspakket; `later opvolgen` wordt al opgeslagen.
 2. Voeg mutatieformulieren op de detailroute toe voor basis/IKV en organisatieplaatsing; deze tabs lezen nu wel alle tijdblokken.
@@ -53,8 +54,8 @@ Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale val
 
 ## Actuele externe blokkades
 
-- Supabase: start Docker Desktop en `npx supabase start` vanuit `apps/hr-suite`, of link de CLI met het bestaande remote project via `npx supabase link --project-ref <project-ref>`; daarna dry-run en `npx supabase db push` uitvoeren.
-- Vercel: importeer `EdwinCycling/LiquidHR` als GitHub-project of login via `npx vercel login` en voer daarna `npx vercel link` uit. Gebruik de repositoryroot als monorepo-root; de bestaande `vercel.json` bevat de workspace-build.
+- Supabase: geen verbindingsblokkade. Alleen leaked-password protection blijft een handmatige dashboardinstelling.
+- Vercel: repository en plugin zijn gekoppeld. De gecorrigeerde `vercel.json` moet naar de production branch worden gepusht; daarna volgt automatisch een nieuwe deployment.
 
 ## Handmatige productieacties
 
