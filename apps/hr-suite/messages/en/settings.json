@@ -1,0 +1,42 @@
+{
+  "title": "Personal settings",
+  "subtitle": "Your preferences apply in every customer environment.",
+  "open": "Open personal settings",
+  "close": "Close personal settings",
+  "language": "Language",
+  "languageHelp": "The application is shown directly in the selected language.",
+  "dutch": "Dutch",
+  "english": "English",
+  "theme": "Theme",
+  "themeHelp": "Choose an appearance that feels comfortable on your screen.",
+  "clock": "Clock",
+  "clockHelp": "Choose how the clock appears in your Time Hub.",
+  "analog": "Analog",
+  "digital": "Digital",
+  "hidden": "Hidden",
+  "clockStyle": "Analog style",
+  "classic": "Classic",
+  "minimal": "Minimal",
+  "liquid": "Liquid",
+  "saving": "Saving settings…",
+  "saved": "Settings saved.",
+  "saveFailed": "Could not save your settings.",
+  "invalid": "Check your language and theme selection.",
+  "unauthenticated": "Sign in again to save your settings.",
+  "themes": {
+    "liquid-navy": "Liquid Navy",
+    "noordzee": "North Sea",
+    "bos": "Forest",
+    "warm-zand": "Warm Sand",
+    "aubergine": "Aubergine",
+    "nacht": "Night"
+  },
+  "themeDescriptions": {
+    "liquid-navy": "Clear navy blue with a calm, bright workspace.",
+    "noordzee": "Cool blue-green with fresh maritime accents.",
+    "bos": "Deep green with natural, calm contrasts.",
+    "warm-zand": "Warm neutral tones for a soft workspace.",
+    "aubergine": "Refined purple with warm, professional depth.",
+    "nacht": "A complete dark theme for low-light environments."
+  }
+}

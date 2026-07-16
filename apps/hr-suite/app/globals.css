@@ -1,0 +1,391 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-focus: var(--focus);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-destructive: var(--destructive);
+  --color-destructive-surface: var(--destructive-surface);
+  --color-danger: var(--destructive);
+  --color-info: var(--accent-foreground);
+  --color-warning-foreground: var(--warning);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-2xl: calc(var(--radius) + 0.5rem);
+}
+
+:root,
+[data-theme="liquid-navy"] {
+  --background: #f3f5f9;
+  --foreground: #10203d;
+  --surface: #ffffff;
+  --surface-raised: #f9fbff;
+  --muted: #edf1f7;
+  --muted-foreground: #5a6780;
+  --primary: #14264a;
+  --primary-hover: #1e3768;
+  --primary-foreground: #f9fbff;
+  --accent: #e8effc;
+  --accent-foreground: #2453ba;
+  --border: #dfe5ef;
+  --focus: #3976df;
+  --success: #167154;
+  --success-surface: #e6f5ef;
+  --warning: #8a5a0a;
+  --warning-surface: #fff4d8;
+  --destructive: #b2333f;
+  --destructive-surface: #fcebed;
+  --sidebar: #091a38;
+  --sidebar-foreground: #f7f9fd;
+  --sidebar-muted: #aebbd0;
+  --sidebar-accent: #173867;
+  --sidebar-border: #29466f;
+  --liquid-light: #5b8ee8;
+  --liquid-soft: #bcd4ff;
+  --chart-1: #2e65c7;
+  --chart-2: #0b8a9c;
+  --chart-3: #279064;
+  --chart-4: #d08a18;
+  --chart-5: #c14959;
+  --radius: 0.75rem;
+}
+
+[data-theme="noordzee"] {
+  --background: #eef6f6;
+  --foreground: #102f36;
+  --surface: #fbfefe;
+  --surface-raised: #f4fbfb;
+  --muted: #dfedee;
+  --muted-foreground: #4e6c71;
+  --primary: #0f5661;
+  --primary-hover: #0a6976;
+  --primary-foreground: #f7ffff;
+  --accent: #d9eff0;
+  --accent-foreground: #08798a;
+  --border: #cee1e3;
+  --focus: #0b8798;
+  --success: #177052;
+  --success-surface: #e1f3eb;
+  --warning: #855c10;
+  --warning-surface: #fcf1d7;
+  --destructive: #ad3b47;
+  --destructive-surface: #f8e7e9;
+  --sidebar: #0b343c;
+  --sidebar-foreground: #f3ffff;
+  --sidebar-muted: #abd0d3;
+  --sidebar-accent: #145663;
+  --sidebar-border: #28717a;
+  --liquid-light: #31a7b6;
+  --liquid-soft: #a9e0e4;
+  --chart-1: #0b8798;
+  --chart-2: #16726f;
+  --chart-3: #4f9671;
+  --chart-4: #c38b28;
+  --chart-5: #ba5664;
+}
+
+[data-theme="bos"] {
+  --background: #f1f5ef;
+  --foreground: #1d3024;
+  --surface: #fcfefb;
+  --surface-raised: #f6faf4;
+  --muted: #e3ece0;
+  --muted-foreground: #5d6f62;
+  --primary: #23543a;
+  --primary-hover: #2d6848;
+  --primary-foreground: #f8fff9;
+  --accent: #e0eee2;
+  --accent-foreground: #2d724d;
+  --border: #d5e0d2;
+  --focus: #3b7f59;
+  --success: #24714a;
+  --success-surface: #e2f2e8;
+  --warning: #805e16;
+  --warning-surface: #f9f0d8;
+  --destructive: #a73e44;
+  --destructive-surface: #f8e8e8;
+  --sidebar: #153824;
+  --sidebar-foreground: #f6fff8;
+  --sidebar-muted: #b2cbb9;
+  --sidebar-accent: #28543a;
+  --sidebar-border: #3b694c;
+  --liquid-light: #66a57a;
+  --liquid-soft: #c1ddc7;
+  --chart-1: #2f7750;
+  --chart-2: #5a8e4e;
+  --chart-3: #0d8580;
+  --chart-4: #bd8c2e;
+  --chart-5: #b14d58;
+}
+
+[data-theme="warm-zand"] {
+  --background: #f7f2e9;
+  --foreground: #3b2d22;
+  --surface: #fffdf8;
+  --surface-raised: #fbf7ef;
+  --muted: #eee4d5;
+  --muted-foreground: #766454;
+  --primary: #704b32;
+  --primary-hover: #875a3a;
+  --primary-foreground: #fffaf3;
+  --accent: #f2e4cf;
+  --accent-foreground: #955d27;
+  --border: #e5d8c7;
+  --focus: #a56932;
+  --success: #3d7454;
+  --success-surface: #e7f2e9;
+  --warning: #8d5d13;
+  --warning-surface: #fff0ce;
+  --destructive: #ae4141;
+  --destructive-surface: #fae9e5;
+  --sidebar: #493122;
+  --sidebar-foreground: #fffaf2;
+  --sidebar-muted: #d9c4af;
+  --sidebar-accent: #684833;
+  --sidebar-border: #805e47;
+  --liquid-light: #c68d59;
+  --liquid-soft: #ead1ad;
+  --chart-1: #a66732;
+  --chart-2: #8b7b3c;
+  --chart-3: #4d8064;
+  --chart-4: #c0872d;
+  --chart-5: #b55254;
+}
+
+[data-theme="aubergine"] {
+  --background: #f6f1f6;
+  --foreground: #37233b;
+  --surface: #fffafe;
+  --surface-raised: #fbf6fb;
+  --muted: #ece1ed;
+  --muted-foreground: #746078;
+  --primary: #5b315f;
+  --primary-hover: #704076;
+  --primary-foreground: #fff8ff;
+  --accent: #efdfef;
+  --accent-foreground: #7d4382;
+  --border: #e3d6e4;
+  --focus: #8a4c90;
+  --success: #387357;
+  --success-surface: #e4f2e9;
+  --warning: #85600f;
+  --warning-surface: #faf0d3;
+  --destructive: #ad3b50;
+  --destructive-surface: #f9e6ea;
+  --sidebar: #3e2145;
+  --sidebar-foreground: #fff8ff;
+  --sidebar-muted: #d6bad9;
+  --sidebar-accent: #5e3665;
+  --sidebar-border: #754b7c;
+  --liquid-light: #a568aa;
+  --liquid-soft: #dfbce1;
+  --chart-1: #86508c;
+  --chart-2: #4f759b;
+  --chart-3: #4b8568;
+  --chart-4: #bd842b;
+  --chart-5: #bd4f67;
+}
+
+[data-theme="nacht"] {
+  color-scheme: dark;
+  --background: #0c1423;
+  --foreground: #e9eef8;
+  --surface: #121d30;
+  --surface-raised: #18253b;
+  --muted: #1c2a42;
+  --muted-foreground: #aebbd0;
+  --primary: #7ea8f0;
+  --primary-hover: #9abbf4;
+  --primary-foreground: #0a1730;
+  --accent: #1a3359;
+  --accent-foreground: #a9c7ff;
+  --border: #2a3952;
+  --focus: #8cb5ff;
+  --success: #74c6a2;
+  --success-surface: #17372f;
+  --warning: #e2bd69;
+  --warning-surface: #392f1b;
+  --destructive: #ef8791;
+  --destructive-surface: #41232b;
+  --sidebar: #07101d;
+  --sidebar-foreground: #eff5ff;
+  --sidebar-muted: #9eacc2;
+  --sidebar-accent: #152d4f;
+  --sidebar-border: #29405f;
+  --liquid-light: #4f7ac3;
+  --liquid-soft: #274c83;
+  --chart-1: #7ea8f0;
+  --chart-2: #5bc0c9;
+  --chart-3: #72c99b;
+  --chart-4: #e1b45b;
+  --chart-5: #e57b88;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-width: 20rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Segoe UI Variable", "Aptos", ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 0.1875rem solid var(--focus);
+  outline-offset: 0.1875rem;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.liquid-auth-visual {
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 15%, color-mix(in srgb, var(--liquid-light) 52%, transparent), transparent 35%),
+    radial-gradient(circle at 90% 85%, color-mix(in srgb, var(--liquid-soft) 30%, transparent), transparent 44%),
+    linear-gradient(145deg, var(--sidebar), var(--primary));
+}
+
+.liquid-auth-visual::before,
+.liquid-auth-visual::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  border: 1px solid color-mix(in srgb, var(--primary-foreground) 22%, transparent);
+  background: color-mix(in srgb, var(--liquid-light) 18%, transparent);
+  box-shadow:
+    inset 0 0 4rem color-mix(in srgb, var(--primary-foreground) 8%, transparent),
+    0 2rem 5rem color-mix(in srgb, var(--sidebar) 45%, transparent);
+  backdrop-filter: blur(1.5rem);
+  transform: rotate(-17deg);
+}
+
+.liquid-auth-visual::before {
+  width: 25rem;
+  height: 34rem;
+  right: -8rem;
+  top: -5rem;
+  border-radius: 44% 56% 68% 32% / 38% 41% 59% 62%;
+  animation: liquid-drift 16s ease-in-out infinite alternate;
+}
+
+.liquid-auth-visual::after {
+  width: 18rem;
+  height: 16rem;
+  left: -6rem;
+  bottom: -6rem;
+  border-radius: 63% 37% 46% 54% / 54% 63% 37% 46%;
+  animation: liquid-drift 21s ease-in-out -7s infinite alternate-reverse;
+}
+
+.liquid-panel-shadow {
+  box-shadow: 0 1.5rem 4.5rem color-mix(in srgb, var(--primary) 13%, transparent);
+}
+
+.settings-dialog::backdrop {
+  background: color-mix(in srgb, var(--sidebar) 68%, transparent);
+  backdrop-filter: blur(0.25rem);
+}
+
+.department-tree-line {
+  background: linear-gradient(var(--border), color-mix(in srgb, var(--border) 12%, transparent));
+}
+
+@layer components {
+  .form-field {
+    @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground hover:border-primary/40 focus:border-primary focus:outline-none;
+  }
+
+  .button-primary,
+  .button-secondary,
+  .button-danger {
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .button-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary-hover;
+  }
+
+  .button-secondary {
+    @apply border bg-surface text-foreground hover:bg-accent;
+  }
+
+  .button-danger {
+    @apply bg-destructive text-primary-foreground hover:opacity-90;
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.16em] text-primary;
+  }
+
+  .status-chip,
+  .filter-chip {
+    @apply inline-flex items-center whitespace-nowrap rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground;
+  }
+
+  .filter-chip {
+    @apply border bg-surface px-3 py-2 hover:bg-accent;
+  }
+
+  .filter-chip-active {
+    @apply border-primary bg-primary text-primary-foreground;
+  }
+}
+
+@keyframes liquid-drift {
+  from { transform: rotate(-17deg) translate3d(0, 0, 0) scale(1); }
+  to { transform: rotate(-10deg) translate3d(-1.5rem, 1.25rem, 0) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

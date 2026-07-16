@@ -1,0 +1,19 @@
+{
+  "overview": "Overview",
+  "employees": "Employees",
+  "departments": "Departments",
+  "authorization": "Roles and permissions",
+  "customFields": "Custom fields",
+  "employment": "Employments",
+  "settings": "Settings",
+  "administration": "Administration",
+  "navigation": "Navigation",
+  "openMenu": "Open navigation",
+  "closeMenu": "Close navigation",
+  "collapse": "Collapse navigation",
+  "expand": "Expand navigation",
+  "switchingAdministration": "Switching administration…",
+  "switchAdministrationFailed": "Could not switch administration.",
+  "customerEnvironment": "Customer environment"
+  ,"timeHub": "Time Hub"
+}

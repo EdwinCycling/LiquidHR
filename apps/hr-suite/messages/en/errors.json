@@ -1,0 +1,6 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "unauthorized": "You do not have access to this action.",
+  "configuration": "This feature has not been fully configured yet.",
+  "notFound": "The requested data could not be found."
+}

@@ -1,0 +1,13 @@
+{
+  "eyebrow": "Organisation",
+  "title": "Departments",
+  "subtitle": "View the organisational structure of the selected administration.",
+  "empty": "No departments have been configured yet.",
+  "administration": "Active administration",
+  "structure": "Organisation structure",
+  "count": "{count} departments",
+  "code": "Code {code}",
+  "expand": "Show child departments of {name}",
+  "active": "Active",
+  "inactive": "Inactive"
+}

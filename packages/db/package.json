@@ -1,0 +1,9 @@
+{
+  "name": "@scope/db",
+  "version": "0.1.0",
+  "private": true,
+  "types": "./types.ts",
+  "exports": {
+    ".": "./types.ts"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "title": "Persoonlijke instellingen",
+  "subtitle": "Je voorkeuren gelden in iedere klantomgeving.",
+  "open": "Open persoonlijke instellingen",
+  "close": "Sluit persoonlijke instellingen",
+  "language": "Taal",
+  "languageHelp": "De applicatie wordt direct in de gekozen taal weergegeven.",
+  "dutch": "Nederlands",
+  "english": "Engels",
+  "theme": "Thema",
+  "themeHelp": "Kies een uitstraling die prettig werkt op jouw scherm.",
+  "clock": "Klok",
+  "clockHelp": "Kies hoe de klok in je Tijdhub wordt weergegeven.",
+  "analog": "Analoog",
+  "digital": "Digitaal",
+  "hidden": "Verborgen",
+  "clockStyle": "Analoge stijl",
+  "classic": "Klassiek",
+  "minimal": "Minimaal",
+  "liquid": "Liquid",
+  "saving": "Instellingen opslaan…",
+  "saved": "Instellingen opgeslagen.",
+  "saveFailed": "Opslaan is niet gelukt.",
+  "invalid": "Controleer je taal- en themakeuze.",
+  "unauthenticated": "Log opnieuw in om je instellingen op te slaan.",
+  "themes": {
+    "liquid-navy": "Liquid Navy",
+    "noordzee": "Noordzee",
+    "bos": "Bos",
+    "warm-zand": "Warm Zand",
+    "aubergine": "Aubergine",
+    "nacht": "Nacht"
+  },
+  "themeDescriptions": {
+    "liquid-navy": "Helder marineblauw met een rustige lichte werkruimte.",
+    "noordzee": "Koel blauwgroen met frisse maritieme accenten.",
+    "bos": "Diep groen met natuurlijke, rustige contrasten.",
+    "warm-zand": "Warme neutrale tinten voor een zachte werkomgeving.",
+    "aubergine": "Verfijnd paars met warme, zakelijke diepte.",
+    "nacht": "Een volwaardig donker thema voor weinig omgevingslicht."
+  }
+}

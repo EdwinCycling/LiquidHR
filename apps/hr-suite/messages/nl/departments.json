@@ -1,0 +1,13 @@
+{
+  "eyebrow": "Organisatie",
+  "title": "Afdelingen",
+  "subtitle": "Bekijk de organisatiestructuur van de geselecteerde administratie.",
+  "empty": "Er zijn nog geen afdelingen ingericht.",
+  "administration": "Actieve administratie",
+  "structure": "Organisatiestructuur",
+  "count": "{count} afdelingen",
+  "code": "Code {code}",
+  "expand": "Toon onderliggende afdelingen van {name}",
+  "active": "Actief",
+  "inactive": "Inactief"
+}

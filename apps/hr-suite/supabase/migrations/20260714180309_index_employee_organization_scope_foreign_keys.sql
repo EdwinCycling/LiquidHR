@@ -1,0 +1,8 @@
+create index employee_organizations_tenant_administration_department_idx
+on public.employee_organizations (tenant_id, administration_id, department_id);
+
+create index employee_organizations_tenant_direct_manager_idx
+on public.employee_organizations (tenant_id, direct_manager_id);
+
+create index employee_organizations_tenant_direct_manager_deputy_idx
+on public.employee_organizations (tenant_id, direct_manager_deputy_id);

@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+.playwright-cli/
+.agents/
+.next/
+.env.local
+.env.*.local
+.vercel/
+*.log
+*.tsbuildinfo
+supabase/.temp/
+.superpowers/

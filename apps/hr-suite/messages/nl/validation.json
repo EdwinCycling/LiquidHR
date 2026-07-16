@@ -1,0 +1,6 @@
+{
+  "required": "Dit veld is verplicht.",
+  "email": "Vul een geldig e-mailadres in.",
+  "passwordLength": "Gebruik minimaal 12 tekens.",
+  "invalidDateRange": "De einddatum mag niet vóór de startdatum liggen."
+}

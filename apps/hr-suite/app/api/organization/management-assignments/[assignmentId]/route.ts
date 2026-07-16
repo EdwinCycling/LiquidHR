@@ -1,0 +1,5 @@
+import { NextResponse } from 'next/server'
+import { permissionErrorResponse } from '@/lib/auth/permissions'
+import { OrganizationServiceError, updateManagementAssignment } from '@/lib/organization/management-service'
+import { managementAssignmentUpdateSchema } from '@/lib/organization/schemas'
+export async function PATCH(request: Request, { params }: { params: Promise<{ assignmentId: string }> }): Promise<NextResponse> { try { const input = managementAssignmentUpdateSchema.safeParse(await request.json()); if (!input.success) return NextResponse.json({ error: 'MANAGEMENT_ASSIGNMENT_INPUT_INVALID' }, { status: 400 }); await updateManagementAssignment((await params).assignmentId, input.data); return NextResponse.json({ data: { updated: true } }) } catch (error) { const permission = permissionErrorResponse(error); if (permission) return permission; if (error instanceof OrganizationServiceError) return NextResponse.json({ error: error.code }, { status: error.status }); return NextResponse.json({ error: 'MANAGEMENT_ASSIGNMENT_UPDATE_FAILED' }, { status: 500 }) } }

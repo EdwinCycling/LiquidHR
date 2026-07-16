@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build --workspace @liquid-hr/hr-suite",
+  "outputDirectory": "apps/hr-suite/.next"
+}

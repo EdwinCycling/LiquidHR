@@ -1,0 +1,8 @@
+import { CustomFieldManager } from '@/components/custom-fields/custom-field-manager'
+import { listCustomFieldDefinitions } from '@/lib/custom-fields/service'
+import { getTranslator } from '@/lib/i18n/server'
+
+export default async function CustomFieldsPage() {
+  const [definitions, t] = await Promise.all([listCustomFieldDefinitions(), getTranslator('customFields')])
+  return <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10 lg:px-10"><header className="mb-7 border-b pb-7"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">{t('eyebrow')}</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">{t('title')}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{t('subtitle')}</p></header><CustomFieldManager definitions={definitions} labels={{ newField: t('newField'), technicalKey: t('technicalKey'), labelNl: t('labelNl'), labelEn: t('labelEn'), fieldType: t('fieldType'), required: t('required'), hrAccess: t('hrAccess'), managerAccess: t('managerAccess'), selfAccess: t('selfAccess'), options: t('options'), create: t('create'), creating: t('creating'), empty: t('empty'), created: t('created'), failed: t('failed'), active: t('active'), inactive: t('inactive'), types: { TEXT: t('types.TEXT'), TEXTAREA: t('types.TEXTAREA'), NUMBER: t('types.NUMBER'), DATE: t('types.DATE'), BOOLEAN: t('types.BOOLEAN'), SELECT: t('types.SELECT'), MULTI_SELECT: t('types.MULTI_SELECT'), AUTO_INCREMENT: t('types.AUTO_INCREMENT') }, access: { HIDDEN: t('access.HIDDEN'), READ: t('access.READ'), WRITE: t('access.WRITE') } }} /></section>
+}
