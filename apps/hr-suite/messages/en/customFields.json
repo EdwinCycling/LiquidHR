@@ -8,6 +8,8 @@
   "labelEn": "English label",
   "fieldType": "Field type",
   "required": "Required",
+  "chartFilter": "Available in organization chart",
+  "chartFilterHelp": "Only expose this field as a filter when its contents are not sensitive.",
   "hrAccess": "HR access",
   "managerAccess": "Manager access",
   "selfAccess": "Employee access",

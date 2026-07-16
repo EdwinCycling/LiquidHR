@@ -5,6 +5,7 @@ import {
   Building2,
   LogOut,
   Menu,
+  Network,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
@@ -33,6 +34,7 @@ interface SidebarLabels {
   appName: string
   version: string
   departments: string
+  organizationChart: string
   employees: string
   authorization: string
   customFields: string
@@ -51,6 +53,7 @@ interface SidebarLabels {
 interface SidebarProps {
   email: string
   canReadDepartments: boolean
+  canReadOrganizationChart: boolean
   canReadEmployees: boolean
   canReadAuthorization: boolean
   canManageCustomFields: boolean
@@ -69,6 +72,7 @@ interface SidebarProps {
 export function Sidebar({
   email,
   canReadDepartments,
+  canReadOrganizationChart,
   canReadEmployees,
   canReadAuthorization,
   canManageCustomFields,
@@ -89,6 +93,7 @@ export function Sidebar({
   const links = [
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/departments', label: labels.departments, icon: Building2, visible: canReadDepartments },
+    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart },
     { href: '/authorization', label: labels.authorization, icon: ShieldCheck, visible: canReadAuthorization },
     { href: '/custom-fields', label: labels.customFields, icon: SlidersHorizontal, visible: canManageCustomFields },
   ]

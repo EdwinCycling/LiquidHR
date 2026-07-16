@@ -8,6 +8,8 @@
   "labelEn": "Engels label",
   "fieldType": "Veldtype",
   "required": "Verplicht",
+  "chartFilter": "Beschikbaar in organogram",
+  "chartFilterHelp": "Maak dit veld alleen beschikbaar als filter wanneer de inhoud niet gevoelig is.",
   "hrAccess": "HR-toegang",
   "managerAccess": "Manager-toegang",
   "selfAccess": "Medewerkertoegang",

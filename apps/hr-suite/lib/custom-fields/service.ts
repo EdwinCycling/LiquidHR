@@ -26,6 +26,7 @@ export interface CustomFieldDefinition {
   descriptionEn: string | null
   fieldType: DefinitionRow['field_type']
   isRequired: boolean
+  showInOrganizationChartFilter: boolean
   hrAccess: DefinitionRow['hr_access']
   managerAccess: DefinitionRow['manager_access']
   employeeSelfAccess: DefinitionRow['employee_self_access']
@@ -62,6 +63,7 @@ function toDefinition(row: DefinitionRow, options: OptionRow[]): CustomFieldDefi
     descriptionEn: row.description_en,
     fieldType: row.field_type,
     isRequired: row.is_required,
+    showInOrganizationChartFilter: row.show_in_organization_chart_filter,
     hrAccess: row.hr_access,
     managerAccess: row.manager_access,
     employeeSelfAccess: row.employee_self_access,
@@ -111,6 +113,7 @@ export async function createCustomFieldDefinition(
     description_en: input.descriptionEn ?? null,
     field_type: input.fieldType,
     is_required: input.isRequired,
+    show_in_organization_chart_filter: input.showInOrganizationChartFilter,
     hr_access: input.hrAccess,
     manager_access: input.managerAccess,
     employee_self_access: input.employeeSelfAccess,
@@ -156,6 +159,7 @@ export async function updateCustomFieldDefinition(
     description_nl: input.descriptionNl,
     description_en: input.descriptionEn,
     is_required: input.isRequired,
+    show_in_organization_chart_filter: input.showInOrganizationChartFilter,
     hr_access: input.hrAccess,
     manager_access: input.managerAccess,
     employee_self_access: input.employeeSelfAccess,

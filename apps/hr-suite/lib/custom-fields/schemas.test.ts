@@ -3,12 +3,14 @@ import { customFieldDefinitionSchema, customFieldValuesSchema } from './schemas'
 
 describe('vrije velden validatie', () => {
   it('accepteert een volledige definitie', () => {
-    expect(customFieldDefinitionSchema.safeParse({
+    const parsed = customFieldDefinitionSchema.safeParse({
       key: 'shirt_size', labelNl: 'Shirtmaat', labelEn: 'Shirt size',
       fieldType: 'SELECT', isRequired: true, hrAccess: 'WRITE',
       managerAccess: 'READ', employeeSelfAccess: 'WRITE', sortOrder: 10,
       options: [{ value: 'M', labelNl: 'Middel', labelEn: 'Medium', sortOrder: 1 }],
-    }).success).toBe(true)
+    })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) expect(parsed.data.showInOrganizationChartFilter).toBe(false)
   })
 
   it('weigert een onveilige technische sleutel', () => {
