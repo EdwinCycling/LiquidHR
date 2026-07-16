@@ -170,7 +170,7 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
     try {
       await request<{ data: unknown }>('/api/hera/memory', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ content: memoryMessage.content, category: 'WORKING_CONTEXT', sourceConversationId: detail.conversation.id }),
+        body: JSON.stringify({ content: memoryMessage.content, category: 'WORKING_CONTEXT', sourceConversationId: detail.conversation.id, explicitConsent: true }),
       })
       setMemoryMessage(null)
     } catch { setError(labels.error) }

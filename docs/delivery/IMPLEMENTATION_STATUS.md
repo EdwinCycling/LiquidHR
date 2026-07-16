@@ -16,6 +16,7 @@ Laatste controle: 2026-07-16.
 | Documentatierouting | GEÏMPLEMENTEERD | Root `AGENTS.md`, architectuurindex, deze status en verplichte `CURRENT_CONTEXT.md`-overdracht voor nieuwe/fork-chats |
 
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef, advisor-run en CLI-typegeneratie moeten nog met gekoppelde Supabase CLI worden herhaald. |
+| HeRa AI-agent | GEDEELTELIJK | Leidend requirementdocument, persoonlijke conversation-/memory-/draftschema's met RLS, Gemini-adapter, veilige leestools, reminderconceptbevestiging, export, API en navigatie zijn aanwezig. De migratie, RLS-proef, advisor/typegeneratie, browser-eindtest en productieprivacyconfiguratie wachten op gekoppelde Supabase en deploymentsecrets. |
 
 ## Core HR, organisatie en autorisatie
 

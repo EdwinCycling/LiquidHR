@@ -41,7 +41,7 @@ Kies één route.
    npx supabase link --project-ref wnpfloqpjvaacobppbpk
    ```
 
-3. Geef daarna in deze chat door dat de koppeling gelukt is. De reminder-migraties zijn al live toegepast; de agent voert dan databaseproeven, advisors en `supabase gen types` uit. Gebruik alleen een dry-run voordat nieuwe, nog niet toegepaste migraties worden gepusht.
+3. Geef daarna in deze chat door dat de koppeling gelukt is. De reminder- en HeRa-migraties moeten dan worden gecontroleerd; de agent voert databaseproeven, advisors en `supabase gen types` uit. Gebruik alleen een dry-run voordat nieuwe, nog niet toegepaste migraties worden gepusht.
 
 Gebruik `npx supabase db reset --linked` uitsluitend wanneer dit remote project aantoonbaar een wegwerp-testomgeving is: die opdracht verwijdert alle remote data.
 
@@ -59,6 +59,8 @@ Gebruik `npx supabase db reset --linked` uitsluitend wanneer dit remote project 
    BSN_HASH_KEY
    EMPLOYEE_PII_ENCRYPTION_KEY
    SUPABASE_SECRET_KEY
+   GEMINI_KEY
+   GEMINI_MODEL=gemini-3.1-flash-lite
    ```
 
 5. Zet `NEXT_PUBLIC_APP_URL` na de eerste deployment op de uiteindelijke Vercel-URL.
@@ -89,7 +91,7 @@ Voor de GitHub/Vercel-publicatie ontbreekt op deze werkplek nog externe aanmeldi
 
 Het versienummer staat centraal in `apps/hr-suite/lib/app-version.ts` en volgt altijd `X.datum.volgnummer`.
 
-- Huidige versie: `1.20260716.1`.
+- Huidige versie: `1.20260716.2`.
 - `X` wordt uitsluitend aangepast op expliciete opdracht van de opdrachtgever.
 - De datum is `JJJJMMDD`.
 - Het volgnummer start iedere dag op `1` en wordt diezelfde dag ophoogd bij een versie-update.
