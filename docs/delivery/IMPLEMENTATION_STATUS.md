@@ -17,7 +17,7 @@ Laatste controle: 2026-07-16.
 
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
 | Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
-| HeRa AI-agent | GEDEELTELIJK | Leidend requirementdocument, persoonlijke conversation-/memory-/draftschema's met RLS, Gemini-adapter, veilige leestools, reminderconceptbevestiging, export, API en navigatie zijn aanwezig. De browser-eindtest en productieprivacyconfiguratie blijven open; vastlopende clientrequests geven nu na een begrensde wachttijd een herstelbare fout. |
+| HeRa AI-agent | GEDEELTELIJK | Leidend requirementdocument, persoonlijke conversation-/memory-/draftschema's met RLS, Gemini-adapter, veilige leestools, reminderconceptbevestiging, export, API en navigatie zijn aanwezig. De lege-starttransitie en een echte lokale Gemini-vraag zijn browser-gevalideerd; productieprivacyconfiguratie en publieke eindtest blijven open. |
 
 ## Core HR, organisatie en autorisatie
 
@@ -76,7 +76,8 @@ Laatste controle: 2026-07-16.
 - Tijdhub/reminders zijn lokaal op poort 3000 in een ingelogde browsersessie geverifieerd: persoonlijke reminder aanmaken/afronden, HR-reminder voor iedereen publiceren, sidebar-badge en countdown, en annuleren. De weergave is ook op 390px gecontroleerd zonder horizontale overflow.
 - De eerder gemelde `POST /api/context/administration 400` is lokaal gereproduceerd en opgelost; de wissel naar de Operations-administratie gaf daarna `200` en de UI selecteerde de nieuwe context.
 - De detailpagina van Edwin Testbeheerder is na de RLS-herstelmigratie lokaal op poort 3000 succesvol geladen; adres-, relatie- en vrije-veldqueries geven geen 403 meer.
-- Vitest: 26 testbestanden, 121 tests geslaagd.
+- Vitest: 46 testbestanden, 181 tests geslaagd.
+- HeRa is lokaal browsermatig getest met een lege gesprekslijst, een nieuw gesprek en de vraag `Welke reminders heb ik?`; de API gaf `200`, HeRa antwoordde en het testgesprek is verwijderd.
 - ESLint zonder waarschuwingen, strict TypeScript, 11 NL/EN-namespaces en Next.js-productiebuild (26 pagina's) geslaagd.
 - Lokale productiebuild luistert op `http://localhost:3000` en blijft actief; login is desktop en op 390px zonder consolefouten gecontroleerd.
 - Login, herstel, uitnodiging en beschermde redirects zijn op desktop en 390px mobiel zonder consolefouten gecontroleerd.

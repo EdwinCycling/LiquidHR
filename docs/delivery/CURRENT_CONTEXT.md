@@ -19,7 +19,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - GitHub is lokaal geïnitialiseerd en de huidige werkstand staat op `https://github.com/EdwinCycling/LiquidHR.git`, branch `main`, commit `81bde2c`.
 - Tijdhub/reminders is als eerste slice live in Supabase: klokvoorkeuren, persoonlijke en HR-reminders, RLS, API-routes, Tijdhub, instellingen en NL/EN zijn gebouwd. De drie reminder-migraties zijn live toegepast; een RLS-recursie en een ongeldige `auth.users`-lookup in publicatie zijn hersteld.
 - Handmatige externe acties staan centraal in `docs/delivery/HANDMATIGE_ACTIES.md`. Het centrale applicatieversienummer staat in `apps/hr-suite/lib/app-version.ts` en is nu `1.20260716.3`.
-- Organogram is gebouwd als beveiligde, read-only verkenner zonder drag-and-drop. HeRa heeft een leidende requirement, RLS-migratie, Gemini-adapter, veilige persoonlijke reminderconcepten, API-laag en navigatie; de UI-slice en live databaseverificatie lopen nog.
+- Organogram is gebouwd als beveiligde, read-only verkenner zonder drag-and-drop. HeRa heeft een leidende requirement, RLS-migratie, Gemini-adapter, veilige persoonlijke reminderconcepten, API-laag en navigatie; de lege-starttransitie en een echte lokale vraag/antwoord-flow zijn nu browser-gevalideerd. Productieprivacyconfiguratie blijft open.
 - Tijdhub: iedere zichtbare sidebar-reminder opent een toegankelijke Liquid-detailkaart met type, tijd, acties en een link naar Reminderbeheer. De OrgChart-link staat voorlopig plat en altijd zichtbaar in de linkerbalk; de route houdt zijn server-side autorisatie.
 - Persoonlijke Liquid Dashboard is gebouwd als startpagina: meerdere eigen dashboards, naam/dupliceren/verwijderen/wisselen, expliciet opslaan van toegankelijke widgetvolgorde en vier gesloten widgets. Vrije Liquid Display-query's en generatieve widgets zijn bewust nog niet aanwezig.
 - Dashboardlayout houdt de linker navigatie, klok en reminders vast op viewporthoogte; alleen de hoofdcontent scrollt. HeRa toont na een vastlopende API-call een herstelbare fout in plaats van een oneindige spinner. De klok voorkomt SSR-hydrationverschillen door pas na mount de tijd te starten.
@@ -30,7 +30,8 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 ## Laatst geverifieerd
 
 - Herstelmigratie `20260715173629_restore_employee_subresource_grants.sql` is live: Data API-rechten en benodigde `EXECUTE`-rechten voor RLS-helpers van adressen, relaties en vrije veldwaarden zijn hersteld. De medewerkersdetailpagina van Edwin Testbeheerder laadt weer volledig op localhost:3000.
-- Vitest: 26 bestanden en 121 tests geslaagd.
+- Vitest: 46 bestanden en 181 tests geslaagd.
+- HeRa: een lege lijst met gesprekken toont na een geslaagde API-response nu de lege toestand in plaats van een oneindige spinner. Een lokaal testgesprek met de geconfigureerde Gemini-provider gaf antwoord in circa 2,2 seconden zonder browsererrors; het testgesprek is daarna verwijderd.
 - ESLint, strict TypeScript, i18n-pariteit en productiebuild geslaagd.
 - Dertien live Supabase database-/isolatietests geslaagd.
 - De nieuwe transactionele databaseproef voor TWK, rollback en kostenverdeling is aanvullend geslaagd.

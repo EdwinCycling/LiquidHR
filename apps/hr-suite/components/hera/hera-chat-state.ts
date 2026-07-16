@@ -1,5 +1,14 @@
 export type HeRaScreenState = 'loading' | 'error' | 'empty' | 'conversation'
 
+export function getConversationLoadStateAfterFetch<T extends { id: string }>(
+  conversations: readonly T[],
+): { firstConversationId: string | null; isLoading: false } {
+  return {
+    firstConversationId: conversations[0]?.id ?? null,
+    isLoading: false,
+  }
+}
+
 export function getHeRaScreenState(input: {
   isLoading: boolean
   error: string | null
