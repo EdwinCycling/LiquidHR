@@ -1,6 +1,6 @@
 # Actuele overdracht Liquid HR
 
-Laatste update: 2026-07-15. Dit document is het compacte startpunt voor iedere nieuwe of geforkte AI-chat. Lees daarna de relevante bronnen via `docs/README.md`. Neem geen secrets op in dit bestand.
+Laatste update: 2026-07-16. Dit document is het compacte startpunt voor iedere nieuwe of geforkte AI-chat. Lees daarna de relevante bronnen via `docs/README.md`. Neem geen secrets op in dit bestand.
 
 ## Doel en vaste keuzes
 
@@ -16,6 +16,8 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - Arbeidsvoorwaarden, rooster, salaris en kostenverdeling hebben veilige tijdlijnmutaties met TWK-popup, behoud van toekomstige blokken, 100%-controle en laatste-blokrollback.
 - Nieuwe contracten krijgen datumgebonden, niet-blokkerend ketenadvies voor het huidige en vanaf 2028 aangekondigde regime.
 - Demo-inrichting bevat 50 medewerkers in de hoofdtenant en 10 in een tweede tenant.
+- GitHub is lokaal geïnitialiseerd en de huidige werkstand staat op `https://github.com/EdwinCycling/LiquidHR.git`, branch `main`, commit `81bde2c`.
+- Klokvoorkeuren, klokcomponenten, i18n en de nieuwe reminder-migratie staan lokaal klaar; de migratie is nog niet toegepast omdat lokale Supabase/Docker niet draait en de map niet aan een remote Supabase-project is gelinkt.
 
 De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPLEMENTATION_STATUS.md`.
 
@@ -28,6 +30,7 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 - De nieuwe transactionele databaseproef voor TWK, rollback en kostenverdeling is aanvullend geslaagd.
 - Productiebuild draait lokaal op `http://localhost:3000`; de loginpagina laadt desktop en op 390px zonder consolefouten. De publieke ngrok-preview is na de eenmalige waarschuwing bereikbaar. De beschermde detailroute kon zonder geldige browsersessie niet visueel end-to-end worden geopend.
 - De laatst gebruikte ngrok-URL was `https://unmerited-diuretically-angeline.ngrok-free.dev`; dit is tijdelijk en moet bij hervatten opnieuw worden gecontroleerd.
+- Vercel is nog niet gekoppeld; de Vercel CLI is beschikbaar maar de CLI-sessie is niet ingelogd.
 
 Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale validatie altijd geforceerd op poort 3000 en test relevante flows ook in een echte browser op mobiel formaat.
 
@@ -38,6 +41,11 @@ Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale val
 3. Voeg vastlegging en beheer van externe ketenhistorie/cao-uitzonderingen toe; de engine en adviesstap zijn aanwezig.
 4. Nieuwe persoonskaart kunnen aanmaken vanuit de dienstverbandflow wanneer identity matching geen bestaande medewerker vindt.
 5. Echte uitnodigingsmail, permanente publieke deployment en daarna documenten/compliance, Liquid Display en de AI-agent.
+
+## Actuele externe blokkades
+
+- Supabase: start Docker Desktop en `npx supabase start` vanuit `apps/hr-suite`, of link de CLI met het bestaande remote project via `npx supabase link --project-ref <project-ref>`; daarna dry-run en `npx supabase db push` uitvoeren.
+- Vercel: importeer `EdwinCycling/LiquidHR` als GitHub-project of login via `npx vercel login` en voer daarna `npx vercel link` uit. Gebruik de repositoryroot als monorepo-root; de bestaande `vercel.json` bevat de workspace-build.
 
 ## Handmatige productieacties
 
