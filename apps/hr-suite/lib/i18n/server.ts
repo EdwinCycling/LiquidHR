@@ -13,6 +13,7 @@ import organizationEn from '@/messages/en/organization.json'
 import customFieldsEn from '@/messages/en/customFields.json'
 import remindersEn from '@/messages/en/reminders.json'
 import heraEn from '@/messages/en/hera.json'
+import dashboardEn from '@/messages/en/dashboard.json'
 import authNl from '@/messages/nl/auth.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
@@ -26,6 +27,7 @@ import organizationNl from '@/messages/nl/organization.json'
 import customFieldsNl from '@/messages/nl/customFields.json'
 import remindersNl from '@/messages/nl/reminders.json'
 import heraNl from '@/messages/nl/hera.json'
+import dashboardNl from '@/messages/nl/dashboard.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -48,6 +50,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     customFields: customFieldsNl,
     reminders: remindersNl,
     hera: heraNl,
+    dashboard: dashboardNl,
   },
   en: {
     auth: authEn,
@@ -63,6 +66,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     customFields: customFieldsEn,
     reminders: remindersEn,
     hera: heraEn,
+    dashboard: dashboardEn,
   },
 }
 

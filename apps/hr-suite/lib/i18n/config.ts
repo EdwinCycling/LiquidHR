@@ -18,6 +18,7 @@ export const MESSAGE_NAMESPACES = [
   'customFields',
   'reminders',
   'hera',
+  'dashboard',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]
