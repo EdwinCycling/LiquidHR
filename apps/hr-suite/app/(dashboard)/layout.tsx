@@ -6,6 +6,7 @@ import { ContextAccessError } from '@/lib/context/administration-context'
 import { getAdministrationSwitcherMode } from '@/lib/context/administration-context'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
+import { APP_VERSION } from '@/lib/app-version'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { createClient } from '@/lib/supabase/server'
 
@@ -107,6 +108,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         email={email}
         labels={{
           appName: common('appName'),
+          version: `${common('version')} ${APP_VERSION}`,
           departments: navigation('departments'),
           employees: navigation('employees'),
           authorization: navigation('authorization'),

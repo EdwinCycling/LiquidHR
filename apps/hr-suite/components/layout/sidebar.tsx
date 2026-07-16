@@ -28,6 +28,7 @@ import type { UserPreferences } from '@/lib/preferences/user-preferences'
 
 interface SidebarLabels {
   appName: string
+  version: string
   departments: string
   employees: string
   authorization: string
@@ -168,6 +169,7 @@ export function Sidebar({
                 {!collapsed ? <span>{labels.signOut}</span> : null}
               </button>
             </form>
+            {!collapsed ? <p className="mt-3 px-3 text-[10px] tabular-nums text-sidebar-muted">{labels.version}</p> : null}
           </div>
         </div>
       </aside>

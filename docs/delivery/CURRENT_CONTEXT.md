@@ -18,6 +18,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - Demo-inrichting bevat 50 medewerkers in de hoofdtenant en 10 in een tweede tenant.
 - GitHub is lokaal geïnitialiseerd en de huidige werkstand staat op `https://github.com/EdwinCycling/LiquidHR.git`, branch `main`, commit `81bde2c`.
 - Klokvoorkeuren, klokcomponenten, i18n en de nieuwe reminder-migratie staan lokaal klaar; de migratie is nog niet toegepast omdat lokale Supabase/Docker niet draait en de map niet aan een remote Supabase-project is gelinkt.
+- Handmatige externe acties staan centraal in `docs/delivery/HANDMATIGE_ACTIES.md`. Het centrale applicatieversienummer staat in `apps/hr-suite/lib/app-version.ts` en is nu `1.20260716.1`.
 
 De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPLEMENTATION_STATUS.md`.
 
