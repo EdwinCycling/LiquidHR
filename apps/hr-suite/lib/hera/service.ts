@@ -20,7 +20,7 @@ export interface SaveMemoryInput {
 
 export interface HeRaServiceDependencies {
   saveMemoryItem?: (input: { tenantId: string; userId: string; content: string; category: 'PREFERENCE' | 'WORKING_CONTEXT'; sourceConversationId?: string }) => Promise<{ id: string }>
-  getDraft?: (context: AuthContext, draftId: string) => Promise<StoredDraft | null>
+  claimDraft?: (context: AuthContext, draftId: string) => Promise<StoredDraft | null>
   markDraftExecuted?: (context: AuthContext, draftId: string) => Promise<void>
   createPersonalReminder?: (input: { title: string; description?: string; remindAt: string }) => Promise<string>
 }
@@ -50,9 +50,9 @@ export function createHeRaService(dependencies: HeRaServiceDependencies = {}) {
     },
 
     async confirmDraft(context: AuthContext, draftId: string): Promise<{ reminderId: string }> {
-      const getDraft = dependencies.getDraft ?? notConfigured
-      const draft = await getDraft(context, draftId)
-      if (!draft || draft.status !== 'PENDING' || new Date(draft.expiresAt).getTime() <= Date.now()) {
+      const claimDraft = dependencies.claimDraft ?? notConfigured
+      const draft = await claimDraft(context, draftId)
+      if (!draft || draft.status !== 'CONFIRMED' || new Date(draft.expiresAt).getTime() <= Date.now()) {
         throw new HeRaServiceError('DRAFT_NOT_CONFIRMABLE')
       }
 

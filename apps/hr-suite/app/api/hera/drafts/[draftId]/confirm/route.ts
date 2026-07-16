@@ -11,8 +11,8 @@ export async function POST(_: Request, { params }: Params): Promise<NextResponse
   try {
     const context = await requireHeRaContext(); const { draftId } = await params; const supabase = await createClient()
     const service = createHeRaService({
-      async getDraft(authContext, id) {
-        const { data, error } = await supabase.from('ai_action_drafts').select('id, status, expires_at, payload').eq('id', id).eq('tenant_id', authContext.tenantId).eq('owner_user_id', authContext.userId).maybeSingle()
+      async claimDraft(authContext, id) {
+        const { data, error } = await supabase.from('ai_action_drafts').update({ status: 'CONFIRMED', confirmed_at: new Date().toISOString() }).eq('id', id).eq('tenant_id', authContext.tenantId).eq('owner_user_id', authContext.userId).eq('status', 'PENDING').gt('expires_at', new Date().toISOString()).select('id, status, expires_at, payload').maybeSingle()
         if (error) throw error
         return data ? { id: data.id, status: data.status, expiresAt: data.expires_at, payload: data.payload } : null
       },

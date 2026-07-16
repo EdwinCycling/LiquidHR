@@ -17,11 +17,11 @@ describe('HeRa service', () => {
   })
 
   it('voert een concept precies eenmaal uit', async () => {
-    const getDraft = vi.fn()
-      .mockResolvedValueOnce({ id: 'draft', status: 'PENDING', expiresAt: '2099-01-01T00:00:00.000Z', payload: { title: 'Bel terug', remindAt: '2026-07-17T09:00:00.000Z' } })
-      .mockResolvedValueOnce({ id: 'draft', status: 'EXECUTED', expiresAt: '2099-01-01T00:00:00.000Z', payload: { title: 'Bel terug', remindAt: '2026-07-17T09:00:00.000Z' } })
+    const claimDraft = vi.fn()
+      .mockResolvedValueOnce({ id: 'draft', status: 'CONFIRMED', expiresAt: '2099-01-01T00:00:00.000Z', payload: { title: 'Bel terug', remindAt: '2026-07-17T09:00:00.000Z' } })
+      .mockResolvedValueOnce(null)
     const createPersonalReminder = vi.fn().mockResolvedValue('reminder')
-    const service = createHeRaService({ getDraft, createPersonalReminder, markDraftExecuted: vi.fn() })
+    const service = createHeRaService({ claimDraft, createPersonalReminder, markDraftExecuted: vi.fn() })
     const context = { tenantId: 'tenant', administrationId: null, userId: 'user', employeeId: null, activeRoles: [], permissions: [] }
 
     await expect(service.confirmDraft(context, 'draft')).resolves.toEqual({ reminderId: 'reminder' })
