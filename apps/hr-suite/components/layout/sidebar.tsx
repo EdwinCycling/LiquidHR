@@ -55,7 +55,6 @@ interface SidebarLabels {
 interface SidebarProps {
   email: string
   canReadDepartments: boolean
-  canReadOrganizationChart: boolean
   canReadEmployees: boolean
   canReadAuthorization: boolean
   canManageCustomFields: boolean
@@ -74,7 +73,6 @@ interface SidebarProps {
 export function Sidebar({
   email,
   canReadDepartments,
-  canReadOrganizationChart,
   canReadEmployees,
   canReadAuthorization,
   canManageCustomFields,
@@ -96,7 +94,7 @@ export function Sidebar({
     { href: '/hera', label: labels.hera, icon: Sparkles, visible: true },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/departments', label: labels.departments, icon: Building2, visible: canReadDepartments },
-    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart },
+    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true },
     { href: '/authorization', label: labels.authorization, icon: ShieldCheck, visible: canReadAuthorization },
     { href: '/custom-fields', label: labels.customFields, icon: SlidersHorizontal, visible: canManageCustomFields },
   ]

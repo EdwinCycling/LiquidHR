@@ -2,7 +2,7 @@
   "title": "Reminders",
   "subtitle": "Schedule something for yourself or send a reminder to colleagues.",
   "timeHub": "Time Hub",
-  "openAll": "Open all reminders",
+  "openManagement": "Reminder management",
   "pendingCount": "{count} pending",
   "empty": "There are no reminders waiting.",
   "personal": "Personal",

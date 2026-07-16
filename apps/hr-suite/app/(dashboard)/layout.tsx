@@ -30,8 +30,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     try { await requirePermission(permission); return true }
     catch (error) { if (error instanceof AuthorizationError) return false; throw error }
   }
-  const [canReadDepartments, canReadEmployees, canReadOrganizationChart, canReadAuthorization, canManageCustomFields] = await Promise.all([
-    can('department:read'), can('employee:read'), can('organization-chart:read'), can('authorization:read'), can('custom-fields:write'),
+  const [canReadDepartments, canReadEmployees, canReadAuthorization, canManageCustomFields] = await Promise.all([
+    can('department:read'), can('employee:read'), can('authorization:read'), can('custom-fields:write'),
   ])
 
   const [preferences, common, navigation, settings, auth, reminderMessages, reminders] = await Promise.all([
@@ -109,7 +109,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         administrationSwitcherMode={getAdministrationSwitcherMode(context)}
         canReadDepartments={canReadDepartments}
         canReadEmployees={canReadEmployees}
-        canReadOrganizationChart={canReadOrganizationChart}
         canReadAuthorization={canReadAuthorization}
         canManageCustomFields={canManageCustomFields}
         email={email}
@@ -138,7 +137,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         reminders={reminders}
         reminderLabels={{
           timeHub: reminderMessages('timeHub'),
-          openAll: reminderMessages('openAll'),
+          openManagement: reminderMessages('openManagement'),
           pendingCount: reminderMessages('pendingCount', { count: '{count}' }),
           empty: reminderMessages('empty'),
           dueTitle: reminderMessages('dueTitle'),

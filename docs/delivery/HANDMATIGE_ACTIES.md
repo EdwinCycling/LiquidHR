@@ -2,6 +2,136 @@
 
 Dit document bevat alleen acties die een eigenaar/beheerder buiten de codebase moet uitvoeren. Geheimen, wachtwoorden en tokens horen nooit in dit document of in GitHub.
 
+## Uitvoerbaar stappenplan voor Edwin
+
+Voer de stappen hieronder in deze volgorde uit. Geef na elke afgeronde stap in deze chat alleen het gevraagde resultaat door; plak nooit sleutels, wachtwoorden, tokens of volledige terminaluitvoer met secrets.
+
+### Stap 1 — GitHub CLI installeren en aanmelden
+
+1. Installeer GitHub CLI voor Windows via [cli.github.com](https://cli.github.com/) of voer in een nieuwe PowerShell uit:
+
+   ```powershell
+   winget install --id GitHub.cli
+   ```
+
+2. Sluit PowerShell volledig, open een nieuwe PowerShell en controleer de installatie:
+
+   ```powershell
+   gh --version
+   ```
+
+3. Log in op jouw GitHub-account en kies bij de vragen voor `GitHub.com`, `HTTPS` en browser-based login:
+
+   ```powershell
+   gh auth login
+   ```
+
+4. Controleer de aanmelding:
+
+   ```powershell
+   gh auth status
+   ```
+
+5. Geef door: `GitHub CLI klaar`, plus alleen de accountnaam die `gh auth status` noemt. Daarna kan ik de huidige branch pushen en een pull request naar `main` voorbereiden.
+
+### Stap 2 — Supabase voor de HeRa-migratie beschikbaar maken
+
+Kies **één** route: lokaal met Docker is het veiligst; remote gebruiken mag alleen als dit project een testomgeving is of je de productie-impact begrijpt.
+
+#### Route A: lokale Supabase via Docker Desktop
+
+1. Start Docker Desktop en wacht totdat de status `Engine running` toont.
+2. Open PowerShell en ga naar de hoofdwerkmap:
+
+   ```powershell
+   Set-Location "C:\Users\Edwin\Documents\Apps\HRMyDay\apps\hr-suite"
+   ```
+
+3. Start de lokale stack:
+
+   ```powershell
+   npx supabase start
+   ```
+
+4. Controleer of alle containers healthy zijn:
+
+   ```powershell
+   npx supabase status
+   ```
+
+5. Geef door: `Lokale Supabase healthy`. Ik voer daarna de nieuwe HeRa-migratie, RLS-test, advisors en typegeneratie uit.
+
+#### Route B: bestaand remote Supabase-testproject
+
+1. Ga naar dezelfde map:
+
+   ```powershell
+   Set-Location "C:\Users\Edwin\Documents\Apps\HRMyDay\apps\hr-suite"
+   ```
+
+2. Meld de Supabase CLI aan. De browser vraagt toestemming:
+
+   ```powershell
+   npx supabase login
+   ```
+
+3. Koppel het bestaande project. Vul een databasewachtwoord uitsluitend in de terminal in:
+
+   ```powershell
+   npx supabase link --project-ref wnpfloqpjvaacobppbpk
+   ```
+
+4. Controleer eerst welke migraties zouden worden uitgevoerd; voer dit commando niet uit wanneer de output onverwacht is:
+
+   ```powershell
+   npx supabase db push --dry-run
+   ```
+
+5. Geef door: `Supabase remote gekoppeld, dry-run gecontroleerd`. Ik beoordeel de lijst en voer pas daarna de daadwerkelijke push uit.
+
+### Stap 3 — Vercel aan GitHub koppelen
+
+Doe deze stap nadat GitHub CLI is aangemeld en de branch is gepusht.
+
+1. Open [vercel.com/new](https://vercel.com/new) en meld aan met het GitHub-account dat toegang heeft tot `EdwinCycling/LiquidHR`.
+2. Kies **Import Git Repository** en selecteer `EdwinCycling/LiquidHR`.
+3. Laat **Root Directory** op `.` staan en gebruik `main` als production branch.
+4. Voeg onder **Settings → Environment Variables** onderstaande namen toe voor zowel `Preview` als `Production`. Neem de bestaande lokale waarden over, maar publiceer geen waarde in chat of Git:
+
+   ```text
+   NEXT_PUBLIC_SUPABASE_URL
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+   NEXT_PUBLIC_APP_URL
+   SUPABASE_SECRET_KEY
+   BSN_HASH_KEY
+   EMPLOYEE_PII_ENCRYPTION_KEY
+   GEMINI_KEY
+   GEMINI_MODEL
+   ```
+
+5. Zet `GEMINI_MODEL` exact op `gemini-3.1-flash-lite`.
+6. Zet `NEXT_PUBLIC_APP_URL` eerst op de Vercel-preview-URL en vervang hem na de productiedeployment door de definitieve product-URL.
+7. Deploy het project en geef door: `Vercel gekoppeld` plus uitsluitend de deployment-URL. Ik controleer dan buildlogs en de publieke werking.
+
+### Stap 4 — Verplichte Supabase- en auth-instellingen
+
+1. Open je Supabase-project → **Authentication** → **Providers / Password** en schakel **Leaked password protection** in.
+2. Configureer onder **Authentication → SMTP** een eigen SMTP-provider voordat uitnodigingen of wachtwoordherstel naar echte personen gaan.
+3. Activeer Google alleen wanneer je Google-login wilt testen. Voeg dan de Supabase callback en de actuele localhost/Vercel-redirects toe aan de allowlist.
+4. Geef door welke onderdelen zijn ingeschakeld: `leaked passwords`, `SMTP`, `Google OAuth`. Stuur geen screenshots met secrets.
+
+### Stap 5 — Functionele acceptatietest na deployment
+
+Meld je in een normale browser aan en voer uit:
+
+1. Open de linkerbalk. Controleer dat **HeRa**, **Medewerkers**, **Afdelingen** en **OrgChart** plat onder elkaar staan; OrgChart moet zichtbaar zijn.
+2. Maak een persoonlijke reminder die één minuut in de toekomst ligt.
+3. Klik de reminder in de sidebar. Controleer titel, toelichting, tijd, typebadge, **Gereed**, **15 min uitstellen**, **Verbergen** en **Reminderbeheer**.
+4. Klik **Reminderbeheer** en controleer dat de juiste reminder op de overzichtspagina zichtbaar is.
+5. Open HeRa, maak een gesprek, exporteer het gesprek en verwijder het daarna. Bevestig alleen een reminderconcept dat je zelf hebt gecontroleerd.
+6. Test dezelfde flow op mobiele breedte (ongeveer 390 px); controleer dat de popup geen horizontale scroll heeft en de acties onder elkaar kunnen staan.
+7. Geef per punt `geslaagd` of de exacte foutmelding/URL door. Dan kan ik gericht eventuele laatste fouten herstellen.
+
 ## Nu nodig om volledige verificatie en deployment af te ronden
 
 ### 1. Supabase CLI-koppeling voor verificatie

@@ -2,7 +2,7 @@
   "title": "Reminders",
   "subtitle": "Plan iets voor jezelf of stuur een reminder naar collega’s.",
   "timeHub": "Tijdhub",
-  "openAll": "Alle reminders openen",
+  "openManagement": "Reminderbeheer",
   "pendingCount": "{count} openstaand",
   "empty": "Er staan geen reminders klaar.",
   "personal": "Persoonlijk",
