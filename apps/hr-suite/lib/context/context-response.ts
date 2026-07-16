@@ -1,8 +1,13 @@
 import { z } from 'zod'
 import type { ActiveContext, AdministrationContextOption } from '@/lib/context/administration-context'
 
+const postgresUuidSchema = z.string().regex(
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+)
+
 const administrationSelectionSchema = z.object({
-  administrationId: z.string().uuid(),
+  // PostgreSQL accepteert UUID's zonder RFC 4122-versiebits; de database-whitelist hieronder blijft de autorisatiegrens.
+  administrationId: postgresUuidSchema,
 }).strict()
 
 export interface AdministrationSelection {

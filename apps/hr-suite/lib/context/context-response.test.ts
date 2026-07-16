@@ -31,6 +31,14 @@ describe('administratiecontext valideren', () => {
       administrationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
     })).toEqual({ administrationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' })
 
+    expect(parseAdministrationSelection({
+      administrationId: '8483abc9-f275-c80b-5a23-fedc54ce9f0a',
+    })).toEqual({ administrationId: '8483abc9-f275-c80b-5a23-fedc54ce9f0a' })
+
+    expect(parseAdministrationSelection({
+      administrationId: '6ebc1932-8af5-0bf3-ae5e-05bb7b1bfb1f',
+    })).toEqual({ administrationId: '6ebc1932-8af5-0bf3-ae5e-05bb7b1bfb1f' })
+
     expect(() => parseAdministrationSelection({ administrationId: 'geen-uuid' })).toThrow(
       ContextSelectionError,
     )
