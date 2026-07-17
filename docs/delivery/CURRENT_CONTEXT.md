@@ -19,7 +19,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, 
 - GitHub is lokaal geïnitialiseerd en de huidige werkstand staat op `https://github.com/EdwinCycling/LiquidHR.git`, branch `main`, commit `81bde2c`.
 - Tijdhub/reminders is als eerste slice live in Supabase: klokvoorkeuren, persoonlijke en HR-reminders, RLS, API-routes, Tijdhub, instellingen en NL/EN zijn gebouwd. De drie reminder-migraties zijn live toegepast; een RLS-recursie en een ongeldige `auth.users`-lookup in publicatie zijn hersteld.
 - Handmatige externe acties staan centraal in `docs/delivery/HANDMATIGE_ACTIES.md`. Het centrale applicatieversienummer staat in `apps/hr-suite/lib/app-version.ts` en is nu `1.20260717.1`.
-- HeRa is uitgebreid tot data-first HR-agent: echte sessierollen en permissions, geautoriseerde salaris-/medewerker-/dienstverband-/organisatietools, owner- en tenantgebonden memory en voorkeuren, beheer-UI, instelbare toon/detail/senioriteit en vijf voorstel-only schrijftools met actuele bevestiging. De volledige productie-browsereindtest is nog open.
+- HeRa is uitgebreid tot data-first HR-agent: echte sessierollen en permissions, geautoriseerde salaris-/medewerker-/dienstverband-/organisatietools, owner- en tenantgebonden memory en voorkeuren, beheer-UI, instelbare toon/detail/senioriteit en vijf voorstel-only schrijftools met actuele bevestiging. Gespreksgeheugen ondersteunt nu expliciet aanmaken, wijzigen en verwijderen. De lokale browsertest is afgerond; preview en Production zijn nog open.
 - Tijdhub: iedere zichtbare sidebar-reminder opent een toegankelijke Liquid-detailkaart met type, tijd, acties en een link naar Reminderbeheer. De OrgChart-link staat voorlopig plat en altijd zichtbaar in de linkerbalk; de route houdt zijn server-side autorisatie.
 - Persoonlijke Liquid Dashboard is gebouwd als startpagina: meerdere eigen dashboards, naam/dupliceren/verwijderen/wisselen, expliciet opslaan van toegankelijke widgetvolgorde en vier gesloten widgets. Vrije Liquid Display-query's en generatieve widgets zijn bewust nog niet aanwezig.
 - Dashboardlayout houdt de linker navigatie, klok en reminders vast op viewporthoogte; alleen de hoofdcontent scrollt. HeRa toont na een vastlopende API-call een herstelbare fout in plaats van een oneindige spinner. De klok voorkomt SSR-hydrationverschillen door pas na mount de tijd te starten.
@@ -30,7 +30,9 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 ## Laatst geverifieerd
 
 - HeRa-databasemigraties zijn live toegepast op Supabase. Een transactionele rollbackproef bevestigde cross-user-isolatie, veilige conversation-delete-FK's en owner-only voorkeurtoegang. De security advisor meldt alleen de bestaande handmatige leaked-password-instelling.
-- Gerichte HeRa-suite: 16 testbestanden en 47 tests geslaagd; strict TypeScript en 15 NL/EN-namespaces zijn gelijk. Volledige suite, build en browsertests volgen in deze levering.
+- Volledige suite: 59 testbestanden en 232 tests geslaagd. ESLint, strict TypeScript, 15 gelijke NL/EN-namespaces en de productiebuild met 36 pagina's zijn geslaagd.
+- HeRa is lokaal in een ingelogde Chrome-sessie geverifieerd: de salarisvraag gebruikt 11 geautoriseerde Liquid HR-records en geeft geen internetantwoord; geheugen aanmaken/wijzigen/verwijderen vereist telkens expliciete bevestiging; voorkeuren voor toon/detail/senioriteit worden opgeslagen; gesprek verwijderen geeft geen 500; reminderconcepten worden niet uitgevoerd zonder bevestiging en relatieve tijden worden server-side naar `Europe/Amsterdam` omgerekend.
+- Gemini 3-toolrondes sturen de vereiste `thoughtSignature` nu ongewijzigd terug. Dit herstelde de eerdere provider-400 bij de tweede function-calling-ronde.
 
 - Herstelmigratie `20260715173629_restore_employee_subresource_grants.sql` is live: Data API-rechten en benodigde `EXECUTE`-rechten voor RLS-helpers van adressen, relaties en vrije veldwaarden zijn hersteld. De medewerkersdetailpagina van Edwin Testbeheerder laadt weer volledig op localhost:3000.
 - Vitest: 46 bestanden en 182 tests geslaagd.
@@ -51,7 +53,7 @@ Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale val
 
 0. Herhaal voor reminders de transactionele databaseproef; advisors en typegeneratie zijn via de Supabase-plugin beschikbaar.
 
-0a. Voer de volledige lokale en production browser-eindtest van HeRa uit. De nieuwe HeRa-migraties en transactionele isolatieproef zijn live uitgevoerd. Configureer `GEMINI_KEY` en `GEMINI_MODEL` server-only in iedere deployomgeving; de vrije Gemini-tier is uitsluitend voor testdata.
+0a. Deploy HeRa naar een publieke Vercel-preview, voer daar de browser-eindtest uit en promoveer daarna gecontroleerd naar Production. De lokale browser-eindtest, live migraties en transactionele isolatieproef zijn afgerond. Houd `GEMINI_KEY` en `GEMINI_MODEL` server-only.
 
 1. Maak `direct meenemen` werkelijk één multi-domein, atomair wijzigingspakket; `later opvolgen` wordt al opgeslagen.
 2. Voeg mutatieformulieren op de detailroute toe voor basis/IKV en organisatieplaatsing; deze tabs lezen nu wel alle tijdblokken.

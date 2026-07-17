@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { Json } from '@scope/db'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { buildModelContext, extractMemoryProposal } from '@/lib/hera/context'
+import { buildModelContext, resolveMemoryProposal } from '@/lib/hera/context'
 import { heRaErrorResponse } from '@/lib/hera/http-errors'
 import { runHeRaTurn } from '@/lib/hera/orchestrator'
 import { resolvePersona } from '@/lib/hera/persona'
@@ -75,19 +75,27 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
 
     const persona = resolvePersona(context, userContext.locale)
     const translate = await getTranslator('hera', userContext.locale)
-    const turn = await runHeRaTurn({
-      context,
-      userContext,
-      latestUserMessage: parsed.data.content,
-      modelContext: buildModelContext({
-        summary: conversation.summary,
-        messages: [...messages].reverse(),
-        maxCharacters: 14_000,
-      }),
-      personaInstruction: persona.instructions,
-      groundingRequiredMessage: translate('groundingRequired'),
-      now: new Date(),
-    })
+    const memoryProposal = resolveMemoryProposal(parsed.data.content, userContext.memory)
+    const turn = memoryProposal
+      ? {
+          content: translate('memoryProposalPending'),
+          model: 'hera-rules-v1',
+          evidence: null,
+          draft: null,
+        }
+      : await runHeRaTurn({
+          context,
+          userContext,
+          latestUserMessage: parsed.data.content,
+          modelContext: buildModelContext({
+            summary: conversation.summary,
+            messages: [...messages].reverse(),
+            maxCharacters: 14_000,
+          }),
+          personaInstruction: persona.instructions,
+          groundingRequiredMessage: translate('groundingRequired'),
+          now: new Date(),
+        })
 
     let draft: { id: string; version: number; expiresAt: string; summary: string; controlPayload: Json } | null = null
     if (turn.draft) {
@@ -143,7 +151,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
         draftId: draft?.id ?? null,
         draft,
         evidence: turn.evidence,
-        memoryProposal: extractMemoryProposal(parsed.data.content),
+        memoryProposal,
       },
     })
   } catch (error) {

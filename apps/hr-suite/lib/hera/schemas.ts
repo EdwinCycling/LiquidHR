@@ -24,6 +24,7 @@ export const memoryItemSchema = z.object({
 export const reminderDraftSchema = z.object({
   title: z.string().trim().min(1).max(180),
   remindAt: z.string().datetime({ offset: true }),
+  displayAt: z.string().trim().min(1).max(200).optional(),
   description: z.string().trim().max(2_000).optional(),
 })
 

@@ -21,6 +21,8 @@ export default async function HeRaPage() {
     preferencesSaved: translate('preferencesSaved'), sourceLiquidHr: translate('sourceLiquidHr'), visibleRecords: translate('visibleRecords'), asOfDate: translate('asOfDate'),
     filters: translate('filters'), uncertainties: translate('uncertainties'), confirmAction: translate('confirmAction'), cancelAction: translate('cancelAction'),
     draftExpiresAt: translate('draftExpiresAt'), rememberProposal: translate('rememberProposal'), remember: translate('remember'),
+    updateMemoryProposal: translate('updateMemoryProposal'), updateMemory: translate('updateMemory'),
+    deleteMemoryProposal: translate('deleteMemoryProposal'), deleteMemory: translate('deleteMemory'),
     currentValue: translate('currentValue'), newValue: translate('newValue'),
   }
 

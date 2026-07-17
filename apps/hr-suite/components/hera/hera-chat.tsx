@@ -38,6 +38,10 @@ export interface HeRaLabels extends HeRaSettingsLabels {
   draftExpiresAt: string
   rememberProposal: string
   remember: string
+  updateMemoryProposal: string
+  updateMemory: string
+  deleteMemoryProposal: string
+  deleteMemory: string
   currentValue: string
   newValue: string
 }
@@ -200,10 +204,21 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   async function saveMemory() {
     if (!memoryProposal || !detail) return
     try {
-      await request<{ data: unknown }>('/api/hera/memory', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ content: memoryProposal.content, category: memoryProposal.category, sourceConversationId: detail.conversation.id, explicitConsent: true }),
-      })
+      if (memoryProposal.operation === 'CREATE') {
+        await request<{ data: unknown }>('/api/hera/memory', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ content: memoryProposal.content, category: memoryProposal.category, sourceConversationId: detail.conversation.id, explicitConsent: true }),
+        })
+      } else if (memoryProposal.operation === 'UPDATE' && memoryProposal.id) {
+        await request<{ data: unknown }>('/api/hera/memory', {
+          method: 'PATCH', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: memoryProposal.id, content: memoryProposal.content, category: memoryProposal.category, explicitConsent: true }),
+        })
+      } else if (memoryProposal.operation === 'DELETE' && memoryProposal.id) {
+        await request<{ data: unknown }>(`/api/hera/memory?id=${encodeURIComponent(memoryProposal.id)}`, { method: 'DELETE' })
+      } else {
+        throw new Error('HERA_MEMORY_PROPOSAL_INVALID')
+      }
       setMemoryProposal(null)
     } catch { setError(labels.error) }
   }

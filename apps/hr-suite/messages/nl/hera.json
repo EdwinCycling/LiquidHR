@@ -49,6 +49,11 @@
   "draftExpiresAt": "Concept verloopt",
   "rememberProposal": "Zal ik deze voorkeur onthouden?",
   "remember": "Ja, onthouden",
+  "updateMemoryProposal": "Zal ik deze voorkeur wijzigen?",
+  "updateMemory": "Ja, wijzigen",
+  "deleteMemoryProposal": "Wil je dat ik dit verwijder?",
+  "deleteMemory": "Ja, verwijderen",
+  "memoryProposalPending": "Ik herken dit als een geheugenvoorkeur. Controleer en bevestig het voorstel hieronder; tot die tijd is niets opgeslagen, gewijzigd of verwijderd.",
   "currentValue": "Huidige waarde",
   "newValue": "Voorgestelde waarde",
   "groundingRequired": "Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang."

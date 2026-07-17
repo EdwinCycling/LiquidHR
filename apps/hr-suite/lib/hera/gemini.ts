@@ -5,6 +5,7 @@ const providerResponseSchema = z.object({
     content: z.object({
       parts: z.array(z.object({
         text: z.string().optional(),
+        thoughtSignature: z.string().optional(),
         functionCall: z.object({
           name: z.string(),
           args: z.record(z.string(), z.unknown()).optional(),
@@ -17,6 +18,7 @@ const providerResponseSchema = z.object({
 export interface HeRaToolCall {
   name: string
   args: Record<string, unknown>
+  thoughtSignature?: string
 }
 
 export interface GenerateHeRaResponseInput {
@@ -57,7 +59,15 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
     contents.push(
       {
         role: 'model',
-        parts: [{ functionCall: input.toolResponse.call }],
+        parts: [{
+          functionCall: {
+            name: input.toolResponse.call.name,
+            args: input.toolResponse.call.args,
+          },
+          ...(input.toolResponse.call.thoughtSignature
+            ? { thoughtSignature: input.toolResponse.call.thoughtSignature }
+            : {}),
+        }],
       },
       {
         role: 'user',
@@ -131,10 +141,10 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
             type: 'OBJECT',
             properties: {
               title: { type: 'STRING' },
-              remindAt: { type: 'STRING' },
+              when: { type: 'STRING', description: 'Relatieve datum en lokale tijd exact uit de gebruikersvraag, bijvoorbeeld morgen om 09:00.' },
               description: { type: 'STRING' },
             },
-            required: ['title', 'remindAt'],
+            required: ['title', 'when'],
           },
         },
         {
@@ -185,7 +195,16 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
     }),
   })
 
-  if (!response.ok) throw new HeRaProviderError('HERA_PROVIDER_UNAVAILABLE')
+  if (!response.ok) {
+    const providerError = z.object({
+      error: z.object({ message: z.string() }),
+    }).safeParse(await response.json().catch(() => null))
+    const message = providerError.success
+      ? providerError.data.error.message.replace(/[\r\n\t]+/g, ' ').slice(0, 500)
+      : 'Onbekende providerfout'
+    console.error('HERA_PROVIDER_HTTP_ERROR', { status: response.status, model, message })
+    throw new HeRaProviderError('HERA_PROVIDER_UNAVAILABLE')
+  }
   const parsed = providerResponseSchema.safeParse(await response.json())
   if (!parsed.success) throw new HeRaProviderError('HERA_PROVIDER_INVALID_RESPONSE')
 
@@ -193,7 +212,13 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
   const functionCall = parts.find((part) => part.functionCall)?.functionCall
   return {
     text: parts.flatMap((part) => part.text ? [part.text] : []).join('').trim(),
-    toolCall: functionCall ? { name: functionCall.name, args: functionCall.args ?? {} } : null,
+    toolCall: functionCall ? {
+      name: functionCall.name,
+      args: functionCall.args ?? {},
+      ...(parts.find((part) => part.functionCall)?.thoughtSignature
+        ? { thoughtSignature: parts.find((part) => part.functionCall)?.thoughtSignature }
+        : {}),
+    } : null,
     model,
   }
 }

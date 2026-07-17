@@ -70,7 +70,7 @@ export async function executeHeRaTool(
       kind: 'DRAFT',
       toolName: 'draft_personal_reminder',
       payload: draft,
-      summary: `Persoonlijke reminder: ${draft.title} op ${new Date(draft.remindAt).toLocaleString('nl-NL')}.`,
+      summary: `Persoonlijke reminder: ${draft.title} op ${draft.displayAt ?? new Date(draft.remindAt).toLocaleString('nl-NL')}.`,
       controlPayload: { oldValue: null, newValue: draft },
     }
   }

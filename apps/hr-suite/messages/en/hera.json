@@ -49,6 +49,11 @@
   "draftExpiresAt": "Draft expires",
   "rememberProposal": "Shall I remember this preference?",
   "remember": "Yes, remember",
+  "updateMemoryProposal": "Shall I change this preference?",
+  "updateMemory": "Yes, change",
+  "deleteMemoryProposal": "Would you like me to remove this?",
+  "deleteMemory": "Yes, remove",
+  "memoryProposalPending": "I recognise this as a memory preference. Review and confirm the proposal below; nothing is stored, changed, or removed until then.",
   "currentValue": "Current value",
   "newValue": "Proposed value",
   "groundingRequired": "I can only answer this with authorised Liquid HR data. Provide the missing scope or ask someone with the required access."

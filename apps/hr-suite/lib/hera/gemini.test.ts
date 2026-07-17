@@ -4,7 +4,7 @@ import { generateHeRaResponse } from './gemini'
 describe('generateHeRaResponse', () => {
   it('gebruikt het geconfigureerde model, houdt de sleutel uit de body en leest typed tool calls', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      candidates: [{ content: { parts: [{ functionCall: { name: 'list_my_reminders', args: {} } }] } }],
+      candidates: [{ content: { parts: [{ functionCall: { name: 'list_my_reminders', args: {} }, thoughtSignature: 'signed-state' }] } }],
     }), { status: 200 }))
 
     const result = await generateHeRaResponse({
@@ -18,7 +18,7 @@ describe('generateHeRaResponse', () => {
     expect(fetcher.mock.calls[0]?.[0]).toContain('models/gemini-3.1-flash-lite:generateContent')
     expect(fetcher.mock.calls[0]?.[0]).toContain('key=secret-key')
     expect(fetcher.mock.calls[0]?.[1]?.body).not.toContain('secret-key')
-    expect(result.toolCall).toEqual({ name: 'list_my_reminders', args: {} })
+    expect(result.toolCall).toEqual({ name: 'list_my_reminders', args: {}, thoughtSignature: 'signed-state' })
   })
 
   it('stuurt een geautoriseerd toolresultaat als native function response terug', async () => {
@@ -32,7 +32,7 @@ describe('generateHeRaResponse', () => {
       systemInstruction: 'Gebruik uitsluitend toolbewijs.',
       context: 'USER: Zijn er salarissen boven 6000 euro?',
       toolResponse: {
-        call: { name: 'analyze_salary_threshold', args: { amount: 6000 } },
+        call: { name: 'analyze_salary_threshold', args: { amount: 6000 }, thoughtSignature: 'signed-state' },
         result: { source: 'LIQUID_HR', data: { matchedCount: 3 } },
       },
       fetcher,
@@ -43,7 +43,7 @@ describe('generateHeRaResponse', () => {
     }
     expect(requestBody.contents).toEqual([
       { role: 'user', parts: [{ text: 'USER: Zijn er salarissen boven 6000 euro?' }] },
-      { role: 'model', parts: [{ functionCall: { name: 'analyze_salary_threshold', args: { amount: 6000 } } }] },
+      { role: 'model', parts: [{ functionCall: { name: 'analyze_salary_threshold', args: { amount: 6000 } }, thoughtSignature: 'signed-state' }] },
       { role: 'user', parts: [{ functionResponse: { name: 'analyze_salary_threshold', response: { source: 'LIQUID_HR', data: { matchedCount: 3 } } } }] },
     ])
   })

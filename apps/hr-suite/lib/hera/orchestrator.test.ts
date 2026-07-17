@@ -79,4 +79,38 @@ describe('runHeRaTurn', () => {
     expect(result.content).toBe('Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang.')
     expect(result.evidence).toBeNull()
   })
+
+  it('resolveert een relatieve remindertijd server-side in de tijdzone van de gebruiker', async () => {
+    const dispatchTool = vi.fn().mockResolvedValue({
+      kind: 'DRAFT',
+      toolName: 'draft_personal_reminder',
+      payload: { title: 'Controleer rapportage', remindAt: '2026-07-18T07:00:00.000Z' },
+      summary: 'Persoonlijke reminder op 18 juli 2026 om 09:00 (Europe/Amsterdam).',
+      controlPayload: { oldValue: null, newValue: { title: 'Controleer rapportage' } },
+    })
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Herinner mij morgen om 09:00 aan de rapportage.',
+      modelContext: 'USER: Herinner mij morgen om 09:00 aan de rapportage.',
+      personaInstruction: 'Schrijf precies.',
+      groundingRequiredMessage: 'Alleen met geautoriseerde data.',
+      now: new Date('2026-07-17T10:00:00.000Z'),
+    }, {
+      generate: async () => ({
+        text: '', model: 'gemini-test',
+        toolCall: { name: 'draft_personal_reminder', args: { title: 'Controleer rapportage', when: 'morgen om 09:00' } },
+      }),
+      dispatchTool,
+    })
+
+    expect(dispatchTool).toHaveBeenCalledWith(context, expect.objectContaining({
+      name: 'draft_personal_reminder',
+      args: expect.objectContaining({
+        remindAt: '2026-07-18T07:00:00.000Z',
+        displayAt: '18 juli 2026 om 09:00 (Europe/Amsterdam)',
+      }),
+    }))
+    expect(result.draft?.summary).toContain('09:00')
+  })
 })

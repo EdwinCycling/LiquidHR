@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { buildHeRaSystemInstruction, type HeRaEvidenceEnvelope } from './data-contract'
+import { resolveHeRaDateTime } from './date-time'
 import {
   generateHeRaResponse,
   type GenerateHeRaResponseInput,
@@ -117,6 +118,27 @@ function draftFromToolResult(toolResult: Record<string, unknown>): HeRaDraftProp
   }
 }
 
+function normalizeToolCall(
+  call: HeRaToolCall,
+  input: Pick<RunHeRaTurnInput, 'now' | 'userContext'>,
+): HeRaToolCall {
+  if (call.name !== 'draft_personal_reminder') return call
+  const when = call.args.when
+  if (typeof when !== 'string') throw new Error('HERA_DATE_INPUT_INVALID')
+  const resolved = resolveHeRaDateTime(
+    when,
+    input.now,
+    input.userContext.timeZone,
+    input.userContext.locale,
+  )
+  const { when: _when, ...args } = call.args
+  void _when
+  return {
+    ...call,
+    args: { ...args, remindAt: resolved.iso, displayAt: resolved.display },
+  }
+}
+
 export async function runHeRaTurn(
   input: RunHeRaTurnInput,
   dependencies: RunHeRaTurnDependencies = {},
@@ -149,7 +171,8 @@ export async function runHeRaTurn(
     }
   }
 
-  const rawToolResult = await (dependencies.dispatchTool ?? dispatchTool)(input.context, first.toolCall)
+  const normalizedToolCall = normalizeToolCall(first.toolCall, input)
+  const rawToolResult = await (dependencies.dispatchTool ?? dispatchTool)(input.context, normalizedToolCall)
   const toolResult = asRecord(rawToolResult)
   const draft = draftFromToolResult(toolResult)
   if (draft) {
