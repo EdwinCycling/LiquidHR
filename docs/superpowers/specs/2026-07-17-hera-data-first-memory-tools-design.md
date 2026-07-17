@@ -35,6 +35,21 @@ HeRa wordt daarom doorontwikkeld tot een data-first HR-agent: zij analyseert en 
 6. Mutaties zijn veilig, controleerbaar, herhaalbaar en auditeerbaar.
 7. De kernflows zijn aantoonbaar geïsoleerd per gebruiker en tenant en werken op productie.
 
+## 3.1 Absolute autorisatiegrens
+
+HeRa mag uitsluitend gegevens ontvangen die de ingelogde gebruiker in de actieve tenant voor dezelfde handeling mag zien. Dit is een harde beveiligingsgrens en geen gedragsinstructie aan het taalmodel.
+
+- Nooit gegevens uit een andere tenant, ook niet in aantallen, zoekresultaten, suggesties, geheugen, logs of foutmeldingen.
+- Nooit gegevens uit de eigen tenant waarvoor de gebruiker geen permission, rijtoegang of veldtoegang heeft.
+- Nooit eerst breed ophalen en daarna in de prompt, agent of UI filteren.
+- Nooit een service-roleclient, beheerclient of andere autorisatie-omweg gebruiken voor een gebruikersvraag.
+- Nooit via aggregaties, kleine groepen, verschillen tussen tellingen, timing of foutteksten het bestaan van afgeschermde gegevens verraden.
+- Nooit verborgen data aan het model aanbieden met de verwachting dat het model die niet zal noemen.
+
+Iedere HeRa-read gebruikt de bestaande gebruikerssessie, de expliciet gevalideerde actieve tenant, server-side permissionchecks en database-RLS. Waar veld- of salarisbevoegdheden fijner zijn dan rijtoegang, beperkt de query de geselecteerde kolommen vóórdat een resultaat wordt opgebouwd. Alleen het minimaal noodzakelijke, reeds geautoriseerde toolresultaat mag naar het taalmodel.
+
+Bij onvoldoende rechten geeft HeRa een generieke melding over ontbrekende toegang. Zij bevestigt noch ontkent of afgeschermde medewerkers, salarissen, dienstverbanden of organisatieonderdelen bestaan.
+
 ## 4. Niet-doelen
 
 - HeRa krijgt geen algemene, autonome internettoegang.
@@ -146,6 +161,8 @@ De HeRa-interface krijgt een toegankelijk geheugenpaneel met:
 
 De eerste uitgebreide toolset bestaat uit kleine, doelgerichte serverfuncties. Iedere tool valideert input, gebruikt de bestaande service- en datatoegangslaag, controleert permissions en retourneert een begrensd resultaat met metadata.
 
+Autorisatie vindt plaats vóór queryopbouw en opnieuw in de database. Tenant-id, gebruikers-id, toegestane scope en permissions worden uitsluitend uit de vertrouwde serversessie afgeleid en nooit uit modelargumenten of invoer van de gebruiker. Een tool kan haar scope niet verruimen doordat HeRa een andere tenant, medewerker of afdeling in de arguments noemt.
+
 | Toolgroep | Voorbeelden | Veiligheidskenmerken |
 | --- | --- | --- |
 | Medewerkers | zoeken, profielsamenvatting, toegestane teamlijst | minimale velden, paginering, PII-permission, tenantfilter |
@@ -226,6 +243,9 @@ De implementatie volgt `schema → API → UI`.
 - Alle reads en writes vereisen server-side auth, actieve tenantcontext en canonieke permissions.
 - RLS beperkt alle HeRa-tabellen tot de eigenaar binnen de tenant; domeindata behoudt eigen RLS.
 - Tools ontvangen geen service-roleclient voor gebruikersvragen.
+- De actieve tenant komt uit de gevalideerde sessiecontext; een tenant-id uit chattekst of toolarguments wordt genegeerd of afgewezen.
+- Query's selecteren uitsluitend toegestane rijen én velden; ongeautoriseerde data komt nooit in procesgeheugen, promptcontext of modeloutput terecht.
+- Autorisatiefouten zijn niet onderscheidend: ze lekken niet of een afgeschermd record wel of niet bestaat.
 - Tooloutputs volgen dataminimalisatie, limieten en expliciete PII-/salarisbevoegdheden.
 - Kleine salarisgroepen worden niet uitgesplitst wanneer dat herleidbaarheid veroorzaakt.
 - Promptinjectie in gesprekstekst, opgeslagen geheugen of externe bronnen kan de toolpolicy niet wijzigen.
@@ -279,6 +299,8 @@ De implementatie volgt `schema → API → UI`.
 - route-tests voor auth, tenantcontext, permissions, validatie, update/delete en bevestiging;
 - database-tests voor RLS, FK-verwijdergedrag, unieke voorkeuren en actieconceptstatussen;
 - negatieve tests tegen cross-user, cross-tenant, salarislekken, promptinjectie, dubbele bevestiging en verlopen concepten;
+- negatieve tests waarin chattekst en toolarguments bewust een vreemde tenant-id, medewerker-id of ruimere scope proberen af te dwingen;
+- non-disclosuretests die aantonen dat niet-geautoriseerde records niet via tellingen, zoekresultaten, foutverschillen of modelcontext uitlekken;
 - strict TypeScript, lint, relevante testsets en NL/EN-keypariteit.
 
 ### 14.2 Browser-eindtest
@@ -302,6 +324,8 @@ Testmatrix:
 - export, foutstatus en herstelgedrag.
 
 Acceptatie is pas geslaagd wanneer databasecontrole bevestigt dat geen gebruiker geheugen, gesprekken, concepten of domeindata van een andere gebruiker/tenant kan lezen of muteren, en de zichtbare browseruitkomst daarmee overeenkomt.
+
+Daarbij wordt ook vastgelegd dat HeRa binnen de eigen tenant geen rij of veld kan lezen waarvoor de gebruiker niet geautoriseerd is. Deze controle gebeurt met minimaal één beperkt medewerkersaccount, één manager met teamscope en één HR-/tenantbeheeraccount, waarbij dezelfde vragen aantoonbaar verschillende, correct begrensde resultaten opleveren zonder het bestaan van verborgen data prijs te geven.
 
 ## 15. Succesdefinitie
 
