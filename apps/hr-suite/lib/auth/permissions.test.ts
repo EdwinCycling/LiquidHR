@@ -8,7 +8,7 @@ const { createClient, loadActiveContext } = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/context/server-context', () => ({ loadActiveContext }))
 
-import { AuthorizationError, requirePermission } from './permissions'
+import { AuthorizationError, requireAuthContext, requirePermission } from './permissions'
 
 interface FakeClientOptions {
   actor?: { id: string; tenant_id: string } | null
@@ -178,6 +178,31 @@ describe('requirePermission', () => {
     expect(context.activeRoles).toEqual(['TENANT_ADMIN', 'DIRECT_MANAGER'])
     expect(context.permissions).toEqual(['department:read', 'employee:read'])
     expect(context.administrationId).toBe('admin-1')
+  })
+
+  it('bouwt een volledige context zonder een kunstmatige permissioncheck', async () => {
+    createClient.mockResolvedValue(
+      createFakeClient({
+        assignmentRoleIds: ['manager-role'],
+        roleCodes: {
+          'tenant-admin-role': 'HR_MANAGER',
+          'manager-role': 'DIRECT_MANAGER',
+        },
+        rolePermissions: {
+          'tenant-admin-role': ['salary:read'],
+          'manager-role': ['employee:read'],
+        },
+      }),
+    )
+
+    await expect(requireAuthContext()).resolves.toMatchObject({
+      tenantId: 'tenant-1',
+      administrationId: 'admin-1',
+      userId: 'user-1',
+      employeeId: 'employee-1',
+      activeRoles: ['HR_MANAGER', 'DIRECT_MANAGER'],
+      permissions: ['salary:read', 'employee:read'],
+    })
   })
 
   it('ondersteunt een hoofdgebruiker met expliciete toegang zonder medewerkerkoppeling', async () => {

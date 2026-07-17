@@ -56,7 +56,7 @@ async function roleCodesForRoleIds(roleIds: string[]): Promise<string[]> {
   return roles.map((role) => role.code)
 }
 
-export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
+export async function requireAuthContext(): Promise<AuthContext> {
   const supabase = await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
   const userId = claimsData?.claims?.sub
@@ -120,7 +120,21 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
     permissionCodesForRoleIds(roleIds),
   ])
 
-  if (actor && targetEmployeeId === actor.id) {
+  return {
+    tenantId,
+    administrationId,
+    userId,
+    employeeId: actor?.id ?? null,
+    activeRoles,
+    permissions,
+  }
+}
+
+export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
+  const context = await requireAuthContext()
+  const supabase = await createClient()
+
+  if (context.employeeId && targetEmployeeId === context.employeeId) {
     const { data: employeeRole, error: employeeRoleError } = await supabase
       .from('management_roles')
       .select('id')
@@ -133,18 +147,11 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
     if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
       throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')
     }
-  } else if (!permissions.includes(permissionCode)) {
+  } else if (!context.permissions.includes(permissionCode)) {
     throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
   }
 
-  return {
-    tenantId,
-    administrationId,
-    userId,
-    employeeId: actor?.id ?? null,
-    activeRoles,
-    permissions,
-  }
+  return context
 }
 
 export function permissionErrorResponse(error: unknown): NextResponse | null {

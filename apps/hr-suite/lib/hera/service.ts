@@ -2,7 +2,16 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import { createPersonalReminder } from '@/lib/reminders/reminder-service'
 import { reminderDraftSchema } from './schemas'
 
-type DraftStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED' | 'EXECUTED' | 'FAILED'
+type DraftStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'EXPIRED'
+  | 'EXECUTED'
+  | 'FAILED'
+  | 'AWAITING_CONFIRMATION'
+  | 'EXECUTING'
+  | 'SUCCEEDED'
 
 interface StoredDraft {
   id: string
