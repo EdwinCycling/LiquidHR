@@ -29,6 +29,7 @@ De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPL
 
 ## Laatst geverifieerd
 
+- HeRa-incidentherstel: een vervolgronde zonder antwoordtekst werd als leeg assistentbericht opgeslagen en schond daardoor de databaseconstraint (`23514`), met een 500 als gevolg. De orchestrator valt nu veilig terug bij een afgewezen toolselectie of een leeg vervolgantwoord. De exacte provincievraag is lokaal browsermatig herhaald zonder 500; de volledige suite telt nu 59 bestanden en 234 geslaagde tests, plus lint, strict TypeScript, i18n-pariteit en productiebuild.
 - HeRa-databasemigraties zijn live toegepast op Supabase. Een transactionele rollbackproef bevestigde cross-user-isolatie, veilige conversation-delete-FK's en owner-only voorkeurtoegang. De security advisor meldt alleen de bestaande handmatige leaked-password-instelling.
 - Volledige suite: 59 testbestanden en 232 tests geslaagd. ESLint, strict TypeScript, 15 gelijke NL/EN-namespaces en de productiebuild met 36 pagina's zijn geslaagd.
 - HeRa is lokaal in een ingelogde Chrome-sessie geverifieerd: de salarisvraag gebruikt 11 geautoriseerde Liquid HR-records en geeft geen internetantwoord; geheugen aanmaken/wijzigen/verwijderen vereist telkens expliciete bevestiging; voorkeuren voor toon/detail/senioriteit worden opgeslagen; gesprek verwijderen geeft geen 500; reminderconcepten worden niet uitgevoerd zonder bevestiging en relatieve tijden worden server-side naar `Europe/Amsterdam` omgerekend.

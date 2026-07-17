@@ -8,7 +8,7 @@ import {
   type HeRaGeneration,
   type HeRaToolCall,
 } from './gemini'
-import { dispatchHeRaTool } from './tool-registry'
+import { dispatchHeRaTool, HeRaToolRegistryError } from './tool-registry'
 import { executeHeRaTool } from './tools'
 import type { HeRaUserContext } from './types'
 
@@ -139,6 +139,15 @@ function normalizeToolCall(
   }
 }
 
+function isUnsupportedToolSelection(error: unknown): boolean {
+  if (error instanceof HeRaToolRegistryError) return true
+  return error instanceof Error && [
+    'HERA_TOOL_NOT_ALLOWED',
+    'HERA_TOOL_INPUT_INVALID',
+    'HERA_DATE_INPUT_INVALID',
+  ].includes(error.message)
+}
+
 export async function runHeRaTurn(
   input: RunHeRaTurnInput,
   dependencies: RunHeRaTurnDependencies = {},
@@ -171,8 +180,27 @@ export async function runHeRaTurn(
     }
   }
 
-  const normalizedToolCall = normalizeToolCall(first.toolCall, input)
-  const rawToolResult = await (dependencies.dispatchTool ?? dispatchTool)(input.context, normalizedToolCall)
+  let rawToolResult: unknown
+  try {
+    const normalizedToolCall = normalizeToolCall(first.toolCall, input)
+    rawToolResult = await (dependencies.dispatchTool ?? dispatchTool)(input.context, normalizedToolCall)
+  } catch (error) {
+    if (!isUnsupportedToolSelection(error)) throw error
+    console.warn('HERA_TOOL_SELECTION_REJECTED', {
+      toolName: first.toolCall.name,
+      code: error instanceof HeRaToolRegistryError
+        ? error.code
+        : error instanceof Error
+          ? error.message
+          : 'UNKNOWN',
+    })
+    return {
+      content: input.groundingRequiredMessage,
+      model: first.model,
+      evidence: null,
+      draft: null,
+    }
+  }
   const toolResult = asRecord(rawToolResult)
   const draft = draftFromToolResult(toolResult)
   if (draft) {
@@ -190,6 +218,14 @@ export async function runHeRaTurn(
     context: input.modelContext,
     toolResponse: { call: first.toolCall, result: toolResult },
   })
+  if (!second.text.trim()) {
+    return {
+      content: input.groundingRequiredMessage,
+      model: second.model,
+      evidence: null,
+      draft: null,
+    }
+  }
   return {
     content: second.text,
     model: second.model,

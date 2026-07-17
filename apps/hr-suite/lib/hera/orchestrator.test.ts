@@ -80,6 +80,59 @@ describe('runHeRaTurn', () => {
     expect(result.evidence).toBeNull()
   })
 
+  it('geeft een veilige begrenzing terug wanneer het model een niet-bestaande leestool kiest', async () => {
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Deel medewerkers in per provincie.',
+      modelContext: 'USER: Deel medewerkers in per provincie.',
+      personaInstruction: 'Schrijf precies.',
+      groundingRequiredMessage: 'Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data en beschikbare veilige leestools.',
+      now: new Date('2026-07-17T10:00:00.000Z'),
+    }, {
+      generate: async () => ({
+        text: '', model: 'gemini-test',
+        toolCall: { name: 'group_visible_employees_by_province', args: {} },
+      }),
+      dispatchTool: async () => { throw new Error('HERA_TOOL_NOT_ALLOWED') },
+    })
+
+    expect(result).toMatchObject({
+      content: 'Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data en beschikbare veilige leestools.',
+      evidence: null,
+      draft: null,
+    })
+  })
+
+  it('valt veilig terug wanneer het model na een leestool geen antwoordtekst terugstuurt', async () => {
+    const result = await runHeRaTurn({
+      context,
+      userContext,
+      latestUserMessage: 'Deel medewerkers in per provincie en geef een tabel.',
+      modelContext: 'USER: Deel medewerkers in per provincie en geef een tabel.',
+      personaInstruction: 'Schrijf precies.',
+      groundingRequiredMessage: 'Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data en beschikbare veilige leestools.',
+      now: new Date('2026-07-17T10:00:00.000Z'),
+    }, {
+      generate: vi.fn()
+        .mockResolvedValueOnce({
+          text: '', model: 'gemini-test',
+          toolCall: { name: 'get_visible_organization', args: { asOfDate: '2026-07-17' } },
+        })
+        .mockResolvedValueOnce({
+          text: '', model: 'gemini-test',
+          toolCall: { name: 'group_visible_employees_by_province', args: {} },
+        }),
+      dispatchTool: async () => ({ source: 'LIQUID_HR', data: {}, scope: {}, filters: [], asOfDate: '2026-07-17', uncertainties: [] }),
+    })
+
+    expect(result).toMatchObject({
+      content: 'Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data en beschikbare veilige leestools.',
+      evidence: null,
+      draft: null,
+    })
+  })
+
   it('resolveert een relatieve remindertijd server-side in de tijdzone van de gebruiker', async () => {
     const dispatchTool = vi.fn().mockResolvedValue({
       kind: 'DRAFT',
