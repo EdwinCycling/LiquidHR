@@ -17,7 +17,7 @@ Laatste controle: 2026-07-17.
 
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
 | Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
-| HeRa AI-agent | GEDEELTELIJK | Data-first orchestratie, echte rol/permissioncontext, owner- en tenantgebonden memory/voorkeuren, beheer-UI, toon/detail/senioriteit, salaris-/medewerker-/dienstverband-/organisatietools en vijf bevestigbare schrijftools zijn gebouwd. RLS en serverautorisatie zijn live transactioneel negatief getest en de lokale browser-eindtest is geslaagd; publieke preview en Production-eindtest blijven open. |
+| HeRa AI-agent | GEÏMPLEMENTEERD | Data-first orchestratie, echte rol/permissioncontext, owner- en tenantgebonden memory/voorkeuren, beheer-UI, toon/detail/senioriteit, salaris-/medewerker-/dienstverband-/organisatietools en vijf bevestigbare schrijftools zijn gebouwd. RLS en serverautorisatie zijn live transactioneel negatief getest; lokale, preview- en Production-eindtests zijn geslaagd. |
 
 ## Core HR, organisatie en autorisatie
 
@@ -83,6 +83,7 @@ Laatste controle: 2026-07-17.
 - HeRa is lokaal browsermatig getest met de oorspronkelijke salarisvraag: het antwoord kwam uitsluitend uit 11 zichtbare Liquid HR-salarisrecords, inclusief peildatum en onzekerheden. Geheugen aanmaken/wijzigen/verwijderen, antwoordvoorkeuren, gesprek verwijderen en voorstel-annulering zijn eveneens geslaagd. Een reminder voor morgen 09:00 wordt server-side correct als 09:00 `Europe/Amsterdam` weergegeven en niet uitgevoerd zonder bevestiging.
 - Gemini 3-function calling bewaart de versleutelde `thoughtSignature` tussen toolrondes; de regressietest dekt het vereiste roundtripcontract af.
 - Volledige Vitest-suite: 59 testbestanden en 232 tests geslaagd. ESLint, strict TypeScript, 15 NL/EN-namespaces en de Next.js-productiebuild met 36 pagina's zijn geslaagd.
+- Vercel Production `dpl_J1hEbcviCEQxatGdgWMaSJyPE29j` (`a663988`) is `READY` op `https://liquid-hr-hr-suite.vercel.app`. De ingelogde browser-eindtest bevestigde geautoriseerde salarisgronding, geheugen create/update/delete, antwoordvoorkeuren, tijdzonebewuste remindercontrole, annulering zonder uitvoering en gesprekverwijdering zonder 500. De aansluitende Vercel-scan vond geen runtimefouten of 5xx-responses.
 - ESLint zonder waarschuwingen, strict TypeScript, 11 NL/EN-namespaces en Next.js-productiebuild (26 pagina's) geslaagd.
 - Lokale productiebuild luistert op `http://localhost:3000` en blijft actief; login is desktop en op 390px zonder consolefouten gecontroleerd.
 - Login, herstel, uitnodiging en beschermde redirects zijn op desktop en 390px mobiel zonder consolefouten gecontroleerd.
