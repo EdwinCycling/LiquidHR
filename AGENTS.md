@@ -2,6 +2,12 @@
 
 Motto: **It takes a genius to keep it simple.**
 
+## Uitvoeringsvoorkeur van de gebruiker
+
+- Voer implementatieplannen altijd inline uit in de actieve chat.
+- Gebruik geen subagents of parallelle agentdelegatie, tenzij de gebruiker dit later expliciet wijzigt.
+- Optimaliseer voor laag creditverbruik en zorgvuldigheid; snelheid heeft geen prioriteit.
+
 ## Verplichte leesvolgorde
 
 1. Lees vóór iedere wijziging deze `AGENTS.md` volledig.
