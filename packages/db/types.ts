@@ -32,7 +32,9 @@ export type Database = {
       }
       ai_action_drafts: {
         Row: {
+          action_type: string
           confirmed_at: string | null
+          control_payload: Json
           conversation_id: string
           created_at: string
           executed_at: string | null
@@ -47,9 +49,12 @@ export type Database = {
           tenant_id: string
           tool_name: string
           updated_at: string
+          version: number
         }
         Insert: {
+          action_type?: string
           confirmed_at?: string | null
+          control_payload?: Json
           conversation_id: string
           created_at?: string
           executed_at?: string | null
@@ -64,9 +69,12 @@ export type Database = {
           tenant_id: string
           tool_name: string
           updated_at?: string
+          version?: number
         }
         Update: {
+          action_type?: string
           confirmed_at?: string | null
+          control_payload?: Json
           conversation_id?: string
           created_at?: string
           executed_at?: string | null
@@ -81,6 +89,7 @@ export type Database = {
           tenant_id?: string
           tool_name?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -182,14 +191,55 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ai_memory_items_source_conversation_same_tenant_fkey"
-            columns: ["tenant_id", "source_conversation_id"]
+            foreignKeyName: "ai_memory_items_source_conversation_fkey"
+            columns: ["source_conversation_id"]
             isOneToOne: false
             referencedRelation: "ai_conversations"
-            referencedColumns: ["tenant_id", "id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_memory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_user_preferences: {
+        Row: {
+          created_at: string
+          detail_level: string
+          id: string
+          owner_user_id: string
+          seniority_level: string
+          tenant_id: string
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail_level?: string
+          id?: string
+          owner_user_id: string
+          seniority_level?: string
+          tenant_id: string
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail_level?: string
+          id?: string
+          owner_user_id?: string
+          seniority_level?: string
+          tenant_id?: string
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_preferences_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3359,7 +3409,16 @@ export type Database = {
       }
     }
     Enums: {
-      ai_draft_status: "PENDING" | "CONFIRMED" | "CANCELLED" | "EXPIRED" | "EXECUTED" | "FAILED"
+      ai_draft_status:
+        | "PENDING"
+        | "CONFIRMED"
+        | "CANCELLED"
+        | "EXPIRED"
+        | "EXECUTED"
+        | "FAILED"
+        | "AWAITING_CONFIRMATION"
+        | "EXECUTING"
+        | "SUCCEEDED"
       ai_memory_category: "PREFERENCE" | "WORKING_CONTEXT"
       ai_message_role: "USER" | "ASSISTANT" | "TOOL"
       analog_clock_style: "CLASSIC" | "MINIMAL" | "LIQUID"
@@ -3580,7 +3639,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      ai_draft_status: ["PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "EXECUTED", "FAILED"],
+      ai_draft_status: [
+        "PENDING",
+        "CONFIRMED",
+        "CANCELLED",
+        "EXPIRED",
+        "EXECUTED",
+        "FAILED",
+        "AWAITING_CONFIRMATION",
+        "EXECUTING",
+        "SUCCEEDED",
+      ],
       ai_memory_category: ["PREFERENCE", "WORKING_CONTEXT"],
       ai_message_role: ["USER", "ASSISTANT", "TOOL"],
       access_scope_type: ["TENANT", "ADMINISTRATION"],
