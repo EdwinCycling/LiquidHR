@@ -5,6 +5,10 @@ const migrationUrl = new URL(
   '../../supabase/migrations/20260717100000_harden_hera_memory_and_preferences.sql',
   import.meta.url,
 )
+const messageMetadataMigrationUrl = new URL(
+  '../../supabase/migrations/20260717101000_add_hera_message_metadata.sql',
+  import.meta.url,
+)
 
 describe('HeRa persistence migration', () => {
   it('uses a single-column set-null conversation reference for memory', async () => {
@@ -32,5 +36,12 @@ describe('HeRa persistence migration', () => {
     expect(sql).toContain('action_type')
     expect(sql).toContain('version integer')
     expect(sql).toContain('control_payload jsonb')
+  })
+
+  it('persists only structured response metadata beside a message', async () => {
+    const sql = await readFile(messageMetadataMigrationUrl, 'utf8')
+
+    expect(sql).toMatch(/alter table public\.ai_messages[\s\S]+add column metadata jsonb/i)
+    expect(sql).toContain("default '{}'::jsonb")
   })
 })

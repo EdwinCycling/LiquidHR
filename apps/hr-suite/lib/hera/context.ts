@@ -38,6 +38,26 @@ export function buildModelContext({ summary, messages, maxCharacters }: BuildMod
 }
 
 export function isMemoryCandidate(content: string): boolean {
-  const normalized = content.trim().toLocaleLowerCase('nl-NL')
-  return normalized.startsWith('ik geef de voorkeur') || normalized.startsWith('onthoud')
+  return extractMemoryProposal(content) !== null
+}
+
+export interface HeRaMemoryProposal {
+  operation: 'CREATE'
+  category: 'PREFERENCE'
+  content: string
+}
+
+function capitalize(value: string): string {
+  return value.length === 0 ? value : `${value[0].toLocaleUpperCase('nl-NL')}${value.slice(1)}`
+}
+
+export function extractMemoryProposal(content: string): HeRaMemoryProposal | null {
+  const trimmed = content.trim()
+  const normalized = trimmed.toLocaleLowerCase('nl-NL')
+  const prefixes = ['ik geef de voorkeur aan ', 'onthoud dat ', 'onthoud ']
+  const prefix = prefixes.find((candidate) => normalized.startsWith(candidate))
+  if (!prefix) return null
+  const preference = capitalize(trimmed.slice(prefix.length).trim())
+  if (preference.length === 0 || preference.length > 1_000) return null
+  return { operation: 'CREATE', category: 'PREFERENCE', content: preference }
 }

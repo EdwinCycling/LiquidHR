@@ -254,6 +254,7 @@ export type Database = {
           created_at: string
           external_message_id: string | null
           id: string
+          metadata: Json
           model_id: string | null
           origin_channel: string
           owner_user_id: string
@@ -267,6 +268,7 @@ export type Database = {
           created_at?: string
           external_message_id?: string | null
           id?: string
+          metadata?: Json
           model_id?: string | null
           origin_channel?: string
           owner_user_id: string
@@ -280,6 +282,7 @@ export type Database = {
           created_at?: string
           external_message_id?: string | null
           id?: string
+          metadata?: Json
           model_id?: string | null
           origin_channel?: string
           owner_user_id?: string
