@@ -24,6 +24,10 @@ export interface GenerateHeRaResponseInput {
   model?: string
   systemInstruction: string
   context: string
+  toolResponse?: {
+    call: HeRaToolCall
+    result: Record<string, unknown>
+  }
   fetcher?: typeof fetch
 }
 
@@ -46,12 +50,32 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
 
   const fetcher = input.fetcher ?? fetch
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`
+  const contents: Array<{ role: 'user' | 'model'; parts: Array<Record<string, unknown>> }> = [
+    { role: 'user', parts: [{ text: input.context }] },
+  ]
+  if (input.toolResponse) {
+    contents.push(
+      {
+        role: 'model',
+        parts: [{ functionCall: input.toolResponse.call }],
+      },
+      {
+        role: 'user',
+        parts: [{
+          functionResponse: {
+            name: input.toolResponse.call.name,
+            response: input.toolResponse.result,
+          },
+        }],
+      },
+    )
+  }
   const response = await fetcher(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: input.systemInstruction }] },
-      contents: [{ role: 'user', parts: [{ text: input.context }] }],
+      contents,
       tools: [{ functionDeclarations: [
         { name: 'get_my_profile', description: 'Lees alleen de eigen basisgegevens.', parameters: { type: 'OBJECT', properties: {} } },
         { name: 'list_my_reminders', description: 'Lees alleen de eigen reminders.', parameters: { type: 'OBJECT', properties: {} } },
