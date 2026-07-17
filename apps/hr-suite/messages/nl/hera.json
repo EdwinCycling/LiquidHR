@@ -48,5 +48,7 @@
   "cancelAction": "Niet uitvoeren",
   "draftExpiresAt": "Concept verloopt",
   "rememberProposal": "Zal ik deze voorkeur onthouden?",
-  "remember": "Ja, onthouden"
+  "remember": "Ja, onthouden",
+  "currentValue": "Huidige waarde",
+  "newValue": "Voorgestelde waarde"
 }

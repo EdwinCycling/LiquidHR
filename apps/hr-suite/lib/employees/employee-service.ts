@@ -172,20 +172,28 @@ export async function createEmployeeAddress(employeeId: string, input: AddressIn
   return data.id
 }
 
-export async function updateEmployeeAddress(employeeId: string, addressId: string, input: AddressInput): Promise<void> {
+export async function updateEmployeeAddress(
+  employeeId: string,
+  addressId: string,
+  input: AddressInput,
+  expectedUpdatedAt?: string,
+): Promise<void> {
   const context = await requirePermission('employee:read', employeeId)
   if (context.employeeId === employeeId) await requirePermission('address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  const { error } = await supabase.from('employee_addresses').update({
+  let query = supabase.from('employee_addresses').update({
     street: input.street, house_number: input.houseNumber, addition: input.addition ?? null,
     postal_code: input.postalCode.replace(/\s/g, '').toUpperCase(), city: input.city,
     province: input.province ?? null, country_code: input.countryCode,
     valid_from: input.validFrom, valid_until: input.validUntil ?? null,
   }).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
     .is('deleted_at', null)
+  if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
+  const { data, error } = await query.select('id').maybeSingle()
   if (isPostgresConflict(error)) throw new EmployeeServiceError('ADDRESS_PERIOD_CONFLICT', 409)
   if (error) throw new EmployeeServiceError('ADDRESS_UPDATE_FAILED', 500)
+  if (!data) throw new EmployeeServiceError(expectedUpdatedAt ? 'ADDRESS_STALE_WRITE' : 'ADDRESS_NOT_FOUND', 409)
 }
 
 export async function archiveEmployeeAddress(employeeId: string, addressId: string): Promise<void> {

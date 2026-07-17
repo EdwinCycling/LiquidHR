@@ -48,5 +48,7 @@
   "cancelAction": "Do not execute",
   "draftExpiresAt": "Draft expires",
   "rememberProposal": "Shall I remember this preference?",
-  "remember": "Yes, remember"
+  "remember": "Yes, remember",
+  "currentValue": "Current value",
+  "newValue": "Proposed value"
 }

@@ -21,8 +21,8 @@ interface RunHeRaTurnInput {
 }
 
 interface HeRaDraftProposal {
-  actionType: 'PERSONAL_REMINDER'
-  toolName: 'draft_personal_reminder'
+  actionType: 'PERSONAL_REMINDER' | 'EMPLOYEE_ADDRESS_CHANGE' | 'EMPLOYMENT_SALARY_CHANGE' | 'EMPLOYMENT_SCHEDULE_CHANGE' | 'ORGANIZATION_PLACEMENT_CHANGE'
+  toolName: 'draft_personal_reminder' | 'draft_employee_address_change' | 'draft_employment_salary_change' | 'draft_employment_schedule_change' | 'draft_organization_placement_change'
   payload: Record<string, unknown>
   summary: string
   controlPayload: Record<string, unknown>
@@ -93,19 +93,26 @@ async function dispatchTool(context: AuthContext, call: HeRaToolCall): Promise<u
 }
 
 function draftFromToolResult(toolResult: Record<string, unknown>): HeRaDraftProposal | null {
-  if (toolResult.kind !== 'DRAFT' || toolResult.toolName !== 'draft_personal_reminder') return null
+  if (toolResult.kind !== 'DRAFT' || typeof toolResult.toolName !== 'string') return null
+  const actionTypes = {
+    draft_personal_reminder: 'PERSONAL_REMINDER',
+    draft_employee_address_change: 'EMPLOYEE_ADDRESS_CHANGE',
+    draft_employment_salary_change: 'EMPLOYMENT_SALARY_CHANGE',
+    draft_employment_schedule_change: 'EMPLOYMENT_SCHEDULE_CHANGE',
+    draft_organization_placement_change: 'ORGANIZATION_PLACEMENT_CHANGE',
+  } as const
+  const toolName = toolResult.toolName as keyof typeof actionTypes
+  const actionType = actionTypes[toolName]
+  if (!actionType) return null
   const payload = asRecord(toolResult.payload)
+  const controlPayload = asRecord(toolResult.controlPayload)
   if (typeof toolResult.summary !== 'string') throw new Error('HERA_TOOL_RESULT_INVALID')
   return {
-    actionType: 'PERSONAL_REMINDER',
-    toolName: 'draft_personal_reminder',
+    actionType,
+    toolName,
     payload,
     summary: toolResult.summary,
-    controlPayload: {
-      title: payload.title,
-      remindAt: payload.remindAt,
-      description: payload.description ?? null,
-    },
+    controlPayload,
   }
 }
 

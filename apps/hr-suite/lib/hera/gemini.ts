@@ -137,6 +137,49 @@ export async function generateHeRaResponse(input: GenerateHeRaResponseInput): Pr
             required: ['title', 'remindAt'],
           },
         },
+        {
+          name: 'draft_employee_address_change',
+          description: 'Bereid uitsluitend een controleerbaar adreswijzigingsconcept voor; voer niets uit. Gebruik alleen actuele waarden uit Liquid HR-toolresultaten.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              employeeId: { type: 'STRING' }, addressId: { type: 'STRING' }, expectedUpdatedAt: { type: 'STRING' },
+              currentValue: { type: 'OBJECT', properties: { street: { type: 'STRING' }, houseNumber: { type: 'STRING' }, postalCode: { type: 'STRING' }, city: { type: 'STRING' } } },
+              input: { type: 'OBJECT', properties: { street: { type: 'STRING' }, houseNumber: { type: 'STRING' }, addition: { type: 'STRING' }, postalCode: { type: 'STRING' }, city: { type: 'STRING' }, province: { type: 'STRING' }, countryCode: { type: 'STRING' }, validFrom: { type: 'STRING' }, validUntil: { type: 'STRING' } }, required: ['street', 'houseNumber', 'postalCode', 'city', 'countryCode', 'validFrom'] },
+            },
+            required: ['employeeId', 'addressId', 'expectedUpdatedAt', 'currentValue', 'input'],
+          },
+        },
+        {
+          name: 'draft_employment_salary_change',
+          description: 'Bereid uitsluitend een controleerbaar salariswijzigingsconcept voor; voer niets uit.',
+          parameters: {
+            type: 'OBJECT', properties: {
+              employmentId: { type: 'STRING' }, currentValue: { type: 'OBJECT', properties: { fulltimeAmount: { type: 'NUMBER' }, hourlyRate: { type: 'NUMBER' }, currencyCode: { type: 'STRING' } } },
+              mutation: { type: 'OBJECT', properties: { timeline: { type: 'STRING' }, effectiveOn: { type: 'STRING' }, reason: { type: 'STRING' }, warningCodes: { type: 'ARRAY', items: { type: 'STRING' } }, acknowledgements: { type: 'OBJECT', properties: {} }, payload: { type: 'OBJECT', properties: { paymentType: { type: 'STRING' }, paymentFrequency: { type: 'STRING' }, salaryBasis: { type: 'STRING' }, fulltimeAmount: { type: 'NUMBER' }, hourlyRate: { type: 'NUMBER' }, currencyCode: { type: 'STRING' }, salaryScaleStepId: { type: 'STRING' }, caoScaleName: { type: 'STRING' }, caoStepName: { type: 'STRING' } }, required: ['paymentType', 'paymentFrequency', 'salaryBasis', 'currencyCode'] } }, required: ['timeline', 'effectiveOn', 'reason', 'warningCodes', 'acknowledgements', 'payload'] },
+            }, required: ['employmentId', 'currentValue', 'mutation'],
+          },
+        },
+        {
+          name: 'draft_employment_schedule_change',
+          description: 'Bereid uitsluitend een controleerbaar roosterwijzigingsconcept voor; voer niets uit.',
+          parameters: {
+            type: 'OBJECT', properties: {
+              employmentId: { type: 'STRING' }, currentValue: { type: 'OBJECT', properties: { averageHoursPerWeek: { type: 'NUMBER' }, averageDaysPerWeek: { type: 'NUMBER' }, partTimeFactor: { type: 'NUMBER' } } },
+              mutation: { type: 'OBJECT', properties: { timeline: { type: 'STRING' }, effectiveOn: { type: 'STRING' }, reason: { type: 'STRING' }, warningCodes: { type: 'ARRAY', items: { type: 'STRING' } }, acknowledgements: { type: 'OBJECT', properties: {} }, payload: { type: 'OBJECT', properties: { scheduleType: { type: 'STRING' }, startWeek: { type: 'NUMBER' }, averageDaysPerWeek: { type: 'NUMBER' }, averageHoursPerWeek: { type: 'NUMBER' }, partTimeFactor: { type: 'NUMBER' }, timeForTimeAccrual: { type: 'NUMBER' }, mondayHours: { type: 'NUMBER' }, tuesdayHours: { type: 'NUMBER' }, wednesdayHours: { type: 'NUMBER' }, thursdayHours: { type: 'NUMBER' }, fridayHours: { type: 'NUMBER' }, saturdayHours: { type: 'NUMBER' }, sundayHours: { type: 'NUMBER' } }, required: ['scheduleType', 'startWeek', 'averageDaysPerWeek', 'averageHoursPerWeek', 'partTimeFactor', 'timeForTimeAccrual'] } }, required: ['timeline', 'effectiveOn', 'reason', 'warningCodes', 'acknowledgements', 'payload'] },
+            }, required: ['employmentId', 'currentValue', 'mutation'],
+          },
+        },
+        {
+          name: 'draft_organization_placement_change',
+          description: 'Bereid uitsluitend een controleerbaar organisatieplaatsingsconcept voor; voer niets uit. Gebruik alleen actuele waarden uit Liquid HR-toolresultaten.',
+          parameters: {
+            type: 'OBJECT', properties: {
+              placementId: { type: 'STRING' }, expectedUpdatedAt: { type: 'STRING' }, currentValue: { type: 'OBJECT', properties: { departmentId: { type: 'STRING' }, jobTitle: { type: 'STRING' }, directManagerId: { type: 'STRING' } } },
+              input: { type: 'OBJECT', properties: { employmentId: { type: 'STRING' }, departmentId: { type: 'STRING' }, directManagerId: { type: 'STRING' }, directManagerDeputyId: { type: 'STRING' }, jobTitle: { type: 'STRING' }, costBearer: { type: 'STRING' }, effectiveFrom: { type: 'STRING' }, effectiveTo: { type: 'STRING' } } },
+            }, required: ['placementId', 'expectedUpdatedAt', 'currentValue', 'input'],
+          },
+        },
       ] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 800 },
     }),

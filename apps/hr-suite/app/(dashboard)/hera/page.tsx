@@ -21,6 +21,7 @@ export default async function HeRaPage() {
     preferencesSaved: translate('preferencesSaved'), sourceLiquidHr: translate('sourceLiquidHr'), visibleRecords: translate('visibleRecords'), asOfDate: translate('asOfDate'),
     filters: translate('filters'), uncertainties: translate('uncertainties'), confirmAction: translate('confirmAction'), cancelAction: translate('cancelAction'),
     draftExpiresAt: translate('draftExpiresAt'), rememberProposal: translate('rememberProposal'), remember: translate('remember'),
+    currentValue: translate('currentValue'), newValue: translate('newValue'),
   }
 
   return <div className="p-4 sm:p-6 lg:p-8"><HeRaChat labels={labels} /></div>

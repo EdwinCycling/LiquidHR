@@ -38,6 +38,8 @@ export interface HeRaLabels extends HeRaSettingsLabels {
   draftExpiresAt: string
   rememberProposal: string
   remember: string
+  currentValue: string
+  newValue: string
 }
 
 interface Conversation { id: string; title: string; summary: string | null; created_at: string; updated_at: string }
@@ -185,6 +187,16 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
     } catch { setError(labels.error) }
   }
 
+  async function cancelDraft() {
+    if (!draft) return
+    try {
+      await request<{ data: { id: string; status: 'CANCELLED' } }>(`/api/hera/drafts/${draft.id}`, {
+        method: 'DELETE',
+      })
+      setDraft(null)
+    } catch { setError(labels.error) }
+  }
+
   async function saveMemory() {
     if (!memoryProposal || !detail) return
     try {
@@ -222,7 +234,7 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
           {screenState === 'error' ? <div className="mx-auto max-w-xl rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-center"><p className="text-sm font-medium text-destructive">{labels.error}</p><button className="button-secondary mt-4" onClick={() => void loadConversations()} type="button">{labels.send}</button></div> : null}
           {screenState === 'empty' ? <div className="mx-auto grid h-full max-w-lg place-items-center text-center"><div><span className="mx-auto grid size-14 place-items-center rounded-2xl border bg-accent text-accent-foreground"><MessageCircleHeart aria-hidden="true" size={25} /></span><h2 className="mt-5 text-xl font-semibold tracking-tight text-foreground">{labels.emptyTitle}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{labels.emptyDescription}</p>{!detail ? <button className="button-primary mt-6 gap-2" onClick={() => void createConversation()} type="button"><Plus aria-hidden="true" size={16} />{labels.newConversation}</button> : null}</div></div> : null}
           {screenState === 'conversation' && detail ? <ol className="mx-auto flex max-w-3xl flex-col gap-4">{detail.messages.map((message) => { const evidence = evidenceFromMessageMetadata(message.metadata); return <li className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${messageClass(message.role)}`} key={message.id}>{message.content.split('\n').map((line, index) => <p key={`${message.id}-${index}`}>{line || '\u00a0'}</p>)}{evidence ? <HeRaScopeLine evidence={evidence} labels={labels} /> : null}</li> })}</ol> : null}
-          <HeRaControlCard draft={draft} labels={labels} onCancel={() => setDraft(null)} onConfirm={() => void confirmDraft()} />
+          <HeRaControlCard draft={draft} labels={labels} onCancel={() => void cancelDraft()} onConfirm={() => void confirmDraft()} />
           <HeRaControlCard labels={labels} memoryProposal={memoryProposal} onCancel={() => setMemoryProposal(null)} onConfirm={() => void saveMemory()} />
         </main>
 

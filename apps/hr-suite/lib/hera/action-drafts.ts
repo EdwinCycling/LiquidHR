@@ -1,8 +1,19 @@
 import type { Json } from '@scope/db'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { createPersonalReminder } from '@/lib/reminders/reminder-service'
+import { updateEmployeeAddress } from '@/lib/employees/employee-service'
+import { applyTimelineMutation } from '@/lib/employment/employment-detail-service'
+import { updatePlacement } from '@/lib/organization/management-service'
 import { createClient } from '@/lib/supabase/server'
-import { reminderDraftSchema } from './schemas'
+import {
+  addressChangeDraftSchema,
+  employmentTimelineDraftSchema,
+  placementChangeDraftSchema,
+  reminderDraftSchema,
+} from './schemas'
+import type { AddressInput } from '@/lib/employees/schemas'
+import type { TimelineMutationInput } from '@/lib/employment/detail-schemas'
+import type { PlacementUpdateInput } from '@/lib/organization/schemas'
 
 export type HeRaActionType =
   | 'PERSONAL_REMINDER'
@@ -37,6 +48,35 @@ export interface HeRaActionDraftDependencies {
   executeAction?: (context: AuthContext, draft: ClaimedActionDraft) => Promise<ActionResult>
   markSucceeded?: (context: AuthContext, draftId: string) => Promise<void>
   markFailed?: (context: AuthContext, draftId: string, failureCode: string) => Promise<void>
+  createPersonalReminder?: (input: { title: string; remindAt: string; description?: string }) => Promise<string>
+  updateEmployeeAddress?: (employeeId: string, addressId: string, input: AddressInput, expectedUpdatedAt?: string) => Promise<string | void>
+  applyTimelineMutation?: (employmentId: string, input: TimelineMutationInput) => Promise<string>
+  updatePlacement?: (placementId: string, input: PlacementUpdateInput, expectedUpdatedAt?: string) => Promise<string | void>
+  cancelDraft?: (context: AuthContext, draftId: string) => Promise<boolean>
+}
+
+async function cancelDraft(context: AuthContext, draftId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('ai_action_drafts')
+    .update({ status: 'CANCELLED' })
+    .eq('id', draftId)
+    .eq('tenant_id', context.tenantId)
+    .eq('owner_user_id', context.userId)
+    .eq('status', 'AWAITING_CONFIRMATION')
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  return Boolean(data)
+}
+
+export async function cancelActionDraft(
+  context: AuthContext,
+  draftId: string,
+  dependencies: Pick<HeRaActionDraftDependencies, 'cancelDraft'> = {},
+): Promise<void> {
+  const cancelled = await (dependencies.cancelDraft ?? cancelDraft)(context, draftId)
+  if (!cancelled) throw new HeRaActionDraftError('DRAFT_NOT_CONFIRMABLE')
 }
 
 export class HeRaActionDraftError extends Error {
@@ -73,13 +113,42 @@ async function claimDraft(
   }
 }
 
-async function executeAction(_context: AuthContext, draft: ClaimedActionDraft): Promise<ActionResult> {
-  if (draft.actionType !== 'PERSONAL_REMINDER') {
-    throw new HeRaActionDraftError('DRAFT_ACTION_NOT_SUPPORTED')
+async function executeAction(
+  _context: AuthContext,
+  draft: ClaimedActionDraft,
+  dependencies: HeRaActionDraftDependencies,
+): Promise<ActionResult> {
+  if (draft.actionType === 'PERSONAL_REMINDER') {
+    const payload = reminderDraftSchema.parse(draft.payload)
+    return { entityId: await (dependencies.createPersonalReminder ?? createPersonalReminder)(payload) }
   }
-  const payload = reminderDraftSchema.parse(draft.payload)
-  const entityId = await createPersonalReminder(payload)
-  return { entityId }
+  if (draft.actionType === 'EMPLOYEE_ADDRESS_CHANGE') {
+    const payload = addressChangeDraftSchema.parse(draft.payload)
+    const result = await (dependencies.updateEmployeeAddress ?? updateEmployeeAddress)(
+      payload.employeeId, payload.addressId, payload.input, payload.expectedUpdatedAt,
+    )
+    return { entityId: result ?? payload.addressId }
+  }
+  if (draft.actionType === 'EMPLOYMENT_SALARY_CHANGE' || draft.actionType === 'EMPLOYMENT_SCHEDULE_CHANGE') {
+    const payload = employmentTimelineDraftSchema.parse(draft.payload)
+    const expectedTimeline = draft.actionType === 'EMPLOYMENT_SALARY_CHANGE' ? 'SALARY' : 'SCHEDULE'
+    if (payload.mutation.timeline !== expectedTimeline) {
+      throw new HeRaActionDraftError('DRAFT_ACTION_NOT_SUPPORTED')
+    }
+    return {
+      entityId: await (dependencies.applyTimelineMutation ?? applyTimelineMutation)(
+        payload.employmentId, payload.mutation,
+      ),
+    }
+  }
+  if (draft.actionType === 'ORGANIZATION_PLACEMENT_CHANGE') {
+    const payload = placementChangeDraftSchema.parse(draft.payload)
+    const result = await (dependencies.updatePlacement ?? updatePlacement)(
+      payload.placementId, payload.input, payload.expectedUpdatedAt,
+    )
+    return { entityId: result ?? payload.placementId }
+  }
+  throw new HeRaActionDraftError('DRAFT_ACTION_NOT_SUPPORTED')
 }
 
 async function markSucceeded(context: AuthContext, draftId: string): Promise<void> {
@@ -132,7 +201,9 @@ export async function confirmActionDraft(
   }
 
   try {
-    const result = await (dependencies.executeAction ?? executeAction)(context, draft)
+    const result = dependencies.executeAction
+      ? await dependencies.executeAction(context, draft)
+      : await executeAction(context, draft, dependencies)
     await (dependencies.markSucceeded ?? markSucceeded)(context, draft.id)
     return result
   } catch (error) {

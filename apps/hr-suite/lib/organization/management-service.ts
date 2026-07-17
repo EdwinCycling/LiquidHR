@@ -124,18 +124,25 @@ export async function createPlacement(input: PlacementCreateInput): Promise<stri
   return data.id
 }
 
-export async function updatePlacement(id: string, input: PlacementUpdateInput): Promise<void> {
+export async function updatePlacement(
+  id: string,
+  input: PlacementUpdateInput,
+  expectedUpdatedAt?: string,
+): Promise<void> {
   const context = await requirePermission('organization-placement:write')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
-  const { error } = await supabase.from('employee_organizations').update({
+  let query = supabase.from('employee_organizations').update({
     employment_id: input.employmentId, department_id: input.departmentId,
     direct_manager_id: input.directManagerId, direct_manager_deputy_id: input.directManagerDeputyId,
     job_title: input.jobTitle, cost_bearer: input.costBearer,
     effective_from: input.effectiveFrom, effective_to: input.effectiveTo,
   }).eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('id', id)
+  if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
+  const { data, error } = await query.select('id').maybeSingle()
   if (conflict(error)) throw new OrganizationServiceError('PLACEMENT_PERIOD_CONFLICT', 409)
   if (error) throw new OrganizationServiceError('PLACEMENT_UPDATE_FAILED', 500)
+  if (!data) throw new OrganizationServiceError(expectedUpdatedAt ? 'PLACEMENT_STALE_WRITE' : 'PLACEMENT_NOT_FOUND', 409)
 }
 
 export async function createManagementAssignment(input: ManagementAssignmentCreateInput): Promise<string> {
