@@ -1,6 +1,6 @@
 # Implementatiestatus Liquid HR
 
-Laatste controle: 2026-07-16.
+Laatste controle: 2026-07-17.
 
 ## Fundering
 
@@ -17,7 +17,7 @@ Laatste controle: 2026-07-16.
 
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
 | Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
-| HeRa AI-agent | GEDEELTELIJK | Leidend requirementdocument, persoonlijke conversation-/memory-/draftschema's met RLS, Gemini-adapter, veilige leestools, reminderconceptbevestiging, export, API en navigatie zijn aanwezig. De lege-starttransitie en een echte lokale Gemini-vraag zijn browser-gevalideerd; productieprivacyconfiguratie en publieke eindtest blijven open. |
+| HeRa AI-agent | GEDEELTELIJK | Data-first orchestratie, echte rol/permissioncontext, owner- en tenantgebonden memory/voorkeuren, beheer-UI, toon/detail/senioriteit, salaris-/medewerker-/dienstverband-/organisatietools en vijf bevestigbare schrijftools zijn gebouwd. RLS en serverautorisatie zijn live transactioneel negatief getest; volledige lokale en productie-browsereindtest blijven open. |
 
 ## Core HR, organisatie en autorisatie
 
@@ -60,6 +60,9 @@ Laatste controle: 2026-07-16.
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
 
 ## Security en handmatige productieconfiguratie
+
+- HeRa-migraties voor veilige memory-FK's, gebruikersvoorkeuren, berichtmetadata en indexen zijn live toegepast. Een transactionele rollbackproef bevestigde cross-user-isolatie, veilige gespreksverwijdering en owner-only voorkeurtoegang.
+- HeRa gebruikt nooit service-role voor chattools. Tenant, gebruiker, administratie en permissions komen uitsluitend uit de server-side sessie; hostile scopevelden in modelargumenten worden geweigerd.
 
 - Tijdhub/reminders: de drie migraties `20260716081000_add_time_hub_reminders.sql`, `20260716090000_fix_reminder_recipient_rls_recursion.sql` en `20260716092000_fix_reminder_publish_auth_lookup.sql` zijn live toegepast. Een RLS-recursie in de recipient-selectie en een niet-toegestane `auth.users`-lookup in publicatie zijn daarmee hersteld.
 - Alle nieuwe publieke tabellen hebben RLS en policies in dezelfde migratie. Tenant- en administratiescope wordt zowel in de servicelaag als database-side afgedwongen.

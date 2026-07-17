@@ -9,6 +9,7 @@ import { loadHeRaUserContext } from '@/lib/hera/preferences'
 import { requireHeRaContext } from '@/lib/hera/request-context'
 import { userMessageSchema } from '@/lib/hera/schemas'
 import { createClient } from '@/lib/supabase/server'
+import { getTranslator } from '@/lib/i18n/server'
 
 interface Params {
   params: Promise<{ conversationId: string }>
@@ -73,6 +74,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
     if (messagesError) throw messagesError
 
     const persona = resolvePersona(context, userContext.locale)
+    const translate = await getTranslator('hera', userContext.locale)
     const turn = await runHeRaTurn({
       context,
       userContext,
@@ -83,6 +85,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
         maxCharacters: 14_000,
       }),
       personaInstruction: persona.instructions,
+      groundingRequiredMessage: translate('groundingRequired'),
       now: new Date(),
     })
 

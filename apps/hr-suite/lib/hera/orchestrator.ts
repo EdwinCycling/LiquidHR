@@ -17,6 +17,7 @@ interface RunHeRaTurnInput {
   latestUserMessage: string
   modelContext: string
   personaInstruction: string
+  groundingRequiredMessage: string
   now: Date
 }
 
@@ -140,9 +141,7 @@ export async function runHeRaTurn(
     const blocked = requiresInternalEvidence(input.latestUserMessage)
     return {
       content: blocked
-        ? input.userContext.locale === 'nl'
-          ? 'Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang.'
-          : 'I can only answer this with authorised Liquid HR data. Provide the missing scope or ask someone with the required access.'
+        ? input.groundingRequiredMessage
         : first.text,
       model: first.model,
       evidence: null,

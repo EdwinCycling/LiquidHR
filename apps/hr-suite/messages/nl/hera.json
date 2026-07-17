@@ -50,5 +50,6 @@
   "rememberProposal": "Zal ik deze voorkeur onthouden?",
   "remember": "Ja, onthouden",
   "currentValue": "Huidige waarde",
-  "newValue": "Voorgestelde waarde"
+  "newValue": "Voorgestelde waarde",
+  "groundingRequired": "Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang."
 }

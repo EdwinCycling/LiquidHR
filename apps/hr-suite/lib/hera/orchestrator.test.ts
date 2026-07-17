@@ -43,6 +43,7 @@ describe('runHeRaTurn', () => {
       latestUserMessage: 'Zijn er medewerkers die meer dan 6000 euro verdienen?',
       modelContext: 'USER: Zijn er medewerkers die meer dan 6000 euro verdienen?',
       personaInstruction: 'Schrijf precies en datagericht.',
+      groundingRequiredMessage: 'Alleen met geautoriseerde data.',
       now: new Date('2026-07-17T10:00:00.000Z'),
     }, { generate, dispatchTool })
 
@@ -64,6 +65,7 @@ describe('runHeRaTurn', () => {
       latestUserMessage: 'Zijn er medewerkers met een salaris boven 6000 euro?',
       modelContext: 'USER: Zijn er medewerkers met een salaris boven 6000 euro?',
       personaInstruction: 'Schrijf precies.',
+      groundingRequiredMessage: 'Ik kan dit alleen beantwoorden met geautoriseerde Liquid HR-data. Geef de ontbrekende scope aan of vraag iemand met de juiste toegang.',
       now: new Date('2026-07-17T10:00:00.000Z'),
     }, {
       generate: async () => ({
