@@ -3,6 +3,7 @@
   "timeHubTab": "Time Hub",
   "clockPreview": "Preview",
   "title": "Personal settings",
+  "personalEyebrow": "My preferences",
   "subtitle": "Your preferences apply in every customer environment.",
   "open": "Open personal settings",
   "close": "Close personal settings",
@@ -26,6 +27,36 @@
   "saveFailed": "Could not save your settings.",
   "invalid": "Check your language and theme selection.",
   "unauthenticated": "Sign in again to save your settings.",
+  "admin": {
+    "eyebrow": "HR administration",
+    "title": "Settings",
+    "subtitle": "Manage this customer environment. You only see sections you are authorized to use.",
+    "sections": { "organization": "Organization & access", "hrSetup": "HR setup", "platform": "Platform & extensions" },
+    "tiles": {
+      "authorization": "Roles and authorization", "authorizationDescription": "Manage roles, permissions, scopes and the graphical authorization overview.",
+      "organization": "Departments", "organizationDescription": "Configure departments, hierarchy and managers.",
+      "employees": "Employees", "employeesDescription": "Open employee management and employee cards.",
+      "customFields": "Custom fields", "customFieldsDescription": "Manage additional fields for employees and employments.",
+      "jobs": "Jobs and job groups", "jobsDescription": "Maintain jobs and job groups per administration over time.",
+      "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
+      "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
+      "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide."
+    }
+  },
+  "modules": {
+    "title": "Active modules", "subtitle": "Choose which extra modules are available across the customer environment. Core functionality always remains active.",
+    "saved": "Modules saved.", "failed": "Could not save modules.", "comingSoon": "Coming soon",
+    "items": {
+      "HERA": { "name": "HeRa", "description": "The secure HR assistant for analysis and guided actions." },
+      "DOCUMENTS": { "name": "Document files", "description": "Documents, metadata, audiences and expiry reminders per employee." },
+      "REMINDERS": { "name": "Reminders", "description": "Personal and HR reminders targeting roles, organization chart and people." },
+      "LEAVE": { "name": "Leave", "description": "Leave registration and balances in the employee calendar." },
+      "ABSENCE": { "name": "Absence", "description": "Absence cases and calendar indicators." },
+      "ASSETS": { "name": "Assets", "description": "Issue and return company assets per employee." },
+      "WORKFLOWS": { "name": "Workflows", "description": "Repeatable HR processes for onboarding, changes and offboarding." },
+      "TRAINING": { "name": "Training", "description": "Training, certificates and validity per employee." }
+    }
+  },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "North Sea",

@@ -3,6 +3,7 @@
   "timeHubTab": "Tijdhub",
   "clockPreview": "Voorbeeld",
   "title": "Persoonlijke instellingen",
+  "personalEyebrow": "Mijn voorkeuren",
   "subtitle": "Je voorkeuren gelden in iedere klantomgeving.",
   "open": "Open persoonlijke instellingen",
   "close": "Sluit persoonlijke instellingen",
@@ -26,6 +27,36 @@
   "saveFailed": "Opslaan is niet gelukt.",
   "invalid": "Controleer je taal- en themakeuze.",
   "unauthenticated": "Log opnieuw in om je instellingen op te slaan.",
+  "admin": {
+    "eyebrow": "HR-beheer",
+    "title": "Instellingen",
+    "subtitle": "Beheer de inrichting van deze klantomgeving. Je ziet alleen onderdelen waarvoor je bevoegd bent.",
+    "sections": { "organization": "Organisatie & toegang", "hrSetup": "HR-inrichting", "platform": "Platform & uitbreidingen" },
+    "tiles": {
+      "authorization": "Rollen en autorisaties", "authorizationDescription": "Beheer rollen, rechten, scopes en het grafische autorisatieoverzicht.",
+      "organization": "Afdelingen", "organizationDescription": "Richt afdelingen, hiërarchie en managers in.",
+      "employees": "Medewerkers", "employeesDescription": "Open het medewerkersbeheer en de personeelskaarten.",
+      "customFields": "Vrije velden", "customFieldsDescription": "Beheer aanvullende velden voor medewerkers en dienstverbanden.",
+      "jobs": "Functies en functiegroepen", "jobsDescription": "Onderhoud functies en functiegroepen per administratie en door de tijd.",
+      "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
+      "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe.",
+      "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit."
+    }
+  },
+  "modules": {
+    "title": "Actieve modules", "subtitle": "Kies welke extra modules in de hele klantomgeving beschikbaar zijn. Kernfunctionaliteit blijft altijd actief.",
+    "saved": "Modules opgeslagen.", "failed": "Opslaan is niet gelukt.", "comingSoon": "Komt later",
+    "items": {
+      "HERA": { "name": "HeRa", "description": "De beveiligde HR-assistent voor analyse en begeleide acties." },
+      "DOCUMENTS": { "name": "Documentdossiers", "description": "Documenten, metadata, doelgroepen en vervalreminders per medewerker." },
+      "REMINDERS": { "name": "Reminders", "description": "Persoonlijke en HR-reminders met rollen, organogram en personen als doelgroep." },
+      "LEAVE": { "name": "Verlof", "description": "Verlofregistratie en verlofsaldi in de medewerkerskalender." },
+      "ABSENCE": { "name": "Verzuim", "description": "Verzuimdossiers en signalering in de kalender." },
+      "ASSETS": { "name": "Bedrijfsmiddelen", "description": "Uitgifte en inname van middelen per medewerker." },
+      "WORKFLOWS": { "name": "Workflows", "description": "Herhaalbare HR-processen voor in-, door- en uitstroom." },
+      "TRAINING": { "name": "Opleidingen", "description": "Opleidingen, certificaten en geldigheid per medewerker." }
+    }
+  },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "Noordzee",
