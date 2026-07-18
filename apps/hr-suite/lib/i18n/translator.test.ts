@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import settingsNl from '@/messages/nl/settings.json'
+import settingsEn from '@/messages/en/settings.json'
 import { createTranslator, isLocale } from './translator'
 
 describe('createTranslator', () => {
@@ -17,6 +19,13 @@ describe('createTranslator', () => {
 
   it('faalt expliciet bij een ontbrekende vertaling', () => {
     expect(() => t('nested.cancel')).toThrow('I18N_MESSAGE_MISSING:nested.cancel')
+  })
+})
+
+describe('admin-instellingen vertalingen', () => {
+  it('bevat de tegel voor interne redenen in beide talen', () => {
+    expect(createTranslator(settingsNl)('admin.tiles.endReasons')).toBe('Interne redenen')
+    expect(createTranslator(settingsEn)('admin.tiles.endReasons')).toBe('Internal reasons')
   })
 })
 

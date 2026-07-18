@@ -1,7 +1,7 @@
 # Actuele overdracht Liquid HR
 
 Vervolgslice 2026-07-18: HeRa is uit de linker navigatie gehaald en werkt als zwevende overlay met lokaal bewaarde dock-/breedtevoorkeur; de launcher staat rechtsonder. De medewerkerkaart heeft een reminders-tab; dienstverbanden openen primair, verwijderen gebruikt een bevestigde soft-delete en teruggaan bewaart de brontab. Interne uitdienstredenen zijn beheerbaar via `/master-data/end-reasons` met actief/inactief en gebruiksblokkade. Strict TypeScript, ESLint, i18n-pariteit en productiebuild zijn groen.
-Nieuwe dashboards worden vanaf deze slice leeg aangemaakt; de eerste automatisch aangemaakte persoonlijke dashboard blijft de bestaande startindeling gebruiken. Applicatieversie: `1.20260718.7`.
+Nieuwe dashboards worden vanaf deze slice leeg aangemaakt; de eerste automatisch aangemaakte persoonlijke dashboard blijft de bestaande startindeling gebruiken. De admin-tegel voor interne redenen is in NL/EN afgedekt met een regressietest. Applicatieversie: `1.20260718.8`.
 
 Laatste update: 2026-07-18. Dit is het compacte startpunt voor iedere nieuwe of geforkte chat. Lees daarna `docs/README.md`; neem geen secrets in documentatie op.
 
