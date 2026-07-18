@@ -15,7 +15,7 @@ export function HolidaySettings({ initial, initialYear, labels }: { initial: Hol
   const [localName, setLocalName] = useState('')
   const [localDate, setLocalDate] = useState(`${initialYear}-01-01`)
   const [status, setStatus] = useState<'idle'|'loading'|'imported'|'failed'>('idle')
-  async function refresh(nextYear = year) { const response = await fetch(`/api/settings/holidays?year=${nextYear}`); if (response.ok) setHolidays((await response.json()).data as Holiday[]) }
+  async function refresh(nextYear = year) { const response = await fetch(`/api/settings/holidays?year=${nextYear}`, { cache: 'no-store' }); if (response.ok) setHolidays((await response.json()).data as Holiday[]) }
   async function showPreview() { setStatus('loading'); const response = await fetch(`/api/settings/holidays/preview?year=${year}&country=${countryCode}`); if (!response.ok) { setStatus('failed'); return } setPreview((await response.json()).data as Preview[]); setStatus('idle') }
   async function importSnapshot() { setStatus('loading'); const response = await fetch('/api/settings/holidays', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'IMPORT', year, countryCode }) }); if (!response.ok) { setStatus('failed'); return } await refresh(); setStatus('imported') }
   async function addLocal() { setStatus('loading'); const response = await fetch('/api/settings/holidays', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'MANUAL', year, countryCode, date: localDate, name: localName }) }); if (!response.ok) { setStatus('failed'); return } setLocalName(''); await refresh(); setStatus('idle') }
