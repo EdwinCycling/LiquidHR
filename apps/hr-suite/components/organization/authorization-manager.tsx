@@ -5,6 +5,7 @@ import { KeyRound, Layers3, Network, Plus, RotateCcw, Save, Search, ShieldCheck,
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import {
+  authorizationCoverageTarget,
   buildAuthorizationOverview,
   normalizeAuthorizationTab,
   permissionCoverage,
@@ -63,6 +64,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
   const [permissionIds, setPermissionIds] = useState<Set<string>>(initialIds)
   const [roleSearch, setRoleSearch] = useState('')
   const [permissionSearch, setPermissionSearch] = useState('')
+  const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   const groups = useMemo(() => Map.groupBy(permissions, (permission) => permission.category), [permissions])
@@ -93,6 +95,15 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
     setSavedPermissionIds(next)
     setPermissionIds(next)
     setMessage(null)
+    setHighlightedCategory(null)
+  }
+
+  function inspectCoverage(roleId: string, category: string): void {
+    const target = authorizationCoverageTarget(roleId, category)
+    selectRole(target.roleId)
+    setHighlightedCategory(target.category)
+    setPermissionSearch('')
+    setTab('permissions')
   }
 
   async function send(url: string, method: string, body: object): Promise<boolean> {
@@ -158,7 +169,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
             if (visibleItems.length === 0) return null
             const groupIds = items.map((permission) => permission.id)
             const coverage = permissionCoverage(permissionIds, groupIds)
-            return <fieldset className="min-w-0 rounded-2xl border bg-background p-4" key={category}>
+            return <fieldset className={`min-w-0 rounded-2xl border bg-background p-4 transition ${highlightedCategory === category ? 'border-primary ring-2 ring-primary/15' : ''}`} key={category}>
               <legend className="sr-only">{category}</legend>
               <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-semibold text-foreground">{category}</h3><p className="mt-0.5 text-xs text-muted-foreground">{coverage.assigned} / {coverage.total} · {coverage.percentage}%</p></div>{editable ? <button aria-pressed={coverage.percentage === 100} className="shrink-0 rounded-lg border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40" onClick={() => setPermissionIds((current) => togglePermissionGroup(current, groupIds))} type="button">{coverage.percentage === 100 ? labels.clearAll : labels.selectAll}</button> : null}</div>
               <div aria-label={`${labels.coverage} ${coverage.percentage}%`} className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={coverage.percentage}><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${coverage.percentage}%` }} /></div>
@@ -170,7 +181,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
       </section>
     </div> : null}
 
-    {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onSelectRole={(roleId) => { selectRole(roleId); setTab('permissions') }} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
+    {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={inspectCoverage} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
 
     {activeTab === 'assignments' ? <section className="space-y-5"><header className="rounded-2xl border bg-surface p-5"><h2 className="text-xl font-semibold text-foreground">{labels.assignmentTitle}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.assignmentSubtitle}</p></header><div className="grid gap-6 lg:grid-cols-2"><OrganizationForm action={addPlacement} button={labels.addPlacement} departments={departments} employees={employees} labels={labels} title={labels.placements} /><OrganizationForm action={addManagement} button={labels.addManagement} departments={departments} employees={employees} labels={labels} roles={roles.filter((role) => role.is_active)} title={labels.managementAssignments} /></div></section> : null}
   </div>
@@ -186,11 +197,11 @@ function SummaryCards({ labels, overview }: { labels: AuthorizationLabels; overv
   return <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ label, value, icon: Icon }) => <article className="relative overflow-hidden rounded-2xl border bg-surface p-4" key={label}><div className="absolute -right-4 -top-4 size-20 rounded-full bg-accent" /><div className="relative flex items-center justify-between gap-4"><div><p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p><p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p></div><span className="grid size-10 place-items-center rounded-xl bg-accent text-accent-foreground"><Icon className="size-5" /></span></div></article>)}</div>
 }
 
-function AuthorizationHeatmap({ labels, onSelectRole, permissions, rolePermissions, roles }: { labels: AuthorizationLabels; onSelectRole: (roleId: string) => void; permissions: Permission[]; rolePermissions: RolePermission[]; roles: Role[] }) {
+function AuthorizationHeatmap({ labels, onInspectCoverage, permissions, rolePermissions, roles }: { labels: AuthorizationLabels; onInspectCoverage: (roleId: string, category: string) => void; permissions: Permission[]; rolePermissions: RolePermission[]; roles: Role[] }) {
   const groups = [...Map.groupBy(permissions, (permission) => permission.category).entries()]
   return <section className="rounded-2xl border bg-surface p-4 sm:p-6"><header className="border-b pb-5"><h2 className="text-xl font-semibold text-foreground">{labels.overviewTitle}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.overviewSubtitle}</p></header><div className="mt-5 rounded-xl border bg-accent p-4"><p className="font-semibold text-accent-foreground">{labels.scopeNoticeTitle}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.scopeNotice}</p></div>
-    <div className="mt-6 hidden overflow-x-auto rounded-xl border lg:block"><table className="w-full min-w-max border-collapse text-sm"><thead><tr className="bg-muted/60"><th className="sticky left-0 z-10 min-w-48 border-b border-r bg-muted px-4 py-3 text-left font-semibold text-foreground">{labels.coverage}</th>{roles.map((role) => <th className="min-w-36 border-b px-3 py-3 text-left font-semibold text-foreground" key={role.id}><span className="block">{role.name}</span><span className="mt-0.5 block text-[0.68rem] font-normal text-muted-foreground">{role.code}</span></th>)}</tr></thead><tbody>{groups.map(([category, items]) => <tr key={category}><th className="sticky left-0 z-10 border-r border-t bg-surface px-4 py-3 text-left font-medium text-foreground">{category}</th>{roles.map((role) => { const coverage = permissionCoverage(rolePermissionSet(role.id, rolePermissions), items.map((item) => item.id)); return <td className="border-t p-2" key={role.id}><button aria-label={`${role.name}, ${category}: ${coverage.assigned} / ${coverage.total}, ${coverage.percentage}%`} className={`w-full rounded-lg px-3 py-3 text-left transition hover:ring-2 hover:ring-primary/30 ${coverageTone(coverage.percentage)}`} onClick={() => onSelectRole(role.id)} type="button"><span className="block font-semibold">{coverage.assigned} / {coverage.total}</span><span className="mt-0.5 block text-xs opacity-80">{coverage.percentage}%</span></button></td>})}</tr>)}</tbody></table></div>
-    <div className="mt-6 space-y-4 lg:hidden">{roles.map((role) => <article className="rounded-2xl border bg-background p-4" key={role.id}><button className="w-full text-left" onClick={() => onSelectRole(role.id)} type="button"><span className="font-semibold text-foreground">{role.name}</span><span className="ml-2 text-xs text-muted-foreground">{role.code}</span></button><div className="mt-4 space-y-3">{groups.map(([category, items]) => { const coverage = permissionCoverage(rolePermissionSet(role.id, rolePermissions), items.map((item) => item.id)); return <button className="block w-full text-left" key={category} onClick={() => onSelectRole(role.id)} type="button"><span className="flex items-center justify-between gap-3 text-xs"><span className="font-medium text-foreground">{category}</span><span className="text-muted-foreground">{coverage.assigned}/{coverage.total} · {coverage.percentage}%</span></span><span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${coverage.percentage}%` }} /></span></button> })}</div></article>)}</div>
+    <div className="mt-6 hidden overflow-x-auto rounded-xl border lg:block"><table className="w-full min-w-max border-collapse text-sm"><thead><tr className="bg-muted/60"><th className="sticky left-0 z-10 min-w-48 border-b border-r bg-muted px-4 py-3 text-left font-semibold text-foreground">{labels.coverage}</th>{roles.map((role) => <th className="min-w-36 border-b px-3 py-3 text-left font-semibold text-foreground" key={role.id}><span className="block">{role.name}</span><span className="mt-0.5 block text-[0.68rem] font-normal text-muted-foreground">{role.code}</span></th>)}</tr></thead><tbody>{groups.map(([category, items]) => <tr key={category}><th className="sticky left-0 z-10 border-r border-t bg-surface px-4 py-3 text-left font-medium text-foreground">{category}</th>{roles.map((role) => { const coverage = permissionCoverage(rolePermissionSet(role.id, rolePermissions), items.map((item) => item.id)); return <td className="border-t p-2" key={role.id}><button aria-label={`${role.name}, ${category}: ${coverage.assigned} / ${coverage.total}, ${coverage.percentage}%`} className={`w-full rounded-lg px-3 py-3 text-left transition hover:ring-2 hover:ring-primary/30 ${coverageTone(coverage.percentage)}`} onClick={() => onInspectCoverage(role.id, category)} type="button"><span className="block font-semibold">{coverage.assigned} / {coverage.total}</span><span className="mt-0.5 block text-xs opacity-80">{coverage.percentage}%</span></button></td>})}</tr>)}</tbody></table></div>
+    <div className="mt-6 space-y-4 lg:hidden">{roles.map((role) => <article className="rounded-2xl border bg-background p-4" key={role.id}><div><span className="font-semibold text-foreground">{role.name}</span><span className="ml-2 text-xs text-muted-foreground">{role.code}</span></div><div className="mt-4 space-y-3">{groups.map(([category, items]) => { const coverage = permissionCoverage(rolePermissionSet(role.id, rolePermissions), items.map((item) => item.id)); return <button className="block w-full text-left" key={category} onClick={() => onInspectCoverage(role.id, category)} type="button"><span className="flex items-center justify-between gap-3 text-xs"><span className="font-medium text-foreground">{category}</span><span className="text-muted-foreground">{coverage.assigned}/{coverage.total} · {coverage.percentage}%</span></span><span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-primary" style={{ width: `${coverage.percentage}%` }} /></span></button> })}</div></article>)}</div>
   </section>
 }
 

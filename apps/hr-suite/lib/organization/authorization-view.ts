@@ -42,6 +42,10 @@ export interface PermissionCoverage {
   percentage: number
 }
 
+export function authorizationCoverageTarget(roleId: string, category: string): { roleId: string; category: string } {
+  return { roleId: roleId.trim(), category: category.trim() }
+}
+
 export function normalizeAuthorizationTab(value: string | null): AuthorizationTab {
   if (value === 'overview' || value === 'assignments') return value
   return 'permissions'

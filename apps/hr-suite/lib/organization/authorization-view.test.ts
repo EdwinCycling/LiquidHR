@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  authorizationCoverageTarget,
   buildAuthorizationOverview,
   normalizeAuthorizationTab,
   permissionCoverage,
@@ -60,5 +61,9 @@ describe('authorization overview', () => {
     expect(normalizeAuthorizationTab(null)).toBe('permissions')
     expect(permissionSelectionChanged(new Set(['a']), new Set(['a', 'b']))).toBe(true)
     expect(permissionSelectionChanged(new Set(['b', 'a']), new Set(['a', 'b']))).toBe(false)
+  })
+
+  it('vertaalt een heatmapcel naar een expliciet rol- en categoriedoel', () => {
+    expect(authorizationCoverageTarget(' role-1 ', ' Salaris ')).toEqual({ roleId: 'role-1', category: 'Salaris' })
   })
 })
