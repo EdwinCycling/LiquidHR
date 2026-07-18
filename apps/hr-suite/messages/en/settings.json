@@ -41,6 +41,7 @@
       "jobs": "Jobs and job groups", "jobsDescription": "Maintain jobs and job groups per administration over time.",
       "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
       "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
+      "endReasons": "Internal reasons", "endReasonsDescription": "Manage internal employment termination reasons.",
       "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.",
       "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role."
     }
