@@ -27,9 +27,9 @@ Iedere slice werkt documentatie, i18n en verificatiebewijs bij voordat de volgen
 
 ### 3.1 Navigatie
 
-Het hoofdmenu bevat één HR-adminitem **Instellingen** dat `/settings` opent. Losse beheerlinks zoals Rollen en rechten, Vrije velden en Stamtabellen verdwijnen uit het hoofdmenu, maar hun bestaande routes blijven bestaan. De instellingenhub linkt naar volledige pagina's; hij bevat geen verkleinde formulieren of modals.
+Het hoofdmenu bevat voor bevoegde HR-admins één item **Instellingen** dat `/settings` opent. Losse beheerlinks zoals Rollen en rechten, Vrije velden en Stamtabellen verdwijnen uit het hoofdmenu, maar hun bestaande routes blijven bestaan. De instellingenhub linkt naar volledige pagina's; hij bevat geen verkleinde formulieren of modals. De route en navigatie vereisen `settings:read`; onderliggende tegels en pagina's blijven daarnaast hun eigen fijnmazige permissions controleren.
 
-Persoonlijke voorkeuren voor taal, thema en klok blijven onder het persoonlijke profiel. Persoonlijke instellingen en HR-beheer worden niet samengevoegd.
+Persoonlijke voorkeuren voor taal, thema en klok krijgen een afzonderlijke volledige pagina `/personal-settings`, bereikbaar voor iedere ingelogde gebruiker via het persoonlijke profiel. De bestaande voorkeurenservice en opslag blijven leidend; alleen de huidige modal wordt door een pagina vervangen. Persoonlijke instellingen en HR-beheer worden niet samengevoegd.
 
 ### 3.2 Indeling
 
@@ -73,8 +73,11 @@ De datamigratie schakelt `HERA`, `DOCUMENTS` en `REMINDERS` voor alle bestaande 
 
 Canonieke permissions:
 
+- `settings:read` voor toegang tot de HR-adminhub;
 - `modules:read`;
 - `modules:write`.
+
+`settings:read` wordt bij introductie toegekend aan `TENANT_ADMIN` en `HR_ADVISOR`. De hub toont daarbinnen uitsluitend tegels waarvoor de actor de vereiste domeinpermission heeft. `modules:write` blijft standaard beperkt tot `TENANT_ADMIN`.
 
 Iedere wijziging wordt via één serverroute of serveraction uitgevoerd en geaudit.
 
@@ -320,11 +323,12 @@ Minimale dekking:
 ## 12. Acceptatiecriteria
 
 1. HR-admins vinden alle inrichting via één Instellingen-item en volledige detailpagina's.
-2. Alleen optionele tenantmodules zijn schakelbaar; core blijft verplicht en moduleblokkering werkt in UI, server en databasepad.
-3. Een dienstverband ondersteunt een afzonderlijk rooster van één tot vier repeterende weken met eigen geldigheidsperiode.
-4. Gepubliceerde gemiddelde roosteruren sluiten exact aan op de geldige urenafspraak.
-5. Feestdagen kunnen per administratie, land en jaar veilig worden geïmporteerd en lokaal worden aangevuld.
-6. De kalender toont maximaal 100 geselecteerde medewerkers, roosterstatus, feestdagen, gekoppelde reminders en toegestane HR-wijzigingen zonder brondata te dupliceren.
-7. Medewerkernaam, dagkop en medewerker-dagcel leveren de afgesproken navigatie- en contextinteracties.
-8. Toekomstige verlof-, verzuim- en urenregistratiebronnen kunnen worden toegevoegd zonder het rooster- of kalendercontract te vervangen.
-9. Alle nieuwe tabellen, routes en mutaties voldoen aan RLS, permissions, audit, i18n en de volledige releasegate.
+2. Iedere ingelogde gebruiker beheert taal, thema en klok op een afzonderlijke persoonlijke instellingenpagina; deze pagina ontsluit geen HR-adminbeheer.
+3. Alleen optionele tenantmodules zijn schakelbaar; core blijft verplicht en moduleblokkering werkt in UI, server en databasepad.
+4. Een dienstverband ondersteunt een afzonderlijk rooster van één tot vier repeterende weken met eigen geldigheidsperiode.
+5. Gepubliceerde gemiddelde roosteruren sluiten exact aan op de geldige urenafspraak.
+6. Feestdagen kunnen per administratie, land en jaar veilig worden geïmporteerd en lokaal worden aangevuld.
+7. De kalender toont maximaal 100 geselecteerde medewerkers, roosterstatus, feestdagen, gekoppelde reminders en toegestane HR-wijzigingen zonder brondata te dupliceren.
+8. Medewerkernaam, dagkop en medewerker-dagcel leveren de afgesproken navigatie- en contextinteracties.
+9. Toekomstige verlof-, verzuim- en urenregistratiebronnen kunnen worden toegevoegd zonder het rooster- of kalendercontract te vervangen.
+10. Alle nieuwe tabellen, routes en mutaties voldoen aan RLS, permissions, audit, i18n en de volledige releasegate.
