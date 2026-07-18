@@ -6,6 +6,7 @@ import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -39,9 +40,13 @@ export interface EmployeeOverview {
   firstName: string
   birthName: string
   workEmail: string | null
+  avatarUrl: string | null
+  isArchived: boolean
   status: EmploymentStatus
   employmentCount: number
 }
+
+export type EmployeeArchiveFilter = 'active' | 'archived' | 'all'
 
 export interface EmploymentCreationOptions {
   departments: Array<{ id: string; code: string; name: string }>
@@ -88,6 +93,7 @@ export interface EmployeeEmploymentDetail {
     avatarUrl: string | null
     originalHireDate: string | null
     isActive: boolean
+    isArchived: boolean
   }
   employments: EmploymentRow[]
   status: EmploymentStatus
@@ -341,7 +347,7 @@ export async function listEmployeeEmployments(employeeId: string): Promise<Emplo
   return data
 }
 
-export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
+export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter = 'active'): Promise<EmployeeOverview[]> {
   const context = await requirePermission('employee:read')
   const administrationId = requireAdministrationId(context.administrationId)
   const supabase = await createClient()
@@ -361,7 +367,7 @@ export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
     await Promise.all([
       supabase
         .from('employees')
-        .select('id, employee_number, first_name, birth_name, work_email')
+        .select('id, employee_number, first_name, birth_name, work_email, avatar_url, is_archived')
         .eq('tenant_id', context.tenantId)
         .in('id', employeeIds)
         .is('deleted_at', null)
@@ -378,8 +384,10 @@ export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
     ])
   if (employeeError || employmentError) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
 
+  const scopedEmployees = (employees ?? []).filter((employee) => archiveFilter === 'all' || (archiveFilter === 'archived' ? employee.is_archived : !employee.is_archived))
+
   const today = new Date().toISOString().slice(0, 10)
-  return employees.map((employee) => {
+  return scopedEmployees.map((employee) => {
     const periods = employments
       .filter((employment) => employment.employee_id === employee.id)
       .map((employment) => ({
@@ -393,6 +401,8 @@ export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
       firstName: employee.first_name,
       birthName: employee.birth_name,
       workEmail: employee.work_email,
+      avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
+      isArchived: employee.is_archived,
       status: deriveEmploymentStatus(periods, today),
       employmentCount: periods.length,
     }
@@ -418,7 +428,7 @@ export async function getEmployeeEmploymentDetail(
         birth_date, birth_place, birth_country, nationality, marital_status,
         marital_status_date, education_level, preferred_language, private_email,
         private_phone, private_mobile, work_email, work_phone, work_phone_ext,
-        work_mobile, avatar_url, original_hire_date, is_active, updated_at`)
+        work_mobile, avatar_url, original_hire_date, is_active, is_archived, updated_at`)
       .eq('tenant_id', context.tenantId)
       .eq('id', employeeId)
       .is('deleted_at', null)
@@ -481,9 +491,10 @@ export async function getEmployeeEmploymentDetail(
       workPhone: employee.work_phone,
       workPhoneExt: employee.work_phone_ext,
       workMobile: employee.work_mobile,
-      avatarUrl: employee.avatar_url,
+      avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
       originalHireDate: employee.original_hire_date,
       isActive: employee.is_active,
+      isArchived: employee.is_archived,
     },
     employments,
     status: deriveEmploymentStatus(

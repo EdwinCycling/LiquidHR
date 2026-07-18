@@ -178,7 +178,7 @@ export function EmployeePersonCard({ detail, locale, labels }: EmployeePersonCar
               tabIndex={tab === item ? 0 : -1}
               onClick={() => setTab(item)}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
-              className={`border-b-2 px-3 py-4 text-sm font-semibold transition-colors focus-visible:outline-none ${tab === item ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              className={`rounded-t-lg border-b-2 px-3 py-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${tab === item ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'}`}
             >
               {labels.tabs[item]}
             </button>

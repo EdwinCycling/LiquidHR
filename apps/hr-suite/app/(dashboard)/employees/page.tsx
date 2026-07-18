@@ -7,7 +7,7 @@ import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { getTranslator } from '@/lib/i18n/server'
 
 interface EmployeesPageProps {
-  searchParams: Promise<{ search?: string; status?: string }>
+  searchParams: Promise<{ search?: string; status?: string; archive?: string }>
 }
 
 const STATUSES: EmploymentStatus[] = [
@@ -18,9 +18,10 @@ const STATUSES: EmploymentStatus[] = [
 ]
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
-  const [{ search = '', status }, employees, canCreateEmployee, tEmployees, tEmployment] = await Promise.all([
-    searchParams,
-    listEmployeesOverview(),
+  const { search = '', status, archive } = await searchParams
+  const archiveFilter = archive === 'archived' || archive === 'all' ? archive : 'active'
+  const [employees, canCreateEmployee, tEmployees, tEmployment] = await Promise.all([
+    listEmployeesOverview(archiveFilter),
     canCreateEmployees(),
     getTranslator('employees'),
     getTranslator('employment'),
@@ -42,6 +43,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (nextStatus) params.set('status', nextStatus)
+    if (archiveFilter !== 'active') params.set('archive', archiveFilter)
     const query = params.toString()
     return query ? `/employees?${query}` : '/employees'
   }
@@ -62,6 +64,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
       <div className="mt-7 rounded-2xl border bg-surface p-4 shadow-sm">
         <form className="grid gap-3 sm:grid-cols-[1fr_auto]">
           {activeStatus && <input type="hidden" name="status" value={activeStatus} />}
+          {archiveFilter !== 'active' && <input type="hidden" name="archive" value={archiveFilter} />}
           <label className="relative">
             <span className="sr-only">{tEmployees('searchPlaceholder')}</span>
             <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -81,6 +84,16 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
               </Link>
             ))}
           </nav>
+          <nav className="flex gap-2 overflow-x-auto pb-1" aria-label={tEmployees('archiveFilter')}>
+            {(['active', 'archived', 'all'] as const).map((value) => {
+              const params = new URLSearchParams()
+              if (search) params.set('search', search)
+              if (activeStatus) params.set('status', activeStatus)
+              if (value !== 'active') params.set('archive', value)
+              const href = params.toString() ? `/employees?${params.toString()}` : '/employees'
+              return <Link key={value} href={href} className={`filter-chip ${archiveFilter === value ? 'filter-chip-active' : ''}`}>{tEmployees(`archive.${value}`)}</Link>
+            })}
+          </nav>
           <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
             <UsersRound aria-hidden="true" className="h-4 w-4" />{tEmployees('resultCount', { count: filtered.length })}
           </span>
@@ -93,6 +106,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           labels={labels}
           emptyLabel={tEmployees('empty')}
           employmentCountLabel={(count) => tEmployees('employmentCount', { count })}
+          archiveLabel={tEmployees('archived')}
         />
       </div>
     </main>

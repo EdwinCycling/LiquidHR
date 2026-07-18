@@ -4,6 +4,7 @@ import { getLocale } from '@/lib/i18n/server'
 import { createTranslator } from '@/lib/i18n/translator'
 import { organizationChartQuerySchema } from '@/lib/organization-chart/schemas'
 import { getOrganizationChart } from '@/lib/organization-chart/service'
+import { getStoredOrganizationChartFilter } from '@/lib/preferences/organization-chart'
 import type { AdministrationChartNode } from '@/lib/organization-chart/types'
 import messagesEn from '@/messages/en/organization-chart.json'
 import messagesNl from '@/messages/nl/organization-chart.json'
@@ -42,15 +43,17 @@ function safeDate(value: string | undefined, fallback: string): string {
 }
 
 export default async function OrganizationChartPage({ searchParams }: OrganizationChartPageProps) {
-  const [params, locale] = await Promise.all([searchParams, getLocale()])
+  const [params, locale, storedFilter] = await Promise.all([searchParams, getLocale(), getStoredOrganizationChartFilter()])
   const defaultDate = amsterdamDate()
-  const field = safeUuid(first(params.field))
-  const value = safeText(first(params.value))
+  const hasQuery = Object.values(params).some((value) => (Array.isArray(value) ? value.length > 0 : Boolean(value)))
+  const source = hasQuery ? params : storedFilter
+  const field = safeUuid(first(source.field))
+  const value = safeText(first(source.value))
   const candidate = {
-    date: safeDate(first(params.date), defaultDate),
-    q: safeText(first(params.q)),
-    department: safeUuid(first(params.department)),
-    role: safeText(first(params.role)),
+    date: safeDate(first(source.date), defaultDate),
+    q: safeText(first(source.q)),
+    department: safeUuid(first(source.department)),
+    role: safeText(first(source.role)),
     field: field && value ? field : undefined,
     value: field && value ? value : undefined,
   }

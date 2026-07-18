@@ -112,6 +112,80 @@ export async function archiveEmployee(employeeId: string, updatedAt: string): Pr
   if (!data) throw new EmployeeServiceError('EMPLOYEE_CONCURRENCY_CONFLICT', 409)
 }
 
+export async function setEmployeeArchived(employeeId: string, archived: boolean): Promise<void> {
+  const context = await requirePermission('employee:write', employeeId)
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('employees')
+    .update({ is_archived: archived })
+    .eq('tenant_id', context.tenantId)
+    .eq('id', employeeId)
+    .is('deleted_at', null)
+    .select('id, is_archived')
+    .maybeSingle()
+  if (error) throw new EmployeeServiceError('EMPLOYEE_ARCHIVE_FLAG_FAILED', 500)
+  if (!data) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
+  const { error: auditError } = await supabase.from('audit_logs').insert({
+    tenant_id: context.tenantId,
+    actor_user_id: context.userId,
+    entity_name: 'employee',
+    entity_id: employeeId,
+    subject_employee_id: employeeId,
+    action: archived ? 'ARCHIVE' : 'UNARCHIVE',
+    changes: { is_archived: { old: !archived, new: archived } } satisfies Json,
+  })
+  if (auditError) throw new EmployeeServiceError('EMPLOYEE_ARCHIVE_AUDIT_FAILED', 500)
+}
+
+export function employeeAvatarHref(employeeId: string, storedValue: string | null): string | null {
+  if (!storedValue) return null
+  return storedValue.startsWith('storage://') ? `/api/employees/${employeeId}/avatar` : storedValue
+}
+
+export async function uploadEmployeeAvatar(employeeId: string, file: File): Promise<void> {
+  const context = await requirePermission('employee:write', employeeId)
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    throw new EmployeeServiceError('EMPLOYEE_AVATAR_INPUT_INVALID', 400)
+  }
+  const supabase = await createClient()
+  const { data: current, error: currentError } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  if (currentError || !current) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
+  const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${context.tenantId}/${employeeId}/${crypto.randomUUID()}.${extension}`
+  const upload = await supabase.storage.from('employee-avatars').upload(path, file, { contentType: file.type, upsert: false })
+  if (upload.error) throw new EmployeeServiceError('EMPLOYEE_AVATAR_UPLOAD_FAILED', 500)
+  const { error } = await supabase.from('employees').update({ avatar_url: `storage://${path}` }).eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null)
+  if (error) {
+    await supabase.storage.from('employee-avatars').remove([path])
+    throw new EmployeeServiceError('EMPLOYEE_AVATAR_SAVE_FAILED', 500)
+  }
+  if (current.avatar_url?.startsWith('storage://')) await supabase.storage.from('employee-avatars').remove([current.avatar_url.slice('storage://'.length)])
+}
+
+export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
+  const context = await requirePermission('employee:write', employeeId)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  if (error || !data) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
+  const { error: updateError } = await supabase.from('employees').update({ avatar_url: null }).eq('tenant_id', context.tenantId).eq('id', employeeId)
+  if (updateError) throw new EmployeeServiceError('EMPLOYEE_AVATAR_SAVE_FAILED', 500)
+  if (data.avatar_url?.startsWith('storage://')) await supabase.storage.from('employee-avatars').remove([data.avatar_url.slice('storage://'.length)])
+}
+
+export async function getEmployeeAvatar(employeeId: string): Promise<{ body: ArrayBuffer; contentType: string } | { url: string } | null> {
+  const context = await requirePermission('employee:read', employeeId)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  if (error || !data?.avatar_url) return null
+  if (!data.avatar_url.startsWith('storage://')) return { url: data.avatar_url }
+  const path = data.avatar_url.slice('storage://'.length)
+  const signed = await supabase.storage.from('employee-avatars').createSignedUrl(path, 300)
+  if (signed.error || !signed.data?.signedUrl) return null
+  const response = await fetch(signed.data.signedUrl)
+  if (!response.ok) return null
+  return { body: await response.arrayBuffer(), contentType: response.headers.get('content-type') ?? 'image/jpeg' }
+}
+
 export async function revealEmployeeBsn(employeeId: string): Promise<string | null> {
   const context = await requirePermission('employee-bsn:read', employeeId)
   const supabase = await createClient()

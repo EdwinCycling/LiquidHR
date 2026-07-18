@@ -70,7 +70,7 @@ Er zijn momenteel geen documenten met status **VERVANGEN**. Zodra een document w
 - Uitvoeringsplannen: [`superpowers/plans/`](superpowers/plans/)
 - Toekomstige technische en functionele besluiten: `decisions/`
 
-Actuele verticale slice (2026-07-18): volledige dienstverbandpublicatie, functie- en salarisschaalbeheer, medewerkersdossiers, tijdkaart en HR-maandkalender zijn beschreven in [`superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md`](superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md). De resterende onderdelen staan in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
+Actuele verticale slice (2026-07-18): volledige dienstverbandpublicatie, functie- en salarisschaalbeheer, medewerkersdossiers, tijdkaart, archief-/fotobeheer, effectieve medewerkerkaart en HR-maandkalender zijn beschreven in [`superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md`](superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md). De resterende onderdelen staan in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
 
 Het autorisatiebeheer en grafische rechtenoverzicht zijn beschreven in [`superpowers/specs/2026-07-18-autorisatieoverzicht-design.md`](superpowers/specs/2026-07-18-autorisatieoverzicht-design.md).
 

@@ -29,7 +29,7 @@ export async function getDocumentOptions(employeeId: string) {
     supabase.from('document_categories').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(200),
     supabase.from('departments').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(500),
     supabase.from('management_roles').select('id, code, name').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).order('code').limit(200),
-    supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).is('deleted_at', null).order('birth_name').limit(500),
+    supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(500),
   ])
   if (categories.error || departments.error || roles.error || employees.error) throw new DocumentServiceError('DOCUMENT_OPTIONS_FAILED', 500)
   return { categories: categories.data, departments: departments.data, roles: roles.data, employees: employees.data }

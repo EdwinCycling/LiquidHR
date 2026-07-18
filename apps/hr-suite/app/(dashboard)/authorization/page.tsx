@@ -10,7 +10,7 @@ export default async function AuthorizationPage() {
   const supabase = await createClient()
   const [matrix, t, employeeResult, departmentResult] = await Promise.all([
     listAuthorizationMatrix(), getTranslator('organization'),
-    supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).is('deleted_at', null).order('birth_name').limit(500),
+    supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(500),
     supabase.from('departments').select('id, code, name').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).eq('is_active', true).order('name').limit(500),
   ])
   if (employeeResult.error || departmentResult.error) throw new Error('ORGANIZATION_OPTIONS_FAILED')

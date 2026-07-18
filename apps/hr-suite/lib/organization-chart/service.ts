@@ -1,6 +1,7 @@
 import type { Json } from '@scope/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { projectOrganizationChart } from './projector'
 import type { OrganizationChartQuery } from './schemas'
 import type { OrganizationChartGraph } from './types'
@@ -36,7 +37,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
     supabase.from('department_management').select('id, department_id, employee_id, management_role_id, effective_from, effective_to').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).lte('effective_from', query.date).or(`effective_to.is.null,effective_to.gte.${query.date}`).limit(5000),
     supabase.from('management_roles').select('id, code, name').or(`tenant_id.is.null,tenant_id.eq.${scope.tenantId}`).eq('is_active', true).is('deleted_at', null).limit(500),
     supabase.from('custom_field_definitions').select('id, key, label_nl, field_type').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).eq('entity_type', 'EMPLOYEE').eq('is_active', true).is('deleted_at', null).eq('show_in_organization_chart_filter', true).order('sort_order').limit(500),
-    supabase.from('employees').select('id, first_name, birth_name, avatar_url').eq('tenant_id', scope.tenantId).eq('is_active', true).is('deleted_at', null).limit(5000),
+    supabase.from('employees').select('id, first_name, birth_name, avatar_url, is_archived').eq('tenant_id', scope.tenantId).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).limit(5000),
   ])
 
   const failures = [administrationResult, departmentsResult, placementsResult, managementResult, rolesResult, definitionsResult, employeesResult]
@@ -54,7 +55,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
     asOfDate: query.date,
     administration: administrationResult.data,
     departments: (departmentsResult.data ?? []).map((department) => ({ id: department.id, parentId: department.parent_id, code: department.code, name: department.name })),
-    employees: (employeesResult.data ?? []).map((employee) => ({ id: employee.id, firstName: employee.first_name, birthName: employee.birth_name, avatarUrl: employee.avatar_url })),
+    employees: (employeesResult.data ?? []).map((employee) => ({ id: employee.id, firstName: employee.first_name, birthName: employee.birth_name, avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url) })),
     placements: (placementsResult.data ?? []).map((placement) => ({ id: placement.id, employeeId: placement.employee_id, employmentId: placement.employment_id, departmentId: placement.department_id, jobTitle: placement.job_title, effectiveFrom: placement.effective_from, effectiveTo: placement.effective_to })),
     managementAssignments: (managementResult.data ?? []).flatMap((assignment) => {
       const role = roles.get(assignment.management_role_id)

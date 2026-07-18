@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import {
-  Building2,
   CalendarRange,
   LayoutDashboard,
   LogOut,
@@ -33,7 +32,6 @@ interface SidebarLabels {
   appName: string
   dashboard: string
   version: string
-  departments: string
   hera: string
   organizationChart: string
   employees: string
@@ -54,7 +52,6 @@ interface SidebarLabels {
 
 interface SidebarProps {
   email: string
-  canReadDepartments: boolean
   canReadEmployees: boolean
   canReadSettings: boolean
   canReadHrCalendar: boolean
@@ -72,7 +69,6 @@ interface SidebarProps {
 
 export function Sidebar({
   email,
-  canReadDepartments,
   canReadEmployees,
   canReadSettings,
   canReadHrCalendar,
@@ -94,7 +90,6 @@ export function Sidebar({
     { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true },
     { href: '/hera', label: labels.hera, icon: Sparkles, visible: enabledModules.includes('HERA') },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
-    { href: '/departments', label: labels.departments, icon: Building2, visible: canReadDepartments },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true },
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings },

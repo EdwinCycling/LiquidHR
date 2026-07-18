@@ -243,6 +243,7 @@ export async function listReminderTargetOptions(): Promise<ReminderTargetOptions
       .select('id, first_name, birth_name, employee_number')
       .eq('tenant_id', context.tenantId)
       .eq('is_active', true)
+      .eq('is_archived', false)
       .is('deleted_at', null)
       .order('birth_name')
       .limit(200),

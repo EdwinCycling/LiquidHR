@@ -1,4 +1,5 @@
 import { ArrowUpRight, BriefcaseBusiness, Mail } from 'lucide-react'
+/* eslint-disable @next/next/no-img-element -- private avatar routes and customer-hosted URLs are intentionally rendered without remote image configuration. */
 import Link from 'next/link'
 import type { EmployeeOverview } from '@/lib/employment/employment-service'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
@@ -8,6 +9,7 @@ interface EmployeeListProps {
   labels: Record<EmploymentStatus, string>
   emptyLabel: string
   employmentCountLabel: (count: number) => string
+  archiveLabel: string
 }
 
 const STATUS_STYLES: Record<EmploymentStatus, string> = {
@@ -22,6 +24,7 @@ export function EmployeeList({
   labels,
   emptyLabel,
   employmentCountLabel,
+  archiveLabel,
 }: EmployeeListProps) {
   if (employees.length === 0) {
     return (
@@ -44,9 +47,7 @@ export function EmployeeList({
               className="group grid gap-4 px-4 py-4 transition-colors hover:bg-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 sm:py-5"
             >
               <div className="flex min-w-0 items-center gap-3.5">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wide text-primary-foreground shadow-sm">
-                  {employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}
-                </span>
+                {employee.avatarUrl ? <img src={employee.avatarUrl} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wide text-primary-foreground shadow-sm">{employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}</span>}
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-foreground">
                     {employee.firstName} {employee.birthName}
@@ -63,6 +64,7 @@ export function EmployeeList({
                 </div>
               </div>
               <div className="flex items-center justify-between gap-3 pl-[3.4rem] sm:justify-end sm:pl-0">
+                {employee.isArchived && <span className="rounded-md bg-warning-surface px-2.5 py-1 text-xs font-semibold text-warning">{archiveLabel}</span>}
                 <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[employee.status]}`}>
                   {labels[employee.status]}
                 </span>

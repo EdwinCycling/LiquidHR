@@ -43,6 +43,7 @@ export interface EmployeeProfile {
   avatarUrl?: string | null
   originalHireDate?: string | null
   isActive?: boolean
+  isArchived?: boolean
 }
 
 export interface EmployeeAddress {

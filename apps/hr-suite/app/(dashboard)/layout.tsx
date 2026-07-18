@@ -30,8 +30,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     try { await requirePermission(permission); return true }
     catch (error) { if (error instanceof AuthorizationError) return false; throw error }
   }
-  const [canReadDepartments, canReadEmployees, canReadHrCalendar, canReadSettings] = await Promise.all([
-    can('department:read'), can('employee:read'), can('hr-calendar:read'), can('settings:read'),
+  const [canReadEmployees, canReadHrCalendar, canReadSettings] = await Promise.all([
+    can('employee:read'), can('hr-calendar:read'), can('settings:read'),
   ])
 
   const [preferences, common, navigation, auth, reminderMessages, reminders, enabledModules] = await Promise.all([
@@ -50,7 +50,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         activeAdministrationId={context.administration?.id ?? null}
         administrations={context.administrations}
         administrationSwitcherMode={getAdministrationSwitcherMode(context)}
-        canReadDepartments={canReadDepartments}
         canReadEmployees={canReadEmployees}
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
@@ -60,7 +59,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           dashboard: navigation('dashboard'),
           version: `${common('version')} ${APP_VERSION}`,
           hera: navigation('hera'),
-          departments: navigation('departments'),
           organizationChart: navigation('organizationChart'),
           employees: navigation('employees'),
           settings: navigation('settings'),

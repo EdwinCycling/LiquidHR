@@ -12,13 +12,13 @@ export default async function AdminSettingsPage() {
   try { await requirePermission('settings:read') } catch (error) { if (error instanceof AuthorizationError) redirect('/geen-toegang'); throw error }
   const [messages, capabilities] = await Promise.all([
     getTranslator('settings'),
-    Promise.all([allowed('authorization:read'), allowed('custom-fields:write'), allowed('job-catalog:read'), allowed('salary-structure:read'), allowed('holidays:read'), allowed('modules:read')]),
+    Promise.all([allowed('authorization:read'), allowed('custom-fields:write'), allowed('job-catalog:read'), allowed('salary-structure:read'), allowed('holidays:read'), allowed('modules:read'), allowed('department:write')]),
   ])
-  const [authorization, customFields, jobs, salary, holidays, modules] = capabilities
+  const [authorization, customFields, jobs, salary, holidays, modules, departments] = capabilities
   const sections = [
     { title: messages('admin.sections.organization'), items: [
       { href: '/authorization', icon: ShieldCheck, title: messages('admin.tiles.authorization'), description: messages('admin.tiles.authorizationDescription'), visible: authorization },
-      { href: '/departments', icon: Building2, title: messages('admin.tiles.organization'), description: messages('admin.tiles.organizationDescription'), visible: true },
+      { href: '/departments', icon: Building2, title: messages('admin.tiles.organization'), description: messages('admin.tiles.organizationDescription'), visible: departments },
       { href: '/employees', icon: Users, title: messages('admin.tiles.employees'), description: messages('admin.tiles.employeesDescription'), visible: true },
       { href: '/custom-fields', icon: FileSliders, title: messages('admin.tiles.customFields'), description: messages('admin.tiles.customFieldsDescription'), visible: customFields },
     ]},

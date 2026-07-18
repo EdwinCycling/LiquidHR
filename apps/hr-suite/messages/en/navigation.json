@@ -3,7 +3,6 @@
   "hera": "HeRa",
   "overview": "Overview",
   "employees": "Employees",
-  "departments": "Departments",
   "organizationChart": "Organization chart",
   "authorization": "Roles and permissions",
   "customFields": "Custom fields",
@@ -21,5 +20,5 @@
   "customerEnvironment": "Customer environment"
   ,"timeHub": "Time Hub",
   "masterData": "Master data",
-  "hrCalendar": "Change calendar"
+  "hrCalendar": "Calendar"
 }

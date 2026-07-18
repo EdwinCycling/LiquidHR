@@ -10,6 +10,7 @@ import type {
   TimelineMutationInput,
 } from './detail-schemas'
 import { assessEmploymentChain } from './chain-assessment'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -100,7 +101,7 @@ export async function getEmploymentDetail(employeeId: string, employmentId: stri
 
   return {
     employment,
-    employee: employeeResult.data,
+    employee: { ...employeeResult.data, avatar_url: employeeAvatarHref(employeeId, employeeResult.data.avatar_url) },
     administration: administrationResult.data,
     incomeRelationships: incomeLinksResult.data ?? [],
     laborConditions: laborResult.data ?? [], schedules: scheduleResult.data ?? [],

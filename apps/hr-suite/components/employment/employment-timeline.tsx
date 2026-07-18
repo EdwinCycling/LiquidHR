@@ -21,6 +21,8 @@ interface EmploymentTimelineProps {
     employmentNumber: string
     terminate: TerminationFormProps['labels']
     openDetail: string
+    indefinite: string
+    definite: string
   }
 }
 
@@ -46,7 +48,7 @@ export function EmploymentTimeline({ employments, locale, options, canManage = f
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {labels.employmentNumber} {employment.employment_number}
                   </p>
-                  <h3 className="mt-1 text-lg font-semibold">{employment.contract_type}</h3>
+                  <h3 className="mt-1 text-lg font-semibold">{employment.contract_type === 'INDEFINITE' ? labels.indefinite : labels.definite}</h3>
                 </div>
                 <div className="flex gap-2">
                   {employment.is_primary && <span className="status-chip">{labels.primary}</span>}

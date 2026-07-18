@@ -1616,6 +1616,7 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           id: string
           initials: string | null
+          is_archived: boolean
           is_active: boolean
           marital_status: Database["public"]["Enums"]["marital_status"] | null
           marital_status_date: string | null
@@ -1656,6 +1657,7 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           id?: string
           initials?: string | null
+          is_archived?: boolean
           is_active?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
           marital_status_date?: string | null
@@ -1696,6 +1698,7 @@ export type Database = {
           gender?: Database["public"]["Enums"]["gender"]
           id?: string
           initials?: string | null
+          is_archived?: boolean
           is_active?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
           marital_status_date?: string | null
@@ -4141,6 +4144,7 @@ export type Database = {
           created_at: string
           locale: Database["public"]["Enums"]["ui_locale"]
           theme: Database["public"]["Enums"]["ui_theme"]
+          ui_state: Json
           updated_at: string
         }
         Insert: {
@@ -4150,6 +4154,7 @@ export type Database = {
           created_at?: string
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
+          ui_state?: Json
           updated_at?: string
         }
         Update: {
@@ -4159,6 +4164,7 @@ export type Database = {
           created_at?: string
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
+          ui_state?: Json
           updated_at?: string
         }
         Relationships: []

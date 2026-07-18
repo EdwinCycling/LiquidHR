@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useId, useRef, useState } from 'react'
+import { useId, useRef, useState, type FormEvent } from 'react'
 import { Building2, CalendarDays, Check, ChevronDown, Filter, Network, Search, ShieldCheck, SlidersHorizontal, X } from 'lucide-react'
 import type { OrganizationChartGraph } from '@/lib/organization-chart/types'
 import { OrganizationChartCanvas } from './organization-chart-canvas'
@@ -160,6 +160,7 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
   const [roleCode, setRoleCode] = useState(query.role ?? '')
   const [fieldId, setFieldId] = useState(query.field ?? '')
   const [fieldValue, setFieldValue] = useState(query.value ?? '')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const department = graph.filters.departments.find((item) => item.id === query.department)
   const role = graph.filters.roles.find((item) => item.code === query.role)
   const field = graph.filters.customFields.find((item) => item.id === query.field)
@@ -176,21 +177,31 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
   const hasFiltering = chips.length > 0
   const matchText = graph.metadata.matchCount === 1 ? labels.matchCountOne : interpolate(labels.matchCount, { count: graph.metadata.matchCount })
 
+  function persistFilter(event: FormEvent<HTMLFormElement>) {
+    const form = new FormData(event.currentTarget)
+    const filter = Object.fromEntries(['date', 'q', 'department', 'role', 'field', 'value'].map((key) => [key, String(form.get(key) ?? '')]))
+    void fetch('/api/preferences/organization-chart', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(filter) })
+  }
+
   return (
     <>
       <section className="relative z-20 overflow-visible rounded-3xl border bg-surface shadow-[0_18px_55px_-38px_var(--primary)]">
         <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 rounded-t-3xl bg-accent-foreground" />
         <div aria-hidden="true" className="pointer-events-none absolute right-6 top-5 hidden size-20 rounded-full border border-accent-foreground/10 sm:block" />
         <div aria-hidden="true" className="pointer-events-none absolute right-11 top-10 hidden size-10 rounded-full border border-accent-foreground/15 sm:block" />
-        <form action="/organization-chart" className="relative p-5 sm:p-6" method="get">
+        <form action="/organization-chart" className="relative p-5 sm:p-6" method="get" onSubmit={persistFilter}>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><SlidersHorizontal aria-hidden="true" className="text-accent-foreground" size={17} />{labels.exploreTitle}</div>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.exploreSubtitle}</p>
             </div>
-            <p aria-live="polite" className="mt-2 inline-flex min-h-8 items-center self-start rounded-xl border border-accent-foreground/15 bg-accent px-3 text-xs font-semibold text-accent-foreground sm:mt-0 sm:self-auto">{matchText}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="button-secondary inline-flex h-9 items-center gap-2 px-3 text-xs" onClick={() => setFiltersOpen((value) => !value)}><Filter aria-hidden="true" size={14} />{filtersOpen ? labels.lessFilters : labels.moreFilters}</button>
+              <p aria-live="polite" className="inline-flex min-h-8 items-center rounded-xl border border-accent-foreground/15 bg-accent px-3 text-xs font-semibold text-accent-foreground">{matchText}</p>
+            </div>
           </div>
 
+          {filtersOpen ? <>
           <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(20rem,1fr)_15rem_15rem_auto]">
             <label className="relative block">
               <span className="sr-only">{labels.searchLabel}</span>
@@ -223,6 +234,7 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
               {!fieldId ? <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4" id="custom-field-hint">{labels.customFieldValueDisabled}</p> : null}
             </div>
           </details>
+          </> : null}
 
           {chips.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-center gap-2">

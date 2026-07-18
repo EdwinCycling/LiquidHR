@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { buildMonthDays } from './calendar-model'
 import { getPatternDay, type WorkPatternDay } from '@/lib/work-patterns/work-pattern-model'
 import { listCalendarHrEvents } from '@/lib/hr-events/service'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 
 export type CalendarWorkDay = { isWorkingDay: boolean; startsAt: string | null; endsAt: string | null; scheduledMinutes: number }
 export type CalendarReminder = { id: string; employeeId: string | null; date: string; title: string }
@@ -25,7 +26,7 @@ export async function loadUnifiedCalendar(month: string) {
   if (!employeeIds.length) return empty
 
   const [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult, hrData] = await Promise.all([
-    supabase.from('employees').select('id,employee_number,first_name,birth_name,avatar_url').in('id', employeeIds).order('birth_name').limit(2000),
+    supabase.from('employees').select('id,employee_number,first_name,birth_name,avatar_url,is_archived').in('id', employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id').in('employee_id', employeeIds).eq('administration_id', administrationId).lte('effective_from', to).or(`effective_to.is.null,effective_to.gte.${from}`).order('effective_from', { ascending: false }).limit(4000),
     supabase.from('departments').select('id,code,name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(500),
     supabase.from('employment_work_patterns').select('id,employee_id,employment_id,name,cycle_weeks,anchor_date,average_minutes_per_week,valid_from,valid_until,employment_work_pattern_days(week_index,iso_weekday,is_working_day,starts_at,ends_at,break_minutes,scheduled_minutes,note)').in('employment_id', employmentIds).lt('valid_from', to).or(`valid_until.is.null,valid_until.gte.${from}`).order('valid_from', { ascending: false }).limit(2000),
@@ -53,7 +54,7 @@ export async function loadUnifiedCalendar(month: string) {
       const projected = getPatternDay({ anchorDate: pattern.anchor_date, cycleWeeks: pattern.cycle_weeks, days: pattern.employment_work_pattern_days.map((day): WorkPatternDay => ({ weekIndex: day.week_index, isoWeekday: day.iso_weekday, isWorkingDay: day.is_working_day, startsAt: day.starts_at, endsAt: day.ends_at, breakMinutes: day.break_minutes, scheduledMinutes: day.scheduled_minutes, note: day.note })) }, date)
       if (projected) workDays[date] = { isWorkingDay: projected.isWorkingDay, startsAt: projected.startsAt, endsAt: projected.endsAt, scheduledMinutes: projected.scheduledMinutes }
     }
-    return { ...employee, departmentId: departmentByEmployee.get(employee.id) ?? null, averageMinutesPerWeek: patterns[0]?.average_minutes_per_week ?? 0, workDays }
+    return { ...employee, avatar_url: employeeAvatarHref(employee.id, employee.avatar_url), departmentId: departmentByEmployee.get(employee.id) ?? null, averageMinutesPerWeek: patterns[0]?.average_minutes_per_week ?? 0, workDays }
   })
   const reminders: CalendarReminder[] = (recipientsResult.data ?? []).flatMap((recipient) => recipient.employee_id ? [{ id: recipient.id, employeeId: recipient.employee_id, date: recipient.effective_remind_at.slice(0, 10), title: reminderTitle.get(recipient.reminder_id) ?? '' }] : [])
   return { employees, departments: departmentsResult.data ?? [], holidays: holidaysResult.data ?? [], reminders, generalReminders: (generalResult.data ?? []).map((reminder) => ({ id: reminder.id, employeeId: null, date: reminder.remind_at.slice(0, 10), title: reminder.title })), events: hrData.events }
