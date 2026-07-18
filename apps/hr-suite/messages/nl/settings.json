@@ -40,7 +40,8 @@
       "jobs": "Functies en functiegroepen", "jobsDescription": "Onderhoud functies en functiegroepen per administratie en door de tijd.",
       "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
       "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe.",
-      "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit."
+      "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.",
+      "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
     }
   },
   "modules": {
@@ -56,6 +57,10 @@
       "WORKFLOWS": { "name": "Workflows", "description": "Herhaalbare HR-processen voor in-, door- en uitstroom." },
       "TRAINING": { "name": "Opleidingen", "description": "Opleidingen, certificaten en geldigheid per medewerker." }
     }
+  },
+  "dashboardWidgets": {
+    "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaan…", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt.", "enabled": "Widget activeren", "roles": "Beschikbaar voor rollen", "noRoles": "Geen rollen beschikbaar.",
+    "categories": { "CORE_HR": "Kern HR", "EMPLOYMENT": "Dienstverband", "DOCUMENTS": "Documenten", "COMPENSATION": "Beloning", "ORGANIZATION_TIME": "Organisatie & tijd" }
   },
   "holidays": {
     "title": "Feestdagen", "subtitle": "Importeer landelijke feestdagen per kalenderjaar en land. De import wordt als snapshot opgeslagen; lokale en uitgesloten dagen blijven bij herimport behouden.",

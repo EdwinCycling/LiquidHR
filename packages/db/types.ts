@@ -3332,6 +3332,86 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_widget_configs: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          widget_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widget_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_widget_role_access: {
+        Row: {
+          created_at: string
+          id: string
+          management_role_id: string
+          tenant_id: string
+          updated_at: string
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          management_role_id: string
+          tenant_id: string
+          updated_at?: string
+          widget_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          management_role_id?: string
+          tenant_id?: string
+          updated_at?: string
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widget_role_access_management_role_id_fkey"
+            columns: ["management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_widget_role_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_dashboard_widgets: {
         Row: {
           created_at: string

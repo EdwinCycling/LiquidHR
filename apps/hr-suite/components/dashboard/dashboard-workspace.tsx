@@ -29,8 +29,6 @@ interface DashboardWorkspaceLabels extends DashboardWidgetLabels {
 
 interface DashboardApiResponse { data: { dashboards: PersonalDashboard[]; view: DashboardView } }
 
-const WIDGET_TYPES: DashboardWidgetType[] = ['WELCOME', 'MY_REMINDERS', 'ORGANIZATION_OVERVIEW', 'EMPLOYEE_OVERVIEW']
-
 function endpoint(id?: string): string { return id ? `/api/dashboards?id=${encodeURIComponent(id)}` : '/api/dashboards' }
 
 export function DashboardWorkspace({ labels }: { labels: DashboardWorkspaceLabels }) {
@@ -93,7 +91,7 @@ export function DashboardWorkspace({ labels }: { labels: DashboardWorkspaceLabel
   if (isLoading) return <section aria-busy="true" className="mx-auto max-w-7xl px-4 py-8 sm:px-8"><div className="h-9 w-56 animate-pulse rounded bg-muted" /><div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><div className="h-48 animate-pulse rounded-2xl bg-muted" /><div className="h-48 animate-pulse rounded-2xl bg-muted" /><div className="h-48 animate-pulse rounded-2xl bg-muted" /></div></section>
   if (!view || error) return <section className="mx-auto max-w-7xl px-4 py-8 sm:px-8"><div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 text-sm font-medium text-destructive">{error ?? labels.error}</div></section>
 
-  const availableTypes = WIDGET_TYPES.filter((type) => !draftWidgets.some((widget) => widget.type === type))
+  const availableTypes = view.availableWidgetTypes.filter((type) => !draftWidgets.some((widget) => widget.type === type))
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-8 sm:py-9 lg:px-10">
       <header className="border-b pb-6">
@@ -110,7 +108,7 @@ export function DashboardWorkspace({ labels }: { labels: DashboardWorkspaceLabel
         {nameMode ? <form className="mt-5 flex max-w-md flex-wrap gap-2" onSubmit={submitName}><label className="sr-only" htmlFor="dashboard-name">{labels.dashboardName}</label><input autoFocus className="h-10 min-w-0 flex-1 rounded-lg border bg-surface px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-focus" id="dashboard-name" maxLength={80} onChange={(event) => setName(event.target.value)} placeholder={labels.dashboardName} value={name} /><button className="button-primary min-h-10" disabled={isSaving} type="submit">{nameMode === 'create' ? labels.create : labels.save}</button><button aria-label={labels.cancel} className="grid size-10 place-items-center rounded-lg border bg-surface hover:bg-muted focus-visible:ring-2 focus-visible:ring-focus" onClick={() => setNameMode(null)} type="button"><X aria-hidden="true" size={16} /></button></form> : null}
       </header>
       {isEditing ? <div className="mt-5"><DashboardEditor availableTypes={availableTypes} labels={{ addWidget: labels.addWidget, moveUp: labels.moveUp, moveDown: labels.moveDown, removeWidget: labels.removeWidget }} onAdd={addWidget} onMove={(id, direction) => setDraftWidgets((widgets) => moveWidget(widgets, id, direction))} onRemove={(id) => setDraftWidgets((widgets) => removeWidget(widgets, id))} widgets={draftWidgets} /></div> : null}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{(isEditing ? draftWidgets : view.widgets).map((widget) => <DashboardWidgetRenderer key={widget.id} labels={labels} metrics={view.metrics} widget={widget} />)}</div>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">{(isEditing ? draftWidgets : view.widgets).map((widget) => <DashboardWidgetRenderer key={widget.id} labels={labels} metrics={view.metrics} widget={widget} />)}</div>
     </section>
   )
 }

@@ -17,7 +17,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 - HR-beheer staat achter één permission-gestuurde instellingenhub. Extra modules gelden tenantbreed; feestdagen kunnen per jaar en land vanuit Nager.Date worden geïmporteerd en lokaal worden aangevuld. Persoonlijke taal-, thema- en klokvoorkeuren blijven op een afzonderlijke pagina voor iedere ingelogde gebruiker.
 - Autorisatiebeheer heeft drie werkruimtes: zoekbaar rechtenbeheer met groepsacties/dirty-state, een toegankelijke dekkingsheatmap en afzonderlijke organisatietoewijzingen. De visualisatie verleent nooit toegang; exacte permissions, scope en RLS blijven beslissend.
 - Medewerkers kunnen nu als reversible archiefvlag worden beheerd. De lijst ondersteunt niet-gearchiveerd/gearchiveerd/alles, organogram en kalender sluiten gearchiveerden standaard uit, en de persoonskaart heeft duidelijke tabs voor persoonsgegevens, dossier en dienstverbanden. Foto's zijn private uploadbaar/verwijderbaar en zichtbaar in lijst en kalender; het organogramfilter onthoudt de laatste selectie per gebruiker.
-- Applicatieversie: `1.20260718.4`.
+- Applicatieversie: `0.1.1` in `apps/hr-suite/package.json`; dashboard widgetbibliotheek toegevoegd op branch `codex/settings-rosters-calendar`.
 
 ## Live database en verificatie
 
@@ -37,6 +37,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 3. Externe ketenhistorie en cao-uitzonderingen beheren.
 4. Globale documenten, bulk-loonstrookimport en AI-compliance/OCR/RAG.
 5. Vrije Liquid Display-query's en verdere HeRa-transactietools.
+6. Dashboardwidgets hebben nu tenantconfiguratie, roltoegang, registry, uitbreidbare breedtes en Recharts-basis. Volgende slice: per widget een echte server-loader en datavorm toevoegen; de huidige compatibiliteitskaarten tonen bestaande dashboardmetrics als veilige fallback.
 
 ## Handmatige productieacties
 

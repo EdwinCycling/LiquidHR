@@ -40,7 +40,8 @@
       "jobs": "Jobs and job groups", "jobsDescription": "Maintain jobs and job groups per administration over time.",
       "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
       "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
-      "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide."
+      "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.",
+      "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role."
     }
   },
   "modules": {
@@ -56,6 +57,10 @@
       "WORKFLOWS": { "name": "Workflows", "description": "Repeatable HR processes for onboarding, changes and offboarding." },
       "TRAINING": { "name": "Training", "description": "Training, certificates and validity per employee." }
     }
+  },
+  "dashboardWidgets": {
+    "title": "Dashboard widgets", "subtitle": "Enable data-driven widgets and choose which roles can use them.", "save": "Save", "saving": "Saving…", "saved": "Saved.", "failed": "Could not save.", "enabled": "Enable widget", "roles": "Available for roles", "noRoles": "No roles available.",
+    "categories": { "CORE_HR": "Core HR", "EMPLOYMENT": "Employment", "DOCUMENTS": "Documents", "COMPENSATION": "Compensation", "ORGANIZATION_TIME": "Organization & time" }
   },
   "holidays": {
     "title": "Public holidays", "subtitle": "Import national holidays by calendar year and country. The import is stored as a snapshot; local and excluded dates are preserved when re-importing.",

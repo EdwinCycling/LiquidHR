@@ -28,6 +28,9 @@ const salaryRead = ['employee:read', 'salary:read'] as const
 
 export const DASHBOARD_WIDGET_CATALOG: readonly DashboardWidgetCatalogEntry[] = [
   { type: 'WELCOME', category: 'CORE_HR', titleKey: 'welcome', descriptionKey: 'welcomeBody', visualization: 'PROFILE', defaultWidth: 'FULL', loader: 'welcome', permissions: [] },
+  { type: 'MY_REMINDERS', category: 'ORGANIZATION_TIME', titleKey: 'myReminders', descriptionKey: 'myReminders', visualization: 'TABLE', defaultWidth: 'HALF', loader: 'activeReminders', permissions: ['reminder:read'] },
+  { type: 'ORGANIZATION_OVERVIEW', category: 'ORGANIZATION_TIME', titleKey: 'organization', descriptionKey: 'organization', visualization: 'KPI', defaultWidth: 'HALF', loader: 'organizationSummary', permissions: ['organization-chart:read'] },
+  { type: 'EMPLOYEE_OVERVIEW', category: 'CORE_HR', titleKey: 'employees', descriptionKey: 'employees', visualization: 'KPI', defaultWidth: 'HALF', loader: 'organizationSummary', permissions: ['employee:read'] },
   { type: 'MY_PROFILE', category: 'CORE_HR', titleKey: 'widgets.myProfile.title', descriptionKey: 'widgets.myProfile.description', visualization: 'PROFILE', defaultWidth: 'HALF', loader: 'myProfile', permissions: employeeRead, selfOnly: true },
   { type: 'PROFILE_COMPLETENESS', category: 'CORE_HR', titleKey: 'widgets.profileCompleteness.title', descriptionKey: 'widgets.profileCompleteness.description', visualization: 'PROGRESS', defaultWidth: 'HALF', loader: 'profileCompleteness', permissions: employeeRead, selfOnly: true },
   { type: 'MY_EMERGENCY_CONTACTS', category: 'CORE_HR', titleKey: 'widgets.myEmergencyContacts.title', descriptionKey: 'widgets.myEmergencyContacts.description', visualization: 'TABLE', defaultWidth: 'HALF', loader: 'myEmergencyContacts', permissions: employeeRead, selfOnly: true },

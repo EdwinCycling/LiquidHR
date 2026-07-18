@@ -3,11 +3,13 @@ import { listMyReminders } from '@/lib/reminders/reminder-service'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@scope/db'
 import { dashboardCreateSchema, dashboardLayoutSchema, type DashboardCreateInput, type DashboardLayoutInput, type DashboardWidgetType } from './schemas'
+import { listVisibleDashboardWidgetTypes } from './widget-settings-service'
+import { getWidgetCatalogEntry } from './widget-catalog'
 
 export interface DashboardWidget { id: string; type: DashboardWidgetType; position: number; settings: Record<string, unknown> }
 export interface PersonalDashboard { id: string; name: string; isDefault: boolean; updatedAt: string }
 export interface DashboardMetrics { reminderCount: number; employeeCount: number | null; departmentCount: number | null }
-export interface DashboardView { dashboard: PersonalDashboard; widgets: DashboardWidget[]; metrics: DashboardMetrics }
+export interface DashboardView { dashboard: PersonalDashboard; widgets: DashboardWidget[]; metrics: DashboardMetrics; availableWidgetTypes: DashboardWidgetType[] }
 
 const DEFAULT_WIDGETS: ReadonlyArray<{ type: DashboardWidgetType; position: number }> = [
   { type: 'WELCOME', position: 0 }, { type: 'MY_REMINDERS', position: 1 }, { type: 'ORGANIZATION_OVERVIEW', position: 2 }, { type: 'EMPLOYEE_OVERVIEW', position: 3 },
@@ -104,10 +106,13 @@ export async function getDashboardView(id?: string): Promise<DashboardView> {
   const dashboards = await listPersonalDashboards(); const dashboard = id ? dashboards.find((candidate) => candidate.id === id) : dashboards.find((candidate) => candidate.isDefault) ?? dashboards[0]
   if (!dashboard) throw new Error('DASHBOARD_NOT_FOUND')
   const context = await requireHeRaContext(); const supabase = await createClient()
-  const [widgets, reminders, employeeResult, departmentResult] = await Promise.all([
+  const visibleTypes = await listVisibleDashboardWidgetTypes()
+  const [allWidgets, reminders, employeeResult, departmentResult] = await Promise.all([
     getDashboardWidgets(dashboard.id), listMyReminders(100).catch(() => []),
     supabase.from('employees').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('is_active', true).is('deleted_at', null),
     supabase.from('departments').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('is_active', true),
   ])
-  return { dashboard, widgets, metrics: { reminderCount: reminders.length, employeeCount: employeeResult.error ? null : employeeResult.count, departmentCount: departmentResult.error ? null : departmentResult.count } }
+  const widgets = allWidgets.filter((widget) => visibleTypes.has(widget.type))
+  const availableWidgetTypes = [...visibleTypes].filter((type): type is DashboardWidgetType => getWidgetCatalogEntry(type as DashboardWidgetType) !== undefined)
+  return { dashboard, widgets, availableWidgetTypes, metrics: { reminderCount: reminders.length, employeeCount: employeeResult.error ? null : employeeResult.count, departmentCount: departmentResult.error ? null : departmentResult.count } }
 }
