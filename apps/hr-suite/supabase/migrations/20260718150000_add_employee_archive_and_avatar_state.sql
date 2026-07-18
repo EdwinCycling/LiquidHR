@@ -15,6 +15,9 @@ alter table public.user_preferences
   add constraint user_preferences_ui_state_object
   check (jsonb_typeof(ui_state) = 'object');
 
+grant select (is_archived) on table public.employees to authenticated;
+grant update (is_archived) on table public.employees to authenticated;
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('employee-avatars', 'employee-avatars', false, 5242880,
   array['image/jpeg', 'image/png', 'image/webp']::text[])
