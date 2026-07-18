@@ -23,6 +23,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 - De samengevoegde releasegate is geslaagd: 66 Vitest-bestanden met 258 tests, 18 gelijke NL/EN-namespaces, strict TypeScript, ESLint en een productiebuild met 43 pagina's.
 - Supabase security advisor meldt alleen uitgeschakelde leaked-password protection. Deze functie is vanaf Pro beschikbaar en binnen het huidige abonnement niet inschakelbaar; dit is een geaccepteerde abonnementsbeperking.
 - Branch-preview voor het autorisatieoverzicht: `https://liquidhr-git-codex-authorization-overview-edwinitsolutions.vercel.app`. De deployment en veilige loginredirect zijn op 390px gecontroleerd.
+- Productiecommit `d9ff660` is via Vercel-deployment `dpl_AtQNVbi4ovC6uGQVAmJHyoAVZigL` als `READY` gepubliceerd op `https://liquid-hr-hr-suite.vercel.app`. Een frisse browsersessie gaat veilig naar `/login?next=%2Fauthorization` en blijft op 390px zonder overflow. De bestaande ingelogde Chrome-sessie moet opnieuw authenticeren: haar oude Supabase-JWT gaf `PGRST303: JWT issued at future`; er zijn geen credentials of cookies gewijzigd.
 
 ## Bewust resterend werk
 

@@ -90,6 +90,7 @@ Laatste controle: 2026-07-18.
 ## Verificatiebewijs
 
 - Samengevoegde releasegate 2026-07-18: 66 Vitest-bestanden en 258 tests geslaagd; 18 gelijke NL/EN-namespaces, ESLint, strict TypeScript en de Next.js-productiebuild met 43 pagina's zijn groen.
+- Vercel Production `dpl_AtQNVbi4ovC6uGQVAmJHyoAVZigL` van mergecommit `d9ff660` is `READY` op `https://liquid-hr-hr-suite.vercel.app`. Een frisse 390px-browsersessie bevestigde de veilige autorisatieredirect zonder overflow; de bestaande Chrome-login moet wegens een Supabase `PGRST303`-JWT-tijdfout opnieuw authenticeren voordat de beschermde UI visueel kan worden getest.
 - HeRa-incidentherstel: de provincievraag kon na een geautoriseerde leestool leiden tot een lege tweede modelreactie. De daaropvolgende insert in `ai_messages` schond de verplichte contentconstraint (`23514`) en resulteerde in een 500. De orchestrator bewaakt nu zowel afgewezen toolselecties als lege vervolgreplies met een veilige, geautoriseerde fallback. De exacte browservraag is lokaal zonder 500 geverifieerd.
 - Volledige Vitest-suite: 59 testbestanden en 234 tests geslaagd. ESLint, strict TypeScript, 15 gelijke NL/EN-namespaces en de Next.js-productiebuild met 36 pagina's zijn geslaagd.
 - Tijdhub/reminders zijn lokaal op poort 3000 in een ingelogde browsersessie geverifieerd: persoonlijke reminder aanmaken/afronden, HR-reminder voor iedereen publiceren, sidebar-badge en countdown, en annuleren. De weergave is ook op 390px gecontroleerd zonder horizontale overflow.
