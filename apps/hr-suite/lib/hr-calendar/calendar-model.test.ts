@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMonthDays, getEmployeePageSize, groupEventsByEmployee } from './calendar-model'
+import { buildMonthDays, formatCalendarMonth, formatCalendarWeekday, getEmployeePageSize, groupEventsByEmployee } from './calendar-model'
 import type { HrChangeEvent } from '@/lib/hr-events/types'
 const event=(id:string):HrChangeEvent=>({id,eventDate:'2026-07-15',eventType:'SCHEDULE_CHANGED',employeeId:'11111111-1111-4111-8111-111111111111',employmentId:null,titleKey:'key',titleValues:{},sourceHref:'/x',severity:'INFO'})
 describe('calendar model',()=>{it('builds actual month days',()=>expect(buildMonthDays('2026-07')).toHaveLength(31));it('groups multiple employee events on one day',()=>expect(groupEventsByEmployee([event('a'),event('b')]).get(event('a').employeeId)?.get('2026-07-15')).toHaveLength(2))})
@@ -10,5 +10,14 @@ describe('employee calendar pagination', () => {
     expect(getEmployeePageSize('25', 72)).toBe(25)
     expect(getEmployeePageSize('all', 72)).toBe(72)
     expect(getEmployeePageSize('all', 140)).toBe(100)
+  })
+})
+
+describe('calendar locale formatting', () => {
+  it('formats month and weekday names in the active language', () => {
+    expect(formatCalendarMonth('2026-07', 'nl')).toBe('juli 2026')
+    expect(formatCalendarMonth('2026-07', 'en')).toBe('July 2026')
+    expect(formatCalendarWeekday('2026-07-01', 'nl')).toBe('wo')
+    expect(formatCalendarWeekday('2026-07-01', 'en')).toBe('Wed')
   })
 })

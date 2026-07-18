@@ -12,18 +12,20 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 - De vijfstappenwizard publiceert atomair Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en een kostenverdeling van exact 100%.
 - Functiegroepen, functies en effective-dated functie- en salarisschaalrevisies zijn per administratie beheerbaar. Gepubliceerde revisies zijn onveranderlijk.
 - Iedere medewerker heeft een veilig documentdossier met private opslag, metadata, tags, gecombineerde zichtbaarheid, signed downloads, soft-delete/herstel en vervalreminders.
-- De dienstverbanddetailpagina bevat een responsieve tijdkaart; `/hr-calendar` biedt een groot maandraster en mobiele agenda zonder salarisbedragen in de gedeelde eventprojectie.
+- De dienstverbanddetailpagina bevat een responsieve tijdkaart en een afzonderlijke roosterpagina met 1–4-weeks werkpatronen, begin/einddatum en exacte controle tegen de contracturen.
+- `/hr-calendar` toont alle medewerkers in een groot gelokaliseerd maandraster met roosters, niet-werkdagen, feestdagen, reminders en HR-wijzigingen. Zoeken, medewerker-/afdelingsfilters, 10/25/alle-max-100 paginering, doorklik en een uitbreidbaar dagdetail zijn aanwezig.
+- HR-beheer staat achter één permission-gestuurde instellingenhub. Extra modules gelden tenantbreed; feestdagen kunnen per jaar en land vanuit Nager.Date worden geïmporteerd en lokaal worden aangevuld. Persoonlijke taal-, thema- en klokvoorkeuren blijven op een afzonderlijke pagina voor iedere ingelogde gebruiker.
 - Autorisatiebeheer heeft drie werkruimtes: zoekbaar rechtenbeheer met groepsacties/dirty-state, een toegankelijke dekkingsheatmap en afzonderlijke organisatietoewijzingen. De visualisatie verleent nooit toegang; exacte permissions, scope en RLS blijven beslissend.
-- Applicatieversie: `1.20260718.2`.
+- Applicatieversie: `1.20260718.3`.
 
 ## Live database en verificatie
 
 - Supabase-project `wnpfloqpjvaacobppbpk` is gezond. De HeRa-migraties en migraties `20260718090000` t/m `20260718132000` zijn live toegepast.
 - Live SQL-proeven voor HeRa-isolatie, volledige dienstverbandpublicatie, functie/salarisrevisies, documentdossiers, HR-change-projectie en kalenderautorisatie zijn geslaagd.
-- De samengevoegde releasegate is geslaagd: 66 Vitest-bestanden met 258 tests, 18 gelijke NL/EN-namespaces, strict TypeScript, ESLint en een productiebuild met 43 pagina's.
+- De samengevoegde releasegate is geslaagd: 72 Vitest-bestanden met 271 tests, 18 gelijke NL/EN-namespaces, strict TypeScript, ESLint en een productiebuild met 50 pagina's.
 - Supabase security advisor meldt alleen uitgeschakelde leaked-password protection. Deze functie is vanaf Pro beschikbaar en binnen het huidige abonnement niet inschakelbaar; dit is een geaccepteerde abonnementsbeperking.
-- Branch-preview voor het autorisatieoverzicht: `https://liquidhr-git-codex-authorization-overview-edwinitsolutions.vercel.app`. De deployment en veilige loginredirect zijn op 390px gecontroleerd.
-- Productiecommit `d9ff660` is als `READY` gepubliceerd op `https://liquid-hr-hr-suite.vercel.app`. Een frisse browsersessie gaat veilig naar `/login?next=%2Fauthorization` en blijft op 390px zonder overflow. De beschermde productie-UI is daarna met een bestaande ingelogde sessie gecontroleerd: versie `1.20260718.2`, de drie autorisatietabbladen, 6 rollen, 12 functiegebieden, 103 functiepunttoekenningen en de matrixdoorklik werken. De aanvankelijke `PGRST303: JWT issued at future` van die sessie trad alleen op bij de voorgaande deployment en verdween na een nieuwe poging; deployment `dpl_3zkhTF3Y3M9ccHk4E5s6bvZGTpxz` bevatte tijdens de eindcontrole geen error- of fatal-logs.
+- Preview `https://liquidhr-pbftcw6t7-edwinitsolutions.vercel.app` is `READY`; een anonieme aanvraag voor `/settings` gaat veilig naar `/login?next=%2Fsettings`.
+- Release `1.20260718.3` staat op `https://liquid-hr-hr-suite.vercel.app`. De instellingenhub, tenantmodules, Nager.Date-preview, persoonlijke instellingen en de volledige maandkalender zijn met een bestaande ingelogde HR-adminsessie gecontroleerd. De kalenderformattering volgt nu de actieve NL/EN-taal.
 
 ## Bewust resterend werk
 
