@@ -1,0 +1,8 @@
+'use client'
+import { useRouter } from 'next/navigation'
+export function EndReasonManager({ reasons, labels }: { reasons: Array<{ id: string; code: string; name_nl: string; name_en: string; is_active: boolean }>; labels: { active: string; inactive: string; toggle: string; delete: string; inUse: string } }) {
+  const router = useRouter()
+  async function toggle(reason: typeof reasons[number]) { await fetch(`/api/master-data/end-reasons/${reason.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ isActive: !reason.is_active }) }); router.refresh() }
+  async function remove(reason: typeof reasons[number]) { const response = await fetch(`/api/master-data/end-reasons/${reason.id}`, { method: 'DELETE' }); if (!response.ok) { const result = await response.json() as { error?: string }; if (result.error === 'END_REASON_IN_USE') window.alert(labels.inUse); return } router.refresh() }
+  return <div className="rounded-2xl border bg-surface p-5"><div className="divide-y">{reasons.map((reason) => <div className={`flex flex-wrap items-center gap-3 py-3 ${reason.is_active ? '' : 'opacity-55'}`} key={reason.id}><div className="min-w-0 flex-1"><p className="font-semibold">{reason.name_nl}</p><p className="text-xs text-muted-foreground">{reason.code} · {reason.name_en}</p></div><span className="text-xs">{reason.is_active ? labels.active : labels.inactive}</span><button className="button-secondary" onClick={() => void toggle(reason)} type="button">{labels.toggle}</button><button className="button-secondary" onClick={() => void remove(reason)} type="button">{labels.delete}</button></div>)}</div></div>
+}

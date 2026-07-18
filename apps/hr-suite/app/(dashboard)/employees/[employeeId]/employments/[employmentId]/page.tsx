@@ -29,7 +29,7 @@ import { listEmployeeHrEvents } from "@/lib/hr-events/service";
 
 interface PageProps {
   params: Promise<{ employeeId: string; employmentId: string }>;
-  searchParams: Promise<{ tab?: string; view?: string; date?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; date?: string; fromTab?: string }>;
 }
 
 const tabs = [
@@ -228,7 +228,7 @@ export default async function EmploymentDetailPage({
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
       <Link
-        href={`/employees/${employeeId}`}
+        href={`/employees/${employeeId}?tab=${query.fromTab === 'reminders' ? 'reminders' : 'employments'}`}
         className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />

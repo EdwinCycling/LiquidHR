@@ -4,10 +4,9 @@ import { createTranslator } from '@/lib/i18n/translator'
 import messagesEn from '@/messages/en/hera.json'
 import messagesNl from '@/messages/nl/hera.json'
 
-export default async function HeRaPage() {
-  const locale = await getLocale()
+export function createHeRaLabels(locale: 'nl' | 'en'): HeRaLabels {
   const translate = createTranslator(locale === 'en' ? messagesEn : messagesNl)
-  const labels: HeRaLabels = {
+  return {
     title: translate('title'), subtitle: translate('subtitle'), newConversation: translate('newConversation'),
     emptyTitle: translate('emptyTitle'), emptyDescription: translate('emptyDescription'), composerPlaceholder: translate('composerPlaceholder'),
     send: translate('send'), sending: translate('sending'), deleteConversation: translate('deleteConversation'), exportConversation: translate('exportConversation'),
@@ -25,6 +24,11 @@ export default async function HeRaPage() {
     deleteMemoryProposal: translate('deleteMemoryProposal'), deleteMemory: translate('deleteMemory'),
     currentValue: translate('currentValue'), newValue: translate('newValue'),
   }
+}
+
+export default async function HeRaPage() {
+  const locale = await getLocale()
+  const labels = createHeRaLabels(locale)
 
   return <div className="p-4 sm:p-6 lg:p-8"><HeRaChat labels={labels} /></div>
 }

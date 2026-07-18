@@ -45,6 +45,7 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 - Kritieke autorisatie- en salarislogica wordt test-first ontwikkeld.
 - De lokale app draait en wordt gevalideerd op poort `3000`.
 - Alle zichtbare tekst en foutmeldingen komen uit een taalbestand. Nederlands (`nl`) is standaard en Nederlands/Engels moeten altijd dezelfde sleutels hebben; draai `npm run check:i18n -w @liquid-hr/hr-suite`.
+- Nooit hardcoded zichtbare teksten of foutmeldingen in componenten, routes of services; gebruik altijd de paritaire taalmodule (NL/EN) en controleer dit met `check:i18n`.
 - Een nieuwe taal wordt als volledige namespace-set onder `apps/hr-suite/messages/<taalcode>/` toegevoegd; componenten bevatten geen eigen vertaalobjecten.
 - Iedere testbare ontwikkelmijlpaal wordt lokaal op poort `3000` én via een publieke preview gecontroleerd, zodat testen op iPhone of een externe laptop mogelijk is.
 

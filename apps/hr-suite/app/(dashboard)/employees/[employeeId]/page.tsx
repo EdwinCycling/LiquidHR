@@ -18,17 +18,20 @@ import {
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getEmployeeCustomFields } from '@/lib/custom-fields/service'
 import { getDocumentOptions, listEmployeeDocuments } from '@/lib/documents/document-service'
+import { listEmployeeReminders } from '@/lib/reminders/reminder-service'
+import { EmployeeReminders } from '@/components/employees/employee-reminders'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; create?: string }>
 }
 
 async function loadPageData(employeeId: string) {
   try {
-    const [detail, customFields, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
+    const [detail, customFields, reminders, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
       getEmployeeEmploymentDetail(employeeId),
       getEmployeeCustomFields(employeeId),
+      listEmployeeReminders(employeeId).catch(() => []),
       permissionAllowed('contract:write', employeeId),
       getLocale(),
       getTranslator('employees'),
@@ -50,7 +53,7 @@ async function loadPageData(employeeId: string) {
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
     ])
-    return [detail, customFields, terminationOptions, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
+    return [detail, customFields, reminders, terminationOptions, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
     throw error
@@ -69,9 +72,9 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const { tab: requestedTab } = await searchParams
-  const tab = requestedTab === 'employments' || requestedTab === 'documents' ? requestedTab : 'personal'
-  const [detail, customFields, options, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
+  const { tab: requestedTab, create } = await searchParams
+  const tab = requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'reminders' ? requestedTab : 'personal'
+  const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
@@ -105,9 +108,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         </div>
 
         <nav className="mt-6 flex gap-2 overflow-x-auto border-b" aria-label={tEmployees('tabsLabel')}>
-          {(['personal', 'employments', 'documents'] as const).map((item) => {
+          {(['personal', 'employments', 'reminders', 'documents'] as const).map((item) => {
             const active = tab === item
-            const label = item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : tEmployees('tabDocuments')
+            const label = item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : tEmployees('tabDocuments')
             return <Link key={item} href={`/employees/${employeeId}?tab=${item}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}>{label}</Link>
           })}
         </nav>
@@ -152,6 +155,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'documents' && canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), file: tDocuments('file'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), category: tDocuments('category'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), noSelection: tDocuments('noSelection'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), reminderForDepartment: tDocuments('reminderForDepartment'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn') }} />}
 
+        {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} reminders={reminders} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), titleLabel: tEmployees('reminderTitle'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic') }} />}
+
         {tab === 'employments' && <div className={`mt-8 grid gap-8 ${canManageEmployments ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]' : ''}`}>
           <section>
             <div className="mb-4 flex items-center justify-between">
@@ -171,6 +176,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 primary: tEmployment('primary'),
                 employmentNumber: tEmployment('employmentNumber'),
                 openDetail: tEmployment('openDetail'),
+                delete: { title: tEmployment('deleteTitle'), description: tEmployment('deleteDescription'), confirm: tEmployment('deleteConfirm'), cancel: tEmployment('cancel'), failed: tErrors('generic') },
                 indefinite: tEmployment('indefinite'),
                 definite: tEmployment('definite'),
                 terminate: {
@@ -186,6 +192,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             />
           </section>
           {canManageEmployments && <aside>
+            {create !== '1' ? <Link className="button-primary" href={`/employees/${employeeId}/employments/new`}>{tEmployment('new')}</Link> : <details className="rounded-2xl border bg-surface p-5 shadow-sm" open>
+              <summary className="button-primary inline-flex cursor-pointer list-none">{tEmployment('new')}</summary>
+              <div className="mt-5">
             <EmploymentCreateForm
               employeeId={employeeId}
               options={creationOptions}
@@ -217,6 +226,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 completeSummary: tEmployment('completeSummary'), requiredFields: tEmployment('requiredFields'),
               }}
             />
+              </div>
+            </details>}
           </aside>}
         </div>}
       </main>

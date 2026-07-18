@@ -10,6 +10,8 @@ import { getUserPreferences } from '@/lib/preferences/server'
 import { createClient } from '@/lib/supabase/server'
 import { listMyReminders } from '@/lib/reminders/reminder-service'
 import { getEnabledTenantModules } from '@/lib/modules/module-service'
+import { HeRaFloating } from '@/components/hera/hera-floating'
+import { createHeRaLabels } from './hera/page'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const supabase = await createClient()
@@ -58,7 +60,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           appName: common('appName'),
           dashboard: navigation('dashboard'),
           version: `${common('version')} ${APP_VERSION}`,
-          hera: navigation('hera'),
           organizationChart: navigation('organizationChart'),
           employees: navigation('employees'),
           settings: navigation('settings'),
@@ -93,6 +94,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         tenantName={context.tenant.name}
       />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0">{children}</main>
+      {enabledModules.includes('HERA') ? <HeRaFloating labels={createHeRaLabels(preferences.locale)} /> : null}
     </div>
   )
 }

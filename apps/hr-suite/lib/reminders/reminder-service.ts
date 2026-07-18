@@ -134,6 +134,14 @@ export async function listMyReminders(limit = 100): Promise<ReminderItem[]> {
   return data.map((row) => toReminderItem(row as ReminderRecipientResult))
 }
 
+export async function listEmployeeReminders(employeeId: string, limit = 100): Promise<ReminderItem[]> {
+  const context = await requirePermission('reminder:read', employeeId)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('reminder_recipients').select(`id, status, effective_remind_at, reminders!inner(id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id)`).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).order('effective_remind_at', { ascending: true }).limit(Math.min(Math.max(limit, 1), 200))
+  if (error) throw reminderDatabaseError(error)
+  return data.map((row) => toReminderItem(row as ReminderRecipientResult))
+}
+
 export async function createPersonalReminder(input: PersonalReminderCreateInput): Promise<string> {
   const context = await requireReminderContext()
   const supabase = await createClient()

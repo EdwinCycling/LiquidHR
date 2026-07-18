@@ -83,6 +83,12 @@ Laatste controle: 2026-07-18.
 
 ## Security en handmatige productieconfiguratie
 
+## Vervolgslice medewerker, dienstverband en HeRa
+
+- HeRa staat niet meer in de linker navigatie. De zwevende knop links onder opent een overlay; docken naar rechts en de breedte zijn gebruikersvoorkeuren die lokaal worden bewaard.
+- De medewerkerkaart heeft een reminders-tab. Dienstverbanden openen als primaire knop, verwijderen is een bevestigde soft-delete en de teruglink bewaart de medewerker-brontab.
+- Interne uitdienstredenen zijn beheerbaar onder `/master-data/end-reasons` met actief/inactief en een blokkade wanneer de reden al is gebruikt. Andere bestaande stamtabellen blijven afzonderlijke beheerschermen.
+
 ## Dashboard widgetbibliotheek
 
 | Onderdeel | Status | Resterend werk |

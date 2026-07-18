@@ -26,6 +26,7 @@ export default async function AdminSettingsPage() {
     { title: messages('admin.sections.hrSetup'), items: [
       { href: '/master-data/jobs', icon: Database, title: messages('admin.tiles.jobs'), description: messages('admin.tiles.jobsDescription'), visible: jobs },
       { href: '/master-data/salary-scales', icon: Database, title: messages('admin.tiles.salary'), description: messages('admin.tiles.salaryDescription'), visible: salary },
+      { href: '/master-data/end-reasons', icon: Database, title: messages('admin.tiles.endReasons'), description: messages('admin.tiles.endReasonsDescription'), visible: jobs },
       { href: '/settings/holidays', icon: CalendarDays, title: messages('admin.tiles.holidays'), description: messages('admin.tiles.holidaysDescription'), visible: holidays },
     ]},
     { title: messages('admin.sections.platform'), items: [

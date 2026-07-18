@@ -180,6 +180,13 @@ export async function createProfileLink(employmentId: string, input: ProfileLink
   return data
 }
 
+export async function deleteEmployment(employmentId: string): Promise<void> {
+  const employment = await loadEmploymentForAction(employmentId, 'contract:write')
+  const supabase = await createClient()
+  const { error } = await supabase.from('employments').update({ deleted_at: new Date().toISOString() }).eq('id', employment.id).eq('tenant_id', employment.tenant_id)
+  if (error) throwDatabaseError(error.message)
+}
+
 export async function createFollowUp(employmentId: string, input: FollowUpInput) {
   const employment = await loadEmploymentForAction(employmentId, 'contract:write')
   if (!input.changeSetId) throw new EmploymentDetailError('CHANGE_SET_REQUIRED', 400)

@@ -10,7 +10,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  Sparkles,
   Users,
   X,
 } from 'lucide-react'
@@ -32,7 +31,6 @@ interface SidebarLabels {
   appName: string
   dashboard: string
   version: string
-  hera: string
   organizationChart: string
   employees: string
   settings: string
@@ -88,7 +86,6 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false)
   const links = [
     { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true },
-    { href: '/hera', label: labels.hera, icon: Sparkles, visible: enabledModules.includes('HERA') },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true },
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar },
