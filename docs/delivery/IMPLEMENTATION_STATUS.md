@@ -1,6 +1,6 @@
 # Implementatiestatus Liquid HR
 
-Laatste controle: 2026-07-16.
+Laatste controle: 2026-07-18.
 
 ## Fundering
 
@@ -42,7 +42,7 @@ Laatste controle: 2026-07-16.
 | Absolute tenantgrens | GEÏMPLEMENTEERD | Expliciete toegang, samengestelde tenant-FK's, RLS en negatieve isolatietests zijn live |
 | Hiërarchische administraties | GEÏMPLEMENTEERD | Parentconstraint, tenantgelijkheid, cyclusbeveiliging en drie demo-administraties zijn live |
 | Administratiecontext en switcher | GEÏMPLEMENTEERD | Resolver, context-API, HTTP-only cookie en responsive switcher; PostgreSQL-UUID-notatie wordt correct geaccepteerd en gecontroleerd tegen de toegestane administratieopties |
-| Stamtabellenscope | GEDEELTELIJK | Afdelingen, loonschalen, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden; nieuwe stamtabellen moeten hetzelfde patroon volgen |
+| Stamtabellenscope | GEÏMPLEMENTEERD | Afdelingen, functies, functiegroepen, loonschalen/revisies, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden |
 | Onomkeerbaar combineren | GEÏMPLEMENTEERD | Alleen `SEPARATE → COMBINED`; database blokkeert terugkeer |
 | Demo-omgevingen | GEÏMPLEMENTEERD | Hoofdtenant: 3 administraties/50 medewerkers; tweede tenant: 1 administratie/10 medewerkers |
 
@@ -58,6 +58,19 @@ Laatste controle: 2026-07-16.
 | Herintreding | GEÏMPLEMENTEERD | Bestaande Employee wordt hergebruikt en krijgt een nieuw Employment; identity-match voorkomt stil dupliceren |
 | Medewerker- en dienstverband-UI | GEDEELTELIJK | Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
+| Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
+| Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen, functies en effective-dated revisies; schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
+| Tijdkaart medewerker | GEÏMPLEMENTEERD | De dienstverbandhistorie toont alle tijdvakken responsief op één tijdas, met veilige salarisprojectie. |
+| HR-maandkalender | GEÏMPLEMENTEERD | Groot desktopraster en mobiele agenda met medewerker-, administratie- en wijzigingsfilters op `/hr-calendar`. |
+
+## Documentdossiers
+
+| Onderdeel | Status | Resterend werk |
+|---|---|---|
+| Medewerkersdossier | GEÏMPLEMENTEERD | Private opslag, metadata, tags, signed downloads, soft-delete/herstel en auditbare toevoeger/verwijderaar. |
+| Documentzichtbaarheid | GEÏMPLEMENTEERD | Permission én doelgroep; medewerker, rol en afdelingstak zijn combineerbaar en server-side/RLS afgedwongen. |
+| Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
+| Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
 ## Security en handmatige productieconfiguratie
 
@@ -76,9 +89,11 @@ Laatste controle: 2026-07-16.
 - Tijdhub/reminders zijn lokaal op poort 3000 in een ingelogde browsersessie geverifieerd: persoonlijke reminder aanmaken/afronden, HR-reminder voor iedereen publiceren, sidebar-badge en countdown, en annuleren. De weergave is ook op 390px gecontroleerd zonder horizontale overflow.
 - De eerder gemelde `POST /api/context/administration 400` is lokaal gereproduceerd en opgelost; de wissel naar de Operations-administratie gaf daarna `200` en de UI selecteerde de nieuwe context.
 - De detailpagina van Edwin Testbeheerder is na de RLS-herstelmigratie lokaal op poort 3000 succesvol geladen; adres-, relatie- en vrije-veldqueries geven geen 403 meer.
-- Vitest: 46 testbestanden, 182 tests geslaagd.
+- Vitest: 52 testbestanden, 201 tests geslaagd.
 - HeRa is lokaal browsermatig getest met een lege gesprekslijst, een nieuw gesprek en de vraag `Welke reminders heb ik?`; de API gaf `200`, HeRa antwoordde en het testgesprek is verwijderd.
-- ESLint zonder waarschuwingen, strict TypeScript, 11 NL/EN-namespaces en Next.js-productiebuild (26 pagina's) geslaagd.
+- ESLint zonder waarschuwingen, strict TypeScript, 18 NL/EN-namespaces en Next.js-productiebuild (42 pagina's) geslaagd.
+- Vijf aanvullende live databaseproeven voor volledige dienstverbandpublicatie, stamtabellen/salarisrevisies, documentdossiers, HR-wijzigingsprojectie en kalenderautorisatie zijn geslaagd.
+- Publieke Vercel-preview: `https://liquidhr-git-codex-hera-data-agent-edwinitsolutions.vercel.app`; login en 390px-weergave zijn gecontroleerd. Beschermde flows vereisen een afzonderlijke geldige previewsessie.
 - Lokale productiebuild luistert op `http://localhost:3000` en blijft actief; login is desktop en op 390px zonder consolefouten gecontroleerd.
 - Login, herstel, uitnodiging en beschermde redirects zijn op desktop en 390px mobiel zonder consolefouten gecontroleerd.
 - Alle 13 database-integratie- en isolatietests voor tenant, administratie, voorkeuren, identity matching, beveiligde BSN-opslag, vrije velden, autorisatie, dienstverbanden, tijdlijnen, uitdienstmelding en demodata zijn live tegen Supabase geslaagd.

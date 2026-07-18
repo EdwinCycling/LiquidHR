@@ -1,77 +1,50 @@
 # Actuele overdracht Liquid HR
 
-Laatste update: 2026-07-16. Dit document is het compacte startpunt voor iedere nieuwe of geforkte AI-chat. Lees daarna de relevante bronnen via `docs/README.md`. Neem geen secrets op in dit bestand.
+Laatste update: 2026-07-18. Dit is het compacte startpunt voor iedere nieuwe of geforkte chat. Lees daarna `docs/README.md`; neem geen secrets in documentatie op.
 
-## Doel en vaste keuzes
+## Vaste architectuur
 
-Liquid HR is een Nederlandstalig, i18n-klaar HR- en payrollplatform op Next.js, Supabase en strict TypeScript. De vaste bouwvolgorde is `schema → API → UI`. Tenantgrenzen zijn absoluut; een tenant kan meerdere hiërarchische administraties bevatten. Autorisatie wordt server-side én met RLS afgedwongen. Nederlands is standaard, Engels heeft sleutelpariteit.
+Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supabase en strict TypeScript. Bouwvolgorde is `schema → API → UI`. Tenantgrenzen zijn absoluut, autorisatie wordt server-side én met RLS afgedwongen en zichtbare tekst komt uit paritaire NL/EN-taalbestanden.
 
-## Huidige stand
+## Actuele stand
 
-- Monorepo, Supabase SSR, wachtwoordauthenticatie, thema's en NL/EN-i18n werken.
-- Medewerkers, beveiligde BSN-opslag, adressen, banken, relaties en vrije velden zijn geïmplementeerd.
-- Afdelingen, rollen, permissions, rolhouders en tijdsgebonden plaatsingen zijn geïmplementeerd.
-- Multitenancy, administratiecontext/switcher en negatieve isolatietests werken.
-- Dienstverbanddetail heeft een eigen moderne route met acht tabs, foto, compact/uitgebreid, profielkoppelingen, AI-slot, toekomstige modules, follow-ups en auditlog.
-- Arbeidsvoorwaarden, rooster, salaris en kostenverdeling hebben veilige tijdlijnmutaties met TWK-popup, behoud van toekomstige blokken, 100%-controle en laatste-blokrollback.
-- Nieuwe contracten krijgen datumgebonden, niet-blokkerend ketenadvies voor het huidige en vanaf 2028 aangekondigde regime.
-- Demo-inrichting bevat 50 medewerkers in de hoofdtenant en 10 in een tweede tenant.
-- GitHub is lokaal geïnitialiseerd en de huidige werkstand staat op `https://github.com/EdwinCycling/LiquidHR.git`, branch `main`, commit `81bde2c`.
-- Tijdhub/reminders is als eerste slice live in Supabase: klokvoorkeuren, persoonlijke en HR-reminders, RLS, API-routes, Tijdhub, instellingen en NL/EN zijn gebouwd. De drie reminder-migraties zijn live toegepast; een RLS-recursie en een ongeldige `auth.users`-lookup in publicatie zijn hersteld.
-- Handmatige externe acties staan centraal in `docs/delivery/HANDMATIGE_ACTIES.md`. Het centrale applicatieversienummer staat in `apps/hr-suite/lib/app-version.ts` en is nu `1.20260716.3`.
-- Organogram is gebouwd als beveiligde, read-only verkenner zonder drag-and-drop. HeRa heeft een leidende requirement, RLS-migratie, Gemini-adapter, veilige persoonlijke reminderconcepten, API-laag en navigatie; de lege-starttransitie en een echte lokale vraag/antwoord-flow zijn nu browser-gevalideerd. Productieprivacyconfiguratie blijft open.
-- Tijdhub: iedere zichtbare sidebar-reminder opent een toegankelijke Liquid-detailkaart met type, tijd, acties en een link naar Reminderbeheer. De OrgChart-link staat voorlopig plat en altijd zichtbaar in de linkerbalk; de route houdt zijn server-side autorisatie.
-- Persoonlijke Liquid Dashboard is gebouwd als startpagina: meerdere eigen dashboards, naam/dupliceren/verwijderen/wisselen, expliciet opslaan van toegankelijke widgetvolgorde en vier gesloten widgets. Vrije Liquid Display-query's en generatieve widgets zijn bewust nog niet aanwezig.
-- Dashboardlayout houdt de linker navigatie, klok en reminders vast op viewporthoogte; alleen de hoofdcontent scrollt. HeRa toont na een vastlopende API-call een herstelbare fout in plaats van een oneindige spinner. De klok voorkomt SSR-hydrationverschillen door pas na mount de tijd te starten.
-- De administratiecontext-switcher accepteert nu ook PostgreSQL-UUID-notatie zonder RFC 4122-versiebits; bestaande demo-administraties kunnen daardoor wisselen zonder onterechte 400-response. De server controleert daarna nog steeds de toegestane administratie binnen de actieve tenant.
+- Medewerkers, dienstverbanden, IKV, organisatie, permissions, effectieve tijdlijnen, reminders en HeRa-basis zijn aanwezig.
+- De vijfstappenwizard publiceert een volledig dienstverband atomair: Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en kostenverdeling van exact 100%.
+- Functiegroepen, functies, effective-dated functierevisies en salarisschaalrevisies met een vrij aantal treden zijn per administratie beheerbaar. Gepubliceerde revisies zijn onveranderlijk.
+- Iedere medewerker heeft een veilig documentdossier met private opslag, metadata, tags, gecombineerde zichtbaarheid, signed downloads, soft-delete/herstel en vervalreminders voor persoon/rol/afdelingstak.
+- De dienstverbanddetailpagina bevat een responsieve tijdkaart. `/hr-calendar` biedt een groot maandraster en mobiele agenda met HR-wijzigingen. Salarisbedragen worden niet in de gedeelde eventprojectie opgenomen.
+- Applicatieversie: `1.20260718.1`.
+- Actieve featurebranch: `codex/hera-data-agent`. Featurecommits: `08de9b3` en `67393ec`; documentatie-/afrondcommit volgt in dezelfde branch.
 
-De gedetailleerde waarheid en resterende onderdelen staan in `docs/delivery/IMPLEMENTATION_STATUS.md`.
+## Live database en verificatie
 
-## Laatst geverifieerd
+- Supabase-project `wnpfloqpjvaacobppbpk` is gezond. De migraties `20260718090000` t/m `20260718132000` voor deze slice zijn live toegepast.
+- Live SQL-proeven geslaagd: volledige dienstverbandflow, functie/salarisrevisies, documentdossiers, HR-change-projectie en kalenderautorisatie.
+- Vitest: 52 bestanden, 201 tests geslaagd.
+- `check:i18n`: 18 namespaces gelijk voor NL/EN. Strict TypeScript, ESLint en productiebuild (42 pagina's) zijn geslaagd.
+- Supabase security advisor meldt alleen uitgeschakelde leaked-password protection. Nieuwe tabellen hebben RLS; de reminder-target policies zijn per mutatie gesplitst om dubbele permissive SELECT-policies te voorkomen.
+- Lokale app draait bij overdracht op `http://localhost:3000` (processtatus altijd opnieuw controleren).
+- Publieke preview: `https://liquidhr-git-codex-hera-data-agent-edwinitsolutions.vercel.app`. Login en mobiele 390px-layout zijn gecontroleerd. Beschermde previewflows konden niet zonder een hostspecifieke ingelogde sessie worden doorlopen.
 
-- Herstelmigratie `20260715173629_restore_employee_subresource_grants.sql` is live: Data API-rechten en benodigde `EXECUTE`-rechten voor RLS-helpers van adressen, relaties en vrije veldwaarden zijn hersteld. De medewerkersdetailpagina van Edwin Testbeheerder laadt weer volledig op localhost:3000.
-- Vitest: 46 bestanden en 182 tests geslaagd.
-- HeRa: een lege lijst met gesprekken toont na een geslaagde API-response nu de lege toestand in plaats van een oneindige spinner. Een lokaal testgesprek met de geconfigureerde Gemini-provider gaf antwoord in circa 2,2 seconden zonder browsererrors; het testgesprek is daarna verwijderd.
-- ESLint, strict TypeScript, i18n-pariteit en productiebuild geslaagd.
-- Dertien live Supabase database-/isolatietests geslaagd.
-- De nieuwe transactionele databaseproef voor TWK, rollback en kostenverdeling is aanvullend geslaagd.
-- Tijdhub/reminders: persoonlijke reminder aanmaken/afronden, HR-publicatie voor iedereen, sidebar-badge/countdown en annuleren zijn in een ingelogde browser op localhost:3000 geslaagd. De 390px-weergave heeft geen horizontale overflow.
-- Administratiecontext: in een ingelogde browser is de wissel van `Liquid HR Demo Holding B.V.` naar `Liquid HR Operations B.V.` op localhost:3000 geslaagd; de API gaf `200` en de tweede administratie werd geselecteerd. De eerder gemelde `400` kwam door te strikte RFC 4122-validatie.
-- Productiebuild draait lokaal op `http://localhost:3000`; de loginpagina laadt desktop en op 390px. De beschermde detailroute kon zonder geldige browsersessie niet visueel end-to-end worden geopend. De eerdere klok-hydrationwaarschuwing is in code opgelost.
-- De laatst gebruikte ngrok-URL was `https://unmerited-diuretically-angeline.ngrok-free.dev`; dit is tijdelijk en moet bij hervatten opnieuw worden gecontroleerd.
-- Supabase-plugin is verbonden met project `wnpfloqpjvaacobppbpk` (`LiquidHR`, `ACTIVE_HEALTHY`). De app-runtime en pluginverbinding werken; een lokale CLI-login is hiervoor niet vereist.
-- Vercel-plugin is verbonden met project `liquid-hr-hr-suite`. De eerste productiebuild compileerde volledig maar faalde door een dubbel outputpad; `vercel.json` gebruikt nu `.next` passend bij Vercels Root Directory `apps/hr-suite`.
+## Bewust resterend werk
 
-Gebruik vanuit de repositoryroot de scripts uit `package.json`. Start lokale validatie altijd geforceerd op poort 3000 en test relevante flows ook in een echte browser op mobiel formaat.
-
-## Eerstvolgend open werk
-
-0. Herhaal voor reminders de transactionele databaseproef; advisors en typegeneratie zijn via de Supabase-plugin beschikbaar.
-
-0a. Voer `supabase/tests/hera_ai_agent.sql` uit. De HeRa-, gecombineerde dienstverband-, OrgChart- en dashboardmigraties zijn via de Supabase-plugin live toegepast. Configureer `GEMINI_KEY` en `GEMINI_MODEL` server-only in iedere deployomgeving; de vrije Gemini-tier is uitsluitend voor testdata.
-
-1. Maak `direct meenemen` werkelijk één multi-domein, atomair wijzigingspakket; `later opvolgen` wordt al opgeslagen.
-2. Voeg mutatieformulieren op de detailroute toe voor basis/IKV en organisatieplaatsing; deze tabs lezen nu wel alle tijdblokken.
-3. Voeg vastlegging en beheer van externe ketenhistorie/cao-uitzonderingen toe; de engine en adviesstap zijn aanwezig.
-4. Nieuwe persoonskaart kunnen aanmaken vanuit de dienstverbandflow wanneer identity matching geen bestaande medewerker vindt.
-5. Echte uitnodigingsmail, permanente publieke deployment en daarna documenten/compliance, Liquid Display en de AI-agent.
-
-## Actuele externe blokkades
-
-- Supabase: geen verbindingsblokkade. Alleen leaked-password protection blijft een handmatige dashboardinstelling.
-- Vercel: repository en plugin zijn gekoppeld. De gecorrigeerde `vercel.json` moet naar de production branch worden gepusht; daarna volgt automatisch een nieuwe deployment.
+1. Basis/IKV en organisatieplaatsing zijn op de bestaande dienstverbanddetailtabs nog read-only; de volledige aanmaak/publicatieflow is wel gereed.
+2. Nieuwe persoonskaart vanuit de dienstverbandflow bij geen identity-match.
+3. Externe ketenhistorie en cao-uitzonderingen beheren.
+4. Globale documenten, bulk-loonstrookimport en AI-compliance/OCR/RAG.
+5. Vrije Liquid Display-query's en uitgebreidere HeRa-tools.
 
 ## Handmatige productieacties
 
 - Activeer Supabase leaked-password protection.
-- Configureer SMTP en de vereiste server-only secrets; publiceer die nooit als `NEXT_PUBLIC_*`.
-- Configureer Google OAuth en voeg actuele publieke callback-/redirect-URL's toe.
-- Gebruik per omgeving stabiele, geheime waarden voor BSN-hashing en PII-encryptie.
+- Configureer SMTP, Google OAuth/redirects en de vereiste stabiele server-only secrets per omgeving.
+- Log afzonderlijk in op de branch-preview om de beschermde flows visueel end-to-end te controleren.
 
-## Hervatprotocol
+Zie `docs/delivery/HANDMATIGE_ACTIES.md` voor de beheerde externe actielijst. Dit bestand is gebruiker-eigendom en is in deze slice niet overschreven.
 
-1. Lees `AGENTS.md`, `docs/README.md` en dit document.
-2. Controleer `docs/delivery/IMPLEMENTATION_STATUS.md` en de relevante requirements.
-3. Inspecteer de actuele wijzigingen; deze map had bij de laatste overdracht nog geen Git-repository.
-4. Controleer of poort 3000 en een publieke preview werkelijk bereikbaar zijn.
-5. Werk na uitvoering dit bestand en de implementatiestatus bij.
+## Hervatten
+
+1. Lees `AGENTS.md`, `docs/README.md` en dit bestand.
+2. Controleer werkboom, branch, poort 3000, Supabase-migraties en previewstatus opnieuw.
+3. Gebruik `docs/delivery/IMPLEMENTATION_STATUS.md` en de relevante requirements als waarheid voor resterend werk.
+4. Werk na iedere materiële slice dit bestand, de status en de requirements bij.

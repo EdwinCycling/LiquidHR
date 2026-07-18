@@ -31,13 +31,13 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 | Domein | Document | Documentstatus | Implementatie |
 |---|---|---|---|
 | Core HR | [`requirements/core-hr/MEDEWERKER.md`](requirements/core-hr/MEDEWERKER.md) | LEIDEND | GEÏMPLEMENTEERD |
-| Contract & dienstverband | [`requirements/employment/CONTRACT_EN_DIENSTVERBAND.md`](requirements/employment/CONTRACT_EN_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK |
+| Contract & dienstverband | [`requirements/employment/CONTRACT_EN_DIENSTVERBAND.md`](requirements/employment/CONTRACT_EN_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — volledige publicatieflow en tijdkaart gereed; detailmutaties basis/IKV blijven open |
 | Organisatie | [`requirements/organization/AFDELINGEN_EN_ROLLEN.md`](requirements/organization/AFDELINGEN_EN_ROLLEN.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Organogram | [`requirements/organization/ORGANOGRAM.md`](requirements/organization/ORGANOGRAM.md) | LEIDEND | GEDEELTELIJK |
 | Autorisatie | [`requirements/authorization/AUTORISATIE_EN_RECHTEN.md`](requirements/authorization/AUTORISATIE_EN_RECHTEN.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Multitenancy & administraties | [`requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md`](requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md) | LEIDEND | GEDEELTELIJK |
 | Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE |
-| Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | NIET GESTART |
+| Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEDEELTELIJK |
 | Historische HR-chatbotblauwdruk | [`requirements/chatbot/HR_CHATBOT_AGENT.md`](requirements/chatbot/HR_CHATBOT_AGENT.md) | VERVANGEN | NIET GESTART |
@@ -65,7 +65,8 @@ Er zijn momenteel geen documenten met status **VERVANGEN**. Zodra een document w
 - Geaccepteerde tenantgrenzen: [`decisions/ADR-0001-tenant-en-administratiegrenzen.md`](decisions/ADR-0001-tenant-en-administratiegrenzen.md)
 - Authenticatie, i18n en persoonlijke thema's: [`decisions/ADR-0002-authenticatie-i18n-en-persoonlijke-themas.md`](decisions/ADR-0002-authenticatie-i18n-en-persoonlijke-themas.md)
 - Employee, Employment, IKV en herintreding: [`decisions/ADR-0003-employee-employment-ikv-en-herintreding.md`](decisions/ADR-0003-employee-employment-ikv-en-herintreding.md)
+- Documentzichtbaarheid en gecombineerde reminderdoelen: [`decisions/FDR-0001-document-en-reminderdoelgroepen.md`](decisions/FDR-0001-document-en-reminderdoelgroepen.md)
 - Uitvoeringsplannen: [`superpowers/plans/`](superpowers/plans/)
 - Toekomstige technische en functionele besluiten: `decisions/`
 
-Actuele verticale slice (2026-07-15): dienstverbanddetail, tijdlijnmutaties, ketenadvies, follow-ups en profielkoppelingen zijn beschreven in [`superpowers/specs/2026-07-15-dienstverbanddetail-en-slimme-mutaties-design.md`](superpowers/specs/2026-07-15-dienstverbanddetail-en-slimme-mutaties-design.md). De resterende onderdelen staan in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
+Actuele verticale slice (2026-07-18): volledige dienstverbandpublicatie, functie- en salarisschaalbeheer, medewerkersdossiers, tijdkaart en HR-maandkalender zijn beschreven in [`superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md`](superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md). De resterende onderdelen staan in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
