@@ -9,6 +9,7 @@ import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import {
   EmploymentServiceError,
   getEmployeeEmploymentDetail,
+  getEmploymentCreationOptions,
   getTerminationOptions,
 } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
@@ -30,10 +31,13 @@ async function loadPageData(employeeId: string) {
       getTranslator('errors'),
       getTranslator('customFields'),
     ])
-    const options = canManageEmployments
-      ? await getTerminationOptions()
-      : { internalReasons: [], statutoryReasons: [] }
-    return [detail, customFields, options, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] as const
+    const [terminationOptions, creationOptions] = canManageEmployments
+      ? await Promise.all([getTerminationOptions(), getEmploymentCreationOptions(employeeId)])
+      : [
+          { internalReasons: [], statutoryReasons: [] },
+          { departments: [], costCenters: [], salaryScaleSteps: [], nextIkvNumber: 1, canWriteSalary: false },
+        ]
+    return [detail, customFields, terminationOptions, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
     throw error
@@ -52,7 +56,7 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 
 export default async function EmployeeDetailPage({ params }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const [detail, customFields, options, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] = await loadPageData(employeeId)
+  const [detail, customFields, options, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] = await loadPageData(employeeId)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
@@ -153,6 +157,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           {canManageEmployments && <aside>
             <EmploymentCreateForm
               employeeId={employeeId}
+              options={creationOptions}
               labels={{
                 title: tEmployment('new'),
                 number: tEmployment('employmentNumber'),
@@ -170,6 +175,15 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                 chainIndefinite: tEmployment('chainIndefinite'), chainInsufficient: tEmployment('chainInsufficient'),
                 chainOverrideReason: tEmployment('chainOverrideReason'), historyComplete: tEmployment('historyComplete'),
                 knownContracts: tEmployment('knownContracts'), review: tEmployment('continue'),
+                previous: tEmployment('previous'), next: tEmployment('next'), stepContract: tEmployment('stepContract'),
+                stepIkvOrganization: tEmployment('stepIkvOrganization'), stepConditions: tEmployment('stepConditions'),
+                stepSalaryCosts: tEmployment('stepSalaryCosts'), stepReview: tEmployment('stepReview'),
+                payrollTaxSubnumber: tEmployment('payrollTaxSubnumber'), ikvNumber: tEmployment('incomeRelationshipNumber'),
+                department: tEmployment('department'), jobTitle: tEmployment('jobTitle'), conditionGroup: tEmployment('conditionGroup'),
+                averageDays: tEmployment('averageDays'), averageHours: tEmployment('averageHours'), partTimeFactor: tEmployment('partTimeFactor'),
+                salary: tEmployment('tabsSalary'), includeSalary: tEmployment('includeSalary'), salaryScaleStep: tEmployment('salaryScaleStep'),
+                manualSalary: tEmployment('manualSalary'), fulltimeAmount: tEmployment('fulltimeAmount'), costCenter: tEmployment('costCenter'),
+                completeSummary: tEmployment('completeSummary'), requiredFields: tEmployment('requiredFields'),
               }}
             />
           </aside>}

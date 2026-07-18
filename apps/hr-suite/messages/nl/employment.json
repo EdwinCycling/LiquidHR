@@ -145,5 +145,18 @@
   "documents": "Documenten",
   "leave": "Verlof",
   "absence": "Verzuim",
-  "conversations": "Gesprekken"
+  "conversations": "Gesprekken",
+  "previous": "Vorige",
+  "next": "Volgende",
+  "stepContract": "Contract",
+  "stepIkvOrganization": "IKV en organisatie",
+  "stepConditions": "Arbeidsvoorwaarden",
+  "stepSalaryCosts": "Salaris en kosten",
+  "stepReview": "Controleren",
+  "payrollTaxSubnumber": "Subnummer loonheffingen",
+  "includeSalary": "Salaris direct vastleggen",
+  "salaryScaleStep": "Schaal en trede",
+  "manualSalary": "Handmatig salaris",
+  "completeSummary": "Volledig dienstverband",
+  "requiredFields": "Vul eerst alle verplichte velden in."
 }

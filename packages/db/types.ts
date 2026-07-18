@@ -3293,6 +3293,14 @@ export type Database = {
         }
         Returns: string
       }
+      publish_complete_employment: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_payload: Json
+        }
+        Returns: string
+      }
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
         Returns: undefined

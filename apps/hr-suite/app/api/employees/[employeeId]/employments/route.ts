@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import {
-  createEmployment,
   EmploymentServiceError,
   listEmployeeEmployments,
+  publishCompleteEmployment,
 } from '@/lib/employment/employment-service'
-import { createEmploymentRequestSchema } from '@/lib/employment/schemas'
+import { completeEmploymentCreateSchema } from '@/lib/employment/schemas'
 
 interface RouteContext {
   params: Promise<{ employeeId: string }>
@@ -29,12 +29,12 @@ export async function GET(_request: Request, context: RouteContext): Promise<Nex
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {
   try {
     const { employeeId } = await context.params
-    const parsed = createEmploymentRequestSchema.safeParse(await request.json())
+    const parsed = completeEmploymentCreateSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json({ code: 'EMPLOYMENT_INPUT_INVALID' }, { status: 400 })
     }
-    const result = await createEmployment({ ...parsed.data, employeeId })
-    return NextResponse.json({ data: result }, { status: 201 })
+    const employmentId = await publishCompleteEmployment(employeeId, parsed.data)
+    return NextResponse.json({ data: { employmentId } }, { status: 201 })
   } catch (error) {
     const permissionResponse = permissionErrorResponse(error)
     if (permissionResponse) return permissionResponse
