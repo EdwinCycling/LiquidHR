@@ -1,7 +1,8 @@
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { requireHeRaContext } from '@/lib/hera/request-context'
 import { createClient } from '@/lib/supabase/server'
 import { DASHBOARD_WIDGET_CATALOG } from './widget-catalog'
+import { resolveVisibleWidgetTypes } from './widget-access'
 
 export interface DashboardWidgetRole { id: string; code: string; name: string }
 export interface DashboardWidgetSetting {
@@ -63,19 +64,30 @@ export async function updateDashboardWidgetSetting(input: { widgetType: string; 
 }
 
 export async function listVisibleDashboardWidgetTypes(): Promise<Set<string>> {
-  const context = await requireHeRaContext()
   const supabase = await createClient()
-  const { data: configs, error } = await supabase.from('dashboard_widget_configs').select('widget_type').eq('tenant_id', context.tenantId).eq('is_enabled', true)
-  if (error) throw error
-  const visible = new Set<string>()
-  for (const config of configs ?? []) {
-    const widget = DASHBOARD_WIDGET_CATALOG.find((entry) => entry.type === config.widget_type)
-    if (!widget) continue
-    let allowed = widget.permissions.length === 0
-    for (const permission of widget.permissions) {
-      try { await requirePermission(permission) ; allowed = true; break } catch { /* RLS remains the final boundary. */ }
-    }
-    if (allowed) visible.add(widget.type)
-  }
-  return visible
+  const context = await requireAuthContext(supabase)
+  return resolveVisibleDashboardWidgetTypes(context, supabase)
+}
+
+export async function resolveVisibleDashboardWidgetTypes(
+  context: AuthContext,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<Set<string>> {
+  const [configsResult, accessResult, rolesResult] = await Promise.all([
+    supabase.from('dashboard_widget_configs').select('widget_type, is_enabled').eq('tenant_id', context.tenantId),
+    supabase.from('dashboard_widget_role_access').select('widget_type, management_role_id').eq('tenant_id', context.tenantId),
+    context.activeRoles.length > 0
+      ? supabase.from('management_roles').select('id').in('code', context.activeRoles).or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (configsResult.error) throw configsResult.error
+  if (accessResult.error) throw accessResult.error
+  if (rolesResult.error) throw rolesResult.error
+  return resolveVisibleWidgetTypes({
+    configs: (configsResult.data ?? []).map((row) => ({ widgetType: row.widget_type, isEnabled: row.is_enabled })),
+    roleAccess: (accessResult.data ?? []).map((row) => ({ widgetType: row.widget_type, roleId: row.management_role_id })),
+    activeRoleIds: new Set((rolesResult.data ?? []).map((role) => role.id)),
+    permissions: new Set(context.permissions),
+    entries: DASHBOARD_WIDGET_CATALOG,
+  })
 }

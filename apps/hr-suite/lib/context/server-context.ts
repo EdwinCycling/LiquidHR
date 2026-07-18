@@ -13,8 +13,8 @@ export class ContextAuthenticationError extends Error {
   readonly status = 401
 }
 
-export async function loadActiveContext(userId?: string): Promise<ActiveContext> {
-  const supabase = await createClient()
+export async function loadActiveContext(userId?: string, existingClient?: Awaited<ReturnType<typeof createClient>>): Promise<ActiveContext> {
+  const supabase = existingClient ?? await createClient()
   let resolvedUserId = userId
 
   if (!resolvedUserId) {
