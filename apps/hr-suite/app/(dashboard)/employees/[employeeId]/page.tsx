@@ -110,7 +110,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           </div>
         </div>
 
-        <nav className="mt-6 flex gap-2 overflow-x-auto border-b" aria-label={tEmployees('tabsLabel')}>
+        <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
           {(['personal', 'employments', 'reminders', 'documents'] as const).map((item) => {
             const active = tab === item
             const label = item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : tEmployees('tabDocuments')

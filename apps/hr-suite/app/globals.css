@@ -338,6 +338,15 @@ select {
     @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground hover:border-primary/40 focus:border-primary focus:outline-none;
   }
 
+  .tabs-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .tabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   .button-primary,
   .button-secondary,
   .button-danger {
