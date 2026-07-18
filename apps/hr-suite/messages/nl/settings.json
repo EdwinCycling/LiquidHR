@@ -57,6 +57,12 @@
       "TRAINING": { "name": "Opleidingen", "description": "Opleidingen, certificaten en geldigheid per medewerker." }
     }
   },
+  "holidays": {
+    "title": "Feestdagen", "subtitle": "Importeer landelijke feestdagen per kalenderjaar en land. De import wordt als snapshot opgeslagen; lokale en uitgesloten dagen blijven bij herimport behouden.",
+    "year": "Kalenderjaar", "country": "Landcode", "preview": "Voorbeeld ophalen", "import": "Feestdagen importeren", "imported": "De feestdagen zijn geïmporteerd.", "providerFailed": "De feestdagenprovider is nu niet bereikbaar of de invoer is ongeldig.",
+    "localTitle": "Lokale feestdag toevoegen", "localName": "Naam", "date": "Datum", "add": "Lokale dag toevoegen",
+    "calendarTitle": "Feestdagen in dit kalenderjaar", "empty": "Nog geen feestdagen voor dit jaar.", "api": "Landelijke import", "manual": "Lokaal toegevoegd", "included": "In kalender", "excluded": "Uitgesloten"
+  },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "Noordzee",

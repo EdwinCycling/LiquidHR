@@ -38,6 +38,7 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 | Multitenancy & administraties | [`requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md`](requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md) | LEIDEND | GEDEELTELIJK |
 | Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE |
 | Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
+| Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEÏMPLEMENTEERD EN PRODUCTIE-GEVERIFIEERD |
 | Historische HR-chatbotblauwdruk | [`requirements/chatbot/HR_CHATBOT_AGENT.md`](requirements/chatbot/HR_CHATBOT_AGENT.md) | VERVANGEN | NIET GESTART |
@@ -72,3 +73,5 @@ Er zijn momenteel geen documenten met status **VERVANGEN**. Zodra een document w
 Actuele verticale slice (2026-07-18): volledige dienstverbandpublicatie, functie- en salarisschaalbeheer, medewerkersdossiers, tijdkaart en HR-maandkalender zijn beschreven in [`superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md`](superpowers/specs/2026-07-18-dienstverband-dossier-stamtabellen-tijdkaart-kalender-design.md). De resterende onderdelen staan in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
 
 Het autorisatiebeheer en grafische rechtenoverzicht zijn beschreven in [`superpowers/specs/2026-07-18-autorisatieoverzicht-design.md`](superpowers/specs/2026-07-18-autorisatieoverzicht-design.md).
+
+De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport en gecombineerde medewerkerskalender zijn beschreven in [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) en ontworpen in [`superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md`](superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md).

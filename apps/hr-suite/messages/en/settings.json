@@ -57,6 +57,12 @@
       "TRAINING": { "name": "Training", "description": "Training, certificates and validity per employee." }
     }
   },
+  "holidays": {
+    "title": "Public holidays", "subtitle": "Import national holidays by calendar year and country. The import is stored as a snapshot; local and excluded dates are preserved when re-importing.",
+    "year": "Calendar year", "country": "Country code", "preview": "Load preview", "import": "Import holidays", "imported": "The holidays have been imported.", "providerFailed": "The holiday provider is currently unavailable or the input is invalid.",
+    "localTitle": "Add local holiday", "localName": "Name", "date": "Date", "add": "Add local date",
+    "calendarTitle": "Holidays in this calendar year", "empty": "No holidays for this year yet.", "api": "National import", "manual": "Added locally", "included": "In calendar", "excluded": "Excluded"
+  },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "North Sea",

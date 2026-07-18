@@ -54,10 +54,10 @@ export async function getEmploymentDetail(employeeId: string, employmentId: stri
   const employment = await loadEmploymentForAction(employmentId, 'contract:read')
   if (employment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   const supabase = await createClient()
-  const [canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee] = await Promise.all([
+  const [canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule] = await Promise.all([
     permissionAllowed('contract:write', employeeId), permissionAllowed('salary:read', employeeId),
     permissionAllowed('salary:write', employeeId), permissionAllowed('audit:read', employeeId),
-    permissionAllowed('employee:write', employeeId),
+    permissionAllowed('employee:write', employeeId), permissionAllowed('work-schedule:write', employeeId),
   ])
 
   const [
@@ -108,7 +108,7 @@ export async function getEmploymentDetail(employeeId: string, employmentId: stri
     organizations: organizationResult.data ?? [], profileLinks: linksResult.data ?? [],
     followUps: followUpsResult.data ?? [], auditLogs: auditResult.data ?? [],
     options: { costCenters: costCentersResult.data ?? [], salaryScaleSteps: scalesResult.data ?? [] },
-    capabilities: { canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee },
+    capabilities: { canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule },
   }
 }
 

@@ -11,7 +11,7 @@ Laatste controle: 2026-07-18.
 | Wachtwoordauthenticatie | GEÏMPLEMENTEERD | E-mail/wachtwoord, Google OAuth-start, herstelactie, callback en sign-out aanwezig; app blijft invitation-only |
 | Uitnodigingsmodel | GEDEELTELIJK | Tenant-/administratiescope, privé-/businessmail en acceptatie zijn gebouwd; echte mailverzending vereist nog `SUPABASE_SECRET_KEY` en eigen SMTP |
 | i18n | GEÏMPLEMENTEERD | Nederlands is standaard, Engels heeft verplichte pariteit; iedere namespace heeft een afzonderlijk JSON-bestand per taal |
-| Persoonlijke thema's | GEÏMPLEMENTEERD | Zes thema's, instellingenmodal, DB-first voorkeuren en cookie/default-fallback |
+| Persoonlijke thema's | GEÏMPLEMENTEERD | Zes thema's op een afzonderlijke persoonlijke instellingenpagina, DB-first voorkeuren en cookie/default-fallback |
 | Gedeelde databasetypes | GEÏMPLEMENTEERD | `packages/db/types.ts`; opnieuw genereren na iedere migratie |
 | Documentatierouting | GEÏMPLEMENTEERD | Root `AGENTS.md`, architectuurindex, deze status en verplichte `CURRENT_CONTEXT.md`-overdracht voor nieuwe/fork-chats |
 
@@ -53,7 +53,7 @@ Laatste controle: 2026-07-18.
 | 0..n dienstverbanden per medewerker | GEÏMPLEMENTEERD | Geen dienstverband, toekomstig, actief, voormalig, herintreding en parallel zijn gemodelleerd |
 | Parallel binnen één administratie | GEÏMPLEMENTEERD | Meerdere gelijktijdige dienstverbanden zijn toegestaan en als demo aanwezig |
 | IKV los van dienstverband | GEÏMPLEMENTEERD | `income_relationships` plus tijdsgebonden koppeltabel; één IKV kan gecontroleerd aan dienstverbanden worden gekoppeld |
-| Arbeidsvoorwaarden, rooster, salaris en kostenverdeling | GEDEELTELIJK | Atomaire apply/rollback-RPC's, TWK-splitsing, 100%-kostenverdeling, audit, bevestigingspopup en mutatieformulieren zijn aanwezig. Eén multi-domein-RPC voor direct gecombineerde wijzigingen volgt nog. |
+| Arbeidsvoorwaarden, urenafspraak, werkpatroon, salaris en kostenverdeling | GEDEELTELIJK | Atomaire apply/rollback-RPC's, afzonderlijke 1–4-weeks werkpatroontijdlijn met exacte urencontrole, TWK-splitsing, 100%-kostenverdeling, audit en mutatieformulieren zijn aanwezig. Eén multi-domein-RPC voor direct gecombineerde wijzigingen volgt nog. |
 | Uitdienstmelding | GEÏMPLEMENTEERD | Workflow met wettelijke reden, datum en bevestiging; beëindiging wordt pas definitief via de confirm-RPC |
 | Herintreding | GEÏMPLEMENTEERD | Bestaande Employee wordt hergebruikt en krijgt een nieuw Employment; identity-match voorkomt stil dupliceren |
 | Medewerker- en dienstverband-UI | GEDEELTELIJK | Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
@@ -61,7 +61,7 @@ Laatste controle: 2026-07-18.
 | Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
 | Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen, functies en effective-dated revisies; schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
 | Tijdkaart medewerker | GEÏMPLEMENTEERD | De dienstverbandhistorie toont alle tijdvakken responsief op één tijdas, met veilige salarisprojectie. |
-| HR-maandkalender | GEÏMPLEMENTEERD | Groot desktopraster en mobiele agenda met medewerker-, administratie- en wijzigingsfilters op `/hr-calendar`. |
+| HR-maandkalender | GEÏMPLEMENTEERD | Groot adaptief desktop/tabletraster met alle medewerkers, rooster/niet-werkdagen, feestdagen, reminders, HR-wijzigingen, zoekfilters en 10/25/alle-max-100 paginering op `/hr-calendar`. |
 
 ## Documentdossiers
 
@@ -71,6 +71,15 @@ Laatste controle: 2026-07-18.
 | Documentzichtbaarheid | GEÏMPLEMENTEERD | Permission én doelgroep; medewerker, rol en afdelingstak zijn combineerbaar en server-side/RLS afgedwongen. |
 | Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
 | Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
+
+## Instellingen en tenantmodules
+
+| Onderdeel | Status | Resterend werk |
+|---|---|---|
+| Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema en Tijdhubklok voor iedere ingelogde gebruiker. |
+| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub; directe beheeritems zijn uit het hoofdmenu verwijderd. |
+| Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
+| Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per administratie, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
 
 ## Security en handmatige productieconfiguratie
 

@@ -4255,6 +4255,15 @@ export type Database = {
         }
         Returns: string
       }
+      import_holiday_snapshot: {
+        Args: {
+          requested_administration_id: string
+          requested_calendar_year: number
+          requested_country_code: string
+          requested_holidays: Json
+        }
+        Returns: string
+      }
       next_custom_field_value: {
         Args: { p_definition_id: string }
         Returns: number
