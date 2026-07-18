@@ -1,5 +1,4 @@
 import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
-import { requireHeRaContext } from '@/lib/hera/request-context'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { DASHBOARD_WIDGET_CATALOG } from './widget-catalog'
