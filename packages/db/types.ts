@@ -2641,6 +2641,144 @@ export type Database = {
           },
         ]
       }
+      employment_work_pattern_days: {
+        Row: {
+          administration_id: string
+          break_minutes: number
+          created_at: string
+          ends_at: string | null
+          id: string
+          is_working_day: boolean
+          iso_weekday: number
+          note: string | null
+          scheduled_minutes: number
+          starts_at: string | null
+          tenant_id: string
+          updated_at: string
+          week_index: number
+          work_pattern_id: string
+        }
+        Insert: {
+          administration_id: string
+          break_minutes?: number
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_working_day: boolean
+          iso_weekday: number
+          note?: string | null
+          scheduled_minutes: number
+          starts_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          week_index: number
+          work_pattern_id: string
+        }
+        Update: {
+          administration_id?: string
+          break_minutes?: number
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_working_day?: boolean
+          iso_weekday?: number
+          note?: string | null
+          scheduled_minutes?: number
+          starts_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          week_index?: number
+          work_pattern_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_work_pattern_days_pattern_fkey"
+            columns: ["tenant_id", "administration_id", "work_pattern_id"]
+            isOneToOne: false
+            referencedRelation: "employment_work_patterns"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      employment_work_patterns: {
+        Row: {
+          administration_id: string
+          anchor_date: string
+          average_minutes_per_week: number
+          change_set_id: string | null
+          created_at: string
+          created_by: string | null
+          cycle_weeks: number
+          employee_id: string
+          employment_id: string
+          id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          anchor_date: string
+          average_minutes_per_week: number
+          change_set_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle_weeks: number
+          employee_id: string
+          employment_id: string
+          id?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          anchor_date?: string
+          average_minutes_per_week?: number
+          change_set_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle_weeks?: number
+          employee_id?: string
+          employment_id?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_work_patterns_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "employment_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_work_patterns_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+        ]
+      }
       employments: {
         Row: {
           administration_id: string
@@ -2726,6 +2864,118 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      holiday_calendars: {
+        Row: {
+          administration_id: string
+          calendar_year: number
+          country_code: string
+          created_at: string
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          provider: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          calendar_year: number
+          country_code: string
+          created_at?: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          provider?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          calendar_year?: number
+          country_code?: string
+          created_at?: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holiday_calendars_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      holidays: {
+        Row: {
+          administration_id: string
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          external_key: string | null
+          holiday_calendar_id: string
+          holiday_date: string
+          holiday_types: string[]
+          id: string
+          is_active: boolean
+          provider_name: string
+          source: string
+          subdivision_codes: string[]
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          external_key?: string | null
+          holiday_calendar_id: string
+          holiday_date: string
+          holiday_types?: string[]
+          id?: string
+          is_active?: boolean
+          provider_name: string
+          source: string
+          subdivision_codes?: string[]
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          external_key?: string | null
+          holiday_calendar_id?: string
+          holiday_date?: string
+          holiday_types?: string[]
+          id?: string
+          is_active?: boolean
+          provider_name?: string
+          source?: string
+          subdivision_codes?: string[]
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holidays_calendar_fkey"
+            columns: ["tenant_id", "administration_id", "holiday_calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendars"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
         ]
       }
@@ -3656,6 +3906,50 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_modules: {
+        Row: {
+          created_at: string
+          disabled_at: string | null
+          disabled_by: string | null
+          enabled_at: string | null
+          enabled_by: string | null
+          is_enabled: boolean
+          module_code: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          is_enabled?: boolean
+          module_code: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
+          enabled_at?: string | null
+          enabled_by?: string | null
+          is_enabled?: boolean
+          module_code?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_modules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           administration_mode: Database["public"]["Enums"]["administration_mode"]
@@ -3971,6 +4265,10 @@ export type Database = {
           requested_employee_id: string
           requested_payload: Json
         }
+        Returns: string
+      }
+      publish_employment_work_pattern: {
+        Args: { requested_employment_id: string; requested_payload: Json }
         Returns: string
       }
       publish_reminder: {
