@@ -18,5 +18,7 @@
   "switchingAdministration": "Administratie wisselen…",
   "switchAdministrationFailed": "Wisselen van administratie is mislukt.",
   "customerEnvironment": "Klantomgeving"
-  ,"timeHub": "Tijdhub"
+  ,"timeHub": "Tijdhub",
+  "masterData": "Stamtabellen",
+  "hrCalendar": "Wijzigingskalender"
 }

@@ -1,6 +1,6 @@
 # Implementatiestatus Liquid HR
 
-Laatste controle: 2026-07-17.
+Laatste controle: 2026-07-18.
 
 ## Fundering
 
@@ -29,7 +29,7 @@ Laatste controle: 2026-07-17.
 | Managementrollen | GEÏMPLEMENTEERD | Tenantrollen zijn beheerbaar; globale systeemrollen zijn database-breed onveranderlijk |
 | DepartmentManagement | GEÏMPLEMENTEERD | Effective-dated API/UI, overlapbeveiliging, RLS en audit aanwezig |
 | EmployeeOrganization | GEÏMPLEMENTEERD | Tijdsgebonden plaatsingen zijn aan parallelle dienstverbanden te koppelen en beheerbaar |
-| Permissionmatrix | GEÏMPLEMENTEERD | Functiepuntenmatrix, tenantrollen, API/UI, RLS en audit aanwezig |
+| Permissionmatrix | GEÏMPLEMENTEERD | Zoekbare rollenwerkruimte, gegroepeerde functiepunten, dirty/herstel-flow, grafische dekkingsheatmap, tenantrollen, API, RLS en audit aanwezig |
 | Vrije velden (Employee) | GEÏMPLEMENTEERD | Definities, opties, audience-toegang, atomaire nummering, waarden-API/UI en JSONB-spiegeling |
 | BSN-beveiliging | GEÏMPLEMENTEERD | Afzonderlijke RLS-tabel; HR-admin en medewerker-self mogen lezen, managers niet; reveal wordt geaudit |
 | Autorisatiehelper en managementscope | GEÏMPLEMENTEERD | Selfrechten, actieve rollen, afdelingsscope en RLS zijn getest |
@@ -42,7 +42,7 @@ Laatste controle: 2026-07-17.
 | Absolute tenantgrens | GEÏMPLEMENTEERD | Expliciete toegang, samengestelde tenant-FK's, RLS en negatieve isolatietests zijn live |
 | Hiërarchische administraties | GEÏMPLEMENTEERD | Parentconstraint, tenantgelijkheid, cyclusbeveiliging en drie demo-administraties zijn live |
 | Administratiecontext en switcher | GEÏMPLEMENTEERD | Resolver, context-API, HTTP-only cookie en responsive switcher; PostgreSQL-UUID-notatie wordt correct geaccepteerd en gecontroleerd tegen de toegestane administratieopties |
-| Stamtabellenscope | GEDEELTELIJK | Afdelingen, loonschalen, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden; nieuwe stamtabellen moeten hetzelfde patroon volgen |
+| Stamtabellenscope | GEÏMPLEMENTEERD | Afdelingen, functies, functiegroepen, loonschalen/revisies, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden |
 | Onomkeerbaar combineren | GEÏMPLEMENTEERD | Alleen `SEPARATE → COMBINED`; database blokkeert terugkeer |
 | Demo-omgevingen | GEÏMPLEMENTEERD | Hoofdtenant: 3 administraties/50 medewerkers; tweede tenant: 1 administratie/10 medewerkers |
 
@@ -58,6 +58,19 @@ Laatste controle: 2026-07-17.
 | Herintreding | GEÏMPLEMENTEERD | Bestaande Employee wordt hergebruikt en krijgt een nieuw Employment; identity-match voorkomt stil dupliceren |
 | Medewerker- en dienstverband-UI | GEDEELTELIJK | Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
+| Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
+| Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen, functies en effective-dated revisies; schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
+| Tijdkaart medewerker | GEÏMPLEMENTEERD | De dienstverbandhistorie toont alle tijdvakken responsief op één tijdas, met veilige salarisprojectie. |
+| HR-maandkalender | GEÏMPLEMENTEERD | Groot desktopraster en mobiele agenda met medewerker-, administratie- en wijzigingsfilters op `/hr-calendar`. |
+
+## Documentdossiers
+
+| Onderdeel | Status | Resterend werk |
+|---|---|---|
+| Medewerkersdossier | GEÏMPLEMENTEERD | Private opslag, metadata, tags, signed downloads, soft-delete/herstel en auditbare toevoeger/verwijderaar. |
+| Documentzichtbaarheid | GEÏMPLEMENTEERD | Permission én doelgroep; medewerker, rol en afdelingstak zijn combineerbaar en server-side/RLS afgedwongen. |
+| Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
+| Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
 ## Security en handmatige productieconfiguratie
 
@@ -67,7 +80,7 @@ Laatste controle: 2026-07-17.
 - Tijdhub/reminders: de drie migraties `20260716081000_add_time_hub_reminders.sql`, `20260716090000_fix_reminder_recipient_rls_recursion.sql` en `20260716092000_fix_reminder_publish_auth_lookup.sql` zijn live toegepast. Een RLS-recursie in de recipient-selectie en een niet-toegestane `auth.users`-lookup in publicatie zijn daarmee hersteld.
 - Alle nieuwe publieke tabellen hebben RLS en policies in dezelfde migratie. Tenant- en administratiescope wordt zowel in de servicelaag als database-side afgedwongen.
 - RLS-policyhelpers voor medewerkerssubresources en vrije veldwaarden hebben expliciete `EXECUTE`-rechten voor `authenticated`; dit is live hersteld in migratie `20260715173629_restore_employee_subresource_grants.sql` en met een regressiecontrole afgedekt.
-- Supabase security advisor meldt alleen dat leaked-password protection nog uitstaat. Dit moet handmatig worden ingeschakeld onder **Authentication → Providers/Password → Leaked password protection**.
+- Supabase security advisor meldt alleen dat leaked-password protection uitstaat. Supabase biedt dit vanaf Pro; binnen het huidige abonnement is dit niet inschakelbaar en daarom als geaccepteerde abonnementsbeperking vastgelegd.
 - `npm audit --omit=dev` meldt 2 moderate PostCSS-meldingen via `next@16.2.10`. De aangeboden `--force`-route installeert Next 9 en wordt daarom niet toegepast; opnieuw beoordelen zodra Next.js een compatibele gepatchte dependency levert.
 - Voor echte uitnodigingsmails: stel `SUPABASE_SECRET_KEY` server-only in en configureer eigen SMTP in Supabase. Publiceer deze sleutel nooit als `NEXT_PUBLIC_*`.
 - Voor exacte BSN-deduplicatie: `BSN_HASH_KEY` en `EMPLOYEE_PII_ENCRYPTION_KEY` zijn lokaal server-only gegenereerd. Stel in iedere publieke omgeving eigen stabiele waarden in en roteer alleen via een gecontroleerde datamigratie.
@@ -76,17 +89,16 @@ Laatste controle: 2026-07-17.
 
 ## Verificatiebewijs
 
+- Samengevoegde releasegate 2026-07-18: 66 Vitest-bestanden en 258 tests geslaagd; 18 gelijke NL/EN-namespaces, ESLint, strict TypeScript en de Next.js-productiebuild met 43 pagina's zijn groen.
 - HeRa-incidentherstel: de provincievraag kon na een geautoriseerde leestool leiden tot een lege tweede modelreactie. De daaropvolgende insert in `ai_messages` schond de verplichte contentconstraint (`23514`) en resulteerde in een 500. De orchestrator bewaakt nu zowel afgewezen toolselecties als lege vervolgreplies met een veilige, geautoriseerde fallback. De exacte browservraag is lokaal zonder 500 geverifieerd.
 - Volledige Vitest-suite: 59 testbestanden en 234 tests geslaagd. ESLint, strict TypeScript, 15 gelijke NL/EN-namespaces en de Next.js-productiebuild met 36 pagina's zijn geslaagd.
 - Tijdhub/reminders zijn lokaal op poort 3000 in een ingelogde browsersessie geverifieerd: persoonlijke reminder aanmaken/afronden, HR-reminder voor iedereen publiceren, sidebar-badge en countdown, en annuleren. De weergave is ook op 390px gecontroleerd zonder horizontale overflow.
 - De eerder gemelde `POST /api/context/administration 400` is lokaal gereproduceerd en opgelost; de wissel naar de Operations-administratie gaf daarna `200` en de UI selecteerde de nieuwe context.
 - De detailpagina van Edwin Testbeheerder is na de RLS-herstelmigratie lokaal op poort 3000 succesvol geladen; adres-, relatie- en vrije-veldqueries geven geen 403 meer.
-- Vitest: 46 testbestanden, 182 tests geslaagd.
-- HeRa is lokaal browsermatig getest met de oorspronkelijke salarisvraag: het antwoord kwam uitsluitend uit 11 zichtbare Liquid HR-salarisrecords, inclusief peildatum en onzekerheden. Geheugen aanmaken/wijzigen/verwijderen, antwoordvoorkeuren, gesprek verwijderen en voorstel-annulering zijn eveneens geslaagd. Een reminder voor morgen 09:00 wordt server-side correct als 09:00 `Europe/Amsterdam` weergegeven en niet uitgevoerd zonder bevestiging.
-- Gemini 3-function calling bewaart de versleutelde `thoughtSignature` tussen toolrondes; de regressietest dekt het vereiste roundtripcontract af.
-- Volledige Vitest-suite: 59 testbestanden en 232 tests geslaagd. ESLint, strict TypeScript, 15 NL/EN-namespaces en de Next.js-productiebuild met 36 pagina's zijn geslaagd.
-- Vercel Production `dpl_J1hEbcviCEQxatGdgWMaSJyPE29j` (`a663988`) is `READY` op `https://liquid-hr-hr-suite.vercel.app`. De ingelogde browser-eindtest bevestigde geautoriseerde salarisgronding, geheugen create/update/delete, antwoordvoorkeuren, tijdzonebewuste remindercontrole, annulering zonder uitvoering en gesprekverwijdering zonder 500. De aansluitende Vercel-scan vond geen runtimefouten of 5xx-responses.
-- ESLint zonder waarschuwingen, strict TypeScript, 11 NL/EN-namespaces en Next.js-productiebuild (26 pagina's) geslaagd.
+- HeRa is browsermatig geverifieerd met geautoriseerde salarisgronding, geheugen create/update/delete, antwoordvoorkeuren, tijdzonebewuste remindercontrole en veilige conceptannulering. De lege vervolgreactie die eerder constraint `23514` en een 500 veroorzaakte, heeft een geteste fallback.
+- Gemini 3-function calling bewaart de versleutelde `thoughtSignature` tussen toolrondes.
+- Vijf aanvullende live databaseproeven voor volledige dienstverbandpublicatie, stamtabellen/salarisrevisies, documentdossiers, HR-wijzigingsprojectie en kalenderautorisatie zijn geslaagd.
+- Publieke Vercel-preview: `https://liquidhr-git-codex-hera-data-agent-edwinitsolutions.vercel.app`; login en 390px-weergave zijn gecontroleerd. Beschermde flows vereisen een afzonderlijke geldige previewsessie.
 - Lokale productiebuild luistert op `http://localhost:3000` en blijft actief; login is desktop en op 390px zonder consolefouten gecontroleerd.
 - Login, herstel, uitnodiging en beschermde redirects zijn op desktop en 390px mobiel zonder consolefouten gecontroleerd.
 - Alle 13 database-integratie- en isolatietests voor tenant, administratie, voorkeuren, identity matching, beveiligde BSN-opslag, vrije velden, autorisatie, dienstverbanden, tijdlijnen, uitdienstmelding en demodata zijn live tegen Supabase geslaagd.

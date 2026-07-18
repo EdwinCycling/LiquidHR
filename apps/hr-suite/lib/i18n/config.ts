@@ -19,6 +19,9 @@ export const MESSAGE_NAMESPACES = [
   'reminders',
   'hera',
   'dashboard',
+  'masterData',
+  'documents',
+  'hrCalendar',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

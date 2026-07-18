@@ -1,0 +1,34 @@
+create index employee_documents_added_by_idx on public.employee_documents(added_by_user_id);
+create index employee_documents_deleted_by_idx on public.employee_documents(deleted_by_user_id) where deleted_by_user_id is not null;
+create index employee_documents_tenant_employee_idx on public.employee_documents(tenant_id, employee_id);
+create index salary_scale_revisions_published_by_idx on public.salary_scale_revisions(published_by_user_id) where published_by_user_id is not null;
+
+drop policy job_groups_write on public.job_groups;
+create policy job_groups_insert on public.job_groups for insert to authenticated with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+create policy job_groups_update on public.job_groups for update to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write'))) with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+create policy job_groups_delete on public.job_groups for delete to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+drop policy jobs_write on public.jobs;
+create policy jobs_insert on public.jobs for insert to authenticated with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+create policy jobs_update on public.jobs for update to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write'))) with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+create policy jobs_delete on public.jobs for delete to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+drop policy job_revisions_write on public.job_revisions;
+create policy job_revisions_insert on public.job_revisions for insert to authenticated with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+create policy job_revisions_update on public.job_revisions for update to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write'))) with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+create policy job_revisions_delete on public.job_revisions for delete to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'job-catalog:write')));
+drop policy salary_scale_revisions_write on public.salary_scale_revisions;
+create policy salary_scale_revisions_insert on public.salary_scale_revisions for insert to authenticated with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'salary-structure:write')) and (select internal_security.current_user_has_permission(tenant_id,administration_id,'salary:write')));
+create policy salary_scale_revisions_update on public.salary_scale_revisions for update to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'salary-structure:write')) and (select internal_security.current_user_has_permission(tenant_id,administration_id,'salary:write'))) with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'salary-structure:write')) and (select internal_security.current_user_has_permission(tenant_id,administration_id,'salary:write')));
+create policy salary_scale_revisions_delete on public.salary_scale_revisions for delete to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'salary-structure:write')) and (select internal_security.current_user_has_permission(tenant_id,administration_id,'salary:write')));
+
+drop policy document_categories_write on public.document_categories;
+create policy document_categories_insert on public.document_categories for insert to authenticated with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'document:write')));
+create policy document_categories_update on public.document_categories for update to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'document:write'))) with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'document:write')));
+create policy document_categories_delete on public.document_categories for delete to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'document:write')));
+drop policy document_audiences_write on public.document_audiences;
+create policy document_audiences_insert on public.document_audiences for insert to authenticated with check (exists(select 1 from public.employee_documents document where document.id=document_id and internal_security.can_manage_employee(document.employee_id,'document:write')));
+create policy document_audiences_update on public.document_audiences for update to authenticated using (exists(select 1 from public.employee_documents document where document.id=document_id and internal_security.can_manage_employee(document.employee_id,'document:write'))) with check (exists(select 1 from public.employee_documents document where document.id=document_id and internal_security.can_manage_employee(document.employee_id,'document:write')));
+create policy document_audiences_delete on public.document_audiences for delete to authenticated using (exists(select 1 from public.employee_documents document where document.id=document_id and internal_security.can_manage_employee(document.employee_id,'document:write')));
+drop policy reminder_target_rules_write on public.reminder_target_rules;
+create policy reminder_target_rules_insert on public.reminder_target_rules for insert to authenticated with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'reminder:write')));
+create policy reminder_target_rules_update on public.reminder_target_rules for update to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'reminder:write'))) with check ((select internal_security.current_user_has_permission(tenant_id,administration_id,'reminder:write')));
+create policy reminder_target_rules_delete on public.reminder_target_rules for delete to authenticated using ((select internal_security.current_user_has_permission(tenant_id,administration_id,'reminder:write')));

@@ -18,5 +18,7 @@
   "switchingAdministration": "Switching administration…",
   "switchAdministrationFailed": "Could not switch administration.",
   "customerEnvironment": "Customer environment"
-  ,"timeHub": "Time Hub"
+  ,"timeHub": "Time Hub",
+  "masterData": "Master data",
+  "hrCalendar": "Change calendar"
 }

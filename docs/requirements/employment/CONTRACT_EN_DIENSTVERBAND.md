@@ -2,6 +2,8 @@
 
 > **Implementatiebesluit 2026-07-15 — leidend bij afwijkingen hieronder.** De oorspronkelijke naam `EmploymentContract` vermengde het HR-dienstverband met de fiscale inkomstenverhouding (IKV). De actuele implementatie volgt ADR-0003 en normaliseert dit naar `Employee → Employment ↔ IncomeRelationship`. De gedetailleerde tijdlijnvelden in dit document blijven functionele requirements, maar hun foreign key heet in de implementatie `employmentId`, niet `contractId`.
 
+> **Aanvulling 2026-07-18.** De aanmaakflow publiceert een dienstverband atomair met IKV-koppeling, organisatieplaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en een kostenverdeling van exact 100%. Functies, functiegroepen en salarisschaalrevisies zijn administratiegebonden en effective-dated. Gepubliceerde revisies zijn onveranderlijk; correcties krijgen een nieuwe geldigheidsperiode.
+
 ## 0. Goedgekeurde domeingrenzen
 
 - Een `Employee` is de permanente persoonskaart binnen precies één tenant en heeft **nul, één of meerdere** dienstverbanden. Een bezoeker, beveiliger of andere externe relatie mag dus zonder dienstverband bestaan.
@@ -25,7 +27,8 @@
 | Salaris | `employment_salaries` |
 | Kostenverdeling | `employment_cost_allocations` |
 | Uitdienstworkflow | `employment_terminations` |
-| Stamtabellen | `salary_scales`, `salary_scale_steps`, `cost_centers`, `employment_end_reasons` |
+| Stamtabellen | `job_groups`, `jobs`, `job_revisions`, `salary_scales`, `salary_scale_revisions`, `salary_scale_steps`, `cost_centers`, `employment_end_reasons` |
+| HR-wijzigingenprojectie | `hr_change_events` (security-invoker view, zonder salarisbedragen) |
 | Duplicaatbesluit | `identity_match_decisions` |
 
 ## 1. Inleiding

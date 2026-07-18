@@ -1,19 +1,24 @@
 import 'server-only'
 
-import type { Database } from '@scope/db'
+import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
-import type { CreateEmploymentInput, IdentityMatchInput, TerminationInput } from './schemas'
+import type {
+  CompleteEmploymentCreateInput,
+  CreateEmploymentInput,
+  IdentityMatchInput,
+  TerminationInput,
+} from './schemas'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
 
 export class EmploymentServiceError extends Error {
   constructor(
     readonly code: string,
-    readonly status: 400 | 404 | 409 | 500,
+    readonly status: 400 | 403 | 404 | 409 | 500,
   ) {
     super(code)
   }
@@ -36,6 +41,18 @@ export interface EmployeeOverview {
   workEmail: string | null
   status: EmploymentStatus
   employmentCount: number
+}
+
+export interface EmploymentCreationOptions {
+  departments: Array<{ id: string; code: string; name: string }>
+  costCenters: Array<{ id: string; code: string; name: string }>
+  salaryScaleSteps: Array<{
+    id: string
+    label: string
+    fulltimeAmount: number
+  }>
+  nextIkvNumber: number
+  canWriteSalary: boolean
 }
 
 export interface EmployeeEmploymentDetail {
@@ -236,6 +253,76 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
       })),
       input.startsOn,
     ),
+  }
+}
+
+export async function publishCompleteEmployment(
+  employeeId: string,
+  input: CompleteEmploymentCreateInput,
+): Promise<string> {
+  const context = await requirePermission('contract:write', employeeId)
+  const administrationId = requireAdministrationId(context.administrationId)
+  await requirePermission('organization-placement:write', employeeId)
+  if (input.salary) await requirePermission('salary:write', employeeId)
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('publish_complete_employment', {
+    requested_employee_id: employeeId,
+    requested_administration_id: administrationId,
+    requested_payload: input as Json,
+  })
+  if (error || !data) {
+    const code = error?.message.match(/[A-Z][A-Z_]+/)?.[0] ?? 'EMPLOYMENT_CREATE_FAILED'
+    const status = code === 'FORBIDDEN' ? 403
+      : code.includes('NOT_FOUND') ? 404
+        : code.includes('CONFLICT') || code.includes('MISMATCH') ? 409 : 400
+    throw new EmploymentServiceError(code, status)
+  }
+  return data
+}
+
+export async function getEmploymentCreationOptions(
+  employeeId: string,
+): Promise<EmploymentCreationOptions> {
+  const context = await requirePermission('contract:write', employeeId)
+  await requirePermission('organization-placement:write', employeeId)
+  const administrationId = requireAdministrationId(context.administrationId)
+  const canWriteSalary = await permissionAllowed('salary:write', employeeId)
+  const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+
+  const [departmentsResult, costCentersResult, ikvResult, scaleStepsResult] = await Promise.all([
+    supabase.from('departments').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('code').limit(500),
+    supabase.from('cost_centers').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('code').limit(500),
+    supabase.from('income_relationships').select('ikv_number')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .order('ikv_number', { ascending: false }).limit(1),
+    canWriteSalary
+      ? supabase.from('salary_scale_steps')
+        .select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
+        .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+        .lte('valid_from', today).or(`valid_until.is.null,valid_until.gt.${today}`)
+        .order('fulltime_amount').limit(500)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (departmentsResult.error || costCentersResult.error || ikvResult.error || scaleStepsResult.error) {
+    throw new EmploymentServiceError('EMPLOYMENT_OPTIONS_FAILED', 500)
+  }
+
+  return {
+    departments: departmentsResult.data,
+    costCenters: costCentersResult.data,
+    salaryScaleSteps: (scaleStepsResult.data ?? []).map((step) => ({
+      id: step.id,
+      label: `${step.salary_scales?.code ?? ''} · ${step.step_name || step.step_code}`,
+      fulltimeAmount: step.fulltime_amount,
+    })),
+    nextIkvNumber: (ikvResult.data[0]?.ikv_number ?? 0) + 1,
+    canWriteSalary,
   }
 }
 

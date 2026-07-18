@@ -30,8 +30,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     try { await requirePermission(permission); return true }
     catch (error) { if (error instanceof AuthorizationError) return false; throw error }
   }
-  const [canReadDepartments, canReadEmployees, canReadAuthorization, canManageCustomFields] = await Promise.all([
-    can('department:read'), can('employee:read'), can('authorization:read'), can('custom-fields:write'),
+  const [canReadDepartments, canReadEmployees, canReadAuthorization, canManageCustomFields, canReadJobs, canReadSalaryStructures, canReadHrCalendar] = await Promise.all([
+    can('department:read'), can('employee:read'), can('authorization:read'), can('custom-fields:write'), can('job-catalog:read'), can('salary-structure:read'), can('hr-calendar:read'),
   ])
 
   const [preferences, common, navigation, settings, auth, reminderMessages, reminders] = await Promise.all([
@@ -111,6 +111,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadEmployees={canReadEmployees}
         canReadAuthorization={canReadAuthorization}
         canManageCustomFields={canManageCustomFields}
+        canReadMasterData={canReadJobs || canReadSalaryStructures}
+        canReadHrCalendar={canReadHrCalendar}
         email={email}
         labels={{
           appName: common('appName'),
@@ -122,6 +124,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           employees: navigation('employees'),
           authorization: navigation('authorization'),
           customFields: navigation('customFields'),
+          masterData: navigation('masterData'),
+          hrCalendar: navigation('hrCalendar'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

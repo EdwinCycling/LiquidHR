@@ -3,13 +3,15 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Bot, BriefcaseBusiness, CalendarDays, ExternalLink, FileText, HeartPulse, Mail, MapPin, MessageSquareText, Palmtree, Smartphone, Sparkles } from 'lucide-react'
 import { EmploymentMutationPanel } from '@/components/employment/employment-mutation-panel'
+import { EmploymentTimeMap } from '@/components/employment/employment-time-map'
 import { ProfileLinkForm } from '@/components/employment/profile-link-form'
 import { EmploymentDetailError, getEmploymentDetail } from '@/lib/employment/employment-detail-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { listEmployeeHrEvents } from '@/lib/hr-events/service'
 
 interface PageProps {
   params: Promise<{ employeeId: string; employmentId: string }>
-  searchParams: Promise<{ tab?: string; view?: string }>
+  searchParams: Promise<{ tab?: string; view?: string; date?: string }>
 }
 
 const tabs = ['overview', 'basics', 'labor', 'schedule', 'salary', 'organization', 'costs', 'history'] as const
@@ -26,7 +28,7 @@ function DataCard({ title, value, meta }: { title: string; value: string; meta?:
 
 async function loadPageData(employeeId: string, employmentId: string) {
   try {
-    return await Promise.all([getEmploymentDetail(employeeId, employmentId), getLocale(), getTranslator('employment')])
+    return await Promise.all([getEmploymentDetail(employeeId, employmentId), getLocale(), getTranslator('employment'), listEmployeeHrEvents(employeeId, { employmentId })])
   } catch (error) {
     if (error instanceof EmploymentDetailError && error.status === 404) notFound()
     throw error
@@ -35,10 +37,11 @@ async function loadPageData(employeeId: string, employmentId: string) {
 
 export default async function EmploymentDetailPage({ params, searchParams }: PageProps) {
   const [{ employeeId, employmentId }, query] = await Promise.all([params, searchParams])
-    const [detail, locale, t] = await loadPageData(employeeId, employmentId)
+    const [detail, locale, t, events] = await loadPageData(employeeId, employmentId)
     const tab: Tab = tabs.includes(query.tab as Tab) ? query.tab as Tab : 'overview'
     const expanded = query.view !== 'compact'
     const today = new Date().toISOString().slice(0, 10)
+    const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? '') ? query.date! : today
     const name = `${detail.employee.first_name} ${detail.employee.birth_name}`
     const mutationLabels = Object.fromEntries([
       'change','rollback','onlyBlockProtected','effectiveOn','conditionGroup','scheduleType','averageHours','averageDays','partTimeFactor','startWeek','timeForTime','hoursAndAverageDays','hoursPerDay','hoursAndSpecificDays','timesPerDay','paymentType','periodicFixed','hourlyVariable','paymentFrequency','monthly','fourWeekly','fulltimeAmount','hourlyRate','costCenter','percentage','addAllocation','allocationTotal','allocationMustBe100','changeReason','continue','changeSaved','changeFailed','rollbackReason','twkTitle','twkWarning','normalConfirmTitle','normalConfirmText','confirm','cancel','rollbackTitle','rollbackWarning','rollbackConfirm','impactTitle','impactDirect','impactLater','impactNotApplicable','impactScheduleSalary','impactScheduleLeave','impactSchedulePension','impactSchedulePayroll','impactSalaryOrganization','impactSalaryLabor','impactSalaryPayroll','impactLaborSchedule','impactLaborSalary','impactLaborLeave'
@@ -96,7 +99,7 @@ export default async function EmploymentDetailPage({ params, searchParams }: Pag
         {tab === 'salary' && detail.capabilities.canReadSalary && <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]"><section className="space-y-3">{detail.salaries.map((row, index) => <DataCard key={row.id} title={index === 0 ? t('currentValue') : t('historyLabel')} value={new Intl.NumberFormat(locale,{style:'currency',currency:row.currency_code}).format(row.fulltime_amount ?? row.hourly_rate ?? 0)} meta={periodLabel(row.valid_from,row.valid_until,locale,t('active'))} />)}</section><EmploymentMutationPanel employmentId={employmentId} timeline="SALARY" canWrite={detail.capabilities.canWriteSalary} blockCount={detail.salaries.length} latestEffectiveOn={detail.salaries[0]?.valid_from} labels={mutationLabels} /></div>}
         {tab === 'organization' && <section className="space-y-3">{detail.organizations.map((row,index) => <DataCard key={row.id} title={index === 0 ? t('currentValue') : t('historyLabel')} value={`${row.departments?.code ?? ''} · ${row.departments?.name ?? t('notRecorded')}`} meta={`${row.job_title ?? t('notRecorded')} · ${periodLabel(row.effective_from,row.effective_to,locale,t('active'))}`} />)}</section>}
         {tab === 'costs' && <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]"><section className="space-y-3">{detail.costAllocations.map((row) => <DataCard key={row.id} title={`${row.cost_centers?.code ?? ''} · ${row.cost_centers?.name ?? t('costCenter')}`} value={`${row.percentage}%`} meta={periodLabel(row.valid_from,row.valid_until,locale,t('active'))} />)}</section><EmploymentMutationPanel employmentId={employmentId} timeline="COST_ALLOCATION" canWrite={detail.capabilities.canWriteContract} blockCount={new Set(detail.costAllocations.map((row) => row.valid_from)).size} latestEffectiveOn={detail.costAllocations[0]?.valid_from} costCenters={detail.options.costCenters} labels={mutationLabels} /></div>}
-        {tab === 'history' && <section className="rounded-2xl border bg-surface p-5 shadow-sm"><h2 className="text-lg font-semibold">{t('auditLog')}</h2>{detail.auditLogs.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{t('auditEmpty')}</p> : <ol className="mt-5 space-y-4 border-l pl-5">{detail.auditLogs.map((log) => <li key={log.id} className="relative before:absolute before:-left-[1.6rem] before:top-1 before:h-3 before:w-3 before:rounded-full before:bg-primary"><p className="font-semibold">{log.action} · {log.entity_name}</p><p className="mt-1 text-sm text-muted-foreground"><CalendarDays className="mr-1 inline h-3.5 w-3.5" />{new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(log.created_at))}</p></li>)}</ol>}</section>}
+        {tab === 'history' && <div className="space-y-5"><EmploymentTimeMap events={events} selectedDate={selectedDate} labels={{ title:t('timeMapTitle'),subtitle:t('timeMapSubtitle'),empty:t('timeMapEmpty'),asOf:t('timeMapAsOf'),lanes:{contract:t('timeLaneContract'),organization:t('timeLaneOrganization'),conditions:t('timeLaneConditions'),compensation:t('timeLaneCompensation'),dossier:t('timeLaneDossier')},events:{EMPLOYMENT_STARTED:t('eventEmploymentStarted'),EMPLOYMENT_ENDED:t('eventEmploymentEnded'),INCOME_RELATIONSHIP_CHANGED:t('eventIncomeRelationship'),ORGANIZATION_CHANGED:t('eventOrganization'),LABOR_CONDITIONS_CHANGED:t('eventLabor'),SCHEDULE_CHANGED:t('eventSchedule'),SALARY_CHANGED:t('eventSalary'),COST_ALLOCATION_CHANGED:t('eventCost'),DOCUMENT_ADDED:t('eventDocumentAdded'),DOCUMENT_EXPIRES:t('eventDocumentExpires')} }} /><section className="rounded-2xl border bg-surface p-5 shadow-sm"><h2 className="text-lg font-semibold">{t('auditLog')}</h2>{detail.auditLogs.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{t('auditEmpty')}</p> : <ol className="mt-5 space-y-4 border-l pl-5">{detail.auditLogs.map((log) => <li key={log.id} className="relative before:absolute before:-left-[1.6rem] before:top-1 before:h-3 before:w-3 before:rounded-full before:bg-primary"><p className="font-semibold">{log.action} · {log.entity_name}</p><p className="mt-1 text-sm text-muted-foreground"><CalendarDays className="mr-1 inline h-3.5 w-3.5" />{new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(log.created_at))}</p></li>)}</ol>}</section></div>}
       </div>
     </main>
 }

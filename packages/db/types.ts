@@ -14,20 +14,58 @@ export type Database = {
   }
   public: {
     Tables: {
-      personal_dashboards: {
-        Row: { created_at: string; id: string; is_default: boolean; name: string; owner_user_id: string; tenant_id: string; updated_at: string }
-        Insert: { created_at?: string; id?: string; is_default?: boolean; name: string; owner_user_id: string; tenant_id: string; updated_at?: string }
-        Update: { created_at?: string; id?: string; is_default?: boolean; name?: string; owner_user_id?: string; tenant_id?: string; updated_at?: string }
+      administrations: {
+        Row: {
+          coc_number: string | null
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          parent_id: string | null
+          tenant_id: string
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          coc_number?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          coc_number?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          vat_number?: string | null
+        }
         Relationships: [
-          { foreignKeyName: "personal_dashboards_tenant_id_fkey"; columns: ["tenant_id"]; isOneToOne: false; referencedRelation: "tenants"; referencedColumns: ["id"] },
-        ]
-      }
-      personal_dashboard_widgets: {
-        Row: { created_at: string; dashboard_id: string; id: string; position: number; settings: Json; tenant_id: string; updated_at: string; widget_type: string }
-        Insert: { created_at?: string; dashboard_id: string; id?: string; position: number; settings?: Json; tenant_id: string; updated_at?: string; widget_type: string }
-        Update: { created_at?: string; dashboard_id?: string; id?: string; position?: number; settings?: Json; tenant_id?: string; updated_at?: string; widget_type?: string }
-        Relationships: [
-          { foreignKeyName: "personal_dashboard_widgets_dashboard_same_tenant_fkey"; columns: ["tenant_id", "dashboard_id"]; isOneToOne: false; referencedRelation: "personal_dashboards"; referencedColumns: ["tenant_id", "id"] },
+          {
+            foreignKeyName: "administrations_parent_same_tenant_fkey"
+            columns: ["tenant_id", "parent_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "administrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ai_action_drafts: {
@@ -206,47 +244,6 @@ export type Database = {
           },
         ]
       }
-      ai_user_preferences: {
-        Row: {
-          created_at: string
-          detail_level: string
-          id: string
-          owner_user_id: string
-          seniority_level: string
-          tenant_id: string
-          tone: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          detail_level?: string
-          id?: string
-          owner_user_id: string
-          seniority_level?: string
-          tenant_id: string
-          tone?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          detail_level?: string
-          id?: string
-          owner_user_id?: string
-          seniority_level?: string
-          tenant_id?: string
-          tone?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_user_preferences_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_messages: {
         Row: {
           content: string
@@ -300,53 +297,40 @@ export type Database = {
           },
         ]
       }
-      administrations: {
+      ai_user_preferences: {
         Row: {
-          coc_number: string | null
-          code: string
           created_at: string
+          detail_level: string
           id: string
-          is_active: boolean
-          name: string
-          parent_id: string | null
+          owner_user_id: string
+          seniority_level: string
           tenant_id: string
+          tone: string
           updated_at: string
-          vat_number: string | null
         }
         Insert: {
-          coc_number?: string | null
-          code: string
           created_at?: string
+          detail_level?: string
           id?: string
-          is_active?: boolean
-          name: string
-          parent_id?: string | null
+          owner_user_id: string
+          seniority_level?: string
           tenant_id: string
+          tone?: string
           updated_at?: string
-          vat_number?: string | null
         }
         Update: {
-          coc_number?: string | null
-          code?: string
           created_at?: string
+          detail_level?: string
           id?: string
-          is_active?: boolean
-          name?: string
-          parent_id?: string | null
+          owner_user_id?: string
+          seniority_level?: string
           tenant_id?: string
+          tone?: string
           updated_at?: string
-          vat_number?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "administrations_parent_same_tenant_fkey"
-            columns: ["tenant_id", "parent_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "administrations_tenant_id_fkey"
+            foreignKeyName: "ai_user_preferences_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -529,11 +513,11 @@ export type Database = {
           id: string
           is_active: boolean
           is_required: boolean
-          show_in_organization_chart_filter: boolean
           key: string
           label_en: string
           label_nl: string
           manager_access: Database["public"]["Enums"]["custom_field_audience_access"]
+          show_in_organization_chart_filter: boolean
           sort_order: number
           tenant_id: string
           updated_at: string
@@ -552,11 +536,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_required?: boolean
-          show_in_organization_chart_filter?: boolean
           key: string
           label_en: string
           label_nl: string
           manager_access?: Database["public"]["Enums"]["custom_field_audience_access"]
+          show_in_organization_chart_filter?: boolean
           sort_order?: number
           tenant_id: string
           updated_at?: string
@@ -575,11 +559,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_required?: boolean
-          show_in_organization_chart_filter?: boolean
           key?: string
           label_en?: string
           label_nl?: string
           manager_access?: Database["public"]["Enums"]["custom_field_audience_access"]
+          show_in_organization_chart_filter?: boolean
           sort_order?: number
           tenant_id?: string
           updated_at?: string
@@ -806,6 +790,118 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_audiences: {
+        Row: {
+          administration_id: string
+          created_at: string
+          document_id: string
+          id: string
+          target_department_id: string | null
+          target_employee_id: string | null
+          target_management_role_id: string | null
+          target_type: Database["public"]["Enums"]["document_target_type"]
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          document_id: string
+          id?: string
+          target_department_id?: string | null
+          target_employee_id?: string | null
+          target_management_role_id?: string | null
+          target_type: Database["public"]["Enums"]["document_target_type"]
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          target_department_id?: string | null
+          target_employee_id?: string | null
+          target_management_role_id?: string | null
+          target_type?: Database["public"]["Enums"]["document_target_type"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_audiences_target_management_role_id_fkey"
+            columns: ["target_management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_audiences_tenant_id_administration_id_document_id_fkey"
+            columns: ["tenant_id", "administration_id", "document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "document_audiences_tenant_id_administration_id_target_depa_fkey"
+            columns: ["tenant_id", "administration_id", "target_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "document_audiences_tenant_id_target_employee_id_fkey"
+            columns: ["tenant_id", "target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_categories: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          requires_salary_permission: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          requires_salary_permission?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          requires_salary_permission?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_categories_tenant_id_administration_id_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -1049,6 +1145,107 @@ export type Database = {
           },
         ]
       }
+      employee_documents: {
+        Row: {
+          added_by_user_id: string
+          administration_id: string
+          category_id: string
+          checksum_sha256: string
+          content_type: string
+          created_at: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by_user_id: string | null
+          description: string | null
+          employee_id: string
+          expires_on: string | null
+          expiry_reminder_id: string | null
+          file_size: number
+          id: string
+          original_filename: string
+          storage_key: string
+          tags: string[]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          added_by_user_id?: string
+          administration_id: string
+          category_id: string
+          checksum_sha256: string
+          content_type: string
+          created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          description?: string | null
+          employee_id: string
+          expires_on?: string | null
+          expiry_reminder_id?: string | null
+          file_size: number
+          id?: string
+          original_filename: string
+          storage_key: string
+          tags?: string[]
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          added_by_user_id?: string
+          administration_id?: string
+          category_id?: string
+          checksum_sha256?: string
+          content_type?: string
+          created_at?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by_user_id?: string | null
+          description?: string | null
+          employee_id?: string
+          expires_on?: string | null
+          expiry_reminder_id?: string | null
+          file_size?: number
+          id?: string
+          original_filename?: string
+          storage_key?: string
+          tags?: string[]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_expiry_reminder_fkey"
+            columns: ["tenant_id", "expiry_reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_documents_tenant_id_administration_id_category_id_fkey"
+            columns: ["tenant_id", "administration_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_documents_tenant_id_administration_id_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_documents_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       employee_number_sequences: {
         Row: {
           next_value: number
@@ -1088,6 +1285,7 @@ export type Database = {
           employee_id: string
           employment_id: string | null
           id: string
+          job_id: string | null
           job_title: string | null
           tenant_id: string
           updated_at: string
@@ -1104,6 +1302,7 @@ export type Database = {
           employee_id: string
           employment_id?: string | null
           id?: string
+          job_id?: string | null
           job_title?: string | null
           tenant_id: string
           updated_at?: string
@@ -1120,6 +1319,7 @@ export type Database = {
           employee_id?: string
           employment_id?: string | null
           id?: string
+          job_id?: string | null
           job_title?: string | null
           tenant_id?: string
           updated_at?: string
@@ -1190,6 +1390,13 @@ export type Database = {
               "employee_id",
               "id",
             ]
+          },
+          {
+            foreignKeyName: "employee_organizations_job_fkey"
+            columns: ["tenant_id", "administration_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
             foreignKeyName: "employee_organizations_manager_employee_id_fkey"
@@ -2656,6 +2863,138 @@ export type Database = {
           },
         ]
       }
+      job_groups: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_groups_tenant_id_administration_id_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      job_revisions: {
+        Row: {
+          administration_id: string
+          created_at: string
+          description: string | null
+          id: string
+          job_id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_id: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_revisions_tenant_id_administration_id_job_id_fkey"
+            columns: ["tenant_id", "administration_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          job_group_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          job_group_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          job_group_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_tenant_id_administration_id_job_group_id_fkey"
+            columns: ["tenant_id", "administration_id", "job_group_id"]
+            isOneToOne: false
+            referencedRelation: "job_groups"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
       management_roles: {
         Row: {
           code: string
@@ -2740,6 +3079,331 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_dashboard_widgets: {
+        Row: {
+          created_at: string
+          dashboard_id: string
+          id: string
+          position: number
+          settings: Json
+          tenant_id: string
+          updated_at: string
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          dashboard_id: string
+          id?: string
+          position: number
+          settings?: Json
+          tenant_id: string
+          updated_at?: string
+          widget_type: string
+        }
+        Update: {
+          created_at?: string
+          dashboard_id?: string
+          id?: string
+          position?: number
+          settings?: Json
+          tenant_id?: string
+          updated_at?: string
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_dashboard_widgets_dashboard_same_tenant_fkey"
+            columns: ["tenant_id", "dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "personal_dashboards"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      personal_dashboards: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          owner_user_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          owner_user_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          owner_user_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_dashboards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_recipients: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          effective_remind_at: string
+          employee_id: string | null
+          id: string
+          last_popup_at: string | null
+          reminder_id: string
+          snoozed_from: string | null
+          status: Database["public"]["Enums"]["reminder_recipient_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          effective_remind_at: string
+          employee_id?: string | null
+          id?: string
+          last_popup_at?: string | null
+          reminder_id: string
+          snoozed_from?: string | null
+          status?: Database["public"]["Enums"]["reminder_recipient_status"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          effective_remind_at?: string
+          employee_id?: string | null
+          id?: string
+          last_popup_at?: string | null
+          reminder_id?: string
+          snoozed_from?: string | null
+          status?: Database["public"]["Enums"]["reminder_recipient_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_recipients_employee_same_tenant_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_recipients_reminder_same_tenant_fkey"
+            columns: ["tenant_id", "reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      reminder_target_rules: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          id: string
+          reminder_id: string
+          target_department_id: string | null
+          target_employee_id: string | null
+          target_management_role_id: string | null
+          target_type: Database["public"]["Enums"]["document_target_type"]
+          tenant_id: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          id?: string
+          reminder_id: string
+          target_department_id?: string | null
+          target_employee_id?: string | null
+          target_management_role_id?: string | null
+          target_type: Database["public"]["Enums"]["document_target_type"]
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          id?: string
+          reminder_id?: string
+          target_department_id?: string | null
+          target_employee_id?: string | null
+          target_management_role_id?: string | null
+          target_type?: Database["public"]["Enums"]["document_target_type"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_target_rules_target_management_role_id_fkey"
+            columns: ["target_management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_target_rules_tenant_id_administration_id_target_d_fkey"
+            columns: ["tenant_id", "administration_id", "target_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_target_rules_tenant_id_reminder_id_fkey"
+            columns: ["tenant_id", "reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_target_rules_tenant_id_target_employee_id_fkey"
+            columns: ["tenant_id", "target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      reminder_targets: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          department_id: string | null
+          employee_id: string | null
+          id: string
+          reminder_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          employee_id?: string | null
+          id?: string
+          reminder_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          employee_id?: string | null
+          id?: string
+          reminder_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_targets_department_same_scope_fkey"
+            columns: ["tenant_id", "administration_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_targets_employee_same_tenant_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_targets_reminder_same_tenant_fkey"
+            columns: ["tenant_id", "reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          administration_id: string | null
+          cancelled_at: string | null
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          id: string
+          published_at: string | null
+          remind_at: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          status: Database["public"]["Enums"]["reminder_status"]
+          target_type: Database["public"]["Enums"]["reminder_target_type"]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          remind_at: string
+          reminder_type: Database["public"]["Enums"]["reminder_type"]
+          status?: Database["public"]["Enums"]["reminder_status"]
+          target_type: Database["public"]["Enums"]["reminder_target_type"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          remind_at?: string
+          reminder_type?: Database["public"]["Enums"]["reminder_type"]
+          status?: Database["public"]["Enums"]["reminder_status"]
+          target_type?: Database["public"]["Enums"]["reminder_target_type"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_administration_same_tenant_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -2773,15 +3437,75 @@ export type Database = {
           },
         ]
       }
+      salary_scale_revisions: {
+        Row: {
+          administration_id: string
+          created_at: string
+          description: string | null
+          id: string
+          published_at: string | null
+          published_by_user_id: string | null
+          revision_number: number
+          salary_scale_id: string
+          status: Database["public"]["Enums"]["salary_revision_status"]
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          published_by_user_id?: string | null
+          revision_number: number
+          salary_scale_id: string
+          status?: Database["public"]["Enums"]["salary_revision_status"]
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          published_by_user_id?: string | null
+          revision_number?: number
+          salary_scale_id?: string
+          status?: Database["public"]["Enums"]["salary_revision_status"]
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_scale_revisions_tenant_id_administration_id_salary__fkey"
+            columns: ["tenant_id", "administration_id", "salary_scale_id"]
+            isOneToOne: false
+            referencedRelation: "salary_scales"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
       salary_scale_steps: {
         Row: {
           administration_id: string
           created_at: string
           currency_code: string
           fulltime_amount: number
+          hourly_amount: number | null
           id: string
           salary_scale_id: string
+          salary_scale_revision_id: string
+          sequence_number: number
           step_code: string
+          step_kind: Database["public"]["Enums"]["salary_step_kind"]
           step_name: string
           tenant_id: string
           updated_at: string
@@ -2793,9 +3517,13 @@ export type Database = {
           created_at?: string
           currency_code?: string
           fulltime_amount: number
+          hourly_amount?: number | null
           id?: string
           salary_scale_id: string
+          salary_scale_revision_id: string
+          sequence_number: number
           step_code: string
+          step_kind?: Database["public"]["Enums"]["salary_step_kind"]
           step_name: string
           tenant_id: string
           updated_at?: string
@@ -2807,9 +3535,13 @@ export type Database = {
           created_at?: string
           currency_code?: string
           fulltime_amount?: number
+          hourly_amount?: number | null
           id?: string
           salary_scale_id?: string
+          salary_scale_revision_id?: string
+          sequence_number?: number
           step_code?: string
+          step_kind?: Database["public"]["Enums"]["salary_step_kind"]
           step_name?: string
           tenant_id?: string
           updated_at?: string
@@ -2817,6 +3549,17 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "salary_scale_steps_revision_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "salary_scale_revision_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "salary_scale_revisions"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
           {
             foreignKeyName: "salary_scale_steps_scale_fkey"
             columns: ["tenant_id", "administration_id", "salary_scale_id"]
@@ -3096,187 +3839,6 @@ export type Database = {
           },
         ]
       }
-      reminder_recipients: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          dismissed_at: string | null
-          effective_remind_at: string
-          employee_id: string | null
-          id: string
-          last_popup_at: string | null
-          reminder_id: string
-          snoozed_from: string | null
-          status: Database["public"]["Enums"]["reminder_recipient_status"]
-          tenant_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          dismissed_at?: string | null
-          effective_remind_at: string
-          employee_id?: string | null
-          id?: string
-          last_popup_at?: string | null
-          reminder_id: string
-          snoozed_from?: string | null
-          status?: Database["public"]["Enums"]["reminder_recipient_status"]
-          tenant_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          dismissed_at?: string | null
-          effective_remind_at?: string
-          employee_id?: string | null
-          id?: string
-          last_popup_at?: string | null
-          reminder_id?: string
-          snoozed_from?: string | null
-          status?: Database["public"]["Enums"]["reminder_recipient_status"]
-          tenant_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reminder_recipients_employee_same_tenant_fkey"
-            columns: ["tenant_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "reminder_recipients_reminder_same_tenant_fkey"
-            columns: ["tenant_id", "reminder_id"]
-            isOneToOne: false
-            referencedRelation: "reminders"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      reminder_targets: {
-        Row: {
-          administration_id: string | null
-          created_at: string
-          department_id: string | null
-          employee_id: string | null
-          id: string
-          reminder_id: string
-          tenant_id: string
-        }
-        Insert: {
-          administration_id?: string | null
-          created_at?: string
-          department_id?: string | null
-          employee_id?: string | null
-          id?: string
-          reminder_id: string
-          tenant_id: string
-        }
-        Update: {
-          administration_id?: string | null
-          created_at?: string
-          department_id?: string | null
-          employee_id?: string | null
-          id?: string
-          reminder_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reminder_targets_department_same_scope_fkey"
-            columns: ["tenant_id", "administration_id", "department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
-          },
-          {
-            foreignKeyName: "reminder_targets_employee_same_tenant_fkey"
-            columns: ["tenant_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "reminder_targets_reminder_same_tenant_fkey"
-            columns: ["tenant_id", "reminder_id"]
-            isOneToOne: false
-            referencedRelation: "reminders"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      reminders: {
-        Row: {
-          administration_id: string | null
-          cancelled_at: string | null
-          created_at: string
-          created_by_user_id: string
-          description: string | null
-          id: string
-          published_at: string | null
-          remind_at: string
-          reminder_type: Database["public"]["Enums"]["reminder_type"]
-          status: Database["public"]["Enums"]["reminder_status"]
-          target_type: Database["public"]["Enums"]["reminder_target_type"]
-          tenant_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          administration_id?: string | null
-          cancelled_at?: string | null
-          created_at?: string
-          created_by_user_id?: string
-          description?: string | null
-          id?: string
-          published_at?: string | null
-          remind_at: string
-          reminder_type: Database["public"]["Enums"]["reminder_type"]
-          status?: Database["public"]["Enums"]["reminder_status"]
-          target_type: Database["public"]["Enums"]["reminder_target_type"]
-          tenant_id: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          administration_id?: string | null
-          cancelled_at?: string | null
-          created_at?: string
-          created_by_user_id?: string
-          description?: string | null
-          id?: string
-          published_at?: string | null
-          remind_at?: string
-          reminder_type?: Database["public"]["Enums"]["reminder_type"]
-          status?: Database["public"]["Enums"]["reminder_status"]
-          target_type?: Database["public"]["Enums"]["reminder_target_type"]
-          tenant_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reminders_administration_same_tenant_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "reminders_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_preferences: {
         Row: {
           analog_clock_style: Database["public"]["Enums"]["analog_clock_style"]
@@ -3309,7 +3871,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      hr_change_events: {
+        Row: {
+          administration_id: string | null
+          employee_id: string | null
+          employment_id: string | null
+          event_date: string | null
+          event_id: string | null
+          event_type: string | null
+          severity: string | null
+          source_href: string | null
+          tenant_id: string | null
+          title_key: string | null
+          title_values: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_user_invitation: {
@@ -3323,6 +3900,17 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      apply_combined_employment_timeline_mutation: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_mutations: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: string
+      }
       apply_employment_timeline_mutation: {
         Args: {
           requested_acknowledgements?: Json
@@ -3335,25 +3923,22 @@ export type Database = {
         }
         Returns: string
       }
-      apply_combined_employment_timeline_mutation: {
-        Args: {
-          requested_acknowledgements?: Json
-          requested_effective_on: string
-          requested_employment_id: string
-          requested_mutations: Json
-          requested_reason: string
-          requested_warning_codes?: string[]
-        }
-        Returns: string
-      }
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
         Returns: undefined
       }
+      create_employee_document_metadata: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_payload: Json
+        }
+        Returns: string
+      }
       create_hr_reminder: {
         Args: {
-          requested_administration_id: string | null
-          requested_description: string | null
+          requested_administration_id: string
+          requested_description: string
           requested_remind_at: string
           requested_target_ids?: string[]
           requested_target_type: Database["public"]["Enums"]["reminder_target_type"]
@@ -3362,10 +3947,14 @@ export type Database = {
         }
         Returns: string
       }
+      create_job_with_revision: {
+        Args: { requested_administration_id: string; requested_payload: Json }
+        Returns: string
+      }
       create_personal_reminder: {
         Args: {
-          requested_administration_id: string | null
-          requested_description: string | null
+          requested_administration_id: string
+          requested_description: string
           requested_remind_at: string
           requested_tenant_id: string
           requested_title: string
@@ -3375,6 +3964,22 @@ export type Database = {
       next_custom_field_value: {
         Args: { p_definition_id: string }
         Returns: number
+      }
+      publish_complete_employment: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_payload: Json
+        }
+        Returns: string
+      }
+      publish_reminder: {
+        Args: { requested_reminder_id: string }
+        Returns: number
+      }
+      publish_salary_scale_revision: {
+        Args: { requested_administration_id: string; requested_payload: Json }
+        Returns: string
       }
       reserve_employee_number: {
         Args: { p_tenant_id: string }
@@ -3389,13 +3994,9 @@ export type Database = {
         }
         Returns: string
       }
-      publish_reminder: {
-        Args: { requested_reminder_id: string }
-        Returns: number
-      }
       update_personal_reminder: {
         Args: {
-          requested_description: string | null
+          requested_description: string
           requested_remind_at: string
           requested_reminder_id: string
           requested_title: string
@@ -3406,12 +4007,14 @@ export type Database = {
         Args: {
           requested_action: string
           requested_recipient_id: string
-          requested_remind_at?: string | null
+          requested_remind_at?: string
         }
         Returns: undefined
       }
     }
     Enums: {
+      access_scope_type: "TENANT" | "ADMINISTRATION"
+      administration_mode: "SEPARATE" | "COMBINED"
       ai_draft_status:
         | "PENDING"
         | "CONFIRMED"
@@ -3425,9 +4028,7 @@ export type Database = {
       ai_memory_category: "PREFERENCE" | "WORKING_CONTEXT"
       ai_message_role: "USER" | "ASSISTANT" | "TOOL"
       analog_clock_style: "CLASSIC" | "MINIMAL" | "LIQUID"
-      access_scope_type: "TENANT" | "ADMINISTRATION"
       clock_mode: "ANALOG" | "DIGITAL" | "HIDDEN"
-      administration_mode: "SEPARATE" | "COMBINED"
       contract_type:
         | "INDEFINITE"
         | "DEFINITE"
@@ -3445,6 +4046,7 @@ export type Database = {
         | "SELECT"
         | "MULTI_SELECT"
         | "AUTO_INCREMENT"
+      document_target_type: "EMPLOYEE" | "MANAGEMENT_ROLE" | "DEPARTMENT_BRANCH"
       education_level: "MBO" | "HBO" | "WO" | "HIGHSCHOOL" | "OTHER" | "UNKNOWN"
       employment_record_status: "DRAFT" | "CONFIRMED" | "CANCELLED"
       employment_type: "EMPLOYEE" | "INTERN" | "APPRENTICE" | "CONTRACTOR"
@@ -3474,10 +4076,6 @@ export type Database = {
         | "PARTNER_BEFORE_BIRTH_NAME"
         | "BIRTH_NAME_BEFORE_PARTNER_NAME"
       payroll_reporting_status: "DRAFT" | "READY" | "REPORTED" | "CLOSED"
-      reminder_recipient_status: "PENDING" | "COMPLETED" | "DISMISSED"
-      reminder_status: "DRAFT" | "PUBLISHED" | "CANCELLED"
-      reminder_target_type: "SELF" | "EVERYONE" | "DEPARTMENTS" | "EMPLOYEES"
-      reminder_type: "PERSONAL" | "HR"
       relation_type:
         | "PARTNER"
         | "CHILD"
@@ -3486,9 +4084,15 @@ export type Database = {
         | "DOCTOR"
         | "DENTIST"
         | "OTHER"
+      reminder_recipient_status: "PENDING" | "COMPLETED" | "DISMISSED"
+      reminder_status: "DRAFT" | "PUBLISHED" | "CANCELLED"
+      reminder_target_type: "SELF" | "EVERYONE" | "DEPARTMENTS" | "EMPLOYEES"
+      reminder_type: "PERSONAL" | "HR"
       salary_basis: "MANUAL" | "MINIMUM_WAGE" | "CUSTOM_SCALE" | "CAO_SCALE"
       salary_frequency: "MONTHLY" | "FOUR_WEEKLY"
       salary_payment_type: "PERIODIC_FIXED" | "HOURLY_VARIABLE"
+      salary_revision_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
+      salary_step_kind: "REGULAR" | "START" | "MAXIMUM" | "SPECIAL"
       schedule_type:
         | "HOURS_PER_DAY"
         | "HOURS_AND_AVG_DAYS"
@@ -3642,6 +4246,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_scope_type: ["TENANT", "ADMINISTRATION"],
+      administration_mode: ["SEPARATE", "COMBINED"],
       ai_draft_status: [
         "PENDING",
         "CONFIRMED",
@@ -3655,8 +4261,8 @@ export const Constants = {
       ],
       ai_memory_category: ["PREFERENCE", "WORKING_CONTEXT"],
       ai_message_role: ["USER", "ASSISTANT", "TOOL"],
-      access_scope_type: ["TENANT", "ADMINISTRATION"],
-      administration_mode: ["SEPARATE", "COMBINED"],
+      analog_clock_style: ["CLASSIC", "MINIMAL", "LIQUID"],
+      clock_mode: ["ANALOG", "DIGITAL", "HIDDEN"],
       contract_type: [
         "INDEFINITE",
         "DEFINITE",
@@ -3675,6 +4281,11 @@ export const Constants = {
         "SELECT",
         "MULTI_SELECT",
         "AUTO_INCREMENT",
+      ],
+      document_target_type: [
+        "EMPLOYEE",
+        "MANAGEMENT_ROLE",
+        "DEPARTMENT_BRANCH",
       ],
       education_level: ["MBO", "HBO", "WO", "HIGHSCHOOL", "OTHER", "UNKNOWN"],
       employment_record_status: ["DRAFT", "CONFIRMED", "CANCELLED"],
@@ -3718,9 +4329,15 @@ export const Constants = {
         "DENTIST",
         "OTHER",
       ],
+      reminder_recipient_status: ["PENDING", "COMPLETED", "DISMISSED"],
+      reminder_status: ["DRAFT", "PUBLISHED", "CANCELLED"],
+      reminder_target_type: ["SELF", "EVERYONE", "DEPARTMENTS", "EMPLOYEES"],
+      reminder_type: ["PERSONAL", "HR"],
       salary_basis: ["MANUAL", "MINIMUM_WAGE", "CUSTOM_SCALE", "CAO_SCALE"],
       salary_frequency: ["MONTHLY", "FOUR_WEEKLY"],
       salary_payment_type: ["PERIODIC_FIXED", "HOURLY_VARIABLE"],
+      salary_revision_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
+      salary_step_kind: ["REGULAR", "START", "MAXIMUM", "SPECIAL"],
       schedule_type: [
         "HOURS_PER_DAY",
         "HOURS_AND_AVG_DAYS",

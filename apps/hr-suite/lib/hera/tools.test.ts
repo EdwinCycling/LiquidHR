@@ -9,6 +9,7 @@ describe('executeHeRaTool', () => {
       { tenantId: 'tenant', administrationId: null, userId: 'user', employeeId: null, activeRoles: [], permissions: [] },
       { name: 'draft_personal_reminder', args: { title: 'Bel terug', remindAt: '2026-07-17T09:00:00.000Z' } },
       { createPersonalReminder },
+      new Date('2026-07-17T08:00:00.000Z'),
     )
 
     expect(result.kind).toBe('DRAFT')

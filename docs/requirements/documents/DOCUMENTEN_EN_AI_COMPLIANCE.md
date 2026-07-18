@@ -1,3 +1,5 @@
+> **Implementatiebesluit 2026-07-18 — leidend voor het medewerkersdossier.** Iedere medewerker heeft een dossier in een private Supabase Storage-bucket. `employee_documents` bewaart titel, omschrijving, tags, categorie, bestandsmetadata, opslag-key, toevoegmoment en -gebruiker, vervaldatum en soft-deletegegevens. `document_audiences` ondersteunt medewerker, rol en afdelingstak als combineerbare doelgroepen. Toegang vereist altijd zowel de canonieke documentpermission als een passende doelgroep. Vervalreminders gebruiken de bestaande reminderfunctie en combineren persoon, rol en afdelingstak met gededupliceerde ontvangers. Globale documenten, bulk-loonstrookimport en AI-compliance/RAG vallen buiten deze slice en volgen later.
+
 Dit is een fantastische en zeer innovatieve uitbreiding van de master-architectuur. Het documentbeheer wordt hierdoor niet zomaar een statische "drive", maar een intelligent en actief onderdeel van je HR-processen. 
 
 We gaan dit oplossen door een generieke documententabel te ontwerpen met een **dynamische categorie-configuratie (stamtabel)**. Hiermee kan de HR-admin zelf instellen wie welke categorie mag uploaden of inzien. 

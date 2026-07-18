@@ -5,14 +5,17 @@ import { EmployeePersonCard } from '@/components/employees/employee-person-card'
 import { EmployeeCustomFields } from '@/components/custom-fields/employee-custom-fields'
 import { EmploymentCreateForm } from '@/components/employment/employment-create-form'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
+import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import {
   EmploymentServiceError,
   getEmployeeEmploymentDetail,
+  getEmploymentCreationOptions,
   getTerminationOptions,
 } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getEmployeeCustomFields } from '@/lib/custom-fields/service'
+import { getDocumentOptions, listEmployeeDocuments } from '@/lib/documents/document-service'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -20,7 +23,7 @@ interface EmployeeDetailPageProps {
 
 async function loadPageData(employeeId: string) {
   try {
-    const [detail, customFields, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] = await Promise.all([
+    const [detail, customFields, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
       getEmployeeEmploymentDetail(employeeId),
       getEmployeeCustomFields(employeeId),
       permissionAllowed('contract:write', employeeId),
@@ -29,11 +32,22 @@ async function loadPageData(employeeId: string) {
       getTranslator('employment'),
       getTranslator('errors'),
       getTranslator('customFields'),
+      getTranslator('documents'),
     ])
-    const options = canManageEmployments
-      ? await getTerminationOptions()
-      : { internalReasons: [], statutoryReasons: [] }
-    return [detail, customFields, options, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] as const
+    const [canReadDocuments, canWriteDocuments, canDeleteDocuments] = await Promise.all([
+      permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
+    ])
+    const [terminationOptions, creationOptions] = canManageEmployments
+      ? await Promise.all([getTerminationOptions(), getEmploymentCreationOptions(employeeId)])
+      : [
+          { internalReasons: [], statutoryReasons: [] },
+          { departments: [], costCenters: [], salaryScaleSteps: [], nextIkvNumber: 1, canWriteSalary: false },
+        ]
+    const [documents, documentOptions] = await Promise.all([
+      canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
+      canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
+    ])
+    return [detail, customFields, terminationOptions, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
     throw error
@@ -52,7 +66,7 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 
 export default async function EmployeeDetailPage({ params }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const [detail, customFields, options, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields] = await loadPageData(employeeId)
+  const [detail, customFields, options, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
@@ -119,6 +133,8 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
 
         <EmployeeCustomFields employeeId={employeeId} fields={customFields} labels={{ title: tCustomFields('employeeTitle'), subtitle: tCustomFields('employeeSubtitle'), save: tCustomFields('save'), saving: tCustomFields('saving'), saved: tCustomFields('saved'), failed: tCustomFields('failed'), readOnly: tCustomFields('readOnly'), yes: tCustomFields('yes'), no: tCustomFields('no') }} />
 
+        {canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), file: tDocuments('file'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), category: tDocuments('category'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), noSelection: tDocuments('noSelection'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), reminderForDepartment: tDocuments('reminderForDepartment'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn') }} />}
+
         <div className={`mt-8 grid gap-8 ${canManageEmployments ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]' : ''}`}>
           <section>
             <div className="mb-4 flex items-center justify-between">
@@ -153,6 +169,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           {canManageEmployments && <aside>
             <EmploymentCreateForm
               employeeId={employeeId}
+              options={creationOptions}
               labels={{
                 title: tEmployment('new'),
                 number: tEmployment('employmentNumber'),
@@ -170,6 +187,15 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                 chainIndefinite: tEmployment('chainIndefinite'), chainInsufficient: tEmployment('chainInsufficient'),
                 chainOverrideReason: tEmployment('chainOverrideReason'), historyComplete: tEmployment('historyComplete'),
                 knownContracts: tEmployment('knownContracts'), review: tEmployment('continue'),
+                previous: tEmployment('previous'), next: tEmployment('next'), stepContract: tEmployment('stepContract'),
+                stepIkvOrganization: tEmployment('stepIkvOrganization'), stepConditions: tEmployment('stepConditions'),
+                stepSalaryCosts: tEmployment('stepSalaryCosts'), stepReview: tEmployment('stepReview'),
+                payrollTaxSubnumber: tEmployment('payrollTaxSubnumber'), ikvNumber: tEmployment('incomeRelationshipNumber'),
+                department: tEmployment('department'), jobTitle: tEmployment('jobTitle'), conditionGroup: tEmployment('conditionGroup'),
+                averageDays: tEmployment('averageDays'), averageHours: tEmployment('averageHours'), partTimeFactor: tEmployment('partTimeFactor'),
+                salary: tEmployment('tabsSalary'), includeSalary: tEmployment('includeSalary'), salaryScaleStep: tEmployment('salaryScaleStep'),
+                manualSalary: tEmployment('manualSalary'), fulltimeAmount: tEmployment('fulltimeAmount'), costCenter: tEmployment('costCenter'),
+                completeSummary: tEmployment('completeSummary'), requiredFields: tEmployment('requiredFields'),
               }}
             />
           </aside>}
