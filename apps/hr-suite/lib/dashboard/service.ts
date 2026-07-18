@@ -128,16 +128,13 @@ export async function getDashboardBootstrap(id?: string): Promise<DashboardBoots
   const dashboards = await listPersonalDashboardsInScope(scope); const dashboard = id ? dashboards.find((candidate) => candidate.id === id) : dashboards.find((candidate) => candidate.isDefault) ?? dashboards[0]
   if (!dashboard) throw new Error('DASHBOARD_NOT_FOUND')
   const { context, supabase } = scope
-  const [allWidgets, reminderResult, employeeResult, departmentResult] = await Promise.all([
+  const [allWidgets, visibleTypes] = await Promise.all([
     getDashboardWidgetsInScope(scope, dashboard.id),
-    supabase.from('reminder_recipients').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('status', 'PENDING'),
-    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('is_active', true).is('deleted_at', null),
-    supabase.from('departments').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('is_active', true),
+    resolveVisibleDashboardWidgetTypes(context, supabase),
   ])
-  const visibleTypes = await resolveVisibleDashboardWidgetTypes(context, supabase)
   const widgets = allWidgets.filter((widget) => visibleTypes.has(widget.type))
   const availableWidgetTypes = [...visibleTypes].filter((type): type is DashboardWidgetType => getWidgetCatalogEntry(type as DashboardWidgetType) !== undefined)
-  return { scope, dashboards, view: { dashboard, widgets, availableWidgetTypes, metrics: { reminderCount: reminderResult.error ? 0 : reminderResult.count ?? 0, employeeCount: employeeResult.error ? null : employeeResult.count, departmentCount: departmentResult.error ? null : departmentResult.count } } }
+  return { scope, dashboards, view: { dashboard, widgets, availableWidgetTypes, metrics: { reminderCount: 0, employeeCount: null, departmentCount: null } } }
 }
 
 export async function getDashboardView(id?: string): Promise<DashboardView> {

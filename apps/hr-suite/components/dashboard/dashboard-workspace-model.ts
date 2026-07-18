@@ -1,4 +1,5 @@
 import type { DashboardWidget } from '@/lib/dashboard/service'
+import type { DashboardWidgetPresentation } from '@/lib/dashboard/widget-presentation'
 
 export function normalizeWidgetPositions(widgets: readonly DashboardWidget[]): DashboardWidget[] {
   return widgets.map((widget, position) => ({ ...widget, position }))
@@ -16,4 +17,13 @@ export function moveWidget(widgets: readonly DashboardWidget[], id: string, dire
 
 export function removeWidget(widgets: readonly DashboardWidget[], id: string): DashboardWidget[] {
   return normalizeWidgetPositions(widgets.filter((widget) => widget.id !== id))
+}
+
+export function addWidgetToDraft(widgets: readonly DashboardWidget[], presentation: DashboardWidgetPresentation): DashboardWidget[] {
+  return normalizeWidgetPositions([...widgets.map((widget) => ({ ...widget })), {
+    id: `draft-${crypto.randomUUID()}`,
+    type: presentation.type,
+    position: widgets.length,
+    settings: { width: presentation.defaultWidth },
+  }])
 }
