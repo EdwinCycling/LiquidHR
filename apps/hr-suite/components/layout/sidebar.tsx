@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import {
   Building2,
+  CalendarRange,
+  Database,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -42,6 +44,8 @@ interface SidebarLabels {
   employees: string
   authorization: string
   customFields: string
+  masterData: string
+  hrCalendar: string
   navigation: string
   openMenu: string
   closeMenu: string
@@ -60,6 +64,8 @@ interface SidebarProps {
   canReadEmployees: boolean
   canReadAuthorization: boolean
   canManageCustomFields: boolean
+  canReadMasterData: boolean
+  canReadHrCalendar: boolean
   tenantName: string
   activeAdministrationId: string | null
   administrations: AdministrationContextOption[]
@@ -78,6 +84,8 @@ export function Sidebar({
   canReadEmployees,
   canReadAuthorization,
   canManageCustomFields,
+  canReadMasterData,
+  canReadHrCalendar,
   tenantName,
   activeAdministrationId,
   administrations,
@@ -100,6 +108,8 @@ export function Sidebar({
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true },
     { href: '/authorization', label: labels.authorization, icon: ShieldCheck, visible: canReadAuthorization },
     { href: '/custom-fields', label: labels.customFields, icon: SlidersHorizontal, visible: canManageCustomFields },
+    { href: '/master-data/jobs', label: labels.masterData, icon: Database, visible: canReadMasterData },
+    { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar },
   ]
 
   return (

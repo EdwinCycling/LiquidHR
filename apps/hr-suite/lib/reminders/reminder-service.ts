@@ -139,9 +139,9 @@ export async function createPersonalReminder(input: PersonalReminderCreateInput)
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('create_personal_reminder', {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: context.administrationId,
+    requested_administration_id: context.administrationId!,
     requested_title: input.title,
-    requested_description: input.description ?? null,
+    requested_description: input.description ?? '',
     requested_remind_at: input.remindAt,
   })
   if (error) throw reminderDatabaseError(error)
@@ -165,7 +165,7 @@ export async function updatePersonalReminder(id: string, input: ReminderUpdateIn
   const { error } = await supabase.rpc('update_personal_reminder', {
     requested_reminder_id: id,
     requested_title: input.title ?? current.title,
-    requested_description: input.description === undefined ? current.description : input.description,
+    requested_description: (input.description === undefined ? current.description : input.description) ?? '',
     requested_remind_at: input.remindAt ?? current.remind_at,
   })
   if (error) throw reminderDatabaseError(error)
@@ -192,9 +192,9 @@ export async function createHrReminder(input: HrReminderCreateInput): Promise<st
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('create_hr_reminder', {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: context.administrationId,
+    requested_administration_id: context.administrationId!,
     requested_title: input.title,
-    requested_description: input.description ?? null,
+    requested_description: input.description ?? '',
     requested_remind_at: input.remindAt,
     requested_target_type: input.targetType,
     requested_target_ids: input.targetType === 'EVERYONE' ? [] : input.targetIds,
@@ -289,7 +289,7 @@ export async function updateRecipient(id: string, input: RecipientActionInput): 
   const { error } = await supabase.rpc('update_reminder_recipient', {
     requested_recipient_id: id,
     requested_action: input.action,
-    requested_remind_at: input.action === 'SNOOZE' ? input.remindAt : null,
+    requested_remind_at: input.action === 'SNOOZE' ? input.remindAt : undefined,
   })
   if (error) throw reminderDatabaseError(error)
 }

@@ -1,0 +1,23 @@
+{
+  "eyebrow": "HR-tijdlijn",
+  "title": "Wijzigingskalender",
+  "subtitle": "Een grote maandweergave met alle toegestane HR-wijzigingen per medewerker.",
+  "previousMonth": "Vorige maand",
+  "nextMonth": "Volgende maand",
+  "search": "Zoeken",
+  "department": "Afdeling",
+  "employee": "Medewerker",
+  "all": "Alle",
+  "filter": "Filteren",
+  "noEvents": "Geen wijzigingen in deze selectie.",
+  "eventEmploymentStarted": "Dienstverband gestart",
+  "eventEmploymentEnded": "Dienstverband eindigt",
+  "eventIncomeRelationship": "IKV gewijzigd",
+  "eventOrganization": "Organisatie of functie gewijzigd",
+  "eventLabor": "Arbeidsvoorwaarden gewijzigd",
+  "eventSchedule": "Rooster gewijzigd",
+  "eventSalary": "Salaris gewijzigd",
+  "eventCost": "Kostenverdeling gewijzigd",
+  "eventDocumentAdded": "Document toegevoegd",
+  "eventDocumentExpires": "Document vervalt"
+}

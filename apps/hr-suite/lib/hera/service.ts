@@ -1,8 +1,9 @@
+import type { Database } from '@scope/db'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { createPersonalReminder } from '@/lib/reminders/reminder-service'
 import { reminderDraftSchema } from './schemas'
 
-type DraftStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED' | 'EXECUTED' | 'FAILED'
+type DraftStatus = Database['public']['Enums']['ai_draft_status']
 
 interface StoredDraft {
   id: string
