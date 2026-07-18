@@ -18,6 +18,7 @@ const DEFAULT_WIDGETS: ReadonlyArray<{ type: DashboardWidgetType; position: numb
 ]
 
 export function defaultDashboardWidgets(): Array<{ type: DashboardWidgetType; position: number }> { return DEFAULT_WIDGETS.map((widget) => ({ ...widget })) }
+export function newDashboardWidgets(): Array<{ type: DashboardWidgetType; position: number }> { return [] }
 export function validateDashboardLayout(input: unknown): DashboardLayoutInput {
   const parsed = dashboardLayoutSchema.safeParse(input)
   if (!parsed.success) throw new Error('DASHBOARD_LAYOUT_INVALID')
@@ -66,8 +67,7 @@ export async function createDashboard(input: DashboardCreateInput): Promise<Pers
   const parsed = dashboardCreateSchema.parse(input); const context = await requireHeRaContext(); const supabase = await createClient()
   const { data, error } = await supabase.from('personal_dashboards').insert({ tenant_id: context.tenantId, owner_user_id: context.userId, name: parsed.name }).select('id, name, is_default, updated_at').single()
   if (error) throw error
-  const { error: widgetError } = await supabase.from('personal_dashboard_widgets').insert(defaultDashboardWidgets().map((widget) => ({ tenant_id: context.tenantId, dashboard_id: data.id, widget_type: widget.type, position: widget.position, settings: {} })))
-  if (widgetError) throw widgetError
+  // Een dashboard dat de gebruiker zelf aanmaakt begint bewust leeg.
   return mapDashboard(data)
 }
 
