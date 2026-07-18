@@ -27,6 +27,7 @@
   "saveFailed": "Opslaan is niet gelukt.",
   "invalid": "Controleer je taal- en themakeuze.",
   "unauthenticated": "Log opnieuw in om je instellingen op te slaan.",
+  "employeeSettings": { "title": "Medewerkerinstellingen", "description": "Hier komen later de instellingen voor medewerkers. Het medewerkersbeheer zelf blijft bereikbaar via Medewerkers in het hoofdmenu.", "comingSoon": "Komt later", "close": "Sluiten" },
   "admin": {
     "eyebrow": "HR-beheer",
     "title": "Instellingen",
@@ -59,7 +60,7 @@
     }
   },
   "dashboardWidgets": {
-    "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaan…", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt.", "enabled": "Widget activeren", "roles": "Beschikbaar voor rollen", "noRoles": "Geen rollen beschikbaar.",
+    "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaan…", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt; de vorige instelling is hersteld.", "enabled": "Widget activeren", "active": "Actief", "inactive": "Niet actief", "roles": "Beschikbaar voor rollen", "allRoles": "Zonder selectie is de widget beschikbaar voor alle rollen met de vereiste rechten.", "noRoles": "Geen rollen beschikbaar.",
     "categories": { "CORE_HR": "Kern HR", "EMPLOYMENT": "Dienstverband", "DOCUMENTS": "Documenten", "COMPENSATION": "Beloning", "ORGANIZATION_TIME": "Organisatie & tijd" }
   },
   "holidays": {

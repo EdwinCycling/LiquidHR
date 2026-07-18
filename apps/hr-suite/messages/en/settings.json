@@ -27,6 +27,7 @@
   "saveFailed": "Could not save your settings.",
   "invalid": "Check your language and theme selection.",
   "unauthenticated": "Sign in again to save your settings.",
+  "employeeSettings": { "title": "Employee settings", "description": "Employee settings will be added here later. Employee management remains available through Employees in the main menu.", "comingSoon": "Coming later", "close": "Close" },
   "admin": {
     "eyebrow": "HR administration",
     "title": "Settings",
@@ -59,7 +60,7 @@
     }
   },
   "dashboardWidgets": {
-    "title": "Dashboard widgets", "subtitle": "Enable data-driven widgets and choose which roles can use them.", "save": "Save", "saving": "Saving…", "saved": "Saved.", "failed": "Could not save.", "enabled": "Enable widget", "roles": "Available for roles", "noRoles": "No roles available.",
+    "title": "Dashboard widgets", "subtitle": "Enable data-driven widgets and choose which roles can use them.", "save": "Save", "saving": "Saving…", "saved": "Saved.", "failed": "Could not save; the previous setting was restored.", "enabled": "Enable widget", "active": "Active", "inactive": "Inactive", "roles": "Available for roles", "allRoles": "Without a selection, the widget is available to all roles with the required permissions.", "noRoles": "No roles available.",
     "categories": { "CORE_HR": "Core HR", "EMPLOYMENT": "Employment", "DOCUMENTS": "Documents", "COMPENSATION": "Compensation", "ORGANIZATION_TIME": "Organization & time" }
   },
   "holidays": {

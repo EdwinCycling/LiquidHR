@@ -1,8 +1,16 @@
 import { requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { requireHeRaContext } from '@/lib/hera/request-context'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 import { DASHBOARD_WIDGET_CATALOG } from './widget-catalog'
 import { resolveVisibleWidgetTypes } from './widget-access'
+import { dashboardWidgetTypeSchema } from './schemas'
+
+export const dashboardWidgetSettingUpdateSchema = z.object({
+  widgetType: dashboardWidgetTypeSchema,
+  isEnabled: z.boolean(),
+  roleIds: z.array(z.string().uuid()).max(100).refine((values) => new Set(values).size === values.length),
+})
 
 export interface DashboardWidgetRole { id: string; code: string; name: string }
 export interface DashboardWidgetSetting {
@@ -45,20 +53,23 @@ export async function listDashboardWidgetSettings(): Promise<{ widgets: Dashboar
   }
 }
 
-export async function updateDashboardWidgetSetting(input: { widgetType: string; isEnabled: boolean; roleIds: string[] }): Promise<void> {
+export async function updateDashboardWidgetSetting(input: z.infer<typeof dashboardWidgetSettingUpdateSchema>): Promise<void> {
+  const parsed = dashboardWidgetSettingUpdateSchema.parse(input)
   const context = await requirePermission('dashboard-widget:write')
-  const widget = DASHBOARD_WIDGET_CATALOG.find((entry) => entry.type === input.widgetType)
+  const widget = DASHBOARD_WIDGET_CATALOG.find((entry) => entry.type === parsed.widgetType)
   if (!widget) throw new Error('DASHBOARD_WIDGET_UNKNOWN')
   const supabase = await createClient()
-  const { data: roles, error: rolesError } = await supabase.from('management_roles').select('id').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).in('id', input.roleIds)
-  if (rolesError) throw rolesError
-  if ((roles?.length ?? 0) !== new Set(input.roleIds).size) throw new Error('DASHBOARD_WIDGET_ROLE_INVALID')
-  const { error: configError } = await supabase.from('dashboard_widget_configs').upsert({ tenant_id: context.tenantId, widget_type: widget.type, is_enabled: input.isEnabled, updated_by: context.userId }, { onConflict: 'tenant_id,widget_type' })
+  if (parsed.roleIds.length > 0) {
+    const { data: roles, error: rolesError } = await supabase.from('management_roles').select('id').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).in('id', parsed.roleIds)
+    if (rolesError) throw rolesError
+    if ((roles?.length ?? 0) !== parsed.roleIds.length) throw new Error('DASHBOARD_WIDGET_ROLE_INVALID')
+  }
+  const { error: configError } = await supabase.from('dashboard_widget_configs').upsert({ tenant_id: context.tenantId, widget_type: widget.type, is_enabled: parsed.isEnabled, updated_by: context.userId }, { onConflict: 'tenant_id,widget_type' })
   if (configError) throw configError
   const { error: deleteError } = await supabase.from('dashboard_widget_role_access').delete().eq('tenant_id', context.tenantId).eq('widget_type', widget.type)
   if (deleteError) throw deleteError
-  if (input.roleIds.length > 0) {
-    const { error: accessError } = await supabase.from('dashboard_widget_role_access').insert(input.roleIds.map((managementRoleId) => ({ tenant_id: context.tenantId, widget_type: widget.type, management_role_id: managementRoleId })))
+  if (parsed.roleIds.length > 0) {
+    const { error: accessError } = await supabase.from('dashboard_widget_role_access').insert(parsed.roleIds.map((managementRoleId) => ({ tenant_id: context.tenantId, widget_type: widget.type, management_role_id: managementRoleId })))
     if (accessError) throw accessError
   }
 }
