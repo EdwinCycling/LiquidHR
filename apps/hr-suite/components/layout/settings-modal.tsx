@@ -30,6 +30,15 @@ export interface SettingsModalLabels {
   digital: string
   hidden: string
   clockStyle: string
+  dateFormat: string
+  dateFormatHelp: string
+  dmy: string
+  mdy: string
+  ymd: string
+  timeFormat: string
+  timeFormatHelp: string
+  time24: string
+  time12: string
   classic: string
   minimal: string
   liquid: string

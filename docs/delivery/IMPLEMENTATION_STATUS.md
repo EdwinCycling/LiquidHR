@@ -76,7 +76,7 @@ Laatste controle: 2026-07-18.
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema en Tijdhubklok voor iedere ingelogde gebruiker. |
+| Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema, Tijdhubklok, datumformaat (DMY/MDY/YMD) en tijdformaat (24H/12H) voor iedere ingelogde gebruiker; voorkeuren worden centraal toegepast op relevante datum- en tijdweergaven. |
 | HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub; directe beheeritems zijn uit het hoofdmenu verwijderd. |
 | Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
 | Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per administratie, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |

@@ -158,8 +158,8 @@ export function Sidebar({
 
         <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
           <div className={collapsed ? 'grid place-items-center gap-2' : 'flex flex-col gap-4'} title={collapsed ? labels.timeHub : undefined}>
-            <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} />
-            {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} /> : null}
+            <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} />
+            {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} /> : null}
           </div>
         </div>
 

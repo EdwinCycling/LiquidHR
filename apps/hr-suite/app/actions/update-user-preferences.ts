@@ -23,6 +23,8 @@ export async function updateUserPreferences(
     theme: formData.get('theme'),
     clockMode: formData.get('clockMode'),
     analogClockStyle: formData.get('analogClockStyle'),
+    dateFormat: formData.get('dateFormat'),
+    timeFormat: formData.get('timeFormat'),
   })
   if (!parsed.success) return { code: 'invalid' }
 
@@ -37,6 +39,8 @@ export async function updateUserPreferences(
     theme: parsed.data.theme,
     clock_mode: parsed.data.clockMode,
     analog_clock_style: parsed.data.analogClockStyle,
+    date_format: parsed.data.dateFormat,
+    time_format: parsed.data.timeFormat,
   })
   if (error) return { code: 'failed' }
 

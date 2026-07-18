@@ -6,12 +6,15 @@ import { TerminationForm } from './termination-form'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { formatDate } from '@/lib/preferences/formatters'
+import type { DateFormat } from '@/lib/preferences/user-preferences'
 
 type Employment = Database['public']['Tables']['employments']['Row']
 
 interface EmploymentTimelineProps {
   employments: Employment[]
   locale: string
+  dateFormat: DateFormat
   options: {
     internalReasons: Array<{ id: string; name: string }>
     statutoryReasons: Array<{ id: string; code: string; label: string }>
@@ -34,7 +37,7 @@ interface EmploymentTimelineProps {
 
 type TerminationFormProps = Parameters<typeof TerminationForm>[0]
 
-export function EmploymentTimeline({ employments, locale, options, canManage = false, labels }: EmploymentTimelineProps) {
+export function EmploymentTimeline({ employments, locale, dateFormat, options, canManage = false, labels }: EmploymentTimelineProps) {
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteState, setDeleteState] = useState<'idle' | 'busy' | 'failed'>('idle')
@@ -42,7 +45,7 @@ export function EmploymentTimeline({ employments, locale, options, canManage = f
     return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">{labels.empty}</p>
   }
   const today = new Date().toISOString().slice(0, 10)
-  const format = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00Z`))
+  const format = (value: string) => formatDate(value, { locale, dateFormat })
 
   return (
     <>

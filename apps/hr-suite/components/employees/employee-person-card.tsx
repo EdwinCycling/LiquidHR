@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react'
 import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation } from './types'
 import { EmailLink } from '@/components/shared/email-link'
+import { formatDate } from '@/lib/preferences/formatters'
+import type { DateFormat } from '@/lib/preferences/user-preferences'
 
 type Tab = 'overview' | 'personal' | 'addresses' | 'bankAccounts' | 'relations'
 type MutationState = 'idle' | 'saving' | 'saved' | 'failed'
@@ -109,6 +111,7 @@ export interface EmployeePersonCardLabels {
 interface EmployeePersonCardProps {
   detail: EmployeeDetailViewModel
   locale: string
+  dateFormat: DateFormat
   labels: EmployeePersonCardLabels
 }
 
@@ -143,7 +146,7 @@ async function runJsonMutation(
   }
 }
 
-export function EmployeePersonCard({ detail, locale, labels }: EmployeePersonCardProps) {
+export function EmployeePersonCard({ detail, locale, dateFormat, labels }: EmployeePersonCardProps) {
   const [tab, setTab] = useState<Tab>('overview')
   const capabilities = detail.capabilities ?? NO_EMPLOYEE_CAPABILITIES
   const addresses = detail.addresses ?? []
@@ -189,7 +192,7 @@ export function EmployeePersonCard({ detail, locale, labels }: EmployeePersonCar
       <div id={`employee-panel-${tab}`} role="tabpanel" aria-labelledby={`employee-tab-${tab}`} className="p-4 sm:p-6">
         {tab === 'overview' && <OverviewPanel detail={detail} labels={labels} />}
         {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} />}
-        {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} labels={labels} />}
+        {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
         {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} canManage={capabilities.canManageRelations} labels={labels} />}
       </div>
@@ -336,11 +339,11 @@ function BsnReveal({ employeeId, labels }: { employeeId: string; labels: Employe
   )
 }
 
-function AddressesPanel({ employeeId, addresses, canManage, locale, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; labels: EmployeePersonCardLabels }) {
-  const formatDate = (date: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${date}T00:00:00Z`))
+function AddressesPanel({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
+  const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
   return (
     <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<Home className="h-5 w-5" />} title={labels.addressesTitle} />{canManage && <ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} labels={labels} /></ResourceDetails>}</div>
-      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.street} {address.houseNumber}{address.addition ? ` ${address.addition}` : ''}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{address.postalCode} {address.city} · {address.countryCode}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(address.validFrom)} — {address.validUntil ? formatDate(address.validUntil) : labels.current}</p></li>)}</ol>}
+      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.street} {address.houseNumber}{address.addition ? ` ${address.addition}` : ''}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{address.postalCode} {address.city} · {address.countryCode}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></li>)}</ol>}
     </div>
   )
 }

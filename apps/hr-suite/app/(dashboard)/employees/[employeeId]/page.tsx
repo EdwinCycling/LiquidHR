@@ -17,6 +17,7 @@ import {
   getTerminationOptions,
 } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getUserPreferences } from '@/lib/preferences/server'
 import { getEmployeeCustomFields } from '@/lib/custom-fields/service'
 import { getDocumentOptions, listEmployeeDocuments } from '@/lib/documents/document-service'
 import { listEmployeeReminders } from '@/lib/reminders/reminder-service'
@@ -29,12 +30,13 @@ interface EmployeeDetailPageProps {
 
 async function loadPageData(employeeId: string) {
   try {
-    const [detail, customFields, reminders, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
+    const [detail, customFields, reminders, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
       getEmployeeEmploymentDetail(employeeId),
       getEmployeeCustomFields(employeeId),
       listEmployeeReminders(employeeId).catch(() => []),
       permissionAllowed('contract:write', employeeId),
       getLocale(),
+      getUserPreferences(),
       getTranslator('employees'),
       getTranslator('employment'),
       getTranslator('errors'),
@@ -54,7 +56,7 @@ async function loadPageData(employeeId: string) {
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
     ])
-    return [detail, customFields, reminders, terminationOptions, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
+    return [detail, customFields, reminders, terminationOptions, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
     throw error
@@ -75,7 +77,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   const { employeeId } = await params
   const { tab: requestedTab, create } = await searchParams
   const tab = requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'reminders' ? requestedTab : 'personal'
-  const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
+  const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
@@ -120,6 +122,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         <EmployeePersonCard
           detail={detail}
           locale={locale}
+          dateFormat={preferences.dateFormat}
           labels={{
             tabs: { overview: tEmployees('tabOverview'), personal: tEmployees('tabPersonal'), addresses: tEmployees('tabAddresses'), bankAccounts: tEmployees('tabBankAccounts'), relations: tEmployees('tabRelations') },
             overviewTitle: tEmployees('overviewTitle'), contactTitle: tEmployees('contactTitle'), workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'),
@@ -156,7 +159,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'documents' && canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), file: tDocuments('file'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), category: tDocuments('category'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), noSelection: tDocuments('noSelection'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), reminderForDepartment: tDocuments('reminderForDepartment'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn') }} />}
 
-        {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} reminders={reminders} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), titleLabel: tEmployees('reminderTitle'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic') }} />}
+        {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} reminders={reminders} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), titleLabel: tEmployees('reminderTitle'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic') }} />}
 
         {tab === 'employments' && <div className={`mt-8 grid gap-8 ${canManageEmployments ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]' : ''}`}>
           <section>
@@ -167,6 +170,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             <EmploymentTimeline
               employments={detail.employments}
               locale={locale}
+              dateFormat={preferences.dateFormat}
               options={options}
               canManage={canManageEmployments}
               labels={{

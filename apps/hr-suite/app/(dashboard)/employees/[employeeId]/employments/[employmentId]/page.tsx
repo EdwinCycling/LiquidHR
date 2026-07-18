@@ -25,6 +25,9 @@ import {
   getEmploymentDetail,
 } from "@/lib/employment/employment-detail-service";
 import { getLocale, getTranslator } from "@/lib/i18n/server";
+import { getUserPreferences } from "@/lib/preferences/server";
+import { formatDate, formatDateTime } from "@/lib/preferences/formatters";
+import type { DateFormat } from "@/lib/preferences/user-preferences";
 import { listEmployeeHrEvents } from "@/lib/hr-events/service";
 
 interface PageProps {
@@ -48,12 +51,11 @@ function periodLabel(
   from: string,
   until: string | null,
   locale: string,
+  dateFormat: DateFormat,
   open: string,
 ) {
   const format = (value: string) =>
-    new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
-      new Date(`${value}T00:00:00Z`),
-    );
+    formatDate(value, { locale, dateFormat });
   return `${format(from)} — ${until ? format(until) : open}`;
 }
 
@@ -82,6 +84,7 @@ async function loadPageData(employeeId: string, employmentId: string) {
     return await Promise.all([
       getEmploymentDetail(employeeId, employmentId),
       getLocale(),
+      getUserPreferences(),
       getTranslator("employment"),
       listEmployeeHrEvents(employeeId, { employmentId }),
     ]);
@@ -100,7 +103,7 @@ export default async function EmploymentDetailPage({
     params,
     searchParams,
   ]);
-  const [detail, locale, t, events] = await loadPageData(
+  const [detail, locale, preferences, t, events] = await loadPageData(
     employeeId,
     employmentId,
   );
@@ -363,6 +366,7 @@ export default async function EmploymentDetailPage({
                     detail.employment.starts_on,
                     detail.employment.ends_on,
                     locale,
+                    preferences.dateFormat,
                     t("active"),
                   )}
                 />
@@ -535,6 +539,7 @@ export default async function EmploymentDetailPage({
                           link.valid_from,
                           link.valid_until,
                           locale,
+                          preferences.dateFormat,
                           t("active"),
                         )}
                       </p>
@@ -558,6 +563,7 @@ export default async function EmploymentDetailPage({
                     row.valid_from,
                     row.valid_until,
                     locale,
+                    preferences.dateFormat,
                     t("active"),
                   )}
                 />
@@ -655,6 +661,7 @@ export default async function EmploymentDetailPage({
                     row.valid_from,
                     row.valid_until,
                     locale,
+                    preferences.dateFormat,
                     t("active"),
                   )}
                 />
@@ -677,7 +684,7 @@ export default async function EmploymentDetailPage({
                 key={row.id}
                 title={index === 0 ? t("currentValue") : t("historyLabel")}
                 value={`${row.departments?.code ?? ""} · ${row.departments?.name ?? t("notRecorded")}`}
-                meta={`${row.job_title ?? t("notRecorded")} · ${periodLabel(row.effective_from, row.effective_to, locale, t("active"))}`}
+                meta={`${row.job_title ?? t("notRecorded")} · ${periodLabel(row.effective_from, row.effective_to, locale, preferences.dateFormat, t("active"))}`}
               />
             ))}
           </section>
@@ -694,6 +701,7 @@ export default async function EmploymentDetailPage({
                     row.valid_from,
                     row.valid_until,
                     locale,
+                    preferences.dateFormat,
                     t("active"),
                   )}
                 />
@@ -762,10 +770,7 @@ export default async function EmploymentDetailPage({
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         <CalendarDays className="mr-1 inline h-3.5 w-3.5" />
-                        {new Intl.DateTimeFormat(locale, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(log.created_at))}
+                        {formatDateTime(log.created_at, { locale, dateFormat: preferences.dateFormat, timeFormat: preferences.timeFormat })}
                       </p>
                     </li>
                   ))}

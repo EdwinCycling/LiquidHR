@@ -1,19 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { AnalogClockStyle, ClockMode } from '@/lib/preferences/user-preferences'
+import type { AnalogClockStyle, ClockMode, TimeFormat } from '@/lib/preferences/user-preferences'
 
-export function DigitalClock() {
+export function DigitalClock({ timeFormat = '24H' }: { timeFormat?: TimeFormat }) {
   const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(timer)
   }, [])
   if (!now) return <span aria-hidden="true" className="inline-block h-7 w-24" />
-  return <time className="tabular-nums text-lg font-semibold tracking-tight" dateTime={now.toISOString()}>{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</time>
+  return <time className="tabular-nums text-lg font-semibold tracking-tight" dateTime={now.toISOString()}>{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: timeFormat === '12H' })}</time>
 }
 
-export function AnalogClock({ style }: { style: AnalogClockStyle }) {
+export function AnalogClock({ style, timeFormat = '24H' }: { style: AnalogClockStyle; timeFormat?: TimeFormat }) {
   const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
@@ -31,7 +31,7 @@ export function AnalogClock({ style }: { style: AnalogClockStyle }) {
     LIQUID: 'border border-primary/45 bg-gradient-to-br from-primary/30 via-sidebar-accent to-accent shadow-lg',
   } as const
   return (
-    <div aria-label={now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} className={`relative size-16 rounded-full ${faceClass[style]}`} role="img">
+    <div aria-label={now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12H' })} className={`relative size-16 rounded-full ${faceClass[style]}`} role="img">
       {style === 'CLASSIC' ? <>{[0, 3, 6, 9].map((hour) => <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sidebar-foreground" key={hour} style={{ transform: `translate(-50%, -50%) rotate(${hour * 30}deg) translateY(-25px)` }} />)}</> : null}
       {style === 'LIQUID' ? <span className="absolute inset-1 rounded-full border border-primary/25 bg-surface/15 backdrop-blur-sm" /> : null}
       <span className="absolute left-1/2 top-1/2 h-5 w-0.5 origin-bottom rounded-full bg-sidebar-foreground" style={{ transform: `translate(-50%, -100%) rotate(${angles.hour}deg)` }} />
@@ -42,7 +42,7 @@ export function AnalogClock({ style }: { style: AnalogClockStyle }) {
   )
 }
 
-export function Clock({ mode, style }: { mode: ClockMode; style: AnalogClockStyle }) {
+export function Clock({ mode, style, timeFormat = '24H' }: { mode: ClockMode; style: AnalogClockStyle; timeFormat?: TimeFormat }) {
   if (mode === 'HIDDEN') return null
-  return mode === 'DIGITAL' ? <DigitalClock /> : <AnalogClock style={style} />
+  return mode === 'DIGITAL' ? <DigitalClock timeFormat={timeFormat} /> : <AnalogClock style={style} timeFormat={timeFormat} />
 }

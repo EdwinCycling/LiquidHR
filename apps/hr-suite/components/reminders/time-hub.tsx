@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Locale } from '@/lib/i18n/config'
 import type { ReminderItem } from '@/lib/reminders/reminder-service'
 import { formatReminderCountdown } from '@/lib/reminders/reminder-rules'
+import { formatDateTime } from '@/lib/preferences/formatters'
+import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 
 export interface TimeHubLabels {
   timeHub: string
@@ -25,9 +27,11 @@ interface TimeHubProps {
   initialReminders: ReminderItem[]
   labels: TimeHubLabels
   locale: Locale
+  dateFormat: DateFormat
+  timeFormat: TimeFormat
 }
 
-export function TimeHub({ collapsed, initialReminders, labels, locale }: TimeHubProps) {
+export function TimeHub({ collapsed, initialReminders, labels, locale, dateFormat, timeFormat }: TimeHubProps) {
   const router = useRouter()
   const [now, setNow] = useState(() => new Date())
   const [removedRecipientIds, setRemovedRecipientIds] = useState<ReadonlySet<string>>(() => new Set())
@@ -106,6 +110,8 @@ export function TimeHub({ collapsed, initialReminders, labels, locale }: TimeHub
           item={popup}
           labels={labels}
           locale={locale}
+          dateFormat={dateFormat}
+          timeFormat={timeFormat}
           onAction={act}
           onClose={() => {
             const recipientId = selectedRecipientId
@@ -124,6 +130,8 @@ function ReminderDetailDialog({
   item,
   labels,
   locale,
+  dateFormat,
+  timeFormat,
   onAction,
   onClose,
 }: {
@@ -131,6 +139,8 @@ function ReminderDetailDialog({
   item: ReminderItem
   labels: TimeHubLabels
   locale: Locale
+  dateFormat: DateFormat
+  timeFormat: TimeFormat
   onAction: (item: ReminderItem, action: 'COMPLETE' | 'DISMISS' | 'SNOOZE') => Promise<void>
   onClose: () => void
 }) {
@@ -146,7 +156,7 @@ function ReminderDetailDialog({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
-  const scheduledAt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.remindAt))
+  const scheduledAt = formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })
   const typeIcon = item.type === 'HR' ? Building2 : UserRound
   const TypeIcon = typeIcon
 

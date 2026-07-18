@@ -11,6 +11,8 @@ export default async function PersonalSettingsPage() {
     theme: settings('theme'), themeHelp: settings('themeHelp'), clock: settings('clock'), clockHelp: settings('clockHelp'),
     analog: settings('analog'), digital: settings('digital'), hidden: settings('hidden'), clockStyle: settings('clockStyle'),
     classic: settings('classic'), minimal: settings('minimal'), liquid: settings('liquid'), appearanceTab: settings('appearanceTab'),
+    dateFormat: settings('dateFormat'), dateFormatHelp: settings('dateFormatHelp'), dmy: settings('dmy'), mdy: settings('mdy'), ymd: settings('ymd'),
+    timeFormat: settings('timeFormat'), timeFormatHelp: settings('timeFormatHelp'), time24: settings('time24'), time12: settings('time12'),
     timeHubTab: settings('timeHubTab'), clockPreview: settings('clockPreview'), save: common('save'), cancel: common('cancel'),
     saving: settings('saving'), saved: settings('saved'), saveFailed: settings('saveFailed'), invalid: settings('invalid'), unauthenticated: settings('unauthenticated'),
     themes: Object.fromEntries(UI_THEME_KEYS.map((value) => [value, { name: settings(`themes.${value}`), description: settings(`themeDescriptions.${value}`) }])) as SettingsModalLabels['themes'],
