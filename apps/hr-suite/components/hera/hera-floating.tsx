@@ -37,7 +37,7 @@ export function HeRaFloating({ labels }: { labels: HeRaLabels }) {
   return (
     <>
       {!open ? (
-        <button aria-label={labels.title} className="fixed bottom-5 left-5 z-40 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" onClick={() => setOpen(true)} type="button">
+        <button aria-label={labels.title} className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" onClick={() => setOpen(true)} type="button">
           <MessageCircleHeart aria-hidden="true" size={23} />
         </button>
       ) : null}

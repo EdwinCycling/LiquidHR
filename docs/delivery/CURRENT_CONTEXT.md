@@ -1,6 +1,6 @@
 # Actuele overdracht Liquid HR
 
-Vervolgslice 2026-07-18: HeRa is uit de linker navigatie gehaald en werkt als zwevende overlay met lokaal bewaarde dock-/breedtevoorkeur. De medewerkerkaart heeft een reminders-tab; dienstverbanden openen primair, verwijderen gebruikt een bevestigde soft-delete en teruggaan bewaart de brontab. Interne uitdienstredenen zijn beheerbaar via `/master-data/end-reasons` met actief/inactief en gebruiksblokkade. Strict TypeScript, ESLint, i18n-pariteit en productiebuild zijn groen; nieuwe Vercel-preview kon niet worden aangemaakt door ontbrekende lokale credentials.
+Vervolgslice 2026-07-18: HeRa is uit de linker navigatie gehaald en werkt als zwevende overlay met lokaal bewaarde dock-/breedtevoorkeur; de launcher staat rechtsonder. De medewerkerkaart heeft een reminders-tab; dienstverbanden openen primair, verwijderen gebruikt een bevestigde soft-delete en teruggaan bewaart de brontab. Interne uitdienstredenen zijn beheerbaar via `/master-data/end-reasons` met actief/inactief en gebruiksblokkade. Strict TypeScript, ESLint, i18n-pariteit en productiebuild zijn groen.
 
 Laatste update: 2026-07-18. Dit is het compacte startpunt voor iedere nieuwe of geforkte chat. Lees daarna `docs/README.md`; neem geen secrets in documentatie op.
 
