@@ -16,6 +16,7 @@ import {
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
+import { EmailLink } from '@/components/shared/email-link'
 import { Clock } from '@/components/layout/clock'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import type {
@@ -165,7 +166,7 @@ export function Sidebar({
         <div className="shrink-0 border-t border-sidebar-border p-3">
           <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => setMobileOpen(false)} title={collapsed ? labels.personalSettings : undefined}><Settings aria-hidden="true" className="shrink-0" size={18} />{!collapsed ? <span>{labels.personalSettings}</span> : null}</Link>
           <div className={`mt-2 border-t border-sidebar-border pt-3 ${collapsed ? 'flex justify-center' : ''}`}>
-            {!collapsed ? <p className="truncate px-3 text-xs text-sidebar-muted">{email}</p> : null}
+            {!collapsed ? <EmailLink className="block truncate px-3 text-xs text-sidebar-muted hover:text-sidebar-foreground hover:underline" email={email} /> : null}
             <form action="/auth/signout" method="post">
               <button aria-label={labels.signOut} className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground ${collapsed ? 'justify-center' : 'w-full'}`} title={collapsed ? labels.signOut : undefined} type="submit">
                 <LogOut aria-hidden="true" className="shrink-0" size={18} />

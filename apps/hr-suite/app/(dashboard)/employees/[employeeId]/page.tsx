@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, BriefcaseBusiness, Mail } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
+import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
 import { EmployeeCustomFields } from '@/components/custom-fields/employee-custom-fields'
@@ -102,7 +103,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             </div>
           </div>
           <div className="relative mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4" />{detail.employee.workEmail ?? detail.employee.privateEmail ?? tEmployees('noEmail')}</span>
+            <span className="flex items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4" />{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span>
             <span className="flex items-center gap-2"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4" />{tEmployees('employmentCount', { count: detail.employments.length })}</span>
           </div>
         </div>

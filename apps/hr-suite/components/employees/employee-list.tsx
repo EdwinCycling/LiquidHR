@@ -3,6 +3,7 @@ import { ArrowUpRight, BriefcaseBusiness, Mail } from 'lucide-react'
 import Link from 'next/link'
 import type { EmployeeOverview } from '@/lib/employment/employment-service'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
+import { EmailLink } from '@/components/shared/email-link'
 
 interface EmployeeListProps {
   employees: EmployeeOverview[]
@@ -42,11 +43,8 @@ export function EmployeeList({
       <ul className="divide-y">
         {employees.map((employee) => (
           <li key={employee.id}>
-            <Link
-              href={`/employees/${employee.id}`}
-              className="group grid gap-4 px-4 py-4 transition-colors hover:bg-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 sm:py-5"
-            >
-              <div className="flex min-w-0 items-center gap-3.5">
+            <div className="group grid gap-4 px-4 py-4 transition-colors hover:bg-accent/45 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 sm:py-5">
+              <Link href={`/employees/${employee.id}`} className="flex min-w-0 items-center gap-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
                 {employee.avatarUrl ? <img src={employee.avatarUrl} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wide text-primary-foreground shadow-sm">{employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}</span>}
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-foreground">
@@ -57,12 +55,12 @@ export function EmployeeList({
                     {employee.workEmail && (
                       <span className="flex min-w-0 items-center gap-1.5">
                         <Mail aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{employee.workEmail}</span>
+                        <EmailLink className="truncate hover:underline" email={employee.workEmail} />
                       </span>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
               <div className="flex items-center justify-between gap-3 pl-[3.4rem] sm:justify-end sm:pl-0">
                 {employee.isArchived && <span className="rounded-md bg-warning-surface px-2.5 py-1 text-xs font-semibold text-warning">{archiveLabel}</span>}
                 <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[employee.status]}`}>
@@ -73,7 +71,7 @@ export function EmployeeList({
                 </span>
                 <ArrowUpRight aria-hidden="true" className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
               </div>
-            </Link>
+            </div>
           </li>
         ))}
       </ul>
