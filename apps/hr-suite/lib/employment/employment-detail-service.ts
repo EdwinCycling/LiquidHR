@@ -10,6 +10,7 @@ import type {
   TimelineMutationInput,
 } from './detail-schemas'
 import { assessEmploymentChain } from './chain-assessment'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -54,10 +55,10 @@ export async function getEmploymentDetail(employeeId: string, employmentId: stri
   const employment = await loadEmploymentForAction(employmentId, 'contract:read')
   if (employment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   const supabase = await createClient()
-  const [canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee] = await Promise.all([
+  const [canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule] = await Promise.all([
     permissionAllowed('contract:write', employeeId), permissionAllowed('salary:read', employeeId),
     permissionAllowed('salary:write', employeeId), permissionAllowed('audit:read', employeeId),
-    permissionAllowed('employee:write', employeeId),
+    permissionAllowed('employee:write', employeeId), permissionAllowed('work-schedule:write', employeeId),
   ])
 
   const [
@@ -100,7 +101,7 @@ export async function getEmploymentDetail(employeeId: string, employmentId: stri
 
   return {
     employment,
-    employee: employeeResult.data,
+    employee: { ...employeeResult.data, avatar_url: employeeAvatarHref(employeeId, employeeResult.data.avatar_url) },
     administration: administrationResult.data,
     incomeRelationships: incomeLinksResult.data ?? [],
     laborConditions: laborResult.data ?? [], schedules: scheduleResult.data ?? [],
@@ -108,7 +109,7 @@ export async function getEmploymentDetail(employeeId: string, employmentId: stri
     organizations: organizationResult.data ?? [], profileLinks: linksResult.data ?? [],
     followUps: followUpsResult.data ?? [], auditLogs: auditResult.data ?? [],
     options: { costCenters: costCentersResult.data ?? [], salaryScaleSteps: scalesResult.data ?? [] },
-    capabilities: { canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee },
+    capabilities: { canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule },
   }
 }
 
@@ -177,6 +178,13 @@ export async function createProfileLink(employmentId: string, input: ProfileLink
   }).select('*').single()
   if (error || !data) throwDatabaseError(error?.message ?? 'PROFILE_LINK_CREATE_FAILED')
   return data
+}
+
+export async function deleteEmployment(employmentId: string): Promise<void> {
+  const employment = await loadEmploymentForAction(employmentId, 'contract:write')
+  const supabase = await createClient()
+  const { error } = await supabase.from('employments').update({ deleted_at: new Date().toISOString() }).eq('id', employment.id).eq('tenant_id', employment.tenant_id)
+  if (error) throwDatabaseError(error.message)
 }
 
 export async function createFollowUp(employmentId: string, input: FollowUpInput) {

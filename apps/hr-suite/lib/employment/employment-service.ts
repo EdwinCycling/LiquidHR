@@ -6,6 +6,7 @@ import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -37,11 +38,18 @@ export interface EmployeeOverview {
   id: string
   employeeNumber: string
   firstName: string
+  birthNamePrefix: string | null
   birthName: string
+  departmentName: string | null
+  jobTitle: string | null
   workEmail: string | null
+  avatarUrl: string | null
+  isArchived: boolean
   status: EmploymentStatus
   employmentCount: number
 }
+
+export type EmployeeArchiveFilter = 'active' | 'archived' | 'all'
 
 export interface EmploymentCreationOptions {
   departments: Array<{ id: string; code: string; name: string }>
@@ -88,6 +96,7 @@ export interface EmployeeEmploymentDetail {
     avatarUrl: string | null
     originalHireDate: string | null
     isActive: boolean
+    isArchived: boolean
   }
   employments: EmploymentRow[]
   status: EmploymentStatus
@@ -101,11 +110,16 @@ export interface EmployeeEmploymentDetail {
     description: string | null; isPrimary: boolean
   }>
   relations: Array<{
-    id: string; relationType: Database['public']['Enums']['relation_type']
+    id: string; relationType: string
     isEmergencyContact: boolean; firstName: string | null; initials: string | null
     prefix: string | null; lastName: string; gender: Database['public']['Enums']['gender'] | null
     birthDate: string | null; phone: string | null; mobile: string | null
     email: string | null; notes: string | null
+  }>
+  relationTypes: Array<{
+    code: string
+    nameNl: string
+    nameEn: string
   }>
   capabilities: {
     canEditEmployee: boolean
@@ -341,27 +355,32 @@ export async function listEmployeeEmployments(employeeId: string): Promise<Emplo
   return data
 }
 
-export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
+export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter = 'active'): Promise<EmployeeOverview[]> {
   const context = await requirePermission('employee:read')
   const administrationId = requireAdministrationId(context.administrationId)
   const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
   const { data: assignments, error: assignmentError } = await supabase
     .from('employee_administration_assignments')
     .select('employee_id')
     .eq('tenant_id', context.tenantId)
     .eq('administration_id', administrationId)
-    .lte('effective_from', new Date().toISOString().slice(0, 10))
-    .or(`effective_to.is.null,effective_to.gte.${new Date().toISOString().slice(0, 10)}`)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
     .limit(500)
   if (assignmentError) throw new EmploymentServiceError('EMPLOYEE_SCOPE_READ_FAILED', 500)
 
   const employeeIds = [...new Set(assignments.map((assignment) => assignment.employee_id))]
   if (employeeIds.length === 0) return []
-  const [{ data: employees, error: employeeError }, { data: employments, error: employmentError }] =
+  const [
+    { data: employees, error: employeeError },
+    { data: employments, error: employmentError },
+    { data: placements, error: placementError },
+  ] =
     await Promise.all([
       supabase
         .from('employees')
-        .select('id, employee_number, first_name, birth_name, work_email')
+        .select('id, employee_number, first_name, birth_name_prefix, birth_name, work_email, avatar_url, is_archived')
         .eq('tenant_id', context.tenantId)
         .in('id', employeeIds)
         .is('deleted_at', null)
@@ -375,11 +394,30 @@ export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
         .in('employee_id', employeeIds)
         .is('deleted_at', null)
         .limit(1_000),
+      supabase
+        .from('employee_organizations')
+        .select('employee_id, job_title, effective_from, departments!employee_organizations_department_id_fkey(name)')
+        .eq('tenant_id', context.tenantId)
+        .eq('administration_id', administrationId)
+        .in('employee_id', employeeIds)
+        .lte('effective_from', today)
+        .or(`effective_to.is.null,effective_to.gte.${today}`)
+        .order('effective_from', { ascending: false })
+        .limit(1_000),
     ])
-  if (employeeError || employmentError) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
+  if (employeeError || employmentError || placementError) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
 
-  const today = new Date().toISOString().slice(0, 10)
-  return employees.map((employee) => {
+  const scopedEmployees = (employees ?? []).filter((employee) => archiveFilter === 'all' || (archiveFilter === 'archived' ? employee.is_archived : !employee.is_archived))
+  const placementByEmployeeId = new Map<string, { departmentName: string | null; jobTitle: string | null }>()
+  for (const placement of placements ?? []) {
+    if (placementByEmployeeId.has(placement.employee_id)) continue
+    placementByEmployeeId.set(placement.employee_id, {
+      departmentName: placement.departments?.name ?? null,
+      jobTitle: placement.job_title,
+    })
+  }
+
+  return scopedEmployees.map((employee) => {
     const periods = employments
       .filter((employment) => employment.employee_id === employee.id)
       .map((employment) => ({
@@ -387,12 +425,18 @@ export async function listEmployeesOverview(): Promise<EmployeeOverview[]> {
         endsOn: employment.ends_on,
         recordStatus: employment.record_status,
       }))
+    const placement = placementByEmployeeId.get(employee.id)
     return {
       id: employee.id,
       employeeNumber: employee.employee_number,
       firstName: employee.first_name,
+      birthNamePrefix: employee.birth_name_prefix,
       birthName: employee.birth_name,
+      departmentName: placement?.departmentName ?? null,
+      jobTitle: placement?.jobTitle ?? null,
       workEmail: employee.work_email,
+      avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
+      isArchived: employee.is_archived,
       status: deriveEmploymentStatus(periods, today),
       employmentCount: periods.length,
     }
@@ -409,6 +453,7 @@ export async function getEmployeeEmploymentDetail(
     { data: addresses, error: addressesError },
     { data: bankAccounts, error: bankError },
     { data: relations, error: relationsError },
+    { data: relationTypes, error: relationTypesError },
     capabilityValues,
   ] = await Promise.all([
     supabase
@@ -418,7 +463,7 @@ export async function getEmployeeEmploymentDetail(
         birth_date, birth_place, birth_country, nationality, marital_status,
         marital_status_date, education_level, preferred_language, private_email,
         private_phone, private_mobile, work_email, work_phone, work_phone_ext,
-        work_mobile, avatar_url, original_hire_date, is_active, updated_at`)
+        work_mobile, avatar_url, original_hire_date, is_active, is_archived, updated_at`)
       .eq('tenant_id', context.tenantId)
       .eq('id', employeeId)
       .is('deleted_at', null)
@@ -434,6 +479,7 @@ export async function getEmployeeEmploymentDetail(
     supabase.from('employee_relations').select('*')
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
       .is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(100),
+    supabase.from('relation_types').select('code, name_nl, name_en').eq('tenant_id', context.tenantId).eq('is_active', true).order('name_nl').limit(100),
     Promise.all([
       permissionAllowed('employee:write', employeeId),
       permissionAllowed('employee-bsn:read', employeeId),
@@ -447,7 +493,7 @@ export async function getEmployeeEmploymentDetail(
   const detailReadFailureCode = employeeDetailReadFailureCode({
     addresses: addressesError !== null,
     bankAccounts: bankError !== null,
-    relations: relationsError !== null,
+    relations: relationsError !== null || relationTypesError !== null,
   })
   if (detailReadFailureCode) throw new EmploymentServiceError(detailReadFailureCode, 500)
 
@@ -481,9 +527,10 @@ export async function getEmployeeEmploymentDetail(
       workPhone: employee.work_phone,
       workPhoneExt: employee.work_phone_ext,
       workMobile: employee.work_mobile,
-      avatarUrl: employee.avatar_url,
+      avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
       originalHireDate: employee.original_hire_date,
       isActive: employee.is_active,
+      isArchived: employee.is_archived,
     },
     employments,
     status: deriveEmploymentStatus(
@@ -512,6 +559,7 @@ export async function getEmployeeEmploymentDetail(
       gender: relation.gender, birthDate: relation.birth_date, phone: relation.phone,
       mobile: relation.mobile, email: relation.email, notes: relation.notes,
     })),
+    relationTypes: (relationTypes ?? []).map((relationType) => ({ code: relationType.code, nameNl: relationType.name_nl, nameEn: relationType.name_en })),
     capabilities: {
       canEditEmployee: capabilityValues[0], canReadBsn: capabilityValues[1],
       canWriteBsn: capabilityValues[2], canManageAddresses: capabilityValues[3],

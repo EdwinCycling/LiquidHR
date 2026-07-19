@@ -4,11 +4,10 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { Json } from '@scope/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
 import type { DocumentDeleteInput, DocumentMetadataInput } from './schemas'
 
 const BUCKET = 'employee-documents'
-const MAX_BYTES = 25 * 1024 * 1024
-const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
 
 export class DocumentServiceError extends Error { constructor(public readonly code: string, public readonly status: number) { super(code); this.name = 'DocumentServiceError' } }
 function administration(id: string | null): string { if (!id) throw new DocumentServiceError('ADMINISTRATION_REQUIRED', 400); return id }
@@ -25,20 +24,21 @@ export async function listEmployeeDocuments(employeeId: string) {
 
 export async function getDocumentOptions(employeeId: string) {
   const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId); const supabase = await createClient()
-  const [categories, departments, roles, employees] = await Promise.all([
+  const [categories, departments, roles, employees, cloudTags] = await Promise.all([
     supabase.from('document_categories').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(200),
     supabase.from('departments').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(500),
     supabase.from('management_roles').select('id, code, name').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).order('code').limit(200),
-    supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).is('deleted_at', null).order('birth_name').limit(500),
+    supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(500),
+    supabase.from('star_performer_tags').select('id, name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(200),
   ])
-  if (categories.error || departments.error || roles.error || employees.error) throw new DocumentServiceError('DOCUMENT_OPTIONS_FAILED', 500)
-  return { categories: categories.data, departments: departments.data, roles: roles.data, employees: employees.data }
+  if (categories.error || departments.error || roles.error || employees.error || cloudTags.error) throw new DocumentServiceError('DOCUMENT_OPTIONS_FAILED', 500)
+  return { categories: categories.data, departments: departments.data, roles: roles.data, employees: employees.data, cloudTags: cloudTags.data }
 }
 
 export async function uploadEmployeeDocument(employeeId: string, file: File, metadata: DocumentMetadataInput): Promise<string> {
   const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId)
-  if (!ALLOWED_TYPES.has(file.type)) throw new DocumentServiceError('DOCUMENT_TYPE_INVALID', 400)
-  if (file.size < 1 || file.size > MAX_BYTES) throw new DocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
+  if (!isAllowedDocumentFile(file)) throw new DocumentServiceError('DOCUMENT_TYPE_INVALID', 400)
+  if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) throw new DocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
   const bytes = new Uint8Array(await file.arrayBuffer()); const checksum = createHash('sha256').update(bytes).digest('hex')
   const storageKey = `${context.tenantId}/${administrationId}/${employeeId}/${randomUUID()}/${cleanFilename(file.name)}`
   const supabase = await createClient(); const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType: file.type, upsert: false })

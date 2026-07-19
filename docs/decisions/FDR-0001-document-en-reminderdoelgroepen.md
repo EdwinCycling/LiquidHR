@@ -1,6 +1,6 @@
 # FDR-0001 — Documentzichtbaarheid en reminderdoelgroepen
 
-Status: GOEDGEKEURD  
+Status: GOEDGEKEURD
 Datum: 2026-07-18
 
 ## Besluit

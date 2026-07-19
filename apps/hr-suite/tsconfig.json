@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@scope/db": [
+        "../../packages/db/types.ts"
       ]
     }
   },

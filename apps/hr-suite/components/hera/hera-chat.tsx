@@ -1,11 +1,15 @@
 'use client'
 
-import { Download, Edit3, LoaderCircle, Menu, MessageCircleHeart, Plus, Send, Sparkles, Trash2 } from 'lucide-react'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { Download, Edit3, LoaderCircle, Menu, MessageCircleHeart, Plus, Send, Settings2, Sparkles, Trash2 } from 'lucide-react'
+import { FormEvent, useEffect, useState } from 'react'
 import { getConversationLoadStateAfterFetch, getHeRaScreenState } from './hera-chat-state'
+import { HeRaControlCard, type HeRaDraftView, type HeRaMemoryProposalView } from './hera-control-card'
 import { requestJson } from './hera-request'
+import { evidenceFromMessageMetadata } from './hera-response-model'
+import { HeRaScopeLine } from './hera-scope-line'
+import { HeRaSettings, type HeRaSettingsLabels } from './hera-settings'
 
-export interface HeRaLabels {
+export interface HeRaLabels extends HeRaSettingsLabels {
   title: string
   subtitle: string
   newConversation: string
@@ -24,10 +28,26 @@ export interface HeRaLabels {
   draftExpires: string
   error: string
   noConversations: string
+  sourceLiquidHr: string
+  visibleRecords: string
+  asOfDate: string
+  filters: string
+  uncertainties: string
+  confirmAction: string
+  cancelAction: string
+  draftExpiresAt: string
+  rememberProposal: string
+  remember: string
+  updateMemoryProposal: string
+  updateMemory: string
+  deleteMemoryProposal: string
+  deleteMemory: string
+  currentValue: string
+  newValue: string
 }
 
 interface Conversation { id: string; title: string; summary: string | null; created_at: string; updated_at: string }
-interface Message { id: string; role: 'USER' | 'ASSISTANT' | 'TOOL'; content: string; visible_tool_name?: string | null; created_at: string }
+interface Message { id: string; role: 'USER' | 'ASSISTANT' | 'TOOL'; content: string; visible_tool_name?: string | null; metadata?: unknown; created_at: string }
 interface ConversationDetail { conversation: Conversation; messages: Message[] }
 
 function messageClass(role: Message['role']): string {
@@ -42,9 +62,10 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [draftId, setDraftId] = useState<string | null>(null)
-  const [memoryMessage, setMemoryMessage] = useState<Message | null>(null)
+  const [draft, setDraft] = useState<HeRaDraftView | null>(null)
+  const [memoryProposal, setMemoryProposal] = useState<HeRaMemoryProposalView | null>(null)
   const [railOpen, setRailOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const screenState = getHeRaScreenState({
     isLoading,
@@ -52,11 +73,6 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
     conversationId: detail?.conversation.id ?? null,
     messageCount: detail?.messages.length ?? 0,
   })
-
-  const latestAssistantMessage = useMemo(() => {
-    const messages = detail?.messages ?? []
-    return [...messages].reverse().find((message) => message.role === 'ASSISTANT') ?? null
-  }, [detail])
 
   async function request<T>(url: string, init?: RequestInit): Promise<T> {
     return requestJson<T>(url, init)
@@ -105,8 +121,8 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
       const result = await request<{ data: Conversation }>('/api/hera/conversations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
       setConversations((current) => [result.data, ...current])
       setDetail({ conversation: result.data, messages: [] })
-      setDraftId(null)
-      setMemoryMessage(null)
+      setDraft(null)
+      setMemoryProposal(null)
     } catch {
       setError(labels.error)
     } finally {
@@ -124,12 +140,13 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
     setIsSending(true)
     setError(null)
     try {
-      const result = await request<{ data: { message: Message; draftId: string | null } }>(`/api/hera/conversations/${detail.conversation.id}/messages`, {
+      const result = await request<{ data: { message: Message; draft: HeRaDraftView | null; memoryProposal: HeRaMemoryProposalView | null } }>(`/api/hera/conversations/${detail.conversation.id}/messages`, {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content }),
       })
       const userMessage: Message = { id: `local-${Date.now()}`, role: 'USER', content, created_at: new Date().toISOString() }
       setDetail((current) => current ? { ...current, messages: [...current.messages, userMessage, result.data.message] } : current)
-      setDraftId(result.data.draftId)
+      setDraft(result.data.draft)
+      setMemoryProposal(result.data.memoryProposal)
       form.reset()
     } catch {
       setError(labels.error)
@@ -158,27 +175,51 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
       const remaining = conversations.filter((conversation) => conversation.id !== detail.conversation.id)
       setConversations(remaining)
       setDetail(null)
-      setDraftId(null)
+      setDraft(null)
+      setMemoryProposal(null)
       if (remaining[0]) await loadConversation(remaining[0].id)
     } catch { setError(labels.error) }
   }
 
   async function confirmDraft() {
-    if (!draftId) return
+    if (!draft) return
     try {
-      await request<{ data: unknown }>(`/api/hera/drafts/${draftId}/confirm`, { method: 'POST' })
-      setDraftId(null)
+      await request<{ data: unknown }>(`/api/hera/drafts/${draft.id}/confirm`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedVersion: draft.version }),
+      })
+      setDraft(null)
+    } catch { setError(labels.error) }
+  }
+
+  async function cancelDraft() {
+    if (!draft) return
+    try {
+      await request<{ data: { id: string; status: 'CANCELLED' } }>(`/api/hera/drafts/${draft.id}`, {
+        method: 'DELETE',
+      })
+      setDraft(null)
     } catch { setError(labels.error) }
   }
 
   async function saveMemory() {
-    if (!memoryMessage || !detail) return
+    if (!memoryProposal || !detail) return
     try {
-      await request<{ data: unknown }>('/api/hera/memory', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ content: memoryMessage.content, category: 'WORKING_CONTEXT', sourceConversationId: detail.conversation.id, explicitConsent: true }),
-      })
-      setMemoryMessage(null)
+      if (memoryProposal.operation === 'CREATE') {
+        await request<{ data: unknown }>('/api/hera/memory', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ content: memoryProposal.content, category: memoryProposal.category, sourceConversationId: detail.conversation.id, explicitConsent: true }),
+        })
+      } else if (memoryProposal.operation === 'UPDATE' && memoryProposal.id) {
+        await request<{ data: unknown }>('/api/hera/memory', {
+          method: 'PATCH', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: memoryProposal.id, content: memoryProposal.content, category: memoryProposal.category, explicitConsent: true }),
+        })
+      } else if (memoryProposal.operation === 'DELETE' && memoryProposal.id) {
+        await request<{ data: unknown }>(`/api/hera/memory?id=${encodeURIComponent(memoryProposal.id)}`, { method: 'DELETE' })
+      } else {
+        throw new Error('HERA_MEMORY_PROPOSAL_INVALID')
+      }
+      setMemoryProposal(null)
     } catch { setError(labels.error) }
   }
 
@@ -200,20 +241,21 @@ export function HeRaChat({ labels }: { labels: HeRaLabels }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex min-h-16 items-center justify-between gap-3 border-b bg-surface/90 px-4 backdrop-blur sm:px-6">
           <div className="flex min-w-0 items-center gap-3"><button aria-label={labels.noConversations} className="grid size-10 place-items-center rounded-xl border bg-surface-raised text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-focus md:hidden" onClick={() => setRailOpen(true)} type="button"><Menu aria-hidden="true" size={18} /></button><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground"><Sparkles aria-hidden="true" size={17} /></span><div className="min-w-0"><h1 className="truncate text-sm font-semibold text-foreground">{detail?.conversation.title ?? labels.title}</h1><p className="truncate text-xs text-muted-foreground">{labels.subtitle}</p></div></div>
-          {detail ? <div className="flex items-center gap-1"><button aria-label={labels.renameConversation} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus" onClick={() => void renameConversation()} type="button"><Edit3 aria-hidden="true" size={16} /></button><a aria-label={labels.exportConversation} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus" href={`/api/hera/conversations/${detail.conversation.id}/export?format=markdown`}><Download aria-hidden="true" size={16} /></a><button aria-label={labels.deleteConversation} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-destructive-surface hover:text-destructive focus-visible:ring-2 focus-visible:ring-focus" onClick={() => void deleteConversation()} type="button"><Trash2 aria-hidden="true" size={16} /></button></div> : null}
+          <div className="flex items-center gap-1"><button aria-label={labels.settings} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus" onClick={() => setSettingsOpen(true)} type="button"><Settings2 aria-hidden="true" size={16} /></button>{detail ? <><button aria-label={labels.renameConversation} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus" onClick={() => void renameConversation()} type="button"><Edit3 aria-hidden="true" size={16} /></button><a aria-label={labels.exportConversation} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus" href={`/api/hera/conversations/${detail.conversation.id}/export?format=markdown`}><Download aria-hidden="true" size={16} /></a><button aria-label={labels.deleteConversation} className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-destructive-surface hover:text-destructive focus-visible:ring-2 focus-visible:ring-focus" onClick={() => void deleteConversation()} type="button"><Trash2 aria-hidden="true" size={16} /></button></> : null}</div>
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           {screenState === 'loading' ? <div className="grid h-full place-items-center text-center"><LoaderCircle aria-hidden="true" className="animate-spin text-accent-foreground" size={25} /><p className="mt-3 text-sm text-muted-foreground">{labels.sending}</p></div> : null}
           {screenState === 'error' ? <div className="mx-auto max-w-xl rounded-2xl border border-destructive/25 bg-destructive-surface p-5 text-center"><p className="text-sm font-medium text-destructive">{labels.error}</p><button className="button-secondary mt-4" onClick={() => void loadConversations()} type="button">{labels.send}</button></div> : null}
           {screenState === 'empty' ? <div className="mx-auto grid h-full max-w-lg place-items-center text-center"><div><span className="mx-auto grid size-14 place-items-center rounded-2xl border bg-accent text-accent-foreground"><MessageCircleHeart aria-hidden="true" size={25} /></span><h2 className="mt-5 text-xl font-semibold tracking-tight text-foreground">{labels.emptyTitle}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{labels.emptyDescription}</p>{!detail ? <button className="button-primary mt-6 gap-2" onClick={() => void createConversation()} type="button"><Plus aria-hidden="true" size={16} />{labels.newConversation}</button> : null}</div></div> : null}
-          {screenState === 'conversation' && detail ? <ol className="mx-auto flex max-w-3xl flex-col gap-4">{detail.messages.map((message) => <li className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${messageClass(message.role)}`} key={message.id}>{message.content.split('\n').map((line, index) => <p key={`${message.id}-${index}`}>{line || '\u00a0'}</p>)}</li>)}</ol> : null}
-          {draftId && latestAssistantMessage ? <section className="mx-auto mt-5 max-w-3xl rounded-2xl border border-warning/25 bg-warning-surface p-4"><p className="text-sm font-semibold text-warning">{labels.confirmDraft}</p><p className="mt-2 text-sm leading-6 text-foreground">{latestAssistantMessage.content}</p><p className="mt-2 text-xs text-warning">{labels.draftExpires}</p><div className="mt-4 flex flex-wrap gap-2"><button className="button-primary" onClick={() => void confirmDraft()} type="button">{labels.confirmDraft}</button><button className="button-secondary" onClick={() => setDraftId(null)} type="button">{labels.cancel}</button></div></section> : null}
-          {memoryMessage ? <section className="mx-auto mt-5 max-w-3xl rounded-2xl border bg-accent p-4"><p className="text-sm font-semibold text-accent-foreground">{labels.memoryConsent}</p><div className="mt-4 flex flex-wrap gap-2"><button className="button-primary" onClick={() => void saveMemory()} type="button">{labels.saveMemory}</button><button className="button-secondary" onClick={() => setMemoryMessage(null)} type="button">{labels.cancel}</button></div></section> : null}
+          {screenState === 'conversation' && detail ? <ol className="mx-auto flex max-w-3xl flex-col gap-4">{detail.messages.map((message) => { const evidence = evidenceFromMessageMetadata(message.metadata); return <li className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${messageClass(message.role)}`} key={message.id}>{message.content.split('\n').map((line, index) => <p key={`${message.id}-${index}`}>{line || '\u00a0'}</p>)}{evidence ? <HeRaScopeLine evidence={evidence} labels={labels} /> : null}</li> })}</ol> : null}
+          <HeRaControlCard draft={draft} labels={labels} onCancel={() => void cancelDraft()} onConfirm={() => void confirmDraft()} />
+          <HeRaControlCard labels={labels} memoryProposal={memoryProposal} onCancel={() => setMemoryProposal(null)} onConfirm={() => void saveMemory()} />
         </main>
 
-        <footer className="border-t bg-surface p-3 sm:p-4"><form className="mx-auto flex max-w-3xl items-end gap-2" onSubmit={sendMessage}><label className="sr-only" htmlFor="hera-message">{labels.composerPlaceholder}</label><textarea className="min-h-12 max-h-36 flex-1 resize-y rounded-2xl border bg-surface-raised px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-focus focus:ring-2 focus:ring-focus" disabled={!detail || isSending} id="hera-message" name="message" placeholder={labels.composerPlaceholder} rows={1} /><button aria-label={isSending ? labels.sending : labels.send} className="button-primary grid size-12 shrink-0 place-items-center rounded-2xl p-0 disabled:cursor-not-allowed disabled:opacity-60" disabled={!detail || isSending} type="submit">{isSending ? <LoaderCircle aria-hidden="true" className="animate-spin" size={18} /> : <Send aria-hidden="true" size={18} />}</button></form>{latestAssistantMessage && !memoryMessage ? <button className="mx-auto mt-2 flex max-w-3xl items-center gap-1.5 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus" onClick={() => setMemoryMessage(latestAssistantMessage)} type="button"><Sparkles aria-hidden="true" size={13} />{labels.memoryConsent}</button> : null}</footer>
+        <footer className="border-t bg-surface p-3 sm:p-4"><form className="mx-auto flex max-w-3xl items-end gap-2" onSubmit={sendMessage}><label className="sr-only" htmlFor="hera-message">{labels.composerPlaceholder}</label><textarea className="min-h-12 max-h-36 flex-1 resize-y rounded-2xl border bg-surface-raised px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-focus focus:ring-2 focus:ring-focus" disabled={!detail || isSending} id="hera-message" name="message" placeholder={labels.composerPlaceholder} rows={1} /><button aria-label={isSending ? labels.sending : labels.send} className="button-primary grid size-12 shrink-0 place-items-center rounded-2xl p-0 disabled:cursor-not-allowed disabled:opacity-60" disabled={!detail || isSending} type="submit">{isSending ? <LoaderCircle aria-hidden="true" className="animate-spin" size={18} /> : <Send aria-hidden="true" size={18} />}</button></form></footer>
       </div>
+      <HeRaSettings labels={labels} onClose={() => setSettingsOpen(false)} open={settingsOpen} />
     </section>
   )
 }

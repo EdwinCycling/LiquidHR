@@ -24,7 +24,7 @@ export async function listCalendarHrEvents(month: string) {
   if(result.error) throw new Error('HR_EVENTS_READ_FAILED'); const events=projectHrEvents((result.data??[]) as HrChangeEventRow[],{canReadSalary}); const employeeIds=[...new Set(events.map((event)=>event.employeeId))]
   if(employeeIds.length===0)return {events,employees:[],departments:[]}
   const today=new Date().toISOString().slice(0,10); const [employees,organizations,departments]=await Promise.all([
-    supabase.from('employees').select('id, employee_number, first_name, birth_name').in('id',employeeIds).order('birth_name').limit(2000),
+    supabase.from('employees').select('id, employee_number, first_name, birth_name').in('id',employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id').in('employee_id',employeeIds).lte('effective_from',today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(3000),
     supabase.from('departments').select('id,code,name').eq('administration_id',context.administrationId).eq('is_active',true).order('code').limit(500),
   ])

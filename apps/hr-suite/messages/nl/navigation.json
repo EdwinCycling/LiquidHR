@@ -3,12 +3,12 @@
   "hera": "HeRa",
   "overview": "Overzicht",
   "employees": "Medewerkers",
-  "departments": "Afdelingen",
   "organizationChart": "Organogram",
   "authorization": "Rollen en rechten",
   "customFields": "Vrije velden",
   "employment": "Dienstverbanden",
   "settings": "Instellingen",
+  "personalSettings": "Persoonlijke instellingen",
   "administration": "Administratie",
   "navigation": "Navigatie",
   "openMenu": "Open navigatie",
@@ -20,5 +20,5 @@
   "customerEnvironment": "Klantomgeving"
   ,"timeHub": "Tijdhub",
   "masterData": "Stamtabellen",
-  "hrCalendar": "Wijzigingskalender"
+  "hrCalendar": "Kalender"
 }

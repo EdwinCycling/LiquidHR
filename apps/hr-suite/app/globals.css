@@ -338,22 +338,67 @@ select {
     @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground hover:border-primary/40 focus:border-primary focus:outline-none;
   }
 
+  .tabs-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .tabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   .button-primary,
   .button-secondary,
   .button-danger {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
+    -webkit-backdrop-filter: blur(1rem) saturate(1.35);
+    backdrop-filter: blur(1rem) saturate(1.35);
+    box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);
   }
 
   .button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary-hover;
+    border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+    background: color-mix(in srgb, var(--surface) 76%, var(--primary) 24%);
+    color: var(--foreground);
+  }
+
+  .button-primary:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+    background: color-mix(in srgb, var(--surface) 66%, var(--primary) 34%);
+    box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary) 14%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .button-primary:active:not(:disabled),
+  .button-secondary:active:not(:disabled),
+  .button-danger:active:not(:disabled) {
+    box-shadow: 0 0.2rem 0.5rem color-mix(in srgb, var(--primary) 10%, transparent), inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+    transform: translateY(0);
   }
 
   .button-secondary {
-    @apply border bg-surface text-foreground hover:bg-accent;
+    border: 1px solid color-mix(in srgb, var(--border) 82%, var(--foreground) 18%);
+    background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+    color: var(--foreground);
+  }
+
+  .button-secondary:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    background: color-mix(in srgb, var(--surface) 72%, var(--accent) 28%);
+    box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary) 10%, transparent), inset 0 1px 0 color-mix(in srgb, white 70%, transparent);
+    transform: translateY(-1px);
   }
 
   .button-danger {
-    @apply bg-destructive text-primary-foreground hover:opacity-90;
+    border: 1px solid color-mix(in srgb, var(--destructive) 34%, var(--border));
+    background: color-mix(in srgb, var(--surface) 72%, var(--destructive) 28%);
+    color: var(--destructive);
+  }
+
+  .button-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--surface) 62%, var(--destructive) 38%);
+    box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--destructive) 14%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
+    transform: translateY(-1px);
   }
 
   .eyebrow {

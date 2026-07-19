@@ -1,5 +1,6 @@
 import { Building2, ChevronRight, FolderTree } from 'lucide-react'
 import { DepartmentCreateForm } from '@/components/organization/department-create-form'
+import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { requirePermission } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
@@ -66,10 +67,11 @@ function DepartmentBranch({
 }
 
 export default async function DepartmentsPage() {
-  const [{ roots, administrationName, count }, translate, organizationTranslate] = await Promise.all([
+  const [{ roots, administrationName, count }, translate, organizationTranslate, settingsTranslate] = await Promise.all([
     loadDepartmentTree(),
     getTranslator('departments'),
     getTranslator('organization'),
+    getTranslator('settings'),
   ])
   let canWrite = true
   try { await requirePermission('department:write') }
@@ -78,17 +80,8 @@ export default async function DepartmentsPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
-      <header className="flex flex-col justify-between gap-5 border-b pb-7 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">
-            {translate('eyebrow')}
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
-            {translate('title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{translate('subtitle')}</p>
-        </div>
-        {administrationName ? (
+      <AdminSettingsPageHeader
+        actions={administrationName ? (
           <div className="min-w-0 rounded-xl border bg-surface px-4 py-3 sm:max-w-xs">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {translate('administration')}
@@ -96,7 +89,11 @@ export default async function DepartmentsPage() {
             <p className="mt-1 truncate text-sm font-semibold text-foreground">{administrationName}</p>
           </div>
         ) : null}
-      </header>
+        backLabel={settingsTranslate('admin.backToOverview')}
+        eyebrow={translate('eyebrow')}
+        subtitle={translate('subtitle')}
+        title={translate('title')}
+      />
 
       {canWrite ? <DepartmentCreateForm departments={flatDepartments.map((department) => ({ id: department.id, name: `${department.code} · ${department.name}` }))} labels={{ title: organizationTranslate('departmentCreate'), code: organizationTranslate('departmentCode'), name: organizationTranslate('departmentName'), parent: organizationTranslate('parentDepartment'), noParent: organizationTranslate('noParent'), create: organizationTranslate('create'), saved: organizationTranslate('saved'), failed: organizationTranslate('failed') }} /> : null}
 

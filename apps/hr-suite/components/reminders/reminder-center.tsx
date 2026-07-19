@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ManagedReminder, ReminderItem, ReminderTargetOptions } from '@/lib/reminders/reminder-service'
+import { formatDateTime } from '@/lib/preferences/formatters'
+import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 
 export interface ReminderCenterLabels {
   personalList: string; hrList: string; empty: string; personal: string; hr: string
@@ -22,6 +24,8 @@ interface ReminderCenterProps {
   initialReminders: ReminderItem[]
   labels: ReminderCenterLabels
   locale: string
+  dateFormat: DateFormat
+  timeFormat: TimeFormat
   targetOptions: ReminderTargetOptions
 }
 
@@ -31,7 +35,7 @@ function toIso(value: FormDataEntryValue | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
-export function ReminderCenter({ canManageHr, initialManaged, initialReminders, labels, locale, targetOptions }: ReminderCenterProps) {
+export function ReminderCenter({ canManageHr, initialManaged, initialReminders, labels, locale, dateFormat, timeFormat, targetOptions }: ReminderCenterProps) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -116,7 +120,7 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
                   <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{statusLabel(item.recipientStatus)}</span>
                 </div>
                 {item.description ? <p className="mt-2 text-sm text-muted-foreground">{item.description}</p> : null}
-                <time className="mt-3 block text-sm tabular-nums" dateTime={item.remindAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.remindAt))}</time>
+                <time className="mt-3 block text-sm tabular-nums" dateTime={item.remindAt}>{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</time>
                 {item.recipientStatus === 'PENDING' ? <div className="mt-4 flex flex-wrap gap-2">
                   <button className="button-primary gap-2" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'COMPLETE')} type="button"><Check aria-hidden="true" size={15} />{labels.complete}</button>
                   <button className="button-secondary" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'SNOOZE')} type="button">{labels.snooze}</button>
@@ -131,7 +135,7 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
         {canManageHr ? <section className="rounded-2xl border bg-surface p-5 shadow-sm">
           <h2 className="text-lg font-semibold">{labels.hrList}</h2>
           {initialManaged.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.empty}</p> : <ul className="mt-4 space-y-3">{initialManaged.map((item) => <li className="flex flex-col gap-3 rounded-xl border bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between" key={item.id}>
-            <div><h3 className="font-semibold">{item.title}</h3><p className="mt-1 text-xs text-muted-foreground">{hrStatusLabel(item.status)} · {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.remindAt))}</p></div>
+            <div><h3 className="font-semibold">{item.title}</h3><p className="mt-1 text-xs text-muted-foreground">{hrStatusLabel(item.status)} · {formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</p></div>
             <div className="flex gap-2">{item.status === 'DRAFT' ? <button className="button-primary" disabled={busy === item.id} onClick={() => void reminderAction(item.id, 'publish')} type="button">{labels.publish}</button> : null}{item.status !== 'CANCELLED' ? <button className="button-secondary" disabled={busy === item.id} onClick={() => void reminderAction(item.id, 'cancel')} type="button">{labels.cancelReminder}</button> : null}</div>
           </li>)}</ul>}
         </section> : null}

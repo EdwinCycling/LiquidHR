@@ -1,6 +1,6 @@
 # Autorisatiebeheer en grafisch rechtenoverzicht — ontwerp
 
-Datum: 18 juli 2026  
+Datum: 18 juli 2026
 Status: goedgekeurd in gesprek
 
 ## 1. Doel

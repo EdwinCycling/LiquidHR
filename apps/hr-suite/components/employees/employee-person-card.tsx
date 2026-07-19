@@ -3,7 +3,10 @@
 import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, Pencil, Phone, ShieldCheck, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react'
-import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation } from './types'
+import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation, type EmployeeRelationTypeOption } from './types'
+import { EmailLink } from '@/components/shared/email-link'
+import { formatDate } from '@/lib/preferences/formatters'
+import type { DateFormat } from '@/lib/preferences/user-preferences'
 
 type Tab = 'overview' | 'personal' | 'addresses' | 'bankAccounts' | 'relations'
 type MutationState = 'idle' | 'saving' | 'saved' | 'failed'
@@ -108,6 +111,7 @@ export interface EmployeePersonCardLabels {
 interface EmployeePersonCardProps {
   detail: EmployeeDetailViewModel
   locale: string
+  dateFormat: DateFormat
   labels: EmployeePersonCardLabels
 }
 
@@ -142,7 +146,7 @@ async function runJsonMutation(
   }
 }
 
-export function EmployeePersonCard({ detail, locale, labels }: EmployeePersonCardProps) {
+export function EmployeePersonCard({ detail, locale, dateFormat, labels }: EmployeePersonCardProps) {
   const [tab, setTab] = useState<Tab>('overview')
   const capabilities = detail.capabilities ?? NO_EMPLOYEE_CAPABILITIES
   const addresses = detail.addresses ?? []
@@ -178,7 +182,7 @@ export function EmployeePersonCard({ detail, locale, labels }: EmployeePersonCar
               tabIndex={tab === item ? 0 : -1}
               onClick={() => setTab(item)}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
-              className={`border-b-2 px-3 py-4 text-sm font-semibold transition-colors focus-visible:outline-none ${tab === item ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              className={`rounded-t-lg border-b-2 px-3 py-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${tab === item ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'}`}
             >
               {labels.tabs[item]}
             </button>
@@ -188,9 +192,9 @@ export function EmployeePersonCard({ detail, locale, labels }: EmployeePersonCar
       <div id={`employee-panel-${tab}`} role="tabpanel" aria-labelledby={`employee-tab-${tab}`} className="p-4 sm:p-6">
         {tab === 'overview' && <OverviewPanel detail={detail} labels={labels} />}
         {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} />}
-        {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} labels={labels} />}
+        {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
-        {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} canManage={capabilities.canManageRelations} labels={labels} />}
+        {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} relationTypes={detail.relationTypes ?? []} locale={locale} canManage={capabilities.canManageRelations} labels={labels} />}
       </div>
     </section>
   )
@@ -209,7 +213,7 @@ function OverviewPanel({ detail, labels }: { detail: EmployeeDetailViewModel; la
       </header>
       <div className="mt-6 grid gap-0 overflow-hidden rounded-xl border md:grid-cols-2 xl:grid-cols-4">
         <StoryCell icon={<Mail className="h-4 w-4" />} title={labels.contactTitle}>
-          <p>{employee.workEmail ?? employee.privateEmail ?? labels.noContact}</p>
+          {(employee.workEmail ?? employee.privateEmail) ? <p><EmailLink email={employee.workEmail ?? employee.privateEmail ?? ''} /></p> : <p>{labels.noContact}</p>}
           <p>{employee.workMobile ?? employee.privateMobile ?? employee.workPhone ?? employee.privatePhone ?? ''}</p>
         </StoryCell>
         <StoryCell icon={<Home className="h-4 w-4" />} title={labels.currentAddress}>
@@ -300,9 +304,9 @@ function PersonalPanel({ employee, capabilities, labels }: { employee: EmployeeD
         <DataItem label={labels.birthDate} value={employee.birthDate} fallback={labels.notRecorded} />
         <DataItem label={labels.birthPlace} value={employee.birthPlace} fallback={labels.notRecorded} />
         <DataItem label={labels.nationality} value={employee.nationality} fallback={labels.notRecorded} />
-        <DataItem label={labels.privateEmail} value={employee.privateEmail} fallback={labels.notRecorded} />
+        <DataItem label={labels.privateEmail} value={employee.privateEmail} fallback={labels.notRecorded} isEmail />
         <DataItem label={labels.privateMobile} value={employee.privateMobile} fallback={labels.notRecorded} />
-        <DataItem label={labels.workEmail} value={employee.workEmail} fallback={labels.notRecorded} />
+        <DataItem label={labels.workEmail} value={employee.workEmail} fallback={labels.notRecorded} isEmail />
         <DataItem label={labels.workMobile} value={employee.workMobile} fallback={labels.notRecorded} />
       </dl>
       {capabilities.canReadBsn && <BsnReveal employeeId={employee.id} labels={labels} />}
@@ -335,11 +339,11 @@ function BsnReveal({ employeeId, labels }: { employeeId: string; labels: Employe
   )
 }
 
-function AddressesPanel({ employeeId, addresses, canManage, locale, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; labels: EmployeePersonCardLabels }) {
-  const formatDate = (date: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${date}T00:00:00Z`))
+function AddressesPanel({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
+  const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
   return (
     <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<Home className="h-5 w-5" />} title={labels.addressesTitle} />{canManage && <ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} labels={labels} /></ResourceDetails>}</div>
-      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.street} {address.houseNumber}{address.addition ? ` ${address.addition}` : ''}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{address.postalCode} {address.city} · {address.countryCode}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(address.validFrom)} — {address.validUntil ? formatDate(address.validUntil) : labels.current}</p></li>)}</ol>}
+      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.street} {address.houseNumber}{address.addition ? ` ${address.addition}` : ''}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{address.postalCode} {address.city} · {address.countryCode}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></li>)}</ol>}
     </div>
   )
 }
@@ -360,21 +364,21 @@ function BankAccountForm({ employeeId, labels }: { employeeId: string; labels: E
   return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.iban}><input name="iban" required autoComplete="off" className="form-field uppercase" /></Field><Field label={labels.bic}><input name="bic" maxLength={11} className="form-field uppercase" /></Field><Field label={labels.accountHolder}><input name="accountHolder" required className="form-field" /></Field><Field label={labels.description}><input name="description" className="form-field" /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" className="h-4 w-4 accent-primary" />{labels.makePrimary}</label><FormFooter state={state} submit={labels.saveBank} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
 }
 
-function RelationsPanel({ employeeId, relations, canManage, labels }: { employeeId: string; relations: NonNullable<EmployeeDetailViewModel['relations']>; canManage: boolean; labels: EmployeePersonCardLabels }) {
-  const typeLabels: Record<EmployeeRelation['relationType'], string> = { PARTNER: labels.relationPartner, CHILD: labels.relationChild, PARENT: labels.relationParent, SIBLING: labels.relationSibling, DOCTOR: labels.relationDoctor, DENTIST: labels.relationDentist, OTHER: labels.relationOther }
-  return <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsTitle} />{canManage && <ResourceDetails title={labels.addRelation}><RelationForm employeeId={employeeId} labels={labels} /></ResourceDetails>}</div>{relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} text={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-3 lg:grid-cols-2">{relations.map((relation) => <li key={relation.id} className="rounded-xl border bg-background p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{relation.firstName} {relation.prefix} {relation.lastName}</p>{relation.isEmergencyContact && <span className="status-chip bg-warning-surface text-warning">{labels.emergencyContact}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType]}</p>{(relation.mobile || relation.phone || relation.email) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{(relation.mobile || relation.phone) && <span className="flex items-center gap-1.5"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{relation.mobile ?? relation.phone}</span>}{relation.email && <span className="flex items-center gap-1.5"><Mail aria-hidden="true" className="h-3.5 w-3.5" />{relation.email}</span>}</div>}</li>)}</ul>}</div>
+function RelationsPanel({ employeeId, relations, relationTypes, locale, canManage, labels }: { employeeId: string; relations: NonNullable<EmployeeDetailViewModel['relations']>; relationTypes: EmployeeRelationTypeOption[]; locale: string; canManage: boolean; labels: EmployeePersonCardLabels }) {
+  const typeLabels: Record<EmployeeRelation['relationType'], string> = Object.fromEntries(relationTypes.map((item) => [item.code, locale.startsWith('en') ? item.nameEn : item.nameNl])) as Record<EmployeeRelation['relationType'], string>
+  return <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsTitle} />{canManage && <ResourceDetails title={labels.addRelation}><RelationForm employeeId={employeeId} relationTypes={relationTypes} locale={locale} labels={labels} /></ResourceDetails>}</div>{relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} text={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-3 lg:grid-cols-2">{relations.map((relation) => <li key={relation.id} className="rounded-xl border bg-background p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{relation.firstName} {relation.prefix} {relation.lastName}</p>{relation.isEmergencyContact && <span className="status-chip bg-warning-surface text-warning">{labels.emergencyContact}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType] ?? relation.relationType}</p>{(relation.mobile || relation.phone || relation.email) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{(relation.mobile || relation.phone) && <span className="flex items-center gap-1.5"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{relation.mobile ?? relation.phone}</span>}{relation.email && <span className="flex items-center gap-1.5"><Mail aria-hidden="true" className="h-3.5 w-3.5" /><EmailLink email={relation.email} /></span>}</div>}</li>)}</ul>}</div>
 }
 
-function RelationForm({ employeeId, labels }: { employeeId: string; labels: EmployeePersonCardLabels }) {
+function RelationForm({ employeeId, relationTypes, locale, labels }: { employeeId: string; relationTypes: EmployeeRelationTypeOption[]; locale: string; labels: EmployeePersonCardLabels }) {
   const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const succeeded = await runJsonMutation(setState, `/api/employees/${employeeId}/relations`, 'POST', { relationType: value(form, 'relationType'), isEmergencyContact: form.get('isEmergencyContact') === 'on', firstName: nullable(value(form, 'firstName')), initials: null, prefix: nullable(value(form, 'prefix')), lastName: value(form, 'lastName'), gender: null, birthDate: null, phone: nullable(value(form, 'phone')), mobile: nullable(value(form, 'mobile')), email: nullable(value(form, 'email')), notes: nullable(value(form, 'notes')) }); if (!succeeded) return; formElement.reset(); router.refresh() }
-  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.relationType}><select name="relationType" className="form-field"><option value="PARTNER">{labels.relationPartner}</option><option value="CHILD">{labels.relationChild}</option><option value="PARENT">{labels.relationParent}</option><option value="SIBLING">{labels.relationSibling}</option><option value="DOCTOR">{labels.relationDoctor}</option><option value="DENTIST">{labels.relationDentist}</option><option value="OTHER">{labels.relationOther}</option></select></Field><label className="flex items-center gap-2 self-end pb-3 text-sm font-medium"><input name="isEmergencyContact" type="checkbox" className="h-4 w-4 accent-primary" />{labels.emergencyContact}</label><Field label={labels.firstName}><input name="firstName" className="form-field" /></Field><Field label={labels.birthNamePrefix}><input name="prefix" className="form-field" /></Field><Field label={labels.lastName}><input name="lastName" required className="form-field" /></Field><Field label={labels.mobile}><input name="mobile" type="tel" className="form-field" /></Field><Field label={labels.privatePhone}><input name="phone" type="tel" className="form-field" /></Field><Field label={labels.email}><input name="email" type="email" className="form-field" /></Field><Field label={labels.notes} className="sm:col-span-2"><textarea name="notes" rows={3} className="form-field min-h-24" /></Field><FormFooter state={state} submit={labels.saveRelation} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
+  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.relationType}><select name="relationType" className="form-field">{relationTypes.map((item) => <option key={item.code} value={item.code}>{locale.startsWith('en') ? item.nameEn : item.nameNl}</option>)}</select></Field><label className="flex items-center gap-2 self-end pb-3 text-sm font-medium"><input name="isEmergencyContact" type="checkbox" className="h-4 w-4 accent-primary" />{labels.emergencyContact}</label><Field label={labels.firstName}><input name="firstName" className="form-field" /></Field><Field label={labels.birthNamePrefix}><input name="prefix" className="form-field" /></Field><Field label={labels.lastName}><input name="lastName" required className="form-field" /></Field><Field label={labels.mobile}><input name="mobile" type="tel" className="form-field" /></Field><Field label={labels.privatePhone}><input name="phone" type="tel" className="form-field" /></Field><Field label={labels.email}><input name="email" type="email" className="form-field" /></Field><Field label={labels.notes} className="sm:col-span-2"><textarea name="notes" rows={3} className="form-field min-h-24" /></Field><FormFooter state={state} submit={labels.saveRelation} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
 }
 
 function ResourceDetails({ title, children }: { title: string; children: ReactNode }) { return <details className="group w-full rounded-xl border bg-surface-raised p-4 sm:w-auto sm:min-w-[28rem]"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-primary">{title}<ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>{children}</details> }
 function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) { return <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">{icon}</span><h2 className="text-lg font-semibold">{title}</h2></div> }
 function EmptyState({ icon, text }: { icon: ReactNode; text: string }) { return <div className="mt-6 rounded-xl border border-dashed bg-surface-raised px-5 py-10 text-center text-muted-foreground"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-muted">{icon}</span><p className="mt-3 text-sm">{text}</p></div> }
 function Field({ label, className = '', children }: { label: string; className?: string; children: ReactNode }) { return <label className={`grid gap-1.5 text-sm font-medium ${className}`}>{label}{children}</label> }
-function DataItem({ label, value, fallback = '' }: { label: string; value: string | null | undefined; fallback?: string }) { return <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-medium">{value || fallback}</dd></div> }
+function DataItem({ label, value, fallback = '', isEmail = false }: { label: string; value: string | null | undefined; fallback?: string; isEmail?: boolean }) { return <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-medium">{value ? (isEmail ? <EmailLink email={value} /> : value) : fallback}</dd></div> }
 function InlineState({ kind, children }: { kind: 'saved' | 'failed'; children: ReactNode }) { return <span role={kind === 'failed' ? 'alert' : 'status'} className={`inline-flex items-center gap-1.5 text-sm ${kind === 'saved' ? 'text-success' : 'text-destructive'}`}>{kind === 'saved' ? <Check aria-hidden="true" className="h-4 w-4" /> : <AlertTriangle aria-hidden="true" className="h-4 w-4" />}{children}</span> }
 function FormFooter({ state, submit, saving, saved, failed }: { state: MutationState; submit: string; saving: string; saved: string; failed: string }) { return <div className="flex flex-wrap items-center gap-3 border-t pt-4 sm:col-span-full"><button type="submit" disabled={state === 'saving'} className="button-primary gap-2">{state === 'saving' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{state === 'saving' ? saving : submit}</button>{state === 'saved' && <InlineState kind="saved">{saved}</InlineState>}{state === 'failed' && <InlineState kind="failed">{failed}</InlineState>}</div> }

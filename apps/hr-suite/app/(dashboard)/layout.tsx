@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
-import type { SettingsModalLabels } from '@/components/layout/settings-modal'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { getAdministrationSwitcherMode } from '@/lib/context/administration-context'
@@ -10,6 +9,9 @@ import { APP_VERSION } from '@/lib/app-version'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { createClient } from '@/lib/supabase/server'
 import { listMyReminders } from '@/lib/reminders/reminder-service'
+import { getEnabledTenantModules } from '@/lib/modules/module-service'
+import { HeRaFloating } from '@/components/hera/hera-floating'
+import { createHeRaLabels } from './hera/page'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const supabase = await createClient()
@@ -30,76 +32,19 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     try { await requirePermission(permission); return true }
     catch (error) { if (error instanceof AuthorizationError) return false; throw error }
   }
-  const [canReadDepartments, canReadEmployees, canReadAuthorization, canManageCustomFields, canReadJobs, canReadSalaryStructures, canReadHrCalendar] = await Promise.all([
-    can('department:read'), can('employee:read'), can('authorization:read'), can('custom-fields:write'), can('job-catalog:read'), can('salary-structure:read'), can('hr-calendar:read'),
+  const [canReadEmployees, canReadHrCalendar, canReadSettings] = await Promise.all([
+    can('employee:read'), can('hr-calendar:read'), can('settings:read'),
   ])
 
-  const [preferences, common, navigation, settings, auth, reminderMessages, reminders] = await Promise.all([
+  const [preferences, common, navigation, auth, reminderMessages, reminders, enabledModules] = await Promise.all([
     getUserPreferences(),
     getTranslator('common'),
     getTranslator('navigation'),
-    getTranslator('settings'),
     getTranslator('auth'),
     getTranslator('reminders'),
     listMyReminders(20).catch(() => []),
+    getEnabledTenantModules(),
   ])
-  const settingsLabels: SettingsModalLabels = {
-    open: settings('open'),
-    close: settings('close'),
-    title: settings('title'),
-    subtitle: settings('subtitle'),
-    language: settings('language'),
-    languageHelp: settings('languageHelp'),
-    dutch: settings('dutch'),
-    english: settings('english'),
-    theme: settings('theme'),
-    themeHelp: settings('themeHelp'),
-    clock: settings('clock'),
-    clockHelp: settings('clockHelp'),
-    analog: settings('analog'),
-    digital: settings('digital'),
-    hidden: settings('hidden'),
-    clockStyle: settings('clockStyle'),
-    classic: settings('classic'),
-    minimal: settings('minimal'),
-    liquid: settings('liquid'),
-    appearanceTab: settings('appearanceTab'),
-    timeHubTab: settings('timeHubTab'),
-    clockPreview: settings('clockPreview'),
-    save: common('save'),
-    cancel: common('cancel'),
-    saving: settings('saving'),
-    saved: settings('saved'),
-    saveFailed: settings('saveFailed'),
-    invalid: settings('invalid'),
-    unauthenticated: settings('unauthenticated'),
-    themes: {
-      'liquid-navy': {
-        name: settings('themes.liquid-navy'),
-        description: settings('themeDescriptions.liquid-navy'),
-      },
-      noordzee: {
-        name: settings('themes.noordzee'),
-        description: settings('themeDescriptions.noordzee'),
-      },
-      bos: {
-        name: settings('themes.bos'),
-        description: settings('themeDescriptions.bos'),
-      },
-      'warm-zand': {
-        name: settings('themes.warm-zand'),
-        description: settings('themeDescriptions.warm-zand'),
-      },
-      aubergine: {
-        name: settings('themes.aubergine'),
-        description: settings('themeDescriptions.aubergine'),
-      },
-      nacht: {
-        name: settings('themes.nacht'),
-        description: settings('themeDescriptions.nacht'),
-      },
-    },
-  }
 
   return (
     <div className="flex h-dvh min-h-0 overflow-hidden bg-background">
@@ -107,24 +52,18 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         activeAdministrationId={context.administration?.id ?? null}
         administrations={context.administrations}
         administrationSwitcherMode={getAdministrationSwitcherMode(context)}
-        canReadDepartments={canReadDepartments}
         canReadEmployees={canReadEmployees}
-        canReadAuthorization={canReadAuthorization}
-        canManageCustomFields={canManageCustomFields}
-        canReadMasterData={canReadJobs || canReadSalaryStructures}
+        canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
         email={email}
         labels={{
           appName: common('appName'),
           dashboard: navigation('dashboard'),
           version: `${common('version')} ${APP_VERSION}`,
-          hera: navigation('hera'),
-          departments: navigation('departments'),
           organizationChart: navigation('organizationChart'),
           employees: navigation('employees'),
-          authorization: navigation('authorization'),
-          customFields: navigation('customFields'),
-          masterData: navigation('masterData'),
+          settings: navigation('settings'),
+          personalSettings: navigation('personalSettings'),
           hrCalendar: navigation('hrCalendar'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
@@ -151,10 +90,11 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           snooze: reminderMessages('snooze'),
           close: reminderMessages('close'),
         }}
-        settingsLabels={settingsLabels}
+        enabledModules={enabledModules}
         tenantName={context.tenant.name}
       />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0">{children}</main>
+      {enabledModules.includes('HERA') ? <HeRaFloating labels={createHeRaLabels(preferences.locale)} /> : null}
     </div>
   )
 }

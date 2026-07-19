@@ -3,7 +3,7 @@
   "timeHubTab": "Tijdhub",
   "clockPreview": "Voorbeeld",
   "title": "Persoonlijke instellingen",
-  "subtitle": "Je voorkeuren gelden in iedere klantomgeving.",
+  "personalEyebrow": "Mijn voorkeuren",
   "open": "Open persoonlijke instellingen",
   "close": "Sluit persoonlijke instellingen",
   "language": "Taal",
@@ -18,6 +18,19 @@
   "digital": "Digitaal",
   "hidden": "Verborgen",
   "clockStyle": "Analoge stijl",
+  "dateFormat": "Datumnotatie",
+  "dateFormatHelp": "Kies hoe datums in de applicatie worden weergegeven.",
+  "dmy": "Dag-maand-jaar (31-12-2026)",
+  "mdy": "Maand-dag-jaar (12/31/2026)",
+  "ymd": "Jaar-maand-dag (2026-12-31)",
+  "timeFormat": "Tijdnotatie",
+  "timeFormatHelp": "Kies of tijden met 24 uur of met AM/PM worden weergegeven.",
+  "time24": "24-uursnotatie",
+  "time12": "12-uursnotatie (AM/PM)",
+  "weekNumbering": "Weeknummering",
+  "weekNumberingHelp": "Kies welk systeem wordt gebruikt voor weeknummers in de kalender.",
+  "weekNumberingInternational": "Internationaal (week 1 bevat 1 januari)",
+  "weekNumberingIso": "Nederlands / ISO (week 1 bevat 4 januari)",
   "classic": "Klassiek",
   "minimal": "Minimaal",
   "liquid": "Liquid",
@@ -26,6 +39,53 @@
   "saveFailed": "Opslaan is niet gelukt.",
   "invalid": "Controleer je taal- en themakeuze.",
   "unauthenticated": "Log opnieuw in om je instellingen op te slaan.",
+  "employeeSettings": { "title": "Medewerkerinstellingen", "description": "Hier komen later de instellingen voor medewerkers. Het medewerkersbeheer zelf blijft bereikbaar via Medewerkers in het hoofdmenu.", "comingSoon": "Komt later", "close": "Sluiten" },
+  "admin": {
+    "eyebrow": "HR-beheer",
+    "title": "Instellingen",
+    "backToOverview": "Terug naar instellingen",
+    "sections": { "organization": "Organisatie & toegang", "hrSetup": "HR-inrichting", "platform": "Platform & uitbreidingen" },
+    "tiles": {
+      "authorization": "Rollen en autorisaties", "authorizationDescription": "Beheer rollen, rechten, scopes en het grafische autorisatieoverzicht.",
+      "organization": "Afdelingen", "organizationDescription": "Richt afdelingen, hiërarchie en managers in.",
+      "employees": "Medewerkers", "employeesDescription": "Open het medewerkersbeheer en de personeelskaarten.",
+      "customFields": "Vrije velden", "customFieldsDescription": "Beheer aanvullende velden voor medewerkers en dienstverbanden.",
+      "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Beheer tenantbrede cloud tags die in meerdere modules hergebruikt kunnen worden.",
+      "jobs": "Functies en functiegroepen", "jobsDescription": "Onderhoud functies en functiegroepen per administratie en door de tijd.",
+      "starPerformers": "Star performers", "starPerformersDescription": "Beoordeel per functie of functiegroep welke medewerkers cruciaal zijn en koppel expertise-tags.",
+      "pendingActivation": "Nog niet actief",
+      "pendingActivationDescription": "Deze tegel wordt volledig actief zodra de bijbehorende Supabase-migratie is uitgevoerd.",
+      "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
+      "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe.",
+      "masterData": "Stamtabellen", "masterDataDescription": "Beheer interne redenen en tenantbrede stamtabellen.",
+      "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.",
+      "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
+    }
+  },
+  "modules": {
+    "title": "Actieve modules", "subtitle": "Kies welke extra modules in de hele klantomgeving beschikbaar zijn. Kernfunctionaliteit blijft altijd actief.",
+    "saved": "Modules opgeslagen.", "failed": "Opslaan is niet gelukt.", "comingSoon": "Komt later",
+    "items": {
+      "HERA": { "name": "HeRa", "description": "De beveiligde HR-assistent voor analyse en begeleide acties." },
+      "DOCUMENTS": { "name": "Documentdossiers", "description": "Documenten, metadata, doelgroepen en vervalreminders per medewerker." },
+      "REMINDERS": { "name": "Reminders", "description": "Persoonlijke en HR-reminders met rollen, organogram en personen als doelgroep." },
+      "LEAVE": { "name": "Verlof", "description": "Verlofregistratie en verlofsaldi in de medewerkerskalender." },
+      "ABSENCE": { "name": "Verzuim", "description": "Verzuimdossiers en signalering in de kalender." },
+      "ASSETS": { "name": "Bedrijfsmiddelen", "description": "Uitgifte en inname van middelen per medewerker." },
+      "WORKFLOWS": { "name": "Workflows", "description": "Herhaalbare HR-processen voor in-, door- en uitstroom." },
+      "TRAINING": { "name": "Opleidingen", "description": "Opleidingen, certificaten en geldigheid per medewerker." }
+    }
+  },
+  "dashboardWidgets": {
+    "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaan…", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt; de vorige instelling is hersteld.", "enabled": "Widget activeren", "active": "Actief", "inactive": "Niet actief", "roles": "Beschikbaar voor rollen", "allRoles": "Zonder selectie is de widget beschikbaar voor alle rollen met de vereiste rechten.", "noRoles": "Geen rollen beschikbaar.",
+    "categories": { "CORE_HR": "Kern HR", "EMPLOYMENT": "Dienstverband", "DOCUMENTS": "Documenten", "COMPENSATION": "Beloning", "ORGANIZATION_TIME": "Organisatie & tijd" }
+  },
+  "holidays": {
+    "title": "Feestdagen", "subtitle": "Importeer landelijke feestdagen per kalenderjaar en land. De import wordt als snapshot opgeslagen; lokale en uitgesloten dagen blijven bij herimport behouden.",
+    "year": "Kalenderjaar", "country": "Landcode", "preview": "Voorbeeld ophalen", "import": "Feestdagen importeren", "imported": "De feestdagen zijn geïmporteerd.", "providerFailed": "De feestdagenprovider is nu niet bereikbaar of de invoer is ongeldig.",
+    "localTitle": "Lokale feestdag toevoegen", "localName": "Naam", "date": "Datum", "add": "Lokale dag toevoegen",
+    "calendarTitle": "Feestdagen in dit kalenderjaar", "empty": "Nog geen feestdagen voor dit jaar.", "api": "Landelijke import", "manual": "Lokaal toegevoegd", "included": "In kalender", "excluded": "Uitgesloten"
+  },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "Noordzee",

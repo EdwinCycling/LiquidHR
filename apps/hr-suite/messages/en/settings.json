@@ -3,7 +3,7 @@
   "timeHubTab": "Time Hub",
   "clockPreview": "Preview",
   "title": "Personal settings",
-  "subtitle": "Your preferences apply in every customer environment.",
+  "personalEyebrow": "My preferences",
   "open": "Open personal settings",
   "close": "Close personal settings",
   "language": "Language",
@@ -18,6 +18,19 @@
   "digital": "Digital",
   "hidden": "Hidden",
   "clockStyle": "Analog style",
+  "dateFormat": "Date format",
+  "dateFormatHelp": "Choose how dates are displayed throughout the application.",
+  "dmy": "Day-month-year (31-12-2026)",
+  "mdy": "Month-day-year (12/31/2026)",
+  "ymd": "Year-month-day (2026-12-31)",
+  "timeFormat": "Time format",
+  "timeFormatHelp": "Choose whether times use a 24-hour clock or AM/PM.",
+  "time24": "24-hour format",
+  "time12": "12-hour format (AM/PM)",
+  "weekNumbering": "Week numbering",
+  "weekNumberingHelp": "Choose which system is used for calendar week numbers.",
+  "weekNumberingInternational": "International (week 1 contains 1 January)",
+  "weekNumberingIso": "Dutch / ISO (week 1 contains 4 January)",
   "classic": "Classic",
   "minimal": "Minimal",
   "liquid": "Liquid",
@@ -26,6 +39,53 @@
   "saveFailed": "Could not save your settings.",
   "invalid": "Check your language and theme selection.",
   "unauthenticated": "Sign in again to save your settings.",
+  "employeeSettings": { "title": "Employee settings", "description": "Employee settings will be added here later. Employee management remains available through Employees in the main menu.", "comingSoon": "Coming later", "close": "Close" },
+  "admin": {
+    "eyebrow": "HR administration",
+    "title": "Settings",
+    "backToOverview": "Back to settings",
+    "sections": { "organization": "Organization & access", "hrSetup": "HR setup", "platform": "Platform & extensions" },
+    "tiles": {
+      "authorization": "Roles and authorization", "authorizationDescription": "Manage roles, permissions, scopes and the graphical authorization overview.",
+      "organization": "Departments", "organizationDescription": "Configure departments, hierarchy and managers.",
+      "employees": "Employees", "employeesDescription": "Open employee management and employee cards.",
+      "customFields": "Custom fields", "customFieldsDescription": "Manage additional fields for employees and employments.",
+      "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Manage tenant-wide cloud tags that can be reused across multiple modules.",
+      "jobs": "Jobs and job groups", "jobsDescription": "Maintain jobs and job groups per administration over time.",
+      "starPerformers": "Star performers", "starPerformersDescription": "Assess which employees are crucial per job or job group and assign expertise tags.",
+      "pendingActivation": "Not active yet",
+      "pendingActivationDescription": "This tile becomes fully active once the related Supabase migration has been applied.",
+      "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
+      "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
+      "masterData": "Master data", "masterDataDescription": "Manage internal reasons and tenant-wide master data.",
+      "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.",
+      "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role."
+    }
+  },
+  "modules": {
+    "title": "Active modules", "subtitle": "Choose which extra modules are available across the customer environment. Core functionality always remains active.",
+    "saved": "Modules saved.", "failed": "Could not save modules.", "comingSoon": "Coming soon",
+    "items": {
+      "HERA": { "name": "HeRa", "description": "The secure HR assistant for analysis and guided actions." },
+      "DOCUMENTS": { "name": "Document files", "description": "Documents, metadata, audiences and expiry reminders per employee." },
+      "REMINDERS": { "name": "Reminders", "description": "Personal and HR reminders targeting roles, organization chart and people." },
+      "LEAVE": { "name": "Leave", "description": "Leave registration and balances in the employee calendar." },
+      "ABSENCE": { "name": "Absence", "description": "Absence cases and calendar indicators." },
+      "ASSETS": { "name": "Assets", "description": "Issue and return company assets per employee." },
+      "WORKFLOWS": { "name": "Workflows", "description": "Repeatable HR processes for onboarding, changes and offboarding." },
+      "TRAINING": { "name": "Training", "description": "Training, certificates and validity per employee." }
+    }
+  },
+  "dashboardWidgets": {
+    "title": "Dashboard widgets", "subtitle": "Enable data-driven widgets and choose which roles can use them.", "save": "Save", "saving": "Saving…", "saved": "Saved.", "failed": "Could not save; the previous setting was restored.", "enabled": "Enable widget", "active": "Active", "inactive": "Inactive", "roles": "Available for roles", "allRoles": "Without a selection, the widget is available to all roles with the required permissions.", "noRoles": "No roles available.",
+    "categories": { "CORE_HR": "Core HR", "EMPLOYMENT": "Employment", "DOCUMENTS": "Documents", "COMPENSATION": "Compensation", "ORGANIZATION_TIME": "Organization & time" }
+  },
+  "holidays": {
+    "title": "Public holidays", "subtitle": "Import national holidays by calendar year and country. The import is stored as a snapshot; local and excluded dates are preserved when re-importing.",
+    "year": "Calendar year", "country": "Country code", "preview": "Load preview", "import": "Import holidays", "imported": "The holidays have been imported.", "providerFailed": "The holiday provider is currently unavailable or the input is invalid.",
+    "localTitle": "Add local holiday", "localName": "Name", "date": "Date", "add": "Add local date",
+    "calendarTitle": "Holidays in this calendar year", "empty": "No holidays for this year yet.", "api": "National import", "manual": "Added locally", "included": "In calendar", "excluded": "Excluded"
+  },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "North Sea",

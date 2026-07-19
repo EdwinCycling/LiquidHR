@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultDashboardWidgets, validateDashboardLayout } from './service'
+import { defaultDashboardWidgets, newDashboardWidgets, validateDashboardLayout } from './service'
 
 describe('personal dashboard service helpers', () => {
   it('maakt één standaardindeling met de vier goedgekeurde widgets', () => {
@@ -13,5 +13,9 @@ describe('personal dashboard service helpers', () => {
 
   it('weigert een indeling met dubbele posities', () => {
     expect(() => validateDashboardLayout({ widgets: [{ type: 'WELCOME', position: 0 }, { type: 'MY_REMINDERS', position: 0 }] })).toThrow('DASHBOARD_LAYOUT_INVALID')
+  })
+
+  it('maakt een nieuw dashboard leeg aan', () => {
+    expect(newDashboardWidgets()).toEqual([])
   })
 })

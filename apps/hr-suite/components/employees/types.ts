@@ -43,6 +43,7 @@ export interface EmployeeProfile {
   avatarUrl?: string | null
   originalHireDate?: string | null
   isActive?: boolean
+  isArchived?: boolean
 }
 
 export interface EmployeeAddress {
@@ -69,7 +70,7 @@ export interface EmployeeBankAccount {
 
 export interface EmployeeRelation {
   id: string
-  relationType: 'PARTNER' | 'CHILD' | 'PARENT' | 'SIBLING' | 'DOCTOR' | 'DENTIST' | 'OTHER'
+  relationType: string
   isEmergencyContact: boolean
   firstName: string | null
   initials: string | null
@@ -83,6 +84,12 @@ export interface EmployeeRelation {
   notes: string | null
 }
 
+export interface EmployeeRelationTypeOption {
+  code: string
+  nameNl: string
+  nameEn: string
+}
+
 export interface EmployeeDetailViewModel {
   employee: EmployeeProfile
   employments: Employment[]
@@ -90,6 +97,7 @@ export interface EmployeeDetailViewModel {
   addresses?: EmployeeAddress[]
   bankAccounts?: EmployeeBankAccount[]
   relations?: EmployeeRelation[]
+  relationTypes?: EmployeeRelationTypeOption[]
   capabilities?: EmployeeCapabilities
 }
 

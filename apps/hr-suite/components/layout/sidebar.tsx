@@ -2,30 +2,23 @@
 
 import Link from 'next/link'
 import {
-  Building2,
   CalendarRange,
-  Database,
   LayoutDashboard,
   LogOut,
   Menu,
   Network,
   PanelLeftClose,
   PanelLeftOpen,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
+  Settings,
   Users,
   X,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
+import { EmailLink } from '@/components/shared/email-link'
 import { Clock } from '@/components/layout/clock'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
-import {
-  SettingsModal,
-  type SettingsModalLabels,
-} from '@/components/layout/settings-modal'
 import type {
   AdministrationContextOption,
   AdministrationSwitcherMode,
@@ -33,18 +26,16 @@ import type {
 import type { UserPreferences } from '@/lib/preferences/user-preferences'
 import type { Locale } from '@/lib/i18n/config'
 import type { ReminderItem } from '@/lib/reminders/reminder-service'
+import type { ToggleableModuleCode } from '@/lib/modules/module-catalog'
 
 interface SidebarLabels {
   appName: string
   dashboard: string
   version: string
-  departments: string
-  hera: string
   organizationChart: string
   employees: string
-  authorization: string
-  customFields: string
-  masterData: string
+  settings: string
+  personalSettings: string
   hrCalendar: string
   navigation: string
   openMenu: string
@@ -60,11 +51,8 @@ interface SidebarLabels {
 
 interface SidebarProps {
   email: string
-  canReadDepartments: boolean
   canReadEmployees: boolean
-  canReadAuthorization: boolean
-  canManageCustomFields: boolean
-  canReadMasterData: boolean
+  canReadSettings: boolean
   canReadHrCalendar: boolean
   tenantName: string
   activeAdministrationId: string | null
@@ -72,7 +60,7 @@ interface SidebarProps {
   administrationSwitcherMode: AdministrationSwitcherMode
   labels: SidebarLabels
   preferences: UserPreferences
-  settingsLabels: SettingsModalLabels
+  enabledModules: ToggleableModuleCode[]
   reminderLabels: TimeHubLabels
   reminders: ReminderItem[]
   locale: Locale
@@ -80,11 +68,8 @@ interface SidebarProps {
 
 export function Sidebar({
   email,
-  canReadDepartments,
   canReadEmployees,
-  canReadAuthorization,
-  canManageCustomFields,
-  canReadMasterData,
+  canReadSettings,
   canReadHrCalendar,
   tenantName,
   activeAdministrationId,
@@ -92,7 +77,7 @@ export function Sidebar({
   administrationSwitcherMode,
   labels,
   preferences,
-  settingsLabels,
+  enabledModules,
   reminderLabels,
   reminders,
   locale,
@@ -102,14 +87,10 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false)
   const links = [
     { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true },
-    { href: '/hera', label: labels.hera, icon: Sparkles, visible: true },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
-    { href: '/departments', label: labels.departments, icon: Building2, visible: canReadDepartments },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true },
-    { href: '/authorization', label: labels.authorization, icon: ShieldCheck, visible: canReadAuthorization },
-    { href: '/custom-fields', label: labels.customFields, icon: SlidersHorizontal, visible: canManageCustomFields },
-    { href: '/master-data/jobs', label: labels.masterData, icon: Database, visible: canReadMasterData },
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar },
+    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings },
   ]
 
   return (
@@ -177,20 +158,15 @@ export function Sidebar({
 
         <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
           <div className={collapsed ? 'grid place-items-center gap-2' : 'flex flex-col gap-4'} title={collapsed ? labels.timeHub : undefined}>
-            <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} />
-            <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} />
+            <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} />
+            {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} /> : null}
           </div>
         </div>
 
         <div className="shrink-0 border-t border-sidebar-border p-3">
-          <SettingsModal
-            collapsed={collapsed}
-            labels={settingsLabels}
-            onBeforeOpen={() => setMobileOpen(false)}
-            preferences={preferences}
-          />
+          <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => setMobileOpen(false)} title={collapsed ? labels.personalSettings : undefined}><Settings aria-hidden="true" className="shrink-0" size={18} />{!collapsed ? <span>{labels.personalSettings}</span> : null}</Link>
           <div className={`mt-2 border-t border-sidebar-border pt-3 ${collapsed ? 'flex justify-center' : ''}`}>
-            {!collapsed ? <p className="truncate px-3 text-xs text-sidebar-muted">{email}</p> : null}
+            {!collapsed ? <EmailLink className="block truncate px-3 text-xs text-sidebar-muted hover:text-sidebar-foreground hover:underline" email={email} /> : null}
             <form action="/auth/signout" method="post">
               <button aria-label={labels.signOut} className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground ${collapsed ? 'justify-center' : 'w-full'}`} title={collapsed ? labels.signOut : undefined} type="submit">
                 <LogOut aria-hidden="true" className="shrink-0" size={18} />

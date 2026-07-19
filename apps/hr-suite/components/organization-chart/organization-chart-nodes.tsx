@@ -8,6 +8,8 @@ import type { OrganizationChartNode } from '@/lib/organization-chart/types'
 
 export interface OrganizationChartLabels {
   employees: string
+  groupedEmployees: string
+  rootEmployees: string
   manager: string
   managerInherited: string
   managerNone: string
@@ -17,6 +19,7 @@ export interface OrganizationChartLabels {
   openEmployee: string
   administrationNode: string
   departmentNode: string
+  groupNode: string
   employeeNode: string
 }
 
@@ -100,6 +103,42 @@ function DepartmentCard({ node, labels }: { node: Extract<OrganizationChartNode,
   )
 }
 
+function GroupCard({ node, labels }: { node: Extract<OrganizationChartNode, { type: 'group' }>; labels: OrganizationChartLabels }) {
+  const icon = node.groupKind === 'manager-root'
+    ? <UsersRound aria-hidden="true" size={17} />
+    : node.groupKind === 'star-level'
+      ? <Crown aria-hidden="true" size={17} />
+      : <Building2 aria-hidden="true" size={17} />
+
+  return (
+    <article aria-label={`${labels.groupNode}: ${node.title}`} className={`w-full overflow-hidden rounded-2xl border bg-surface shadow-sm transition-[opacity,box-shadow] md:w-64 ${stateClasses(node.matchState)}`}>
+      <div className="h-1 bg-accent-foreground" aria-hidden="true" />
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+            {icon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{labels.groupNode}</p>
+            <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-foreground">{node.title}</h3>
+            {node.subtitle ? <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{node.subtitle}</p> : null}
+          </div>
+          <span className="rounded-full bg-muted px-2 py-1 text-[0.65rem] font-semibold text-muted-foreground">{node.employeeCount}</span>
+        </div>
+        <div className="mt-3 flex items-start gap-2 rounded-xl bg-surface-raised px-3 py-2.5 text-muted-foreground">
+          <UsersRound aria-hidden="true" className="mt-0.5 shrink-0" size={14} />
+          <div className="min-w-0">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em]">
+              {node.groupKind === 'manager-root' ? labels.rootEmployees : labels.groupedEmployees}
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-xs font-medium">{interpolate(labels.employees, { count: node.employeeCount })}</p>
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
 function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, { type: 'employee' }>; labels: OrganizationChartLabels }) {
   const visibleBadges = node.badges.slice(0, 2)
   const extraBadges = node.badges.length - visibleBadges.length
@@ -113,6 +152,7 @@ function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, {
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-foreground">{node.name}</span>
           <span className="mt-0.5 block truncate text-xs text-muted-foreground">{node.jobTitle ?? labels.jobUnknown}</span>
+          <span className="mt-0.5 block truncate text-[0.68rem] text-muted-foreground">{node.departmentName}</span>
         </span>
       </div>
       {node.badges.length > 0 ? (
@@ -128,6 +168,7 @@ function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, {
 export function OrganizationChartNodeCard({ node, labels }: { node: OrganizationChartNode; labels: OrganizationChartLabels }) {
   if (node.type === 'administration') return <AdministrationCard labels={labels} node={node} />
   if (node.type === 'department') return <DepartmentCard labels={labels} node={node} />
+  if (node.type === 'group') return <GroupCard labels={labels} node={node} />
   return <EmployeeCard labels={labels} node={node} />
 }
 
@@ -144,5 +185,6 @@ function FlowNode({ data }: NodeProps<OrganizationFlowNode>) {
 export const organizationChartNodeTypes = {
   administration: FlowNode,
   department: FlowNode,
+  group: FlowNode,
   employee: FlowNode,
 }

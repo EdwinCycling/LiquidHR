@@ -17,6 +17,9 @@ export const getUserPreferences = cache(async (): Promise<UserPreferences> => {
     theme: cookieStore.get(THEME_COOKIE)?.value,
     clockMode: undefined,
     analogClockStyle: undefined,
+    dateFormat: undefined,
+    timeFormat: undefined,
+    weekNumberingSystem: undefined,
   }
   const supabase = await createClient()
   const { data: claimsData } = await supabase.auth.getClaims()
@@ -26,7 +29,7 @@ export const getUserPreferences = cache(async (): Promise<UserPreferences> => {
 
   const { data, error } = await supabase
     .from('user_preferences')
-    .select('locale, theme, clock_mode, analog_clock_style')
+    .select('locale, theme, clock_mode, analog_clock_style, date_format, time_format, week_numbering_system')
     .eq('auth_user_id', userId)
     .maybeSingle()
 
@@ -36,5 +39,8 @@ export const getUserPreferences = cache(async (): Promise<UserPreferences> => {
     theme: data.theme,
     clockMode: data.clock_mode,
     analogClockStyle: data.analog_clock_style,
+    dateFormat: data.date_format,
+    timeFormat: data.time_format,
+    weekNumberingSystem: data.week_numbering_system,
   } : null, cookiePreferences)
 })

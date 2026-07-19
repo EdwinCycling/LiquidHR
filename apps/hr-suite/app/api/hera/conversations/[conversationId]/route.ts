@@ -11,7 +11,7 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
     const context = await requireHeRaContext(); const { conversationId } = await params; const supabase = await createClient()
     const [{ data: conversation, error }, { data: messages, error: messagesError }] = await Promise.all([
       supabase.from('ai_conversations').select('id, title, summary, created_at, updated_at').eq('id', conversationId).eq('tenant_id', context.tenantId).eq('owner_user_id', context.userId).maybeSingle(),
-      supabase.from('ai_messages').select('id, role, content, visible_tool_name, created_at').eq('conversation_id', conversationId).eq('tenant_id', context.tenantId).eq('owner_user_id', context.userId).order('created_at'),
+      supabase.from('ai_messages').select('id, role, content, visible_tool_name, metadata, created_at').eq('conversation_id', conversationId).eq('tenant_id', context.tenantId).eq('owner_user_id', context.userId).order('created_at'),
     ])
     if (error) throw error; if (messagesError) throw messagesError
     if (!conversation) return NextResponse.json({ error: 'HERA_CONVERSATION_NOT_FOUND' }, { status: 404 })

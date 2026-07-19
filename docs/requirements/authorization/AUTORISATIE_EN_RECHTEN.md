@@ -153,3 +153,13 @@ De datamodellen mogen nu worden aangelegd. Automatisch omschakelen wordt pas ge√
 - Organisatieplaatsingen en managementtoewijzingen gebruiken afzonderlijke read/write-functiepunten en effective-dated overlapconstraints.
 - Afwezigheidsbron en regels voor begin/einde, tijdzone en gedeeltelijke afwezigheid.
 - Workflowresolver voor situaties met meerdere geldige rolhouders.
+
+## 9. Beheerinterface
+
+Het autorisatiebeheer bestaat vanaf versie `1.20260718.2` uit drie gescheiden werkruimtes:
+
+1. **Rechten beheren:** zoekbare rollen, functiepunten per categorie, groepsselectie en expliciete opslag/herstel van conceptwijzigingen;
+2. **Grafisch overzicht:** een toegankelijke heatmap met per rol en categorie het aantal toegekende functiepunten ten opzichte van het totaal;
+3. **Toewijzingen:** afzonderlijke formulieren voor organisatieplaatsingen en managementrolhouders.
+
+De grafiek is uitsluitend een projectie van `role_permissions`. Hij verleent geen toegang en visualiseert geen impliciete wildcard. Werkelijke toegang blijft de doorsnede van exact functiepunt, actieve rol, tenant-/administratiecontext, effective dating en organisatiescope. Systeemrollen zijn zichtbaar ter referentie en blijven via de beheerinterface onveranderlijk.

@@ -21,10 +21,11 @@ export class AuthorizationError extends Error {
   readonly status = 403
 }
 
-async function permissionCodesForRoleIds(roleIds: string[]): Promise<string[]> {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient): Promise<string[]> {
   if (roleIds.length === 0) return []
 
-  const supabase = await createClient()
   const { data: rolePermissions, error: rolePermissionsError } = await supabase
     .from('role_permissions')
     .select('permission_id')
@@ -43,10 +44,9 @@ async function permissionCodesForRoleIds(roleIds: string[]): Promise<string[]> {
   return permissions.map((permission) => permission.code)
 }
 
-async function roleCodesForRoleIds(roleIds: string[]): Promise<string[]> {
+async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient): Promise<string[]> {
   if (roleIds.length === 0) return []
 
-  const supabase = await createClient()
   const { data: roles, error } = await supabase
     .from('management_roles')
     .select('code')
@@ -56,14 +56,14 @@ async function roleCodesForRoleIds(roleIds: string[]): Promise<string[]> {
   return roles.map((role) => role.code)
 }
 
-export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
-  const supabase = await createClient()
+export async function requireAuthContext(existingClient?: SupabaseServerClient): Promise<AuthContext> {
+  const supabase = existingClient ?? await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
   const userId = claimsData?.claims?.sub
 
   if (claimsError || !userId) throw new AuthenticationError('Je bent niet ingelogd.')
 
-  const activeContext = await loadActiveContext(userId)
+  const activeContext = await loadActiveContext(userId, supabase)
   const tenantId = activeContext.tenant.id
   const administrationId = activeContext.administration?.id ?? null
 
@@ -116,26 +116,9 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
     ]),
   ]
   const [activeRoles, permissions] = await Promise.all([
-    roleCodesForRoleIds(roleIds),
-    permissionCodesForRoleIds(roleIds),
+    roleCodesForRoleIds(roleIds, supabase),
+    permissionCodesForRoleIds(roleIds, supabase),
   ])
-
-  if (actor && targetEmployeeId === actor.id) {
-    const { data: employeeRole, error: employeeRoleError } = await supabase
-      .from('management_roles')
-      .select('id')
-      .eq('code', 'EMPLOYEE')
-      .is('tenant_id', null)
-      .maybeSingle()
-
-    if (employeeRoleError) throw employeeRoleError
-    const selfPermissions = employeeRole ? await permissionCodesForRoleIds([employeeRole.id]) : []
-    if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
-      throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')
-    }
-  } else if (!permissions.includes(permissionCode)) {
-    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
-  }
 
   return {
     tenantId,
@@ -145,6 +128,30 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
     activeRoles,
     permissions,
   }
+}
+
+export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
+  const supabase = await createClient()
+  const context = await requireAuthContext(supabase)
+
+  if (context.employeeId && targetEmployeeId === context.employeeId) {
+    const { data: employeeRole, error: employeeRoleError } = await supabase
+      .from('management_roles')
+      .select('id')
+      .eq('code', 'EMPLOYEE')
+      .is('tenant_id', null)
+      .maybeSingle()
+
+    if (employeeRoleError) throw employeeRoleError
+    const selfPermissions = employeeRole ? await permissionCodesForRoleIds([employeeRole.id], supabase) : []
+    if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
+      throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')
+    }
+  } else if (!context.permissions.includes(permissionCode)) {
+    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  }
+
+  return context
 }
 
 export function permissionErrorResponse(error: unknown): NextResponse | null {

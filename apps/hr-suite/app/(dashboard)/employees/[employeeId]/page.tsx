@@ -2,6 +2,9 @@ import Link from 'next/link'
 import { ArrowLeft, BriefcaseBusiness, Mail } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
+import { EmailLink } from '@/components/shared/email-link'
+import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
+import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
 import { EmployeeCustomFields } from '@/components/custom-fields/employee-custom-fields'
 import { EmploymentCreateForm } from '@/components/employment/employment-create-form'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
@@ -14,20 +17,26 @@ import {
   getTerminationOptions,
 } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getUserPreferences } from '@/lib/preferences/server'
 import { getEmployeeCustomFields } from '@/lib/custom-fields/service'
 import { getDocumentOptions, listEmployeeDocuments } from '@/lib/documents/document-service'
+import { listEmployeeReminders } from '@/lib/reminders/reminder-service'
+import { EmployeeReminders } from '@/components/employees/employee-reminders'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
+  searchParams: Promise<{ tab?: string; create?: string }>
 }
 
 async function loadPageData(employeeId: string) {
   try {
-    const [detail, customFields, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
+    const [detail, customFields, reminders, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
       getEmployeeEmploymentDetail(employeeId),
       getEmployeeCustomFields(employeeId),
+      listEmployeeReminders(employeeId).catch(() => []),
       permissionAllowed('contract:write', employeeId),
       getLocale(),
+      getUserPreferences(),
       getTranslator('employees'),
       getTranslator('employment'),
       getTranslator('errors'),
@@ -47,7 +56,7 @@ async function loadPageData(employeeId: string) {
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
     ])
-    return [detail, customFields, terminationOptions, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
+    return [detail, customFields, reminders, terminationOptions, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
     throw error
@@ -64,9 +73,11 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
   }
 }
 
-export default async function EmployeeDetailPage({ params }: EmployeeDetailPageProps) {
+export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const [detail, customFields, options, creationOptions, canManageEmployments, locale, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
+  const { tab: requestedTab, create } = await searchParams
+  const tab = requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'reminders' ? requestedTab : 'personal'
+  const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
@@ -81,25 +92,37 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           <div aria-hidden="true" className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-accent opacity-70" />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-bold text-primary-foreground shadow-sm">
-                {detail.employee.firstName.slice(0, 1)}{detail.employee.birthName.slice(0, 1)}
-              </span>
+              <EmployeeAvatarManager employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
               <div className="min-w-0">
                 <p className="eyebrow">{detail.employee.employeeNumber}</p>
                 <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight">{detail.employee.firstName} {detail.employee.birthName}</h1>
               </div>
             </div>
-            <span className="status-chip self-start bg-accent text-accent-foreground sm:self-center">{statusLabel}</span>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+              {detail.employee.isArchived && <span className="status-chip bg-warning-surface text-warning">{tEmployees('archived')}</span>}
+              <span className="status-chip bg-accent text-accent-foreground">{statusLabel}</span>
+              <EmployeeArchiveToggle employeeId={employeeId} archived={detail.employee.isArchived} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed') }} />
+            </div>
           </div>
           <div className="relative mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4" />{detail.employee.workEmail ?? detail.employee.privateEmail ?? tEmployees('noEmail')}</span>
+            <span className="flex items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4" />{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span>
             <span className="flex items-center gap-2"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4" />{tEmployees('employmentCount', { count: detail.employments.length })}</span>
           </div>
         </div>
 
+        <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
+          {(['personal', 'employments', 'reminders', 'documents'] as const).map((item) => {
+            const active = tab === item
+            const label = item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : tEmployees('tabDocuments')
+            return <Link key={item} href={`/employees/${employeeId}?tab=${item}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}>{label}</Link>
+          })}
+        </nav>
+
+        {tab === 'personal' && <>
         <EmployeePersonCard
           detail={detail}
           locale={locale}
+          dateFormat={preferences.dateFormat}
           labels={{
             tabs: { overview: tEmployees('tabOverview'), personal: tEmployees('tabPersonal'), addresses: tEmployees('tabAddresses'), bankAccounts: tEmployees('tabBankAccounts'), relations: tEmployees('tabRelations') },
             overviewTitle: tEmployees('overviewTitle'), contactTitle: tEmployees('contactTitle'), workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'),
@@ -132,10 +155,13 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
         />
 
         <EmployeeCustomFields employeeId={employeeId} fields={customFields} labels={{ title: tCustomFields('employeeTitle'), subtitle: tCustomFields('employeeSubtitle'), save: tCustomFields('save'), saving: tCustomFields('saving'), saved: tCustomFields('saved'), failed: tCustomFields('failed'), readOnly: tCustomFields('readOnly'), yes: tCustomFields('yes'), no: tCustomFields('no') }} />
+        </>}
 
-        {canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), file: tDocuments('file'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), category: tDocuments('category'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), noSelection: tDocuments('noSelection'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), reminderForDepartment: tDocuments('reminderForDepartment'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn') }} />}
+        {tab === 'documents' && canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), uploadAdvanced: tDocuments('uploadAdvanced'), file: tDocuments('file'), fileDropTitle: tDocuments('fileDropTitle'), fileDropHelp: tDocuments('fileDropHelp'), fileSelected: tDocuments('fileSelected'), fileReplace: tDocuments('fileReplace'), fileRemove: tDocuments('fileRemove'), fileRules: tDocuments('fileRules'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), noCloudTags: tDocuments('noCloudTags'), category: tDocuments('category'), requiredFields: tDocuments('requiredFields'), advancedSettings: tDocuments('advancedSettings'), visibleToTitle: tDocuments('visibleToTitle'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), visibilityDefault: tDocuments('visibilityDefault'), reminderTitle: tDocuments('reminderTitle'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn'), employeeVisibilityAllowed: tDocuments('employeeVisibilityAllowed'), employeeVisibilityBlocked: tDocuments('employeeVisibilityBlocked'), additionalRoles: tDocuments('additionalRoles'), additionalDepartments: tDocuments('additionalDepartments'), noExtraVisibility: tDocuments('noExtraVisibility'), noReminderRecipients: tDocuments('noReminderRecipients'), invalidType: tDocuments('invalidType'), invalidSize: tDocuments('invalidSize'), invalidInput: tDocuments('invalidInput'), audienceRequired: tDocuments('audienceRequired'), expiryRequired: tDocuments('expiryRequired'), reminderTargetRequired: tDocuments('reminderTargetRequired'), singleFileOnly: tDocuments('singleFileOnly') }} />}
 
-        <div className={`mt-8 grid gap-8 ${canManageEmployments ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]' : ''}`}>
+        {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} reminders={reminders} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), titleLabel: tEmployees('reminderTitle'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic') }} />}
+
+        {tab === 'employments' && <div className={`mt-8 grid gap-8 ${canManageEmployments ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]' : ''}`}>
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">{tEmployment('title')}</h2>
@@ -144,6 +170,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
             <EmploymentTimeline
               employments={detail.employments}
               locale={locale}
+              dateFormat={preferences.dateFormat}
               options={options}
               canManage={canManageEmployments}
               labels={{
@@ -154,6 +181,9 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                 primary: tEmployment('primary'),
                 employmentNumber: tEmployment('employmentNumber'),
                 openDetail: tEmployment('openDetail'),
+                delete: { title: tEmployment('deleteTitle'), description: tEmployment('deleteDescription'), confirm: tEmployment('deleteConfirm'), cancel: tEmployment('cancel'), failed: tErrors('generic') },
+                indefinite: tEmployment('indefinite'),
+                definite: tEmployment('definite'),
                 terminate: {
                   title: tEmployment('terminate'),
                   lastDay: tEmployment('lastWorkingDay'),
@@ -167,6 +197,9 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
             />
           </section>
           {canManageEmployments && <aside>
+            {create !== '1' ? <Link className="button-primary" href={`/employees/${employeeId}/employments/new`}>{tEmployment('new')}</Link> : <details className="rounded-2xl border bg-surface p-5 shadow-sm" open>
+              <summary className="button-primary inline-flex cursor-pointer list-none">{tEmployment('new')}</summary>
+              <div className="mt-5">
             <EmploymentCreateForm
               employeeId={employeeId}
               options={creationOptions}
@@ -198,8 +231,10 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                 completeSummary: tEmployment('completeSummary'), requiredFields: tEmployment('requiredFields'),
               }}
             />
+              </div>
+            </details>}
           </aside>}
-        </div>
+        </div>}
       </main>
   )
 }

@@ -1,19 +1,24 @@
+import { requireAuthContext, type AuthContext } from '@/lib/auth/permissions'
 import { requireHeRaContext } from '@/lib/hera/request-context'
-import { listMyReminders } from '@/lib/reminders/reminder-service'
 import { createClient } from '@/lib/supabase/server'
 import type { Json } from '@scope/db'
 import { dashboardCreateSchema, dashboardLayoutSchema, type DashboardCreateInput, type DashboardLayoutInput, type DashboardWidgetType } from './schemas'
+import { resolveVisibleDashboardWidgetTypes } from './widget-settings-service'
+import { getWidgetCatalogEntry } from './widget-catalog'
 
 export interface DashboardWidget { id: string; type: DashboardWidgetType; position: number; settings: Record<string, unknown> }
 export interface PersonalDashboard { id: string; name: string; isDefault: boolean; updatedAt: string }
 export interface DashboardMetrics { reminderCount: number; employeeCount: number | null; departmentCount: number | null }
-export interface DashboardView { dashboard: PersonalDashboard; widgets: DashboardWidget[]; metrics: DashboardMetrics }
+export interface DashboardView { dashboard: PersonalDashboard; widgets: DashboardWidget[]; metrics: DashboardMetrics; availableWidgetTypes: DashboardWidgetType[] }
+export interface DashboardRequestScope { context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>> }
+export interface DashboardBootstrap { scope: DashboardRequestScope; dashboards: PersonalDashboard[]; view: DashboardView }
 
 const DEFAULT_WIDGETS: ReadonlyArray<{ type: DashboardWidgetType; position: number }> = [
   { type: 'WELCOME', position: 0 }, { type: 'MY_REMINDERS', position: 1 }, { type: 'ORGANIZATION_OVERVIEW', position: 2 }, { type: 'EMPLOYEE_OVERVIEW', position: 3 },
 ]
 
 export function defaultDashboardWidgets(): Array<{ type: DashboardWidgetType; position: number }> { return DEFAULT_WIDGETS.map((widget) => ({ ...widget })) }
+export function newDashboardWidgets(): Array<{ type: DashboardWidgetType; position: number }> { return [] }
 export function validateDashboardLayout(input: unknown): DashboardLayoutInput {
   const parsed = dashboardLayoutSchema.safeParse(input)
   if (!parsed.success) throw new Error('DASHBOARD_LAYOUT_INVALID')
@@ -24,8 +29,14 @@ function mapDashboard(row: { id: string; name: string; is_default: boolean; upda
   return { id: row.id, name: row.name, isDefault: row.is_default, updatedAt: row.updated_at }
 }
 
-export async function ensurePersonalDashboard(): Promise<PersonalDashboard> {
-  const context = await requireHeRaContext(); const supabase = await createClient()
+export async function createDashboardRequestScope(): Promise<DashboardRequestScope> {
+  const supabase = await createClient()
+  const context = await requireAuthContext(supabase)
+  return { context, supabase }
+}
+
+async function ensurePersonalDashboardInScope(scope: DashboardRequestScope): Promise<PersonalDashboard> {
+  const { context, supabase } = scope
   const { data: existing, error: existingError } = await supabase.from('personal_dashboards').select('id, name, is_default, updated_at').eq('tenant_id', context.tenantId).eq('owner_user_id', context.userId).order('updated_at', { ascending: false }).limit(100)
   if (existingError) throw existingError
   if (existing[0]) return mapDashboard(existing.find((dashboard) => dashboard.is_default) ?? existing[0])
@@ -36,19 +47,27 @@ export async function ensurePersonalDashboard(): Promise<PersonalDashboard> {
   return mapDashboard(created)
 }
 
-export async function listPersonalDashboards(): Promise<PersonalDashboard[]> {
-  await ensurePersonalDashboard(); const context = await requireHeRaContext(); const supabase = await createClient()
+export async function ensurePersonalDashboard(): Promise<PersonalDashboard> {
+  return ensurePersonalDashboardInScope(await createDashboardRequestScope())
+}
+
+async function listPersonalDashboardsInScope(scope: DashboardRequestScope): Promise<PersonalDashboard[]> {
+  await ensurePersonalDashboardInScope(scope)
+  const { context, supabase } = scope
   const { data, error } = await supabase.from('personal_dashboards').select('id, name, is_default, updated_at').eq('tenant_id', context.tenantId).eq('owner_user_id', context.userId).order('updated_at', { ascending: false })
   if (error) throw error
   return data.map(mapDashboard)
+}
+
+export async function listPersonalDashboards(): Promise<PersonalDashboard[]> {
+  return listPersonalDashboardsInScope(await createDashboardRequestScope())
 }
 
 export async function createDashboard(input: DashboardCreateInput): Promise<PersonalDashboard> {
   const parsed = dashboardCreateSchema.parse(input); const context = await requireHeRaContext(); const supabase = await createClient()
   const { data, error } = await supabase.from('personal_dashboards').insert({ tenant_id: context.tenantId, owner_user_id: context.userId, name: parsed.name }).select('id, name, is_default, updated_at').single()
   if (error) throw error
-  const { error: widgetError } = await supabase.from('personal_dashboard_widgets').insert(defaultDashboardWidgets().map((widget) => ({ tenant_id: context.tenantId, dashboard_id: data.id, widget_type: widget.type, position: widget.position, settings: {} })))
-  if (widgetError) throw widgetError
+  // Een dashboard dat de gebruiker zelf aanmaakt begint bewust leeg.
   return mapDashboard(data)
 }
 
@@ -93,21 +112,31 @@ export async function saveDashboardLayout(id: string, input: unknown): Promise<D
   return getDashboardWidgets(id)
 }
 
-async function getDashboardWidgets(id: string): Promise<DashboardWidget[]> {
-  const context = await requireHeRaContext(); const supabase = await createClient()
+async function getDashboardWidgetsInScope(scope: DashboardRequestScope, id: string): Promise<DashboardWidget[]> {
+  const { context, supabase } = scope
   const { data, error } = await supabase.from('personal_dashboard_widgets').select('id, widget_type, position, settings').eq('tenant_id', context.tenantId).eq('dashboard_id', id).order('position')
   if (error) throw error
   return data.map((widget) => ({ id: widget.id, type: widget.widget_type as DashboardWidgetType, position: widget.position, settings: widget.settings as Record<string, unknown> }))
 }
 
-export async function getDashboardView(id?: string): Promise<DashboardView> {
-  const dashboards = await listPersonalDashboards(); const dashboard = id ? dashboards.find((candidate) => candidate.id === id) : dashboards.find((candidate) => candidate.isDefault) ?? dashboards[0]
+async function getDashboardWidgets(id: string): Promise<DashboardWidget[]> {
+  return getDashboardWidgetsInScope(await createDashboardRequestScope(), id)
+}
+
+export async function getDashboardBootstrap(id?: string): Promise<DashboardBootstrap> {
+  const scope = await createDashboardRequestScope()
+  const dashboards = await listPersonalDashboardsInScope(scope); const dashboard = id ? dashboards.find((candidate) => candidate.id === id) : dashboards.find((candidate) => candidate.isDefault) ?? dashboards[0]
   if (!dashboard) throw new Error('DASHBOARD_NOT_FOUND')
-  const context = await requireHeRaContext(); const supabase = await createClient()
-  const [widgets, reminders, employeeResult, departmentResult] = await Promise.all([
-    getDashboardWidgets(dashboard.id), listMyReminders(100).catch(() => []),
-    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('is_active', true).is('deleted_at', null),
-    supabase.from('departments').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('is_active', true),
+  const { context, supabase } = scope
+  const [allWidgets, visibleTypes] = await Promise.all([
+    getDashboardWidgetsInScope(scope, dashboard.id),
+    resolveVisibleDashboardWidgetTypes(context, supabase),
   ])
-  return { dashboard, widgets, metrics: { reminderCount: reminders.length, employeeCount: employeeResult.error ? null : employeeResult.count, departmentCount: departmentResult.error ? null : departmentResult.count } }
+  const widgets = allWidgets.filter((widget) => visibleTypes.has(widget.type))
+  const availableWidgetTypes = [...visibleTypes].filter((type): type is DashboardWidgetType => getWidgetCatalogEntry(type as DashboardWidgetType) !== undefined)
+  return { scope, dashboards, view: { dashboard, widgets, availableWidgetTypes, metrics: { reminderCount: 0, employeeCount: null, departmentCount: null } } }
+}
+
+export async function getDashboardView(id?: string): Promise<DashboardView> {
+  return (await getDashboardBootstrap(id)).view
 }

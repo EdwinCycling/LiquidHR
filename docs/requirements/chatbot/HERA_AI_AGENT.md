@@ -135,6 +135,16 @@ HeRa v1 bevat:
 - een kanaalonafhankelijke agentkern met webadapter;
 - volledige NL/EN-interface, RLS-, autorisatie- en regressietests.
 
+De geïmplementeerde data-agent hanteert aanvullend deze vaste regels:
+
+- vragen over medewerkers, salarissen, dienstverbanden en organisatie worden eerst met geautoriseerde Liquid HR-tools onderzocht; een algemeen internetantwoord mag dit nooit vervangen;
+- internetgebruik gebeurt alleen op expliciet verzoek of nadat HeRa uitlegt welke externe bron nodig is en de gebruiker daarmee instemt;
+- ieder data-antwoord vermeldt bron, zichtbare populatie, filters, peildatum en onzekerheden zonder het bestaan van verborgen records prijs te geven;
+- geheugen en antwoordvoorkeuren zijn per tenant en gebruiker geïsoleerd, zichtbaar te beheren en alleen na expliciete toestemming aan te maken of te wijzigen;
+- toon, detailniveau en senioriteitsniveau zijn instelbaar en veranderen nooit de autorisatiescope;
+- adres-, salaris-, rooster-, organisatieplaatsings- en reminderwijzigingen volgen altijd `voorstel → controlekaart → actuele expliciete bevestiging`;
+- bevestiging herautoriseert via de bestaande domeinservice; dubbele, verlopen, geannuleerde of stale bevestigingen voeren niets uit.
+
 Niet in v1: Slack-, Teams- en Telegramadapters, voice, autonome mutaties, niet-bestaande HR-modules, RAG over documenten en providerbeheerde duurzame conversations. Deze uitbreidingen gebruiken later dezelfde kern.
 
 ## 11. Acceptatiecriteria
@@ -145,6 +155,8 @@ Niet in v1: Slack-, Teams- en Telegramadapters, voice, autonome mutaties, niet-b
 - HeRa vraagt toestemming voordat zij langetermijnmemory opslaat.
 - Een proactief voorstel verandert geen data zonder een afzonderlijke, actuele bevestiging.
 - Een tool kan niet buiten de permissions, tenant of administratiescope van de gebruiker lezen of schrijven.
+- Een salarisvraag zoals `Zijn er medewerkers die meer dan 6000 euro verdienen?` wordt uitsluitend met de zichtbare Liquid HR-populatie beantwoord en nooit met een generiek marktantwoord.
+- Een gebruiker kan eigen memory bekijken, wijzigen en verwijderen; memory van andere gebruikers of tenants blijft onzichtbaar.
 - Een dubbele bevestiging veroorzaakt maximaal één mutatie.
 - HeRa past toon en detailniveau aan zonder de autorisatie te veranderen.
 - De Gemini-sleutel en systeeminstructies bereiken de browser niet.

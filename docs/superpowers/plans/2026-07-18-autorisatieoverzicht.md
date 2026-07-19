@@ -39,7 +39,7 @@ expect(togglePermissionGroup(new Set(['p1']), ['p1', 'p2'])).toEqual(new Set(['p
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
-Run: `npm test -w @liquid-hr/hr-suite -- lib/organization/authorization-view.test.ts`  
+Run: `npm test -w @liquid-hr/hr-suite -- lib/organization/authorization-view.test.ts`
 Expected: FAIL because `authorization-view.ts` does not exist.
 
 - [ ] **Step 3: Implement pure deterministic helpers**
@@ -48,7 +48,7 @@ Implement category grouping with stable labels, unique assignment counting, inte
 
 - [ ] **Step 4: Run the focused test and verify GREEN**
 
-Run: `npm test -w @liquid-hr/hr-suite -- lib/organization/authorization-view.test.ts`  
+Run: `npm test -w @liquid-hr/hr-suite -- lib/organization/authorization-view.test.ts`
 Expected: all focused tests pass.
 
 - [ ] **Step 5: Commit the presentatielaag**
@@ -79,7 +79,7 @@ expect(permissionSelectionChanged(new Set(['a']), new Set(['a', 'b']))).toBe(tru
 
 - [ ] **Step 2: Verify RED for the new view-state API**
 
-Run: `npm test -w @liquid-hr/hr-suite -- lib/organization/authorization-view.test.ts`  
+Run: `npm test -w @liquid-hr/hr-suite -- lib/organization/authorization-view.test.ts`
 Expected: FAIL because the new exports are absent.
 
 - [ ] **Step 3: Implement view-state helpers and responsive UI**
@@ -118,12 +118,12 @@ Commit: `feat: redesign authorization workspace`
 
 - [ ] **Step 1: Change the version test first and verify RED**
 
-Wijzig de verwachting naar `1.20260718.2`; run `npm test -w @liquid-hr/hr-suite -- lib/app-version.test.ts`.  
+Wijzig de verwachting naar `1.20260718.2`; run `npm test -w @liquid-hr/hr-suite -- lib/app-version.test.ts`.
 Expected: FAIL met ontvangen versie `1.20260718.1`.
 
 - [ ] **Step 2: Bump the application version and verify GREEN**
 
-Wijzig `APP_VERSION` naar `1.20260718.2` en herhaal de test.  
+Wijzig `APP_VERSION` naar `1.20260718.2` en herhaal de test.
 Expected: 2 tests pass.
 
 - [ ] **Step 3: Update durable documentation**
