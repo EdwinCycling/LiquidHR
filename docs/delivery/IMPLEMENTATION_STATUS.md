@@ -68,7 +68,7 @@
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Medewerkersdossier | GEÏMPLEMENTEERD | Private opslag, metadata, tags, signed downloads, soft-delete/herstel en auditbare toevoeger/verwijderaar. |
+| Medewerkersdossier | GEÏMPLEMENTEERD | Private opslag, metadata, actieve Cloud tags uit `star_performer_tags`, signed downloads, soft-delete/herstel en auditbare toevoeger/verwijderaar. |
 | Documentzichtbaarheid | GEÏMPLEMENTEERD | Permission én doelgroep; medewerker, rol en afdelingstak zijn combineerbaar en server-side/RLS afgedwongen. |
 | Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
 | Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
@@ -78,7 +78,7 @@
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
 | Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema, Tijdhubklok, datumformaat (DMY/MDY/YMD) en tijdformaat (24H/12H) voor iedere ingelogde gebruiker; voorkeuren worden centraal toegepast op relevante datum- en tijdweergaven. Gedeelde knoppen gebruiken een iOS-geïnspireerde glasstijl; medewerker-tabs verbergen de native scrollbar met behoud van horizontale bediening. |
-| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub; directe beheeritems zijn uit het hoofdmenu verwijderd. |
+| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten accordions; `/master-data` beheert interne redenen, documentcategorieën en tenant-relatietypen en detailterugkeer opent de juiste sectie. |
 | Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
 | Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per administratie, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
 
