@@ -1,6 +1,6 @@
 # Implementatiestatus Liquid HR
 
-Laatste controle: 2026-07-18.
+ Laatste controle: 2026-07-19.
 
 ## Fundering
 
@@ -11,7 +11,7 @@ Laatste controle: 2026-07-18.
 | Wachtwoordauthenticatie | GEÏMPLEMENTEERD | E-mail/wachtwoord, Google OAuth-start, herstelactie, callback en sign-out aanwezig; app blijft invitation-only |
 | Uitnodigingsmodel | GEDEELTELIJK | Tenant-/administratiescope, privé-/businessmail en acceptatie zijn gebouwd; echte mailverzending vereist nog `SUPABASE_SECRET_KEY` en eigen SMTP |
 | i18n | GEÏMPLEMENTEERD | Nederlands is standaard, Engels heeft verplichte pariteit; iedere namespace heeft een afzonderlijk JSON-bestand per taal |
-| Persoonlijke thema's | GEÏMPLEMENTEERD | Zes thema's, instellingenmodal, DB-first voorkeuren en cookie/default-fallback |
+| Persoonlijke thema's | GEÏMPLEMENTEERD | Zes thema's, DB-first voorkeuren, cookie/default-fallback en een compacte accordion-weergave voor persoonlijke instellingen die standaard volledig gesloten opent; de pagina toont geen losse subtitel meer en bevat nu ook datum-, tijd- en weeknummervoorkeuren |
 | Gedeelde databasetypes | GEÏMPLEMENTEERD | `packages/db/types.ts`; opnieuw genereren na iedere migratie |
 | Documentatierouting | GEÏMPLEMENTEERD | Root `AGENTS.md`, architectuurindex, deze status en verplichte `CURRENT_CONTEXT.md`-overdracht voor nieuwe/fork-chats |
 
@@ -23,7 +23,7 @@ Laatste controle: 2026-07-18.
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Employee-persoonskaart | GEÏMPLEMENTEERD | Lijst, wizard, detail, mutaties, adresgeschiedenis, relaties, gemaskeerde bankrekening en capabilities zijn aanwezig |
+| Employee-persoonskaart | GEÏMPLEMENTEERD | Lijst, wizard, detail, mutaties, adresgeschiedenis, relaties, gemaskeerde bankrekening en capabilities zijn aanwezig; de lijst gebruikt een compactere filterbalk waarin sortering, weergave en tagfilters direct reageren, terwijl zoeken alleen via het zoekicoon naast een smallere kalenderstijl-zoekkaart wordt uitgevoerd. De lijst ondersteunt een URL-gedreven compact/detail-weergave en subtiele alternerende rijachtergronden |
 | Dubbele-medewerkercontrole | GEÏMPLEMENTEERD | Tenantgebonden BSN-HMAC of gewogen persoonsgegevens, expliciet besluit en auditlog; exact BSN-matchen vereist `BSN_HASH_KEY` |
 | Afdelingenboom | GEÏMPLEMENTEERD | Lezen, aanmaken, wijzigen/archiveren, RLS en database-cyclusbeveiliging werken |
 | Managementrollen | GEÏMPLEMENTEERD | Tenantrollen zijn beheerbaar; globale systeemrollen zijn database-breed onveranderlijk |
@@ -60,16 +60,17 @@ Laatste controle: 2026-07-18.
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
 | Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
 | Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen, functies en effective-dated revisies; schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
+| Star Performers en expertise-tags | GEDEELTELIJK | In de worktree `settings-rosters-calendar` zijn tenantbrede tagcatalogus, administratiegebonden beoordelingen per functie of functiegroep, API-routes, rechten, instellingen-tegels en beheer-UI lokaal gebouwd. Filters op tag, sterren en zoekterm werken; sterren en tags zijn per medewerker direct te wijzigen. De tagcatalogus is in de UI nu gepositioneerd als tenantbrede `Cloud tags`-laag die later ook buiten Star Performers herbruikbaar wordt. Zolang de migratie `20260719153000_add_star_performer_management.sql` nog niet live is toegepast en de nieuwe rechten dus nog niet bestaan, blijven de instellingentegels wel zichtbaar maar als voorbereid en nog niet actief. Supabase advisors en echte browsermatige eindcontrole staan nog open. |
 | Tijdkaart medewerker | GEÏMPLEMENTEERD | De dienstverbandhistorie toont alle tijdvakken responsief op één tijdas, met veilige salarisprojectie. |
-| HR-maandkalender | GEÏMPLEMENTEERD | Groot desktopraster en mobiele agenda met medewerker-, administratie- en wijzigingsfilters op `/hr-calendar`. |
+| HR-maandkalender | GEÏMPLEMENTEERD | Groot desktopraster en mobiele agenda met medewerker-, administratie-, functiegroep- en functiefilters op `/hr-calendar`, een inklapbaar opgeslagen en compact gehouden filterblok, directe auto-filtering zonder aparte knop, een compacte lijstgrootte-dropdown onder de kalender, een `Vandaag`-knop links van `Vorige maand` in de maandnavigatie en visuele highlight/auto-scroll van de actuele dagkolom. In `Gegevens tonen` kan nu ook `Weeknummers tonen` aan/uit, met een extra weekrij boven de dagen en een weekdropdown naast `Volgende maand` die binnen het huidige jaar direct naar de startweek springt. Klikken op een weeknummer opent nu een voorbereid weekzijpaneel voor de zichtselectie; klikken op een dagkolom opent een dagzijpaneel met de getoonde medewerkers. Daarnaast toont `Dagbezetting` onderaan per dag het aantal ingeplande medewerkers, beschikbare roosteruren en beschikbaarheidspercentage op basis van het huidige rooster. Op brede schermen gebruiken deze zijpanelen nu circa twee derde van de schermbreedte en de inhoud staat in standaard ingeklapte accordion-secties voor medewerkers en acties. De linker medewerkercel in het raster opent nu ook een zijpaneel in plaats van te navigeren; de link naar de personeelskaart staat expliciet in de actiesectie van het paneel. Verlof/verzuimfilters en echte weekinhoud zijn alleen voorbereid zolang de bronmodules nog ontbreken. |
 
 ## Documentdossiers
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Medewerkersdossier | GEÏMPLEMENTEERD | Private opslag, metadata, tags, signed downloads, soft-delete/herstel en auditbare toevoeger/verwijderaar. |
-| Documentzichtbaarheid | GEÏMPLEMENTEERD | Permission én doelgroep; medewerker, rol en afdelingstak zijn combineerbaar en server-side/RLS afgedwongen. |
-| Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
+| Medewerkersdossier | GEÏMPLEMENTEERD | Private opslag, metadata, tags, signed downloads, soft-delete/herstel, drag-and-drop upload van exact één bestand en auditbare toevoeger/verwijderaar. |
+| Documentzichtbaarheid | GEÏMPLEMENTEERD | Permission én doelgroep; medewerker, rol en afdelingstak zijn combineerbaar en server-side/RLS afgedwongen. De UI toont expliciet wanneer de medewerker geen inzage heeft. |
+| Vervaldatum en reminders | GEÏMPLEMENTEERD | Voor documentvervalreminders worden persoon en rol gecombineerd en naar gededupliceerde ontvangers gepubliceerd; organisatie-onderdeel is in de uploadflow bewust verwijderd. |
 | Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
 ## Security en handmatige productieconfiguratie
@@ -92,6 +93,13 @@ Laatste controle: 2026-07-18.
 - Vitest: 52 testbestanden, 201 tests geslaagd.
 - HeRa is lokaal browsermatig getest met een lege gesprekslijst, een nieuw gesprek en de vraag `Welke reminders heb ik?`; de API gaf `200`, HeRa antwoordde en het testgesprek is verwijderd.
 - ESLint zonder waarschuwingen, strict TypeScript, 18 NL/EN-namespaces en Next.js-productiebuild (42 pagina's) geslaagd.
+- Verificatie 2026-07-19: gerichte ESLint `--fix` op de aangepaste medewerkers- en instellingenbestanden, strict TypeScript en `check:i18n` zijn opnieuw geslaagd. Runtimecontrole met timeouts gaf geldige redirects zonder serverfouten op `http://127.0.0.1:3000/`, `/employees` en `/personal-settings`. De bestaande Vercel-preview reageert nog maar staat achter Vercel SSO.
+- Verificatie 2026-07-19 (kalender-weeknummers): gerichte ESLint `--fix` op alleen de gewijzigde kalender-, instellingen- en medewerkersfilterbestanden, strict TypeScript, `check:i18n` en `vitest run calendar-model.test.ts schemas.test.ts` zijn geslaagd. Runtimecontrole met timeouts gaf geldige redirects zonder serverfouten op `http://127.0.0.1:3000/`, `/hr-calendar` en `/employees`. De nieuwe migratie `20260719112000_add_week_numbering_user_preference.sql` is lokaal toegevoegd maar nog niet live toegepast; de visuele eindcontrole van de beschermde kalender- en instellingenflow vraagt nog een ingelogde browsersessie.
+- Verificatie 2026-07-19 (kalender dagbezetting + zijpanelen): gerichte ESLint `--fix` op alleen de gewijzigde kalenderbestanden, strict TypeScript, `check:i18n` en `vitest run calendar-model.test.ts schemas.test.ts` zijn geslaagd. De lokale devserver is opnieuw gestart op `http://127.0.0.1:3000/` en reageert weer binnen timeout met geldige redirects op `/`, `/hr-calendar` en `/employees`. Het weekzijpaneel is functioneel voorbereid maar bevat bewust nog placeholder-inhoud totdat de weekdetailmodule later wordt ingevuld.
+- Verificatie 2026-07-19 (Star Performers): gerichte ESLint `--fix` met `--cache --cache-location .eslintcache`, strict TypeScript, `check:i18n` en `vitest run --config vitest.config.ts lib/star-performers/schemas.test.ts` zijn geslaagd voor de nieuwe Star Performer-bestanden. Runtimecontrole met `curl.exe -I --max-time 2` bevestigt een actieve Next-devserver op `http://127.0.0.1:3000/`; `/settings`, `/settings/star-performers` en `/settings/star-performer-tags` geven geldige beschermde redirects naar login zonder serverfouten. De migratie `20260719153000_add_star_performer_management.sql` is lokaal toegevoegd maar nog niet live toegepast.
+- Verificatie 2026-07-19 (kalender zijpanelen + dienstverbandavatar): gerichte ESLint `--fix` met `--cache --cache-location .eslintcache`, strict TypeScript en `check:i18n` zijn geslaagd voor de aangepaste kalender-, medewerker- en i18n-bestanden. Runtimecontrole met `curl.exe -I --max-time 2` bevestigt een actieve Next-devserver op `http://127.0.0.1:3000/`; `/hr-calendar` en de beschermde dienstverbanddetailroute geven geldige redirects zonder serverfouten. De visuele eindcontrole van de bredere accordion-zijpanelen en de herstelde avatar vraagt nog een ingelogde sessie.
+- Verificatie 2026-07-19 (Star Performer-tegels + kalender medewerkercel): gerichte ESLint `--fix` met `--cache --cache-location .eslintcache`, strict TypeScript en `check:i18n` zijn geslaagd voor de aangepaste instellingen-, kalender- en i18n-bestanden. Runtimecontrole met `curl.exe -I --max-time 2` bevestigt een actieve Next-devserver op `http://127.0.0.1:3000/`; `/settings`, `/settings/star-performers`, `/settings/star-performer-tags` en `/hr-calendar` geven geldige beschermde redirects zonder serverfouten. De visuele eindcontrole van de zichtbare voorbereidende Star Performer-tegels en de nieuwe paneelactie naar de personeelskaart vraagt nog een ingelogde sessie.
+- Verificatie 2026-07-19 (Cloud tags + teruglink instellingen): gerichte ESLint `--fix` met `--cache --cache-location .eslintcache`, strict TypeScript en `check:i18n` zijn geslaagd voor de aangepaste settings-, master-data-, organisatie- en i18n-bestanden. Runtimecontrole met `curl.exe -I --max-time 2` bevestigt een actieve Next-devserver op `http://127.0.0.1:3000/`; de tegeldoelen vanaf Instellingen reageren zonder serverfouten en geven geldige beschermde redirects wanneer er geen sessie is. De visuele eindcontrole van de nieuwe teruglink en de hernoemde Cloud tags vraagt nog een ingelogde sessie.
 - Vijf aanvullende live databaseproeven voor volledige dienstverbandpublicatie, stamtabellen/salarisrevisies, documentdossiers, HR-wijzigingsprojectie en kalenderautorisatie zijn geslaagd.
 - Publieke Vercel-preview: `https://liquidhr-git-codex-hera-data-agent-edwinitsolutions.vercel.app`; login en 390px-weergave zijn gecontroleerd. Beschermde flows vereisen een afzonderlijke geldige previewsessie.
 - Lokale productiebuild luistert op `http://localhost:3000` en blijft actief; login is desktop en op 390px zonder consolefouten gecontroleerd.

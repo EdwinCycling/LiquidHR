@@ -3845,27 +3845,36 @@ export type Database = {
           auth_user_id: string
           clock_mode: Database["public"]["Enums"]["clock_mode"]
           created_at: string
+          date_format: Database["public"]["Enums"]["date_format"]
           locale: Database["public"]["Enums"]["ui_locale"]
           theme: Database["public"]["Enums"]["ui_theme"]
+          time_format: Database["public"]["Enums"]["time_format"]
           updated_at: string
+          week_numbering_system: Database["public"]["Enums"]["week_numbering_system"]
         }
         Insert: {
           analog_clock_style?: Database["public"]["Enums"]["analog_clock_style"]
           auth_user_id: string
           clock_mode?: Database["public"]["Enums"]["clock_mode"]
           created_at?: string
+          date_format?: Database["public"]["Enums"]["date_format"]
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
+          time_format?: Database["public"]["Enums"]["time_format"]
           updated_at?: string
+          week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
         }
         Update: {
           analog_clock_style?: Database["public"]["Enums"]["analog_clock_style"]
           auth_user_id?: string
           clock_mode?: Database["public"]["Enums"]["clock_mode"]
           created_at?: string
+          date_format?: Database["public"]["Enums"]["date_format"]
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
+          time_format?: Database["public"]["Enums"]["time_format"]
           updated_at?: string
+          week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
         }
         Relationships: []
       }
@@ -4046,6 +4055,7 @@ export type Database = {
         | "SELECT"
         | "MULTI_SELECT"
         | "AUTO_INCREMENT"
+      date_format: "DMY" | "MDY" | "YMD"
       document_target_type: "EMPLOYEE" | "MANAGEMENT_ROLE" | "DEPARTMENT_BRANCH"
       education_level: "MBO" | "HBO" | "WO" | "HIGHSCHOOL" | "OTHER" | "UNKNOWN"
       employment_record_status: "DRAFT" | "CONFIRMED" | "CANCELLED"
@@ -4111,6 +4121,7 @@ export type Database = {
         | "PAYROLL_READY"
         | "REPORTED"
         | "CANCELLED"
+      time_format: "24H" | "12H"
       ui_locale: "nl" | "en"
       ui_theme:
         | "liquid-navy"
@@ -4119,6 +4130,7 @@ export type Database = {
         | "warm-zand"
         | "aubergine"
         | "nacht"
+      week_numbering_system: "JANUARY_FIRST" | "ISO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4282,6 +4294,7 @@ export const Constants = {
         "MULTI_SELECT",
         "AUTO_INCREMENT",
       ],
+      date_format: ["DMY", "MDY", "YMD"],
       document_target_type: [
         "EMPLOYEE",
         "MANAGEMENT_ROLE",
@@ -4359,6 +4372,7 @@ export const Constants = {
         "REPORTED",
         "CANCELLED",
       ],
+      time_format: ["24H", "12H"],
       ui_locale: ["nl", "en"],
       ui_theme: [
         "liquid-navy",
@@ -4368,6 +4382,7 @@ export const Constants = {
         "aubergine",
         "nacht",
       ],
+      week_numbering_system: ["JANUARY_FIRST", "ISO"],
     },
   },
 } as const
