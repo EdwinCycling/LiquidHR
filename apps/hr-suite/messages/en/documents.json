@@ -2,7 +2,7 @@
   "title": "Document dossier",
   "subtitle": "Secure documents, metadata, visibility and expiry monitoring for this employee.",
   "upload": "Add document",
-  "uploadIntro": "Fill in the required fields first. Each upload stores exactly one document.",
+  "noCloudTags": "No active Cloud tags are available yet. Add them through Master data or Star Performers first.",
   "uploadAdvanced": "Only add extra visibility, tags and reminders here when they are really needed.",
   "requiredFields": "Required fields",
   "advancedSettings": "Advanced settings",

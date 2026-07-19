@@ -27,8 +27,8 @@ const EMPLOYEE_GAP = 20
 const MAX_EMPLOYEE_COLUMNS = 4
 const BRANCH_GAP = 72
 const CARD_TO_CLUSTER_GAP = 190
-const CLUSTER_TO_CHILDREN_GAP = 92
-const DEPARTMENT_ROW_GAP = 220
+const CLUSTER_TO_CHILDREN_GAP = 120
+const DEPARTMENT_ROW_GAP = 240
 
 interface SubtreeSize { width: number; height: number }
 
@@ -147,17 +147,21 @@ function layoutGraph(graph: OrganizationChartGraph, labels: OrganizationChartLab
 }
 
 function flowEdges(graph: OrganizationChartGraph): Edge[] {
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]))
   return graph.edges.map((edge) => {
     const onRoute = edge.matchState === 'context'
+    const memberEdge = nodeById.get(edge.target)?.type === 'employee'
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: 'smoothstep',
+      pathOptions: { offset: memberEdge ? 18 : 30, stepPosition: 0.5 },
       markerEnd: { type: MarkerType.ArrowClosed, color: onRoute ? 'var(--accent-foreground)' : 'var(--border)' },
       style: {
-        stroke: onRoute ? 'var(--accent-foreground)' : 'var(--border)',
-        strokeWidth: onRoute ? 2.75 : 1.25,
+        stroke: onRoute ? 'var(--accent-foreground)' : memberEdge ? 'var(--accent-foreground)' : 'var(--border)',
+        strokeWidth: onRoute ? 3 : memberEdge ? 1.8 : 2.2,
+        strokeDasharray: memberEdge ? '5 4' : undefined,
         opacity: edge.matchState === 'dimmed' ? 0.2 : 1,
         filter: onRoute ? 'drop-shadow(0 0 5px var(--accent-foreground))' : undefined,
       },

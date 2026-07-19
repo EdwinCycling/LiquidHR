@@ -23,9 +23,9 @@ describe('createTranslator', () => {
 })
 
 describe('admin-instellingen vertalingen', () => {
-  it('bevat de tegel voor interne redenen in beide talen', () => {
-    expect(createTranslator(settingsNl)('admin.tiles.endReasons')).toBe('Interne redenen')
-    expect(createTranslator(settingsEn)('admin.tiles.endReasons')).toBe('Internal reasons')
+  it('bevat de stamtabellentegel in beide talen', () => {
+    expect(createTranslator(settingsNl)('admin.tiles.masterData')).toBe('Stamtabellen')
+    expect(createTranslator(settingsEn)('admin.tiles.masterData')).toBe('Master data')
   })
 })
 

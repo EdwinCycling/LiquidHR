@@ -75,3 +75,5 @@ Actuele verticale slice (2026-07-18): volledige dienstverbandpublicatie, functie
 Het autorisatiebeheer en grafische rechtenoverzicht zijn beschreven in [`superpowers/specs/2026-07-18-autorisatieoverzicht-design.md`](superpowers/specs/2026-07-18-autorisatieoverzicht-design.md).
 
 De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport en gecombineerde medewerkerskalender zijn beschreven in [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) en ontworpen in [`superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md`](superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md).
+
+De HR-admin-stamtabellenslice van 2026-07-19 staat op `codex/settings-rosters-calendar`: `/master-data` gebruikt gesloten accordions voor interne redenen, documentcategorieën en tenant-relatietypen; documenten gebruiken actieve Cloud tags. De relation-typecatalogus staat in migratie `20260719170000_add_tenant_relation_type_catalog.sql` met RLS en standaardseedrecords.

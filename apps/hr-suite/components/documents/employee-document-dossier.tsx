@@ -35,13 +35,12 @@ interface DocumentItem {
 }
 interface Option { id: string; code: string; name: string }
 interface EmployeeOption { id: string; employee_number: string; first_name: string; birth_name: string }
-interface Options { categories: Option[]; departments: Option[]; roles: Option[]; employees: EmployeeOption[] }
+interface Options { categories: Option[]; departments: Option[]; roles: Option[]; employees: EmployeeOption[]; cloudTags: Array<{ id: string; name: string }> }
 
 interface Labels {
   title: string
   subtitle: string
   upload: string
-  uploadIntro: string
   uploadAdvanced: string
   file: string
   fileDropTitle: string
@@ -53,6 +52,7 @@ interface Labels {
   documentTitle: string
   description: string
   tags: string
+  noCloudTags: string
   category: string
   requiredFields: string
   advancedSettings: string
@@ -125,6 +125,7 @@ export function EmployeeDocumentDossier({
   const [reminderAt, setReminderAt] = useState('')
   const [reminderEmployee, setReminderEmployee] = useState(true)
   const [reminderRoleIds, setReminderRoleIds] = useState<string[]>([])
+  const [selectedCloudTagIds, setSelectedCloudTagIds] = useState<string[]>([])
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -156,10 +157,7 @@ export function EmployeeDocumentDossier({
     const metadata = {
       title: form.get('title'),
       description: form.get('description') || null,
-      tags: String(form.get('tags') ?? '')
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+      tags: options.cloudTags.filter((tag) => selectedCloudTagIds.includes(tag.id)).map((tag) => tag.name),
       categoryId: form.get('categoryId'),
       expiresOn: expiresOn || null,
       audiences,
@@ -220,6 +218,7 @@ export function EmployeeDocumentDossier({
     setReminderAt('')
     setReminderEmployee(true)
     setReminderRoleIds([])
+    setSelectedCloudTagIds([])
     setErrorCode(null)
   }
 
@@ -271,7 +270,6 @@ export function EmployeeDocumentDossier({
           <form className="mt-4 space-y-5" onSubmit={(event) => void upload(event)}>
             <div className="rounded-xl border bg-muted/30 p-4">
               <p className="text-sm font-semibold">{labels.requiredFields}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{labels.uploadIntro}</p>
 
               <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
                 <div className="space-y-4">
@@ -368,10 +366,10 @@ export function EmployeeDocumentDossier({
                     <textarea className={inputClass} name="description" rows={3} />
                   </label>
 
-                  <label className="text-sm font-medium md:col-span-2">
-                    {labels.tags}
-                    <input className={inputClass} name="tags" />
-                  </label>
+                  <fieldset className="rounded-xl border p-4 md:col-span-2">
+                    <legend className="px-1 text-sm font-semibold">{labels.tags}</legend>
+                    {options.cloudTags.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{options.cloudTags.map((tag) => <CheckboxCard checked={selectedCloudTagIds.includes(tag.id)} description={tag.name} key={tag.id} label={tag.name} onChange={() => setSelectedCloudTagIds((current) => toggleValue(current, tag.id))} />)}</div> : <p className="mt-2 text-sm text-muted-foreground">{labels.noCloudTags}</p>}
+                  </fieldset>
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">

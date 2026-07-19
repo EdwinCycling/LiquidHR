@@ -84,6 +84,12 @@ export interface EmployeeRelation {
   notes: string | null
 }
 
+export interface EmployeeRelationTypeOption {
+  code: EmployeeRelation['relationType']
+  nameNl: string
+  nameEn: string
+}
+
 export interface EmployeeDetailViewModel {
   employee: EmployeeProfile
   employments: Employment[]
@@ -91,6 +97,7 @@ export interface EmployeeDetailViewModel {
   addresses?: EmployeeAddress[]
   bankAccounts?: EmployeeBankAccount[]
   relations?: EmployeeRelation[]
+  relationTypes?: EmployeeRelationTypeOption[]
   capabilities?: EmployeeCapabilities
 }
 

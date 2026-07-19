@@ -3671,6 +3671,47 @@ export type Database = {
           },
         ]
       }
+      relation_types: {
+        Row: {
+          code: Database["public"]["Enums"]["relation_type"]
+          created_at: string
+          id: string
+          is_active: boolean
+          name_en: string
+          name_nl: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: Database["public"]["Enums"]["relation_type"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_nl: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: Database["public"]["Enums"]["relation_type"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_nl?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relation_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           administration_id: string | null

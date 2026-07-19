@@ -116,6 +116,11 @@ export interface EmployeeEmploymentDetail {
     birthDate: string | null; phone: string | null; mobile: string | null
     email: string | null; notes: string | null
   }>
+  relationTypes: Array<{
+    code: Database['public']['Enums']['relation_type']
+    nameNl: string
+    nameEn: string
+  }>
   capabilities: {
     canEditEmployee: boolean
     canReadBsn: boolean
@@ -448,6 +453,7 @@ export async function getEmployeeEmploymentDetail(
     { data: addresses, error: addressesError },
     { data: bankAccounts, error: bankError },
     { data: relations, error: relationsError },
+    { data: relationTypes, error: relationTypesError },
     capabilityValues,
   ] = await Promise.all([
     supabase
@@ -473,6 +479,7 @@ export async function getEmployeeEmploymentDetail(
     supabase.from('employee_relations').select('*')
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
       .is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(100),
+    supabase.from('relation_types').select('code, name_nl, name_en').eq('tenant_id', context.tenantId).eq('is_active', true).order('name_nl').limit(100),
     Promise.all([
       permissionAllowed('employee:write', employeeId),
       permissionAllowed('employee-bsn:read', employeeId),
@@ -486,7 +493,7 @@ export async function getEmployeeEmploymentDetail(
   const detailReadFailureCode = employeeDetailReadFailureCode({
     addresses: addressesError !== null,
     bankAccounts: bankError !== null,
-    relations: relationsError !== null,
+    relations: relationsError !== null || relationTypesError !== null,
   })
   if (detailReadFailureCode) throw new EmploymentServiceError(detailReadFailureCode, 500)
 
@@ -552,6 +559,7 @@ export async function getEmployeeEmploymentDetail(
       gender: relation.gender, birthDate: relation.birth_date, phone: relation.phone,
       mobile: relation.mobile, email: relation.email, notes: relation.notes,
     })),
+    relationTypes: (relationTypes ?? []).map((relationType) => ({ code: relationType.code, nameNl: relationType.name_nl, nameEn: relationType.name_en })),
     capabilities: {
       canEditEmployee: capabilityValues[0], canReadBsn: capabilityValues[1],
       canWriteBsn: capabilityValues[2], canManageAddresses: capabilityValues[3],

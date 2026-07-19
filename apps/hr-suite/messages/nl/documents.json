@@ -2,7 +2,7 @@
   "title": "Documentendossier",
   "subtitle": "Beveiligde documenten, metadata, zichtbaarheid en vervalbewaking van deze medewerker.",
   "upload": "Document toevoegen",
-  "uploadIntro": "Leg eerst de verplichte velden vast. Het bestand wordt per keer als enkel document geupload.",
+  "noCloudTags": "Nog geen actieve Cloud tags beschikbaar. Voeg ze eerst toe via Stamtabellen of Star Performers.",
   "uploadAdvanced": "Voeg hier alleen extra zichtbaarheid, tags en herinneringen toe wanneer dat echt nodig is.",
   "requiredFields": "Verplichte velden",
   "advancedSettings": "Geavanceerde instellingen",

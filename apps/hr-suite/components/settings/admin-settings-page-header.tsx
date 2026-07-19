@@ -8,18 +8,20 @@ export function AdminSettingsPageHeader({
   title,
   subtitle,
   actions,
+  backHref = '/settings',
 }: {
   backLabel: string
   eyebrow: string
   title: string
   subtitle?: string
   actions?: ReactNode
+  backHref?: string
 }) {
   return (
     <header className="mb-7 border-b pb-7">
       <Link
         className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80"
-        href="/settings"
+        href={backHref}
       >
         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
         {backLabel}

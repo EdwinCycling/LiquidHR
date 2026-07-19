@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { EmployeeSettingsPlaceholderDialog } from '@/components/settings/employee-settings-placeholder-dialog'
+import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 
@@ -109,7 +110,7 @@ function SettingsLinkTile({
   )
 }
 
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   try {
     await requirePermission('settings:read')
   } catch (error) {
@@ -117,7 +118,8 @@ export default async function AdminSettingsPage() {
     throw error
   }
 
-  const [messages, capabilities] = await Promise.all([
+  const [{ section }, messages, capabilities] = await Promise.all([
+    searchParams,
     getTranslator('settings'),
     Promise.all([
       allowed('authorization:read'),
@@ -220,10 +222,10 @@ export default async function AdminSettingsPage() {
         },
         {
           kind: 'link',
-          href: '/master-data/end-reasons',
+          href: '/master-data',
           icon: Database,
-          title: messages('admin.tiles.endReasons'),
-          description: messages('admin.tiles.endReasonsDescription'),
+          title: messages('admin.tiles.masterData'),
+          description: messages('admin.tiles.masterDataDescription'),
           visible: jobs,
         },
         {
@@ -270,17 +272,11 @@ export default async function AdminSettingsPage() {
         </h1>
       </header>
 
-      <div className="space-y-8">
-        {sections.map((section) => {
+      <SettingsAccordion initialOpen={section} sections={sections.map((section) => ({ id: section.title === messages('admin.sections.organization') ? 'organization' : section.title === messages('admin.sections.hrSetup') ? 'hrSetup' : 'platform', title: section.title, children: (() => {
           const items = section.items.filter((item) => item.visible)
           if (!items.length) return null
 
-          return (
-            <section key={section.title}>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {section.title}
-              </h2>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          return <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {items.map((item) => {
                   if (item.kind === 'modal') {
                     return (
@@ -312,10 +308,7 @@ export default async function AdminSettingsPage() {
                   )
                 })}
               </div>
-            </section>
-          )
-        })}
-      </div>
+        })() }))} />
     </div>
   )
 }
