@@ -152,6 +152,7 @@ function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, {
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-foreground">{node.name}</span>
           <span className="mt-0.5 block truncate text-xs text-muted-foreground">{node.jobTitle ?? labels.jobUnknown}</span>
+          <span className="mt-0.5 block truncate text-[0.68rem] text-muted-foreground">{node.departmentName}</span>
         </span>
       </div>
       {node.badges.length > 0 ? (

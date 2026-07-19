@@ -86,6 +86,7 @@ export interface EmployeeChartNode extends ChartNodeBase {
   employmentId: string | null
   placementId: string
   departmentId: string
+  departmentName: string
   name: string
   jobTitle: string | null
   avatarUrl: string | null

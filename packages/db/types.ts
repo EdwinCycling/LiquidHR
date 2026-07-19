@@ -1572,7 +1572,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           prefix: string | null
-          relation_type: Database["public"]["Enums"]["relation_type"]
+          relation_type: string
           tenant_id: string
           updated_at: string
         }
@@ -1592,7 +1592,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           prefix?: string | null
-          relation_type: Database["public"]["Enums"]["relation_type"]
+          relation_type: string
           tenant_id: string
           updated_at?: string
         }
@@ -1612,7 +1612,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           prefix?: string | null
-          relation_type?: Database["public"]["Enums"]["relation_type"]
+          relation_type?: string
           tenant_id?: string
           updated_at?: string
         }
@@ -3673,7 +3673,7 @@ export type Database = {
       }
       relation_types: {
         Row: {
-          code: Database["public"]["Enums"]["relation_type"]
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -3683,7 +3683,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          code: Database["public"]["Enums"]["relation_type"]
+          code: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -3693,7 +3693,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          code?: Database["public"]["Enums"]["relation_type"]
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean

@@ -105,7 +105,7 @@ export const bankAccountSchema = z.object({
 }).strict()
 
 export const relationSchema = z.object({
-  relationType: z.enum(['PARTNER', 'CHILD', 'PARENT', 'SIBLING', 'DOCTOR', 'DENTIST', 'OTHER']),
+  relationType: z.string().trim().min(2).max(40).regex(/^[A-Z][A-Z0-9_ -]*$/),
   isEmergencyContact: z.boolean().default(false),
   firstName: nullableText(120),
   initials: nullableText(20),

@@ -35,6 +35,7 @@ function createEmployeeNode(
     employmentId: placement.employmentId,
     placementId: placement.id,
     departmentId: placement.departmentId,
+    departmentName: input.departments.find((department) => department.id === placement.departmentId)?.name ?? placement.departmentId,
     name: fullName(employee),
     jobTitle: placement.jobTitle,
     avatarUrl: employee.avatarUrl,

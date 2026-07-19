@@ -210,16 +210,19 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
             </div>
           </div>
 
-          {filtersOpen ? <>
-          <div className="mt-5 grid gap-3 lg:grid-cols-[13rem_minmax(20rem,1fr)_15rem_15rem_auto]">
+          <div className="mt-4 max-w-sm">
             <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
               <span>{labels.viewLabel}</span>
-              <select className="form-field h-12" name="view" onChange={(event) => setView(event.target.value as typeof view)} value={view}>
+              <select className="form-field h-11" name="view" onChange={(event) => setView(event.target.value as typeof view)} value={view}>
                 <option value="department">{labels.viewDepartment}</option>
                 <option value="manager">{labels.viewManager}</option>
                 <option value="job">{labels.viewJob}</option>
               </select>
             </label>
+          </div>
+
+          {filtersOpen ? <>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(20rem,1fr)_15rem_15rem_auto]">
             <label className="relative block">
               <span className="sr-only">{labels.searchLabel}</span>
               <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-accent-foreground" size={19} />

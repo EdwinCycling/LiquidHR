@@ -63,7 +63,8 @@ Klikken opent de bestaande medewerkersdetailroute. Gevoelige gegevens zoals BSN,
 - Administration naar iedere hoofdafdeling.
 - Afdeling naar onderliggende afdeling.
 - Afdeling naar actieve medewerkerplaatsing.
-- Het directe-managementmodel wordt niet als concurrerende primaire boom getekend.
+- De gebruiker kan naast de afdelingweergave ook een managerweergave kiezen die uitsluitend directe manager-medewerkerrelaties toont.
+- De functieweergave toont functiegroep → functie → medewerker; de medewerkerkaart vermeldt daarbij de afdeling.
 - Automatische layout is deterministisch en verandert niet door zoeken of filteren.
 - Bij filteren blijven de paden naar matches zichtbaar.
 
@@ -72,6 +73,7 @@ Klikken opent de bestaande medewerkersdetailroute. Gevoelige gegevens zoals BSN,
 De verkenbalk is een aantrekkelijke, rustige ingang tot het organogram en geen technisch filterformulier.
 
 - Een prominente zoekbalk zoekt gelijktijdig op medewerker, functie, afdeling en afdelingscode.
+- De weergavekeuze (afdelingen, managerrelaties of functiegroepen/functies) staat altijd zichtbaar in de verkenbalk; overige filters mogen dichtgeklapt zijn.
 - Snelfilters worden als leesbare chips getoond voor afdeling en managementrol.
 - Meer filters opent een compact paneel voor peildatum en toegestane vrije velden.
 - Een actieve chip toont de keuze en kan afzonderlijk worden verwijderd.
@@ -89,6 +91,7 @@ Vrije-veldfilters zijn opt-in. Alleen actieve, niet-gevoelige definities met `sh
 Minimaal ondersteunde parameters:
 
 - `date=YYYY-MM-DD`;
+- `view=department|manager|job`;
 - `q=<zoekterm>`;
 - `department=<uuid>`;
 - `role=<role-code>`;
@@ -135,4 +138,3 @@ De route muteert niets. Fouten gebruiken vaste codes voor ongeldige peildatum, o
 - inline wijzigen van plaatsingen, afdelingen of rolhouders;
 - loonkosten- en salaris-KPI's;
 - automatische deputyactivatie zonder betrouwbare afwezigheidsbron;
-- een aparte manager-first weergave.

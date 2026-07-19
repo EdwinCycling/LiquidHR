@@ -110,14 +110,14 @@ export interface EmployeeEmploymentDetail {
     description: string | null; isPrimary: boolean
   }>
   relations: Array<{
-    id: string; relationType: Database['public']['Enums']['relation_type']
+    id: string; relationType: string
     isEmergencyContact: boolean; firstName: string | null; initials: string | null
     prefix: string | null; lastName: string; gender: Database['public']['Enums']['gender'] | null
     birthDate: string | null; phone: string | null; mobile: string | null
     email: string | null; notes: string | null
   }>
   relationTypes: Array<{
-    code: Database['public']['Enums']['relation_type']
+    code: string
     nameNl: string
     nameEn: string
   }>

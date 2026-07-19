@@ -16,7 +16,7 @@
   "jobsLinkDescription": "Beheer de functiecatalogus en functiegroepen.",
   "salaryLink": "Schalen en treden",
   "salaryLinkDescription": "Beheer salarisschalen, revisies en treden.",
-  "catalog": { "code": "Code", "name": "Naam", "description": "Omschrijving", "add": "Toevoegen", "saving": "Opslaan…", "activate": "Activeren", "deactivate": "Deactiveren" },
+  "catalog": { "code": "Code", "name": "Naam", "nameNl": "Naam (Nederlands)", "nameEn": "Naam (Engels)", "description": "Omschrijving", "add": "Toevoegen", "saving": "Opslaan…", "activate": "Activeren", "deactivate": "Deactiveren" },
   "active": "Actief",
   "inactive": "Inactief",
   "toggle": "Actief wisselen",

@@ -70,7 +70,7 @@ export interface EmployeeBankAccount {
 
 export interface EmployeeRelation {
   id: string
-  relationType: 'PARTNER' | 'CHILD' | 'PARENT' | 'SIBLING' | 'DOCTOR' | 'DENTIST' | 'OTHER'
+  relationType: string
   isEmergencyContact: boolean
   firstName: string | null
   initials: string | null
@@ -85,7 +85,7 @@ export interface EmployeeRelation {
 }
 
 export interface EmployeeRelationTypeOption {
-  code: EmployeeRelation['relationType']
+  code: string
   nameNl: string
   nameEn: string
 }

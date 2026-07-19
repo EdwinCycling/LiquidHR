@@ -146,3 +146,9 @@
 - Tijdelijke publieke preview tijdens ontwikkeling: `https://unmerited-diuretically-angeline.ngrok-free.dev`. De actuele loginpagina is na **Visit Site** bereikbaar. Deze URL verandert wanneer de tunnel opnieuw wordt gestart; voor OAuth/herstel moet hij expliciet in Supabase worden toegestaan.
 - Demo-inrichting: 12 vrije-velddefinities, 183 administration-scoped waarden, 6 tenantrollen en 4 HR-rolhouders verdeeld over beide testtenants.
 - Definitieve Vercel/OpenAI-hosting wacht op de afgesproken Git-publicatiestap en op de twee server-only secrets hierboven. `vercel.json` is voorbereid.
+# Release update 2026-07-19
+
+- HR-stamtabellen: tenant-relatietypen kunnen worden toegevoegd via `/master-data`; codes zijn vrije tenantcataloguswaarden met validatie, unieke tenant-scope en RLS.
+- Feestdagen: handmatige records zijn visueel onderscheiden van geïmporteerde records.
+- Organogram: de weergavekeuze staat zichtbaar in het filterblok; manager-only en functiegroep/functie/medewerker zijn beschikbaar, inclusief afdeling op medewerkerkaarten.
+- Branch/deploy: `main` is de enige blijvende test/live-branch; previews zijn uitsluitend voor controle.
