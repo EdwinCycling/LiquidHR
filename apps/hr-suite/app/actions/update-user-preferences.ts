@@ -25,6 +25,7 @@ export async function updateUserPreferences(
     analogClockStyle: formData.get('analogClockStyle'),
     dateFormat: formData.get('dateFormat'),
     timeFormat: formData.get('timeFormat'),
+    weekNumberingSystem: formData.get('weekNumberingSystem'),
   })
   if (!parsed.success) return { code: 'invalid' }
 
@@ -41,6 +42,7 @@ export async function updateUserPreferences(
     analog_clock_style: parsed.data.analogClockStyle,
     date_format: parsed.data.dateFormat,
     time_format: parsed.data.timeFormat,
+    week_numbering_system: parsed.data.weekNumberingSystem,
   })
   if (error) return { code: 'failed' }
 

@@ -6,6 +6,7 @@ const optionalTrimmed = z.preprocess(
 )
 
 export const organizationChartQuerySchema = z.object({
+  view: z.enum(['department', 'manager', 'job']).default('department'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   q: optionalTrimmed,
   department: z.string().uuid().optional(),

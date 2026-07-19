@@ -6,7 +6,7 @@ export async function PATCH(request: Request) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 })
   const input = body as Record<string, unknown>
   const filter: Record<string, string> = {}
-  for (const key of ['date', 'q', 'department', 'role', 'field', 'value']) {
+  for (const key of ['view', 'date', 'q', 'department', 'role', 'field', 'value']) {
     if (typeof input[key] === 'string' && input[key].trim().length <= 160) filter[key] = input[key].trim()
   }
   const saved = await saveOrganizationChartFilter(filter)

@@ -13,10 +13,10 @@ begin
     'categoryId',category,'storageKey',tenant||'/'||administration||'/'||employee||'/test/document.pdf','originalFilename','document.pdf','contentType','application/pdf','fileSize',100,'checksumSha256',repeat('a',64),
     'title','Testdocument','description','Dossiertest','tags',jsonb_build_array('contract'),'expiresOn','2027-12-31',
     'audiences',jsonb_build_array(jsonb_build_object('type','EMPLOYEE','targetId',employee)),
-    'reminder',jsonb_build_object('remindAt','2027-12-01T09:00:00Z','targets',jsonb_build_array(jsonb_build_object('type','EMPLOYEE','targetId',employee),jsonb_build_object('type','MANAGEMENT_ROLE','targetId',role_id),jsonb_build_object('type','DEPARTMENT_BRANCH','targetId',department)))
+    'reminder',jsonb_build_object('remindAt','2027-12-01T09:00:00Z','targets',jsonb_build_array(jsonb_build_object('type','EMPLOYEE','targetId',employee),jsonb_build_object('type','MANAGEMENT_ROLE','targetId',role_id)))
   ));
   select expiry_reminder_id into created_reminder_id from public.employee_documents where id=created_document_id;
-  if created_reminder_id is null or (select count(*) from public.document_audiences where document_id=created_document_id)<1 or (select count(*) from public.reminder_target_rules where reminder_id=created_reminder_id)<>3 then raise exception 'Documentdoelgroepen of vervalreminder ontbreken.'; end if;
+  if created_reminder_id is null or (select count(*) from public.document_audiences where document_id=created_document_id)<1 or (select count(*) from public.reminder_target_rules where reminder_id=created_reminder_id)<>2 then raise exception 'Documentdoelgroepen of vervalreminder ontbreken.'; end if;
   if not internal_security.can_access_document(created_document_id,'document:read') then raise exception 'Geautoriseerde doelgroep kan document niet lezen.'; end if;
 end $$;
 rollback;

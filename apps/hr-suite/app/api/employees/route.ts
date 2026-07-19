@@ -17,7 +17,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const search = new URL(request.url).searchParams.get('search')?.trim().toLocaleLowerCase('nl') ?? ''
     const employees = await listEmployeesOverview()
     const data = search
-      ? employees.filter((employee) => `${employee.employeeNumber} ${employee.firstName} ${employee.birthName} ${employee.workEmail ?? ''}`.toLocaleLowerCase('nl').includes(search))
+      ? employees.filter((employee) => `${employee.employeeNumber} ${employee.firstName} ${employee.birthNamePrefix ?? ''} ${employee.birthName} ${employee.departmentName ?? ''} ${employee.jobTitle ?? ''} ${employee.workEmail ?? ''}`.toLocaleLowerCase('nl').includes(search))
       : employees
     return NextResponse.json({ data })
   } catch (error) {

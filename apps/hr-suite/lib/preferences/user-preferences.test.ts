@@ -28,18 +28,18 @@ describe('resolveUserPreferences', () => {
     expect(resolveUserPreferences(
       { locale: 'en', theme: 'nacht' },
       { locale: 'nl', theme: 'bos' },
-    )).toEqual({ locale: 'en', theme: 'nacht', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H' })
+    )).toEqual({ locale: 'en', theme: 'nacht', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H', weekNumberingSystem: 'JANUARY_FIRST' })
   })
 
   it('gebruikt voor een anonieme bezoeker geldige cookievoorkeuren', () => {
     expect(resolveUserPreferences(null, { locale: 'en', theme: 'noordzee' })).toEqual({
-      locale: 'en', theme: 'noordzee', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H',
+      locale: 'en', theme: 'noordzee', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H', weekNumberingSystem: 'JANUARY_FIRST',
     })
   })
 
   it('valt per ongeldige cookiewaarde terug op de veilige standaard', () => {
     expect(resolveUserPreferences(null, { locale: 'en', theme: 'onbekend' })).toEqual({
-      locale: 'en', theme: 'liquid-navy', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H',
+      locale: 'en', theme: 'liquid-navy', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H', weekNumberingSystem: 'JANUARY_FIRST',
     })
   })
 })
@@ -63,6 +63,7 @@ describe('parseUserPreferences', () => {
       analogClockStyle: 'CLASSIC',
       dateFormat: 'DMY',
       timeFormat: '24H',
+      weekNumberingSystem: 'ISO',
     })).toEqual({
       locale: 'nl',
       theme: 'liquid-navy',
@@ -70,6 +71,7 @@ describe('parseUserPreferences', () => {
       analogClockStyle: 'CLASSIC',
       dateFormat: 'DMY',
       timeFormat: '24H',
+      weekNumberingSystem: 'ISO',
     })
   })
 

@@ -9,6 +9,13 @@ import { OrganizationChartMobileTree } from './organization-chart-mobile-tree'
 import type { OrganizationChartLabels } from './organization-chart-nodes'
 
 export interface OrganizationChartExplorerLabels extends OrganizationChartLabels {
+  viewLabel: string
+  viewDepartment: string
+  viewManager: string
+  viewJob: string
+  primaryCountDepartment: string
+  primaryCountManager: string
+  primaryCountJob: string
   exploreTitle: string
   exploreSubtitle: string
   searchLabel: string
@@ -57,6 +64,7 @@ export interface OrganizationChartExplorerLabels extends OrganizationChartLabels
 }
 
 export interface OrganizationChartExplorerQuery {
+  view: 'department' | 'manager' | 'job'
   date: string
   q?: string
   department?: string
@@ -151,7 +159,7 @@ function SearchableFilter({ name, value, options, allLabel, searchLabel, emptyLa
 
 export function OrganizationChartExplorer(props: OrganizationChartExplorerProps) {
   const { query } = props
-  const stateKey = [query.date, query.q, query.department, query.role, query.field, query.value].join('|')
+  const stateKey = [query.view, query.date, query.q, query.department, query.role, query.field, query.value].join('|')
   return <OrganizationChartExplorerState {...props} key={stateKey} />
 }
 
@@ -160,6 +168,7 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
   const [roleCode, setRoleCode] = useState(query.role ?? '')
   const [fieldId, setFieldId] = useState(query.field ?? '')
   const [fieldValue, setFieldValue] = useState(query.value ?? '')
+  const [view, setView] = useState(query.view)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const department = graph.filters.departments.find((item) => item.id === query.department)
   const role = graph.filters.roles.find((item) => item.code === query.role)
@@ -173,13 +182,13 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
     ...(field && query.value ? [{ key: 'customField' as const, label: interpolate(labels.fieldChip, { field: field.label, value: query.value }) }] : []),
     ...(query.date !== defaultDate ? [{ key: 'date' as const, label: interpolate(labels.dateChip, { value: query.date }) }] : []),
   ]
-  const hasStructure = graph.metadata.visibleDepartmentCount > 0 || graph.metadata.visibleEmployeeCount > 0
+  const hasStructure = graph.metadata.visiblePrimaryCount > 0 || graph.metadata.visibleEmployeeCount > 0
   const hasFiltering = chips.length > 0
   const matchText = graph.metadata.matchCount === 1 ? labels.matchCountOne : interpolate(labels.matchCount, { count: graph.metadata.matchCount })
 
   function persistFilter(event: FormEvent<HTMLFormElement>) {
     const form = new FormData(event.currentTarget)
-    const filter = Object.fromEntries(['date', 'q', 'department', 'role', 'field', 'value'].map((key) => [key, String(form.get(key) ?? '')]))
+    const filter = Object.fromEntries(['view', 'date', 'q', 'department', 'role', 'field', 'value'].map((key) => [key, String(form.get(key) ?? '')]))
     void fetch('/api/preferences/organization-chart', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(filter) })
   }
 
@@ -202,7 +211,15 @@ function OrganizationChartExplorerState({ graph, query, labels, defaultDate }: O
           </div>
 
           {filtersOpen ? <>
-          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(20rem,1fr)_15rem_15rem_auto]">
+          <div className="mt-5 grid gap-3 lg:grid-cols-[13rem_minmax(20rem,1fr)_15rem_15rem_auto]">
+            <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
+              <span>{labels.viewLabel}</span>
+              <select className="form-field h-12" name="view" onChange={(event) => setView(event.target.value as typeof view)} value={view}>
+                <option value="department">{labels.viewDepartment}</option>
+                <option value="manager">{labels.viewManager}</option>
+                <option value="job">{labels.viewJob}</option>
+              </select>
+            </label>
             <label className="relative block">
               <span className="sr-only">{labels.searchLabel}</span>
               <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-accent-foreground" size={19} />

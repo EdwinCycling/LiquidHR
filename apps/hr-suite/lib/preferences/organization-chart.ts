@@ -4,7 +4,11 @@ import type { Json } from '@scope/db'
 import { createClient } from '@/lib/supabase/server'
 import type { OrganizationChartExplorerQuery } from '@/components/organization-chart/organization-chart-explorer'
 
-const FILTER_KEYS = ['date', 'q', 'department', 'role', 'field', 'value'] as const
+const FILTER_KEYS = ['view', 'date', 'q', 'department', 'role', 'field', 'value'] as const
+
+function isOrganizationChartView(value: string): value is OrganizationChartExplorerQuery['view'] {
+  return value === 'department' || value === 'manager' || value === 'job'
+}
 
 function isRecord(value: Json | null | undefined): value is { [key: string]: Json | undefined } {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -21,7 +25,12 @@ export async function getStoredOrganizationChartFilter(): Promise<Partial<Organi
   const result: Partial<OrganizationChartExplorerQuery> = {}
   for (const key of FILTER_KEYS) {
     const value = state[key]
-    if (typeof value === 'string' && value.length > 0) result[key] = value
+    if (typeof value !== 'string' || value.length === 0) continue
+    if (key === 'view') {
+      if (isOrganizationChartView(value)) result.view = value
+      continue
+    }
+    result[key] = value
   }
   return result
 }

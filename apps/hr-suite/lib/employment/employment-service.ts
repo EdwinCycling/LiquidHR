@@ -38,7 +38,10 @@ export interface EmployeeOverview {
   id: string
   employeeNumber: string
   firstName: string
+  birthNamePrefix: string | null
   birthName: string
+  departmentName: string | null
+  jobTitle: string | null
   workEmail: string | null
   avatarUrl: string | null
   isArchived: boolean
@@ -351,23 +354,28 @@ export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter
   const context = await requirePermission('employee:read')
   const administrationId = requireAdministrationId(context.administrationId)
   const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
   const { data: assignments, error: assignmentError } = await supabase
     .from('employee_administration_assignments')
     .select('employee_id')
     .eq('tenant_id', context.tenantId)
     .eq('administration_id', administrationId)
-    .lte('effective_from', new Date().toISOString().slice(0, 10))
-    .or(`effective_to.is.null,effective_to.gte.${new Date().toISOString().slice(0, 10)}`)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
     .limit(500)
   if (assignmentError) throw new EmploymentServiceError('EMPLOYEE_SCOPE_READ_FAILED', 500)
 
   const employeeIds = [...new Set(assignments.map((assignment) => assignment.employee_id))]
   if (employeeIds.length === 0) return []
-  const [{ data: employees, error: employeeError }, { data: employments, error: employmentError }] =
+  const [
+    { data: employees, error: employeeError },
+    { data: employments, error: employmentError },
+    { data: placements, error: placementError },
+  ] =
     await Promise.all([
       supabase
         .from('employees')
-        .select('id, employee_number, first_name, birth_name, work_email, avatar_url, is_archived')
+        .select('id, employee_number, first_name, birth_name_prefix, birth_name, work_email, avatar_url, is_archived')
         .eq('tenant_id', context.tenantId)
         .in('id', employeeIds)
         .is('deleted_at', null)
@@ -381,12 +389,29 @@ export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter
         .in('employee_id', employeeIds)
         .is('deleted_at', null)
         .limit(1_000),
+      supabase
+        .from('employee_organizations')
+        .select('employee_id, job_title, effective_from, departments!employee_organizations_department_id_fkey(name)')
+        .eq('tenant_id', context.tenantId)
+        .eq('administration_id', administrationId)
+        .in('employee_id', employeeIds)
+        .lte('effective_from', today)
+        .or(`effective_to.is.null,effective_to.gte.${today}`)
+        .order('effective_from', { ascending: false })
+        .limit(1_000),
     ])
-  if (employeeError || employmentError) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
+  if (employeeError || employmentError || placementError) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
 
   const scopedEmployees = (employees ?? []).filter((employee) => archiveFilter === 'all' || (archiveFilter === 'archived' ? employee.is_archived : !employee.is_archived))
+  const placementByEmployeeId = new Map<string, { departmentName: string | null; jobTitle: string | null }>()
+  for (const placement of placements ?? []) {
+    if (placementByEmployeeId.has(placement.employee_id)) continue
+    placementByEmployeeId.set(placement.employee_id, {
+      departmentName: placement.departments?.name ?? null,
+      jobTitle: placement.job_title,
+    })
+  }
 
-  const today = new Date().toISOString().slice(0, 10)
   return scopedEmployees.map((employee) => {
     const periods = employments
       .filter((employment) => employment.employee_id === employee.id)
@@ -395,11 +420,15 @@ export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter
         endsOn: employment.ends_on,
         recordStatus: employment.record_status,
       }))
+    const placement = placementByEmployeeId.get(employee.id)
     return {
       id: employee.id,
       employeeNumber: employee.employee_number,
       firstName: employee.first_name,
+      birthNamePrefix: employee.birth_name_prefix,
       birthName: employee.birth_name,
+      departmentName: placement?.departmentName ?? null,
+      jobTitle: placement?.jobTitle ?? null,
       workEmail: employee.work_email,
       avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
       isArchived: employee.is_archived,

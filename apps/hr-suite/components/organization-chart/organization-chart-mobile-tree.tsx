@@ -27,7 +27,7 @@ function TreeBranch({ node, childrenById, nodeById, labels, depth }: {
     return <li className="min-w-0"><OrganizationChartNodeCard labels={labels} node={node} /></li>
   }
 
-  const name = node.type === 'administration' || node.type === 'department' ? node.name : node.name
+  const name = node.type === 'group' ? node.title : node.name
   return (
     <li className="min-w-0">
       <details className="group min-w-0" open={depth < 2}>

@@ -1,4 +1,4 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element -- private avatar routes and signed tenant URLs must render directly without image optimization. */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -245,11 +245,9 @@ export default async function EmploymentDetailPage({
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-4 sm:gap-5">
             {detail.employee.avatar_url ? (
-              <Image
+              <img
                 src={detail.employee.avatar_url}
                 alt={name}
-                width={80}
-                height={80}
                 className="h-16 w-16 rounded-2xl object-cover ring-4 ring-background sm:h-20 sm:w-20"
               />
             ) : (

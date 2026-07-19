@@ -1,13 +1,15 @@
 import Link from 'next/link'
-import { Plus, Search, UsersRound } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { EmployeeFilterPanel } from '@/components/employees/employee-filter-panel'
 import { EmployeeList } from '@/components/employees/employee-list'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { listEmployeesOverview } from '@/lib/employment/employment-service'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { getTranslator } from '@/lib/i18n/server'
+import { getStoredEmployeesFilterPanelOpen } from '@/lib/preferences/employees'
 
 interface EmployeesPageProps {
-  searchParams: Promise<{ search?: string; status?: string; archive?: string }>
+  searchParams: Promise<{ search?: string; status?: string; archive?: string; sort?: string; view?: string }>
 }
 
 const STATUSES: EmploymentStatus[] = [
@@ -18,34 +20,45 @@ const STATUSES: EmploymentStatus[] = [
 ]
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
-  const { search = '', status, archive } = await searchParams
+  const { search = '', status, archive, sort, view } = await searchParams
   const archiveFilter = archive === 'archived' || archive === 'all' ? archive : 'active'
-  const [employees, canCreateEmployee, tEmployees, tEmployment] = await Promise.all([
+  const sortOrder = sort === 'first-name' ? 'first-name' : 'last-name'
+  const viewMode = view === 'compact' ? 'compact' : 'detail'
+  const statusFilter = status === 'all'
+    ? 'all'
+    : STATUSES.includes(status as EmploymentStatus)
+      ? (status as EmploymentStatus)
+      : 'ACTIVE_EMPLOYEE'
+  const [employees, canCreateEmployee, tEmployees, tEmployment, filterPanelOpen] = await Promise.all([
     listEmployeesOverview(archiveFilter),
     canCreateEmployees(),
     getTranslator('employees'),
     getTranslator('employment'),
+    getStoredEmployeesFilterPanelOpen(),
   ])
+  const collator = new Intl.Collator('nl', { sensitivity: 'base' })
   const normalizedQuery = search.trim().toLocaleLowerCase('nl')
-  const activeStatus = STATUSES.includes(status as EmploymentStatus) ? (status as EmploymentStatus) : null
   const filtered = employees.filter((employee) => {
-    const matchesStatus = !activeStatus || employee.status === activeStatus
-    const haystack = `${employee.firstName} ${employee.birthName} ${employee.employeeNumber} ${employee.workEmail ?? ''}`.toLocaleLowerCase('nl')
+    const matchesStatus = statusFilter === 'all' || employee.status === statusFilter
+    const haystack = `${employee.firstName} ${employee.birthNamePrefix ?? ''} ${employee.birthName} ${employee.employeeNumber} ${employee.departmentName ?? ''} ${employee.jobTitle ?? ''} ${employee.workEmail ?? ''}`.toLocaleLowerCase('nl')
     return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery))
+  })
+  const sorted = [...filtered].sort((left, right) => {
+    if (sortOrder === 'first-name') {
+      const firstNameComparison = collator.compare(left.firstName, right.firstName)
+      if (firstNameComparison !== 0) return firstNameComparison
+      return collator.compare(left.birthName, right.birthName)
+    }
+
+    const lastNameComparison = collator.compare(left.birthName, right.birthName)
+    if (lastNameComparison !== 0) return lastNameComparison
+    return collator.compare(left.firstName, right.firstName)
   })
   const labels: Record<EmploymentStatus, string> = {
     ACTIVE_EMPLOYEE: tEmployment('active'),
     FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'),
     NEVER_EMPLOYED: tEmployees('external'),
-  }
-  const filterHref = (nextStatus?: EmploymentStatus) => {
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (nextStatus) params.set('status', nextStatus)
-    if (archiveFilter !== 'active') params.set('archive', archiveFilter)
-    const query = params.toString()
-    return query ? `/employees?${query}` : '/employees'
   }
 
   return (
@@ -54,59 +67,58 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
         <div>
           <p className="eyebrow">{tEmployment('title')}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">{tEmployees('title')}</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">{tEmployees('subtitle')}</p>
         </div>
         {canCreateEmployee && <Link href="/employees/new" className="button-primary gap-2 self-start">
           <Plus aria-hidden="true" className="h-4 w-4" />{tEmployees('new')}
         </Link>}
       </div>
 
-      <div className="mt-7 rounded-2xl border bg-surface p-4 shadow-sm">
-        <form className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          {activeStatus && <input type="hidden" name="status" value={activeStatus} />}
-          {archiveFilter !== 'active' && <input type="hidden" name="archive" value={archiveFilter} />}
-          <label className="relative">
-            <span className="sr-only">{tEmployees('searchPlaceholder')}</span>
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input name="search" defaultValue={search} placeholder={tEmployees('searchPlaceholder')} className="form-field pl-10" />
-          </label>
-          <button className="button-secondary" type="submit">{tEmployees('search')}</button>
-        </form>
-
-        <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <nav className="flex gap-2 overflow-x-auto pb-1" aria-label={tEmployees('statusFilter')}>
-            <Link href={filterHref()} className={`filter-chip ${activeStatus === null ? 'filter-chip-active' : ''}`}>
-              {tEmployees('all')}
-            </Link>
-            {STATUSES.map((item) => (
-              <Link key={item} href={filterHref(item)} className={`filter-chip ${activeStatus === item ? 'filter-chip-active' : ''}`}>
-                {labels[item]}
-              </Link>
-            ))}
-          </nav>
-          <nav className="flex gap-2 overflow-x-auto pb-1" aria-label={tEmployees('archiveFilter')}>
-            {(['active', 'archived', 'all'] as const).map((value) => {
-              const params = new URLSearchParams()
-              if (search) params.set('search', search)
-              if (activeStatus) params.set('status', activeStatus)
-              if (value !== 'active') params.set('archive', value)
-              const href = params.toString() ? `/employees?${params.toString()}` : '/employees'
-              return <Link key={value} href={href} className={`filter-chip ${archiveFilter === value ? 'filter-chip-active' : ''}`}>{tEmployees(`archive.${value}`)}</Link>
-            })}
-          </nav>
-          <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
-            <UsersRound aria-hidden="true" className="h-4 w-4" />{tEmployees('resultCount', { count: filtered.length })}
-          </span>
-        </div>
-      </div>
+      <EmployeeFilterPanel
+        activeStatus={statusFilter}
+        archiveFilter={archiveFilter}
+        archiveOptions={[
+          { value: 'active', label: tEmployees('archive.active') },
+          { value: 'archived', label: tEmployees('archive.archived') },
+          { value: 'all', label: tEmployees('archive.all') },
+        ]}
+        initialOpen={filterPanelOpen}
+        labels={{
+          all: tEmployees('all'),
+          employeeNumber: tEmployees('employeeNumber'),
+          searchPlaceholder: tEmployees('searchPlaceholder'),
+          searchAction: tEmployees('search'),
+          statusFilter: tEmployees('statusFilter'),
+          archiveFilter: tEmployees('archiveFilter'),
+          sortLabel: tEmployees('sortLabel'),
+          sortFirstName: tEmployees('sortFirstName'),
+          sortLastName: tEmployees('sortLastName'),
+          showFilters: tEmployees('showFilters'),
+          hideFilters: tEmployees('hideFilters'),
+          clearFilters: tEmployees('clearFilters'),
+          viewLabel: tEmployees('viewLabel'),
+          viewCompact: tEmployees('viewCompact'),
+          viewDetail: tEmployees('viewDetail'),
+        }}
+        resultCountLabel={tEmployees('resultCount', { count: sorted.length })}
+        search={search}
+        sort={sortOrder}
+        view={viewMode}
+        statusOptions={STATUSES.map((item) => ({ value: item, label: labels[item] }))}
+      />
 
       <div className="mt-4">
         <EmployeeList
-          employees={filtered}
+          archiveLabel={tEmployees('archived')}
+          departmentLabel={tEmployees('department')}
+          employeeNumberLabel={tEmployees('employeeNumber')}
           labels={labels}
           emptyLabel={tEmployees('empty')}
+          employees={sorted}
           employmentCountLabel={(count) => tEmployees('employmentCount', { count })}
-          archiveLabel={tEmployees('archived')}
+          jobTitleLabel={tEmployees('jobTitle')}
+          noEmailLabel={tEmployees('noEmail')}
+          notRecordedLabel={tEmployees('notRecorded')}
+          view={viewMode}
         />
       </div>
     </main>

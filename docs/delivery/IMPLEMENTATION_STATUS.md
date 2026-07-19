@@ -1,6 +1,6 @@
 # Implementatiestatus Liquid HR
 
-Laatste controle: 2026-07-18.
+ Laatste controle: 2026-07-19. De migraties voor dossieruploadregels, weeknummering en Star Performers zijn live toegepast en met transactietests gevalideerd.
 
 ## Fundering
 
@@ -29,6 +29,7 @@ Laatste controle: 2026-07-18.
 | Managementrollen | GEÏMPLEMENTEERD | Tenantrollen zijn beheerbaar; globale systeemrollen zijn database-breed onveranderlijk |
 | DepartmentManagement | GEÏMPLEMENTEERD | Effective-dated API/UI, overlapbeveiliging, RLS en audit aanwezig |
 | EmployeeOrganization | GEÏMPLEMENTEERD | Tijdsgebonden plaatsingen zijn aan parallelle dienstverbanden te koppelen en beheerbaar |
+| Organogram | GEDEELTELIJK | Afdelingsview, managerrelatie-view en functiegroep → functie → star performer → medewerker zijn technisch gebouwd, inclusief view-keuze, URL-state en opgeslagen filtervoorkeur. Een ingelogde visuele datasetcontrole voor de nieuwe views blijft open. |
 | Permissionmatrix | GEÏMPLEMENTEERD | Zoekbare rollenwerkruimte, gegroepeerde functiepunten, dirty/herstel-flow, grafische dekkingsheatmap, tenantrollen, API, RLS en audit aanwezig |
 | Vrije velden (Employee) | GEÏMPLEMENTEERD | Definities, opties, audience-toegang, atomaire nummering, waarden-API/UI en JSONB-spiegeling |
 | BSN-beveiliging | GEÏMPLEMENTEERD | Afzonderlijke RLS-tabel; HR-admin en medewerker-self mogen lezen, managers niet; reveal wordt geaudit |
@@ -56,7 +57,7 @@ Laatste controle: 2026-07-18.
 | Arbeidsvoorwaarden, urenafspraak, werkpatroon, salaris en kostenverdeling | GEDEELTELIJK | Atomaire apply/rollback-RPC's, afzonderlijke 1–4-weeks werkpatroontijdlijn met exacte urencontrole, TWK-splitsing, 100%-kostenverdeling, audit en mutatieformulieren zijn aanwezig. Eén multi-domein-RPC voor direct gecombineerde wijzigingen volgt nog. |
 | Uitdienstmelding | GEÏMPLEMENTEERD | Workflow met wettelijke reden, datum en bevestiging; beëindiging wordt pas definitief via de confirm-RPC |
 | Herintreding | GEÏMPLEMENTEERD | Bestaande Employee wordt hergebruikt en krijgt een nieuw Employment; identity-match voorkomt stil dupliceren |
-| Medewerker- en dienstverband-UI | GEDEELTELIJK | Medewerkerkaart heeft duidelijke tabs voor persoonsgegevens, dossier en dienstverbanden; employments worden als effectieve tijdlijn getoond. Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
+| Medewerker- en dienstverband-UI | GEDEELTELIJK | Medewerkerkaart heeft duidelijke tabs voor persoonsgegevens, dossier en dienstverbanden; employments worden als effectieve tijdlijn getoond. De medewerkerslijst sluit functioneel beter aan op de kalender doordat `ACTIVE_EMPLOYEE` nu de impliciete default is; personeelsnummers zijn zichtbaar om naamgelijke personen te onderscheiden. Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
 | Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
 | Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen, functies en effective-dated revisies; schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
@@ -116,6 +117,7 @@ Laatste controle: 2026-07-18.
 ## Verificatiebewijs
 
 - Samengevoegde releasegate 2026-07-18: 79 Vitest-bestanden en 286 tests geslaagd; 18 gelijke NL/EN-namespaces, ESLint zonder waarschuwingen, strict TypeScript en de Next.js-productiebuild met 53 routes zijn groen.
+- Verificatie 2026-07-19: gerichte ESLint `--fix` met cache op de in deze beurt gewijzigde organogrambestanden is geslaagd. Strict TypeScript, `check:i18n` en gerichte Vitest voor `app/api/organization-chart/route.test.ts`, `lib/organization-chart/schemas.test.ts` en `lib/organization-chart/projector.test.ts` zijn geslaagd. Runtimecontrole met `curl.exe -I --max-time 2` bevestigt een actieve devserver op `http://127.0.0.1:3000/`; `/employees` en `/organization-chart` redirecten zonder serverfouten naar login. Poort `3001` reageert niet en wordt niet door deze worktree gebruikt.
 - Browsercontrole lokaal op poort 3000 met ingelogde Chrome-sessie: medewerkerinstellingenschermpje opent zonder navigatie; dashboard toont streamende widgets, voortgang eindigt op "Dashboard is bijgewerkt", refresh behoudt vijf widgetkaarten, editor/picker toont geen technische widgetcodes, widgetbeheer toont 41 vertaalde kaarten met actief/niet-actief en rollen. Desktop en 390px hebben geen horizontale overflow; console bevat geen errors.
 - Supabase migration `20260718172051_grant_dashboard_widget_admin_permissions.sql` is toegepast; security advisor meldt alleen de bestaande waarschuwing dat gelekte-wachtwoordbeveiliging uitstaat. Performance advisor meldt bestaande INFO-meldingen over ontbrekende/indexen die nog niet gebruikt zijn.
 - Release `1.20260718.3`: preview en productie zijn `READY`. De veilige anonieme instellingenredirect, de ingelogde HR-adminhub, tenantmodules, Nager.Date-preview, afzonderlijke persoonlijke instellingen en het gelokaliseerde maandraster met medewerkers, uren, filters en paginering zijn browsermatig gecontroleerd.

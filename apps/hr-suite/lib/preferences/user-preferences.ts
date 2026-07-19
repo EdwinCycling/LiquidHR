@@ -14,10 +14,12 @@ export const CLOCK_MODES = ['ANALOG', 'DIGITAL', 'HIDDEN'] as const
 export const ANALOG_CLOCK_STYLES = ['CLASSIC', 'MINIMAL', 'LIQUID'] as const
 export const DATE_FORMATS = ['DMY', 'MDY', 'YMD'] as const
 export const TIME_FORMATS = ['24H', '12H'] as const
+export const WEEK_NUMBERING_SYSTEMS = ['JANUARY_FIRST', 'ISO'] as const
 export type ClockMode = (typeof CLOCK_MODES)[number]
 export type AnalogClockStyle = (typeof ANALOG_CLOCK_STYLES)[number]
 export type DateFormat = (typeof DATE_FORMATS)[number]
 export type TimeFormat = (typeof TIME_FORMATS)[number]
+export type WeekNumberingSystem = (typeof WEEK_NUMBERING_SYSTEMS)[number]
 
 export const userPreferencesSchema = z
   .object({
@@ -27,6 +29,7 @@ export const userPreferencesSchema = z
     analogClockStyle: z.enum(ANALOG_CLOCK_STYLES).default('LIQUID'),
     dateFormat: z.enum(DATE_FORMATS).default('DMY'),
     timeFormat: z.enum(TIME_FORMATS).default('24H'),
+    weekNumberingSystem: z.enum(WEEK_NUMBERING_SYSTEMS).default('JANUARY_FIRST'),
   })
   .strict()
 
@@ -39,6 +42,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   analogClockStyle: 'LIQUID',
   dateFormat: 'DMY',
   timeFormat: '24H',
+  weekNumberingSystem: 'JANUARY_FIRST',
 }
 
 export function parseUserPreferences(value: unknown): UserPreferences {
@@ -66,5 +70,6 @@ export function resolveUserPreferences(
     analogClockStyle: DEFAULT_PREFERENCES.analogClockStyle,
     dateFormat: DEFAULT_PREFERENCES.dateFormat,
     timeFormat: DEFAULT_PREFERENCES.timeFormat,
+    weekNumberingSystem: DEFAULT_PREFERENCES.weekNumberingSystem,
   }
 }

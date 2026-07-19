@@ -1,4 +1,5 @@
 export type MatchState = 'normal' | 'match' | 'context' | 'dimmed'
+export type OrganizationChartView = 'department' | 'manager' | 'job'
 
 export interface ChartAdministrationSource { id: string; code: string; name: string }
 export interface ChartDepartmentSource { id: string; parentId: string | null; code: string; name: string }
@@ -8,7 +9,9 @@ export interface ChartPlacementSource {
   employeeId: string
   employmentId: string | null
   departmentId: string
+  directManagerId: string | null
   jobTitle: string | null
+  jobId: string | null
   effectiveFrom: string
   effectiveTo: string | null
 }
@@ -23,8 +26,17 @@ export interface ChartManagementSource {
 }
 export interface ChartCustomFieldDefinitionSource { id: string; key: string; label: string; fieldType: string }
 export interface ChartCustomFieldValueSource { employeeId: string; definitionId: string; displayValue: string }
+export interface ChartJobSource { id: string; code: string; name: string; jobGroupId: string | null }
+export interface ChartJobGroupSource { id: string; code: string; name: string }
+export interface ChartStarPerformerAssessmentSource {
+  employeeId: string
+  jobId: string | null
+  jobGroupId: string | null
+  criticalityLevel: number
+}
 
 export interface OrganizationChartFilters {
+  view: OrganizationChartView
   query?: string
   departmentId?: string
   roleCode?: string
@@ -41,6 +53,9 @@ export interface OrganizationChartProjectionInput {
   managementAssignments: readonly ChartManagementSource[]
   customFieldDefinitions: readonly ChartCustomFieldDefinitionSource[]
   customFieldValues: readonly ChartCustomFieldValueSource[]
+  jobs: readonly ChartJobSource[]
+  jobGroups: readonly ChartJobGroupSource[]
+  starPerformerAssessments: readonly ChartStarPerformerAssessmentSource[]
   filters: OrganizationChartFilters
 }
 
@@ -77,7 +92,15 @@ export interface EmployeeChartNode extends ChartNodeBase {
   badges: { code: string; name: string }[]
   customFields: Record<string, string>
 }
-export type OrganizationChartNode = AdministrationChartNode | DepartmentChartNode | EmployeeChartNode
+export interface GroupChartNode extends ChartNodeBase {
+  type: 'group'
+  groupId: string
+  groupKind: 'manager-root' | 'job-group' | 'job' | 'star-level' | 'ungrouped'
+  title: string
+  subtitle: string | null
+  employeeCount: number
+}
+export type OrganizationChartNode = AdministrationChartNode | DepartmentChartNode | EmployeeChartNode | GroupChartNode
 
 export interface OrganizationChartEdge {
   id: string
@@ -90,7 +113,8 @@ export interface OrganizationChartGraph {
   metadata: {
     asOfDate: string
     administrationId: string
-    visibleDepartmentCount: number
+    view: OrganizationChartView
+    visiblePrimaryCount: number
     visibleEmployeeCount: number
     matchCount: number
   }

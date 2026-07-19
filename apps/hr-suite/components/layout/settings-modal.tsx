@@ -17,7 +17,7 @@ export interface SettingsModalLabels {
   open: string
   close: string
   title: string
-  subtitle: string
+  subtitle?: string
   language: string
   languageHelp: string
   dutch: string
@@ -39,6 +39,10 @@ export interface SettingsModalLabels {
   timeFormatHelp: string
   time24: string
   time12: string
+  weekNumbering: string
+  weekNumberingHelp: string
+  weekNumberingInternational: string
+  weekNumberingIso: string
   classic: string
   minimal: string
   liquid: string
@@ -150,10 +154,13 @@ export function SettingsModal({
         ref={dialogRef}
       >
         <form action={action} className="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100dvh-3rem)]">
+          <input name="dateFormat" type="hidden" value={preferences.dateFormat} />
+          <input name="timeFormat" type="hidden" value={preferences.timeFormat} />
+          <input name="weekNumberingSystem" type="hidden" value={preferences.weekNumberingSystem} />
           <header className="flex items-start justify-between gap-6 border-b px-5 py-5 sm:px-7">
             <div>
               <h2 className="text-xl font-semibold tracking-[-0.02em]" id="settings-title">{labels.title}</h2>
-              <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{labels.subtitle}</p>
+              {labels.subtitle ? <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{labels.subtitle}</p> : null}
             </div>
             <button aria-label={labels.close} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" onClick={closeDialog} type="button">
               <X aria-hidden="true" size={19} />

@@ -14,4 +14,11 @@ describe('GET /api/organization-chart', () => {
 
     expect(response.status).toBe(400)
   })
+
+  it('weigert een ongeldige view voordat data wordt geladen', async () => {
+    const response = await GET(new Request('http://localhost/api/organization-chart?view=invalid&date=2026-07-16'))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ code: 'ORGANIZATION_CHART_INPUT_INVALID' })
+  })
 })

@@ -1,9 +1,11 @@
 # Actuele overdracht Liquid HR
 
-Vervolgslice 2026-07-18: HeRa is uit de linker navigatie gehaald en werkt als zwevende overlay met lokaal bewaarde dock-/breedtevoorkeur; de launcher staat rechtsonder. De medewerkerkaart heeft een reminders-tab; dienstverbanden openen primair, verwijderen gebruikt een bevestigde soft-delete en teruggaan bewaart de brontab. Interne uitdienstredenen zijn beheerbaar via `/master-data/end-reasons` met actief/inactief en gebruiksblokkade. Strict TypeScript, ESLint, i18n-pariteit en productiebuild zijn groen.
-Nieuwe dashboards worden vanaf deze slice leeg aangemaakt; de eerste automatisch aangemaakte persoonlijke dashboard blijft de bestaande startindeling gebruiken. De admin-tegel voor interne redenen is in NL/EN afgedekt met een regressietest. Feestdagen verversen na import/jaarwissel nu met een expliciet niet-gecachete API-read. Zichtbare e-mailadressen gebruiken nu klikbare `mailto:`-links. Persoonlijke instellingen bewaren nu ook datumformaat (DMY/MDY/YMD) en tijdformaat (24H/12H); deze voorkeuren worden in klok, reminders, medewerker- en dienstverbandweergaven gebruikt. Gedeelde knoppen hebben een iOS-geïnspireerde transparante glasstijl met blur, subtiele rand en lift-hover. De medewerker-tabnavigatie verbergt de native scrollbar maar blijft horizontaal scrollbaar op kleine schermen. Applicatieversie: `1.20260718.13`.
+Vervolgslice 2026-07-19: de medewerkerslijst en het organogram in worktree `settings-rosters-calendar` zijn functioneel verdergetrokken. De medewerkerslijst filtert nu standaard op `ACTIVE_EMPLOYEE`, zodat de telling logischer aansluit op de kalender. De lijst toont daarnaast expliciet het personeelsnummer per rij, zodat twee verschillende personen met dezelfde naam niet meer ogen als een render-dubbeling. De bestaande analyse blijft: het eerdere verschil `11` versus `23` kwam vooral voort uit verschillende definities van "zichtbare medewerker" tussen kalender en medewerkerslijst, niet uit een eenvoudige dubbele-renderbug.
 
-Laatste update: 2026-07-18. Dit is het compacte startpunt voor iedere nieuwe of geforkte chat. Lees daarna `docs/README.md`; neem geen secrets in documentatie op.
+De migraties voor strengere dossieruploads, persoonlijke weeknummering en Star Performers zijn op 2026-07-19 live toegepast. De Star Performer- en Cloud tags-tegels zijn actief voor geautoriseerde beheerders; de drie databaseproeven, typesgeneratie en security-advisor zijn uitgevoerd. Applicatieversie: `1.20260719.1`.
+Het organogram ondersteunt nu drie views via de filterbalk: `Afdelingen`, `Managerrelaties` en `Functiegroepen en star performers`. De managerweergave tekent direct op medewerker-managerrelaties zonder afdelingsvensters; de functieweergave groepeert op functiegroep → functie → star performer-niveau → medewerker en ondersteunt daardoor meerdere startpunten en losse medewerkers. De gekozen organogramview wordt nu ook correct in `user_preferences.ui_state.organizationChart` bewaard.
+
+Laatste update: 2026-07-19. Dit is het compacte startpunt voor iedere nieuwe of geforkte chat. Lees daarna `docs/README.md`; neem geen secrets in documentatie op.
 
 ## Vaste architectuur
 
@@ -20,6 +22,8 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 - HR-beheer staat achter één permission-gestuurde instellingenhub. Extra modules gelden tenantbreed; feestdagen kunnen per jaar en land vanuit Nager.Date worden geïmporteerd en lokaal worden aangevuld. Persoonlijke taal-, thema- en klokvoorkeuren blijven op een afzonderlijke pagina voor iedere ingelogde gebruiker.
 - Autorisatiebeheer heeft drie werkruimtes: zoekbaar rechtenbeheer met groepsacties/dirty-state, een toegankelijke dekkingsheatmap en afzonderlijke organisatietoewijzingen. De visualisatie verleent nooit toegang; exacte permissions, scope en RLS blijven beslissend.
 - Medewerkers kunnen nu als reversible archiefvlag worden beheerd. De lijst ondersteunt niet-gearchiveerd/gearchiveerd/alles, organogram en kalender sluiten gearchiveerden standaard uit, en de persoonskaart heeft duidelijke tabs voor persoonsgegevens, dossier en dienstverbanden. Foto's zijn private uploadbaar/verwijderbaar en zichtbaar in lijst en kalender; het organogramfilter onthoudt de laatste selectie per gebruiker.
+- De medewerkerslijst gebruikt nu `ACTIVE_EMPLOYEE` als impliciete statusdefault en neemt in de zoekindex ook tussenvoegsel, afdeling en functie mee. Daardoor sluit de standaardtelling beter aan op de kalender. Personeelsnummers zijn zichtbaar in de lijst, zodat naamgelijkheden niet meer ogen als onbedoelde duplicaten.
+- Het organogram ondersteunt nu naast de afdelingsboom ook een managerrelatie-weergave en een functieweergave met star performer-groepering. De mobile tree, canvasnodes, schema's, services en URL-state zijn daarop aangepast; de view-keuze wordt per gebruiker opgeslagen.
 - Applicatieversie: `1.20260718.5` in `apps/hr-suite/lib/app-version.ts`; dashboardervaring en HR-adminwidgetbeheer zijn doorgevoerd op branch `codex/settings-rosters-calendar`.
 
 ## Live database en verificatie
@@ -32,6 +36,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 - Release `1.20260718.3` staat op `https://liquid-hr-hr-suite.vercel.app`. De instellingenhub, tenantmodules, Nager.Date-preview, persoonlijke instellingen en de volledige maandkalender zijn met een bestaande ingelogde HR-adminsessie gecontroleerd. De kalenderformattering volgt nu de actieve NL/EN-taal.
 - Release `1.20260718.4` is lokaal gebouwd en branch `codex/settings-rosters-calendar` is naar GitHub gepusht. Een Vercel CLI-deploy kon in deze sessie niet starten omdat de lokale Vercel-credentials ontbreken; de gekoppelde Git-deployment kan de branch als preview oppakken.
 - Runtime-hotfix: `employees.is_archived` had in Supabase wel de kolom maar geen expliciete `SELECT`/`UPDATE`-grant voor `authenticated`. De grants zijn live toegevoegd en de PostgREST-schema-cache is herladen; dit herstelt de medewerkerlijst en kalender.
+- Verificatie 2026-07-19 (medewerkerslijst + organogramviews): gerichte ESLint `--fix` met cache op de in deze beurt gewijzigde organogrambestanden is geslaagd. Strict TypeScript, `check:i18n` en gerichte Vitest voor `app/api/organization-chart/route.test.ts`, `lib/organization-chart/schemas.test.ts` en `lib/organization-chart/projector.test.ts` zijn geslaagd. Runtimecontrole met timeouts bevestigt opnieuw een actieve Next-devserver op poort `3000`; `/`, `/employees` en `/organization-chart` reageren zonder serverfouten en redirecten beschermd naar login. Poort `3001` reageert niet en wordt in deze worktree niet gebruikt.
 
 ## Bewust resterend werk
 
@@ -41,6 +46,7 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 4. Globale documenten, bulk-loonstrookimport en AI-compliance/OCR/RAG.
 5. Vrije Liquid Display-query's en verdere HeRa-transactietools.
 6. Dashboardwidgets hebben nu tenantconfiguratie, roltoegang, registry, vertaalde metadata, categorie-picker, serverbootstrap, parallelle streaming, skeletons, globale laadvoortgang en refresh. WELCOME, reminders, organisatie en medewerkers laden echte bestaande bronnen; overige cataloguswidgets tonen eerlijk dat hun bron nog wordt aangesloten, zonder fictieve HR-cijfers.
+7. De nieuwe organogramviews zijn technisch gevalideerd, maar vragen nog een ingelogde visuele browsersessie om de echte dataset, meerdere startpunten en star performer-groepering UX-matig te controleren.
 
 ## Handmatige productieacties
 

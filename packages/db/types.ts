@@ -643,6 +643,86 @@ export type Database = {
           },
         ]
       }
+      dashboard_widget_configs: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          widget_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widget_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_widget_role_access: {
+        Row: {
+          created_at: string
+          id: string
+          management_role_id: string
+          tenant_id: string
+          updated_at: string
+          widget_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          management_role_id: string
+          tenant_id: string
+          updated_at?: string
+          widget_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          management_role_id?: string
+          tenant_id?: string
+          updated_at?: string
+          widget_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widget_role_access_management_role_id_fkey"
+            columns: ["management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_widget_role_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_management: {
         Row: {
           administration_id: string
@@ -1616,8 +1696,8 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           id: string
           initials: string | null
-          is_archived: boolean
           is_active: boolean
+          is_archived: boolean
           marital_status: Database["public"]["Enums"]["marital_status"] | null
           marital_status_date: string | null
           name_usage: Database["public"]["Enums"]["name_usage"]
@@ -1657,8 +1737,8 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           id?: string
           initials?: string | null
-          is_archived?: boolean
           is_active?: boolean
+          is_archived?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
           marital_status_date?: string | null
           name_usage: Database["public"]["Enums"]["name_usage"]
@@ -1698,8 +1778,8 @@ export type Database = {
           gender?: Database["public"]["Enums"]["gender"]
           id?: string
           initials?: string | null
-          is_archived?: boolean
           is_active?: boolean
+          is_archived?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
           marital_status_date?: string | null
           name_usage?: Database["public"]["Enums"]["name_usage"]
@@ -3332,86 +3412,6 @@ export type Database = {
         }
         Relationships: []
       }
-      dashboard_widget_configs: {
-        Row: {
-          created_at: string
-          id: string
-          is_enabled: boolean
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-          widget_type: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_enabled?: boolean
-          tenant_id: string
-          updated_at?: string
-          updated_by?: string | null
-          widget_type: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_enabled?: boolean
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          widget_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dashboard_widget_configs_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dashboard_widget_role_access: {
-        Row: {
-          created_at: string
-          id: string
-          management_role_id: string
-          tenant_id: string
-          updated_at: string
-          widget_type: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          management_role_id: string
-          tenant_id: string
-          updated_at?: string
-          widget_type: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          management_role_id?: string
-          tenant_id?: string
-          updated_at?: string
-          widget_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dashboard_widget_role_access_management_role_id_fkey"
-            columns: ["management_role_id"]
-            isOneToOne: false
-            referencedRelation: "management_roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dashboard_widget_role_access_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       personal_dashboard_widgets: {
         Row: {
           created_at: string
@@ -3953,6 +3953,142 @@ export type Database = {
           },
         ]
       }
+      star_performer_assessment_tags: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          tag_id: string
+          tenant_id: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          tag_id: string
+          tenant_id: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          tag_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "star_performer_assessment_tags_tenant_id_assessment_id_fkey"
+            columns: ["tenant_id", "assessment_id"]
+            isOneToOne: false
+            referencedRelation: "star_performer_assessments"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "star_performer_assessment_tags_tenant_id_tag_id_fkey"
+            columns: ["tenant_id", "tag_id"]
+            isOneToOne: false
+            referencedRelation: "star_performer_tags"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      star_performer_assessments: {
+        Row: {
+          administration_id: string
+          created_at: string
+          criticality_level: number
+          employee_id: string
+          id: string
+          job_group_id: string | null
+          job_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          criticality_level: number
+          employee_id: string
+          id?: string
+          job_group_id?: string | null
+          job_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          criticality_level?: number
+          employee_id?: string
+          id?: string
+          job_group_id?: string | null
+          job_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "star_performer_assessments_tenant_id_administration_id_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "star_performer_assessments_tenant_id_administration_id_jo_fkey1"
+            columns: ["tenant_id", "administration_id", "job_group_id"]
+            isOneToOne: false
+            referencedRelation: "job_groups"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "star_performer_assessments_tenant_id_administration_id_job_fkey"
+            columns: ["tenant_id", "administration_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "star_performer_assessments_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      star_performer_tags: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "star_performer_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statutory_termination_reasons: {
         Row: {
           code: string
@@ -4228,6 +4364,7 @@ export type Database = {
           time_format: Database["public"]["Enums"]["time_format"]
           ui_state: Json
           updated_at: string
+          week_numbering_system: Database["public"]["Enums"]["week_numbering_system"]
         }
         Insert: {
           analog_clock_style?: Database["public"]["Enums"]["analog_clock_style"]
@@ -4240,6 +4377,7 @@ export type Database = {
           time_format?: Database["public"]["Enums"]["time_format"]
           ui_state?: Json
           updated_at?: string
+          week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
         }
         Update: {
           analog_clock_style?: Database["public"]["Enums"]["analog_clock_style"]
@@ -4252,6 +4390,7 @@ export type Database = {
           time_format?: Database["public"]["Enums"]["time_format"]
           ui_state?: Json
           updated_at?: string
+          week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
         }
         Relationships: []
       }
@@ -4410,6 +4549,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      upsert_star_performer_assessment: {
+        Args: { requested_administration_id: string; requested_payload: Json }
+        Returns: string
+      }
     }
     Enums: {
       access_scope_type: "TENANT" | "ADMINISTRATION"
@@ -4520,6 +4663,7 @@ export type Database = {
         | "warm-zand"
         | "aubergine"
         | "nacht"
+      week_numbering_system: "JANUARY_FIRST" | "ISO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4771,6 +4915,7 @@ export const Constants = {
         "aubergine",
         "nacht",
       ],
+      week_numbering_system: ["JANUARY_FIRST", "ISO"],
     },
   },
 } as const

@@ -22,6 +22,7 @@ export const MESSAGE_NAMESPACES = [
   'masterData',
   'documents',
   'hrCalendar',
+  'starPerformers',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

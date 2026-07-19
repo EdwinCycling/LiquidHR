@@ -12,10 +12,24 @@ describe('document metadata', () => {
   it('normalizes and deduplicates tags', () => {
     expect(documentMetadataSchema.parse({ ...valid, tags: [' Contract ', 'contract'] }).tags).toEqual(['contract'])
   })
+
   it('requires at least one visibility audience', () => {
     expect(() => documentMetadataSchema.parse({ ...valid, audiences: [] })).toThrow()
   })
+
   it('requires reminder time and targets together', () => {
     expect(() => documentMetadataSchema.parse({ ...valid, reminder: { remindAt: '2027-06-01T09:00:00.000Z', targets: [] } })).toThrow()
+  })
+
+  it('rejects department reminders for employee documents', () => {
+    expect(() =>
+      documentMetadataSchema.parse({
+        ...valid,
+        reminder: {
+          remindAt: '2027-06-01T09:00:00.000Z',
+          targets: [{ type: 'DEPARTMENT_BRANCH', targetId: '33333333-3333-4333-8333-333333333333' }],
+        },
+      }),
+    ).toThrow()
   })
 })
