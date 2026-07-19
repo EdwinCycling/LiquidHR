@@ -8,7 +8,7 @@ import { EmailLink } from '@/components/shared/email-link'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
 
-type Tab = 'overview' | 'personal' | 'addresses' | 'bankAccounts' | 'relations'
+type Tab = 'personal' | 'addresses' | 'bankAccounts' | 'relations'
 type MutationState = 'idle' | 'saving' | 'saved' | 'failed'
 
 export interface EmployeePersonCardLabels {
@@ -147,12 +147,12 @@ async function runJsonMutation(
 }
 
 export function EmployeePersonCard({ detail, locale, dateFormat, labels }: EmployeePersonCardProps) {
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>('personal')
   const capabilities = detail.capabilities ?? NO_EMPLOYEE_CAPABILITIES
   const addresses = detail.addresses ?? []
   const bankAccounts = detail.bankAccounts ?? []
   const relations = detail.relations ?? []
-  const tabs: Tab[] = ['overview', 'personal', 'addresses', 'bankAccounts', 'relations']
+  const tabs: Tab[] = ['personal', 'addresses', 'bankAccounts', 'relations']
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number): void {
     let nextIndex: number | null = null
@@ -169,7 +169,7 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels }: Emplo
 
   return (
     <section className="mt-6 overflow-hidden rounded-2xl border bg-surface shadow-sm">
-      <nav className="overflow-x-auto border-b bg-surface-raised px-2 sm:px-4" aria-label={labels.overviewTitle}>
+      <nav className="overflow-x-auto border-b bg-surface-raised px-2 sm:px-4" aria-label={labels.personalTitle}>
         <div role="tablist" className="flex min-w-max gap-1">
           {tabs.map((item, index) => (
             <button
@@ -190,52 +190,12 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels }: Emplo
         </div>
       </nav>
       <div id={`employee-panel-${tab}`} role="tabpanel" aria-labelledby={`employee-tab-${tab}`} className="p-4 sm:p-6">
-        {tab === 'overview' && <OverviewPanel detail={detail} labels={labels} />}
         {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} />}
         {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
         {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} relationTypes={detail.relationTypes ?? []} locale={locale} canManage={capabilities.canManageRelations} labels={labels} />}
       </div>
     </section>
-  )
-}
-
-function OverviewPanel({ detail, labels }: { detail: EmployeeDetailViewModel; labels: EmployeePersonCardLabels }) {
-  const currentAddress = (detail.addresses ?? []).find((address) => !address.validUntil) ?? detail.addresses?.[0]
-  const primaryBank = (detail.bankAccounts ?? []).find((account) => account.isPrimary) ?? detail.bankAccounts?.[0]
-  const emergencyContacts = (detail.relations ?? []).filter((relation) => relation.isEmergencyContact)
-  const employee = detail.employee
-  return (
-    <div>
-      <header className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground"><UserRound aria-hidden="true" className="h-5 w-5" /></span>
-        <div><h2 className="text-lg font-semibold">{labels.overviewTitle}</h2><p className="text-sm text-muted-foreground">{labels.employmentCount.replace('{count}', String(detail.employments.length))}</p></div>
-      </header>
-      <div className="mt-6 grid gap-0 overflow-hidden rounded-xl border md:grid-cols-2 xl:grid-cols-4">
-        <StoryCell icon={<Mail className="h-4 w-4" />} title={labels.contactTitle}>
-          {(employee.workEmail ?? employee.privateEmail) ? <p><EmailLink email={employee.workEmail ?? employee.privateEmail ?? ''} /></p> : <p>{labels.noContact}</p>}
-          <p>{employee.workMobile ?? employee.privateMobile ?? employee.workPhone ?? employee.privatePhone ?? ''}</p>
-        </StoryCell>
-        <StoryCell icon={<Home className="h-4 w-4" />} title={labels.currentAddress}>
-          {currentAddress ? <><p>{currentAddress.street} {currentAddress.houseNumber}{currentAddress.addition ? ` ${currentAddress.addition}` : ''}</p><p>{currentAddress.postalCode} {currentAddress.city}</p></> : <p>{labels.noAddress}</p>}
-        </StoryCell>
-        <StoryCell icon={<CreditCard className="h-4 w-4" />} title={labels.primaryBank}>
-          <p>{primaryBank?.maskedIban ?? labels.noBankAccount}</p>{primaryBank?.accountHolder && <p>{primaryBank.accountHolder}</p>}
-        </StoryCell>
-        <StoryCell icon={<HeartHandshake className="h-4 w-4" />} title={labels.emergencyContacts}>
-          {emergencyContacts.length ? emergencyContacts.slice(0, 2).map((relation) => <p key={relation.id}>{relation.firstName} {relation.lastName}</p>) : <p>{labels.noEmergencyContact}</p>}
-        </StoryCell>
-      </div>
-    </div>
-  )
-}
-
-function StoryCell({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
-  return (
-    <article className="min-h-36 border-b p-4 last:border-b-0 md:border-r md:[&:nth-child(2n)]:border-r-0 xl:border-b-0 xl:[&:nth-child(2n)]:border-r xl:last:border-r-0">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{icon}{title}</div>
-      <div className="mt-4 space-y-1 text-sm font-medium leading-6 [&>p+p]:font-normal [&>p+p]:text-muted-foreground">{children}</div>
-    </article>
   )
 }
 

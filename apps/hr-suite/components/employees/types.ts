@@ -1,4 +1,5 @@
 import type { Database } from '@scope/db'
+import type { CurrentEmployeeSummary } from '@/lib/employment/employee-summary'
 
 type Employment = Database['public']['Tables']['employments']['Row']
 
@@ -9,6 +10,7 @@ export interface EmployeeCapabilities {
   canManageAddresses: boolean
   canManageRelations: boolean
   canManageBankAccounts: boolean
+  canReadSalary: boolean
 }
 
 export interface EmployeeProfile {
@@ -98,6 +100,7 @@ export interface EmployeeDetailViewModel {
   bankAccounts?: EmployeeBankAccount[]
   relations?: EmployeeRelation[]
   relationTypes?: EmployeeRelationTypeOption[]
+  currentEmploymentSummary: CurrentEmployeeSummary
   capabilities?: EmployeeCapabilities
 }
 
@@ -108,4 +111,5 @@ export const NO_EMPLOYEE_CAPABILITIES: EmployeeCapabilities = {
   canManageAddresses: false,
   canManageRelations: false,
   canManageBankAccounts: false,
+  canReadSalary: false,
 }

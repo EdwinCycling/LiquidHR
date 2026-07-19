@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { saveEmployeesFilterPanelOpen } from '@/lib/preferences/employees'
+import { saveEmployeesListPreferences } from '@/lib/preferences/employees'
+import { parseEmployeeListPreferencesPatch } from '@/lib/preferences/employee-list-state'
 
 export async function PATCH(request: Request) {
   const body: unknown = await request.json().catch(() => null)
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 })
-  const input = body as Record<string, unknown>
-  if (typeof input.filterPanelOpen !== 'boolean') return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 })
-  const saved = await saveEmployeesFilterPanelOpen(input.filterPanelOpen)
+  const patch = parseEmployeeListPreferencesPatch(body)
+  if (!patch) return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 })
+  const saved = await saveEmployeesListPreferences(patch)
   if (!saved) return NextResponse.json({ error: 'UNAUTHENTICATED' }, { status: 401 })
   return NextResponse.json({ ok: true })
 }

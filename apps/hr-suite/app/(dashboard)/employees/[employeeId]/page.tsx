@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, BriefcaseBusiness, Mail } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
+import { EmployeeOverviewPanel } from '@/components/employees/employee-overview-panel'
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
@@ -76,7 +77,7 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
   const { tab: requestedTab, create } = await searchParams
-  const tab = requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'reminders' ? requestedTab : 'personal'
+  const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'reminders' || requestedTab === 'personal' ? requestedTab : 'overview'
   const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
@@ -111,12 +112,19 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         </div>
 
         <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
-          {(['personal', 'employments', 'reminders', 'documents'] as const).map((item) => {
+          {(['overview', 'personal', 'employments', 'reminders', 'documents'] as const).map((item) => {
             const active = tab === item
-            const label = item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : tEmployees('tabDocuments')
+            const label = item === 'overview' ? tEmployees('tabOverview') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : tEmployees('tabDocuments')
             return <Link key={item} href={`/employees/${employeeId}?tab=${item}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}>{label}</Link>
           })}
         </nav>
+
+        {tab === 'overview' && <EmployeeOverviewPanel detail={detail} locale={locale} dateFormat={preferences.dateFormat} labels={{
+          title: tEmployees('overviewTitle'), employmentCount: tEmployees('employmentCount', { count: detail.employments.length }), employmentSummaryTitle: tEmployees('employmentSummaryTitle'), summaryDate: tEmployees('summaryDate'),
+          laborCondition: tEmployees('laborCondition'), hoursPerWeek: tEmployees('hoursPerWeek'), hoursSuffix: tEmployees('hoursSuffix'), salary: tEmployees('salary'), department: tEmployees('department'), jobTitle: tEmployees('jobTitle'),
+          salaryRevealHelp: tEmployees('salaryRevealHelp'), salaryHourlySuffix: tEmployees('salaryHourlySuffix'), salaryMonthlySuffix: tEmployees('salaryMonthlySuffix'), notRecorded: tEmployees('notRecorded'), contactTitle: tEmployees('contactTitle'), noContact: tEmployees('noContact'),
+          currentAddress: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), primaryBank: tEmployees('primaryBank'), noBankAccount: tEmployees('noBankAccount'), emergencyContacts: tEmployees('emergencyContacts'), noEmergencyContact: tEmployees('noEmergencyContact'),
+        }} />}
 
         {tab === 'personal' && <>
         <EmployeePersonCard
@@ -124,7 +132,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           locale={locale}
           dateFormat={preferences.dateFormat}
           labels={{
-            tabs: { overview: tEmployees('tabOverview'), personal: tEmployees('tabPersonal'), addresses: tEmployees('tabAddresses'), bankAccounts: tEmployees('tabBankAccounts'), relations: tEmployees('tabRelations') },
+            tabs: { personal: tEmployees('tabPersonal'), addresses: tEmployees('tabAddresses'), bankAccounts: tEmployees('tabBankAccounts'), relations: tEmployees('tabRelations') },
             overviewTitle: tEmployees('overviewTitle'), contactTitle: tEmployees('contactTitle'), workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'),
             noContact: tEmployees('noContact'), currentAddress: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), primaryBank: tEmployees('primaryBank'),
             noBankAccount: tEmployees('noBankAccount'), emergencyContacts: tEmployees('emergencyContacts'), noEmergencyContact: tEmployees('noEmergencyContact'),

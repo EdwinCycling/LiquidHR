@@ -80,4 +80,6 @@ Het autorisatiebeheer en grafische rechtenoverzicht zijn beschreven in [`superpo
 
 De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport en gecombineerde medewerkerskalender zijn beschreven in [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) en ontworpen in [`superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md`](superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md).
 
+De medewerkerlijst/persoonskaart-UX-slice van 2026-07-19 is geïmplementeerd: gebruikersgebonden lijstvoorkeuren zonder zoekterm, Enter-zoeken met afzonderlijk wissen, volledige klikrij, hoofdtab Overzicht vóór Persoonsgegevens en een effective-dated samenvatting van het huidige dienstverband met beschermd salaris-hover.
+
 De HR-admin-stamtabellenslice van 2026-07-19 staat op `codex/settings-rosters-calendar`: `/master-data` gebruikt gesloten accordions voor interne redenen, documentcategorieën en tenant-relatietypen; documenten gebruiken actieve Cloud tags. De relation-typecatalogus staat in migratie `20260719170000_add_tenant_relation_type_catalog.sql` met RLS en standaardseedrecords.

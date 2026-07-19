@@ -6,7 +6,8 @@ import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { listEmployeesOverview } from '@/lib/employment/employment-service'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { getTranslator } from '@/lib/i18n/server'
-import { getStoredEmployeesFilterPanelOpen } from '@/lib/preferences/employees'
+import { getStoredEmployeesListPreferences } from '@/lib/preferences/employees'
+import type { EmployeeArchiveFilter, EmployeeListSort, EmployeeListView, EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
 
 interface EmployeesPageProps {
   searchParams: Promise<{ search?: string; status?: string; archive?: string; sort?: string; view?: string }>
@@ -21,21 +22,21 @@ const STATUSES: EmploymentStatus[] = [
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
   const { search = '', status, archive, sort, view } = await searchParams
-  const archiveFilter = archive === 'archived' || archive === 'all' ? archive : 'active'
-  const sortOrder = sort === 'first-name' ? 'first-name' : 'last-name'
-  const viewMode = view === 'compact' ? 'compact' : 'detail'
-  const statusFilter = status === 'all'
-    ? 'all'
-    : STATUSES.includes(status as EmploymentStatus)
-      ? (status as EmploymentStatus)
-      : 'ACTIVE_EMPLOYEE'
-  const [employees, canCreateEmployee, tEmployees, tEmployment, filterPanelOpen] = await Promise.all([
+  const storedPreferences = await getStoredEmployeesListPreferences()
+  const archiveFilter: EmployeeArchiveFilter = archive === 'archived' || archive === 'all' ? archive : archive === 'active' ? 'active' : storedPreferences.archive
+  const [employees, canCreateEmployee, tEmployees, tEmployment] = await Promise.all([
     listEmployeesOverview(archiveFilter),
     canCreateEmployees(),
     getTranslator('employees'),
     getTranslator('employment'),
-    getStoredEmployeesFilterPanelOpen(),
   ])
+  const sortOrder: EmployeeListSort = sort === 'first-name' || sort === 'last-name' ? sort : storedPreferences.sort
+  const viewMode: EmployeeListView = view === 'compact' || view === 'detail' ? view : storedPreferences.view
+  const statusFilter: EmployeeStatusFilter = status === 'all'
+    ? 'all'
+    : STATUSES.includes(status as EmploymentStatus)
+      ? (status as EmploymentStatus)
+      : storedPreferences.status
   const collator = new Intl.Collator('nl', { sensitivity: 'base' })
   const normalizedQuery = search.trim().toLocaleLowerCase('nl')
   const filtered = employees.filter((employee) => {
@@ -81,12 +82,13 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           { value: 'archived', label: tEmployees('archive.archived') },
           { value: 'all', label: tEmployees('archive.all') },
         ]}
-        initialOpen={filterPanelOpen}
+        initialOpen={storedPreferences.filterPanelOpen}
         labels={{
           all: tEmployees('all'),
           employeeNumber: tEmployees('employeeNumber'),
           searchPlaceholder: tEmployees('searchPlaceholder'),
           searchAction: tEmployees('search'),
+          clearSearch: tEmployees('clearSearch'),
           statusFilter: tEmployees('statusFilter'),
           archiveFilter: tEmployees('archiveFilter'),
           sortLabel: tEmployees('sortLabel'),

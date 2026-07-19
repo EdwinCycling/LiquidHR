@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
+import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './employee-summary'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -121,6 +122,7 @@ export interface EmployeeEmploymentDetail {
     nameNl: string
     nameEn: string
   }>
+  currentEmploymentSummary: CurrentEmployeeSummary
   capabilities: {
     canEditEmployee: boolean
     canReadBsn: boolean
@@ -128,6 +130,7 @@ export interface EmployeeEmploymentDetail {
     canManageAddresses: boolean
     canManageRelations: boolean
     canManageBankAccounts: boolean
+    canReadSalary: boolean
   }
 }
 
@@ -448,12 +451,37 @@ export async function getEmployeeEmploymentDetail(
 ): Promise<EmployeeEmploymentDetail> {
   const context = await requirePermission('employee:read', employeeId)
   const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+  const canReadSalary = await permissionAllowed('salary:read', employeeId)
+  const organizationQuery = supabase.from('employee_organizations')
+    .select('employment_id, job_title, effective_from, effective_to, departments!employee_organizations_department_id_fkey(name)')
+    .eq('tenant_id', context.tenantId)
+    .eq('employee_id', employeeId)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .order('effective_from', { ascending: false })
+    .limit(100)
+  if (context.administrationId) organizationQuery.eq('administration_id', context.administrationId)
+  const salaryQuery = canReadSalary
+    ? supabase.from('employment_salaries')
+      .select('employment_id, fulltime_amount, hourly_rate, currency_code, payment_type, valid_from, valid_until')
+      .eq('tenant_id', context.tenantId)
+      .eq('employee_id', employeeId)
+      .lte('valid_from', today)
+      .or(`valid_until.is.null,valid_until.gte.${today}`)
+      .order('valid_from', { ascending: false })
+      .limit(100)
+    : Promise.resolve({ data: [], error: null })
   const [
     { data: employee, error: employeeError }, employments,
     { data: addresses, error: addressesError },
     { data: bankAccounts, error: bankError },
     { data: relations, error: relationsError },
     { data: relationTypes, error: relationTypesError },
+    { data: laborConditions, error: laborConditionsError },
+    { data: schedules, error: schedulesError },
+    salaryResult,
+    { data: organizations, error: organizationsError },
     capabilityValues,
   ] = await Promise.all([
     supabase
@@ -480,6 +508,10 @@ export async function getEmployeeEmploymentDetail(
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
       .is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(100),
     supabase.from('relation_types').select('code, name_nl, name_en').eq('tenant_id', context.tenantId).eq('is_active', true).order('name_nl').limit(100),
+    supabase.from('employment_labor_conditions').select('employment_id, condition_group, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100),
+    supabase.from('employment_schedules').select('employment_id, average_hours_per_week, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100),
+    salaryQuery,
+    organizationQuery,
     Promise.all([
       permissionAllowed('employee:write', employeeId),
       permissionAllowed('employee-bsn:read', employeeId),
@@ -495,7 +527,19 @@ export async function getEmployeeEmploymentDetail(
     bankAccounts: bankError !== null,
     relations: relationsError !== null || relationTypesError !== null,
   })
-  if (detailReadFailureCode) throw new EmploymentServiceError(detailReadFailureCode, 500)
+  if (detailReadFailureCode || laborConditionsError || schedulesError || organizationsError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
+
+  const currentEmploymentSummary = selectCurrentEmploymentSummary({
+    today,
+    employments: employments.map((employment) => ({ id: employment.id, startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status })),
+    laborConditions: (laborConditions ?? []).map((item) => ({ employmentId: item.employment_id, value: item.condition_group, validFrom: item.valid_from, validUntil: item.valid_until })),
+    schedules: (schedules ?? []).map((item) => ({ employmentId: item.employment_id, value: item.average_hours_per_week, validFrom: item.valid_from, validUntil: item.valid_until })),
+    salaries: (salaryResult.data ?? []).flatMap((item) => {
+      const amount = item.payment_type === 'PERIODIC_FIXED' ? item.fulltime_amount : item.hourly_rate
+      return amount === null ? [] : [{ employmentId: item.employment_id, amount, currencyCode: item.currency_code, paymentType: item.payment_type, validFrom: item.valid_from, validUntil: item.valid_until }]
+    }),
+    organizations: (organizations ?? []).map((item) => ({ employmentId: item.employment_id, departmentName: item.departments?.name ?? null, jobTitle: item.job_title, validFrom: item.effective_from, validUntil: item.effective_to })),
+  })
 
   return {
     employee: {
@@ -560,10 +604,11 @@ export async function getEmployeeEmploymentDetail(
       mobile: relation.mobile, email: relation.email, notes: relation.notes,
     })),
     relationTypes: (relationTypes ?? []).map((relationType) => ({ code: relationType.code, nameNl: relationType.name_nl, nameEn: relationType.name_en })),
+    currentEmploymentSummary,
     capabilities: {
       canEditEmployee: capabilityValues[0], canReadBsn: capabilityValues[1],
       canWriteBsn: capabilityValues[2], canManageAddresses: capabilityValues[3],
-      canManageRelations: capabilityValues[4], canManageBankAccounts: capabilityValues[5],
+      canManageRelations: capabilityValues[4], canManageBankAccounts: capabilityValues[5], canReadSalary,
     },
   }
 }

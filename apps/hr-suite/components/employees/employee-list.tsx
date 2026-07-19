@@ -55,9 +55,14 @@ export function EmployeeList({
       <ul className="divide-y">
         {employees.map((employee, index) => (
           <li key={employee.id} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
-            <div className={`group grid px-4 transition-colors hover:bg-accent/45 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 ${view === 'compact' ? 'gap-3 py-2.5' : 'gap-4 py-4 sm:py-5'}`}>
-              <div className="min-w-0">
-                <Link href={`/employees/${employee.id}`} className={`flex min-w-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${view === 'compact' ? 'gap-2.5' : 'gap-3.5'}`}>
+            <div className={`group relative grid cursor-pointer px-4 transition-colors hover:bg-accent/45 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 ${view === 'compact' ? 'gap-3 py-2.5' : 'gap-4 py-4 sm:py-5'}`}>
+              <Link
+                aria-label={[employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')}
+                className="absolute inset-0 z-0 rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                href={`/employees/${employee.id}`}
+              />
+              <div className="relative z-10 min-w-0 pointer-events-none">
+                <div className={`flex min-w-0 items-center ${view === 'compact' ? 'gap-2.5' : 'gap-3.5'}`}>
                   {view === 'detail' ? (
                     employee.avatarUrl ? <img src={employee.avatarUrl} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wide text-primary-foreground shadow-sm">{employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}</span>
                   ) : null}
@@ -76,13 +81,13 @@ export function EmployeeList({
                       {employee.jobTitle ?? notRecordedLabel}
                     </p> : null}
                   </div>
-                </Link>
+                </div>
                 {view === 'detail' ? <span className="mt-1 flex min-w-0 items-center gap-1.5 pl-[3.875rem] text-sm text-muted-foreground">
                   <Mail aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                  {employee.workEmail ? <EmailLink className="truncate hover:underline" email={employee.workEmail} /> : <span className="truncate">{noEmailLabel}</span>}
+                  {employee.workEmail ? <EmailLink className="pointer-events-auto relative z-20 truncate hover:underline" email={employee.workEmail} /> : <span className="truncate">{noEmailLabel}</span>}
                 </span> : null}
               </div>
-              <Link href={`/employees/${employee.id}`} className={`flex items-center justify-between gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:justify-end ${view === 'detail' ? 'pl-[3.4rem] sm:pl-0' : 'pl-0'}`}>
+              <div className={`relative z-10 flex items-center justify-between gap-3 pointer-events-none sm:justify-end ${view === 'detail' ? 'pl-[3.4rem] sm:pl-0' : 'pl-0'}`}>
                 {employee.isArchived && <span className="rounded-md bg-warning-surface px-2.5 py-1 text-xs font-semibold text-warning">{archiveLabel}</span>}
                 <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[employee.status]}`}>
                   {labels[employee.status]}
@@ -91,7 +96,7 @@ export function EmployeeList({
                   {employmentCountLabel(employee.employmentCount)}
                 </span>
                 <ArrowUpRight aria-hidden="true" className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
-              </Link>
+              </div>
             </div>
           </li>
         ))}
