@@ -1,12 +1,12 @@
 # Actuele overdracht Liquid HR
 
-## Update 2026-07-23: performance-slice stappen 1 t/m 3 lokaal uitgevoerd
+## Update 2026-07-23: performance-slice en volledige release gedeployed
 
-Voor de trage overgang tussen dashboardroutes zijn drie maatregelen lokaal toegevoegd. `vercel.json` stuurt nieuwe Vercel Functions naar `cdg1` (Parijs-regio), zodat de server dichter bij Supabase `eu-west-3` draait. De productie-effectiviteit hiervan begint pas na een deployment met deze commit; er is in deze beurt bewust niet gedeployed omdat de werkboom al niet-gerelateerde gebruikerswijzigingen bevat.
+De trage overgang tussen dashboardroutes heeft drie maatregelen gekregen. `vercel.json` stuurt Vercel Functions naar `cdg1` (Parijs-regio), zodat de server dichter bij Supabase `eu-west-3` draait. De dashboardroutegroep heeft een algemene skeleton-loading UI. Hoge-cardinaliteitslinks naar medewerkerkaarten en kalender-events prefetchen niet meer automatisch. In `lib/auth/permissions.ts` delen permission-checks binnen één Server Component-request dezelfde Supabase-client en opgeloste auth/context/rollen/permissions; selfservice-permissions worden binnen die request eveneens gedeeld.
 
-De dashboardroutegroep heeft nu een algemene skeleton-loading UI. Daarnaast is Next.js-prefetching uitgezet voor de hoge-cardinaliteitslinks naar medewerkerkaarten en kalender-events; de beperkte hoofd navigatie blijft wel prefetchen. In `lib/auth/permissions.ts` delen permission-checks binnen één Server Component-request dezelfde Supabase-client en opgeloste auth/context/rollen/permissions; selfservice-permissions worden binnen die request eveneens gedeeld.
+De volledige werkboom is vastgelegd in commit `77dc4d8` met applicatieversie `1.20260723.1` en naar GitHub `main` gepusht. Vercel Production deployment `dpl_E4tT9cTmashfnhv95vy4ENNTYryT` is `READY` op `https://liquid-hr-hr-suite.vercel.app` met regio `cdg1`.
 
-Verificatie 2026-07-23: gerichte ESLint, volledige ESLint, strict typecheck, alle 89 Vitest-bestanden/334 tests en productiebuild geslaagd; `git diff --check` is schoon. Nog te doen voor productie: alleen deze performancebestanden reviewen/stagen/commiten en naar `main` pushen, waarna Vercel de deployment met `cdg1` moet maken en de runtime-regio gecontroleerd moet worden.
+Verificatie 2026-07-23: volledige ESLint, strict typecheck, i18n-pariteit met 20 NL/EN-namespaces, alle 89 Vitest-bestanden/334 tests en lokale productiebuild geslaagd. Productie-smoke gaf beschermde redirects/200-responses en de runtime-errorscan vond geen fouten in de laatste 30 minuten. Een nieuwe geauthenticeerde klik-tijdmeting wacht op een bestuurbare Chrome-sessie; de eerdere baseline blijft circa 4,3–5,0 seconden warm en circa 6,1 seconden koud.
 
 ## Update 2026-07-22: verlof aanvraag, ledger en Lina-demo gecontroleerd
 
