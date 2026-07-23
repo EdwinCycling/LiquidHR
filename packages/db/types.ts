@@ -1625,6 +1625,13 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
+            foreignKeyName: "employee_relations_relation_type_catalog_fkey"
+            columns: ["tenant_id", "relation_type"]
+            isOneToOne: false
+            referencedRelation: "relation_types"
+            referencedColumns: ["tenant_id", "code"]
+          },
+          {
             foreignKeyName: "employee_relations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -2428,6 +2435,73 @@ export type Database = {
           },
         ]
       }
+      employment_leave_profiles: {
+        Row: {
+          administration_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          employment_id: string
+          id: string
+          leave_profile_id: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          employment_id: string
+          id?: string
+          leave_profile_id: string
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          employment_id?: string
+          id?: string
+          leave_profile_id?: string
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_leave_profiles_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "employment_leave_profiles_profile_fkey"
+            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            isOneToOne: false
+            referencedRelation: "leave_profiles"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
       employment_salaries: {
         Row: {
           administration_id: string
@@ -2721,6 +2795,91 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "statutory_termination_reasons"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_work_hour_entries: {
+        Row: {
+          administration_id: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          employment_id: string
+          hours: number
+          id: string
+          note: string | null
+          source_key: string | null
+          source_type: string
+          status: Database["public"]["Enums"]["leave_work_hour_entry_status"]
+          tenant_id: string
+          updated_at: string
+          work_date: string
+          work_hour_type_id: string
+        }
+        Insert: {
+          administration_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          employment_id: string
+          hours: number
+          id?: string
+          note?: string | null
+          source_key?: string | null
+          source_type?: string
+          status?: Database["public"]["Enums"]["leave_work_hour_entry_status"]
+          tenant_id: string
+          updated_at?: string
+          work_date: string
+          work_hour_type_id: string
+        }
+        Update: {
+          administration_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          employment_id?: string
+          hours?: number
+          id?: string
+          note?: string | null
+          source_key?: string | null
+          source_type?: string
+          status?: Database["public"]["Enums"]["leave_work_hour_entry_status"]
+          tenant_id?: string
+          updated_at?: string
+          work_date?: string
+          work_hour_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_work_hour_entries_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "employment_work_hour_entries_type_fkey"
+            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            isOneToOne: false
+            referencedRelation: "work_hour_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
         ]
       }
@@ -3328,6 +3487,894 @@ export type Database = {
           },
         ]
       }
+      leave_accrual_exceptions: {
+        Row: {
+          accrual_amount: number | null
+          administration_id: string
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          employment_id: string
+          expiration_months: number | null
+          id: string
+          leave_type_id: string
+          no_accrual: boolean
+          reason: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          accrual_amount?: number | null
+          administration_id: string
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          employment_id: string
+          expiration_months?: number | null
+          id?: string
+          leave_type_id: string
+          no_accrual?: boolean
+          reason: string
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          accrual_amount?: number | null
+          administration_id?: string
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          employment_id?: string
+          expiration_months?: number | null
+          id?: string
+          leave_type_id?: string
+          no_accrual?: boolean
+          reason?: string
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_accrual_exceptions_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "leave_accrual_exceptions_type_fkey"
+            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_accrual_rule_pause_types: {
+        Row: {
+          accrual_rule_id: string
+          administration_id: string
+          created_at: string
+          pause_leave_type_id: string
+          tenant_id: string
+        }
+        Insert: {
+          accrual_rule_id: string
+          administration_id: string
+          created_at?: string
+          pause_leave_type_id: string
+          tenant_id: string
+        }
+        Update: {
+          accrual_rule_id?: string
+          administration_id?: string
+          created_at?: string
+          pause_leave_type_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_accrual_rule_pause_types_rule_fkey"
+            columns: ["tenant_id", "administration_id", "accrual_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_accrual_rules"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rule_pause_types_type_fkey"
+            columns: ["tenant_id", "administration_id", "pause_leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_accrual_rule_work_hour_types: {
+        Row: {
+          accrual_rule_id: string
+          administration_id: string
+          created_at: string
+          tenant_id: string
+          work_hour_type_id: string
+        }
+        Insert: {
+          accrual_rule_id: string
+          administration_id: string
+          created_at?: string
+          tenant_id: string
+          work_hour_type_id: string
+        }
+        Update: {
+          accrual_rule_id?: string
+          administration_id?: string
+          created_at?: string
+          tenant_id?: string
+          work_hour_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_accrual_rule_work_hour_types_rule_fkey"
+            columns: ["tenant_id", "administration_id", "accrual_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_accrual_rules"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rule_work_hour_types_type_fkey"
+            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            isOneToOne: false
+            referencedRelation: "work_hour_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_accrual_rules: {
+        Row: {
+          accrual_amount: number | null
+          accrual_basis: Database["public"]["Enums"]["leave_accrual_basis"]
+          accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
+          accrual_rate: number | null
+          accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
+          administration_id: string
+          created_at: string
+          created_by: string | null
+          expiration_months: number
+          id: string
+          leave_profile_id: string
+          leave_type_id: string
+          predecessor_rule_id: string | null
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          accrual_amount?: number | null
+          accrual_basis: Database["public"]["Enums"]["leave_accrual_basis"]
+          accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
+          accrual_rate?: number | null
+          accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
+          administration_id: string
+          created_at?: string
+          created_by?: string | null
+          expiration_months: number
+          id?: string
+          leave_profile_id: string
+          leave_type_id: string
+          predecessor_rule_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          accrual_amount?: number | null
+          accrual_basis?: Database["public"]["Enums"]["leave_accrual_basis"]
+          accrual_frequency?: Database["public"]["Enums"]["leave_accrual_frequency"]
+          accrual_rate?: number | null
+          accrual_timing?: Database["public"]["Enums"]["leave_accrual_timing"]
+          administration_id?: string
+          created_at?: string
+          created_by?: string | null
+          expiration_months?: number
+          id?: string
+          leave_profile_id?: string
+          leave_type_id?: string
+          predecessor_rule_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_accrual_rules_predecessor_rule_id_fkey"
+            columns: ["predecessor_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_accrual_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rules_profile_fkey"
+            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            isOneToOne: false
+            referencedRelation: "leave_profiles"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rules_type_fkey"
+            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_accrual_transactions: {
+        Row: {
+          actor_user_id: string | null
+          administration_id: string
+          amount: number
+          bucket_id: string
+          created_at: string
+          employee_id: string
+          employment_id: string
+          id: string
+          leave_type_id: string
+          reason: string | null
+          source_id: string | null
+          source_key: string | null
+          source_type: string
+          tenant_id: string
+          transaction_date: string
+          transaction_type: Database["public"]["Enums"]["leave_transaction_type"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          administration_id: string
+          amount: number
+          bucket_id: string
+          created_at?: string
+          employee_id: string
+          employment_id: string
+          id?: string
+          leave_type_id: string
+          reason?: string | null
+          source_id?: string | null
+          source_key?: string | null
+          source_type: string
+          tenant_id: string
+          transaction_date: string
+          transaction_type: Database["public"]["Enums"]["leave_transaction_type"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          administration_id?: string
+          amount?: number
+          bucket_id?: string
+          created_at?: string
+          employee_id?: string
+          employment_id?: string
+          id?: string
+          leave_type_id?: string
+          reason?: string | null
+          source_id?: string | null
+          source_key?: string | null
+          source_type?: string
+          tenant_id?: string
+          transaction_date?: string
+          transaction_type?: Database["public"]["Enums"]["leave_transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_accrual_transactions_bucket_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+              "leave_type_id",
+              "bucket_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "leave_balance_buckets"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+              "leave_type_id",
+              "id",
+            ]
+          },
+        ]
+      }
+      leave_balance_buckets: {
+        Row: {
+          accrual_reference_date: string
+          accrual_year: number
+          administration_id: string
+          created_at: string
+          employee_id: string
+          employment_id: string
+          expiration_date: string
+          id: string
+          leave_type_id: string
+          tenant_id: string
+          total_accrued: number
+          total_expired: number
+          total_taken: number
+          updated_at: string
+        }
+        Insert: {
+          accrual_reference_date: string
+          accrual_year: number
+          administration_id: string
+          created_at?: string
+          employee_id: string
+          employment_id: string
+          expiration_date: string
+          id?: string
+          leave_type_id: string
+          tenant_id: string
+          total_accrued?: number
+          total_expired?: number
+          total_taken?: number
+          updated_at?: string
+        }
+        Update: {
+          accrual_reference_date?: string
+          accrual_year?: number
+          administration_id?: string
+          created_at?: string
+          employee_id?: string
+          employment_id?: string
+          expiration_date?: string
+          id?: string
+          leave_type_id?: string
+          tenant_id?: string
+          total_accrued?: number
+          total_expired?: number
+          total_taken?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balance_buckets_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "leave_balance_buckets_type_fkey"
+            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_bonus_rules: {
+        Row: {
+          administration_id: string
+          award_timing: Database["public"]["Enums"]["leave_bonus_award_timing"]
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          leave_profile_id: string
+          leave_type_id: string
+          name: string
+          pro_rate_first_year: boolean
+          tenant_id: string
+          trigger_type: Database["public"]["Enums"]["leave_bonus_trigger_type"]
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          award_timing: Database["public"]["Enums"]["leave_bonus_award_timing"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          leave_profile_id: string
+          leave_type_id: string
+          name: string
+          pro_rate_first_year?: boolean
+          tenant_id: string
+          trigger_type: Database["public"]["Enums"]["leave_bonus_trigger_type"]
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          award_timing?: Database["public"]["Enums"]["leave_bonus_award_timing"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          leave_profile_id?: string
+          leave_type_id?: string
+          name?: string
+          pro_rate_first_year?: boolean
+          tenant_id?: string
+          trigger_type?: Database["public"]["Enums"]["leave_bonus_trigger_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_bonus_rules_profile_fkey"
+            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            isOneToOne: false
+            referencedRelation: "leave_profiles"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_bonus_rules_type_fkey"
+            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_bonus_tiers: {
+        Row: {
+          administration_id: string
+          bonus_amount: number
+          bonus_rule_id: string
+          created_at: string
+          id: string
+          tenant_id: string
+          threshold_years: number
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          bonus_amount: number
+          bonus_rule_id: string
+          created_at?: string
+          id?: string
+          tenant_id: string
+          threshold_years: number
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          bonus_amount?: number
+          bonus_rule_id?: string
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          threshold_years?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_bonus_tiers_rule_fkey"
+            columns: ["tenant_id", "administration_id", "bonus_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_bonus_rules"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_priority_rule_items: {
+        Row: {
+          administration_id: string
+          created_at: string
+          leave_type_id: string
+          priority_rule_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          leave_type_id: string
+          priority_rule_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          leave_type_id?: string
+          priority_rule_id?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_priority_rule_items_rule_fkey"
+            columns: ["tenant_id", "administration_id", "priority_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_priority_rules"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_priority_rule_items_type_fkey"
+            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_priority_rules: {
+        Row: {
+          administration_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          leave_profile_id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          leave_profile_id: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          leave_profile_id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_priority_rules_profile_fkey"
+            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            isOneToOne: false
+            referencedRelation: "leave_profiles"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_profiles: {
+        Row: {
+          administration_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_profiles_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_types: {
+        Row: {
+          administration_id: string
+          annual_hours_cap: number | null
+          color_code: string
+          created_at: string
+          created_by: string | null
+          entitlement_mode: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          id: string
+          is_active: boolean
+          is_self_service: boolean
+          is_system: boolean
+          name: string
+          scope: Database["public"]["Enums"]["leave_type_scope"]
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          weekly_hours_cap_factor: number | null
+        }
+        Insert: {
+          administration_id: string
+          annual_hours_cap?: number | null
+          color_code?: string
+          created_at?: string
+          created_by?: string | null
+          entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          id?: string
+          is_active?: boolean
+          is_self_service?: boolean
+          is_system?: boolean
+          name: string
+          scope: Database["public"]["Enums"]["leave_type_scope"]
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          weekly_hours_cap_factor?: number | null
+        }
+        Update: {
+          administration_id?: string
+          annual_hours_cap?: number | null
+          color_code?: string
+          created_at?: string
+          created_by?: string | null
+          entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          id?: string
+          is_active?: boolean
+          is_self_service?: boolean
+          is_system?: boolean
+          name?: string
+          scope?: Database["public"]["Enums"]["leave_type_scope"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekly_hours_cap_factor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_types_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_year_controls: {
+        Row: {
+          administration_id: string
+          created_at: string
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          status: Database["public"]["Enums"]["leave_year_control_status"]
+          tenant_id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          status?: Database["public"]["Enums"]["leave_year_control_status"]
+          tenant_id: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          status?: Database["public"]["Enums"]["leave_year_control_status"]
+          tenant_id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_year_controls_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_year_controls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_year_rollover_items: {
+        Row: {
+          administration_id: string
+          carried_hours: number
+          created_at: string
+          employment_id: string
+          id: string
+          leave_type_id: string
+          original_expiration_date: string
+          rollover_id: string
+          source_bucket_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          carried_hours: number
+          created_at?: string
+          employment_id: string
+          id?: string
+          leave_type_id: string
+          original_expiration_date: string
+          rollover_id: string
+          source_bucket_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          carried_hours?: number
+          created_at?: string
+          employment_id?: string
+          id?: string
+          leave_type_id?: string
+          original_expiration_date?: string
+          rollover_id?: string
+          source_bucket_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_year_rollover_items_bucket_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employment_id",
+              "leave_type_id",
+              "source_bucket_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "leave_balance_buckets"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employment_id",
+              "leave_type_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "leave_year_rollover_items_employment_fkey"
+            columns: ["tenant_id", "administration_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_year_rollover_items_rollover_fkey"
+            columns: ["tenant_id", "administration_id", "rollover_id"]
+            isOneToOne: false
+            referencedRelation: "leave_year_rollovers"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_year_rollover_items_type_fkey"
+            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      leave_year_rollovers: {
+        Row: {
+          administration_id: string
+          completed_at: string
+          completed_by: string | null
+          created_at: string
+          from_year: number
+          id: string
+          tenant_id: string
+          to_year: number
+        }
+        Insert: {
+          administration_id: string
+          completed_at?: string
+          completed_by?: string | null
+          created_at?: string
+          from_year: number
+          id?: string
+          tenant_id: string
+          to_year: number
+        }
+        Update: {
+          administration_id?: string
+          completed_at?: string
+          completed_by?: string | null
+          created_at?: string
+          from_year?: number
+          id?: string
+          tenant_id?: string
+          to_year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_year_rollovers_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       management_roles: {
         Row: {
           code: string
@@ -3484,6 +4531,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "personal_dashboards_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relation_types: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name_en: string
+          name_nl: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_nl: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_nl?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relation_types_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3668,47 +4756,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "reminders"
             referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      relation_types: {
-        Row: {
-          code: string
-          created_at: string
-          id: string
-          is_active: boolean
-          name_en: string
-          name_nl: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name_en: string
-          name_nl: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name_en?: string
-          name_nl?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "relation_types_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -4435,6 +5482,201 @@ export type Database = {
         }
         Relationships: []
       }
+      work_hour_types: {
+        Row: {
+          administration_id: string
+          category: Database["public"]["Enums"]["work_hour_type_category"]
+          color_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          administration_id: string
+          category: Database["public"]["Enums"]["work_hour_type_category"]
+          color_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          administration_id?: string
+          category?: Database["public"]["Enums"]["work_hour_type_category"]
+          color_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_hour_types_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "work_hour_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      },
+      leave_request_allocations: {
+        Row: {
+          administration_id: string
+          allocated_hours: number
+          bucket_id: string | null
+          created_at: string
+          employee_id: string
+          employment_id: string
+          id: string
+          leave_type_id: string
+          request_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          allocated_hours: number
+          bucket_id?: string | null
+          created_at?: string
+          employee_id: string
+          employment_id: string
+          id?: string
+          leave_type_id: string
+          request_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          allocated_hours?: number
+          bucket_id?: string | null
+          created_at?: string
+          employee_id?: string
+          employment_id?: string
+          id?: string
+          leave_type_id?: string
+          request_id?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      leave_requests: {
+        Row: {
+          actor_user_id: string
+          administration_id: string
+          created_at: string
+          employee_id: string
+          employment_id: string
+          end_date: string
+          id: string
+          idempotency_key: string
+          leave_type_id: string | null
+          priority_rule_id: string | null
+          request_mode: Database["public"]["Enums"]["leave_request_mode"]
+          requested_minutes: number
+          source: string
+          specific_end: string | null
+          specific_start: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["leave_request_status"]
+          time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          actor_user_id: string
+          administration_id: string
+          created_at?: string
+          employee_id: string
+          employment_id: string
+          end_date: string
+          id?: string
+          idempotency_key: string
+          leave_type_id?: string | null
+          priority_rule_id?: string | null
+          request_mode: Database["public"]["Enums"]["leave_request_mode"]
+          requested_minutes: number
+          source?: string
+          specific_end?: string | null
+          specific_start?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          actor_user_id?: string
+          administration_id?: string
+          created_at?: string
+          employee_id?: string
+          employment_id?: string
+          end_date?: string
+          id?: string
+          idempotency_key?: string
+          leave_type_id?: string | null
+          priority_rule_id?: string | null
+          request_mode?: Database["public"]["Enums"]["leave_request_mode"]
+          requested_minutes?: number
+          source?: string
+          specific_end?: string | null
+          specific_start?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          time_mode?: Database["public"]["Enums"]["leave_request_time_mode"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leave_settings: {
+        Row: {
+          administration_id: string
+          created_at: string
+          half_day_minutes: number
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          half_day_minutes?: number
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          half_day_minutes?: number
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      },
     }
     Views: {
       hr_change_events: {
@@ -4455,6 +5697,101 @@ export type Database = {
       }
     }
     Functions: {
+      create_leave_accrual_rule: {
+        Args: {
+          requested_accrual_amount: number | null
+          requested_accrual_basis: Database["public"]["Enums"]["leave_accrual_basis"]
+          requested_accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
+          requested_accrual_rate: number | null
+          requested_accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
+          requested_administration_id: string
+          requested_expiration_months: number
+          requested_leave_profile_id: string
+          requested_leave_type_id: string
+          requested_pause_leave_type_ids: string[]
+          requested_predecessor_rule_id: string | null
+          requested_tenant_id: string
+          requested_valid_from: string
+          requested_valid_until: string | null
+          requested_work_hour_type_ids: string[]
+        }
+        Returns: string
+      }
+      create_leave_bonus_rule: {
+        Args: {
+          requested_administration_id: string
+          requested_award_timing: Database["public"]["Enums"]["leave_bonus_award_timing"]
+          requested_is_active: boolean
+          requested_leave_profile_id: string
+          requested_leave_type_id: string
+          requested_name: string
+          requested_pro_rate_first_year: boolean
+          requested_tenant_id: string
+          requested_tiers: Json
+          requested_trigger_type: Database["public"]["Enums"]["leave_bonus_trigger_type"]
+        }
+        Returns: string
+      }
+      confirm_leave_request: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_end_date: string
+          requested_idempotency_key: string
+          requested_leave_type_id: string | null
+          requested_mode: Database["public"]["Enums"]["leave_request_mode"]
+          requested_priority_rule_id: string | null
+          requested_start_date: string
+          requested_tenant_id: string
+          requested_time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
+          requested_specific_end: string | null
+          requested_specific_start: string | null
+        }
+        Returns: string
+      }
+      create_leave_opening_balance: {
+        Args: {
+          requested_administration_id: string
+          requested_amount: number
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_leave_type_id: string
+          requested_reason: string
+          requested_source_key: string
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      apply_leave_manual_adjustment: {
+        Args: {
+          requested_administration_id: string
+          requested_accrual_year: number
+          requested_amount: number
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_leave_type_id: string
+          requested_reason: string
+          requested_source_key: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      close_leave_year: {
+        Args: {
+          requested_administration_id: string
+          requested_tenant_id: string
+          requested_year: number
+        }
+        Returns: string
+      }
+      expire_leave_buckets: {
+        Args: {
+          requested_as_of_date: string
+        }
+        Returns: number
+      }
       accept_user_invitation: {
         Args: {
           accepted_email: string
@@ -4648,6 +5985,35 @@ export type Database = {
       invitation_email_kind: "PRIVATE" | "BUSINESS"
       invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
+      leave_accrual_basis: "CONTRACT_HOURS" | "WORKED_HOURS"
+      leave_accrual_frequency: "PAYROLL_PERIOD" | "YEARLY"
+      leave_accrual_timing: "UPFRONT" | "ARREARS"
+      leave_bonus_award_timing: "START_OF_YEAR" | "ON_TRIGGER_DATE"
+      leave_bonus_trigger_type: "AGE" | "SENIORITY"
+      leave_transaction_type:
+        | "ACCRUAL"
+        | "OPENING_BALANCE"
+        | "MANUAL_ADJUSTMENT"
+        | "TAKEN"
+        | "EXPIRED_DEDUCTION"
+      leave_type_entitlement_mode:
+        | "ACCRUAL"
+        | "UNLIMITED"
+        | "ANNUAL_HOURS_CAP"
+        | "WEEKLY_HOURS_FACTOR_CAP"
+      leave_type_scope: "STATUTORY" | "NON_STATUTORY" | "ADV" | "OTHER"
+      leave_request_mode: "PRIORITY" | "DIRECT"
+      leave_request_status: "APPROVED" | "REJECTED" | "CANCELLED"
+      leave_request_time_mode: "FULL_DAY" | "MORNING" | "AFTERNOON" | "SPECIFIC_HOURS"
+      leave_work_hour_entry_status:
+        | "PENDING"
+        | "APPROVED"
+        | "REJECTED"
+        | "REVOKED"
+      leave_year_control_status:
+        | "LOCKED"
+        | "ACTIVE"
+        | "OPEN_FOR_FUTURE_REQUESTS"
       marital_status:
         | "SINGLE"
         | "MARRIED"
@@ -4705,6 +6071,7 @@ export type Database = {
         | "aubergine"
         | "nacht"
       week_numbering_system: "JANUARY_FIRST" | "ISO"
+      work_hour_type_category: "REGULAR_WORK" | "OVERTIME" | "INFORMATIONAL"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4893,6 +6260,39 @@ export const Constants = {
       invitation_email_kind: ["PRIVATE", "BUSINESS"],
       invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
+      leave_accrual_basis: ["CONTRACT_HOURS", "WORKED_HOURS"],
+      leave_accrual_frequency: ["PAYROLL_PERIOD", "YEARLY"],
+      leave_accrual_timing: ["UPFRONT", "ARREARS"],
+      leave_bonus_award_timing: ["START_OF_YEAR", "ON_TRIGGER_DATE"],
+      leave_bonus_trigger_type: ["AGE", "SENIORITY"],
+      leave_transaction_type: [
+        "ACCRUAL",
+        "OPENING_BALANCE",
+        "MANUAL_ADJUSTMENT",
+        "TAKEN",
+        "EXPIRED_DEDUCTION",
+      ],
+      leave_type_entitlement_mode: [
+        "ACCRUAL",
+        "UNLIMITED",
+        "ANNUAL_HOURS_CAP",
+        "WEEKLY_HOURS_FACTOR_CAP",
+      ],
+      leave_type_scope: ["STATUTORY", "NON_STATUTORY", "ADV", "OTHER"],
+      leave_request_mode: ["PRIORITY", "DIRECT"],
+      leave_request_status: ["APPROVED", "REJECTED", "CANCELLED"],
+      leave_request_time_mode: ["FULL_DAY", "MORNING", "AFTERNOON", "SPECIFIC_HOURS"],
+      leave_work_hour_entry_status: [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "REVOKED",
+      ],
+      leave_year_control_status: [
+        "LOCKED",
+        "ACTIVE",
+        "OPEN_FOR_FUTURE_REQUESTS",
+      ],
       marital_status: [
         "SINGLE",
         "MARRIED",
@@ -4957,6 +6357,7 @@ export const Constants = {
         "nacht",
       ],
       week_numbering_system: ["JANUARY_FIRST", "ISO"],
+      work_hour_type_category: ["REGULAR_WORK", "OVERTIME", "INFORMATIONAL"],
     },
   },
 } as const

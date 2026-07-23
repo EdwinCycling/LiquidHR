@@ -334,6 +334,48 @@ select {
 }
 
 @layer components {
+  .calendar-type-event {
+    --calendar-event-color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 0.9rem;
+    padding-inline: 0.18rem;
+    border-radius: 0.2rem;
+    color: var(--calendar-event-color);
+    border: 1px solid color-mix(in srgb, var(--calendar-event-color) 70%, var(--border));
+    background-color: color-mix(in srgb, var(--calendar-event-color) 18%, transparent);
+  }
+
+  .calendar-type-event-leave,
+  .calendar-type-marker-leave {
+    --calendar-event-color: var(--chart-1);
+    background-color: color-mix(in srgb, var(--calendar-event-color, var(--color-primary)) 32%, transparent);
+  }
+
+  .calendar-type-event-work,
+  .calendar-type-marker-work {
+    --calendar-event-color: var(--chart-2);
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--calendar-event-color, var(--color-primary)) 34%, transparent) 0 2px, transparent 2px 4px);
+  }
+
+  .calendar-type-event-overtime,
+  .calendar-type-marker-overtime {
+    --calendar-event-color: var(--chart-4);
+    background-image: radial-gradient(color-mix(in srgb, var(--calendar-event-color, var(--color-primary)) 58%, transparent) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .calendar-type-marker {
+    --calendar-event-color: var(--color-primary);
+    display: inline-block;
+    width: 1.4rem;
+    height: 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--calendar-event-color) 70%, var(--border));
+    border-radius: 0.2rem;
+  }
+
   .form-field {
     @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground hover:border-primary/40 focus:border-primary focus:outline-none;
   }

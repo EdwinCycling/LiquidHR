@@ -18,6 +18,7 @@ import masterDataEn from '@/messages/en/masterData.json'
 import documentsEn from '@/messages/en/documents.json'
 import hrCalendarEn from '@/messages/en/hrCalendar.json'
 import starPerformersEn from '@/messages/en/starPerformers.json'
+import leaveEn from '@/messages/en/leave.json'
 import authNl from '@/messages/nl/auth.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
@@ -36,6 +37,7 @@ import masterDataNl from '@/messages/nl/masterData.json'
 import documentsNl from '@/messages/nl/documents.json'
 import hrCalendarNl from '@/messages/nl/hrCalendar.json'
 import starPerformersNl from '@/messages/nl/starPerformers.json'
+import leaveNl from '@/messages/nl/leave.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -63,6 +65,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     documents: documentsNl,
     hrCalendar: hrCalendarNl,
     starPerformers: starPerformersNl,
+    leave: leaveNl,
   },
   en: {
     auth: authEn,
@@ -83,6 +86,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     documents: documentsEn,
     hrCalendar: hrCalendarEn,
     starPerformers: starPerformersEn,
+    leave: leaveEn,
   },
 }
 

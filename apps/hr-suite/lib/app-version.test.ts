@@ -7,6 +7,6 @@ describe('APP_VERSION', () => {
   })
 
   it('start met de door de opdrachtgever gekozen hoofdversie', () => {
-    expect(APP_VERSION).toBe('1.20260719.5')
+    expect(APP_VERSION).toBe('1.20260723.1')
   })
 })

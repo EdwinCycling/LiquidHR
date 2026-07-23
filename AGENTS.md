@@ -4,20 +4,17 @@ Motto: **It takes a genius to keep it simple.**
 
 ## Uitvoeringsvoorkeur van de gebruiker
 
-- Voer implementatieplannen altijd inline uit in de actieve chat.
-- Gebruik geen subagents of parallelle agentdelegatie, tenzij de gebruiker dit later expliciet wijzigt.
-- Optimaliseer voor laag creditverbruik en zorgvuldigheid; snelheid heeft geen prioriteit.
+- Voer implementatieplannen inline uit in de actieve chat.
+- Gebruik geen subagents of parallelle agentdelegatie, tenzij de gebruiker dat expliciet vraagt.
+- Optimaliseer voor lage kosten en zorgvuldigheid; voer geen onnodige brede analyse, planning of verificatie uit.
 
-## Verplichte leesvolgorde
+## Leesrouting
 
 1. Lees vóór iedere wijziging deze `AGENTS.md` volledig.
-2. Lees vervolgens altijd [`docs/README.md`](docs/README.md). Dit is de architectuurindex en documentrouter.
-3. Lees altijd [`docs/delivery/CURRENT_CONTEXT.md`](docs/delivery/CURRENT_CONTEXT.md). Dit is de compacte overdracht voor iedere nieuwe of geforkte chat.
-4. Lees vóór implementatie de relevante requirementdocumenten voor het domein dat wordt gewijzigd.
-5. Lees alleen de volledige architectuurdocumenten die `docs/README.md` voor die wijziging aanwijst.
-6. Lees alle vijf architectuurdocumenten bij cross-cutting wijzigingen aan auth, security, tenancy, datatoegang, projectstructuur, UI-fundering of Liquid Display.
-
-De volledige `LIQUID_DISPLAY_DOCUMENTATIE.md` is omvangrijk en wordt niet voor iedere kleine wijziging geladen. De architectuurindex is altijd verplicht; het volledige document alleen bij Liquid Display, generatieve UI, AI-querying, widget rendering of contextmanagement.
+2. Lees bij de start van een nieuwe taak of chat [`docs/README.md`](docs/README.md) en [`docs/delivery/CURRENT_CONTEXT.md`](docs/delivery/CURRENT_CONTEXT.md).
+3. Lees vóór implementatie alleen de requirements en architectuurdocumenten die `docs/README.md` voor het gewijzigde domein aanwijst.
+4. Lees alle vijf architectuurdocumenten alleen bij cross-cutting wijzigingen aan auth, security, tenancy, datatoegang, projectstructuur, UI-fundering of Liquid Display.
+5. Onderzoek bij een kleine, afgebakende wijziging eerst de direct relevante bestanden; lees niet de hele repository zonder concrete aanleiding.
 
 ## Bronnen en voorrang
 
@@ -42,24 +39,36 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 - Gebruik Tailwind v4 en CSS-variabelen; geen hardcoded hexwaarden in componenten.
 - Gebruik canonieke permissions: `resource:action` of `self:resource:action`.
 - Draai na iedere schemawijziging Supabase advisors en genereer `packages/db/types.ts` opnieuw.
-- Kritieke autorisatie- en salarislogica wordt test-first ontwikkeld.
-- De lokale app draait en wordt gevalideerd op poort `3000`.
-- Alle zichtbare tekst en foutmeldingen komen uit een taalbestand. Nederlands (`nl`) is standaard en Nederlands/Engels moeten altijd dezelfde sleutels hebben; draai `npm run check:i18n -w @liquid-hr/hr-suite`.
-- Nooit hardcoded zichtbare teksten of foutmeldingen in componenten, routes of services; gebruik altijd de paritaire taalmodule (NL/EN) en controleer dit met `check:i18n`.
+- Ontwikkel kritieke autorisatie- en salarislogica test-first.
+- Alle zichtbare tekst en foutmeldingen komen uit een taalbestand. Nederlands (`nl`) is standaard en Nederlands/Engels hebben steeds dezelfde sleutels.
 - Een nieuwe taal wordt als volledige namespace-set onder `apps/hr-suite/messages/<taalcode>/` toegevoegd; componenten bevatten geen eigen vertaalobjecten.
-- Iedere testbare ontwikkelmijlpaal wordt lokaal op poort `3000` én via een publieke preview gecontroleerd, zodat testen op iPhone of een externe laptop mogelijk is.
+
+## Efficiënte verificatie
+
+- Kies de kleinste relevante verificatie voor de gewijzigde bestanden en het gedrag.
+- Voor styling, copy, layout of een geïsoleerde UI-wijziging: gerichte linting, typecheck of visuele controle.
+- Voor logica: de dichtstbijzijnde unit-, component- of integratietest.
+- Draai `check:i18n` wanneer zichtbare tekst of taalmodules wijzigen.
+- Start of controleer de app op poort `3000` wanneer het aangepaste gedrag browsercontrole nodig heeft.
+- Draai de volledige testsuite, productiebuild, lokale browsercontrole en publieke preview alleen wanneer:
+  - de gebruiker dat vraagt;
+  - een release, merge of pull request wordt voorbereid;
+  - gedeelde infrastructuur, configuratie, authenticatie, routing, database-schema/RLS/grants of kritieke businesslogica wijzigt; of
+  - een gerichte controle een bredere regressiekans aanwijst.
+- Maak tests wanneer zij betekenisvolle bescherming bieden; niet mechanisch voor een triviale wijziging.
+- Herhaal geen onveranderde falende opdracht; herstel alleen in-scope fouten en rapporteer bestaande, niet-gerelateerde failures afzonderlijk.
 
 ## Documentatie bijhouden
 
 - Nieuwe requirements worden als Markdown onder `docs/requirements/<domein>/` opgeslagen.
 - Architectuurbesluiten komen als ADR in `docs/decisions/`; functionele besluiten als FDR.
-- Werk bij iedere afgeronde verticale slice de status in `docs/README.md` en `docs/delivery/IMPLEMENTATION_STATUS.md` bij.
-- Werk na iedere materiële wijziging ook `docs/delivery/CURRENT_CONTEXT.md` bij. Houd dit document compact, actueel en vrij van secrets, zodat een nieuwe of geforkte chat zonder conversatiegeschiedenis direct kan doorgaan.
+- Werk na een afgeronde verticale slice de status in `docs/README.md` en `docs/delivery/IMPLEMENTATION_STATUS.md` bij.
+- Werk na iedere materiële wijziging `docs/delivery/CURRENT_CONTEXT.md` bij. Houd dit document compact, actueel en vrij van secrets.
 - Markeer vervangen documenten expliciet; verwijder historische besluiten niet stil.
 
 ## Nieuwe en geforkte chats
 
 - Behandel repositorydocumentatie als het blijvende geheugen; vertrouw niet op oude chatgeschiedenis.
 - Start een nieuwe chat vanuit de repositoryroot. De gebruiker hoeft alleen te zeggen: `Lees AGENTS.md en ga verder vanaf CURRENT_CONTEXT.md`.
-- Verifieer bij hervatten eerst de actuele filesystem-, proces-, database- en deploymentstatus; neem tijdelijke URL's of draaiende processen nooit blind over.
+- Verifieer bij hervatten alleen de actuele filesystem-, proces-, database- en deploymentstatus die voor de taak relevant is; neem tijdelijke URL's of draaiende processen nooit blind over.
 - Noteer vóór het afsluiten van een omvangrijke taak in `CURRENT_CONTEXT.md`: wat is afgerond, wat is nog open, welke verificatie is uitgevoerd en welke handmatige acties overblijven.

@@ -60,6 +60,7 @@ export function EmployeeList({
                 aria-label={[employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')}
                 className="absolute inset-0 z-0 rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 href={`/employees/${employee.id}`}
+                prefetch={false}
               />
               <div className="relative z-10 min-w-0 pointer-events-none">
                 <div className={`flex min-w-0 items-center ${view === 'compact' ? 'gap-2.5' : 'gap-3.5'}`}>

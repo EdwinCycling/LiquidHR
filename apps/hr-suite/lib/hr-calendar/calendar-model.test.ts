@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buildMonthDays, formatCalendarMonth, formatCalendarWeekday, formatScheduledHours, getCalendarDayOccupancy, getCalendarWeekNumber, getCalendarWeekOptions, getCalendarWeekSegments, getEmployeePageSize, groupEventsByEmployee, isWeekendDay } from './calendar-model'
+import { buildMonthDays, formatCalendarMonth, formatCalendarWeekday, formatScheduledHours, getCalendarDayOccupancy, getCalendarWeekNumber, getCalendarWeekOptions, getCalendarWeekSegments, getEmployeePageSize, groupCalendarTypeEventsByEmployee, groupEventsByEmployee, isWeekendDay } from './calendar-model'
 import type { HrChangeEvent } from '@/lib/hr-events/types'
+import type { CalendarTypeEvent } from './calendar-service'
 const event=(id:string):HrChangeEvent=>({id,eventDate:'2026-07-15',eventType:'SCHEDULE_CHANGED',employeeId:'11111111-1111-4111-8111-111111111111',employmentId:null,titleKey:'key',titleValues:{},sourceHref:'/x',severity:'INFO'})
 describe('calendar model',()=>{it('builds actual month days',()=>expect(buildMonthDays('2026-07')).toHaveLength(31));it('groups multiple employee events on one day',()=>expect(groupEventsByEmployee([event('a'),event('b')]).get(event('a').employeeId)?.get('2026-07-15')).toHaveLength(2))})
+const typedEvent=(id:string):CalendarTypeEvent=>({id,employeeId:'11111111-1111-4111-8111-111111111111',employmentId:'22222222-2222-4222-8222-222222222222',date:'2026-07-15',kind:'LEAVE',typeId:'type-1',typeName:'Verlof',colorCode:'var(--chart-1)',hours:8})
+describe('calendar type events',()=>{it('keeps multiple coloured types together per employee and day',()=>expect(groupCalendarTypeEventsByEmployee([typedEvent('a'),typedEvent('b')]).get(typedEvent('a').employeeId)?.get('2026-07-15')).toHaveLength(2))})
 
 describe('employee calendar pagination', () => {
   it('ondersteunt 10, 25 en alle medewerkers met een harde limiet van 100', () => {

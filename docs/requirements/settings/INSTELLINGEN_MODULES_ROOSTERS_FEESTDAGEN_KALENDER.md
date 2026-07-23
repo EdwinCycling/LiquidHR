@@ -43,6 +43,7 @@ Versie: `1.20260718.5`
 - Algemene reminders staan één keer boven het raster.
 - De pagina ondersteunt zoeken, afdeling, persoon en 10/25/alle medewerkers met een harde bovengrens van 100.
 - Namen linken naar de medewerkerkaart. Dagkoppen en medewerkerdagen zijn aanklikbaar en reserveren het interactiecontract voor toekomstige uren, verlof en verzuim.
+- Opgenomen verlof en goedgekeurde werkurenentries worden per dienstverband naar de kalender geprojecteerd. Verlof, gewone/informatieve werkuren en overuren behouden hun eigen ingestelde kleur; een icoon en patroon onderscheiden de drie typen ook zonder kleurwaarneming. Meerdere typen op één dag worden als meerdere markers en in het dagdetail samen weergegeven.
 
 ## Autorisatie en audit
 

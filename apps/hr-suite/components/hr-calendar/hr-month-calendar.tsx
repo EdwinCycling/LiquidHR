@@ -3,13 +3,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, CalendarDays, ChevronDown, Clock3, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, ChevronDown, Clock3, Timer, Umbrella, X } from "lucide-react";
 import {
   buildMonthDays,
   formatScheduledHours,
   getCalendarDayOccupancy,
   formatCalendarWeekday,
   getCalendarWeekSegments,
+  groupCalendarTypeEventsByEmployee,
   groupEventsByEmployee,
   isWeekendDay,
 } from "@/lib/hr-calendar/calendar-model";
@@ -18,8 +19,12 @@ import type { WeekNumberingSystem } from "@/lib/preferences/user-preferences";
 import type { HrChangeEvent, HrChangeEventType } from "@/lib/hr-events/types";
 import type {
   CalendarReminder,
+  CalendarTypeEvent,
   CalendarWorkDay,
 } from "@/lib/hr-calendar/calendar-service";
+import { colorCodeToCssValue } from "@/lib/leave/colors";
+import type { CSSProperties } from "react";
+import { LeaveRequestDialog } from "./leave-request-dialog";
 
 interface Employee {
   id: string;
@@ -70,6 +75,33 @@ interface Labels {
   employeesSection: string;
   actionsSection: string;
   events: Record<HrChangeEventType, string>;
+  legendTitle: string;
+  leaveType: string;
+  workHourType: string;
+  overtimeType: string;
+  typeEventHours: string;
+  requestTitle: string;
+  requestViaPriority: string;
+  requestWithoutPriority: string;
+  requestLeaveType: string;
+  requestPriorityRule: string;
+  requestNoPriorityRules: string;
+  requestCurrentBalance: string;
+  requestProjectedBalance: string;
+  requestUnlimited: string;
+  requestFullDay: string;
+  requestMorning: string;
+  requestAfternoon: string;
+  requestSpecificHours: string;
+  requestStartDate: string;
+  requestEndDate: string;
+  requestTotalTime: string;
+  requestConfirm: string;
+  requestCancel: string;
+  requestLoading: string;
+  requestSuccess: string;
+  requestFailed: string;
+  requestNoBalance: string;
 }
 type Selection =
   | { type: "week"; weekNumber: number; startDate: string; endDate: string }
@@ -83,6 +115,7 @@ export function HrMonthCalendar({
   locale,
   employees,
   events,
+  calendarEvents,
   holidays,
   reminders,
   generalReminders,
@@ -100,6 +133,7 @@ export function HrMonthCalendar({
   locale: Locale;
   employees: Employee[];
   events: HrChangeEvent[];
+  calendarEvents: CalendarTypeEvent[];
   holidays: Holiday[];
   reminders: CalendarReminder[];
   generalReminders: CalendarReminder[];
@@ -123,7 +157,9 @@ export function HrMonthCalendar({
     [days, employees, showDayOccupancy],
   );
   const grouped = groupEventsByEmployee(events);
+  const typedEventsByEmployee = useMemo(() => groupCalendarTypeEventsByEmployee(calendarEvents), [calendarEvents]);
   const [selection, setSelection] = useState<Selection>(null);
+  const [requestTarget, setRequestTarget] = useState<{ employeeId: string; date: string; mode: "PRIORITY" | "DIRECT" } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const isCurrentMonth = month === todayDate.slice(0, 7);
   const holidayByDate = useMemo(
@@ -154,6 +190,10 @@ export function HrMonthCalendar({
       ? (remindersByEmployee.get(selection.employee.id)?.get(selection.date) ??
         [])
       : [];
+  const selectedEmployeeCalendarEvents =
+    selection?.type === "employee"
+      ? (typedEventsByEmployee.get(selection.employee.id)?.get(selection.date) ?? [])
+      : [];
   const selectedWorkDay =
     selection?.type === "employee"
       ? selection.employee.workDays[selection.date]
@@ -179,6 +219,7 @@ export function HrMonthCalendar({
             employee,
             workDay,
             employeeEvents,
+            calendarEvents: typedEventsByEmployee.get(employee.id)?.get(selection.date) ?? [],
             employeeReminders,
           };
         })
@@ -205,6 +246,12 @@ export function HrMonthCalendar({
 
   return (
     <div className="relative">
+      <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border bg-surface px-4 py-3 text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">{labels.legendTitle}</span>
+        <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="calendar-type-marker calendar-type-marker-leave" /><Umbrella aria-hidden="true" size={13} />{labels.leaveType}</span>
+        <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="calendar-type-marker calendar-type-marker-work" /><BriefcaseBusiness aria-hidden="true" size={13} />{labels.workHourType}</span>
+        <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="calendar-type-marker calendar-type-marker-overtime" /><Timer aria-hidden="true" size={13} />{labels.overtimeType}</span>
+      </div>
       <div
         className="overflow-auto rounded-2xl border bg-surface shadow-sm"
         ref={scrollRef}
@@ -309,12 +356,14 @@ export function HrMonthCalendar({
               </button>
               {days.map((day) => {
                 const items = grouped.get(employee.id)?.get(day) ?? [];
+                const typeItems = typedEventsByEmployee.get(employee.id)?.get(day) ?? [];
                 const dayReminders =
                   remindersByEmployee.get(employee.id)?.get(day) ?? [];
                 const work = employee.workDays[day];
                 const holiday = holidayByDate.get(day);
                 const isWeekend = isWeekendDay(day);
                 const isToday = day === todayDate;
+                const typeTitles = typeItems.map((event) => `${event.kind === "LEAVE" ? labels.leaveType : event.kind === "OVERTIME" ? labels.overtimeType : labels.workHourType}: ${event.typeName} · ${event.hours.toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 })}u`);
                 return (
                   <button
                     className={`relative flex min-h-14 flex-col items-center justify-center gap-1 border-b border-r p-1 hover:bg-accent/70 ${isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/25" : showWeekendsAndHolidays && holiday ? "bg-warning-surface/65" : showWeekendsAndHolidays && isWeekend ? "bg-muted/35" : ""}`}
@@ -322,11 +371,7 @@ export function HrMonthCalendar({
                     onClick={() =>
                       setSelection({ type: "employee", date: day, employee })
                     }
-                    title={
-                      work?.isWorkingDay
-                        ? `${labels.workHours} ${work.scheduledMinutes / 60}h`
-                        : labels.nonWorking
-                    }
+                    title={[work?.isWorkingDay ? `${labels.workHours} ${work.scheduledMinutes / 60}h` : labels.nonWorking, ...typeTitles].join(" · ")}
                   >
                     {work && !work.isWorkingDay ? (
                       <span className="h-1.5 w-full rounded-full bg-muted-foreground/45" />
@@ -340,6 +385,7 @@ export function HrMonthCalendar({
                         />
                       ))}
                     </span>
+                    {typeItems.length ? <span className="flex w-full flex-wrap justify-center gap-0.5" aria-label={labels.typeEventHours}>{typeItems.slice(0, 4).map((event) => <span className={`calendar-type-event calendar-type-event-${event.kind.toLowerCase()}`} key={event.id} style={{ "--calendar-event-color": colorCodeToCssValue(event.colorCode) } as CSSProperties} title={`${event.typeName} · ${event.hours.toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 })}u`}>{event.kind === "LEAVE" ? <Umbrella aria-hidden="true" size={10} /> : event.kind === "OVERTIME" ? <Timer aria-hidden="true" size={10} /> : <BriefcaseBusiness aria-hidden="true" size={10} />}</span>)}{typeItems.length > 4 ? <span className="text-[9px] font-semibold text-muted-foreground">+{typeItems.length - 4}</span> : null}</span> : null}
                     {showScheduledHours && work?.scheduledMinutes > 0 ? (
                       <span className="text-[9px] font-semibold text-muted-foreground">
                         {formatScheduledHours(work.scheduledMinutes)}
@@ -471,22 +517,16 @@ export function HrMonthCalendar({
                     </p>
                   </div>
                 </CalendarSidePanelSection>
-                <CalendarSidePanelSection title={labels.actionsSection}>
+                <CalendarSidePanelSection title={labels.actionsSection} open>
                   {selectedEmployee ? (
                     <Link
                       className="button-secondary w-full justify-center"
                       href={`/employees/${selectedEmployee.id}`}
+                      prefetch={false}
                     >
                       {labels.openEmployeeCard}
                     </Link>
                   ) : null}
-                  <button
-                    className="w-full rounded-xl border border-dashed p-4 text-sm font-semibold text-muted-foreground"
-                    disabled
-                    type="button"
-                  >
-                    {labels.actionsLater}
-                  </button>
                 </CalendarSidePanelSection>
               </div>
             </>
@@ -508,12 +548,14 @@ export function HrMonthCalendar({
                       </p>
                     ) : null}
                   </div>
+                  {selectedEmployeeCalendarEvents.length ? <div className="space-y-2">{selectedEmployeeCalendarEvents.map((event) => <div className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm" key={event.id}><span className="inline-flex min-w-0 items-center gap-2"><span className={`calendar-type-event calendar-type-event-${event.kind.toLowerCase()}`} style={{ "--calendar-event-color": colorCodeToCssValue(event.colorCode) } as CSSProperties}>{event.kind === "LEAVE" ? <Umbrella aria-hidden="true" size={12} /> : event.kind === "OVERTIME" ? <Timer aria-hidden="true" size={12} /> : <BriefcaseBusiness aria-hidden="true" size={12} />}</span><span className="truncate">{event.typeName}</span></span><span className="shrink-0 text-xs text-muted-foreground">{event.hours.toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 })}u</span></div>)}</div> : null}
                   <div className="space-y-2">
                     {selectedEmployeeEvents.map((event) => (
                       <Link
                         className="block rounded-xl bg-muted p-3 text-sm font-semibold hover:text-primary"
                         href={event.sourceHref}
                         key={event.id}
+                        prefetch={false}
                       >
                         {labels.events[event.eventType]}
                       </Link>
@@ -531,19 +573,39 @@ export function HrMonthCalendar({
                       : null}
                   </div>
                 </CalendarSidePanelSection>
-                <CalendarSidePanelSection title={labels.actionsSection}>
+                <CalendarSidePanelSection title={labels.actionsSection} open>
                   <Link
                     className="button-secondary w-full justify-center"
                     href={`/employees/${selection.employee.id}`}
+                    prefetch={false}
                   >
                     {labels.openEmployeeCard}
                   </Link>
                   <button
-                    className="w-full rounded-xl border border-dashed p-4 text-sm font-semibold text-muted-foreground"
-                    disabled
+                    className="button-primary w-full justify-center"
+                    onClick={() =>
+                      setRequestTarget({
+                        employeeId: selection.employee.id,
+                        date: selection.date,
+                        mode: "PRIORITY",
+                      })
+                    }
                     type="button"
                   >
-                    {labels.actionsLater}
+                    {labels.requestViaPriority}
+                  </button>
+                  <button
+                    className="button-secondary w-full justify-center"
+                    onClick={() =>
+                      setRequestTarget({
+                        employeeId: selection.employee.id,
+                        date: selection.date,
+                        mode: "DIRECT",
+                      })
+                    }
+                    type="button"
+                  >
+                    {labels.requestWithoutPriority}
                   </button>
                 </CalendarSidePanelSection>
               </div>
@@ -612,12 +674,13 @@ export function HrMonthCalendar({
                   ) : null}
                   <div className="space-y-3">
                     {selectedDayEmployees.map(
-                      ({ employee, workDay, employeeEvents, employeeReminders }) => (
+                      ({ employee, workDay, employeeEvents, calendarEvents: employeeCalendarEvents, employeeReminders }) => (
                         <div className="rounded-xl border p-4" key={employee.id}>
                           <div className="flex items-start justify-between gap-3">
                             <Link
                               className="text-sm font-semibold hover:text-primary"
                               href={`/employees/${employee.id}`}
+                              prefetch={false}
                             >
                               {employee.first_name} {employee.birth_name}
                             </Link>
@@ -632,13 +695,20 @@ export function HrMonthCalendar({
                               {workDay.startsAt} — {workDay.endsAt}
                             </p>
                           ) : null}
-                          {employeeEvents.length || (showReminders && employeeReminders.length) ? (
+                          {employeeEvents.length || employeeCalendarEvents.length || (showReminders && employeeReminders.length) ? (
                             <div className="mt-3 flex flex-wrap gap-2">
+                              {employeeCalendarEvents.map((event) => (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" key={event.id}>
+                                  <span className={`calendar-type-event calendar-type-event-${event.kind.toLowerCase()}`} style={{ "--calendar-event-color": colorCodeToCssValue(event.colorCode) } as CSSProperties}>{event.kind === "LEAVE" ? <Umbrella aria-hidden="true" size={12} /> : event.kind === "OVERTIME" ? <Timer aria-hidden="true" size={12} /> : <BriefcaseBusiness aria-hidden="true" size={12} />}</span>
+                                  {event.typeName} · {event.hours.toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 })}u
+                                </span>
+                              ))}
                               {employeeEvents.map((event) => (
                                 <Link
                                   className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium hover:text-primary"
                                   href={event.sourceHref}
                                   key={event.id}
+                                  prefetch={false}
                                 >
                                   <CalendarDays size={12} />
                                   {labels.events[event.eventType]}
@@ -676,6 +746,7 @@ export function HrMonthCalendar({
           )}
         </aside>
       ) : null}
+      {requestTarget ? <LeaveRequestDialog employeeId={requestTarget.employeeId} initialMode={requestTarget.mode} labels={{ title: labels.requestTitle, viaPriority: labels.requestViaPriority, withoutPriority: labels.requestWithoutPriority, leaveType: labels.requestLeaveType, priorityRule: labels.requestPriorityRule, noPriorityRules: labels.requestNoPriorityRules, currentBalance: labels.requestCurrentBalance, projectedBalance: labels.requestProjectedBalance, unlimited: labels.requestUnlimited, fullDay: labels.requestFullDay, morning: labels.requestMorning, afternoon: labels.requestAfternoon, specificHours: labels.requestSpecificHours, startDate: labels.requestStartDate, endDate: labels.requestEndDate, totalTime: labels.requestTotalTime, confirm: labels.requestConfirm, cancel: labels.requestCancel, close: labels.close, loading: labels.requestLoading, success: labels.requestSuccess, failed: labels.requestFailed, noBalance: labels.requestNoBalance }} locale={locale} onClose={() => setRequestTarget(null)} startDate={requestTarget.date} /> : null}
     </div>
   );
 }
@@ -684,13 +755,15 @@ function CalendarSidePanelSection({
   title,
   badge,
   children,
+  open = false,
 }: {
   title: string;
   badge?: string;
   children: React.ReactNode;
+  open?: boolean;
 }) {
   return (
-    <details className="group rounded-2xl border bg-background">
+    <details open={open} className="group rounded-2xl border bg-background">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold">
         <span className="inline-flex items-center gap-2">
           {title}

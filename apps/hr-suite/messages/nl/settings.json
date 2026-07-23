@@ -57,7 +57,7 @@
       "pendingActivationDescription": "Deze tegel wordt volledig actief zodra de bijbehorende Supabase-migratie is uitgevoerd.",
       "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
       "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe.",
-      "masterData": "Stamtabellen", "masterDataDescription": "Beheer interne redenen en tenantbrede stamtabellen.",
+      "masterData": "Stamtabellen", "masterDataDescription": "Beheer interne redenen en tenantbrede stamtabellen.", "leave": "Verlofopbouw", "leaveDescription": "Beheer verloftypen, werkuren, overuren en opbouwregels.",
       "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.",
       "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
     }

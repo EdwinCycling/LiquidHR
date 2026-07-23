@@ -1,4 +1,5 @@
 import type { HrChangeEvent } from '@/lib/hr-events/types'
+import type { CalendarTypeEvent } from './calendar-service'
 import type { Locale } from '@/lib/i18n/config'
 import type { WeekNumberingSystem } from '@/lib/preferences/user-preferences'
 
@@ -56,6 +57,16 @@ export function groupEventsByEmployee(events: HrChangeEvent[]): Map<string, Map<
   for (const event of events) {
     const employee = result.get(event.employeeId) ?? new Map<string, HrChangeEvent[]>()
     employee.set(event.eventDate, [...(employee.get(event.eventDate) ?? []), event])
+    result.set(event.employeeId, employee)
+  }
+  return result
+}
+
+export function groupCalendarTypeEventsByEmployee(events: CalendarTypeEvent[]): Map<string, Map<string, CalendarTypeEvent[]>> {
+  const result = new Map<string, Map<string, CalendarTypeEvent[]>>()
+  for (const event of events) {
+    const employee = result.get(event.employeeId) ?? new Map<string, CalendarTypeEvent[]>()
+    employee.set(event.date, [...(employee.get(event.date) ?? []), event])
     result.set(event.employeeId, employee)
   }
   return result

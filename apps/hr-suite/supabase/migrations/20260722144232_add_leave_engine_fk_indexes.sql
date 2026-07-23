@@ -1,0 +1,27 @@
+-- Covering indexes for the leave-engine foreign keys reported by Supabase advisors.
+create index if not exists employment_leave_profiles_created_by_idx on public.employment_leave_profiles (created_by);
+create index if not exists employment_leave_profiles_employment_fk_idx on public.employment_leave_profiles (tenant_id, administration_id, employee_id, employment_id);
+create index if not exists leave_accrual_exceptions_created_by_idx on public.leave_accrual_exceptions (created_by);
+create index if not exists leave_accrual_exceptions_employment_fk_idx on public.leave_accrual_exceptions (tenant_id, administration_id, employee_id, employment_id);
+create index if not exists leave_accrual_exceptions_type_fk_idx on public.leave_accrual_exceptions (tenant_id, administration_id, leave_type_id);
+create index if not exists leave_accrual_rule_pause_types_rule_fk_idx on public.leave_accrual_rule_pause_types (tenant_id, administration_id, accrual_rule_id);
+create index if not exists leave_accrual_rule_work_hour_types_rule_fk_idx on public.leave_accrual_rule_work_hour_types (tenant_id, administration_id, accrual_rule_id);
+create index if not exists leave_accrual_rules_created_by_idx on public.leave_accrual_rules (created_by);
+create index if not exists leave_accrual_rules_type_fk_idx on public.leave_accrual_rules (tenant_id, administration_id, leave_type_id);
+create index if not exists leave_accrual_transactions_actor_user_idx on public.leave_accrual_transactions (actor_user_id);
+create index if not exists leave_accrual_transactions_bucket_fk_idx on public.leave_accrual_transactions (tenant_id, administration_id, employment_id, leave_type_id, bucket_id);
+create index if not exists leave_balance_buckets_type_fk_idx on public.leave_balance_buckets (tenant_id, administration_id, leave_type_id);
+create index if not exists leave_bonus_rules_created_by_idx on public.leave_bonus_rules (created_by);
+create index if not exists leave_bonus_rules_type_fk_idx on public.leave_bonus_rules (tenant_id, administration_id, leave_type_id);
+create index if not exists leave_bonus_tiers_rule_fk_idx on public.leave_bonus_tiers (tenant_id, administration_id, bonus_rule_id);
+create index if not exists leave_priority_rule_items_rule_fk_idx on public.leave_priority_rule_items (tenant_id, administration_id, priority_rule_id);
+create index if not exists leave_priority_rules_created_by_idx on public.leave_priority_rules (created_by);
+create index if not exists leave_profiles_created_by_idx on public.leave_profiles (created_by);
+create index if not exists leave_profiles_updated_by_idx on public.leave_profiles (updated_by);
+create index if not exists leave_types_created_by_idx on public.leave_types (created_by);
+create index if not exists leave_types_updated_by_idx on public.leave_types (updated_by);
+create index if not exists leave_year_controls_locked_by_idx on public.leave_year_controls (locked_by);
+create index if not exists leave_year_rollover_items_bucket_fk_idx on public.leave_year_rollover_items (tenant_id, administration_id, employment_id, leave_type_id, source_bucket_id);
+create index if not exists leave_year_rollover_items_rollover_fk_idx on public.leave_year_rollover_items (tenant_id, administration_id, rollover_id);
+create index if not exists leave_year_rollover_items_type_fk_idx on public.leave_year_rollover_items (tenant_id, administration_id, leave_type_id);
+create index if not exists leave_year_rollovers_completed_by_idx on public.leave_year_rollovers (completed_by);

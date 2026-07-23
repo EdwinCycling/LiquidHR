@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cache } from 'react'
 import { toSelfPermission } from '@/lib/auth/permission-rules'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError, loadActiveContext } from '@/lib/context/server-context'
@@ -22,6 +23,31 @@ export class AuthorizationError extends Error {
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+interface RequestAuthorizationContext {
+  supabase: SupabaseServerClient
+  context: AuthContext
+}
+
+// React cache is request-scoped during Server Component rendering. Keeping the
+// client and resolved context together prevents each permission check in one
+// render from repeating auth, active-context, role, and permission queries.
+const getRequestAuthorizationContext = cache(async (): Promise<RequestAuthorizationContext> => {
+  const supabase = await createClient()
+  return { supabase, context: await requireAuthContext(supabase) }
+})
+
+const getSelfPermissions = cache(async (supabase: SupabaseServerClient): Promise<string[]> => {
+  const { data: employeeRole, error: employeeRoleError } = await supabase
+    .from('management_roles')
+    .select('id')
+    .eq('code', 'EMPLOYEE')
+    .is('tenant_id', null)
+    .maybeSingle()
+
+  if (employeeRoleError) throw employeeRoleError
+  return employeeRole ? permissionCodesForRoleIds([employeeRole.id], supabase) : []
+})
 
 async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient): Promise<string[]> {
   if (roleIds.length === 0) return []
@@ -131,19 +157,10 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient):
 }
 
 export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
-  const supabase = await createClient()
-  const context = await requireAuthContext(supabase)
+  const { supabase, context } = await getRequestAuthorizationContext()
 
   if (context.employeeId && targetEmployeeId === context.employeeId) {
-    const { data: employeeRole, error: employeeRoleError } = await supabase
-      .from('management_roles')
-      .select('id')
-      .eq('code', 'EMPLOYEE')
-      .is('tenant_id', null)
-      .maybeSingle()
-
-    if (employeeRoleError) throw employeeRoleError
-    const selfPermissions = employeeRole ? await permissionCodesForRoleIds([employeeRole.id], supabase) : []
+    const selfPermissions = await getSelfPermissions(supabase)
     if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
       throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')
     }

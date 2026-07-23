@@ -57,7 +57,7 @@
       "pendingActivationDescription": "This tile becomes fully active once the related Supabase migration has been applied.",
       "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
       "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
-      "masterData": "Master data", "masterDataDescription": "Manage internal reasons and tenant-wide master data.",
+      "masterData": "Master data", "masterDataDescription": "Manage internal reasons and tenant-wide master data.", "leave": "Leave accrual", "leaveDescription": "Manage leave types, work hours, overtime and accrual rules.",
       "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.",
       "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role."
     }

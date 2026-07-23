@@ -1,5 +1,7 @@
 # Liquid HR documentatie-index
 
+Actuele verlofstatus (2026-07-22): de verlof-engine bevat nu schema/RLS, configuratie- en balans-API, catalogus/opvolger/voorrangsregel-UI, idempotente HR-admin-aanvragen vanuit de kalender en centrale ledgermutaties voor startsaldo, handmatige correcties, jaarafsluiting, overheveling en verval. Feestdagen worden in booking en preview overgeslagen. De flow is remote en op poort 3000 met Lina Bakker gecontroleerd. Resterend zijn toekomstige opbouwprojectie voor maandelijkse regels, volledige saldo-audit/ledgerformulieren en later ESS, managerworkflow en notificaties.
+
 Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij bepaalt welke documenten leidend zijn en welke volledige bronnen per wijziging gelezen moeten worden.
 
 ## Statusdefinities
@@ -30,6 +32,8 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 
 | Domein | Document | Documentstatus | Implementatie |
 |---|---|---|---|
+| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/opvolgers/voorrangsregels, ledger-RPC's/API en settings-UI zijn aanwezig; toekomstige opbouwprojectie, volledige auditformulieren en enkele rapportdetails volgen |
+| Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | GEDEELTELIJK — geautoriseerde HR-admin/managerflow, priority/FIFO, directe goedkeuring, saldo-overzicht en kalenderweergave zijn geïmplementeerd; ESS, notificaties en manager-UI volgen later |
 | Core HR | [`requirements/core-hr/MEDEWERKER.md`](requirements/core-hr/MEDEWERKER.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Contract & dienstverband | [`requirements/employment/CONTRACT_EN_DIENSTVERBAND.md`](requirements/employment/CONTRACT_EN_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — volledige publicatieflow en tijdkaart gereed; detailmutaties basis/IKV blijven open |
 | Organisatie | [`requirements/organization/AFDELINGEN_EN_ROLLEN.md`](requirements/organization/AFDELINGEN_EN_ROLLEN.md) | LEIDEND | GEÏMPLEMENTEERD |

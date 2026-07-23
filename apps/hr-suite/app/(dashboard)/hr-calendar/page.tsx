@@ -119,6 +119,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     visibleIds.has(event.employeeId)
     && (parsed.type.length === 0 || parsed.type.includes(event.eventType))
   ))
+  const calendarEvents = data.calendarEvents.filter((event) => visibleIds.has(event.employeeId))
   const reminders = data.reminders.filter((reminder) => reminder.employeeId && visibleIds.has(reminder.employeeId))
 
   const eventLabels = {
@@ -273,6 +274,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
       <HrMonthCalendar
         employees={employees}
         events={events}
+        calendarEvents={calendarEvents}
         generalReminders={data.generalReminders}
         holidays={data.holidays}
         labels={{
@@ -303,7 +305,34 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           employeesSection: t('selectedEmployees'),
           actionsSection: t('actions'),
           events: eventLabels,
-        }}
+          legendTitle: t('legendTitle'),
+          leaveType: t('leaveType'),
+          workHourType: t('workHourType'),
+           overtimeType: t('overtimeType'),
+           typeEventHours: t('typeEventHours'),
+           requestTitle: t('requestTitle'),
+           requestViaPriority: t('requestViaPriority'),
+           requestWithoutPriority: t('requestWithoutPriority'),
+           requestLeaveType: t('requestLeaveType'),
+           requestPriorityRule: t('requestPriorityRule'),
+           requestNoPriorityRules: t('requestNoPriorityRules'),
+           requestCurrentBalance: t('requestCurrentBalance'),
+           requestProjectedBalance: t('requestProjectedBalance'),
+           requestUnlimited: t('requestUnlimited'),
+           requestFullDay: t('requestFullDay'),
+           requestMorning: t('requestMorning'),
+           requestAfternoon: t('requestAfternoon'),
+           requestSpecificHours: t('requestSpecificHours'),
+           requestStartDate: t('requestStartDate'),
+           requestEndDate: t('requestEndDate'),
+           requestTotalTime: t('requestTotalTime'),
+           requestConfirm: t('requestConfirm'),
+           requestCancel: t('requestCancel'),
+           requestLoading: t('requestLoading'),
+           requestSuccess: t('requestSuccess'),
+           requestFailed: t('requestFailed'),
+           requestNoBalance: t('requestNoBalance'),
+         }}
         locale={locale}
         month={month}
         reminders={reminders}

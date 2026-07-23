@@ -291,7 +291,6 @@ export function HrCalendarFilterPanel({
                     onChange={() => replaceFilters({ showDayOccupancy: !query.showDayOccupancy, job: query.job, jobGroup: query.jobGroup })}
                     toggleCardClass={toggleCardClass}
                   />
-                  <DisabledCard description={labels.leaveHint} label={labels.leave} note={labels.notAvailableYet} toggleCardClass={toggleCardClass} />
                   <DisabledCard description={labels.absenceHint} label={labels.absence} note={labels.notAvailableYet} toggleCardClass={toggleCardClass} />
                 </div>
               </CollapsibleSection>
