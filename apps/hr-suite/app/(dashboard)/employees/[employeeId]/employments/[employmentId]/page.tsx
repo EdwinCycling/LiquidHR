@@ -282,12 +282,14 @@ export default async function EmploymentDetailPage({
               {effectiveStatus}
             </span>
             <Link
+              prefetch={false}
               className={expanded ? "button-secondary" : "button-primary"}
               href={`?tab=${tab}&view=expanded`}
             >
               {t("expanded")}
             </Link>
             <Link
+              prefetch={false}
               className={!expanded ? "button-secondary" : "button-primary"}
               href={`?tab=${tab}&view=compact`}
             >
@@ -340,6 +342,7 @@ export default async function EmploymentDetailPage({
         <div className="flex min-w-max gap-1">
           {tabs.map((item) => (
             <Link
+              prefetch={false}
               key={item}
               href={`?tab=${item}&view=${expanded ? "expanded" : "compact"}`}
               className={`rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${tab === item ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}

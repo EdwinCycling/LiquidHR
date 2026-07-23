@@ -72,7 +72,7 @@ export function EmploymentTimeline({ employments, locale, dateFormat, options, c
                 {format(employment.starts_on)} — {employment.ends_on ? format(employment.ends_on) : labels.active}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="button-primary">{labels.openDetail}</Link>
+                <Link prefetch={false} href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="button-primary">{labels.openDetail}</Link>
                 {canManage ? <button className="button-secondary" onClick={() => { setDeletingId(employment.id); setDeleteState('idle') }} type="button">{labels.delete.confirm}</button> : null}
               </div>
               {canManage && status === 'active' && (

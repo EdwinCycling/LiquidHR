@@ -118,7 +118,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           {(['overview', 'personal', 'employments', 'reminders', 'documents'] as const).map((item) => {
             const active = tab === item
             const label = item === 'overview' ? tEmployees('tabOverview') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : tEmployees('tabDocuments')
-            return <Link key={item} href={`/employees/${employeeId}?tab=${item}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}>{label}</Link>
+            return <Link prefetch={false} key={item} href={`/employees/${employeeId}?tab=${item}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}>{label}</Link>
           })}
         </nav>
 
