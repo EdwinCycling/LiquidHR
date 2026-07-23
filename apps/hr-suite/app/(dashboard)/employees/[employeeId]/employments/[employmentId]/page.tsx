@@ -79,14 +79,14 @@ function DataCard({
   );
 }
 
-async function loadPageData(employeeId: string, employmentId: string) {
+async function loadPageData(employeeId: string, employmentId: string, tab: Tab) {
   try {
     return await Promise.all([
-      getEmploymentDetail(employeeId, employmentId),
+      getEmploymentDetail(employeeId, employmentId, tab),
       getLocale(),
       getUserPreferences(),
       getTranslator("employment"),
-      listEmployeeHrEvents(employeeId, { employmentId }),
+      tab === "history" ? listEmployeeHrEvents(employeeId, { employmentId }) : Promise.resolve([]),
     ]);
   } catch (error) {
     if (error instanceof EmploymentDetailError && error.status === 404)
@@ -103,13 +103,14 @@ export default async function EmploymentDetailPage({
     params,
     searchParams,
   ]);
-  const [detail, locale, preferences, t, events] = await loadPageData(
-    employeeId,
-    employmentId,
-  );
   const tab: Tab = tabs.includes(query.tab as Tab)
     ? (query.tab as Tab)
     : "overview";
+  const [detail, locale, preferences, t, events] = await loadPageData(
+    employeeId,
+    employmentId,
+    tab,
+  );
   const expanded = query.view !== "compact";
   const today = new Date().toISOString().slice(0, 10);
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? "")

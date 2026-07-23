@@ -44,6 +44,17 @@ async function loadEmploymentForAction(employmentId: string, permission: string)
   return data
 }
 
+export type EmploymentDetailLoadScope =
+  | 'all'
+  | 'overview'
+  | 'basics'
+  | 'labor'
+  | 'schedule'
+  | 'salary'
+  | 'organization'
+  | 'costs'
+  | 'history'
+
 function throwDatabaseError(message: string): never {
   const code = message.match(/[A-Z][A-Z_]+/)?.[0] ?? 'EMPLOYMENT_CHANGE_FAILED'
   const status = code === 'FORBIDDEN' ? 403 : code.includes('NOT_FOUND') ? 404
@@ -51,47 +62,113 @@ function throwDatabaseError(message: string): never {
   throw new EmploymentDetailError(code, status)
 }
 
-export async function getEmploymentDetail(employeeId: string, employmentId: string) {
+export async function getEmploymentDetail(
+  employeeId: string,
+  employmentId: string,
+  scope: EmploymentDetailLoadScope = 'all',
+) {
   const employment = await loadEmploymentForAction(employmentId, 'contract:read')
   if (employment.employee_id !== employeeId) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   const supabase = await createClient()
-  const [canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule] = await Promise.all([
-    permissionAllowed('contract:write', employeeId), permissionAllowed('salary:read', employeeId),
-    permissionAllowed('salary:write', employeeId), permissionAllowed('audit:read', employeeId),
-    permissionAllowed('employee:write', employeeId), permissionAllowed('work-schedule:write', employeeId),
-  ])
+  const isAllScope = scope === 'all'
+  const includeOverview = isAllScope || scope === 'overview'
+  const includeBasics = includeOverview || scope === 'basics'
+  const includeLabor = includeOverview || scope === 'labor'
+  const includeSchedule = includeOverview || scope === 'schedule' || scope === 'labor' || scope === 'salary'
+  const includeSalary = includeOverview || scope === 'salary' || scope === 'labor' || scope === 'schedule'
+  const includeOrganization = includeOverview || scope === 'organization'
+  const includeCosts = includeOverview || scope === 'costs'
+  const includeHistory = isAllScope || scope === 'history'
+  const canWriteContractPromise = includeLabor || includeSchedule || includeCosts || isAllScope
+    ? permissionAllowed('contract:write', employeeId)
+    : Promise.resolve(false)
+  const canReadSalaryPromise = includeOverview || includeSalary
+    ? permissionAllowed('salary:read', employeeId)
+    : Promise.resolve(false)
+  const canWriteSalaryPromise = includeSalary
+    ? permissionAllowed('salary:write', employeeId)
+    : Promise.resolve(false)
+  const canReadAuditPromise = includeHistory
+    ? permissionAllowed('audit:read', employeeId)
+    : Promise.resolve(false)
+  const canWriteEmployeePromise = includeOverview
+    ? permissionAllowed('employee:write', employeeId)
+    : Promise.resolve(false)
+  const canWriteWorkSchedulePromise = includeSchedule
+    ? permissionAllowed('work-schedule:write', employeeId)
+    : Promise.resolve(false)
+  const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_mobile, avatar_url')
+    .eq('id', employeeId).maybeSingle()
+  const administrationQuery = supabase.from('administrations').select('id, code, name')
+    .eq('id', employment.administration_id).maybeSingle()
+  const incomeLinksQuery = includeBasics
+    ? supabase.from('employment_income_relationships').select('*, income_relationships(*)')
+      .eq('employment_id', employmentId).order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const laborQuery = includeLabor
+    ? supabase.from('employment_labor_conditions').select('*').eq('employment_id', employmentId)
+      .order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const scheduleQuery = includeSchedule
+    ? supabase.from('employment_schedules').select('*').eq('employment_id', employmentId)
+      .order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const salaryQuery = canReadSalaryPromise.then(async (canReadSalary) => canReadSalary
+    ? await supabase.from('employment_salaries').select('*').eq('employment_id', employmentId)
+      .order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null }))
+  const costQuery = includeCosts
+    ? supabase.from('employment_cost_allocations').select('*, cost_centers(code, name)').eq('employment_id', employmentId)
+      .order('valid_from', { ascending: false }).limit(500)
+    : Promise.resolve({ data: [], error: null })
+  const organizationQuery = includeOrganization
+    ? supabase.from('employee_organizations').select('*, departments!employee_organizations_department_id_fkey(code, name)').eq('employment_id', employmentId)
+      .order('effective_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const linksQuery = supabase.from('employee_profile_links').select('*').eq('employee_id', employeeId)
+    .order('sort_order').order('created_at').limit(50)
+  const followUpsQuery = includeOverview
+    ? supabase.from('employment_change_follow_ups').select('*').eq('employment_id', employmentId)
+      .order('status').order('due_on').limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const auditQuery = canReadAuditPromise.then(async (canReadAudit) => canReadAudit
+    ? await supabase.from('audit_logs').select('*').eq('employment_id', employmentId)
+      .order('created_at', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null }))
+  const costCentersQuery = includeCosts
+    ? supabase.from('cost_centers').select('id, code, name').eq('administration_id', employment.administration_id)
+      .eq('is_active', true).order('code').limit(500)
+    : Promise.resolve({ data: [], error: null })
+  const scalesQuery = canReadSalaryPromise.then(async (canReadSalary) => canReadSalary && includeSalary
+    ? await supabase.from('salary_scale_steps').select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
+      .eq('administration_id', employment.administration_id).order('valid_from', { ascending: false }).limit(500)
+    : Promise.resolve({ data: [], error: null }))
 
   const [
     employeeResult, administrationResult, incomeLinksResult, laborResult, scheduleResult,
     salaryResult, costResult, organizationResult, linksResult, followUpsResult, auditResult,
     costCentersResult, scalesResult,
+    canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule,
   ] = await Promise.all([
-    supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_mobile, avatar_url')
-      .eq('id', employeeId).maybeSingle(),
-    supabase.from('administrations').select('id, code, name').eq('id', employment.administration_id).maybeSingle(),
-    supabase.from('employment_income_relationships').select('*, income_relationships(*)')
-      .eq('employment_id', employmentId).order('valid_from', { ascending: false }).limit(100),
-    supabase.from('employment_labor_conditions').select('*').eq('employment_id', employmentId)
-      .order('valid_from', { ascending: false }).limit(100),
-    supabase.from('employment_schedules').select('*').eq('employment_id', employmentId)
-      .order('valid_from', { ascending: false }).limit(100),
-    canReadSalary ? supabase.from('employment_salaries').select('*').eq('employment_id', employmentId)
-      .order('valid_from', { ascending: false }).limit(100) : Promise.resolve({ data: [], error: null }),
-    supabase.from('employment_cost_allocations').select('*, cost_centers(code, name)').eq('employment_id', employmentId)
-      .order('valid_from', { ascending: false }).limit(500),
-    supabase.from('employee_organizations').select('*, departments!employee_organizations_department_id_fkey(code, name)').eq('employment_id', employmentId)
-      .order('effective_from', { ascending: false }).limit(100),
-    supabase.from('employee_profile_links').select('*').eq('employee_id', employeeId)
-      .order('sort_order').order('created_at').limit(50),
-    supabase.from('employment_change_follow_ups').select('*').eq('employment_id', employmentId)
-      .order('status').order('due_on').limit(100),
-    canReadAudit ? supabase.from('audit_logs').select('*').eq('employment_id', employmentId)
-      .order('created_at', { ascending: false }).limit(100) : Promise.resolve({ data: [], error: null }),
-    supabase.from('cost_centers').select('id, code, name').eq('administration_id', employment.administration_id)
-      .eq('is_active', true).order('code').limit(500),
-    canReadSalary ? supabase.from('salary_scale_steps').select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
-      .eq('administration_id', employment.administration_id).order('valid_from', { ascending: false }).limit(500)
-      : Promise.resolve({ data: [], error: null }),
+    employeeQuery,
+    administrationQuery,
+    incomeLinksQuery,
+    laborQuery,
+    scheduleQuery,
+    salaryQuery,
+    costQuery,
+    organizationQuery,
+    linksQuery,
+    followUpsQuery,
+    auditQuery,
+    costCentersQuery,
+    scalesQuery,
+    canWriteContractPromise,
+    canReadSalaryPromise,
+    canWriteSalaryPromise,
+    canReadAuditPromise,
+    canWriteEmployeePromise,
+    canWriteWorkSchedulePromise,
   ])
   const results = [employeeResult, administrationResult, incomeLinksResult, laborResult, scheduleResult,
     salaryResult, costResult, organizationResult, linksResult, followUpsResult, auditResult,

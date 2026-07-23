@@ -74,6 +74,7 @@ Er zijn momenteel geen documenten met status **VERVANGEN**. Zodra een document w
 - Geaccepteerde tenantgrenzen: [`decisions/ADR-0001-tenant-en-administratiegrenzen.md`](decisions/ADR-0001-tenant-en-administratiegrenzen.md)
 - Authenticatie, i18n en persoonlijke thema's: [`decisions/ADR-0002-authenticatie-i18n-en-persoonlijke-themas.md`](decisions/ADR-0002-authenticatie-i18n-en-persoonlijke-themas.md)
 - Employee, Employment, IKV en herintreding: [`decisions/ADR-0003-employee-employment-ikv-en-herintreding.md`](decisions/ADR-0003-employee-employment-ikv-en-herintreding.md)
+- Performancebudgetten en tabprojecties: [`decisions/ADR-0004-performancebudgetten-en-tabprojecties.md`](decisions/ADR-0004-performancebudgetten-en-tabprojecties.md)
 - Documentzichtbaarheid en gecombineerde reminderdoelen: [`decisions/FDR-0001-document-en-reminderdoelgroepen.md`](decisions/FDR-0001-document-en-reminderdoelgroepen.md)
 - Uitvoeringsplannen: [`superpowers/plans/`](superpowers/plans/)
 - Toekomstige technische en functionele besluiten: `decisions/`

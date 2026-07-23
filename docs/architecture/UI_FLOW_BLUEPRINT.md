@@ -40,12 +40,24 @@ Vast drieluik:
 ---
 
 ## 3. Authenticatie Flow (UI)
-
 - **Geen wachtwoord-schermen** — magic link is de enige inlogmethode. Het login-scherm vraagt alleen een e-mailadres, toont daarna een "check je mail"-bevestiging.
 - **Foutafhandeling**: inline foutmelding onder het formulierveld voor validatiefouten (bv. ongeldig e-mailadres); voor server-/netwerkfouten een toast/banner-patroon, geen blocking modal voor iets herstelbaars.
 - **Registratie** verloopt via uitnodiging (`pending_invitations`) + magic link, niet via een zelfstandig registratieformulier met wachtwoordkeuze.
 - **Geen password-reset-scherm nodig** — die hele categorie fouten ("verkeerd wachtwoord") bestaat niet in dit model.
 - **Dev-only bypass**: een env-var-gestuurde auth-bypass voor lokale ontwikkeling/preview (nooit in productie actief, expliciet gated op `NODE_ENV`/env-var-check) zodat je zonder e-mail-round-trip kan doorontwikkelen.
+
+## 3a. Performance bij medewerker- en dienstverbandnavigatie
+
+Een tab is een deelbare URL-state, maar geen reden om alle schermdata opnieuw te laden. De route laadt de gedeelde kaart/shell en daarna uitsluitend de actieve projectie. Medewerkergegevens, salaris, dossier, reminders en historie blijven afzonderlijke leesgrenzen.
+
+- Iedere detailroute heeft een route-segment `loading.tsx` met een layoutgetrouwe skeleton.
+- Nieuwe tabs krijgen een gerichte Chrome- of lokale route-meting: p75 ≤ 1.500 ms voor eerste detailnavigatie en p75 ≤ 1.000 ms voor warme tabwissels, tenzij een onderbouwde uitzondering wordt vastgelegd.
+- Tablinks gebruiken URL-state en behouden terugkeercontext; voeg geen brede clientstore of React Query/SWR-cache toe.
+- De pagina roept één getypeerde serviceprojectie aan. Componenten doen geen eigen serverfetches voor dezelfde medewerker of hetzelfde dienstverband.
+- Onafhankelijke permissionchecks en lezingen lopen parallel; inactieve tabs, grote dossiers en historie worden lazy geladen.
+- Prefetch op een medewerkerlijst is selectief: geen collectieve prefetch van alle dynamische detaillinks. Meet eerst netwerk- en Supabasebelasting.
+
+De visuele skeleton maakt wachten begrijpelijk maar telt niet als prestatiebewijs; de gerichte route-meting blijft verplicht.
 
 ---
 

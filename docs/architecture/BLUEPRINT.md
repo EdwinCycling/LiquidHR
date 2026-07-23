@@ -211,7 +211,21 @@ Kernregels:
 
 ---
 
-## 5. Autorisatie & Authenticatie
+## 5. Performance-architectuur voor navigatie en tabs
+
+Medewerkerslijst, medewerkerdetail en dienstverbanddetail zijn navigatie-intensieve schermen. Nieuwe schermen en tabs volgen daarom deze vaste regels:
+
+- **Meetbare budgetten:** voeg voor iedere nieuwe route of tab een gerichte navigatiemeting toe. Als startbudget geldt p75 maximaal 1.500 ms voor een eerste detailroute en maximaal 1.000 ms voor een warme tabwissel. Een afwijking is alleen acceptabel wanneer de dataset of beveiligingscontrole aantoonbaar zwaarder is en de afwijking in `CURRENT_CONTEXT.md` wordt vastgelegd.
+- **Tabgericht laden:** laad alleen de projectie voor de actieve tab. Gedeelde shellgegevens (naam, identificatie, toegestane navigatie en context) blijven klein; persoonlijke, salaris-, historie- en dossiergegevens worden niet op inactieve tabs opgehaald.
+- **Eén leesgrens per projectie:** maak per scherm een getypeerde serverservice die de benodigde projectie leest. Herhaal geen permission-, context- of databaselezing vanuit losse UI-componenten wanneer de pagina die context al heeft.
+- **Parallel waar onafhankelijk:** start onafhankelijke autorisatie- en datalezingen samen met `Promise.all`. Gebruik geen seriële `await`-keten voor queries die elkaar niet nodig hebben. Batch kinddata en begrens iedere groeiende query met `limit`/`range`.
+- **Geen globale clientcache:** gebruik Server Components, URL-state en route-segment loading states. Prefetch alleen gericht en na meting; zet geen hoog-cardinaliteit medewerkerlinks collectief aan.
+- **Perceptie hoort bij het contract:** iedere detailroute heeft een compacte skeleton/loading state die de uiteindelijke layout benadert. Dit vervangt geen backendmeting, maar voorkomt dat een serverrender als een stilstaand scherm wordt ervaren.
+- **Regressiebewijs:** een wijziging aan een bestaande projectie bevat minimaal een gerichte type-/lintcontrole en een route- of browsermeting van de gewijzigde keten. Herhaal de volledige releasegate bij releasevoorbereiding of wijzigingen aan gedeelde infrastructuur, auth, routing, schema/RLS of kritieke businesslogica.
+
+Deze regels behouden de vaste bouwvolgorde **schema → API/service → UI**. Een snellere route mag nooit autorisatie of RLS overslaan; een RPC of samengestelde query is alleen toegestaan wanneer de projectie en scope server-side en database-side controleerbaar blijven. Zie ADR-0004 voor de concrete navigatiebesluiten en het meetprotocol.
+
+## 6. Autorisatie & Authenticatie
 
 - **Auth-methode:** magic link via Supabase Auth (geen wachtwoorden).
 - **Sessie:** cookie-based via `@supabase/ssr`, domain-aware (custom cookie-domain-helper voor subdomein-scenario's zoals een whitelabel-portaal).
@@ -222,7 +236,7 @@ Kernregels:
 
 ---
 
-## 6. UI/UX Componenten & Formulieren
+## 7. UI/UX Componenten & Formulieren
 
 - **Component-tiers:** `components/ui/` voor generieke atomen (button, input, card, stat-card, page-state, segmented-filter — shadcn-gegenereerd + eigen toevoegingen), `components/<module>/` voor samengestelde, domein-specifieke componenten.
 - **Canonieke componenten herhalen, niet forken.** Zodra een patroon bestaat (bv. een stat-kaart, een leeg-staat-component, een filter-balk), wordt die hergebruikt — nooit een bijna-identieke variant ernaast bouwen.
@@ -231,7 +245,7 @@ Kernregels:
 
 ---
 
-## 7. API Design
+## 8. API Design
 
 - Eén `route.ts` per resource/actie, HTTP-methode-functies (`GET`/`POST`/`PATCH`/`DELETE`) als named exports.
 - Elke route: (1) `requirePermission()` eerst, (2) input-validatie met Zod, (3) data-laag call, (4) consistente JSON-response `{ data }` of `{ error: message }` met correcte status code.
@@ -241,7 +255,7 @@ Kernregels:
 
 ---
 
-## 8. Best Practices / Codeerstijl van deze auteur
+## 9. Best Practices / Codeerstijl van deze auteur
 
 - **Geen `any`**, TypeScript strict overal.
 - **Geen premature abstractie** — een paar gelijkende regels code is prima; pas een helper/hook extraheren als het patroon zich écht herhaalt.
@@ -255,7 +269,7 @@ Kernregels:
 
 ---
 
-## 9. How to Replicate — stappenplan voor een leeg project
+## 10. How to Replicate — stappenplan voor een leeg project
 
 1. **Monorepo opzetten**: root `package.json` met `workspaces: ["apps/*", "packages/*"]`, geen dependencies op root-niveau behalve `husky`.
 2. **Eén Next.js app scaffolden** in `apps/<naam>/` (App Router, TypeScript strict, ESLint).

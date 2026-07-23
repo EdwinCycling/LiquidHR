@@ -122,6 +122,8 @@ export interface EmployeeEmploymentDetail {
   }
 }
 
+export type EmployeeDetailLoadScope = 'all' | 'overview' | 'personal' | 'employments'
+
 async function permissionAllowed(permissionCode: string, employeeId: string): Promise<boolean> {
   try {
     await requirePermission(permissionCode, employeeId)
@@ -364,32 +366,81 @@ export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter
 
 export async function getEmployeeEmploymentDetail(
   employeeId: string,
+  scope: EmployeeDetailLoadScope = 'all',
 ): Promise<EmployeeEmploymentDetail> {
   const context = await requirePermission('employee:read', employeeId)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
-  const canReadSalary = await permissionAllowed('salary:read', employeeId)
-  const organizationQuery = supabase.from('employee_organizations')
-    .select('employment_id, job_title, effective_from, effective_to, departments!employee_organizations_department_id_fkey(name)')
-    .eq('tenant_id', context.tenantId)
-    .eq('employee_id', employeeId)
-    .lte('effective_from', today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`)
-    .order('effective_from', { ascending: false })
-    .limit(100)
-  if (context.administrationId) organizationQuery.eq('administration_id', context.administrationId)
-  const salaryQuery = canReadSalary
-    ? supabase.from('employment_salaries')
-      .select('employment_id, fulltime_amount, hourly_rate, currency_code, payment_type, valid_from, valid_until')
-      .eq('tenant_id', context.tenantId)
-      .eq('employee_id', employeeId)
-      .lte('valid_from', today)
-      .or(`valid_until.is.null,valid_until.gte.${today}`)
-      .order('valid_from', { ascending: false })
-      .limit(100)
+  const isAllScope = scope === 'all'
+  const includePersonalData = isAllScope || scope === 'overview' || scope === 'personal'
+  const includeOverviewData = isAllScope || scope === 'overview'
+  const canReadSalaryPromise = includeOverviewData
+    ? permissionAllowed('salary:read', employeeId)
+    : Promise.resolve(false)
+  const employeeQuery = supabase
+    .from('employees')
+    .select(`id, employee_number, title, initials, first_name, birth_name_prefix,
+        birth_name, partner_name_prefix, partner_name, name_usage, gender, pronouns,
+        birth_date, birth_place, birth_country, nationality, marital_status,
+        marital_status_date, education_level, preferred_language, private_email,
+        private_phone, private_mobile, work_email, work_phone, work_phone_ext,
+        work_mobile, avatar_url, original_hire_date, is_active, is_archived, updated_at`)
+    .eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  const employmentsQuery = supabase.from('employments').select('*')
+    .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).is('deleted_at', null)
+    .order('starts_on', { ascending: false }).limit(100)
+  const addressesQuery = includePersonalData
+    ? supabase.from('employee_addresses').select('*').eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
+      .is('deleted_at', null).order('valid_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
+  const bankAccountsQuery = includePersonalData
+    ? supabase.from('employee_bank_accounts').select('id, iban_last_four, bic, account_holder, description, is_primary')
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).is('deleted_at', null)
+      .order('is_primary', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const relationsQuery = includePersonalData
+    ? supabase.from('employee_relations').select('*').eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
+      .is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const relationTypesQuery = includePersonalData
+    ? supabase.from('relation_types').select('code, name_nl, name_en').eq('tenant_id', context.tenantId)
+      .eq('is_active', true).order('name_nl').limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const laborConditionsQuery = includeOverviewData
+    ? supabase.from('employment_labor_conditions').select('employment_id, condition_group, valid_from, valid_until')
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today)
+      .or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const schedulesQuery = includeOverviewData
+    ? supabase.from('employment_schedules').select('employment_id, average_hours_per_week, valid_from, valid_until')
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today)
+      .or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
+  const salaryQuery = canReadSalaryPromise.then(async (canReadSalary) => canReadSalary
+    ? await supabase.from('employment_salaries').select('employment_id, fulltime_amount, hourly_rate, currency_code, payment_type, valid_from, valid_until')
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today)
+      .or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null }))
+  const organizationQuery = includeOverviewData
+    ? (() => {
+      const query = supabase.from('employee_organizations')
+        .select('employment_id, job_title, effective_from, effective_to, departments!employee_organizations_department_id_fkey(name)')
+        .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('effective_from', today)
+        .or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(100)
+      if (context.administrationId) query.eq('administration_id', context.administrationId)
+      return query
+    })()
+    : Promise.resolve({ data: [], error: null })
+  const capabilityValuesPromise = Promise.all([
+    permissionAllowed('employee:write', employeeId),
+    includePersonalData ? permissionAllowed('employee-bsn:read', employeeId) : Promise.resolve(false),
+    includePersonalData ? permissionAllowed('employee-bsn:write', employeeId) : Promise.resolve(false),
+    includePersonalData ? permissionAllowed(context.employeeId === employeeId ? 'address:write' : 'employee:write', employeeId) : Promise.resolve(false),
+    includePersonalData ? permissionAllowed(context.employeeId === employeeId ? 'relation:write' : 'employee:write', employeeId) : Promise.resolve(false),
+    includePersonalData ? permissionAllowed('bank-account:write', employeeId) : Promise.resolve(false),
+  ])
   const [
-    { data: employee, error: employeeError }, employments,
+    { data: employee, error: employeeError }, { data: employments, error: employmentsError },
     { data: addresses, error: addressesError },
     { data: bankAccounts, error: bankError },
     { data: relations, error: relationsError },
@@ -399,43 +450,20 @@ export async function getEmployeeEmploymentDetail(
     salaryResult,
     { data: organizations, error: organizationsError },
     capabilityValues,
+    canReadSalary,
   ] = await Promise.all([
-    supabase
-      .from('employees')
-      .select(`id, employee_number, title, initials, first_name, birth_name_prefix,
-        birth_name, partner_name_prefix, partner_name, name_usage, gender, pronouns,
-        birth_date, birth_place, birth_country, nationality, marital_status,
-        marital_status_date, education_level, preferred_language, private_email,
-        private_phone, private_mobile, work_email, work_phone, work_phone_ext,
-        work_mobile, avatar_url, original_hire_date, is_active, is_archived, updated_at`)
-      .eq('tenant_id', context.tenantId)
-      .eq('id', employeeId)
-      .is('deleted_at', null)
-      .maybeSingle(),
-    listEmployeeEmployments(employeeId),
-    supabase.from('employee_addresses').select('*')
-      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
-      .is('deleted_at', null).order('valid_from', { ascending: false }).limit(100),
-    supabase.from('employee_bank_accounts')
-      .select('id, iban_last_four, bic, account_holder, description, is_primary')
-      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
-      .is('deleted_at', null).order('is_primary', { ascending: false }).limit(100),
-    supabase.from('employee_relations').select('*')
-      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
-      .is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(100),
-    supabase.from('relation_types').select('code, name_nl, name_en').eq('tenant_id', context.tenantId).eq('is_active', true).order('name_nl').limit(100),
-    supabase.from('employment_labor_conditions').select('employment_id, condition_group, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100),
-    supabase.from('employment_schedules').select('employment_id, average_hours_per_week, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today).or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100),
+    employeeQuery,
+    employmentsQuery,
+    addressesQuery,
+    bankAccountsQuery,
+    relationsQuery,
+    relationTypesQuery,
+    laborConditionsQuery,
+    schedulesQuery,
     salaryQuery,
     organizationQuery,
-    Promise.all([
-      permissionAllowed('employee:write', employeeId),
-      permissionAllowed('employee-bsn:read', employeeId),
-      permissionAllowed('employee-bsn:write', employeeId),
-      permissionAllowed(context.employeeId === employeeId ? 'address:write' : 'employee:write', employeeId),
-      permissionAllowed(context.employeeId === employeeId ? 'relation:write' : 'employee:write', employeeId),
-      permissionAllowed('bank-account:write', employeeId),
-    ]),
+    capabilityValuesPromise,
+    canReadSalaryPromise,
   ])
   if (employeeError || !employee) throw new EmploymentServiceError('EMPLOYEE_NOT_FOUND', 404)
   const detailReadFailureCode = employeeDetailReadFailureCode({
@@ -443,7 +471,7 @@ export async function getEmployeeEmploymentDetail(
     bankAccounts: bankError !== null,
     relations: relationsError !== null || relationTypesError !== null,
   })
-  if (detailReadFailureCode || laborConditionsError || schedulesError || organizationsError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
+  if (detailReadFailureCode || employmentsError || laborConditionsError || schedulesError || organizationsError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
 
   const currentEmploymentSummary = selectCurrentEmploymentSummary({
     today,

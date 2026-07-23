@@ -29,13 +29,14 @@ interface EmployeeDetailPageProps {
   searchParams: Promise<{ tab?: string; create?: string }>
 }
 
-async function loadPageData(employeeId: string) {
+async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents') {
   try {
+    const detailScope = tab === 'overview' ? 'overview' : tab === 'personal' ? 'personal' : tab === 'employments' ? 'employments' : 'employments'
     const [detail, customFields, reminders, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments] = await Promise.all([
-      getEmployeeEmploymentDetail(employeeId),
-      getEmployeeCustomFields(employeeId),
-      listEmployeeReminders(employeeId).catch(() => []),
-      permissionAllowed('contract:write', employeeId),
+      getEmployeeEmploymentDetail(employeeId, detailScope),
+      tab === 'personal' ? getEmployeeCustomFields(employeeId) : Promise.resolve([]),
+      tab === 'reminders' ? listEmployeeReminders(employeeId).catch(() => []) : Promise.resolve([]),
+      tab === 'employments' ? permissionAllowed('contract:write', employeeId) : Promise.resolve(false),
       getLocale(),
       getUserPreferences(),
       getTranslator('employees'),
@@ -44,19 +45,21 @@ async function loadPageData(employeeId: string) {
       getTranslator('customFields'),
       getTranslator('documents'),
     ])
-    const [canReadDocuments, canWriteDocuments, canDeleteDocuments] = await Promise.all([
-      permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
-    ])
+    const [canReadDocuments, canWriteDocuments, canDeleteDocuments] = tab === 'documents'
+      ? await Promise.all([
+        permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
+      ])
+      : [false, false, false]
     const [terminationOptions, creationOptions] = canManageEmployments
       ? await Promise.all([getTerminationOptions(), getEmploymentCreationOptions(employeeId)])
       : [
           { internalReasons: [], statutoryReasons: [] },
           { departments: [], costCenters: [], salaryScaleSteps: [], nextIkvNumber: 1, canWriteSalary: false },
         ]
-    const [documents, documentOptions] = await Promise.all([
+    const [documents, documentOptions] = tab === 'documents' ? await Promise.all([
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
-    ])
+    ]) : [[], null]
     return [detail, customFields, reminders, terminationOptions, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
@@ -78,7 +81,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   const { employeeId } = await params
   const { tab: requestedTab, create } = await searchParams
   const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'reminders' || requestedTab === 'personal' ? requestedTab : 'overview'
-  const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId)
+  const [detail, customFields, reminders, options, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments] = await loadPageData(employeeId, tab)
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
