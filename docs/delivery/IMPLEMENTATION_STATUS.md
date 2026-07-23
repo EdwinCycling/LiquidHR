@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-23: tabgerichte medewerker- en dienstverbandperformance
+
+De medewerkerdetailroute en dienstverbanddetailroute laden alleen de actieve tabprojectie. Persoonsgegevens, dienstverbandoverzicht, salaris, historie en HR-events worden niet meer standaard op iedere tabwissel gelezen. Onafhankelijke autorisatie-/databasereads lopen parallel; dubbele employee-employment-permissionread is verwijderd. Beide detailroutes hebben een route-skeleton en dynamische medewerker-/dienstverband-/tablinks prefetchen niet meer collectief.
+
+Architectuurbesluit ADR-0004 (`docs/decisions/ADR-0004-performancebudgetten-en-tabprojecties.md`) beschrijft de p75-budgetten, meetmethode, lazy tabdata, loading states en prefetchgrens voor toekomstige schermen.
+
+Verificatie: 90 Vitest-bestanden/336 tests, ESLint, strict TypeScript, i18n-check en productiebuild geslaagd. Commits `a433a46` en `6405d0f` staan op `main`; Vercel `dpl_Gg9oC6KQdksDBkwoD8DxRiaTcAze` is `READY`. Runtime-errorscan: geen fouten. Chrome had voor de laatste prefetchmeting een niet-bestuurbare ingelogde tab; de gemeten individuele eindlatencies na die fix zijn daarom nog open.
+
 ## Update 2026-07-23: performance-slice Medewerkerslijst, Organogram en Kalender
 
 De Medewerkerslijst gebruikt nu de security-invoker RPC `list_employee_overviews` om scope, medewerker, dienstverbandhistorie en actuele organisatieplaatsing in één leesronde op te halen. De bestaande dienstverbandstatus- en archieffilters blijven server-side correct; de RPC heeft een remote structuurproef op unieke rijen en geldige JSON-historie. Voor Medewerkers, Organogram en Kalender zijn route-specifieke laadstaten toegevoegd. Dashboard en Instellingen zijn bewust niet gewijzigd.
