@@ -5697,6 +5697,27 @@ export type Database = {
       }
     }
     Functions: {
+      list_employee_overviews: {
+        Args: {
+          requested_administration_id: string
+          requested_archive_filter?: string
+          requested_as_of?: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          avatar_url: string | null
+          birth_name: string
+          birth_name_prefix: string | null
+          department_name: string | null
+          employee_number: string
+          employment_history: Json
+          first_name: string
+          id: string
+          is_archived: boolean
+          job_title: string | null
+          work_email: string | null
+        }[]
+      }
       create_leave_accrual_rule: {
         Args: {
           requested_accrual_amount: number | null

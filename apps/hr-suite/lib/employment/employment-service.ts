@@ -4,10 +4,11 @@ import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
+import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
-import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './employee-summary'
+import { mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -35,22 +36,9 @@ export interface IdentityCandidate {
   matchKind: 'BSN_EXACT' | 'FUZZY'
 }
 
-export interface EmployeeOverview {
-  id: string
-  employeeNumber: string
-  firstName: string
-  birthNamePrefix: string | null
-  birthName: string
-  departmentName: string | null
-  jobTitle: string | null
-  workEmail: string | null
-  avatarUrl: string | null
-  isArchived: boolean
-  status: EmploymentStatus
-  employmentCount: number
-}
-
 export type EmployeeArchiveFilter = 'active' | 'archived' | 'all'
+
+export type { EmployeeOverview } from './employee-overview'
 
 export interface EmploymentCreationOptions {
   departments: Array<{ id: string; code: string; name: string }>
@@ -363,87 +351,15 @@ export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter
   const administrationId = requireAdministrationId(context.administrationId)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
-  const { data: assignments, error: assignmentError } = await supabase
-    .from('employee_administration_assignments')
-    .select('employee_id')
-    .eq('tenant_id', context.tenantId)
-    .eq('administration_id', administrationId)
-    .lte('effective_from', today)
-    .or(`effective_to.is.null,effective_to.gte.${today}`)
-    .limit(500)
-  if (assignmentError) throw new EmploymentServiceError('EMPLOYEE_SCOPE_READ_FAILED', 500)
-
-  const employeeIds = [...new Set(assignments.map((assignment) => assignment.employee_id))]
-  if (employeeIds.length === 0) return []
-  const [
-    { data: employees, error: employeeError },
-    { data: employments, error: employmentError },
-    { data: placements, error: placementError },
-  ] =
-    await Promise.all([
-      supabase
-        .from('employees')
-        .select('id, employee_number, first_name, birth_name_prefix, birth_name, work_email, avatar_url, is_archived')
-        .eq('tenant_id', context.tenantId)
-        .in('id', employeeIds)
-        .is('deleted_at', null)
-        .order('birth_name')
-        .order('first_name')
-        .limit(500),
-      supabase
-        .from('employments')
-        .select('employee_id, starts_on, ends_on, record_status')
-        .eq('tenant_id', context.tenantId)
-        .in('employee_id', employeeIds)
-        .is('deleted_at', null)
-        .limit(1_000),
-      supabase
-        .from('employee_organizations')
-        .select('employee_id, job_title, effective_from, departments!employee_organizations_department_id_fkey(name)')
-        .eq('tenant_id', context.tenantId)
-        .eq('administration_id', administrationId)
-        .in('employee_id', employeeIds)
-        .lte('effective_from', today)
-        .or(`effective_to.is.null,effective_to.gte.${today}`)
-        .order('effective_from', { ascending: false })
-        .limit(1_000),
-    ])
-  if (employeeError || employmentError || placementError) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
-
-  const scopedEmployees = (employees ?? []).filter((employee) => archiveFilter === 'all' || (archiveFilter === 'archived' ? employee.is_archived : !employee.is_archived))
-  const placementByEmployeeId = new Map<string, { departmentName: string | null; jobTitle: string | null }>()
-  for (const placement of placements ?? []) {
-    if (placementByEmployeeId.has(placement.employee_id)) continue
-    placementByEmployeeId.set(placement.employee_id, {
-      departmentName: placement.departments?.name ?? null,
-      jobTitle: placement.job_title,
-    })
-  }
-
-  return scopedEmployees.map((employee) => {
-    const periods = employments
-      .filter((employment) => employment.employee_id === employee.id)
-      .map((employment) => ({
-        startsOn: employment.starts_on,
-        endsOn: employment.ends_on,
-        recordStatus: employment.record_status,
-      }))
-    const placement = placementByEmployeeId.get(employee.id)
-    return {
-      id: employee.id,
-      employeeNumber: employee.employee_number,
-      firstName: employee.first_name,
-      birthNamePrefix: employee.birth_name_prefix,
-      birthName: employee.birth_name,
-      departmentName: placement?.departmentName ?? null,
-      jobTitle: placement?.jobTitle ?? null,
-      workEmail: employee.work_email,
-      avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
-      isArchived: employee.is_archived,
-      status: deriveEmploymentStatus(periods, today),
-      employmentCount: periods.length,
-    }
+  const { data, error } = await supabase.rpc('list_employee_overviews', {
+    requested_tenant_id: context.tenantId,
+    requested_administration_id: administrationId,
+    requested_as_of: today,
+    requested_archive_filter: archiveFilter,
   })
+  if (error) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
+
+  return data.map((employee) => mapEmployeeOverviewRpcRow(employee, today))
 }
 
 export async function getEmployeeEmploymentDetail(

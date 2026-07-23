@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-23: performance-slice Medewerkerslijst, Organogram en Kalender
+
+De Medewerkerslijst gebruikt nu de security-invoker RPC `list_employee_overviews` om scope, medewerker, dienstverbandhistorie en actuele organisatieplaatsing in één leesronde op te halen. De bestaande dienstverbandstatus- en archieffilters blijven server-side correct; de RPC heeft een remote structuurproef op unieke rijen en geldige JSON-historie. Voor Medewerkers, Organogram en Kalender zijn route-specifieke laadstaten toegevoegd. Dashboard en Instellingen zijn bewust niet gewijzigd.
+
+Verificatie: remote Supabase-migratie `optimize_employee_overview`, Supabase performance/security-advisors, 90 Vitest-bestanden/336 tests, ESLint, strict TypeScript, i18n-pariteit en productiebuild geslaagd. De productieklikmeting volgt na de nieuwe deployment.
+
 Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraagflow vanuit `/hr-calendar` en centrale ledger-RPC's/API zijn geïmplementeerd en remote gecontroleerd. De settingspagina bevat ook de jaarsturing. De huidige demo is met Lina Bakker geboekt en in de kalender geverifieerd; feestdagen worden in booking en preview overgeslagen. Resterend zijn vooral de volledige ledger/auditformulieren, toekomstige opbouwprojectie voor maandelijkse regels en later ESS, managerworkflow en notificaties.
 
  Laatste controle: 2026-07-22. Verlofkleuren voor verlof-/werkuren-/overurentypen, kalenderprojectie en lokale poort-3000-smoke zijn gevalideerd; de bestaande migraties voor dossieruploadregels, weeknummering en Star Performers blijven live en transactioneel getest.
