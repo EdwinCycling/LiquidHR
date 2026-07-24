@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-24: release naar main en lokale runtime
+
+De release is volgens de vaste workflow fast-forward naar `main` gebracht en naar `https://github.com/EdwinCycling/LiquidHR.git` gepusht als commit `24b278b`. Daarmee kan Vercel Production de versie vanaf GitHub `main` bouwen. De eerdere featurebranchtekst hieronder is historische releasevoorbereiding; de actuele bron van waarheid is `main`.
+
+Lokale runtime: de Next-devserver draait als losgekoppeld Windows-proces op poort `3000`; een controle op `http://localhost:3000/` geeft de verwachte `307`-redirect naar login.
+
 ## Update 2026-07-24: medewerkerdashboard tweede UI-slice
 
 Applicatieversie verhoogd naar `1.20260724.2`.
