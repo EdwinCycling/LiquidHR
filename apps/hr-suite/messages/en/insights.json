@@ -23,6 +23,8 @@
   "employeesAgeDescription": "Age profile with age bands and average age.",
   "terminationsTitle": "Reason for leaving",
   "terminationsDescription": "Departures by period, reason, team and segment.",
+  "upcoming-eventsTitle": "Upcoming events",
+  "upcoming-eventsDescription": "Birthdays, work anniversaries and new starters by period and department.",
   "absenceTitle": "Absence",
   "absenceDescription": "Absence rate, reports and duration by organisational unit.",
   "provisionTitle": "Leave provision",

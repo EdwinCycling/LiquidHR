@@ -23,6 +23,8 @@
   "employeesAgeDescription": "Leeftijdsopbouw met leeftijdsgroepen en gemiddelde leeftijd.",
   "terminationsTitle": "Reden uit dienst",
   "terminationsDescription": "Uitdiensttredingen per periode, reden, team en segment.",
+  "upcoming-eventsTitle": "Aankomende gebeurtenissen",
+  "upcoming-eventsDescription": "Verjaardagen, werkjubilea en nieuwe indiensttredingen per periode en afdeling.",
   "absenceTitle": "Verzuim",
   "absenceDescription": "Verzuimpercentage, meldingen en duur per organisatieonderdeel.",
   "provisionTitle": "Balansvoorziening verlof",
