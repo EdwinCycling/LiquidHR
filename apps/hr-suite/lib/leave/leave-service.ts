@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import type { Json, Tables } from '@scope/db'
+import type { Database, Json, Tables } from '@scope/db'
 import { permissionErrorResponse, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { LeaveCatalogMutation, LeaveConfigurationMutation } from './schemas'
@@ -7,6 +7,15 @@ import { calculateLeaveBalanceReport, type ReportAccrualMoment, type ReportBucke
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = Pick<Tables<'employments'>, 'id' | 'employee_id' | 'starts_on' | 'ends_on' | 'administration_id' | 'tenant_id'>
+type CreateLeaveAccrualRuleArgs = Omit<
+  Database['public']['Functions']['create_leave_accrual_rule']['Args'],
+  'requested_predecessor_rule_id' | 'requested_valid_until' | 'requested_accrual_amount' | 'requested_accrual_rate'
+> & {
+  requested_predecessor_rule_id: string | null
+  requested_valid_until: string | null
+  requested_accrual_amount: number | null
+  requested_accrual_rate: number | null
+}
 
 export class LeaveServiceError extends Error {
   constructor(
@@ -376,7 +385,7 @@ export async function createLeaveAccrualRule(input: AccrualRuleInput) {
   const context = await requirePermission('leave:write')
   const administrationId = requireAdministration(context)
   const supabase = await createClient()
-  const rule = await supabase.rpc('create_leave_accrual_rule', {
+  const args: CreateLeaveAccrualRuleArgs = {
     requested_tenant_id: context.tenantId,
     requested_administration_id: administrationId,
     requested_leave_profile_id: input.leaveProfileId,
@@ -392,7 +401,12 @@ export async function createLeaveAccrualRule(input: AccrualRuleInput) {
     requested_expiration_months: input.expirationMonths,
     requested_work_hour_type_ids: input.workHourTypeIds,
     requested_pause_leave_type_ids: input.pauseLeaveTypeIds,
-  })
+  }
+  // Postgres-functieargumenten mogen null zijn, maar de generator neemt die nullability niet op.
+  const rule = await supabase.rpc(
+    'create_leave_accrual_rule',
+    args as unknown as Database['public']['Functions']['create_leave_accrual_rule']['Args'],
+  )
   if (rule.error || !rule.data) databaseError(rule.error)
   return { id: rule.data }
 }

@@ -1,4 +1,4 @@
-import type { Tables } from '@scope/db'
+import type { Database, Tables } from '@scope/db'
 import { requirePermission, requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { LeaveServiceError } from './leave-service'
@@ -7,6 +7,15 @@ import type { LeaveRequestConfirmInput, LeaveRequestPreviewQuery } from './schem
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = Pick<Tables<'employments'>, 'id' | 'employee_id' | 'tenant_id' | 'administration_id' | 'starts_on' | 'ends_on' | 'record_status'>
 type ScheduleRow = Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>
+type ConfirmLeaveRequestArgs = Omit<
+  Database['public']['Functions']['confirm_leave_request']['Args'],
+  'requested_priority_rule_id' | 'requested_leave_type_id' | 'requested_specific_start' | 'requested_specific_end'
+> & {
+  requested_priority_rule_id: string | null
+  requested_leave_type_id: string | null
+  requested_specific_start: string | null
+  requested_specific_end: string | null
+}
 
 export type LeaveRequestPreview = {
   employeeId: string
@@ -169,7 +178,7 @@ export async function confirmLeaveRequest(input: LeaveRequestConfirmInput): Prom
   const supabase = await createClient()
   const context = await requirePermission('leave:request', input.employeeId)
   const employment = await loadEmployment(supabase, context, input)
-  const result = await supabase.rpc('confirm_leave_request', {
+  const args: ConfirmLeaveRequestArgs = {
     requested_tenant_id: context.tenantId,
     requested_administration_id: employment.administration_id,
     requested_employee_id: employment.employee_id,
@@ -183,7 +192,12 @@ export async function confirmLeaveRequest(input: LeaveRequestConfirmInput): Prom
     requested_specific_start: input.specificStart ?? null,
     requested_specific_end: input.specificEnd ?? null,
     requested_idempotency_key: input.idempotencyKey,
-  })
+  }
+  // Postgres-functieargumenten mogen null zijn, maar de generator neemt die nullability niet op.
+  const result = await supabase.rpc(
+    'confirm_leave_request',
+    args as unknown as Database['public']['Functions']['confirm_leave_request']['Args'],
+  )
   if (result.error || !result.data) databaseError(result.error)
   return { requestId: result.data, employmentId: employment.id }
 }

@@ -2,9 +2,9 @@
 
 ## Update 2026-07-24: medewerkerdashboard tweede UI-slice
 
-Het medewerkerdashboard bevat nu foto-/genderfallbacks, lazy salaris-reveal via een apart geautoriseerd endpoint, echte reminders onder contract/salaris, vaste brede/smalle kolommen met persoonlijke drag-and-drop-volgorde en een handmatige activiteitenfeed. Activiteitnotities worden tenant-/medewerkergebonden opgeslagen in de lokale migration `20260724160000_add_employee_activity_entries.sql` met `employee-activity:read/write` en RLS. Remote migratie, advisors, typesgeneratie en ingelogde rol-/browsercontrole zijn nog open.
+Het medewerkerdashboard bevat nu foto-/genderfallbacks, lazy salaris-reveal via een apart geautoriseerd endpoint, echte reminders onder contract/salaris, vaste brede/smalle kolommen met persoonlijke drag-and-drop-volgorde en een handmatige activiteitenfeed. Activiteitnotities worden tenant-/medewerkergebonden opgeslagen via migratie `20260724160000_add_employee_activity_entries.sql` met `employee-activity:read/write` en RLS. De migratie en hardeningmigratie `20260724172716_harden_employee_activity_entries.sql` zijn remote toegepast; grants, RLS, policies, FK-indexen en advisorbevindingen zijn gecontroleerd en `packages/db/types.ts` is opnieuw gegenereerd.
 
-Gerichte tests, ESLint, strict TypeScript, i18n-pariteit en productiebuild zijn geslaagd.
+Gerichte tests, ESLint, strict TypeScript, i18n-pariteit en productiebuild zijn geslaagd. De ingelogde Chrome-controle bevestigde salaris-hover/verbergen, persistente en herstelde widgetvolgorde, echte lege reminderdata en de beschikbare man/vrouw-avatarfallbacks zonder consolefouten. De anonieme salarisroute weigert met `401`. Een beperkte-rol-browserdeny en `OTHER`/`PREFER_NOT_TO_SAY`-fixture blijven open omdat remote alleen één actieve `TENANT_ADMIN` en geen passende genderfixtures bevat.
 
 ## Update 2026-07-24: medewerkerdashboard en navigatiekoppelingen
 
@@ -14,7 +14,7 @@ De eerste UI-slice van `docs/requirements/core-hr/MEDEWERKER_DASHBOARD.md` staat
 
 `/insights` is nu ingedeeld in Medewerkers, Verlof, Verzuim en Overige rapportages. Iedere rapportage heeft een afzonderlijk permission in de rechtenmatrix; de lokale migratie `20260724095433_insights_report_permissions.sql` kent alle rapportrechten standaard toe aan `TENANT_ADMIN` en `HR_ADMIN`. De teller en navigatie volgen uitsluitend de werkelijk toegekende rapportrechten.
 
-De vier live medewerkersrapporten gebruiken uitsluitend RLS-gebonden databasegegevens en hebben per geopend harmonica-item een CSV-export met de actieve filters. De pagina heeft kleurrijke KPI's/diagrammen, geen overbodige weergaveteksten of beschikbaarheidsbadge, een inklapbare actieve-selectiekaart en een persoonlijke optie om filters per rapport te bewaren. TypeScript en i18n-pariteit zijn geslaagd. De migratie is nog niet remote toegepast; daarom is een ingelogde browsercontrole met de nieuwe rechtenmatrix nog open.
+De vier live medewerkersrapporten gebruiken uitsluitend RLS-gebonden databasegegevens en hebben per geopend harmonica-item een CSV-export met de actieve filters. De pagina heeft kleurrijke KPI's/diagrammen, geen overbodige weergaveteksten of beschikbaarheidsbadge, een inklapbare actieve-selectiekaart en een persoonlijke optie om filters per rapport te bewaren. TypeScript en i18n-pariteit zijn geslaagd. De migratie staat remote; een ingelogde browsercontrole met een beperkte rol voor de nieuwe rechtenmatrix blijft open.
 
 ## Update 2026-07-23: tabgerichte medewerker- en dienstverbandperformance
 
@@ -56,7 +56,7 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
 | Employee-persoonskaart | GEÏMPLEMENTEERD | Lijst met opgeslagen detail/compact-, sorteer-, arbeidsstatus- en archiefvoorkeuren (zoekterm niet opgeslagen), volledige klikrij, wizard, detail met hoofdtabbladen inclusief Dashboard vóór Persoonsgegevens, effectieve dienstverbandssamenvatting, verborgen salaris-hover, mutaties, adresgeschiedenis, relaties, gemaskeerde bankrekening, foto-beheer en capabilities zijn aanwezig |
-| Medewerkerdashboard | GEDEELTELIJK | Kleurrijke dashboardprojectie, avatarfallbacks, lazy salarisreveal, reminders, activity-feed met handmatige notitie, persoonlijke drag-and-drop-widgetvolgorde, detail-CTA, geautoriseerde bestaande velden, documentpreview, lege vensters zonder fake data en links vanuit lijst/organogram/kalender/Insights zijn aanwezig. Remote migration/advisors/typesnapshot en per-rol browsercontrole volgen volgens de leidende requirements. |
+| Medewerkerdashboard | GEDEELTELIJK | Kleurrijke dashboardprojectie, avatarfallbacks, lazy salarisreveal, reminders, activity-feed met handmatige notitie, persoonlijke drag-and-drop-widgetvolgorde, detail-CTA, geautoriseerde bestaande velden, documentpreview, lege vensters zonder fake data en links vanuit lijst/organogram/kalender/Insights zijn aanwezig. Remote migraties, hardening, advisors en typesnapshot zijn afgerond; de HR-adminbrowserflow is gecontroleerd. Beperkte-rol-deny en `OTHER`/`PREFER_NOT_TO_SAY`-fixture blijven open. |
 | Dubbele-medewerkercontrole | GEÏMPLEMENTEERD | Tenantgebonden BSN-HMAC of gewogen persoonsgegevens, expliciet besluit en auditlog; exact BSN-matchen vereist `BSN_HASH_KEY` |
 | Afdelingenboom | GEÏMPLEMENTEERD | Beheer staat onder de HR-admin instellingen/stamgegevens; lezen, aanmaken, wijzigen/archiveren, RLS en database-cyclusbeveiliging werken |
 | Managementrollen | GEÏMPLEMENTEERD | Tenantrollen zijn beheerbaar; globale systeemrollen zijn database-breed onveranderlijk |
