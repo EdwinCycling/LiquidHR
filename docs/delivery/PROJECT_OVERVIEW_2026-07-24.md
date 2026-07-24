@@ -1,6 +1,6 @@
 # Project overview — Liquid HR
 
-Peildatum: **24 juli 2026**. Repository: `C:\Users\Edwin\Documents\Apps\HRMyDay`. Branch: `agent/employee-dashboard-release`. Laatste commit: `22af0f3` (`feat: release employee dashboard and reporting updates`). Applicatieversie: `1.20260724.2`.
+Peildatum: **24 juli 2026**. Repository: `C:\Users\Edwin\Documents\Apps\HRMyDay`. Branch: `agent/employee-dashboard-release`. Lokale laatste commit: `b32a279` (`docs: add reusable project overview skill`); remote laatste commit: `c95c782`. Applicatieversie: `1.20260724.2`.
 
 ## Code-KPI's
 
@@ -49,7 +49,7 @@ Databasegrootte, indexgebruik, dead tuples, cache hit ratio en exacte tabelgroot
 - 95 testbestanden / 347 tests geslaagd.
 - ESLint, strict TypeScript en NL/EN i18n-pariteit geslaagd.
 - Productiebuild geslaagd met 85 pagina's/routes.
-- Laatste releasebranch en lokale commit zijn aanwezig; remote GitHub-push en de laatste Supabase-migratie/advisor/typesnapshot zijn nog connector-/auth-afhankelijk.
+- Releasecommits `22af0f3` en `4e7dc10` staan op GitHub; de gekoppelde Vercel-preview is `READY`. Supabase-migratie, schemahardening, advisors en officiële typesgeneratie zijn remote uitgevoerd. Alleen de nieuwe overview-documentatie/skillcommit `b32a279` staat lokaal nog één commit vóór de remote branch.
 
 ## Referenties
 
@@ -76,4 +76,3 @@ Dit is een equivalentie-inschatting, geen geregistreerde tijdmeting. Op basis va
 | **Totaal** | **220–320 dagen** |
 
 Alleen ruwe codeproductie zou een lagere bandbreedte geven; die onderschat in dit project de security-, data- en HR-regels. De inschatting zegt niets over feitelijke kalenderduur met AI-assistentie of parallel werk. Niet gebouwde modules zoals volledige verzuim-, performance-, activa- en wagenparkdomeinen zijn niet in dit totaal opgenomen.
-
