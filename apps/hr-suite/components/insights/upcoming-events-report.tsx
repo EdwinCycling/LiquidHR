@@ -1,0 +1,48 @@
+'use client'
+
+import { ChevronDown, Download, Gift, PartyPopper, Search, UserPlus } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { formatDate } from '@/lib/preferences/formatters'
+import type { DateFormat } from '@/lib/preferences/user-preferences'
+import type { UpcomingEventType, UpcomingEventsReport } from '@/lib/insights/upcoming-events'
+
+interface Labels {
+  title: string; backToInsights: string; event: string; department: string; period: string; birthdays: string; anniversaries: string; starters: string
+  allEvents: string; selected: string; today: string; inDays: string; next7Days: string; next4Weeks: string; next12Weeks: string; next12Months: string
+  allDepartments: string; searchDepartments: string; export: string; empty: string; years: string
+}
+
+const eventTypes: UpcomingEventType[] = ['BIRTHDAY', 'ANNIVERSARY', 'STARTER']
+type PeriodDays = 7 | 28 | 84 | 365
+
+function FilterDropdown({ label, value, children }: { label: string; value: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const close = (event: MouseEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+  return <div className="relative min-w-52" ref={ref}><span className="text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground">{label}</span><button aria-expanded={open} className="mt-2 flex h-11 w-full items-center justify-between rounded-lg border bg-background px-3 text-left text-sm shadow-sm hover:border-primary/45" onClick={() => setOpen((current) => !current)} type="button"><span className="truncate">{value}</span><ChevronDown aria-hidden="true" className={`size-4 text-muted-foreground transition ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="absolute left-0 top-full z-40 mt-2 w-full min-w-64 rounded-xl border bg-surface p-3 shadow-lg">{children}</div> : null}</div>
+}
+
+export function UpcomingEventsReportView({ report, query, labels, locale, dateFormat }: { report: UpcomingEventsReport; query: { types: UpcomingEventType[]; periodDays: PeriodDays; departmentIds: string[] }; labels: Labels; locale: string; dateFormat: DateFormat }) {
+  const router = useRouter(); const pathname = usePathname(); const searchParams = useSearchParams(); const [departmentSearch, setDepartmentSearch] = useState('')
+  const eventLabel: Record<UpcomingEventType, string> = { BIRTHDAY: labels.birthdays, ANNIVERSARY: labels.anniversaries, STARTER: labels.starters }
+  const eventIcon: Record<UpcomingEventType, typeof Gift> = { BIRTHDAY: PartyPopper, ANNIVERSARY: Gift, STARTER: UserPlus }
+  const periodLabel: Record<PeriodDays, string> = { 7: labels.next7Days, 28: labels.next4Weeks, 84: labels.next12Weeks, 365: labels.next12Months }
+  const sortedRows = [...report.rows].sort((left, right) => left.date.localeCompare(right.date) || left.employeeName.localeCompare(right.employeeName, 'nl'))
+  const todayRows = sortedRows.filter((row) => row.date === report.startDate && query.types.includes(row.type))
+  function update(next: Partial<typeof query>): void { const params = new URLSearchParams(searchParams.toString()); params.set('types', (next.types ?? query.types).join(',')); params.set('period', String(next.periodDays ?? query.periodDays)); const departments = next.departmentIds ?? query.departmentIds; if (departments.length) params.set('departments', departments.join(',')); else params.delete('departments'); router.replace(`${pathname}?${params.toString()}`) }
+  function toggleType(type: UpcomingEventType): void { const types = query.types.includes(type) ? query.types.filter((value) => value !== type) : [...query.types, type]; update({ types: types.length ? types : eventTypes }) }
+  const selectedEventLabel = query.types.length === eventTypes.length ? labels.allEvents : query.types.map((type) => eventLabel[type]).join(', ')
+  const filteredDepartments = report.departments.filter((department) => department.name.toLocaleLowerCase().includes(departmentSearch.toLocaleLowerCase()))
+  const selectedDepartmentLabel = query.departmentIds.length ? `${query.departmentIds.length} ${labels.selected}` : labels.allDepartments
+  const displayDate = (value: string) => formatDate(value, { locale, dateFormat })
+  const daysUntil = (value: string) => Math.max(0, Math.round((Date.parse(`${value}T00:00:00Z`) - Date.parse(`${report.startDate}T00:00:00Z`)) / 86400000))
+  const relativeDate = (value: string) => daysUntil(value) === 0 ? labels.today : labels.inDays.replace('{days}', String(daysUntil(value)))
+  const renderRow = (row: UpcomingEventsReport['rows'][number]) => <li className="grid gap-1 border-t border-border/70 py-3 text-sm sm:grid-cols-[1fr_auto]" key={row.id}><span><Link className="font-medium text-primary hover:underline" href={`/employees/${row.employeeId}`}>{row.employeeName}</Link>{row.type === 'ANNIVERSARY' && row.years !== null ? ` (${row.years} ${labels.years})` : ''}{row.departmentName ? <span className="text-muted-foreground"> · {row.departmentName}</span> : null}</span><span className="text-right"><time className="block font-medium tabular-nums text-muted-foreground">{displayDate(row.date)}</time><span className="text-xs text-muted-foreground">{relativeDate(row.date)}</span></span></li>
+  return <section className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-10"><p className="eyebrow">{labels.title}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{labels.title}</h1><div className="mt-7 flex flex-wrap gap-4 rounded-2xl border bg-surface p-5 shadow-sm"><FilterDropdown label={labels.event} value={selectedEventLabel}>{eventTypes.map((type) => <label className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted" key={type}><input checked={query.types.includes(type)} className="size-4 accent-primary" onChange={() => toggleType(type)} type="checkbox" />{eventLabel[type]}</label>)}</FilterDropdown><FilterDropdown label={labels.department} value={selectedDepartmentLabel}><div className="relative mb-2"><Search aria-hidden="true" className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" /><input aria-label={labels.searchDepartments} className="form-field pl-8" onChange={(event) => setDepartmentSearch(event.target.value)} placeholder={labels.searchDepartments} value={departmentSearch} /></div><label className="flex items-center gap-2 border-b px-2 py-2 text-sm"><input checked={query.departmentIds.length === 0} className="size-4 accent-primary" onChange={() => update({ departmentIds: [] })} type="checkbox" />{labels.allDepartments}</label><div className="mt-1 max-h-52 overflow-y-auto">{filteredDepartments.map((department) => <label className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted" key={department.id}><input checked={query.departmentIds.includes(department.id)} className="size-4 accent-primary" onChange={() => update({ departmentIds: query.departmentIds.includes(department.id) ? query.departmentIds.filter((id) => id !== department.id) : [...query.departmentIds, department.id] })} type="checkbox" />{department.name}</label>)}</div></FilterDropdown><FilterDropdown label={labels.period} value={periodLabel[query.periodDays]}>{([7, 28, 84, 365] as const).map((days) => <button className={`block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted ${query.periodDays === days ? 'bg-primary/10 font-semibold text-primary' : ''}`} key={days} onClick={() => update({ periodDays: days })} type="button">{periodLabel[days]}</button>)}</FilterDropdown></div><div className="mt-6 rounded-2xl border bg-surface p-5 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-4"><p className="text-sm font-medium text-muted-foreground">{displayDate(report.startDate)} → {displayDate(report.endDate)}</p><a className="button-primary inline-flex items-center gap-2" href={`/api/insights/upcoming-events?${searchParams.toString()}&format=csv`}><Download size={16} />{labels.export}</a></div>{report.rows.length ? <div className="mt-5 space-y-5">{todayRows.length ? <section className="rounded-2xl border-2 border-primary/35 bg-primary/10 p-5"><h2 className="flex items-center gap-2 text-lg font-semibold text-primary"><PartyPopper size={20} />{labels.today}<span className="ml-auto rounded-full bg-background/80 px-2.5 py-1 text-xs tabular-nums">{todayRows.length}</span></h2><ul className="mt-2">{todayRows.map(renderRow)}</ul></section> : null}<div className="grid gap-5 md:grid-cols-2">{eventTypes.filter((type) => query.types.includes(type)).map((type) => { const rows = sortedRows.filter((row) => row.type === type); const Icon = eventIcon[type]; const color = type === 'BIRTHDAY' ? 'border-chart-1/30 bg-chart-1/10' : type === 'ANNIVERSARY' ? 'border-chart-2/30 bg-chart-2/10' : 'border-chart-3/30 bg-chart-3/10'; return <section className={`rounded-2xl border p-5 ${color}`} key={type}><h2 className="flex items-center gap-2 font-semibold"><Icon className="text-primary" size={18} />{eventLabel[type]}<span className="ml-auto rounded-full bg-background/70 px-2 py-1 text-xs tabular-nums">{rows.length}</span></h2>{rows.length ? <ul className="mt-2">{rows.map(renderRow)}</ul> : <p className="mt-3 text-sm text-muted-foreground">{labels.empty}</p>}</section> })}</div></div> : <p className="mt-5 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{labels.empty}</p>}</div></section>
+}

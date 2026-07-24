@@ -144,7 +144,7 @@ function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, {
   const extraBadges = node.badges.length - visibleBadges.length
 
   return (
-    <Link aria-label={interpolate(labels.openEmployee, { name: node.name })} href={`/employees/${node.employeeId}`} className={`block w-full rounded-2xl border bg-surface p-3.5 shadow-sm outline-none transition-[opacity,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-focus md:w-56 ${stateClasses(node.matchState)}`}>
+    <Link aria-label={interpolate(labels.openEmployee, { name: node.name })} href={`/employees/${node.employeeId}`} prefetch={false} className={`block w-full rounded-2xl border bg-surface p-3.5 shadow-sm outline-none transition-[opacity,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-focus md:w-56 ${stateClasses(node.matchState)}`}>
       <div className="flex items-center gap-3">
         <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted text-xs font-bold text-foreground">
           {node.avatarUrl ? <Image alt="" className="object-cover" fill sizes="40px" src={node.avatarUrl} /> : initials(node.name)}

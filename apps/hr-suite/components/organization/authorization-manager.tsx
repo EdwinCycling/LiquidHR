@@ -17,11 +17,10 @@ import {
 type Role = Database['public']['Tables']['management_roles']['Row']
 type Permission = Database['public']['Tables']['permissions']['Row']
 type RolePermission = Database['public']['Tables']['role_permissions']['Row']
-interface Option { id: string; name: string }
 
 export interface AuthorizationLabels {
   roles: string; newRole: string; roleCode: string; roleName: string; roleDescription: string; createRole: string
-  systemRole: string; tenantRole: string; permissions: string; selectRole: string; savePermissions: string
+  systemRole: string; tenantRole: string; roleOrganizationScoped: string; permissions: string; selectRole: string; savePermissions: string
   placements: string; managementAssignments: string; employee: string; department: string; role: string
   jobTitle: string; effectiveFrom: string; addPlacement: string; addManagement: string; saved: string; failed: string
   tabPermissions: string; tabOverview: string; tabAssignments: string; roleSearch: string; permissionSearch: string
@@ -31,16 +30,12 @@ export interface AuthorizationLabels {
   overviewTitle: string; overviewSubtitle: string; scopeNoticeTitle: string; scopeNotice: string
   assignmentTitle: string; assignmentSubtitle: string; noSearchResults: string; permissionCode: string
 }
-
 interface AuthorizationManagerProps {
   roles: Role[]
   permissions: Permission[]
   rolePermissions: RolePermission[]
-  employees: Option[]
-  departments: Option[]
   labels: AuthorizationLabels
 }
-
 function rolePermissionSet(roleId: string, assignments: RolePermission[]): Set<string> {
   return new Set(assignments.filter((item) => item.management_role_id === roleId).map((item) => item.permission_id))
 }
@@ -52,7 +47,7 @@ function coverageTone(percentage: number): string {
   return 'bg-primary text-primary-foreground'
 }
 
-export function AuthorizationManager({ roles, permissions, rolePermissions, employees, departments, labels }: AuthorizationManagerProps) {
+export function AuthorizationManager({ roles, permissions, rolePermissions, labels }: AuthorizationManagerProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -121,17 +116,11 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
   }
 
   async function createRoleAction(formData: FormData): Promise<void> {
-    await send('/api/roles', 'POST', { code: String(formData.get('code') ?? '').toUpperCase(), name: formData.get('name'), description: formData.get('description') || null })
+    await send('/api/roles', 'POST', { code: String(formData.get('code') ?? '').toUpperCase(), name: formData.get('name'), description: formData.get('description') || null, isOrganizationScoped: formData.get('isOrganizationScoped') === 'on' })
   }
   async function savePermissions(): Promise<void> {
     if (!selectedRoleId || !editable) return
     if (await send(`/api/roles/${selectedRoleId}/permissions`, 'PUT', { permissionIds: [...permissionIds] })) setSavedPermissionIds(new Set(permissionIds))
-  }
-  async function addPlacement(formData: FormData): Promise<void> {
-    await send('/api/organization/placements', 'POST', { employeeId: formData.get('employeeId'), departmentId: formData.get('departmentId'), jobTitle: formData.get('jobTitle') || null, effectiveFrom: formData.get('effectiveFrom') })
-  }
-  async function addManagement(formData: FormData): Promise<void> {
-    await send('/api/organization/management-assignments', 'POST', { employeeId: formData.get('employeeId'), departmentId: formData.get('departmentId'), managementRoleId: formData.get('roleId'), effectiveFrom: formData.get('effectiveFrom') })
   }
 
   return <div className="space-y-6">
@@ -139,7 +128,6 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
     <nav aria-label={labels.permissions} className="flex flex-wrap gap-2 rounded-2xl border bg-surface p-2">
       <TabButton active={activeTab === 'permissions'} icon={<KeyRound className="size-4" />} label={labels.tabPermissions} onClick={() => setTab('permissions')} />
       <TabButton active={activeTab === 'overview'} icon={<Network className="size-4" />} label={labels.tabOverview} onClick={() => setTab('overview')} />
-      <TabButton active={activeTab === 'assignments'} icon={<UsersRound className="size-4" />} label={labels.tabAssignments} onClick={() => setTab('assignments')} />
     </nav>
     {message ? <p aria-live="polite" className="rounded-xl border bg-surface px-4 py-3 text-sm text-muted-foreground">{message}</p> : null}
 
@@ -157,7 +145,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
           })}
           {filteredRoles.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">{labels.noSearchResults}</p> : null}
         </div>
-        <details className="mt-5 border-t pt-4"><summary className="cursor-pointer text-sm font-semibold text-foreground">{labels.newRole}</summary><form action={createRoleAction} className="mt-4 space-y-3"><FormInput label={labels.roleCode} name="code" pattern="[A-Z][A-Z0-9_]+" required /><FormInput label={labels.roleName} name="name" required /><label className="block text-sm text-foreground">{labels.roleDescription}<textarea className="mt-1.5 min-h-20 w-full rounded-lg border bg-background px-3 py-2" name="description" /></label><button className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" type="submit"><Plus className="size-4" />{labels.createRole}</button></form></details>
+        <details className="mt-5 border-t pt-4"><summary className="cursor-pointer text-sm font-semibold text-foreground">{labels.newRole}</summary><form action={createRoleAction} className="mt-4 space-y-3"><FormInput label={labels.roleCode} name="code" pattern="[A-Z][A-Z0-9_]+" required /><FormInput label={labels.roleName} name="name" required /><label className="block text-sm text-foreground">{labels.roleDescription}<textarea className="mt-1.5 min-h-20 w-full rounded-lg border bg-background px-3 py-2" name="description" /></label><label className="flex gap-2 text-sm text-foreground"><input className="size-4 accent-primary" name="isOrganizationScoped" type="checkbox" />{labels.roleOrganizationScoped}</label><button className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" type="submit"><Plus className="size-4" />{labels.createRole}</button></form></details>
       </aside>
 
       <section className="min-w-0 rounded-2xl border bg-surface p-4 sm:p-6">
@@ -183,7 +171,6 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, empl
 
     {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={inspectCoverage} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
 
-    {activeTab === 'assignments' ? <section className="space-y-5"><header className="rounded-2xl border bg-surface p-5"><h2 className="text-xl font-semibold text-foreground">{labels.assignmentTitle}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.assignmentSubtitle}</p></header><div className="grid gap-6 lg:grid-cols-2"><OrganizationForm action={addPlacement} button={labels.addPlacement} departments={departments} employees={employees} labels={labels} title={labels.placements} /><OrganizationForm action={addManagement} button={labels.addManagement} departments={departments} employees={employees} labels={labels} roles={roles.filter((role) => role.is_active)} title={labels.managementAssignments} /></div></section> : null}
   </div>
 }
 
@@ -217,7 +204,3 @@ function FormInput({ label, name, pattern, required }: { label: string; name: st
   return <label className="block text-sm text-foreground">{label}<input className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2" name={name} pattern={pattern} required={required} /></label>
 }
 
-function OrganizationForm({ action, button, departments, employees, labels, roles, title }: { action: (data: FormData) => Promise<void>; button: string; departments: Option[]; employees: Option[]; labels: AuthorizationLabels; roles?: Role[]; title: string }) {
-  const today = new Date().toISOString().slice(0, 10)
-  return <form action={action} className="space-y-4 rounded-2xl border bg-surface p-5"><div><h3 className="font-semibold text-foreground">{title}</h3><div className="mt-2 h-1 w-12 rounded-full bg-primary" /></div><label className="block text-sm text-foreground">{labels.employee}<select className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2" name="employeeId" required>{employees.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label><label className="block text-sm text-foreground">{labels.department}<select className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2" name="departmentId" required>{departments.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>{roles ? <label className="block text-sm text-foreground">{labels.role}<select className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2" name="roleId" required>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label> : <FormInput label={labels.jobTitle} name="jobTitle" />}<label className="block text-sm text-foreground">{labels.effectiveFrom}<input className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2" defaultValue={today} name="effectiveFrom" required type="date" /></label><button className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground" type="submit"><Plus className="size-4" />{button}</button></form>
-}

@@ -727,7 +727,7 @@ export type Database = {
         Row: {
           administration_id: string
           created_at: string
-          department_id: string
+          department_id: string | null
           effective_from: string
           effective_to: string | null
           employee_id: string
@@ -739,7 +739,7 @@ export type Database = {
         Insert: {
           administration_id: string
           created_at?: string
-          department_id: string
+          department_id?: string | null
           effective_from?: string
           effective_to?: string | null
           employee_id: string
@@ -751,7 +751,7 @@ export type Database = {
         Update: {
           administration_id?: string
           created_at?: string
-          department_id?: string
+          department_id?: string | null
           effective_from?: string
           effective_to?: string | null
           employee_id?: string
@@ -774,13 +774,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "department_management_department_scope_fkey"
-            columns: ["tenant_id", "administration_id", "department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
             foreignKeyName: "department_management_employee_id_fkey"
@@ -981,6 +974,51 @@ export type Database = {
             columns: ["tenant_id", "administration_id"]
             isOneToOne: false
             referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      employee_activity_entries: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          created_by_user_id: string
+          employee_id: string
+          id: string
+          message: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          created_by_user_id: string
+          employee_id: string
+          id?: string
+          message: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          employee_id?: string
+          id?: string
+          message?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_activity_entries_administration_scope_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_activity_entries_employee_scope_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -4384,6 +4422,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_organization_scoped: boolean
           is_system: boolean
           name: string
           tenant_id: string | null
@@ -4397,6 +4436,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_organization_scoped?: boolean
           is_system?: boolean
           name: string
           tenant_id?: string | null
@@ -4410,6 +4450,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_organization_scoped?: boolean
           is_system?: boolean
           name?: string
           tenant_id?: string | null
@@ -5212,6 +5253,41 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: []
+      }
+      tenant_anniversary_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          tenant_id: string
+          updated_at: string
+          years: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          tenant_id: string
+          updated_at?: string
+          years: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          tenant_id?: string
+          updated_at?: string
+          years?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_anniversary_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_modules: {
         Row: {

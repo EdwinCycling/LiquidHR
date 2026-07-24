@@ -18,6 +18,7 @@ De catalogus groepeert rapporten in vier vaste secties: **Medewerkers**, **Verlo
 | Personeel per geslacht | Live medewerkerprojectie; privacydrempel blijft vervolgwerk. |
 | Personeel per leeftijd | Live medewerkerprojectie; privacydrempel blijft vervolgwerk. |
 | Reden uit dienst | Live termination-projectie. |
+| Aankomende gebeurtenissen | Live: verjaardagen, tenantgestuurde werkjubilea en nieuwe indiensttredingen; periode en één of meer afdelingen. |
 | Verlof in beeld | Wordt later gedaan; geaggregeerde bron volgt. |
 | Verzuim | Wordt later gedaan; verzuimbron ontbreekt. |
 | Balansvoorziening verlof | Wordt later gedaan; waarderingsprojectie ontbreekt. |
@@ -45,6 +46,7 @@ De catalogus groepeert rapporten in vier vaste secties: **Medewerkers**, **Verlo
 - `TENANT_ADMIN` en `HR_ADMIN` ontvangen alle rapportrechten standaard. De rechtenmatrix kan ieder rapport vervolgens afzonderlijk aan een rol toewijzen; de rapportteller toont alleen het aantal toegestane rapporten.
 - De rapportservice vereist zowel het rapportrecht als het onderliggende bronrecht. Iedere query en export blijft RLS-gebonden, met tenant, administratie en managementscope uit de sessie.
 - Beschikbare medewerkersrapporten bieden per geopend harmonica-item CSV-export. De download loopt opnieuw via dezelfde geautoriseerde serverroute en neemt exact de actieve URL-filters mee.
+- Aankomende gebeurtenissen gebruikt uitsluitend echte medewerker-, dienstverband- en plaatsingsgegevens. De periode is 7 dagen, 4 weken of 12 weken; de drie gebeurtenistypen zijn afzonderlijk aan/uit te zetten. Werkjubilea volgen de actieve tenantregels in `tenant_anniversary_rules` en gebruiken `employments.seniority_date`.
 - Excel/PDF en immutable exportaudit zijn vervolgwerk.
 
 ## Volgende verticale slices

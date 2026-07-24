@@ -46,7 +46,7 @@
     "backToOverview": "Back to settings",
     "sections": { "organization": "Organization & access", "hrSetup": "HR setup", "platform": "Platform & extensions" },
     "tiles": {
-      "authorization": "Roles and authorization", "authorizationDescription": "Manage roles, permissions, scopes and the graphical authorization overview.",
+      "authorization": "Roles and authorization", "authorizationDescription": "Manage roles, permissions, scopes and the graphical authorization overview.", "roleAssignments": "Role assignments", "roleAssignmentsDescription": "Assign manager and additional roles and review department scope.",
       "organization": "Departments", "organizationDescription": "Configure departments, hierarchy and managers.",
       "employees": "Employees", "employeesDescription": "Open employee management and employee cards.",
       "customFields": "Custom fields", "customFieldsDescription": "Manage additional fields for employees and employments.",
@@ -57,10 +57,11 @@
       "pendingActivationDescription": "This tile becomes fully active once the related Supabase migration has been applied.",
       "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
       "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
-      "masterData": "Master data", "masterDataDescription": "Manage internal reasons and tenant-wide master data.", "leave": "Leave accrual", "leaveDescription": "Manage leave types, work hours, overtime and accrual rules.",
+      "masterData": "Master data", "masterDataDescription": "Manage internal reasons and tenant-wide master data.", "leave": "Leave accrual", "leaveDescription": "Manage leave types, work hours, overtime and accrual rules.", "anniversaryRules": "Anniversary rules", "anniversaryRulesDescription": "Choose after how many service years work anniversaries appear in reports.",
       "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.",
       "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role."
-    }
+    },
+    "menuOrderTitle": "Menu order", "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.", "menuOrderSave": "Save order", "menuOrderSaved": "Menu order saved.", "menuOrderMoveUp": "up", "menuOrderMoveDown": "down"
   },
   "modules": {
     "title": "Active modules", "subtitle": "Choose which extra modules are available across the customer environment. Core functionality always remains active.",
@@ -80,12 +81,17 @@
     "title": "Dashboard widgets", "subtitle": "Enable data-driven widgets and choose which roles can use them.", "save": "Save", "saving": "Saving…", "saved": "Saved.", "failed": "Could not save; the previous setting was restored.", "enabled": "Enable widget", "active": "Active", "inactive": "Inactive", "roles": "Available for roles", "allRoles": "Without a selection, the widget is available to all roles with the required permissions.", "noRoles": "No roles available.",
     "categories": { "CORE_HR": "Core HR", "EMPLOYMENT": "Employment", "DOCUMENTS": "Documents", "COMPENSATION": "Compensation", "ORGANIZATION_TIME": "Organization & time" }
   },
+  "menuOrderTitle": "Menu order",
+  "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.",
+  "menuOrderSave": "Save order",
+  "menuOrderSaved": "Menu order saved.",
   "holidays": {
     "title": "Public holidays", "subtitle": "Import national holidays by calendar year and country. The import is stored as a snapshot; local and excluded dates are preserved when re-importing.",
     "year": "Calendar year", "country": "Country code", "preview": "Load preview", "import": "Import holidays", "imported": "The holidays have been imported.", "providerFailed": "The holiday provider is currently unavailable or the input is invalid.",
     "localTitle": "Add local holiday", "localName": "Name", "date": "Date", "add": "Add local date",
     "calendarTitle": "Holidays in this calendar year", "empty": "No holidays for this year yet.", "api": "National import", "manual": "Added locally", "included": "In calendar", "excluded": "Excluded"
   },
+  "anniversaryRules": { "title": "Anniversary rules", "subtitle": "This tenant-wide list determines which work anniversaries appear in Upcoming events.", "years": "Year", "add": "Add anniversary", "save": "Save", "delete": "Delete", "saved": "Anniversary rule saved.", "failed": "The anniversary rule could not be saved.", "empty": "No anniversary rules have been set yet." },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "North Sea",

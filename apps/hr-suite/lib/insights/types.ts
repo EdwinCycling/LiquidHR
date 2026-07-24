@@ -12,6 +12,7 @@ export interface EmployeeInsightQuery {
   employeeStatus: 'all' | 'active' | 'former'
   groupBy: EmployeeInsightGroupBy
   sortBy: 'total' | 'name' | 'trend'
+  yearSpan: 1 | 3 | 5
 }
 
 export interface EmployeeInsightFilterOptions {
@@ -21,6 +22,8 @@ export interface EmployeeInsightFilterOptions {
 }
 
 export interface EmployeeInsightRow {
+  administrationNumber: string
+  employeeNumber: string
   employeeId: string
   employeeName: string
   gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'

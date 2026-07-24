@@ -22,12 +22,14 @@ export const roleCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: nullableText(500),
   deputyRoleId: z.uuid().nullable().optional(),
+  isOrganizationScoped: z.boolean().default(false),
 }).strict()
 
 export const roleUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   description: nullableText(500),
   deputyRoleId: z.uuid().nullable().optional(),
+  isOrganizationScoped: z.boolean().optional(),
   isActive: z.boolean().optional(),
 }).strict().refine((value) => Object.keys(value).length > 0)
 
@@ -58,7 +60,7 @@ export const placementUpdateSchema = z.object({
   .refine((value) => Object.keys(value).length > 0)
 
 export const managementAssignmentCreateSchema = z.object({
-  departmentId: z.uuid(), managementRoleId: z.uuid(), employeeId: z.uuid(),
+  departmentId: z.uuid().nullable().optional(), managementRoleId: z.uuid(), employeeId: z.uuid(),
   effectiveFrom: dateOnly, effectiveTo: dateOnly.nullable().optional(),
 }).strict().superRefine((value, context) => {
   if (value.effectiveTo && value.effectiveTo < value.effectiveFrom) context.addIssue({ code: 'custom', path: ['effectiveTo'], message: 'DATE_RANGE_INVALID' })

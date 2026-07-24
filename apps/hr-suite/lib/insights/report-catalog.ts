@@ -15,7 +15,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'employee-gender', category: 'employees', permission: 'report-employee-gender:read', available: true },
   { id: 'employee-age', category: 'employees', permission: 'report-employee-age:read', available: true },
   { id: 'terminations', category: 'employees', permission: 'report-terminations:read', available: true },
-  { id: 'upcomingEvents', category: 'employees', permission: 'report-upcoming-events:read', available: false },
+  { id: 'upcomingEvents', category: 'employees', permission: 'report-upcoming-events:read', available: true },
   { id: 'leave', category: 'leave', permission: 'report-leave:read', available: false },
   { id: 'absence', category: 'absence', permission: 'report-absence:read', available: false },
   { id: 'provision', category: 'other', permission: 'report-leave-provision:read', available: false },

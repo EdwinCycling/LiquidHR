@@ -61,7 +61,7 @@ export async function createRole(input: RoleCreateInput): Promise<string> {
   const supabase = await createClient()
   const { data, error } = await supabase.from('management_roles').insert({
     tenant_id: context.tenantId, code: input.code, name: input.name,
-    description: input.description ?? null, deputy_role_id: input.deputyRoleId ?? null, is_system: false,
+    description: input.description ?? null, deputy_role_id: input.deputyRoleId ?? null, is_organization_scoped: input.isOrganizationScoped, is_system: false,
   }).select('id').single()
   if (conflict(error)) throw new OrganizationServiceError('ROLE_CODE_CONFLICT', 409)
   if (error || !data) throw new OrganizationServiceError('ROLE_CREATE_FAILED', 500)
@@ -73,7 +73,7 @@ export async function updateRole(id: string, input: RoleUpdateInput): Promise<vo
   const supabase = await createClient()
   const { error } = await supabase.from('management_roles').update({
     name: input.name, description: input.description, deputy_role_id: input.deputyRoleId,
-    is_active: input.isActive, deleted_at: input.isActive === false ? new Date().toISOString() : undefined,
+    is_organization_scoped: input.isOrganizationScoped, is_active: input.isActive, deleted_at: input.isActive === false ? new Date().toISOString() : undefined,
   }).eq('tenant_id', context.tenantId).eq('id', id).eq('is_system', false)
   if (error) throw new OrganizationServiceError('ROLE_UPDATE_FAILED', 500)
 }
@@ -106,6 +106,72 @@ export async function listOrganizationAssignments(): Promise<{
   ])
   if (placements.error || assignments.error) throw new OrganizationServiceError('ORGANIZATION_ASSIGNMENTS_READ_FAILED', 500)
   return { placements: placements.data, managementAssignments: assignments.data }
+}
+
+export async function listRoleAssignments(): Promise<{
+  roles: Database['public']['Tables']['management_roles']['Row'][]
+  assignments: Database['public']['Tables']['department_management']['Row'][]
+  employees: Array<{ id: string; name: string; employeeNumber: string }>
+  departments: Array<{ id: string; name: string; code: string }>
+  placementDepartments: Array<{ employeeId: string; departmentId: string }>
+}> {
+  const context = await requirePermission('management-assignment:read')
+  const adminId = administrationId(context.administrationId)
+  const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+  const [roles, assignments, employees, departments, placements] = await Promise.all([
+    supabase.from('management_roles').select('*').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).eq('is_active', true).is('deleted_at', null).order('name').limit(250),
+    supabase.from('department_management').select('*').eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('effective_from', { ascending: false }).limit(1000),
+    supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(1000),
+    supabase.from('departments').select('id,name,code').eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('is_active', true).order('name').limit(500),
+    supabase.from('employee_organizations').select('employee_id,department_id').eq('tenant_id', context.tenantId).eq('administration_id', adminId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(2000),
+  ])
+  if (roles.error || assignments.error || employees.error || departments.error || placements.error) throw new OrganizationServiceError('ROLE_ASSIGNMENTS_READ_FAILED', 500)
+  return {
+    roles: roles.data,
+    assignments: assignments.data,
+    employees: employees.data.map((employee) => ({ id: employee.id, employeeNumber: employee.employee_number, name: `${employee.first_name} ${employee.birth_name}` })),
+    departments: departments.data,
+    placementDepartments: placements.data.map((placement) => ({ employeeId: placement.employee_id, departmentId: placement.department_id })),
+  }
+}
+
+export async function listEmployeeRoleAssignments(employeeId: string): Promise<Array<{
+  id: string
+  roleName: string
+  roleCode: string
+  departmentName: string | null
+  effectiveFrom: string
+  effectiveTo: string | null
+}>> {
+  const context = await requirePermission('employee:read', employeeId)
+  const supabase = await createClient()
+  const { data: assignments, error: assignmentError } = await supabase.from('department_management')
+    .select('id,management_role_id,department_id,effective_from,effective_to')
+    .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).order('effective_from', { ascending: false }).limit(100)
+  if (assignmentError) throw new OrganizationServiceError('EMPLOYEE_ROLE_ASSIGNMENTS_READ_FAILED', 500)
+  const roleIds = [...new Set((assignments ?? []).map((assignment) => assignment.management_role_id))]
+  const departmentIds = [...new Set((assignments ?? []).flatMap((assignment) => assignment.department_id ? [assignment.department_id] : []))]
+  const [{ data: roles, error: roleError }, { data: departments, error: departmentError }] = await Promise.all([
+    roleIds.length ? supabase.from('management_roles').select('id,name,code').in('id', roleIds) : Promise.resolve({ data: [], error: null }),
+    departmentIds.length ? supabase.from('departments').select('id,name').in('id', departmentIds) : Promise.resolve({ data: [], error: null }),
+  ])
+  if (roleError || departmentError) throw new OrganizationServiceError('EMPLOYEE_ROLE_ASSIGNMENTS_READ_FAILED', 500)
+  const roleById = new Map((roles ?? []).map((role) => [role.id, role]))
+  const departmentById = new Map((departments ?? []).map((department) => [department.id, department.name]))
+  return (assignments ?? []).flatMap((assignment) => {
+    const role = roleById.get(assignment.management_role_id)
+    return role ? [{ id: assignment.id, roleName: role.name, roleCode: role.code, departmentName: assignment.department_id ? departmentById.get(assignment.department_id) ?? null : null, effectiveFrom: assignment.effective_from, effectiveTo: assignment.effective_to }] : []
+  })
+}
+
+export async function deleteManagementAssignment(id: string): Promise<void> {
+  const context = await requirePermission('management-assignment:write')
+  const adminId = administrationId(context.administrationId)
+  const supabase = await createClient()
+  const { error } = await supabase.from('department_management').delete()
+    .eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+  if (error) throw new OrganizationServiceError('ROLE_ASSIGNMENT_DELETE_FAILED', 500)
 }
 
 export async function createPlacement(input: PlacementCreateInput): Promise<string> {
@@ -150,7 +216,7 @@ export async function createManagementAssignment(input: ManagementAssignmentCrea
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
   const { data, error } = await supabase.from('department_management').insert({
-    tenant_id: context.tenantId, administration_id: adminId, department_id: input.departmentId,
+    tenant_id: context.tenantId, administration_id: adminId, department_id: input.departmentId ?? null,
     management_role_id: input.managementRoleId, employee_id: input.employeeId,
     effective_from: input.effectiveFrom, effective_to: input.effectiveTo ?? null,
   }).select('id').single()

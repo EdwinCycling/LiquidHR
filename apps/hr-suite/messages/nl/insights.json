@@ -25,6 +25,7 @@
   "terminationsDescription": "Uitdiensttredingen per periode, reden, team en segment.",
   "upcoming-eventsTitle": "Aankomende gebeurtenissen",
   "upcoming-eventsDescription": "Verjaardagen, werkjubilea en nieuwe indiensttredingen per periode en afdeling.",
+  "backToInsights": "Terug naar Inzichten",
   "absenceTitle": "Verzuim",
   "absenceDescription": "Verzuimpercentage, meldingen en duur per organisatieonderdeel.",
   "provisionTitle": "Balansvoorziening verlof",
@@ -97,6 +98,8 @@
   ,"jan": "jan.", "feb": "feb.", "mar": "mrt.", "apr": "apr.", "may": "mei", "jun": "jun.", "jul": "jul.", "aug": "aug.", "sep": "sep.", "oct": "okt.", "nov": "nov.", "dec": "dec.",
   "today": "Vandaag",
   "fullYear": "Volledig jaar tonen",
+  "threeYears": "3 jaar",
+  "fiveYears": "5 jaar",
   "previousYear": "Vorig jaar",
   "nextYear": "Volgend jaar",
   "selectedPeriod": "Geselecteerde periode"
@@ -113,4 +116,20 @@
   ,"groups": "groepen"
   ,"actualDataTitle": "Verdeling op basis van actuele medewerkerdata"
   ,"authorizedData": "Geautoriseerde data"
+  ,"exportSuccess": "CSV-export is gedownload en klaar voor Excel."
+  ,"exportPreparing": "CSV-export wordt voorbereid…"
+  ,"exportFailed": "De CSV-export kon niet worden gemaakt. Probeer het opnieuw."
+  ,"allEvents": "Alle gebeurtenissen"
+  ,"selected": "geselecteerd"
+  ,"today": "Vandaag"
+  ,"inDays": "Over {days} dagen"
+  ,"upcomingEventsEvent": "Gebeurtenis"
+  ,"upcomingEventsBirthdays": "Verjaardagen"
+  ,"upcomingEventsAnniversaries": "Werkjubilea"
+  ,"upcomingEventsStarters": "Nieuwe gezichten"
+  ,"upcomingEventsNext7Days": "Komende 7 dagen"
+  ,"upcomingEventsNext4Weeks": "Komende 4 weken"
+  ,"upcomingEventsNext12Weeks": "Komende 12 weken"
+  ,"upcomingEventsNext12Months": "Komende 12 maanden"
+  ,"upcomingEventsEmpty": "Geen aankomende gebeurtenissen voor deze selectie."
 }

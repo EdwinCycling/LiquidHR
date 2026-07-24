@@ -1,5 +1,28 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-24: medewerkerdashboard tweede UI-slice
+
+Applicatieversie verhoogd naar `1.20260724.2`.
+
+Het dashboard heeft nu genderafhankelijke avatarfallbacks: foto, anders een man-/vrouw-silhouet en voor `OTHER`/`PREFER_NOT_TO_SAY` initialen. Reminders worden als echte, geautoriseerde kaart onder contract/salaris geladen. Salaris wordt bij openen van het dashboard niet meer opgehaald; na `salary:read` en hover/toetsenbordfocus haalt `/api/employees/[employeeId]/salary` de waarde op en verbergt de kaart haar weer bij verlaten.
+
+De brede en smalle widgets hebben vaste kolomgrenzen en een persoonlijke, via drag-and-drop of toetsenbord te wijzigen volgorde in `user_preferences.ui_state.employeeDashboard`. De nieuwe activity-feed ondersteunt een echte handmatige notitie via `employee_activity_entries`, met server- en RLS-permissions `employee-activity:read/write`; er wordt geen demo-inhoud ingezaaid. De lokale migration is `20260724160000_add_employee_activity_entries.sql` en `packages/db/types.ts` is lokaal aangevuld. Remote toepassen, Supabase advisors en een nieuwe gegenereerde typesnapshot zijn nog niet uitgevoerd.
+
+Verificatie: gerichte activity/layout-tests (3 geslaagd), strict TypeScript, ESLint, i18n-pariteit en productiebuild (85 pagina's) zijn geslaagd. De opname `Recording 2026-07-24 160852.mp4` is als interactiereferentie gebruikt. Een ingelogde browsercontrole met salaris-hover, drag-and-drop, reminders, avatarfallback en deny-cases blijft open.
+
+## Update 2026-07-24: medewerkerdashboard eerste UI-slice
+
+De leidende requirements staan in `docs/requirements/core-hr/MEDEWERKER_DASHBOARD.md`. De standaardroute `/employees/[employeeId]` toont nu een kleurrijk medewerkerdashboard met een vaste knop naar **Medewerkerdetails** en de bestaande detailtabs er direct achter. Persoons-, contact-, organisatie-, dienstverband-, salaris-, vrije-veld- en documentinformatie wordt alleen uit bestaande geautoriseerde projecties getoond. Niet-bestaande modules (onder meer verzuim, activa, wagenpark en performance) zijn herkenbare lege vensters zonder voorbeeldrecords, cijfers of andere fake data.
+
+Medewerkerlijst, organogram, kalender en Insights verwijzen naar dezelfde dashboardroute; medewerkersnamen in Insights en aankomende gebeurtenissen zijn klikbare links. Vanuit het dashboard blijven dienstverbanden en de knop **Medewerkerdetails openen** expliciete terugpaden naar detailtabs. De requirements leggen per rol en per widget self-, manager-, HR/admin- en custom-scope vast, inclusief server-side permissionchecks en RLS.
+
+Verificatie: strict TypeScript, gerichte ESLint, i18n-pariteit en productiebuild zijn geslaagd. De lokale browserroute is alleen anoniem gecontroleerd en redirect naar login; een ingelogde visuele controle van dashboard en deny-cases blijft open. De volgende stap is een geauthenticeerde matrixcontrole en releasegate met de nieuwe links.
+
+## Update 2026-07-24: rapportexports en periodeweergave
+
+Insights-exports bevatten nu standaard `Administratienr` en `Medewerkernr` als eerste twee kolommen, vóór de medewerkernaam; dit geldt voor medewerker- en aankomende-gebeurtenissenexports. Rapportperioden ondersteunen maand, volledig jaar en meerjarige vensters van 3 of 5 jaar. Trendgrafieken tonen een numerieke y-as; datumreeksen in de rapportweergave gebruiken een pijl als scheidingsteken.
+Bij langere trendperioden worden x-aslabels automatisch uitgedund zodat de volledige trend leesbaar blijft; alle datapunten en tooltips blijven aanwezig.
+
 ## Update 2026-07-24: Inzichten-permissions en persoonlijke rapportvoorkeuren
 
 De Insights-catalogus is gegroepeerd in Medewerkers, Verlof, Verzuim en Overige rapportages. Elke rapportage heeft een eigen functiepunt in de lokale migratie `20260724095433_insights_report_permissions.sql`; `TENANT_ADMIN` en `HR_ADMIN` krijgen alle rapportrechten standaard. De navigatie en rapportteller gebruiken uitsluitend deze rapportrechten. De live medewerkersrapporten gebruiken RLS-gebonden databasegegevens en bieden per geopend harmonica-item CSV-export met precies de actieve filters. De actieve-selectiekaart is inklapbaar en, samen met de optionele per-rapport filteropslag, persoonlijk bewaard in `user_preferences.ui_state.insights`.
@@ -111,7 +134,17 @@ Vervolgslice 2026-07-19: de medewerkerslijst en het organogram in worktree `sett
 De migraties voor strengere dossieruploads, persoonlijke weeknummering en Star Performers zijn op 2026-07-19 live toegepast. De Star Performer- en Cloud tags-tegels zijn actief voor geautoriseerde beheerders; de drie databaseproeven, typesgeneratie en security-advisor zijn uitgevoerd. Applicatieversie: `1.20260719.5`.
 Het organogram ondersteunt nu drie views via de filterbalk: `Afdelingen`, `Managerrelaties` en `Functiegroepen en star performers`. De managerweergave tekent direct op medewerker-managerrelaties zonder afdelingsvensters; de functieweergave groepeert op functiegroep → functie → star performer-niveau → medewerker en ondersteunt daardoor meerdere startpunten en losse medewerkers. De gekozen organogramview wordt nu ook correct in `user_preferences.ui_state.organizationChart` bewaard.
 
-Laatste update: 2026-07-19. Dit is het compacte startpunt voor iedere nieuwe of geforkte chat. Lees daarna `docs/README.md`; neem geen secrets in documentatie op.
+## Update 2026-07-24: inzichten, roltoewijzingen en platforminstellingen
+
+De Insights-werkruimte heeft nu een blijvende smalle instellingenrail die na inklappen opnieuw geopend kan worden, een semikolon-CSV met UTF-8-BOM voor Excel, en toastmeldingen voor exportresultaten. De trendweergave gebruikt één lijn-grafiek op basis van dezelfde geselecteerde, geautoriseerde rapportdata.
+
+Organisatietoewijzingen zijn uit Rollen en autorisaties gehaald. De nieuwe pagina `/role-assignments` beheert expliciete leidinggevende en tenantbrede aanvullende rollen met zoeken, rolfilter, matrixlijst, verwijderen, export en controlewaarschuwing wanneer de actuele afdelingsplaatsing van een medewerker niet meer overeenkomt met de rolscope. Een functiewijziging binnen dezelfde afdeling laat de rol bestaan; een afdelingswijziging vraagt HR om de toewijzing bewust te beëindigen of te verplaatsen. De medewerkerkaart toont de actieve roltoewijzingen en afdelingsscope.
+
+Migratie `20260724112407_add_role_assignment_scope.sql` is live toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. `TENANT_ADMIN` en `EMPLOYEE` zijn tenantbreed; `DIRECT_MANAGER` en zelfgemaakte organisatiegebonden rollen vereisen een afdeling. Organogramprojectie gebruikt alleen organisatiegebonden toewijzingen met afdeling. Module-opslag ververst nu de layout direct. Platforminstellingen bevatten een menuvolgorde-paneel; de volgorde wordt per browser opgeslagen en op de linker navigatie toegepast.
+
+Verificatie 2026-07-24: Supabase SQL-controle voor de drie systeemrollen, security advisor zonder nieuwe waarschuwing, volledige Vitest (92 bestanden/340 tests), strict TypeScript, ESLint, NL/EN i18n-check en productiebuild geslaagd. Een ingelogde visuele browsercontrole en de laatste release/public-preview handelingen blijven nog open.
+
+Aanvulling 2026-07-24: `/insights/upcoming-events` gebruikt de bestaande live tabel `tenant_anniversary_rules` en toont echte verjaardagen, werkjubilea (`employments.seniority_date`) en nieuwe indiensttredingen. De periode is 7 dagen, 4 weken of 12 weken; filters ondersteunen één of meer afdelingen en de drie gebeurtenistypen. Export is Excel-compatibele CSV. `/settings/anniversary-rules` beheert per tenant de jubileumjaren; de bestaande regels zijn 1, 5 en 25 jaar. Dit staat los van verlofbonus-treden: die horen functioneel bij Verlofopbouw (`leave_bonus_rules`) en zijn nog niet als afzonderlijk formulier in de settings-UI ontsloten.
 
 ## Vaste architectuur
 

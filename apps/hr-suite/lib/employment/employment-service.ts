@@ -124,6 +124,10 @@ export interface EmployeeEmploymentDetail {
 
 export type EmployeeDetailLoadScope = 'all' | 'overview' | 'personal' | 'employments'
 
+export interface EmployeeDetailLoadOptions {
+  includeSalary?: boolean
+}
+
 async function permissionAllowed(permissionCode: string, employeeId: string): Promise<boolean> {
   try {
     await requirePermission(permissionCode, employeeId)
@@ -367,6 +371,7 @@ export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter
 export async function getEmployeeEmploymentDetail(
   employeeId: string,
   scope: EmployeeDetailLoadScope = 'all',
+  options: EmployeeDetailLoadOptions = {},
 ): Promise<EmployeeEmploymentDetail> {
   const context = await requirePermission('employee:read', employeeId)
   const supabase = await createClient()
@@ -377,6 +382,7 @@ export async function getEmployeeEmploymentDetail(
   const canReadSalaryPromise = includeOverviewData
     ? permissionAllowed('salary:read', employeeId)
     : Promise.resolve(false)
+  const loadSalary = includeOverviewData && options.includeSalary !== false
   const employeeQuery = supabase
     .from('employees')
     .select(`id, employee_number, title, initials, first_name, birth_name_prefix,
@@ -416,11 +422,11 @@ export async function getEmployeeEmploymentDetail(
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today)
       .or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
-  const salaryQuery = canReadSalaryPromise.then(async (canReadSalary) => canReadSalary
+  const salaryQuery = loadSalary ? canReadSalaryPromise.then(async (canReadSalary) => canReadSalary
     ? await supabase.from('employment_salaries').select('employment_id, fulltime_amount, hourly_rate, currency_code, payment_type, valid_from, valid_until')
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('valid_from', today)
       .or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(100)
-    : Promise.resolve({ data: [], error: null }))
+    : Promise.resolve({ data: [], error: null })) : Promise.resolve({ data: [], error: null })
   const organizationQuery = includeOverviewData
     ? (() => {
       const query = supabase.from('employee_organizations')
@@ -555,6 +561,12 @@ export async function getEmployeeEmploymentDetail(
       canManageRelations: capabilityValues[4], canManageBankAccounts: capabilityValues[5], canReadSalary,
     },
   }
+}
+
+export async function getEmployeeSalarySummary(employeeId: string): Promise<CurrentEmployeeSummary['salary']> {
+  await requirePermission('salary:read', employeeId)
+  const detail = await getEmployeeEmploymentDetail(employeeId, 'overview', { includeSalary: true })
+  return detail.currentEmploymentSummary.salary
 }
 
 export async function getTerminationOptions(): Promise<{

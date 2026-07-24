@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { getEmployeeInsightReport, EmployeeInsightsServiceError } from '@/lib/insights/employee-report-service'
+import { employeeInsightCsv } from '@/lib/insights/csv'
 import { parseEmployeeInsightQuery } from '@/lib/insights/query'
 
-function csvCell(value: string | number | null): string {
-  const source = value === null ? '' : String(value)
-  return `"${source.replaceAll('"', '""')}"`
-}
-
 function csvResponse(data: Awaited<ReturnType<typeof getEmployeeInsightReport>>): NextResponse {
-  const headers = ['Medewerker', 'Geslacht', 'Leeftijd', 'Team', 'Segment', 'Einddatum', 'Reden']
-  const lines = [headers.map(csvCell).join(',')]
-  for (const row of data.rows) {
-    lines.push([row.employeeName, row.gender, row.age, row.team, row.segment, row.endDate, row.reason].map(csvCell).join(','))
-  }
-  return new NextResponse(`\uFEFF${lines.join('\r\n')}`, {
+  return new NextResponse(employeeInsightCsv(data.rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="${data.report}-${data.period.startDate}-${data.period.endDate}.csv"`,

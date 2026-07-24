@@ -1,7 +1,7 @@
 'use client'
 /* eslint-disable @next/next/no-img-element -- private avatar routes and customer-hosted URLs are intentionally rendered without remote image configuration. */
 
-import { Camera, Trash2 } from 'lucide-react'
+import { Camera, Trash2, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 
@@ -12,7 +12,7 @@ interface Labels {
   failed: string
 }
 
-export function EmployeeAvatarManager({ employeeId, avatarUrl, name, canManage, labels }: { employeeId: string; avatarUrl: string | null; name: string; canManage: boolean; labels: Labels }) {
+export function EmployeeAvatarManager({ employeeId, avatarUrl, name, gender, canManage, labels }: { employeeId: string; avatarUrl: string | null; name: string; gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'; canManage: boolean; labels: Labels }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const [failed, setFailed] = useState(false)
@@ -45,8 +45,12 @@ export function EmployeeAvatarManager({ employeeId, avatarUrl, name, canManage, 
     router.refresh()
   }
 
+  const initials = name.split(' ').filter(Boolean).map((part) => part.slice(0, 1)).slice(0, 2).join('').toUpperCase()
+  const fallback = gender === 'OTHER' || gender === 'PREFER_NOT_TO_SAY'
+    ? <span aria-label={name} className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">{initials}</span>
+    : <span aria-label={name} className={`flex h-20 w-20 items-center justify-center rounded-2xl text-primary-foreground shadow-sm ${gender === 'FEMALE' ? 'bg-chart-2' : 'bg-primary'}`}><UserRound aria-hidden="true" className="h-10 w-10" strokeWidth={1.6} /></span>
   return <div className="flex flex-col items-center gap-2">
-    {avatarUrl ? <img src={avatarUrl} alt={name} className="h-20 w-20 rounded-2xl object-cover shadow-sm" /> : <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">{name.split(' ').map((part) => part.slice(0, 1)).slice(0, 2).join('')}</span>}
+    {avatarUrl ? <img src={avatarUrl} alt={name} className="h-20 w-20 rounded-2xl object-cover shadow-sm" /> : fallback}
     {canManage && <div className="flex flex-wrap justify-center gap-2">
       <input ref={inputRef} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = '' }} />
       <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" disabled={saving} onClick={() => inputRef.current?.click()}><Camera aria-hidden="true" className="h-3.5 w-3.5" />{avatarUrl ? labels.replace : labels.upload}</button>

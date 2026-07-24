@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
 import { EmailLink } from '@/components/shared/email-link'
 import { Clock } from '@/components/layout/clock'
@@ -89,6 +89,7 @@ export function Sidebar({
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [menuOrder, setMenuOrder] = useState<string[]>([])
   const links = [
     { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
@@ -97,6 +98,12 @@ export function Sidebar({
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings },
   ]
+  useEffect(() => {
+    const load = () => { try { const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]'); if (Array.isArray(saved)) setMenuOrder(saved.filter((value): value is string => typeof value === 'string')) } catch { setMenuOrder([]) } }
+    const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
+    load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); return () => window.removeEventListener('liquidhr-menu-order-changed', handleChange)
+  }, [])
+  const orderedLinks = [...links].sort((left, right) => { const leftIndex = menuOrder.indexOf(left.href); const rightIndex = menuOrder.indexOf(right.href); return (leftIndex < 0 ? links.length : leftIndex) - (rightIndex < 0 ? links.length : rightIndex) })
 
   return (
     <>
@@ -146,7 +153,7 @@ export function Sidebar({
         ) : null}
 
         <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
-          {links.filter((link) => link.visible).map((link) => {
+          {orderedLinks.filter((link) => link.visible).map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
             const Icon = link.icon
             return (

@@ -3,7 +3,7 @@
 import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, Pencil, Phone, ShieldCheck, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react'
-import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation, type EmployeeRelationTypeOption } from './types'
+import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation, type EmployeeRelationTypeOption, type EmployeeRoleAssignment } from './types'
 import { EmailLink } from '@/components/shared/email-link'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
@@ -106,6 +106,12 @@ export interface EmployeePersonCardLabels {
   notes: string
   saveRelation: string
   notRecorded: string
+  rolesTitle: string
+  rolesEmpty: string
+  roleDepartment: string
+  roleTenantWide: string
+  roleValidFrom: string
+  roleValidUntil: string
 }
 
 interface EmployeePersonCardProps {
@@ -113,6 +119,7 @@ interface EmployeePersonCardProps {
   locale: string
   dateFormat: DateFormat
   labels: EmployeePersonCardLabels
+  roleAssignments?: EmployeeRoleAssignment[]
 }
 
 function value(form: FormData, name: string): string {
@@ -146,7 +153,7 @@ async function runJsonMutation(
   }
 }
 
-export function EmployeePersonCard({ detail, locale, dateFormat, labels }: EmployeePersonCardProps) {
+export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAssignments = [] }: EmployeePersonCardProps) {
   const [tab, setTab] = useState<Tab>('personal')
   const capabilities = detail.capabilities ?? NO_EMPLOYEE_CAPABILITIES
   const addresses = detail.addresses ?? []
@@ -190,7 +197,7 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels }: Emplo
         </div>
       </nav>
       <div id={`employee-panel-${tab}`} role="tabpanel" aria-labelledby={`employee-tab-${tab}`} className="p-4 sm:p-6">
-        {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} />}
+        {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} roleAssignments={roleAssignments} locale={locale} dateFormat={dateFormat} />}
         {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
         {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} relationTypes={detail.relationTypes ?? []} locale={locale} canManage={capabilities.canManageRelations} labels={labels} />}
@@ -199,7 +206,7 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels }: Emplo
   )
 }
 
-function PersonalPanel({ employee, capabilities, labels }: { employee: EmployeeDetailViewModel['employee']; capabilities: NonNullable<EmployeeDetailViewModel['capabilities']>; labels: EmployeePersonCardLabels }) {
+function PersonalPanel({ employee, capabilities, labels, roleAssignments, locale, dateFormat }: { employee: EmployeeDetailViewModel['employee']; capabilities: NonNullable<EmployeeDetailViewModel['capabilities']>; labels: EmployeePersonCardLabels; roleAssignments: EmployeeRoleAssignment[]; locale: string; dateFormat: DateFormat }) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [state, setState] = useState<MutationState>('idle')
@@ -258,6 +265,10 @@ function PersonalPanel({ employee, capabilities, labels }: { employee: EmployeeD
 
   return (
     <div>
+      <details className="mb-6 rounded-xl border bg-background p-4" open={roleAssignments.length > 0}>
+        <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold"><ShieldCheck aria-hidden="true" className="size-5 text-primary" />{labels.rolesTitle}</summary>
+        {roleAssignments.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.rolesEmpty}</p> : <div className="mt-4 grid gap-3 md:grid-cols-2">{roleAssignments.map((assignment) => <div className="rounded-lg border bg-surface p-3" key={assignment.id}><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{assignment.roleName}</p><p className="text-xs text-muted-foreground">{assignment.roleCode}</p></div><span className="status-chip bg-accent text-accent-foreground">{assignment.departmentName ?? labels.roleTenantWide}</span></div><p className="mt-2 text-xs text-muted-foreground">{labels.roleDepartment}: {assignment.departmentName ?? labels.roleTenantWide}</p><p className="mt-1 text-xs text-muted-foreground">{labels.roleValidFrom}: {formatDate(assignment.effectiveFrom, { locale, dateFormat })}{assignment.effectiveTo ? ` · ${labels.roleValidUntil}: ${formatDate(assignment.effectiveTo, { locale, dateFormat })}` : ''}</p></div>)}</div>}
+      </details>
       <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<UserRound className="h-5 w-5" />} title={labels.personalTitle} />{capabilities.canEditEmployee && employee.updatedAt && <button type="button" onClick={() => setEditing(true)} className="button-secondary gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editPersonal}</button>}</div>
       <dl className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
         <DataItem label={labels.employeeNumber} value={employee.employeeNumber} />

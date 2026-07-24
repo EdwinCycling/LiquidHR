@@ -46,7 +46,7 @@
     "backToOverview": "Terug naar instellingen",
     "sections": { "organization": "Organisatie & toegang", "hrSetup": "HR-inrichting", "platform": "Platform & uitbreidingen" },
     "tiles": {
-      "authorization": "Rollen en autorisaties", "authorizationDescription": "Beheer rollen, rechten, scopes en het grafische autorisatieoverzicht.",
+      "authorization": "Rollen en autorisaties", "authorizationDescription": "Beheer rollen, rechten, scopes en het grafische autorisatieoverzicht.", "roleAssignments": "Roltoewijzingen", "roleAssignmentsDescription": "Wijs leidinggevende en aanvullende rollen toe en controleer afdelingsscope.",
       "organization": "Afdelingen", "organizationDescription": "Richt afdelingen, hiërarchie en managers in.",
       "employees": "Medewerkers", "employeesDescription": "Open het medewerkersbeheer en de personeelskaarten.",
       "customFields": "Vrije velden", "customFieldsDescription": "Beheer aanvullende velden voor medewerkers en dienstverbanden.",
@@ -57,10 +57,11 @@
       "pendingActivationDescription": "Deze tegel wordt volledig actief zodra de bijbehorende Supabase-migratie is uitgevoerd.",
       "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
       "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe.",
-      "masterData": "Stamtabellen", "masterDataDescription": "Beheer interne redenen en tenantbrede stamtabellen.", "leave": "Verlofopbouw", "leaveDescription": "Beheer verloftypen, werkuren, overuren en opbouwregels.",
+      "masterData": "Stamtabellen", "masterDataDescription": "Beheer interne redenen en tenantbrede stamtabellen.", "leave": "Verlofopbouw", "leaveDescription": "Beheer verloftypen, werkuren, overuren en opbouwregels.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.",
       "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.",
       "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
-    }
+    },
+    "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag"
   },
   "modules": {
     "title": "Actieve modules", "subtitle": "Kies welke extra modules in de hele klantomgeving beschikbaar zijn. Kernfunctionaliteit blijft altijd actief.",
@@ -80,12 +81,17 @@
     "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaan…", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt; de vorige instelling is hersteld.", "enabled": "Widget activeren", "active": "Actief", "inactive": "Niet actief", "roles": "Beschikbaar voor rollen", "allRoles": "Zonder selectie is de widget beschikbaar voor alle rollen met de vereiste rechten.", "noRoles": "Geen rollen beschikbaar.",
     "categories": { "CORE_HR": "Kern HR", "EMPLOYMENT": "Dienstverband", "DOCUMENTS": "Documenten", "COMPENSATION": "Beloning", "ORGANIZATION_TIME": "Organisatie & tijd" }
   },
+  "menuOrderTitle": "Menuvolgorde",
+  "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.",
+  "menuOrderSave": "Volgorde opslaan",
+  "menuOrderSaved": "Menuvolgorde opgeslagen.",
   "holidays": {
     "title": "Feestdagen", "subtitle": "Importeer landelijke feestdagen per kalenderjaar en land. De import wordt als snapshot opgeslagen; lokale en uitgesloten dagen blijven bij herimport behouden.",
     "year": "Kalenderjaar", "country": "Landcode", "preview": "Voorbeeld ophalen", "import": "Feestdagen importeren", "imported": "De feestdagen zijn geïmporteerd.", "providerFailed": "De feestdagenprovider is nu niet bereikbaar of de invoer is ongeldig.",
     "localTitle": "Lokale feestdag toevoegen", "localName": "Naam", "date": "Datum", "add": "Lokale dag toevoegen",
     "calendarTitle": "Feestdagen in dit kalenderjaar", "empty": "Nog geen feestdagen voor dit jaar.", "api": "Landelijke import", "manual": "Lokaal toegevoegd", "included": "In kalender", "excluded": "Uitgesloten"
   },
+  "anniversaryRules": { "title": "Jubileumregels", "subtitle": "Deze tenantbrede lijst bepaalt welke werkjubilea in Aankomende gebeurtenissen worden getoond.", "years": "Jaar", "add": "Jubileum toevoegen", "save": "Opslaan", "delete": "Verwijderen", "saved": "Jubileumregel opgeslagen.", "failed": "De jubileumregel kon niet worden opgeslagen.", "empty": "Nog geen jubileumregels ingesteld." },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "Noordzee",

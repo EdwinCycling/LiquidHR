@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-24: medewerkerdashboard tweede UI-slice
+
+Het medewerkerdashboard bevat nu foto-/genderfallbacks, lazy salaris-reveal via een apart geautoriseerd endpoint, echte reminders onder contract/salaris, vaste brede/smalle kolommen met persoonlijke drag-and-drop-volgorde en een handmatige activiteitenfeed. Activiteitnotities worden tenant-/medewerkergebonden opgeslagen in de lokale migration `20260724160000_add_employee_activity_entries.sql` met `employee-activity:read/write` en RLS. Remote migratie, advisors, typesgeneratie en ingelogde rol-/browsercontrole zijn nog open.
+
+Gerichte tests, ESLint, strict TypeScript, i18n-pariteit en productiebuild zijn geslaagd.
+
+## Update 2026-07-24: medewerkerdashboard en navigatiekoppelingen
+
+De eerste UI-slice van `docs/requirements/core-hr/MEDEWERKER_DASHBOARD.md` staat op `/employees/[employeeId]`: het dashboard gebruikt bestaande geautoriseerde medewerkerprojecties, heeft een duidelijke knop naar de detailtabs en toont niet-bestaande modules als lege vensters zonder fake data. Medewerkerlijst, organogram, kalender en Insights (inclusief aankomende gebeurtenissen) openen nu dezelfde dashboardroute; de dashboardpagina biedt expliciet terugnavigatie naar medewerkerdetails. Server-side permission/RLS-verificatie en een ingelogde browsercontrole moeten nog per rol worden uitgevoerd.
+
 ## Update 2026-07-24: Inzichten-permissions, CSV en persoonlijke rapportvoorkeuren
 
 `/insights` is nu ingedeeld in Medewerkers, Verlof, Verzuim en Overige rapportages. Iedere rapportage heeft een afzonderlijk permission in de rechtenmatrix; de lokale migratie `20260724095433_insights_report_permissions.sql` kent alle rapportrechten standaard toe aan `TENANT_ADMIN` en `HR_ADMIN`. De teller en navigatie volgen uitsluitend de werkelijk toegekende rapportrechten.
@@ -45,7 +55,8 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Employee-persoonskaart | GEÏMPLEMENTEERD | Lijst met opgeslagen detail/compact-, sorteer-, arbeidsstatus- en archiefvoorkeuren (zoekterm niet opgeslagen), volledige klikrij, wizard, detail met hoofdtabbladen inclusief Overzicht vóór Persoonsgegevens, effectieve dienstverbandssamenvatting, verborgen salaris-hover, mutaties, adresgeschiedenis, relaties, gemaskeerde bankrekening, foto-beheer en capabilities zijn aanwezig |
+| Employee-persoonskaart | GEÏMPLEMENTEERD | Lijst met opgeslagen detail/compact-, sorteer-, arbeidsstatus- en archiefvoorkeuren (zoekterm niet opgeslagen), volledige klikrij, wizard, detail met hoofdtabbladen inclusief Dashboard vóór Persoonsgegevens, effectieve dienstverbandssamenvatting, verborgen salaris-hover, mutaties, adresgeschiedenis, relaties, gemaskeerde bankrekening, foto-beheer en capabilities zijn aanwezig |
+| Medewerkerdashboard | GEDEELTELIJK | Kleurrijke dashboardprojectie, avatarfallbacks, lazy salarisreveal, reminders, activity-feed met handmatige notitie, persoonlijke drag-and-drop-widgetvolgorde, detail-CTA, geautoriseerde bestaande velden, documentpreview, lege vensters zonder fake data en links vanuit lijst/organogram/kalender/Insights zijn aanwezig. Remote migration/advisors/typesnapshot en per-rol browsercontrole volgen volgens de leidende requirements. |
 | Dubbele-medewerkercontrole | GEÏMPLEMENTEERD | Tenantgebonden BSN-HMAC of gewogen persoonsgegevens, expliciet besluit en auditlog; exact BSN-matchen vereist `BSN_HASH_KEY` |
 | Afdelingenboom | GEÏMPLEMENTEERD | Beheer staat onder de HR-admin instellingen/stamgegevens; lezen, aanmaken, wijzigen/archiveren, RLS en database-cyclusbeveiliging werken |
 | Managementrollen | GEÏMPLEMENTEERD | Tenantrollen zijn beheerbaar; globale systeemrollen zijn database-breed onveranderlijk |
@@ -101,10 +112,10 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Rapportagecatalogus | GEDEELTELIJK | `/insights` staat onder Kalender in de navigatie met gesloten harmonica-items, rapport-specifieke filteropzet, sortering, URL-selectie en visuele rapportcontainers. Alleen de interface bestaat; er worden bewust geen voorbeeldcijfers getoond. |
+| Rapportagecatalogus | GEDEELTELIJK | `/insights` staat onder Kalender in de navigatie met gesloten harmonica-items, rapport-specifieke filteropzet, sortering, URL-selectie en visuele rapportcontainers. Medewerkerprojecties en Aankomende gebeurtenissen gebruiken geautoriseerde productiedata; overige rapporten tonen geen voorbeeldcijfers. |
 | Medewerkerbestandrapporten | GEDEELTELIJK | Personeel per afdeling, geslacht, leeftijd en reden uit dienst lezen via `employee:read` en bestaande RLS-scoped medewerkers-, dienstverband-, organisatie- en terminationdata. Visualisaties en detailtabellen zijn live; `insights:read`, privacydrempel en exports volgen. |
 | Verzuim, voorziening en WvP | NIET GESTART | De items zijn zichtbaar als toekomstig werk. De benodigde domeinbronnen en workflows bestaan nog niet. |
-| Rapportexport | NIET GESTART | Excel/PDF en immutable exportaudit volgen na de geautoriseerde bronprojecties. |
+| Rapportexport | GEDEELTELIJK | Medewerkerprojecties en Aankomende gebeurtenissen leveren Excel-compatibele CSV op. Excel/PDF en immutable exportaudit volgen later. |
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|

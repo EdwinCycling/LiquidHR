@@ -92,6 +92,15 @@ export interface EmployeeRelationTypeOption {
   nameEn: string
 }
 
+export interface EmployeeRoleAssignment {
+  id: string
+  roleName: string
+  roleCode: string
+  departmentName: string | null
+  effectiveFrom: string
+  effectiveTo: string | null
+}
+
 export interface EmployeeDetailViewModel {
   employee: EmployeeProfile
   employments: Employment[]
@@ -102,6 +111,7 @@ export interface EmployeeDetailViewModel {
   relationTypes?: EmployeeRelationTypeOption[]
   currentEmploymentSummary: CurrentEmployeeSummary
   capabilities?: EmployeeCapabilities
+  roleAssignments?: EmployeeRoleAssignment[]
 }
 
 export const NO_EMPLOYEE_CAPABILITIES: EmployeeCapabilities = {

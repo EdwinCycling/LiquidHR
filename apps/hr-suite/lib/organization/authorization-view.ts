@@ -1,4 +1,4 @@
-export type AuthorizationTab = 'permissions' | 'overview' | 'assignments'
+export type AuthorizationTab = 'permissions' | 'overview'
 
 interface AuthorizationRoleInput {
   id: string
@@ -47,7 +47,7 @@ export function authorizationCoverageTarget(roleId: string, category: string): {
 }
 
 export function normalizeAuthorizationTab(value: string | null): AuthorizationTab {
-  if (value === 'overview' || value === 'assignments') return value
+  if (value === 'overview') return value
   return 'permissions'
 }
 

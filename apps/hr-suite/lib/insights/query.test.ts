@@ -20,6 +20,11 @@ describe('employee insight query', () => {
     expect(query).toMatchObject({ report: 'employee-gender', startDate: '2024-07-01', endDate: '2024-07-31', groupBy: 'gender' })
   })
 
+  it('supports a three-year period ending in the selected year', () => {
+    const query = parseEmployeeInsightQuery(new URLSearchParams('report=employee-gender&year=2024&years=3'))
+    expect(query).toMatchObject({ startDate: '2022-01-01', endDate: '2024-12-31', yearSpan: 3 })
+  })
+
   it('does not create a report query for unknown report ids', () => {
     expect(parseEmployeeInsightQuery(new URLSearchParams('report=employees'))).toBeNull()
   })

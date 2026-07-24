@@ -25,6 +25,7 @@
   "terminationsDescription": "Departures by period, reason, team and segment.",
   "upcoming-eventsTitle": "Upcoming events",
   "upcoming-eventsDescription": "Birthdays, work anniversaries and new starters by period and department.",
+  "backToInsights": "Back to Insights",
   "absenceTitle": "Absence",
   "absenceDescription": "Absence rate, reports and duration by organisational unit.",
   "provisionTitle": "Leave provision",
@@ -97,6 +98,8 @@
   ,"jan": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr", "may": "May", "jun": "Jun", "jul": "Jul", "aug": "Aug", "sep": "Sep", "oct": "Oct", "nov": "Nov", "dec": "Dec",
   "today": "Today",
   "fullYear": "Show full year",
+  "threeYears": "3 years",
+  "fiveYears": "5 years",
   "previousYear": "Previous year",
   "nextYear": "Next year",
   "selectedPeriod": "Selected period"
@@ -113,4 +116,20 @@
   ,"groups": "groups"
   ,"actualDataTitle": "Distribution based on current employee data"
   ,"authorizedData": "Authorised data"
+  ,"exportSuccess": "The CSV export was downloaded and is ready for Excel."
+  ,"exportPreparing": "Preparing CSV export…"
+  ,"exportFailed": "The CSV export could not be created. Please try again."
+  ,"allEvents": "All events"
+  ,"selected": "selected"
+  ,"today": "Today"
+  ,"inDays": "In {days} days"
+  ,"upcomingEventsEvent": "Event"
+  ,"upcomingEventsBirthdays": "Birthdays"
+  ,"upcomingEventsAnniversaries": "Work anniversaries"
+  ,"upcomingEventsStarters": "New starters"
+  ,"upcomingEventsNext7Days": "Next 7 days"
+  ,"upcomingEventsNext4Weeks": "Next 4 weeks"
+  ,"upcomingEventsNext12Weeks": "Next 12 weeks"
+  ,"upcomingEventsNext12Months": "Next 12 months"
+  ,"upcomingEventsEmpty": "No upcoming events for this selection."
 }

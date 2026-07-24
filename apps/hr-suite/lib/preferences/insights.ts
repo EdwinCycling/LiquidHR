@@ -9,6 +9,7 @@ export interface StoredInsightFilters {
   year?: number
   month?: number
   fullYear?: boolean
+  yearSpan?: 1 | 3 | 5
   sortBy?: string
   teams?: string[]
   segments?: string[]
@@ -40,6 +41,7 @@ function readFilters(value: Json | undefined): StoredInsightFilters | undefined 
   if (typeof value.year === 'number' && Number.isInteger(value.year) && value.year >= 2000 && value.year <= 2100) filters.year = value.year
   if (typeof value.month === 'number' && Number.isInteger(value.month) && value.month >= 1 && value.month <= 12) filters.month = value.month
   if (typeof value.fullYear === 'boolean') filters.fullYear = value.fullYear
+  if (value.yearSpan === 1 || value.yearSpan === 3 || value.yearSpan === 5) filters.yearSpan = value.yearSpan
   if (typeof value.sortBy === 'string' && value.sortBy.length <= 32) filters.sortBy = value.sortBy
   const teams = readStringArray(value.teams); if (teams) filters.teams = teams
   const segments = readStringArray(value.segments); if (segments) filters.segments = segments

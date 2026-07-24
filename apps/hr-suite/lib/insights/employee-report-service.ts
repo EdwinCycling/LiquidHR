@@ -4,7 +4,7 @@ import { insightReportPermission } from '@/lib/insights/report-catalog'
 import { createClient } from '@/lib/supabase/server'
 import type { EmployeeInsightGroup, EmployeeInsightQuery, EmployeeInsightReport, EmployeeInsightRow } from './types'
 
-type EmployeeRow = Pick<Tables<'employees'>, 'id' | 'first_name' | 'birth_name_prefix' | 'birth_name' | 'gender' | 'birth_date'>
+type EmployeeRow = Pick<Tables<'employees'>, 'id' | 'employee_number' | 'first_name' | 'birth_name_prefix' | 'birth_name' | 'gender' | 'birth_date'>
 type EmploymentRow = Pick<Tables<'employments'>, 'id' | 'employee_id' | 'starts_on' | 'ends_on' | 'seniority_date' | 'is_primary'>
 type OrganizationRow = Pick<Tables<'employee_organizations'>, 'employee_id' | 'employment_id' | 'department_id' | 'cost_bearer' | 'effective_from' | 'effective_to'>
 type TerminationRow = Pick<Tables<'employment_terminations'>, 'employee_id' | 'employment_id' | 'last_working_day' | 'internal_reason_id' | 'statutory_reason_id'>
@@ -109,18 +109,20 @@ export async function getEmployeeInsightReport(query: EmployeeInsightQuery): Pro
   const employments = employmentResult.data as EmploymentRow[]
   const employeeIds = [...new Set(employments.map((employment) => employment.employee_id))]
 
-  const [employeesResult, organizationsResult, departmentsResult, terminationsResult, internalReasonsResult] = await Promise.all([
-    employeeIds.length ? supabase.from('employees').select('id, first_name, birth_name_prefix, birth_name, gender, birth_date').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null).limit(2000) : Promise.resolve({ data: [], error: null }),
+  const [employeesResult, organizationsResult, departmentsResult, terminationsResult, internalReasonsResult, administrationResult] = await Promise.all([
+    employeeIds.length ? supabase.from('employees').select('id, employee_number, first_name, birth_name_prefix, birth_name, gender, birth_date').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null).limit(2000) : Promise.resolve({ data: [], error: null }),
     employeeIds.length ? supabase.from('employee_organizations').select('employee_id, employment_id, department_id, cost_bearer, effective_from, effective_to').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(5000) : Promise.resolve({ data: [], error: null }),
     supabase.from('departments').select('id, name').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('is_active', true).order('name').limit(500),
     query.report === 'terminations' ? supabase.from('employment_terminations').select('employee_id, employment_id, last_working_day, internal_reason_id, statutory_reason_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).in('workflow_status', ['CONFIRMED', 'PAYROLL_READY', 'REPORTED']).gte('last_working_day', query.startDate).lte('last_working_day', query.endDate).limit(2000) : Promise.resolve({ data: [], error: null }),
     supabase.from('employment_end_reasons').select('id, name_nl').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('is_active', true).order('name_nl').limit(500),
+    supabase.from('administrations').select('code').eq('tenant_id', context.tenantId).eq('id', administrationId).single(),
   ])
   if (employeesResult.error) fail(employeesResult.error)
   if (organizationsResult.error) fail(organizationsResult.error)
   if (departmentsResult.error) fail(departmentsResult.error)
   if (terminationsResult.error) fail(terminationsResult.error)
   if (internalReasonsResult.error) fail(internalReasonsResult.error)
+  if (administrationResult.error) fail(administrationResult.error)
 
   const employees = employeesResult.data as EmployeeRow[]
   const organizations = organizationsResult.data as OrganizationRow[]
@@ -154,7 +156,7 @@ export async function getEmployeeInsightReport(query: EmployeeInsightQuery): Pro
     const termination = source.termination ?? terminationByEmployment.get(source.employment.id)
     const reason = termination?.internal_reason_id ? internalReasons.get(termination.internal_reason_id) ?? null : null
     if (query.reasons.length && (!reason || !query.reasons.includes(reason))) continue
-    rows.push({ employeeId: employee.id, employeeName: employeeName(employee), gender: employee.gender, birthDate: employee.birth_date, age: ageOn(employee.birth_date, query.endDate), team, segment, startDate: source.employment.starts_on, endDate: termination?.last_working_day ?? source.employment.ends_on, reason })
+    rows.push({ administrationNumber: administrationResult.data.code, employeeNumber: employee.employee_number, employeeId: employee.id, employeeName: employeeName(employee), gender: employee.gender, birthDate: employee.birth_date, age: ageOn(employee.birth_date, query.endDate), team, segment, startDate: source.employment.starts_on, endDate: termination?.last_working_day ?? source.employment.ends_on, reason })
   }
 
   const filterOptions = {

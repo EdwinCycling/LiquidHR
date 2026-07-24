@@ -23,9 +23,11 @@ function dateRange(params: URLSearchParams): { startDate: string; endDate: strin
   const yearValue = Number(first(params, 'year'))
   const year = Number.isInteger(yearValue) && yearValue >= 2000 && yearValue <= 2100 ? yearValue : today.getUTCFullYear()
   const fullYear = first(params, 'fullYear') === '1'
+  const yearsValue = Number(first(params, 'years'))
+  const years = yearsValue === 3 || yearsValue === 5 ? yearsValue : 1
   const monthValue = Number(first(params, 'month'))
   const month = Number.isInteger(monthValue) && monthValue >= 1 && monthValue <= 12 ? monthValue : today.getUTCMonth() + 1
-  if (fullYear) return { startDate: `${year}-01-01`, endDate: `${year}-12-31` }
+  if (fullYear || years > 1) return { startDate: `${year - years + 1}-01-01`, endDate: `${year}-12-31` }
   const endDate = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
   return { startDate: `${year}-${String(month).padStart(2, '0')}-01`, endDate }
 }
@@ -34,6 +36,7 @@ export function parseEmployeeInsightQuery(params: URLSearchParams): EmployeeInsi
   const report = reportId(first(params, 'report'))
   if (!report) return null
   const dates = dateRange(params)
+  const yearsValue = Number(first(params, 'years'))
   const status = first(params, 'employeeStatus')
   const sortBy = first(params, 'sort')
   return {
@@ -45,6 +48,6 @@ export function parseEmployeeInsightQuery(params: URLSearchParams): EmployeeInsi
     employeeStatus: status === 'active' || status === 'former' ? status : 'all',
     groupBy: groupBy(first(params, 'group'), report),
     sortBy: sortBy === 'name' || sortBy === 'trend' ? sortBy : 'total',
+    yearSpan: yearsValue === 3 || yearsValue === 5 ? yearsValue : 1,
   }
 }
-
