@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Overview"
+  short_description: "Collect reproducible project and database KPIs"
+  default_prompt: "Maak een actuele project overview met code-KPI's, API/UI-routes, databasecijfers, referenties en een transparante mandagenvergelijking."
