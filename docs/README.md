@@ -34,6 +34,7 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 |---|---|---|---|
 | Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/opvolgers/voorrangsregels, ledger-RPC's/API en settings-UI zijn aanwezig; toekomstige opbouwprojectie, volledige auditformulieren en enkele rapportdetails volgen |
 | Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | GEDEELTELIJK — geautoriseerde HR-admin/managerflow, priority/FIFO, directe goedkeuring, saldo-overzicht en kalenderweergave zijn geïmplementeerd; ESS, notificaties en manager-UI volgen later |
+| Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — catalogus, harmonica, rapport-specifieke filters, sortering en URL-selectie staan op `/insights`; databronnen en exports volgen per rapport |
 | Core HR | [`requirements/core-hr/MEDEWERKER.md`](requirements/core-hr/MEDEWERKER.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Contract & dienstverband | [`requirements/employment/CONTRACT_EN_DIENSTVERBAND.md`](requirements/employment/CONTRACT_EN_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — volledige publicatieflow en tijdkaart gereed; detailmutaties basis/IKV blijven open |
 | Organisatie | [`requirements/organization/AFDELINGEN_EN_ROLLEN.md`](requirements/organization/AFDELINGEN_EN_ROLLEN.md) | LEIDEND | GEÏMPLEMENTEERD |
@@ -65,6 +66,7 @@ Er zijn momenteel geen documenten met status **VERVANGEN**. Zodra een document w
 | Tenant, administratie of contextswitch | Alle vijf architectuurdocumenten plus `MULTITENANCY_EN_MULTI_ADMINISTRATIE.md` en `AUTORISATIE_EN_RECHTEN.md` |
 | Contract, salaris of payroll | `BLUEPRINT.md`, `LOGIC_AND_WORKFLOW.md`, `CONTRACT_EN_DIENSTVERBAND.md`, `AUTORISATIE_EN_RECHTEN.md` |
 | UI/layout/formulieren | `BLUEPRINT.md`, `UI_FLOW_BLUEPRINT.md` en het relevante requirementdocument |
+| Rapportages en exports | `BLUEPRINT.md`, `LOGIC_AND_WORKFLOW.md`, `UI_FLOW_BLUEPRINT.md`, `requirements/reports/RAPPORTAGES_EN_INZICHTEN.md` en `AUTORISATIE_EN_RECHTEN.md` |
 | Liquid Display of AI-chat | Alle vijf architectuurdocumenten plus de relevante Liquid Display- en chatbotrequirements |
 
 ## Uitvoering en besluiten

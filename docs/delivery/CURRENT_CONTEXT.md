@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-24: Inzichten-permissions en persoonlijke rapportvoorkeuren
+
+De Insights-catalogus is gegroepeerd in Medewerkers, Verlof, Verzuim en Overige rapportages. Elke rapportage heeft een eigen functiepunt in de lokale migratie `20260724095433_insights_report_permissions.sql`; `TENANT_ADMIN` en `HR_ADMIN` krijgen alle rapportrechten standaard. De navigatie en rapportteller gebruiken uitsluitend deze rapportrechten. De live medewerkersrapporten gebruiken RLS-gebonden databasegegevens en bieden per geopend harmonica-item CSV-export met precies de actieve filters. De actieve-selectiekaart is inklapbaar en, samen met de optionele per-rapport filteropslag, persoonlijk bewaard in `user_preferences.ui_state.insights`.
+
+Verificatie: strict TypeScript en i18n-pariteit zijn geslaagd. Open: migratie remote toepassen, rechtenmatrix/browser met een beperkte rol controleren, privacydrempel voor kleine groepen en exportaudit.
+
+## Update 2026-07-24: Inzichten-catalogus en rapportagefundering
+
+De nieuwe route `/insights` staat in de linker navigatie onder Kalender en boven Instellingen. De pagina heeft een gesloten harmonica-catalogus voor **Verlof in beeld**, **Medewerkerbestand**, **Verzuim**, **Balansvoorziening verlof** en **WvP-voortgang**. Verlof en medewerkerbestand hebben een rapport-specifieke filteropzet met groepering, periode, afdelingsfacet, aanvullende domeinfilters, sortering en weergavekeuze; de geselecteerde rapportkaart staat deelbaar in `?report=`. De UI toont bewust geen gefingeerde cijfers: alleen de rapportvisualisatie en actieve selectie staan klaar totdat veilige data-projecties bestaan. Verzuim, voorziening en WvP zijn eerlijk gemarkeerd als later werk.
+
+Het leidende document is `docs/requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`. De medewerkercatalogus is nu gesplitst in **Personeel per afdeling**, **Personeel per geslacht**, **Personeel per leeftijd** en **Reden uit dienst**. De route gebruikt de bestaande `employee:read`-autorisatie en RLS-scoped medewerker-, dienstverband-, organisatie- en terminationdata via `lib/insights/employee-report-service.ts`; filteropties komen uit dezelfde administratie, en foutpaden tonen geen demo-data. Team, segment, reden en medewerkerstatus zijn afzonderlijke filters; de periode heeft maand-/jaargrid, Vandaag en Volledig jaar tonen. Vóór verdere publicatie moet de zelfstandige canonieke permission `insights:read` worden toegevoegd, gevolgd door kleine-groepenbescherming en exportaudit. Verificatie van deze slice: i18n-pariteit en strict TypeScript zijn geslaagd.
+
 ## Update 2026-07-23: medewerkerdetail en dienstverbandtabs tabgericht geladen
 
 De keten Medewerkerslijst → medewerkerdetail → Persoonsgegevens/Dienstverbanden → dienstverbanddetail → dienstverbandtabs is geoptimaliseerd. `getEmployeeEmploymentDetail` en `getEmploymentDetail` lezen nu alleen de projectie voor de actieve tab; historie en HR-events worden niet meer op iedere dienstverbandtab opgehaald. Onafhankelijke rechten- en datalezingen starten parallel, de dubbele employments-permissionread in de medewerkerprojectie is verwijderd en detailroutes hebben compacte `loading.tsx`-skeletons. Dynamische medewerker-, dienstverband- en tablinks hebben `prefetch={false}` zodat verborgen tabs geen collectieve serverrequests veroorzaken.

@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-24: Inzichten-permissions, CSV en persoonlijke rapportvoorkeuren
+
+`/insights` is nu ingedeeld in Medewerkers, Verlof, Verzuim en Overige rapportages. Iedere rapportage heeft een afzonderlijk permission in de rechtenmatrix; de lokale migratie `20260724095433_insights_report_permissions.sql` kent alle rapportrechten standaard toe aan `TENANT_ADMIN` en `HR_ADMIN`. De teller en navigatie volgen uitsluitend de werkelijk toegekende rapportrechten.
+
+De vier live medewerkersrapporten gebruiken uitsluitend RLS-gebonden databasegegevens en hebben per geopend harmonica-item een CSV-export met de actieve filters. De pagina heeft kleurrijke KPI's/diagrammen, geen overbodige weergaveteksten of beschikbaarheidsbadge, een inklapbare actieve-selectiekaart en een persoonlijke optie om filters per rapport te bewaren. TypeScript en i18n-pariteit zijn geslaagd. De migratie is nog niet remote toegepast; daarom is een ingelogde browsercontrole met de nieuwe rechtenmatrix nog open.
+
 ## Update 2026-07-23: tabgerichte medewerker- en dienstverbandperformance
 
 De medewerkerdetailroute en dienstverbanddetailroute laden alleen de actieve tabprojectie. Persoonsgegevens, dienstverbandoverzicht, salaris, historie en HR-events worden niet meer standaard op iedere tabwissel gelezen. Onafhankelijke autorisatie-/databasereads lopen parallel; dubbele employee-employment-permissionread is verwijderd. Beide detailroutes hebben een route-skeleton en dynamische medewerker-/dienstverband-/tablinks prefetchen niet meer collectief.
@@ -90,6 +96,15 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
 ## Instellingen en tenantmodules
+
+## Rapportages en Inzichten
+
+| Onderdeel | Status | Resterend werk |
+|---|---|---|
+| Rapportagecatalogus | GEDEELTELIJK | `/insights` staat onder Kalender in de navigatie met gesloten harmonica-items, rapport-specifieke filteropzet, sortering, URL-selectie en visuele rapportcontainers. Alleen de interface bestaat; er worden bewust geen voorbeeldcijfers getoond. |
+| Medewerkerbestandrapporten | GEDEELTELIJK | Personeel per afdeling, geslacht, leeftijd en reden uit dienst lezen via `employee:read` en bestaande RLS-scoped medewerkers-, dienstverband-, organisatie- en terminationdata. Visualisaties en detailtabellen zijn live; `insights:read`, privacydrempel en exports volgen. |
+| Verzuim, voorziening en WvP | NIET GESTART | De items zijn zichtbaar als toekomstig werk. De benodigde domeinbronnen en workflows bestaan nog niet. |
+| Rapportexport | NIET GESTART | Excel/PDF en immutable exportaudit volgen na de geautoriseerde bronprojecties. |
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|

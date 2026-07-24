@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { getAdministrationSwitcherMode } from '@/lib/context/administration-context'
 import { loadActiveContext } from '@/lib/context/server-context'
@@ -32,8 +33,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     try { await requirePermission(permission); return true }
     catch (error) { if (error instanceof AuthorizationError) return false; throw error }
   }
-  const [canReadEmployees, canReadHrCalendar, canReadSettings] = await Promise.all([
+  const [canReadEmployees, canReadHrCalendar, canReadSettings, insightPermissions] = await Promise.all([
     can('employee:read'), can('hr-calendar:read'), can('settings:read'),
+    Promise.all(INSIGHT_REPORTS.map((report) => can(report.permission))),
   ])
 
   const [preferences, common, navigation, auth, reminderMessages, reminders, enabledModules] = await Promise.all([
@@ -55,6 +57,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadEmployees={canReadEmployees}
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
+        canReadInsights={insightPermissions.some(Boolean)}
         email={email}
         labels={{
           appName: common('appName'),
@@ -65,6 +68,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           settings: navigation('settings'),
           personalSettings: navigation('personalSettings'),
           hrCalendar: navigation('hrCalendar'),
+          insights: navigation('insights'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),
