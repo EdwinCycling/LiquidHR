@@ -1032,51 +1032,66 @@ export type Database = {
       }
       employee_addresses: {
         Row: {
-          addition: string | null
+          address_line_1: string
+          address_line_2: string | null
           city: string
           country_code: string
           created_at: string
           deleted_at: string | null
           employee_id: string
-          house_number: string
+          house_number: string | null
+          house_number_addition: string | null
           id: string
-          postal_code: string
-          province: string | null
-          street: string
+          postal_code: string | null
+          postal_code_normalized: string | null
+          region: string | null
+          source: string
+          source_reference: string | null
+          street: string | null
           tenant_id: string
           updated_at: string
           valid_from: string
           valid_until: string | null
         }
         Insert: {
-          addition?: string | null
+          address_line_1: string
+          address_line_2?: string | null
           city: string
           country_code?: string
           created_at?: string
           deleted_at?: string | null
           employee_id: string
-          house_number: string
+          house_number?: string | null
+          house_number_addition?: string | null
           id?: string
-          postal_code: string
-          province?: string | null
-          street: string
+          postal_code?: string | null
+          postal_code_normalized?: string | null
+          region?: string | null
+          source?: string
+          source_reference?: string | null
+          street?: string | null
           tenant_id: string
           updated_at?: string
           valid_from: string
           valid_until?: string | null
         }
         Update: {
-          addition?: string | null
+          address_line_1?: string
+          address_line_2?: string | null
           city?: string
           country_code?: string
           created_at?: string
           deleted_at?: string | null
           employee_id?: string
-          house_number?: string
+          house_number?: string | null
+          house_number_addition?: string | null
           id?: string
-          postal_code?: string
-          province?: string | null
-          street?: string
+          postal_code?: string | null
+          postal_code_normalized?: string | null
+          region?: string | null
+          source?: string
+          source_reference?: string | null
+          street?: string | null
           tenant_id?: string
           updated_at?: string
           valid_from?: string

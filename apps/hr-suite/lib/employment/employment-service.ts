@@ -90,8 +90,10 @@ export interface EmployeeEmploymentDetail {
   employments: EmploymentRow[]
   status: EmploymentStatus
   addresses: Array<{
-    id: string; street: string; houseNumber: string; addition: string | null
-    postalCode: string; city: string; province: string | null; countryCode: string
+    id: string; addressLine1: string; addressLine2: string | null; street: string | null
+    houseNumber: string | null; houseNumberAddition: string | null
+    postalCode: string | null; city: string; region: string | null; countryCode: string
+    source: string; sourceReference: string | null
     validFrom: string; validUntil: string | null
   }>
   bankAccounts: Array<{
@@ -536,9 +538,11 @@ export async function getEmployeeEmploymentDetail(
       new Date().toISOString().slice(0, 10),
     ),
     addresses: (addresses ?? []).map((address) => ({
-      id: address.id, street: address.street, houseNumber: address.house_number,
-      addition: address.addition, postalCode: address.postal_code, city: address.city,
-      province: address.province, countryCode: address.country_code,
+      id: address.id, addressLine1: address.address_line_1, addressLine2: address.address_line_2,
+      street: address.street, houseNumber: address.house_number,
+      houseNumberAddition: address.house_number_addition, postalCode: address.postal_code, city: address.city,
+      region: address.region, countryCode: address.country_code,
+      source: address.source, sourceReference: address.source_reference,
       validFrom: address.valid_from, validUntil: address.valid_until,
     })),
     bankAccounts: (bankAccounts ?? []).map((account) => ({

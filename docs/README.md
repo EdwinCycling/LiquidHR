@@ -30,6 +30,8 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 
 ## Requirements
 
+Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESINVOER.md) — LEIDEND, GEDEELTELIJK: schema/migratie, serverroutes, provider-normalisatie en invoer-UI zijn lokaal gebouwd; remote migratie en releasegate volgen.
+
 | Domein | Document | Documentstatus | Implementatie |
 |---|---|---|---|
 | Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/opvolgers/voorrangsregels, ledger-RPC's/API en settings-UI zijn aanwezig; toekomstige opbouwprojectie, volledige auditformulieren en enkele rapportdetails volgen |

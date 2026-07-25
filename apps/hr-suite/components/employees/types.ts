@@ -50,13 +50,17 @@ export interface EmployeeProfile {
 
 export interface EmployeeAddress {
   id: string
-  street: string
-  houseNumber: string
-  addition: string | null
-  postalCode: string
+  addressLine1: string
+  addressLine2: string | null
+  street: string | null
+  houseNumber: string | null
+  houseNumberAddition: string | null
+  postalCode: string | null
   city: string
-  province: string | null
+  region: string | null
   countryCode: string
+  source: string
+  sourceReference: string | null
   validFrom: string
   validUntil: string | null
 }

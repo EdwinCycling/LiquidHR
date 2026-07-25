@@ -29,19 +29,19 @@ begin
   end if;
 
   insert into public.employee_addresses (
-    tenant_id, employee_id, street, house_number, postal_code, city,
+    tenant_id, employee_id, address_line_1, street, house_number, postal_code, city,
     country_code, valid_from
   ) values (
-    demo_tenant, demo_employee, 'Teststraat', '1', '1234AB', 'Amsterdam',
+    demo_tenant, demo_employee, 'Teststraat 1', 'Teststraat', '1', '1234AB', 'Amsterdam',
     'NL', '2026-01-01'
   );
 
   begin
     insert into public.employee_addresses (
-      tenant_id, employee_id, street, house_number, postal_code, city,
+      tenant_id, employee_id, address_line_1, street, house_number, postal_code, city,
       country_code, valid_from
     ) values (
-      demo_tenant, demo_employee, 'Andere straat', '2', '1234AB', 'Amsterdam',
+      demo_tenant, demo_employee, 'Andere straat 2', 'Andere straat', '2', '1234AB', 'Amsterdam',
       'NL', '2026-06-01'
     );
     raise exception 'Overlappende adresperioden zijn toegestaan.';
@@ -50,10 +50,10 @@ begin
 
   begin
     insert into public.employee_addresses (
-      tenant_id, employee_id, street, house_number, postal_code, city,
+      tenant_id, employee_id, address_line_1, street, house_number, postal_code, city,
       country_code, valid_from
     ) values (
-      demo_tenant, second_employee, 'Lekstraat', '9', '9999ZZ', 'Utrecht',
+      demo_tenant, second_employee, 'Lekstraat 9', 'Lekstraat', '9', '9999ZZ', 'Utrecht',
       'NL', '2026-01-01'
     );
     raise exception 'Cross-tenant employee-adres is toegestaan.';

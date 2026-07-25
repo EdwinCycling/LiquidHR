@@ -74,7 +74,7 @@ export function EmployeeOverviewPanel({ detail, locale, dateFormat, labels }: Em
             <p>{employee.workMobile ?? employee.privateMobile ?? employee.workPhone ?? employee.privatePhone ?? ''}</p>
           </StoryCell>
           <StoryCell icon={<Home className="h-4 w-4" />} title={labels.currentAddress}>
-            {currentAddress ? <><p>{currentAddress.street} {currentAddress.houseNumber}{currentAddress.addition ? ` ${currentAddress.addition}` : ''}</p><p>{currentAddress.postalCode} {currentAddress.city}</p></> : <p>{labels.noAddress}</p>}
+            {currentAddress ? <><p>{currentAddress.addressLine1}</p>{currentAddress.addressLine2 && <p>{currentAddress.addressLine2}</p>}<p>{currentAddress.postalCode} {currentAddress.city}</p></> : <p>{labels.noAddress}</p>}
           </StoryCell>
           <StoryCell icon={<CreditCard className="h-4 w-4" />} title={labels.primaryBank}>
             <p>{primaryBank?.maskedIban ?? labels.noBankAccount}</p>{primaryBank?.accountHolder && <p>{primaryBank.accountHolder}</p>}

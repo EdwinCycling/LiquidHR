@@ -21,6 +21,49 @@ import type {
 
 export { EmployeeServiceError } from './errors'
 
+function toAddressLine1(input: AddressInput): string {
+  const supplied = input.addressLine1?.trim()
+  if (supplied) return supplied
+  return [input.street, input.houseNumber, input.houseNumberAddition ?? input.addition]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' ')
+}
+
+function toAddressRow(input: AddressInput): {
+  address_line_1: string
+  address_line_2: string | null
+  street: string | null
+  house_number: string | null
+  house_number_addition: string | null
+  postal_code: string | null
+  postal_code_normalized: string | null
+  city: string
+  region: string | null
+  country_code: string
+  source: AddressInput['source']
+  source_reference: string | null
+  valid_from: string
+  valid_until: string | null
+} {
+  const postalCode = input.postalCode?.trim() ?? null
+  return {
+    address_line_1: toAddressLine1(input),
+    address_line_2: input.addressLine2 ?? null,
+    street: input.street ?? null,
+    house_number: input.houseNumber ?? null,
+    house_number_addition: input.houseNumberAddition ?? input.addition ?? null,
+    postal_code: postalCode,
+    postal_code_normalized: postalCode ? postalCode.replace(/\s/g, '').toUpperCase() : null,
+    city: input.city,
+    region: input.region ?? input.province ?? null,
+    country_code: input.countryCode,
+    source: input.source,
+    source_reference: input.sourceReference ?? null,
+    valid_from: input.validFrom,
+    valid_until: input.validUntil ?? null,
+  }
+}
+
 async function reserveEmployeeNumber(context: AuthContext): Promise<string> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('reserve_employee_number', { p_tenant_id: context.tenantId })
@@ -231,15 +274,7 @@ export async function createEmployeeAddress(employeeId: string, input: AddressIn
   const { data, error } = await supabase.from('employee_addresses').insert({
     tenant_id: readContext.tenantId,
     employee_id: employeeId,
-    street: input.street,
-    house_number: input.houseNumber,
-    addition: input.addition ?? null,
-    postal_code: input.postalCode.replace(/\s/g, '').toUpperCase(),
-    city: input.city,
-    province: input.province ?? null,
-    country_code: input.countryCode,
-    valid_from: input.validFrom,
-    valid_until: input.validUntil ?? null,
+    ...toAddressRow(input),
   }).select('id').single()
   if (isPostgresConflict(error)) throw new EmployeeServiceError('ADDRESS_PERIOD_CONFLICT', 409)
   if (error || !data) throw new EmployeeServiceError('ADDRESS_CREATE_FAILED', 500)
@@ -256,12 +291,7 @@ export async function updateEmployeeAddress(
   if (context.employeeId === employeeId) await requirePermission('address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  let query = supabase.from('employee_addresses').update({
-    street: input.street, house_number: input.houseNumber, addition: input.addition ?? null,
-    postal_code: input.postalCode.replace(/\s/g, '').toUpperCase(), city: input.city,
-    province: input.province ?? null, country_code: input.countryCode,
-    valid_from: input.validFrom, valid_until: input.validUntil ?? null,
-  }).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
+  let query = supabase.from('employee_addresses').update(toAddressRow(input)).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
     .is('deleted_at', null)
   if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
   const { data, error } = await query.select('id').maybeSingle()

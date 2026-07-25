@@ -2,7 +2,8 @@
 
 import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, Pencil, Phone, ShieldCheck, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useState } from 'react'
+import type { AddressSuggestion } from '@/lib/address/address-suggestions'
 import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation, type EmployeeRelationTypeOption, type EmployeeRoleAssignment } from './types'
 import { EmailLink } from '@/components/shared/email-link'
 import { formatDate } from '@/lib/preferences/formatters'
@@ -67,6 +68,19 @@ export interface EmployeePersonCardLabels {
   addressesTitle: string
   addressesEmpty: string
   addAddress: string
+  country: string
+  addressSearch: string
+  addressSearchPlaceholder: string
+  manualEntry: string
+  searchNoResults: string
+  searchUnavailable: string
+  searchLoading: string
+  lookupByPostalCode: string
+  lookup: string
+  lookupUnavailable: string
+  addressLine1: string
+  addressLine2: string
+  region: string
   current: string
   validFrom: string
   validUntil: string
@@ -313,16 +327,73 @@ function BsnReveal({ employeeId, labels }: { employeeId: string; labels: Employe
 function AddressesPanel({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
   const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
   return (
-    <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<Home className="h-5 w-5" />} title={labels.addressesTitle} />{canManage && <ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} labels={labels} /></ResourceDetails>}</div>
-      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.street} {address.houseNumber}{address.addition ? ` ${address.addition}` : ''}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{address.postalCode} {address.city} · {address.countryCode}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></li>)}</ol>}
+    <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<Home className="h-5 w-5" />} title={labels.addressesTitle} />{canManage && <ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} locale={locale} labels={labels} /></ResourceDetails>}</div>
+      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.addressLine1}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div>{address.addressLine2 && <p className="mt-1 text-sm">{address.addressLine2}</p>}<p className="mt-1 text-sm text-muted-foreground">{[address.postalCode, address.city, address.region, address.countryCode].filter(Boolean).join(' · ')}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></li>)}</ol>}
     </div>
   )
 }
 
-function AddressForm({ employeeId, labels }: { employeeId: string; labels: EmployeePersonCardLabels }) {
+function AddressForm({ employeeId, locale, labels }: { employeeId: string; locale: string; labels: EmployeePersonCardLabels }) {
   const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const succeeded = await runJsonMutation(setState, `/api/employees/${employeeId}/addresses`, 'POST', { street: value(form, 'street'), houseNumber: value(form, 'houseNumber'), addition: nullable(value(form, 'addition')), postalCode: value(form, 'postalCode'), city: value(form, 'city'), province: nullable(value(form, 'province')), countryCode: value(form, 'countryCode').toUpperCase(), validFrom: value(form, 'validFrom'), validUntil: nullable(value(form, 'validUntil')) }); if (!succeeded) return; formElement.reset(); router.refresh() }
-  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-6"><Field label={labels.street} className="sm:col-span-4"><input name="street" required className="form-field" /></Field><Field label={labels.houseNumber}><input name="houseNumber" required className="form-field" /></Field><Field label={labels.addition}><input name="addition" className="form-field" /></Field><Field label={labels.postalCode} className="sm:col-span-2"><input name="postalCode" required className="form-field uppercase" /></Field><Field label={labels.city} className="sm:col-span-4"><input name="city" required className="form-field" /></Field><Field label={labels.province} className="sm:col-span-2"><input name="province" className="form-field" /></Field><Field label={labels.countryCode}><input name="countryCode" defaultValue="NL" required minLength={2} maxLength={2} className="form-field uppercase" /></Field><Field label={labels.validFrom} className="sm:col-span-2"><input name="validFrom" type="date" required className="form-field" /></Field><Field label={labels.validUntil} className="sm:col-span-2"><input name="validUntil" type="date" className="form-field" /></Field><FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
+  const [searchState, setSearchState] = useState<'idle' | 'loading' | 'empty' | 'failed'>('idle')
+  const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'failed'>('idle')
+  const [query, setQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
+  const [values, setValues] = useState({ countryCode: 'NL', addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validFrom: new Date().toISOString().slice(0, 10), validUntil: '', source: 'manual' as 'manual' | 'pdok' | 'geoapify', sourceReference: '' })
+  const isDutch = values.countryCode === 'NL'
+  const countryOptions = getCountryOptions(locale)
+
+  useEffect(() => {
+    if (query.trim().length < 3) return
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      setSearchState('loading')
+      try {
+        const response = await fetch(`/api/address-suggestions?country=${values.countryCode}&q=${encodeURIComponent(query.trim())}`, { signal: controller.signal })
+        if (!response.ok) throw new Error('ADDRESS_SEARCH_UNAVAILABLE')
+        const payload: { data?: AddressSuggestion[] } = await response.json()
+        const result = payload.data ?? []
+        setSuggestions(result); setSearchState(result.length > 0 ? 'idle' : 'empty')
+      } catch {
+        if (!controller.signal.aborted) { setSuggestions([]); setSearchState('failed') }
+      }
+    }, 300)
+    return () => { controller.abort(); window.clearTimeout(timer) }
+  }, [query, values.countryCode])
+
+  function updateValue(name: keyof typeof values, value: string): void {
+    setValues((current) => ({ ...current, [name]: value, source: 'manual', sourceReference: '' }))
+  }
+
+  function updateQuery(value: string): void {
+    setQuery(value)
+    if (value.trim().length < 3) { setSuggestions([]); setSearchState('idle') }
+  }
+
+  function applySuggestion(suggestion: AddressSuggestion): void {
+    setValues((current) => ({ ...current, countryCode: suggestion.countryCode, addressLine1: suggestion.addressLine1, addressLine2: suggestion.addressLine2 ?? '', street: suggestion.street ?? '', houseNumber: suggestion.houseNumber ?? '', addition: suggestion.houseNumberAddition ?? '', postalCode: suggestion.postalCode ?? '', city: suggestion.city ?? '', region: suggestion.region ?? '', source: suggestion.source, sourceReference: suggestion.sourceReference ?? '' }))
+    setQuery(suggestion.label); setSuggestions([]); setSearchState('idle')
+  }
+
+  async function lookupByPostalCode(): Promise<void> {
+    setLookupState('loading')
+    try {
+      const response = await fetch(`/api/address-lookup?country=NL&postcode=${encodeURIComponent(values.postalCode)}&houseNumber=${encodeURIComponent(values.houseNumber)}`)
+      if (!response.ok) throw new Error('ADDRESS_LOOKUP_UNAVAILABLE')
+      const payload: { data?: AddressSuggestion[] } = await response.json()
+      if (payload.data?.[0]) applySuggestion(payload.data[0]); else setLookupState('idle')
+    } catch { setLookupState('failed') }
+    finally { setLookupState((current) => current === 'loading' ? 'idle' : current) }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const succeeded = await runJsonMutation(setState, `/api/employees/${employeeId}/addresses`, 'POST', { ...values, addressLine1: nullable(values.addressLine1), addressLine2: nullable(values.addressLine2), street: nullable(values.street), houseNumber: nullable(values.houseNumber), addition: nullable(values.addition), postalCode: nullable(values.postalCode), city: values.city, region: nullable(values.region), validUntil: nullable(values.validUntil), sourceReference: nullable(values.sourceReference), province: null }); if (!succeeded) return; setValues((current) => ({ ...current, addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validUntil: '', source: 'manual', sourceReference: '' })); setQuery(''); router.refresh() }
+  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-6"><Field label={labels.country} className="sm:col-span-2"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className="form-field">{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field><Field label={labels.addressSearch} className="sm:col-span-4"><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="form-field" autoComplete="off" />{searchState === 'loading' && <span className="text-xs text-muted-foreground">{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-xs text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span className="text-xs text-muted-foreground">{labels.searchNoResults}</span>}{suggestions.length > 0 && <ul className="mt-2 overflow-hidden rounded-lg border bg-background">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`}><button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-accent" onClick={() => applySuggestion(suggestion)}>{suggestion.label}</button></li>)}</ul>}</Field><div className="sm:col-span-full"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{labels.manualEntry}</p></div>{isDutch ? <><Field label={labels.street} className="sm:col-span-4"><input value={values.street} onChange={(event) => updateValue('street', event.target.value)} className="form-field" /></Field><Field label={labels.houseNumber}><input value={values.houseNumber} onChange={(event) => updateValue('houseNumber', event.target.value)} className="form-field" /></Field><Field label={labels.addition}><input value={values.addition} onChange={(event) => updateValue('addition', event.target.value)} className="form-field" /></Field></> : <><Field label={labels.addressLine1} className="sm:col-span-4"><input value={values.addressLine1} onChange={(event) => updateValue('addressLine1', event.target.value)} className="form-field" /></Field><Field label={labels.addressLine2} className="sm:col-span-2"><input value={values.addressLine2} onChange={(event) => updateValue('addressLine2', event.target.value)} className="form-field" /></Field></>}<Field label={labels.postalCode} className="sm:col-span-2"><input value={values.postalCode} onChange={(event) => updateValue('postalCode', event.target.value)} className="form-field uppercase" /></Field>{isDutch && <button type="button" onClick={lookupByPostalCode} disabled={lookupState === 'loading'} className="button-secondary self-end sm:col-span-2">{lookupState === 'loading' ? labels.searchLoading : labels.lookup}</button>}<Field label={labels.city} className="sm:col-span-4"><input value={values.city} onChange={(event) => updateValue('city', event.target.value)} required className="form-field" /></Field><Field label={labels.region} className="sm:col-span-2"><input value={values.region} onChange={(event) => updateValue('region', event.target.value)} className="form-field" /></Field><Field label={labels.validFrom} className="sm:col-span-2"><input value={values.validFrom} onChange={(event) => updateValue('validFrom', event.target.value)} type="date" required className="form-field" /></Field><Field label={labels.validUntil} className="sm:col-span-2"><input value={values.validUntil} onChange={(event) => updateValue('validUntil', event.target.value)} type="date" className="form-field" /></Field>{lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}<FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
+}
+
+function getCountryOptions(locale: string): Array<{ code: string; label: string }> {
+  const codes = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split(' ')
+  const displayNames = new Intl.DisplayNames([locale], { type: 'region' })
+  return [...new Set(['NL', ...codes])].map((code) => ({ code, label: displayNames.of(code) ?? code })).sort((left, right) => left.code === 'NL' ? -1 : right.code === 'NL' ? 1 : left.label.localeCompare(right.label))
 }
 
 function BankAccountsPanel({ employeeId, accounts, canManage, labels }: { employeeId: string; accounts: NonNullable<EmployeeDetailViewModel['bankAccounts']>; canManage: boolean; labels: EmployeePersonCardLabels }) {

@@ -1,5 +1,9 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-25: adresinvoer gebouwd en versie verhoogd
+
+De adresinvoerflow is lokaal gebouwd volgens de requirements in `docs/requirements/core-hr/ADRESINVOER.md`. `employee_addresses` ondersteunt nu vrije internationale adresregels, herkomstmetadata (`manual`, `pdok`, `geoapify`), genormaliseerde postcodes en landafhankelijke verplichtingen in migratie `20260725132351_address_input_internationalization.sql`. De serverroutes `/api/address-suggestions` en `/api/address-lookup` houden providercalls server-only; zonder `GEOAPIFY_API_KEY` blijft buitenlandse handmatige invoer beschikbaar. De medewerkerkaart ondersteunt landkeuze, debounce-suggesties, PDOK-postcodeaanvulling en handmatige invoer. De applicatieversie is `1.20260725.2`. Lokaal zijn 97 testbestanden/353 tests, lint, strict TypeScript, i18n-pariteit en productiebuild geslaagd; de migratie is nog niet remote toegepast.
+
 ## Update 2026-07-24: release naar main en lokale runtime
 
 De release is volgens de vaste workflow fast-forward naar `main` gebracht en naar `https://github.com/EdwinCycling/LiquidHR.git` gepusht als commit `24b278b`. Daarmee kan Vercel Production de versie vanaf GitHub `main` bouwen. De eerdere featurebranchtekst hieronder is historische releasevoorbereiding; de actuele bron van waarheid is `main`.

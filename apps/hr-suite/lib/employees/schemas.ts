@@ -71,16 +71,33 @@ export const employeeUpdateSchema = employeeUpdateFields.extend({
 })
 
 export const addressSchema = z.object({
-  street: z.string().trim().min(1).max(160),
-  houseNumber: z.string().trim().min(1).max(20),
+  addressLine1: nullableText(240),
+  addressLine2: nullableText(240),
+  street: nullableText(160),
+  houseNumber: nullableText(20),
   addition: nullableText(20),
-  postalCode: z.string().trim().min(2).max(16),
+  houseNumberAddition: nullableText(20),
+  postalCode: nullableText(16),
   city: z.string().trim().min(1).max(120),
   province: nullableText(120),
-  countryCode: z.string().regex(/^[A-Z]{2}$/).default('NL'),
+  region: nullableText(120),
+  countryCode: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).default('NL'),
+  source: z.enum(['manual', 'pdok', 'geoapify']).default('manual'),
+  sourceReference: nullableText(240),
   validFrom: dateOnly,
   validUntil: dateOnly.nullish(),
 }).strict().superRefine((value, context) => {
+  const addition = value.houseNumberAddition ?? value.addition
+  if (value.countryCode === 'NL') {
+    if (!value.street) context.addIssue({ code: 'custom', path: ['street'], message: 'ADDRESS_STREET_REQUIRED' })
+    if (!value.houseNumber) context.addIssue({ code: 'custom', path: ['houseNumber'], message: 'ADDRESS_HOUSE_NUMBER_REQUIRED' })
+    if (!value.postalCode) context.addIssue({ code: 'custom', path: ['postalCode'], message: 'ADDRESS_POSTAL_CODE_REQUIRED' })
+    if (!value.addressLine1 && value.street && value.houseNumber) {
+      value.addressLine1 = [value.street, value.houseNumber, addition].filter(Boolean).join(' ')
+    }
+  } else if (!value.addressLine1) {
+    context.addIssue({ code: 'custom', path: ['addressLine1'], message: 'ADDRESS_LINE_1_REQUIRED' })
+  }
   if (value.validUntil && value.validUntil < value.validFrom) {
     context.addIssue({ code: 'custom', path: ['validUntil'], message: 'ADDRESS_DATE_RANGE_INVALID' })
   }

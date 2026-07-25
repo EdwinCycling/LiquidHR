@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-25: adresinvoer
+
+De nieuwe Nederlandse/internationale adresinvoer is lokaal gebouwd met landkeuze, debounce-suggesties, PDOK-postcodeaanvulling, server-only provideradapters, handmatige fallback, herkomstmetadata en internationale adresregels. Migratie `20260725132351_address_input_internationalization.sql` is nog niet remote toegepast; gerichte tests, i18n-controle, typecheck en releasegate volgen.
+
 ## Update 2026-07-24: medewerkerdashboard tweede UI-slice
 
 Het medewerkerdashboard bevat nu foto-/genderfallbacks, lazy salaris-reveal via een apart geautoriseerd endpoint, echte reminders onder contract/salaris, vaste brede/smalle kolommen met persoonlijke drag-and-drop-volgorde en een handmatige activiteitenfeed. Activiteitnotities worden tenant-/medewerkergebonden opgeslagen via migratie `20260724160000_add_employee_activity_entries.sql` met `employee-activity:read/write` en RLS. De migratie en hardeningmigratie `20260724172716_harden_employee_activity_entries.sql` zijn remote toegepast; grants, RLS, policies, FK-indexen en advisorbevindingen zijn gecontroleerd en `packages/db/types.ts` is opnieuw gegenereerd.
