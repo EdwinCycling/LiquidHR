@@ -1,5 +1,9 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-27: release naar GitHub en Vercel
+
+Applicatieversie `1.20260727.6` en de volledige geautoriseerde werkboom zijn vastgelegd in commits `c1a7fbe` en `eaf850a` op `main` en naar `origin/main` gepusht. GitHub bevestigt remote commit `eaf850ae513a04e942944a3cce078a3b3cd939c6`. De gekoppelde Vercel-deployment is voltooid (`success`) via [deployment 4GZVgjp5SY5wHfmnXdGGBej2Hjnt](https://vercel.com/edwinitsolutions/liquidhr/4GZVgjp5SY5wHfmnXdGGBej2Hjnt). De productiehost `https://liquid-hr-hr-suite.vercel.app` is bereikbaar en stuurt anonieme dashboardbezoeken correct naar `/login`; een ingelogde productiecontrole blijft een handmatige vervolgstap.
+
 ## Update 2026-07-26: éénknopswissel employment-header
 
 De header op de employmentdetailpagina gebruikt nu dezelfde bediening als de medewerkerheader: er is altijd precies één knop zichtbaar. In uitgebreide modus toont de knop **Compact**; in compacte modus toont de knop **Uitgebreid**. De bestaande tab- en view-queryparameters blijven behouden. Applicatieversie is `1.20260726.5`. Typecheck, lint, de versiecheck en lokale runtimecontrole zijn geslaagd; de server luistert op poort 3000 en de interne browser gaf geen errors of warnings. Er is niet gedeployed, gepusht of gecommit.
