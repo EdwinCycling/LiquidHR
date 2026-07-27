@@ -1,0 +1,1 @@
+npm workspaces monorepo that composes Next.js apps under `apps/*` and shared packages under `packages/*`, with Vercel deployment targeting the hr-suite app and governance centralized through docs, AGENTS.md, and LOOPS.md.

@@ -1,0 +1,8 @@
+The module is a pure Markdown documentation index with no executable code. Five top-level subdirectories each serve a distinct responsibility:
+- `architecture/` — canonical blueprints (`BLUEPRINT.md`, `ENVIRONMENT_AND_AI_RULES.md`, `LOGIC_AND_WORKFLOW.md`, `UI_FLOW_BLUEPRINT.md`, `LIQUID_DISPLAY_DOCUMENTATIE.md`) defining schema, API, auth, project structure, environment rules, business workflows, UI flows, and the Liquid Display engine.
+- `requirements/<domain>/` — domain-scoped requirement documents grouped by feature area (absence, authorization, chatbot, core-hr, custom-fields, documents, employment, leave, liquid-display, multitenancy, organization, reports, settings), each tagged with LEIDEND/CONCEPT/VERVANGEN status and implementation state.
+- `decisions/` — ADR-#### (technical) and FDR-#### (functional) decision records following a fixed template (datum, status, context, besluit, gevolgen, vervangen besluiten); only Goedgekeurd decisions may override leading requirements.
+- `delivery/` — chronological change log (`CURRENT_CONTEXT.md`) plus implementation status and manual action lists serving as the single source of truth for current vertical slices and release gates.
+- `superpowers/` — dated plans and design specs paired by date prefix used for execution planning and pre-implementation design before requirements are finalized.
+
+Dependency direction is strictly outward: this module contains no code, only specifications that the rest of the repository implements. The root `README.md` enforces a reading routing matrix dictating which documents must be consulted per type of change (e.g., auth changes require all five architecture docs plus `AUTORISATIE_EN_RECHTEN.md`).

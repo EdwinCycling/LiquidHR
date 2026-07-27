@@ -23,6 +23,14 @@
 - [job_catalog_salary_revisions test](file://apps/hr-suite/supabase/tests/job_catalog_salary_revisions.sql)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Enhanced job catalog management with improved UI components and better employment record integration
+- Added comprehensive job group support with hierarchical organization capabilities
+- Enhanced master data APIs with improved validation and error handling
+- Improved integration between job catalogs and employment management workflows
+- Updated API routes with enhanced functionality for job group operations
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -36,37 +44,39 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains LiquidHR’s Master Data Management (MDM) system with a focus on:
-- Job catalog administration: job definitions, job groups, and position hierarchies
+This document explains LiquidHR's Master Data Management (MDM) system with a focus on:
+- Job catalog administration: job definitions, job groups, and position hierarchies with enhanced UI components
 - Salary scale management: grade structures, step progression, and revision history tracking
 - End reason configuration for employment terminations and transitions
 - Document category management for employee documentation organization
-It also covers data validation, referential integrity, version control for master data changes, multi-tenant isolation of reference data, RPC functions for mutations, and performance optimization strategies for large datasets. Practical examples are provided to guide administrators through common tasks.
+- Enhanced integration between job catalogs and employment records
+
+The system now provides improved UI components for job catalog management, comprehensive job group support, and enhanced master data APIs with better validation and error handling. It also covers data validation, referential integrity, version control for master data changes, multi-tenant isolation of reference data, RPC functions for mutations, and performance optimization strategies for large datasets. Practical examples are provided to guide administrators through common tasks.
 
 ## Project Structure
 The MDM feature spans UI pages, reusable components, Next.js API routes, and Supabase migrations that define schemas, indexes, policies, and RPCs. The key areas are:
 - Dashboard pages under the master-data section for browsing and editing
 - Reusable managers for each domain (jobs, salary scales, end reasons)
 - API routes exposing CRUD operations for master data entities
-- Database migrations defining tables, constraints, indexes, RLS policies, and RPC functions
+- Database migrations defining tables, constraints, indexes, RLS policies, and RPCs
 
 ```mermaid
 graph TB
 subgraph "Dashboard Pages"
 MDPage["Master Data Page"]
-JobsPage["Jobs Page"]
+JobsPage["Jobs Page<br/>Enhanced UI"]
 ScalesPage["Salary Scales Page"]
 EndReasonsPage["End Reasons Page"]
 end
 subgraph "Components"
 CatalogManagers["Catalog Managers"]
-JobManager["Job Catalog Manager"]
+JobManager["Job Catalog Manager<br/>Enhanced UI"]
 ScaleManager["Salary Scale Manager"]
 EndReasonManager["End Reason Manager"]
 end
 subgraph "API Routes"
-JobsAPI["/api/master-data/jobs"]
-GroupsAPI["/api/master-data/job-groups"]
+JobsAPI["/api/master-data/jobs<br/>Enhanced"]
+GroupsAPI["/api/master-data/job-groups<br/>New"]
 ScalesAPI["/api/master-data/salary-scales"]
 EndReasonsAPI["/api/master-data/end-reasons"]
 DocCatsAPI["/api/master-data/document-categories"]
@@ -133,12 +143,12 @@ RelTypesAPI --> Migrations
 - [20260718131000_harden_hr_master_data_document_policies.sql](file://apps/hr-suite/supabase/migrations/20260718131000_harden_hr_master_data_document_policies.sql)
 
 ## Core Components
-- Job Catalog Manager: Provides interfaces to create and manage job definitions, group them, and maintain hierarchical relationships among positions.
-- Salary Scale Manager: Enables definition of grades, steps, and revisions; supports versioning and auditability of salary structures over time.
-- End Reason Manager: Configures termination and transition reasons used across employments.
-- Catalog Managers: Central hub for managing related catalogs such as document categories and relation types.
+- **Enhanced Job Catalog Manager**: Provides improved UI interfaces to create and manage job definitions, comprehensive job group management, and maintain hierarchical relationships among positions with better employment record integration.
+- **Salary Scale Manager**: Enables definition of grades, steps, and revisions; supports versioning and auditability of salary structures over time.
+- **End Reason Manager**: Configures termination and transition reasons used across employments.
+- **Catalog Managers**: Central hub for managing related catalogs such as document categories and relation types.
 
-These components interact with API routes that enforce validation, authorization, and persistence via Supabase.
+These components interact with enhanced API routes that enforce validation, authorization, and persistence via Supabase, with improved error handling and better integration with employment workflows.
 
 **Section sources**
 - [job-catalog-manager component](file://apps/hr-suite/components/master-data/job-catalog-manager.tsx)
@@ -147,22 +157,25 @@ These components interact with API routes that enforce validation, authorization
 - [catalog-managers component](file://apps/hr-suite/components/master-data/catalog-managers.tsx)
 
 ## Architecture Overview
-The MDM architecture follows a layered approach:
-- Presentation layer: Dashboard pages and reusable manager components
-- API layer: Next.js routes handling request validation, authorization checks, and orchestration
+The MDM architecture follows a layered approach with enhanced integration points:
+- Presentation layer: Dashboard pages and reusable manager components with improved UI components
+- API layer: Next.js routes handling request validation, authorization checks, orchestration, and enhanced error handling
 - Data layer: Supabase schema with RLS policies, foreign keys, indexes, and RPC functions for complex mutations
 
 ```mermaid
 sequenceDiagram
-participant Admin as "Admin UI"
-participant Route as "Next.js API Route"
+participant Admin as "Admin UI<br/>Enhanced"
+participant Route as "Next.js API Route<br/>Enhanced"
 participant DB as "Supabase (Tables/RLS/RPC)"
+participant Employment as "Employment Records"
 participant Cache as "Client Cache"
 Admin->>Route : "POST /api/master-data/jobs"
-Route->>Route : "Validate payload"
+Route->>Route : "Validate payload & Enhanced checks"
 Route->>DB : "Insert job row (RLS enforced)"
 DB-->>Route : "Created record"
-Route-->>Admin : "Success response"
+Route->>Employment : "Update employment integration"
+Employment-->>Route : "Integration complete"
+Route-->>Admin : "Success response with enhanced data"
 Admin->>Cache : "Invalidate/update cache"
 ```
 
@@ -172,30 +185,37 @@ Admin->>Cache : "Invalidate/update cache"
 
 ## Detailed Component Analysis
 
-### Job Catalog Administration
-Job catalog administration includes:
-- Job definitions: core attributes describing roles and responsibilities
-- Job groups: logical grouping of jobs for reporting and access control
-- Position hierarchies: parent-child relationships to model organizational structure
+### Enhanced Job Catalog Administration
+Job catalog administration now includes enhanced features:
+- **Job definitions**: core attributes describing roles and responsibilities with improved UI
+- **Job groups**: logical grouping of jobs for reporting and access control with hierarchical organization
+- **Position hierarchies**: parent-child relationships to model organizational structure
+- **Employment integration**: seamless integration with employment records for real-time updates
+
+**Updated** Enhanced UI components provide better user experience and improved employment record integration.
 
 Implementation highlights:
-- UI flows are driven by the Job Catalog Manager component
-- API routes handle creation, updates, and deletions with validation
+- Enhanced UI flows driven by improved Job Catalog Manager component
+- API routes handle creation, updates, and deletions with enhanced validation and error handling
 - Database schema enforces referential integrity and tenant isolation
+- Improved integration with employment management workflows
 
-Practical example: Creating a job profile
-- Navigate to the Jobs page
-- Use the manager to define job attributes and assign to a job group
-- Save and verify visibility within the tenant scope
+Practical example: Creating a job profile with job groups
+- Navigate to the enhanced Jobs page
+- Use the improved manager to define job attributes and assign to job groups
+- Configure hierarchical relationships if needed
+- Save and verify visibility within the tenant scope with employment integration
 
 ```mermaid
 flowchart TD
-Start(["Open Jobs Page"]) --> Create["Create New Job Definition"]
+Start(["Open Enhanced Jobs Page"]) --> Create["Create New Job Definition"]
 Create --> DefineAttrs["Define Attributes and Metadata"]
-DefineAttrs --> AssignGroup["Assign to Job Group"]
-AssignGroup --> Validate["Validate Inputs"]
-Validate --> Persist["Persist via API Route"]
-Persist --> Confirm["Confirm Success"]
+DefineAttrs --> AssignGroup["Assign to Job Group<br/>Enhanced"]
+AssignGroup --> ConfigureHierarchy["Configure Hierarchy<br/>(Optional)"]
+ConfigureHierarchy --> Validate["Enhanced Validation"]
+Validate --> Persist["Persist via Enhanced API Route"]
+Persist --> Integrate["Integrate with Employment Records"]
+Integrate --> Confirm["Confirm Success"]
 Confirm --> End(["Done"])
 ```
 
@@ -321,18 +341,21 @@ Apply --> End(["Done"])
 - [master-data document-categories API route](file://apps/hr-suite/app/api/master-data/document-categories/route.ts)
 
 ## Dependency Analysis
-Master data modules depend on shared infrastructure:
+Master data modules depend on shared infrastructure with enhanced integration:
 - API routes rely on Supabase for persistence, RLS policies for security, and indexes for performance
-- UI components depend on API routes for data operations and caching strategies
+- UI components depend on enhanced API routes for data operations and caching strategies
 - Migrations define schema, constraints, and RPCs enabling complex transactions
+- Enhanced employment record integration requires additional dependency management
 
 ```mermaid
 graph LR
-UI["UI Components"] --> API["API Routes"]
+UI["UI Components<br/>Enhanced"] --> API["API Routes<br/>Enhanced"]
 API --> DB["Supabase Schema & Policies"]
 API --> RPC["RPC Functions"]
+API --> Employment["Employment Integration"]
 DB --> IDX["Indexes"]
 DB --> POL["RLS Policies"]
+Employment --> DB
 ```
 
 **Diagram sources**
@@ -354,21 +377,23 @@ DB --> POL["RLS Policies"]
 - [20260718131000_harden_hr_master_data_document_policies.sql](file://apps/hr-suite/supabase/migrations/20260718131000_harden_hr_master_data_document_policies.sql)
 
 ## Performance Considerations
-To optimize MDM operations for large datasets:
+To optimize MDM operations for large datasets with enhanced features:
 - Leverage indexes on foreign keys and frequently queried columns to reduce lookup times
 - Use pagination and filtering in API responses to limit payload sizes
 - Implement client-side caching and invalidation strategies to minimize redundant requests
 - Batch mutations where possible to reduce network overhead
 - Ensure RLS policies are efficient and scoped to tenant identifiers to avoid full-table scans
-
-[No sources needed since this section provides general guidance]
+- Optimize enhanced job group queries with proper indexing strategies
+- Monitor employment integration performance for real-time updates
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- Validation errors: Check input payloads against expected schemas; ensure required fields are present
-- Authorization failures: Verify user permissions and tenant scoping; confirm RLS policies allow access
-- Referential integrity violations: Ensure referenced IDs exist and belong to the same tenant
-- Performance bottlenecks: Inspect query plans, add missing indexes, and reduce result sets with filters
+Common issues and resolutions with enhanced features:
+- **Validation errors**: Check input payloads against expected schemas; ensure required fields are present and enhanced validation rules are satisfied
+- **Authorization failures**: Verify user permissions and tenant scoping; confirm RLS policies allow access to enhanced features
+- **Referential integrity violations**: Ensure referenced IDs exist and belong to the same tenant; check job group relationships
+- **Performance bottlenecks**: Inspect query plans, add missing indexes, and reduce result sets with filters; monitor employment integration queries
+- **Integration issues**: Verify employment record synchronization and job group assignments
+- **Enhanced UI problems**: Check component dependencies and API route connectivity
 
 **Section sources**
 - [master-data jobs API route](file://apps/hr-suite/app/api/master-data/jobs/route.ts)
@@ -378,24 +403,22 @@ Common issues and resolutions:
 - [20260718131000_harden_hr_master_data_document_policies.sql](file://apps/hr-suite/supabase/migrations/20260718131000_harden_hr_master_data_document_policies.sql)
 
 ## Conclusion
-LiquidHR’s Master Data Management system provides robust tools for administering job catalogs, salary scales, end reasons, and document categories. With strong validation, referential integrity, version control, and multi-tenant isolation, it ensures reliable and scalable master data operations. API routes and RPC functions enable efficient mutations, while indexes and policies optimize performance and security.
-
-[No sources needed since this section summarizes without analyzing specific files]
+LiquidHR's Master Data Management system provides robust tools for administering job catalogs, salary scales, end reasons, and document categories with enhanced UI components and improved employment record integration. The addition of comprehensive job group support and enhanced master data APIs significantly improves the user experience and system capabilities. With strong validation, referential integrity, version control, and multi-tenant isolation, it ensures reliable and scalable master data operations. Enhanced API routes and RPC functions enable efficient mutations, while indexes and policies optimize performance and security.
 
 ## Appendices
 
 ### Practical Examples Summary
-- Creating a job profile: Use the Jobs page and Job Catalog Manager to define attributes and assign groups
-- Defining a salary structure: Use the Salary Scales page and Salary Scale Manager to set grades, steps, and publish revisions
-- Configuring termination reasons: Use the End Reasons page and End Reason Manager to add and manage reasons
-- Organizing document categories: Use Catalog Managers to create and apply categories consistently
-
-[No sources needed since this section provides general guidance]
+- **Creating a job profile with job groups**: Use the enhanced Jobs page and Job Catalog Manager to define attributes, assign groups, and configure hierarchies
+- **Defining a salary structure**: Use the Salary Scales page and Salary Scale Manager to set grades, steps, and publish revisions
+- **Configuring termination reasons**: Use the End Reasons page and End Reason Manager to add and manage reasons
+- **Organizing document categories**: Use Catalog Managers to create and apply categories consistently
+- **Managing job hierarchies**: Utilize enhanced job group features for organizational structure modeling
 
 ### Version Control and Auditability
 - Salary scale revisions are tracked to maintain historical accuracy
 - Changes to master data should follow approval workflows before publication
 - Audit trails can be extended via event projections or change logs
+- Enhanced job group changes are tracked for compliance and reporting
 
 **Section sources**
 - [20260718100000_add_job_catalog_salary_revisions.sql](file://apps/hr-suite/supabase/migrations/20260718100000_add_job_catalog_salary_revisions.sql)
@@ -405,7 +428,15 @@ LiquidHR’s Master Data Management system provides robust tools for administeri
 - All master data is scoped to tenants via policies and foreign keys
 - API routes enforce tenant context from authentication
 - Queries and mutations must include tenant identifiers to prevent cross-tenant data leakage
+- Enhanced job group features maintain tenant isolation boundaries
 
 **Section sources**
 - [20260718131000_harden_hr_master_data_document_policies.sql](file://apps/hr-suite/supabase/migrations/20260718131000_harden_hr_master_data_document_policies.sql)
 - [20260718100600_index_master_data_foreign_keys.sql](file://apps/hr-suite/supabase/migrations/20260718100600_index_master_data_foreign_keys.sql)
+
+### Enhanced Features Summary
+- **Improved UI Components**: Enhanced job catalog management with better user experience
+- **Job Group Support**: Comprehensive job grouping with hierarchical organization capabilities
+- **Enhanced APIs**: Improved validation, error handling, and employment record integration
+- **Better Integration**: Seamless connection between job catalogs and employment management workflows
+- **Enhanced Error Handling**: More robust error messages and recovery mechanisms

@@ -1,1 +1,0 @@
-npm workspaces for monorepo management, Next.js framework (deployed on Vercel), TypeScript (strict mode enforced), Tailwind v4, Supabase (database + RLS), and i18n via per-language message namespaces under `apps/hr-suite/messages/<code>/`.

@@ -1,0 +1,1 @@
+Central documentation repository for Liquid HR containing architecture blueprints, domain-scoped requirements, ADR/FDR decision records, delivery status logs, and superpowers planning/specification artifacts that govern the rest of the codebase.

@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-07-26T06:19:53Z"
+exported_at: "2026-07-27T19:41:26Z"
 modules:
     "":
-        dir_name: Liquid HR Monorepo (Next.js + Supabase)
-        title: Liquid HR Monorepo (Next.js + Supabase)
+        dir_name: Liquid HR Monorepo
+        title: Liquid HR Monorepo
         scope:
             - package.json
             - package-lock.json
@@ -21,8 +21,8 @@ modules:
         depends_on: []
         related_to: []
     docs:
-        dir_name: Liquid HR Project Documentation & Decision Records
-        title: Liquid HR Project Documentation & Decision Records
+        dir_name: Liquid HR Documentation & Decision Registry
+        title: Liquid HR Documentation & Decision Registry
         scope:
             - docs/
         source_files: []

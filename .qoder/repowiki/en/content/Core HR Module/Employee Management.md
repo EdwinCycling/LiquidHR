@@ -10,6 +10,7 @@
 - [employee-filter-panel.tsx](file://apps/hr-suite/components/employees/employee-filter-panel.tsx)
 - [employee-person-card.tsx](file://apps/hr-suite/components/employees/employee-person-card.tsx)
 - [employee-activity-feed.tsx](file://apps/hr-suite/components/employees/employee-activity-feed.tsx)
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
 - [employee-document-dossier.tsx](file://apps/hr-suite/components/documents/employee-document-dossier.tsx)
 - [route.ts (employees)](file://apps/hr-suite/app/api/employees/route.ts)
 - [route.ts (employees/[employeeId])](file://apps/hr-suite/app/api/employees/[employeeId]/route.ts)
@@ -18,14 +19,24 @@
 - [route.ts (documents)](file://apps/hr-suite/app/api/employees/[employeeId]/documents/route.ts)
 - [route.ts (archive)](file://apps/hr-suite/app/api/employees/[employeeId]/archive/route.ts)
 - [route.ts (activity)](file://apps/hr-suite/app/api/employees/[employeeId]/activity/route.ts)
+- [route.ts (notes)](file://apps/hr-suite/app/api/employees/[employeeId]/notes/route.ts)
 - [20260715124506_isolate_employee_secure_identifiers.sql](file://apps/hr-suite/supabase/migrations/20260715124506_isolate_employee_secure_identifiers.sql)
 - [20260718150000_add_employee_archive_and_avatar_state.sql](file://apps/hr-suite/supabase/migrations/20260718150000_add_employee_archive_and_avatar_state.sql)
 - [20260718110000_add_employee_document_dossiers.sql](file://apps/hr-suite/supabase/migrations/20260718110000_add_employee_document_dossiers.sql)
 - [20260724160000_add_employee_activity_entries.sql](file://apps/hr-suite/supabase/migrations/20260724160000_add_employee_activity_entries.sql)
+- [20260726061219_employee_notes_and_detail_access.sql](file://apps/hr-suite/supabase/migrations/20260726061219_employee_notes_and_detail_access.sql)
 - [MEDEWERKER.md](file://docs/requirements/core-hr/MEDEWERKER.md)
 - [MEDEWERKER_ARCHIEF_FOTO_EN_TABS.md](file://docs/requirements/core-hr/MEDEWERKER_ARCHIEF_FOTO_EN_TABS.md)
 - [DOCUMENTEN_EN_AI_COMPLIANCE.md](file://docs/requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for the new employee notes functionality
+- Updated API endpoints section to include dedicated notes endpoints
+- Enhanced employee dashboard section with note management integration
+- Added new database migration reference for employee notes schema
+- Updated component analysis to include employee notes UI integration
 
 ## Table of Contents
 1. Introduction
@@ -39,13 +50,13 @@
 9. Conclusion
 
 ## Introduction
-This document explains the Employee Management system within LiquidHR, covering the employee data model, CRUD operations, onboarding wizard, individual employee dashboard, documents, activity tracking, archival, avatar management, search and filtering, and integrations with other HR modules. It also outlines security considerations for sensitive identifiers such as BSN (Dutch social security number) and compliance requirements for document handling.
+This document explains the Employee Management system within LiquidHR, covering the employee data model, CRUD operations, onboarding wizard, individual employee dashboard, documents, activity tracking, archival, avatar management, search and filtering, and integrations with other HR modules. It also outlines security considerations for sensitive identifiers such as BSN (Dutch social security number) and compliance requirements for document handling. The system now includes integrated note-taking capabilities for enhanced employee profile management.
 
 ## Project Structure
 The Employee Management feature spans UI components, API routes, and database migrations:
-- UI components implement the employee list, create wizard, dashboard, avatar manager, archive toggle, filter panel, person card, and activity feed.
-- API routes expose endpoints for employees, secure identifiers (BSN), avatars, documents, activity, and archive operations.
-- Database migrations define secure identifier isolation, document dossiers, activity entries, and archive/avatar state.
+- UI components implement the employee list, create wizard, dashboard, avatar manager, archive toggle, filter panel, person card, activity feed, and notes interface.
+- API routes expose endpoints for employees, secure identifiers (BSN), avatars, documents, activity, archive, and notes operations.
+- Database migrations define secure identifier isolation, document dossiers, activity entries, archive/avatar state, and employee notes schema.
 
 ```mermaid
 graph TB
@@ -59,6 +70,7 @@ FP["Filter Panel"]
 PC["Person Card"]
 AF["Activity Feed"]
 DD["Document Dossier"]
+EN["Employee Notes"]
 end
 subgraph "API Routes"
 EAPI["/api/employees"]
@@ -68,12 +80,14 @@ AVAPI["/api/employees/[id]/avatar"]
 DOC["/api/employees/[id]/documents"]
 ARC["/api/employees/[id]/archive"]
 ACT["/api/employees/[id]/activity"]
+NOTES["/api/employees/[id]/notes"]
 end
 subgraph "Database Migrations"
 SEC["Secure Identifiers Isolation"]
 DOCS["Document Dossiers"]
 ACTM["Activity Entries"]
 ARV["Archive & Avatar State"]
+NOTESDB["Employee Notes Schema"]
 end
 EL --> EAPI
 CW --> EAPI
@@ -84,6 +98,7 @@ FP --> EAPI
 PC --> EID
 AF --> ACT
 DD --> DOC
+EN --> NOTES
 EAPI --> SEC
 EID --> SEC
 BSN --> SEC
@@ -91,6 +106,7 @@ AVAPI --> ARV
 DOC --> DOCS
 ARC --> ARV
 ACT --> ACTM
+NOTES --> NOTESDB
 ```
 
 **Diagram sources**
@@ -102,6 +118,7 @@ ACT --> ACTM
 - [employee-filter-panel.tsx](file://apps/hr-suite/components/employees/employee-filter-panel.tsx)
 - [employee-person-card.tsx](file://apps/hr-suite/components/employees/employee-person-card.tsx)
 - [employee-activity-feed.tsx](file://apps/hr-suite/components/employees/employee-activity-feed.tsx)
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
 - [employee-document-dossier.tsx](file://apps/hr-suite/components/documents/employee-document-dossier.tsx)
 - [route.ts (employees)](file://apps/hr-suite/app/api/employees/route.ts)
 - [route.ts (employees/[employeeId])](file://apps/hr-suite/app/api/employees/[employeeId]/route.ts)
@@ -110,10 +127,12 @@ ACT --> ACTM
 - [route.ts (documents)](file://apps/hr-suite/app/api/employees/[employeeId]/documents/route.ts)
 - [route.ts (archive)](file://apps/hr-suite/app/api/employees/[employeeId]/archive/route.ts)
 - [route.ts (activity)](file://apps/hr-suite/app/api/employees/[employeeId]/activity/route.ts)
+- [route.ts (notes)](file://apps/hr-suite/app/api/employees/[employeeId]/notes/route.ts)
 - [20260715124506_isolate_employee_secure_identifiers.sql](file://apps/hr-suite/supabase/migrations/20260715124506_isolate_employee_secure_identifiers.sql)
 - [20260718110000_add_employee_document_dossiers.sql](file://apps/hr-suite/supabase/migrations/20260718110000_add_employee_document_dossiers.sql)
 - [20260724160000_add_employee_activity_entries.sql](file://apps/hr-suite/supabase/migrations/20260724160000_add_employee_activity_entries.sql)
 - [20260718150000_add_employee_archive_and_avatar_state.sql](file://apps/hr-suite/supabase/migrations/20260718150000_add_employee_archive_and_avatar_state.sql)
+- [20260726061219_employee_notes_and_detail_access.sql](file://apps/hr-suite/supabase/migrations/20260726061219_employee_notes_and_detail_access.sql)
 
 **Section sources**
 - [MEDEWERKER.md](file://docs/requirements/core-hr/MEDEWERKER.md)
@@ -123,13 +142,16 @@ ACT --> ACTM
 ## Core Components
 - Employee List: Displays searchable, filterable employees with quick actions to open dashboards or initiate updates.
 - Create Wizard: Guides users through new employee onboarding, capturing personal details, contact info, and secure identifiers like BSN.
-- Employee Dashboard: Central hub for an employee’s profile, employments, documents, activity, and settings.
+- Employee Dashboard: Central hub for an employee's profile, employments, documents, activity, notes, and settings.
 - Avatar Manager: Uploads and manages employee avatars with validation and storage integration.
 - Archive Toggle: Archives or restores inactive employees while preserving audit trails.
 - Filter Panel: Supports multi-criteria filtering (e.g., department, status).
 - Person Card: Compact view of key employee attributes for quick reference.
 - Activity Feed: Shows chronological audit events for an employee record.
 - Document Dossier: Manages employee files with categories, versions, and access controls.
+- Employee Notes: Integrated note-taking system for adding contextual information to employee profiles.
+
+**Updated** Added employee notes component for enhanced profile management capabilities.
 
 **Section sources**
 - [employee-list.tsx](file://apps/hr-suite/components/employees/employee-list.tsx)
@@ -140,11 +162,12 @@ ACT --> ACTM
 - [employee-filter-panel.tsx](file://apps/hr-suite/components/employees/employee-filter-panel.tsx)
 - [employee-person-card.tsx](file://apps/hr-suite/components/employees/employee-person-card.tsx)
 - [employee-activity-feed.tsx](file://apps/hr-suite/components/employees/employee-activity-feed.tsx)
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
 - [employee-document-dossier.tsx](file://apps/hr-suite/components/documents/employee-document-dossier.tsx)
 
 ## Architecture Overview
 The Employee Management system follows a layered architecture:
-- Presentation layer: React components render lists, wizards, dashboards, and panels.
+- Presentation layer: React components render lists, wizards, dashboards, panels, and notes interface.
 - API layer: Next.js route handlers enforce authorization, validate inputs, and orchestrate business logic.
 - Data layer: Supabase migrations define tables, policies, and indexes; RLS ensures tenant isolation and role-based access.
 
@@ -159,19 +182,23 @@ UI->>API : GET /api/employees/[id]
 API->>DB : Query employee + related data
 DB-->>API : Employee record
 API-->>UI : JSON payload
-UI->>UI : Render profile, employments, documents, activity
-U->>UI : Update BSN
-UI->>API : PATCH /api/employees/[id]/bsn
-API->>DB : Validate policy + update secure field
+UI->>UI : Render profile, employments, documents, activity, notes
+U->>UI : Add employee note
+UI->>API : POST /api/employees/[id]/notes
+API->>DB : Validate policy + insert note
 DB-->>API : Success
-API-->>UI : Updated BSN masked
-UI->>UI : Show confirmation
+API-->>UI : New note with metadata
+UI->>UI : Display note in timeline
 ```
+
+**Updated** Added employee notes workflow to the sequence diagram showing note creation and display.
 
 **Diagram sources**
 - [employee-dashboard.tsx](file://apps/hr-suite/components/employees/employee-dashboard.tsx)
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
 - [route.ts (employees/[employeeId])](file://apps/hr-suite/app/api/employees/[employeeId]/route.ts)
 - [route.ts (bsn)](file://apps/hr-suite/app/api/employees/[employeeId]/bsn/route.ts)
+- [route.ts (notes)](file://apps/hr-suite/app/api/employees/[employeeId]/notes/route.ts)
 - [20260715124506_isolate_employee_secure_identifiers.sql](file://apps/hr-suite/supabase/migrations/20260715124506_isolate_employee_secure_identifiers.sql)
 
 ## Detailed Component Analysis
@@ -183,13 +210,18 @@ Core attributes include personal information, contact details, and secure identi
 - Secure identifiers: BSN stored in isolated tables with strict RLS policies.
 - Employment linkage: relationships to employment records and organizational units.
 - Custom fields: extensible key-value pairs for tenant-specific attributes.
+- Employee notes: contextual information and observations linked to employee profiles.
 
 Security highlights:
 - BSN is isolated from general employee records and only accessible via dedicated endpoints with explicit permissions.
 - Tenant scoping ensures data isolation across administrations.
+- Notes are subject to the same authorization policies as other employee data.
+
+**Updated** Added employee notes to the data model with appropriate security considerations.
 
 **Section sources**
 - [20260715124506_isolate_employee_secure_identifiers.sql](file://apps/hr-suite/supabase/migrations/20260715124506_isolate_employee_secure_identifiers.sql)
+- [20260726061219_employee_notes_and_detail_access.sql](file://apps/hr-suite/supabase/migrations/20260726061219_employee_notes_and_detail_access.sql)
 - [MEDEWERKER.md](file://docs/requirements/core-hr/MEDEWERKER.md)
 
 ### CRUD Operations and Employee List Interface
@@ -226,11 +258,36 @@ The dashboard consolidates:
 - Employment timeline and history.
 - Documents dossier with upload and versioning.
 - Activity feed showing all changes and access events.
+- Employee notes with add, edit, and delete capabilities.
 - Quick actions for updates, archival, and avatar management.
+
+**Updated** Added employee notes management to the dashboard capabilities.
 
 **Section sources**
 - [employee-dashboard.tsx](file://apps/hr-suite/components/employees/employee-dashboard.tsx)
 - [employee-person-card.tsx](file://apps/hr-suite/components/employees/employee-person-card.tsx)
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
+
+### Employee Notes Management System
+Features:
+- Rich text editing for detailed notes and observations.
+- Timestamped entries with automatic user attribution.
+- Integration with employee activity feed for audit trail.
+- Search and filtering capabilities within employee profiles.
+- Role-based access control for note creation and modification.
+
+Note lifecycle:
+- Creation: Users can add new notes through the dashboard interface.
+- Editing: Authorized users can modify existing notes with change tracking.
+- Deletion: Notes can be removed with proper authorization and audit logging.
+- Retrieval: Notes are fetched alongside employee data for seamless display.
+
+**New Section** Added comprehensive employee notes management system documentation.
+
+**Section sources**
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
+- [route.ts (notes)](file://apps/hr-suite/app/api/employees/[employeeId]/notes/route.ts)
+- [20260726061219_employee_notes_and_detail_access.sql](file://apps/hr-suite/supabase/migrations/20260726061219_employee_notes_and_detail_access.sql)
 
 ### Document Management System
 Features:
@@ -251,9 +308,11 @@ Upload flow:
 - [DOCUMENTEN_EN_AI_COMPLIANCE.md](file://docs/requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md)
 
 ### Activity Tracking and Audit Trails
-- Records every significant action: profile updates, document uploads, BSN changes, archival.
+- Records every significant action: profile updates, document uploads, BSN changes, archival, and note modifications.
 - Includes timestamps, actor identity, and change summaries.
 - Supports filtering and export for compliance reporting.
+
+**Updated** Added note modifications to the activity tracking scope.
 
 **Section sources**
 - [employee-activity-feed.tsx](file://apps/hr-suite/components/employees/employee-activity-feed.tsx)
@@ -317,13 +376,17 @@ AV["Avatar Manager"] --> AVAPI["/api/employees/[id]/avatar"]
 AT["Archive Toggle"] --> ARC["/api/employees/[id]/archive"]
 AF["Activity Feed"] --> ACT["/api/employees/[id]/activity"]
 DD["Document Dossier"] --> DOC["/api/employees/[id]/documents"]
+EN["Employee Notes"] --> NOTES["/api/employees/[id]/notes"]
 EAPI --> DB["Supabase"]
 EID --> DB
 AVAPI --> DB
 ARC --> DB
 ACT --> DB
 DOC --> DB
+NOTES --> DB
 ```
+
+**Updated** Added employee notes dependency to the architecture diagram.
 
 **Diagram sources**
 - [employee-list.tsx](file://apps/hr-suite/components/employees/employee-list.tsx)
@@ -332,6 +395,7 @@ DOC --> DB
 - [employee-avatar-manager.tsx](file://apps/hr-suite/components/employees/employee-avatar-manager.tsx)
 - [employee-archive-toggle.tsx](file://apps/hr-suite/components/employees/employee-archive-toggle.tsx)
 - [employee-activity-feed.tsx](file://apps/hr-suite/components/employees/employee-activity-feed.tsx)
+- [employee-notes.tsx](file://apps/hr-suite/components/employees/employee-notes.tsx)
 - [employee-document-dossier.tsx](file://apps/hr-suite/components/documents/employee-document-dossier.tsx)
 - [route.ts (employees)](file://apps/hr-suite/app/api/employees/route.ts)
 - [route.ts (employees/[employeeId])](file://apps/hr-suite/app/api/employees/[employeeId]/route.ts)
@@ -339,6 +403,7 @@ DOC --> DB
 - [route.ts (archive)](file://apps/hr-suite/app/api/employees/[employeeId]/archive/route.ts)
 - [route.ts (activity)](file://apps/hr-suite/app/api/employees/[employeeId]/activity/route.ts)
 - [route.ts (documents)](file://apps/hr-suite/app/api/employees/[employeeId]/documents/route.ts)
+- [route.ts (notes)](file://apps/hr-suite/app/api/employees/[employeeId]/notes/route.ts)
 
 **Section sources**
 - [route.ts (employees)](file://apps/hr-suite/app/api/employees/route.ts)
@@ -349,8 +414,9 @@ DOC --> DB
 - Cache frequently accessed profile data at the API layer when appropriate.
 - Optimize database queries with proper indexes on foreign keys and search fields.
 - Avoid heavy client-side processing; delegate sorting/filtering to the backend.
+- Implement efficient note retrieval strategies to avoid loading excessive note data.
 
-[No sources needed since this section provides general guidance]
+**Updated** Added performance considerations for employee notes functionality.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -358,14 +424,19 @@ Common issues and resolutions:
 - Avatar upload failures: Check file type, size limits, and storage path permissions.
 - Missing activity entries: Verify that mutations trigger audit logging and that the activity endpoint is called correctly.
 - Archive not reflecting in list: Confirm soft-delete flag and list query includes archived filter option.
+- Notes not displaying: Check authorization policies and ensure notes are properly linked to employee records.
+- Note creation failures: Verify user permissions and check for validation errors in note content.
+
+**Updated** Added troubleshooting guidance for employee notes functionality.
 
 **Section sources**
 - [route.ts (bsn)](file://apps/hr-suite/app/api/employees/[employeeId]/bsn/route.ts)
 - [route.ts (avatar)](file://apps/hr-suite/app/api/employees/[employeeId]/avatar/route.ts)
 - [route.ts (activity)](file://apps/hr-suite/app/api/employees/[employeeId]/activity/route.ts)
 - [route.ts (archive)](file://apps/hr-suite/app/api/employees/[employeeId]/archive/route.ts)
+- [route.ts (notes)](file://apps/hr-suite/app/api/employees/[employeeId]/notes/route.ts)
 
 ## Conclusion
-The Employee Management system provides a robust, secure, and compliant foundation for managing employee lifecycles in LiquidHR. It combines intuitive UI workflows with strong security measures for sensitive data, comprehensive audit trails, and flexible integrations across HR modules. By following the documented patterns and best practices, teams can extend and maintain the system effectively while ensuring data privacy and regulatory compliance.
+The Employee Management system provides a robust, secure, and compliant foundation for managing employee lifecycles in LiquidHR. It combines intuitive UI workflows with strong security measures for sensitive data, comprehensive audit trails, and flexible integrations across HR modules. The addition of integrated note-taking capabilities enhances profile management by allowing users to capture contextual information and observations directly within employee profiles. By following the documented patterns and best practices, teams can extend and maintain the system effectively while ensuring data privacy and regulatory compliance.
 
-[No sources needed since this section summarizes without analyzing specific files]
+**Updated** Enhanced conclusion to reflect the new employee notes functionality and its benefits for profile management.

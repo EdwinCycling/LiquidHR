@@ -1,1 +1,0 @@
-Root of the Liquid HR monorepo that wires Next.js apps under `apps/*` and shared packages under `packages/*` via npm workspaces, with Vercel deployment targeting the hr-suite app.

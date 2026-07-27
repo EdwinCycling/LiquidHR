@@ -1,1 +1,0 @@
-Central documentation repository for Liquid HR covering architecture blueprints, requirements by domain, architectural/functional decision records (ADR/FDR), delivery status logs, and superpowers planning/specification artifacts.
