@@ -4,6 +4,7 @@
   "timeHub": "Tijdhub",
   "openManagement": "Reminderbeheer",
   "pendingCount": "{count} openstaand",
+  "moreReminders": "meer reminders",
   "empty": "Er staan geen reminders klaar.",
   "personal": "Persoonlijk",
   "hr": "HR-reminder",
@@ -39,5 +40,9 @@
   "pending": "Openstaand",
   "personalList": "Mijn reminders",
   "hrList": "HR-beheer",
-  "noHrPermission": "Je kunt persoonlijke reminders maken. HR-beheer is niet beschikbaar voor jouw rol."
+  "noHrPermission": "Je kunt persoonlijke reminders maken. HR-beheer is niet beschikbaar voor jouw rol.",
+  "filterOpen": "Openstaand", "filterAll": "Ook oudere reminders", "filterCompleted": "Afgevinkt", "filterDismissed": "Verborgen",
+  "sortSoonest": "Eerstvolgende eerst", "sortLatest": "Laatste eerst", "sortTitle": "Op titel", "search": "Zoek in reminders",
+  "selectAll": "Selecteer openstaande reminders", "clearSelection": "Selectie wissen", "bulkComplete": "Markeer als gereed",
+  "moreInfo": "Meer informatie", "employee": "Medewerker", "noResults": "Geen reminders gevonden voor deze selectie.", "selectedCount": "{count} geselecteerd", "visibleCount": "{count} reminders in beeld"
 }

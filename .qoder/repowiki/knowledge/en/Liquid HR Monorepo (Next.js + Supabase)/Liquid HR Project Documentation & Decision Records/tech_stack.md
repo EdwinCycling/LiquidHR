@@ -1,0 +1,1 @@
+Markdown-only documentation repository; document status and implementation tracking use a standardized Dutch terminology (LEIDEND, CONCEPT, VERVANGEN, NIET GESTART, GEDEELTELIJK, GEÏMPLEMENTEERD). ADR/FDR naming convention uses numeric prefixes (`ADR-0001-...`, `FDR-0001-...`) and dates in filenames for superpowers plans/specs.

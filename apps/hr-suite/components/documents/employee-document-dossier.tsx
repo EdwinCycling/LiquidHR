@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, FileText, RotateCcw, ShieldAlert, Trash2, Upload } from 'lucide-react'
+import { Download, Eye, FileText, RotateCcw, ShieldAlert, Trash2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type DragEvent, type FormEvent, useRef, useState } from 'react'
 import {
@@ -9,6 +9,7 @@ import {
   MAX_DOCUMENT_FILE_BYTES,
 } from '@/lib/documents/file-rules'
 import { documentMetadataSchema } from '@/lib/documents/schemas'
+import { DocumentViewer } from './document-viewer'
 
 interface DocumentAudience {
   target_type: 'EMPLOYEE' | 'MANAGEMENT_ROLE' | 'DEPARTMENT_BRANCH'
@@ -91,6 +92,9 @@ interface Labels {
   expiryRequired: string
   reminderTargetRequired: string
   singleFileOnly: string
+  view: string
+  viewerClose: string
+  viewerUnsupported: string
 }
 
 const inputClass = 'mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm'
@@ -126,6 +130,7 @@ export function EmployeeDocumentDossier({
   const [reminderEmployee, setReminderEmployee] = useState(true)
   const [reminderRoleIds, setReminderRoleIds] = useState<string[]>([])
   const [selectedCloudTagIds, setSelectedCloudTagIds] = useState<string[]>([])
+  const [previewDocument, setPreviewDocument] = useState<DocumentItem | null>(null)
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -531,6 +536,13 @@ export function EmployeeDocumentDossier({
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {!document.deleted_at ? (
+                    <button className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold" onClick={() => setPreviewDocument(document)} type="button">
+                      <Eye className="h-4 w-4" />
+                      {labels.view}
+                    </button>
+                  ) : null}
+
+                  {!document.deleted_at ? (
                     <a className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold" href={`/api/employees/${employeeId}/documents/${document.id}/download`}>
                       <Download className="h-4 w-4" />
                       {labels.download}
@@ -556,6 +568,8 @@ export function EmployeeDocumentDossier({
           })
         )}
       </div>
+
+      {previewDocument ? <DocumentViewer contentType={previewDocument.content_type} filename={previewDocument.original_filename} labels={{ close: labels.viewerClose, download: labels.download, unsupported: labels.viewerUnsupported }} onClose={() => setPreviewDocument(null)} previewHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/download`} title={previewDocument.title} /> : null}
     </section>
   )
 }

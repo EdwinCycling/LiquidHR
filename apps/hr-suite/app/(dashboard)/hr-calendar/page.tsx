@@ -304,6 +304,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           employeeSection: t('employee'),
           employeesSection: t('selectedEmployees'),
           actionsSection: t('actions'),
+          reportAbsence: t('reportAbsence'),
           events: eventLabels,
           legendTitle: t('legendTitle'),
           leaveType: t('leaveType'),

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   combinedTimelineMutationSchema,
-  followUpSchema,
   profileLinkSchema,
   rollbackTimelineSchema,
   timelineMutationSchema,
@@ -83,8 +82,5 @@ describe('ondersteunende schemas', () => {
     expect(profileLinkSchema.safeParse({ linkType: 'WEBSITE', label: 'Website', url: 'http://example.com' }).success).toBe(false)
   })
 
-  it('valideert een concrete opvolgactie', () => {
-    expect(followUpSchema.safeParse({ subject: 'Reiskosten controleren', priority: 'HIGH', dueOn: '2026-08-15' }).success).toBe(true)
-  })
 })
 

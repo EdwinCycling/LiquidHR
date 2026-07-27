@@ -23,10 +23,10 @@ describe('safeNextPath', () => {
   it.each([
     ['/departments', '/departments'],
     ['/invite/accept?invitation=abc', '/invite/accept?invitation=abc'],
-    ['https://kwaad.example', '/departments'],
-    ['//kwaad.example', '/departments'],
-    ['/\\kwaad.example', '/departments'],
-    [null, '/departments'],
+    ['https://kwaad.example', '/dashboard/start'],
+    ['//kwaad.example', '/dashboard/start'],
+    ['/\\kwaad.example', '/dashboard/start'],
+    [null, '/dashboard/start'],
   ])('normaliseert %s naar %s', (value, expected) => {
     expect(safeNextPath(value)).toBe(expected)
   })

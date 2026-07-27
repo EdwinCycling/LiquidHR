@@ -19,6 +19,7 @@ export const MESSAGE_NAMESPACES = [
   'reminders',
   'hera',
   'dashboard',
+  'startpage',
   'masterData',
   'documents',
   'hrCalendar',

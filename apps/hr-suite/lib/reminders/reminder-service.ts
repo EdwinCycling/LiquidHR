@@ -44,6 +44,8 @@ interface ReminderRecipientResult {
   id: string
   status: 'PENDING' | 'COMPLETED' | 'DISMISSED'
   effective_remind_at: string
+  employee_id?: string | null
+  employees?: { id: string; first_name: string | null; birth_name: string | null } | null
   reminders: {
     id: string
     title: string
@@ -58,6 +60,8 @@ interface ReminderRecipientResult {
 
 export interface ReminderItem {
   recipientId: string
+  employeeId: string | null
+  employeeName: string | null
   reminderId: string
   title: string
   description: string | null
@@ -88,6 +92,8 @@ export interface ReminderTargetOptions {
 export function toReminderItem(row: ReminderRecipientResult): ReminderItem {
   return {
     recipientId: row.id,
+    employeeId: row.employee_id ?? row.employees?.id ?? null,
+    employeeName: row.employees ? [row.employees.first_name, row.employees.birth_name].filter(Boolean).join(' ') || null : null,
     reminderId: row.reminders.id,
     title: row.reminders.title,
     description: row.reminders.description,
@@ -121,12 +127,17 @@ async function requireReminderContext(): Promise<{
 export async function listMyReminders(limit = 100): Promise<ReminderItem[]> {
   const context = await requireReminderContext()
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('reminder_recipients')
-    .select(`id, status, effective_remind_at, reminders!inner(
+    .select(`id, status, effective_remind_at, employee_id, employees(id, first_name, birth_name), reminders!inner(
       id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id
     )`)
     .eq('tenant_id', context.tenantId)
+    .eq('user_id', context.userId)
+  query = context.administrationId
+    ? query.eq('reminders.administration_id', context.administrationId)
+    : query.is('reminders.administration_id', null)
+  const { data, error } = await query
     .order('effective_remind_at', { ascending: true })
     .limit(Math.min(Math.max(limit, 1), 200))
 
@@ -137,7 +148,7 @@ export async function listMyReminders(limit = 100): Promise<ReminderItem[]> {
 export async function listEmployeeReminders(employeeId: string, limit = 100): Promise<ReminderItem[]> {
   const context = await requirePermission('reminder:read', employeeId)
   const supabase = await createClient()
-  const { data, error } = await supabase.from('reminder_recipients').select(`id, status, effective_remind_at, reminders!inner(id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id)`).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).order('effective_remind_at', { ascending: true }).limit(Math.min(Math.max(limit, 1), 200))
+  const { data, error } = await supabase.from('reminder_recipients').select(`id, status, effective_remind_at, employee_id, employees(id, first_name, birth_name), reminders!inner(id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id)`).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).neq('reminders.status', 'CANCELLED').order('effective_remind_at', { ascending: true }).limit(Math.min(Math.max(limit, 1), 200))
   if (error) throw reminderDatabaseError(error)
   return data.map((row) => toReminderItem(row as ReminderRecipientResult))
 }
@@ -290,6 +301,44 @@ export async function cancelHrReminder(id: string): Promise<void> {
     .maybeSingle()
   if (error) throw reminderDatabaseError(error)
   if (!data) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
+}
+
+export async function updateHrReminder(id: string, input: ReminderUpdateInput): Promise<void> {
+  const context = await requirePermission('reminder:write')
+  const supabase = await createClient()
+  const { data: current, error: readError } = await supabase.from('reminders').select('title, description, remind_at').eq('tenant_id', context.tenantId).eq('id', id).eq('reminder_type', 'HR').maybeSingle()
+  if (readError) throw reminderDatabaseError(readError)
+  if (!current) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
+  const { error } = await supabase.from('reminders').update({ title: input.title ?? current.title, description: input.description === undefined ? current.description : input.description, remind_at: input.remindAt ?? current.remind_at }).eq('tenant_id', context.tenantId).eq('id', id).eq('reminder_type', 'HR')
+  if (error) throw reminderDatabaseError(error)
+}
+
+export async function deleteHrReminder(id: string): Promise<void> {
+  const context = await requirePermission('reminder:write')
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('reminders').update({ status: 'CANCELLED', cancelled_at: new Date().toISOString() }).eq('tenant_id', context.tenantId).eq('id', id).eq('reminder_type', 'HR').neq('status', 'CANCELLED').select('id').maybeSingle()
+  if (error) throw reminderDatabaseError(error)
+  if (!data) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
+}
+
+export async function updateReminder(id: string, input: ReminderUpdateInput): Promise<void> {
+  const context = await requireReminderContext()
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('reminders').select('reminder_type, created_by_user_id').eq('tenant_id', context.tenantId).eq('id', id).maybeSingle()
+  if (error) throw reminderDatabaseError(error)
+  if (!data) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
+  if (data.reminder_type === 'PERSONAL') return updatePersonalReminder(id, input)
+  return updateHrReminder(id, input)
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+  const context = await requireReminderContext()
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('reminders').select('reminder_type').eq('tenant_id', context.tenantId).eq('id', id).maybeSingle()
+  if (error) throw reminderDatabaseError(error)
+  if (!data) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
+  if (data.reminder_type === 'PERSONAL') return deletePersonalReminder(id)
+  return deleteHrReminder(id)
 }
 
 export async function updateRecipient(id: string, input: RecipientActionInput): Promise<void> {

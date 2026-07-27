@@ -1,0 +1,8 @@
+The docs directory is organized as a flat index (`README.md`) that points to five top-level subdirectories, each with a distinct responsibility:
+- `architecture/` — canonical blueprints defining schema/API/auth/project structure (`BLUEPRINT.md`), environment/AI rules, business logic/workflows, UI flow, and the Liquid Display engine.
+- `requirements/` — domain-scoped requirement documents grouped by feature area (core-hr, leave, authorization, multitenancy, organization, reports, settings, liquid-display, chatbot, custom-fields, documents, employment) with per-document LEIDEND/CONCEPT/VERVANGEN status and implementation status.
+- `decisions/` — ADR-#### (technical) and FDR-#### (functional) decision records following a fixed template (datum, status, context, besluit, gevolgen, vervangen besluiten); only Goedgekeurd decisions may override leading requirements.
+- `delivery/` — chronological change log (`CURRENT_CONTEXT.md`) plus implementation status and manual action lists, serving as the single source of truth for current vertical slices and release gates.
+- `superpowers/` — dated plans and design specs paired by date prefix, used for execution planning and pre-implementation design before requirements are finalized.
+
+Dependency direction is strictly outward: this module contains no code, only markdown specifications and decision records that the rest of the repository implements. The root `README.md` enforces a reading routing matrix that dictates which documents must be consulted per type of change (e.g., auth changes require all five architecture docs plus `AUTORISATIE_EN_RECHTEN.md`).

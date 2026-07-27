@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   CalendarRange,
   ChartColumn,
+  House,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -32,6 +33,7 @@ import type { ToggleableModuleCode } from '@/lib/modules/module-catalog'
 interface SidebarLabels {
   appName: string
   dashboard: string
+  startPage: string
   version: string
   organizationChart: string
   employees: string
@@ -91,19 +93,38 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuOrder, setMenuOrder] = useState<string[]>([])
   const links = [
-    { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true },
-    { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
-    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true },
-    { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar },
-    { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
-    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings },
+    { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true, nested: false },
+    { href: '/dashboard/start', label: labels.startPage, icon: House, visible: true, nested: false },
+    { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees, nested: false },
+    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true, nested: false },
+    { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
+    { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
+    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false },
   ]
   useEffect(() => {
-    const load = () => { try { const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]'); if (Array.isArray(saved)) setMenuOrder(saved.filter((value): value is string => typeof value === 'string')) } catch { setMenuOrder([]) } }
+    const load = () => {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]')
+        if (!Array.isArray(saved)) return
+        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/organization-chart', '/hr-calendar', '/insights', '/settings'])
+        const normalized = saved.filter((value): value is string => typeof value === 'string' && allowedMenuHrefs.has(value))
+        if (!normalized.includes('/dashboard/start')) {
+          const dashboardIndex = normalized.indexOf('/dashboard')
+          normalized.splice(dashboardIndex < 0 ? 0 : dashboardIndex + 1, 0, '/dashboard/start')
+        }
+        setMenuOrder(normalized)
+      } catch { setMenuOrder([]) }
+    }
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); return () => window.removeEventListener('liquidhr-menu-order-changed', handleChange)
   }, [])
-  const orderedLinks = [...links].sort((left, right) => { const leftIndex = menuOrder.indexOf(left.href); const rightIndex = menuOrder.indexOf(right.href); return (leftIndex < 0 ? links.length : leftIndex) - (rightIndex < 0 ? links.length : rightIndex) })
+  const orderedLinks = [...links].sort((left, right) => {
+    const leftIndex = menuOrder.indexOf(left.href)
+    const rightIndex = menuOrder.indexOf(right.href)
+    const leftRank = leftIndex < 0 ? links.length + links.indexOf(left) : leftIndex
+    const rightRank = rightIndex < 0 ? links.length + links.indexOf(right) : rightIndex
+    return leftRank - rightRank
+  })
 
   return (
     <>
@@ -154,11 +175,11 @@ export function Sidebar({
 
         <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
           {orderedLinks.filter((link) => link.visible).map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
+            const active = link.href === '/dashboard' ? pathname === '/dashboard' : pathname === link.href || pathname.startsWith(`${link.href}/`)
             const Icon = link.icon
             return (
               <Link key={link.href} aria-current={active ? 'page' : undefined}
-                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
+                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${link.nested ? 'ml-3 border-l border-sidebar-border pl-4' : ''} ${active ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
                 href={link.href} onClick={() => setMobileOpen(false)} title={collapsed ? link.label : undefined}>
                 <Icon aria-hidden="true" className="shrink-0" size={18} />
                 {!collapsed ? <span>{link.label}</span> : null}
@@ -169,7 +190,7 @@ export function Sidebar({
         </nav>
 
         <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
-          <div className={collapsed ? 'grid place-items-center gap-2' : 'flex flex-col gap-4'} title={collapsed ? labels.timeHub : undefined}>
+          <div className={collapsed ? 'grid place-items-center gap-2' : 'flex items-center justify-between gap-3'} title={collapsed ? labels.timeHub : undefined}>
             <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} />
             {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} /> : null}
           </div>

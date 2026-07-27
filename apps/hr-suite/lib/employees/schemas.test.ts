@@ -47,6 +47,18 @@ describe('employee subresources', () => {
     expect(relationSchema.safeParse({ relationType: 'PARENT', lastName: 'Jansen', isEmergencyContact: true }).success).toBe(true)
   })
 
+  it('accepteert de drie directe reminderrollen bij een nieuw adres', () => {
+    const parsed = addressSchema.parse({
+      street: 'Dorpsstraat', houseNumber: '1', postalCode: '1234 AB', city: 'Utrecht',
+      countryCode: 'NL', validFrom: '2026-01-01', directReminderRecipients: ['HR_ADMIN', 'MANAGER', 'EMPLOYEE'],
+    })
+    expect(parsed.directReminderRecipients).toEqual(['HR_ADMIN', 'MANAGER', 'EMPLOYEE'])
+    expect(addressSchema.safeParse({
+      street: 'Dorpsstraat', houseNumber: '1', postalCode: '1234 AB', city: 'Utrecht',
+      countryCode: 'NL', validFrom: '2026-01-01', directReminderRecipients: ['UNKNOWN'],
+    }).success).toBe(false)
+  })
+
   it('weigert een ongeldige periode, landcode en IBAN', () => {
     expect(addressSchema.safeParse({
       street: 'A', houseNumber: '1', postalCode: '1', city: 'A', countryCode: 'NLD',

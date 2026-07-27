@@ -1,19 +1,23 @@
 'use client'
 
-import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, Pencil, Phone, ShieldCheck, UserRound } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, MapPin, Pencil, Phone, Search, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useState } from 'react'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
-import { NO_EMPLOYEE_CAPABILITIES, type EmployeeDetailViewModel, type EmployeeRelation, type EmployeeRelationTypeOption, type EmployeeRoleAssignment } from './types'
+import { EmployeeCustomFields } from '@/components/custom-fields/employee-custom-fields'
+import type { EmployeeCustomField } from '@/lib/custom-fields/service'
+import { NO_EMPLOYEE_CAPABILITIES, type EmployeeBankAccount, type EmployeeDetailViewModel, type EmployeeRelation, type EmployeeRelationTypeOption, type EmployeeRoleAssignment } from './types'
 import { EmailLink } from '@/components/shared/email-link'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
 
-type Tab = 'personal' | 'addresses' | 'bankAccounts' | 'relations'
+type Tab = 'personal' | 'addresses' | 'bankAccounts' | 'relations' | 'additionalInformation'
 type MutationState = 'idle' | 'saving' | 'saved' | 'failed'
 
 export interface EmployeePersonCardLabels {
   tabs: Record<Tab, string>
+  additionalInformationTitle: string
+  customFields: { title: string; subtitle: string; save: string; saving: string; saved: string; failed: string; readOnly: string; yes: string; no: string }
   overviewTitle: string
   contactTitle: string
   workContact: string
@@ -68,6 +72,15 @@ export interface EmployeePersonCardLabels {
   addressesTitle: string
   addressesEmpty: string
   addAddress: string
+  editResource: string
+  deleteResource: string
+  confirmDelete: string
+  cannotDeleteLastAddress: string
+  directReminderTitle: string
+  directReminderHelp: string
+  reminderHrAdmin: string
+  reminderManager: string
+  reminderEmployee: string
   country: string
   addressSearch: string
   addressSearchPlaceholder: string
@@ -77,6 +90,7 @@ export interface EmployeePersonCardLabels {
   searchLoading: string
   lookupByPostalCode: string
   lookup: string
+  lookupHint: string
   lookupUnavailable: string
   addressLine1: string
   addressLine2: string
@@ -134,6 +148,7 @@ interface EmployeePersonCardProps {
   dateFormat: DateFormat
   labels: EmployeePersonCardLabels
   roleAssignments?: EmployeeRoleAssignment[]
+  customFields?: EmployeeCustomField[]
 }
 
 function value(form: FormData, name: string): string {
@@ -147,8 +162,8 @@ function nullable(input: string): string | null {
 async function runJsonMutation(
   setState: (state: MutationState) => void,
   url: string,
-  method: 'POST' | 'PATCH',
-  body: unknown,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  body?: unknown,
 ): Promise<boolean> {
   setState('saving')
   let outcome: MutationState = 'failed'
@@ -156,7 +171,7 @@ async function runJsonMutation(
     const response = await fetch(url, {
       method,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     })
     if (response.ok) outcome = 'saved'
     return response.ok
@@ -167,13 +182,13 @@ async function runJsonMutation(
   }
 }
 
-export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAssignments = [] }: EmployeePersonCardProps) {
+export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAssignments = [], customFields = [] }: EmployeePersonCardProps) {
   const [tab, setTab] = useState<Tab>('personal')
   const capabilities = detail.capabilities ?? NO_EMPLOYEE_CAPABILITIES
   const addresses = detail.addresses ?? []
   const bankAccounts = detail.bankAccounts ?? []
   const relations = detail.relations ?? []
-  const tabs: Tab[] = ['personal', 'addresses', 'bankAccounts', 'relations']
+  const tabs: Tab[] = ['personal', 'addresses', 'bankAccounts', 'relations', 'additionalInformation']
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number): void {
     let nextIndex: number | null = null
@@ -215,6 +230,7 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAss
         {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
         {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} relationTypes={detail.relationTypes ?? []} locale={locale} canManage={capabilities.canManageRelations} labels={labels} />}
+        {tab === 'additionalInformation' && <section><SectionHeader icon={<UserRound className="h-5 w-5" />} title={labels.additionalInformationTitle} /><div className="mt-6"><EmployeeCustomFields embedded employeeId={detail.employee.id} fields={customFields} labels={labels.customFields} /></div></section>}
       </div>
     </section>
   )
@@ -248,25 +264,33 @@ function PersonalPanel({ employee, capabilities, labels, roleAssignments, locale
     return (
       <form onSubmit={save}>
         <SectionHeader icon={<Pencil className="h-5 w-5" />} title={labels.personalTitle} />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label={labels.employeeNumber}><input name="employeeNumber" defaultValue={employee.employeeNumber} required className="form-field" /></Field>
-          <Field label={labels.firstName}><input name="firstName" defaultValue={employee.firstName} required className="form-field" /></Field>
-          <Field label={labels.birthNamePrefix}><input name="birthNamePrefix" defaultValue={employee.birthNamePrefix ?? ''} className="form-field" /></Field>
-          <Field label={labels.birthName}><input name="birthName" defaultValue={employee.birthName} required className="form-field" /></Field>
-          <Field label={labels.nameUsage}><select name="nameUsage" defaultValue={employee.nameUsage ?? 'BIRTH_NAME'} className="form-field"><option value="BIRTH_NAME">{labels.nameUsageBirth}</option><option value="PARTNER_NAME">{labels.nameUsagePartner}</option><option value="PARTNER_BEFORE_BIRTH_NAME">{labels.nameUsagePartnerBirth}</option><option value="BIRTH_NAME_BEFORE_PARTNER_NAME">{labels.nameUsageBirthPartner}</option></select></Field>
-          <Field label={labels.gender}><select name="gender" defaultValue={employee.gender ?? 'PREFER_NOT_TO_SAY'} className="form-field"><option value="MALE">{labels.genderMale}</option><option value="FEMALE">{labels.genderFemale}</option><option value="OTHER">{labels.genderOther}</option><option value="PREFER_NOT_TO_SAY">{labels.genderUndisclosed}</option></select></Field>
-          <Field label={labels.birthDate}><input name="birthDate" type="date" defaultValue={employee.birthDate ?? ''} className="form-field" /></Field>
-          <Field label={labels.birthPlace}><input name="birthPlace" defaultValue={employee.birthPlace ?? ''} className="form-field" /></Field>
-          <Field label={labels.birthCountry}><input name="birthCountry" minLength={2} maxLength={2} defaultValue={employee.birthCountry ?? ''} className="form-field uppercase" /></Field>
-          <Field label={labels.nationality}><input name="nationality" minLength={2} maxLength={2} defaultValue={employee.nationality ?? ''} className="form-field uppercase" /></Field>
-          <Field label={labels.preferredLanguage}><input name="preferredLanguage" defaultValue={employee.preferredLanguage ?? 'nl-NL'} className="form-field" /></Field>
-          <Field label={labels.privateEmail}><input name="privateEmail" type="email" defaultValue={employee.privateEmail ?? ''} className="form-field" /></Field>
-          <Field label={labels.privatePhone}><input name="privatePhone" type="tel" defaultValue={employee.privatePhone ?? ''} className="form-field" /></Field>
-          <Field label={labels.privateMobile}><input name="privateMobile" type="tel" defaultValue={employee.privateMobile ?? ''} className="form-field" /></Field>
-          <Field label={labels.workEmail}><input name="workEmail" type="email" defaultValue={employee.workEmail ?? ''} className="form-field" /></Field>
-          <Field label={labels.workPhone}><input name="workPhone" type="tel" defaultValue={employee.workPhone ?? ''} className="form-field" /></Field>
-          <Field label={labels.workPhoneExtension}><input name="workPhoneExt" defaultValue={employee.workPhoneExt ?? ''} className="form-field" /></Field>
-          <Field label={labels.workMobile}><input name="workMobile" type="tel" defaultValue={employee.workMobile ?? ''} className="form-field" /></Field>
+        <div className="mt-6 grid gap-5 xl:grid-cols-2">
+          <FormSection icon={<UserRound className="h-4 w-4" />} title={labels.personalTitle}>
+            <Field label={labels.employeeNumber}><input name="employeeNumber" defaultValue={employee.employeeNumber} required className="form-field" /></Field>
+            <Field label={labels.firstName}><input name="firstName" defaultValue={employee.firstName} required className="form-field" /></Field>
+            <Field label={labels.birthNamePrefix}><input name="birthNamePrefix" defaultValue={employee.birthNamePrefix ?? ''} className="form-field" /></Field>
+            <Field label={labels.birthName}><input name="birthName" defaultValue={employee.birthName} required className="form-field" /></Field>
+            <Field label={labels.nameUsage}><select name="nameUsage" defaultValue={employee.nameUsage ?? 'BIRTH_NAME'} className="form-field"><option value="BIRTH_NAME">{labels.nameUsageBirth}</option><option value="PARTNER_NAME">{labels.nameUsagePartner}</option><option value="PARTNER_BEFORE_BIRTH_NAME">{labels.nameUsagePartnerBirth}</option><option value="BIRTH_NAME_BEFORE_PARTNER_NAME">{labels.nameUsageBirthPartner}</option></select></Field>
+            <Field label={labels.gender}><select name="gender" defaultValue={employee.gender ?? 'PREFER_NOT_TO_SAY'} className="form-field"><option value="MALE">{labels.genderMale}</option><option value="FEMALE">{labels.genderFemale}</option><option value="OTHER">{labels.genderOther}</option><option value="PREFER_NOT_TO_SAY">{labels.genderUndisclosed}</option></select></Field>
+          </FormSection>
+          <FormSection icon={<MapPin className="h-4 w-4" />} title={labels.birthDate}>
+            <Field label={labels.birthDate}><input name="birthDate" type="date" defaultValue={employee.birthDate ?? ''} className="form-field" /></Field>
+            <Field label={labels.birthPlace}><input name="birthPlace" defaultValue={employee.birthPlace ?? ''} className="form-field" /></Field>
+            <Field label={labels.birthCountry}><input name="birthCountry" minLength={2} maxLength={2} defaultValue={employee.birthCountry ?? ''} className="form-field uppercase" /></Field>
+            <Field label={labels.nationality}><input name="nationality" minLength={2} maxLength={2} defaultValue={employee.nationality ?? ''} className="form-field uppercase" /></Field>
+            <Field label={labels.preferredLanguage}><input name="preferredLanguage" defaultValue={employee.preferredLanguage ?? 'nl-NL'} className="form-field" /></Field>
+          </FormSection>
+          <FormSection icon={<Phone className="h-4 w-4" />} title={labels.privateContact}>
+            <Field label={labels.privateEmail}><input name="privateEmail" type="email" defaultValue={employee.privateEmail ?? ''} className="form-field" /></Field>
+            <Field label={labels.privatePhone}><input name="privatePhone" type="tel" defaultValue={employee.privatePhone ?? ''} className="form-field" /></Field>
+            <Field label={labels.privateMobile}><input name="privateMobile" type="tel" defaultValue={employee.privateMobile ?? ''} className="form-field" /></Field>
+          </FormSection>
+          <FormSection icon={<Mail className="h-4 w-4" />} title={labels.workContact}>
+            <Field label={labels.workEmail}><input name="workEmail" type="email" defaultValue={employee.workEmail ?? ''} className="form-field" /></Field>
+            <Field label={labels.workPhone}><input name="workPhone" type="tel" defaultValue={employee.workPhone ?? ''} className="form-field" /></Field>
+            <Field label={labels.workPhoneExtension}><input name="workPhoneExt" defaultValue={employee.workPhoneExt ?? ''} className="form-field" /></Field>
+            <Field label={labels.workMobile}><input name="workMobile" type="tel" defaultValue={employee.workMobile ?? ''} className="form-field" /></Field>
+          </FormSection>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t pt-5">
           <button type="submit" disabled={state === 'saving'} className="button-primary gap-2">{state === 'saving' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{state === 'saving' ? labels.saving : labels.save}</button>
@@ -324,27 +348,38 @@ function BsnReveal({ employeeId, labels }: { employeeId: string; labels: Employe
   )
 }
 
+type ReminderRole = 'HR_ADMIN' | 'MANAGER' | 'EMPLOYEE'
+
 function AddressesPanel({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
+  const [editingId, setEditingId] = useState<string | null>(null)
   const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
-  return (
-    <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<Home className="h-5 w-5" />} title={labels.addressesTitle} />{canManage && <ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} locale={locale} labels={labels} /></ResourceDetails>}</div>
-      {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="grid gap-3 rounded-xl border bg-background p-4 sm:grid-cols-[1fr_auto]"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.addressLine1}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div>{address.addressLine2 && <p className="mt-1 text-sm">{address.addressLine2}</p>}<p className="mt-1 text-sm text-muted-foreground">{[address.postalCode, address.city, address.region, address.countryCode].filter(Boolean).join(' · ')}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></li>)}</ol>}
-    </div>
-  )
+  return <section>
+    <SectionHeader icon={<Home className="h-5 w-5" />} title={labels.addressesTitle} />
+    {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} text={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="rounded-xl border bg-background p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.addressLine1}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div>{address.addressLine2 && <p className="mt-1 text-sm">{address.addressLine2}</p>}<p className="mt-1 text-sm text-muted-foreground">{[address.postalCode, address.city, address.region, address.countryCode].filter(Boolean).join(' · ')}</p><p className="mt-2 text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></div>
+        {canManage && <div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => setEditingId(editingId === address.id ? null : address.id)} className="button-secondary gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</button><DeleteResourceButton url={`/api/employees/${employeeId}/addresses/${address.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} disabled={addresses.length === 1} disabledTitle={labels.cannotDeleteLastAddress} onDeleted={() => setEditingId(null)} /></div>}
+      </div>
+      {editingId === address.id && <div className="mt-5 border-t pt-5"><AddressForm employeeId={employeeId} locale={locale} labels={labels} address={address} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
+    </li>)}</ol>}
+    {canManage && <div className="mt-6"><ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} locale={locale} labels={labels} /></ResourceDetails></div>}
+  </section>
 }
 
-function AddressForm({ employeeId, locale, labels }: { employeeId: string; locale: string; labels: EmployeePersonCardLabels }) {
+function AddressForm({ employeeId, locale, labels, address, onCancel, onSaved }: { employeeId: string; locale: string; labels: EmployeePersonCardLabels; address?: NonNullable<EmployeeDetailViewModel['addresses']>[number]; onCancel?: () => void; onSaved?: () => void }) {
   const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'empty' | 'failed'>('idle')
   const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'failed'>('idle')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(address?.addressLine1 ?? '')
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
-  const [values, setValues] = useState({ countryCode: 'NL', addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validFrom: new Date().toISOString().slice(0, 10), validUntil: '', source: 'manual' as 'manual' | 'pdok' | 'geoapify', sourceReference: '' })
+  const [reminderRoles, setReminderRoles] = useState<ReminderRole[]>([])
+  const [values, setValues] = useState({ countryCode: address?.countryCode ?? 'NL', addressLine1: address?.addressLine1 ?? '', addressLine2: address?.addressLine2 ?? '', street: address?.street ?? '', houseNumber: address?.houseNumber ?? '', addition: address?.houseNumberAddition ?? '', postalCode: address?.postalCode ?? '', city: address?.city ?? '', region: address?.region ?? '', validFrom: address?.validFrom ?? new Date().toISOString().slice(0, 10), validUntil: address?.validUntil ?? '', source: (address?.source === 'pdok' || address?.source === 'geoapify' ? address.source : 'manual') as 'manual' | 'pdok' | 'geoapify', sourceReference: address?.sourceReference ?? '' })
+  const isNew = !address
   const isDutch = values.countryCode === 'NL'
   const countryOptions = getCountryOptions(locale)
 
   useEffect(() => {
-    if (query.trim().length < 3) return
+    if (query.trim().length < 3 || !isNew) return
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
       setSearchState('loading')
@@ -359,35 +394,37 @@ function AddressForm({ employeeId, locale, labels }: { employeeId: string; local
       }
     }, 300)
     return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [query, values.countryCode])
+  }, [isNew, query, values.countryCode])
 
-  function updateValue(name: keyof typeof values, value: string): void {
-    setValues((current) => ({ ...current, [name]: value, source: 'manual', sourceReference: '' }))
-  }
-
-  function updateQuery(value: string): void {
-    setQuery(value)
-    if (value.trim().length < 3) { setSuggestions([]); setSearchState('idle') }
-  }
-
-  function applySuggestion(suggestion: AddressSuggestion): void {
-    setValues((current) => ({ ...current, countryCode: suggestion.countryCode, addressLine1: suggestion.addressLine1, addressLine2: suggestion.addressLine2 ?? '', street: suggestion.street ?? '', houseNumber: suggestion.houseNumber ?? '', addition: suggestion.houseNumberAddition ?? '', postalCode: suggestion.postalCode ?? '', city: suggestion.city ?? '', region: suggestion.region ?? '', source: suggestion.source, sourceReference: suggestion.sourceReference ?? '' }))
-    setQuery(suggestion.label); setSuggestions([]); setSearchState('idle')
-  }
+  function updateValue(name: keyof typeof values, value: string): void { setValues((current) => ({ ...current, [name]: value, source: 'manual', sourceReference: '' })) }
+  function updateQuery(value: string): void { setQuery(value); if (value.trim().length < 3) { setSuggestions([]); setSearchState('idle') } }
+  function applySuggestion(suggestion: AddressSuggestion): void { setValues((current) => ({ ...current, countryCode: suggestion.countryCode, addressLine1: suggestion.addressLine1, addressLine2: suggestion.addressLine2 ?? '', street: suggestion.street ?? '', houseNumber: suggestion.houseNumber ?? '', addition: suggestion.houseNumberAddition ?? '', postalCode: suggestion.postalCode ?? '', city: suggestion.city ?? '', region: suggestion.region ?? '', source: suggestion.source, sourceReference: suggestion.sourceReference ?? '' })); setQuery(suggestion.label); setSuggestions([]); setSearchState('idle') }
+  function toggleReminderRole(role: ReminderRole): void { setReminderRoles((current) => current.includes(role) ? current.filter((item) => item !== role) : [...current, role]) }
 
   async function lookupByPostalCode(): Promise<void> {
     setLookupState('loading')
-    try {
-      const response = await fetch(`/api/address-lookup?country=NL&postcode=${encodeURIComponent(values.postalCode)}&houseNumber=${encodeURIComponent(values.houseNumber)}`)
-      if (!response.ok) throw new Error('ADDRESS_LOOKUP_UNAVAILABLE')
-      const payload: { data?: AddressSuggestion[] } = await response.json()
-      if (payload.data?.[0]) applySuggestion(payload.data[0]); else setLookupState('idle')
-    } catch { setLookupState('failed') }
-    finally { setLookupState((current) => current === 'loading' ? 'idle' : current) }
+    try { const response = await fetch(`/api/address-lookup?country=NL&postcode=${encodeURIComponent(values.postalCode)}&houseNumber=${encodeURIComponent(values.houseNumber)}`); if (!response.ok) throw new Error('ADDRESS_LOOKUP_UNAVAILABLE'); const payload: { data?: AddressSuggestion[] } = await response.json(); if (payload.data?.[0]) applySuggestion(payload.data[0]) } catch { setLookupState('failed') } finally { setLookupState('idle') }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const succeeded = await runJsonMutation(setState, `/api/employees/${employeeId}/addresses`, 'POST', { ...values, addressLine1: nullable(values.addressLine1), addressLine2: nullable(values.addressLine2), street: nullable(values.street), houseNumber: nullable(values.houseNumber), addition: nullable(values.addition), postalCode: nullable(values.postalCode), city: values.city, region: nullable(values.region), validUntil: nullable(values.validUntil), sourceReference: nullable(values.sourceReference), province: null }); if (!succeeded) return; setValues((current) => ({ ...current, addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validUntil: '', source: 'manual', sourceReference: '' })); setQuery(''); router.refresh() }
-  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-6"><Field label={labels.country} className="sm:col-span-2"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className="form-field">{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field><Field label={labels.addressSearch} className="sm:col-span-4"><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="form-field" autoComplete="off" />{searchState === 'loading' && <span className="text-xs text-muted-foreground">{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-xs text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span className="text-xs text-muted-foreground">{labels.searchNoResults}</span>}{suggestions.length > 0 && <ul className="mt-2 overflow-hidden rounded-lg border bg-background">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`}><button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-accent" onClick={() => applySuggestion(suggestion)}>{suggestion.label}</button></li>)}</ul>}</Field><div className="sm:col-span-full"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{labels.manualEntry}</p></div>{isDutch ? <><Field label={labels.street} className="sm:col-span-4"><input value={values.street} onChange={(event) => updateValue('street', event.target.value)} className="form-field" /></Field><Field label={labels.houseNumber}><input value={values.houseNumber} onChange={(event) => updateValue('houseNumber', event.target.value)} className="form-field" /></Field><Field label={labels.addition}><input value={values.addition} onChange={(event) => updateValue('addition', event.target.value)} className="form-field" /></Field></> : <><Field label={labels.addressLine1} className="sm:col-span-4"><input value={values.addressLine1} onChange={(event) => updateValue('addressLine1', event.target.value)} className="form-field" /></Field><Field label={labels.addressLine2} className="sm:col-span-2"><input value={values.addressLine2} onChange={(event) => updateValue('addressLine2', event.target.value)} className="form-field" /></Field></>}<Field label={labels.postalCode} className="sm:col-span-2"><input value={values.postalCode} onChange={(event) => updateValue('postalCode', event.target.value)} className="form-field uppercase" /></Field>{isDutch && <button type="button" onClick={lookupByPostalCode} disabled={lookupState === 'loading'} className="button-secondary self-end sm:col-span-2">{lookupState === 'loading' ? labels.searchLoading : labels.lookup}</button>}<Field label={labels.city} className="sm:col-span-4"><input value={values.city} onChange={(event) => updateValue('city', event.target.value)} required className="form-field" /></Field><Field label={labels.region} className="sm:col-span-2"><input value={values.region} onChange={(event) => updateValue('region', event.target.value)} className="form-field" /></Field><Field label={labels.validFrom} className="sm:col-span-2"><input value={values.validFrom} onChange={(event) => updateValue('validFrom', event.target.value)} type="date" required className="form-field" /></Field><Field label={labels.validUntil} className="sm:col-span-2"><input value={values.validUntil} onChange={(event) => updateValue('validUntil', event.target.value)} type="date" className="form-field" /></Field>{lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}<FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    const payload = { ...values, addressLine1: nullable(values.addressLine1), addressLine2: nullable(values.addressLine2), street: nullable(values.street), houseNumber: nullable(values.houseNumber), addition: nullable(values.addition), postalCode: nullable(values.postalCode), city: values.city, region: nullable(values.region), validUntil: nullable(values.validUntil), sourceReference: nullable(values.sourceReference), province: null, directReminderRecipients: isNew ? reminderRoles : [] }
+    const succeeded = await runJsonMutation(setState, address ? `/api/employees/${employeeId}/addresses/${address.id}` : `/api/employees/${employeeId}/addresses`, address ? 'PATCH' : 'POST', payload)
+    if (!succeeded) return
+    if (onSaved) onSaved()
+    if (isNew) { setReminderRoles([]); setValues((current) => ({ ...current, addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validUntil: '', source: 'manual', sourceReference: '' })); setQuery('') }
+    router.refresh()
+  }
+
+  return <form onSubmit={submit} className="grid gap-4">
+    <div className="grid gap-3 sm:grid-cols-[minmax(11rem,0.75fr)_minmax(0,2fr)] sm:items-start">
+      <Field label={labels.country} className="self-start"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className="form-field">{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field>
+      <Field label={labels.addressSearch} className="min-w-0"><div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="form-field pl-10" autoComplete="off" autoFocus={isNew} role="combobox" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded={suggestions.length > 0} /></div><div className="mt-1.5 min-h-4 text-xs text-muted-foreground">{searchState === 'loading' && <span className="inline-flex items-center gap-1.5"><LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span>{labels.searchNoResults}</span>}</div>{suggestions.length > 0 && <ul id="address-suggestions" role="listbox" className="mt-1 max-h-60 overflow-y-auto rounded-lg border bg-background shadow-sm">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`} role="presentation"><button type="button" role="option" aria-selected={false} className="flex w-full items-start gap-2 border-b px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-accent" onClick={() => applySuggestion(suggestion)}><MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{suggestion.label}</span></button></li>)}</ul>}</Field>
+    </div>
+    <div className="grid gap-3 sm:grid-cols-6"><div className="sm:col-span-full"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{labels.manualEntry}</p></div>{isDutch ? <><Field label={labels.street} className="sm:col-span-4"><input value={values.street} onChange={(event) => updateValue('street', event.target.value)} className="form-field" /></Field><Field label={labels.houseNumber}><input value={values.houseNumber} onChange={(event) => updateValue('houseNumber', event.target.value)} className="form-field" /></Field><Field label={labels.addition}><input value={values.addition} onChange={(event) => updateValue('addition', event.target.value)} className="form-field" /></Field></> : <><Field label={labels.addressLine1} className="sm:col-span-4"><input value={values.addressLine1} onChange={(event) => updateValue('addressLine1', event.target.value)} className="form-field" /></Field><Field label={labels.addressLine2} className="sm:col-span-2"><input value={values.addressLine2} onChange={(event) => updateValue('addressLine2', event.target.value)} className="form-field" /></Field></>}<Field label={labels.postalCode} className="sm:col-span-2"><input value={values.postalCode} onChange={(event) => updateValue('postalCode', event.target.value)} className="form-field uppercase" /></Field>{isDutch && <div className="sm:col-span-2 sm:self-end"><button type="button" onClick={lookupByPostalCode} disabled={lookupState === 'loading' || !values.postalCode.trim() || !values.houseNumber.trim()} aria-label={`${labels.lookup}: ${labels.lookupByPostalCode}`} className="button-secondary inline-flex w-full justify-center gap-2">{lookupState === 'loading' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{lookupState === 'loading' ? labels.searchLoading : labels.lookup}</button><p className="mt-1.5 text-xs text-muted-foreground">{labels.lookupHint}</p></div>}<Field label={labels.city} className="sm:col-span-4"><input value={values.city} onChange={(event) => updateValue('city', event.target.value)} required className="form-field" /></Field><Field label={labels.region} className="sm:col-span-2"><input value={values.region} onChange={(event) => updateValue('region', event.target.value)} className="form-field" /></Field><Field label={labels.validFrom} className="sm:col-span-2"><input value={values.validFrom} onChange={(event) => updateValue('validFrom', event.target.value)} type="date" required className="form-field" /></Field><Field label={labels.validUntil} className="sm:col-span-2"><input value={values.validUntil} onChange={(event) => updateValue('validUntil', event.target.value)} type="date" className="form-field" /></Field>{lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}</div>
+    {isNew && <fieldset className="rounded-xl border bg-surface-raised p-4"><legend className="px-1 text-sm font-semibold">{labels.directReminderTitle}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.directReminderHelp}</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{([['HR_ADMIN', labels.reminderHrAdmin], ['MANAGER', labels.reminderManager], ['EMPLOYEE', labels.reminderEmployee]] as const).map(([role, label]) => <label key={role} className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={reminderRoles.includes(role)} onChange={() => toggleReminderRole(role)} className="h-4 w-4 accent-primary" />{label}</label>)}</div></fieldset>}
+    <FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} />
+  </form>
 }
 
 function getCountryOptions(locale: string): Array<{ code: string; label: string }> {
@@ -397,24 +434,63 @@ function getCountryOptions(locale: string): Array<{ code: string; label: string 
 }
 
 function BankAccountsPanel({ employeeId, accounts, canManage, labels }: { employeeId: string; accounts: NonNullable<EmployeeDetailViewModel['bankAccounts']>; canManage: boolean; labels: EmployeePersonCardLabels }) {
-  return <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<CreditCard className="h-5 w-5" />} title={labels.banksTitle} />{canManage && <ResourceDetails title={labels.addBank}><BankAccountForm employeeId={employeeId} labels={labels} /></ResourceDetails>}</div>{accounts.length === 0 ? <EmptyState icon={<CreditCard className="h-5 w-5" />} text={labels.banksEmpty} /> : <ul className="mt-6 space-y-3">{accounts.map((account) => <li key={account.id} className="flex flex-col gap-3 rounded-xl border bg-background p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold tabular-nums">{account.maskedIban}</p>{account.isPrimary && <span className="status-chip bg-success-surface text-success">{labels.primary}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{account.accountHolder}{account.description ? ` · ${account.description}` : ''}</p></div>{account.bic && <span className="text-xs font-medium text-muted-foreground">{account.bic}</span>}</li>)}</ul>}</div>
+  const [editingId, setEditingId] = useState<string | null>(null)
+  return <section>
+    <SectionHeader icon={<CreditCard className="h-5 w-5" />} title={labels.banksTitle} />
+    {accounts.length === 0 ? <EmptyState icon={<CreditCard className="h-5 w-5" />} text={labels.banksEmpty} /> : <ul className="mt-6 space-y-3">{accounts.map((account) => <li key={account.id} className="rounded-xl border bg-background p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold tabular-nums">{account.maskedIban}</p>{account.isPrimary && <span className="status-chip bg-success-surface text-success">{labels.primary}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{account.accountHolder}{account.description ? ` · ${account.description}` : ''}</p></div>
+        {canManage && <div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => setEditingId(editingId === account.id ? null : account.id)} className="button-secondary gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</button><DeleteResourceButton url={`/api/employees/${employeeId}/bank-accounts/${account.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} onDeleted={() => setEditingId(null)} /></div>}
+      </div>
+      {editingId === account.id && <div className="mt-5 border-t pt-5"><BankAccountForm employeeId={employeeId} account={account} labels={labels} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
+    </li>)}</ul>}
+    {canManage && <div className="mt-6"><ResourceDetails title={labels.addBank}><BankAccountForm employeeId={employeeId} labels={labels} /></ResourceDetails></div>}
+  </section>
 }
 
-function BankAccountForm({ employeeId, labels }: { employeeId: string; labels: EmployeePersonCardLabels }) {
+function BankAccountForm({ employeeId, account, labels, onCancel, onSaved }: { employeeId: string; account?: EmployeeBankAccount; labels: EmployeePersonCardLabels; onCancel?: () => void; onSaved?: () => void }) {
   const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const succeeded = await runJsonMutation(setState, `/api/employees/${employeeId}/bank-accounts`, 'POST', { iban: value(form, 'iban'), bic: nullable(value(form, 'bic')), accountHolder: value(form, 'accountHolder'), description: nullable(value(form, 'description')), isPrimary: form.get('isPrimary') === 'on' }); if (!succeeded) return; formElement.reset(); router.refresh() }
-  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.iban}><input name="iban" required autoComplete="off" className="form-field uppercase" /></Field><Field label={labels.bic}><input name="bic" maxLength={11} className="form-field uppercase" /></Field><Field label={labels.accountHolder}><input name="accountHolder" required className="form-field" /></Field><Field label={labels.description}><input name="description" className="form-field" /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" className="h-4 w-4 accent-primary" />{labels.makePrimary}</label><FormFooter state={state} submit={labels.saveBank} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement)
+    const payload = { iban: value(form, 'iban'), bic: nullable(value(form, 'bic')), accountHolder: value(form, 'accountHolder'), description: nullable(value(form, 'description')), isPrimary: form.get('isPrimary') === 'on' }
+    const succeeded = await runJsonMutation(setState, account ? `/api/employees/${employeeId}/bank-accounts/${account.id}` : `/api/employees/${employeeId}/bank-accounts`, account ? 'PATCH' : 'POST', payload)
+    if (!succeeded) return
+    onSaved?.(); formElement.reset(); router.refresh()
+  }
+  return <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2"><Field label={labels.iban}><input name="iban" required autoComplete="off" placeholder={account?.maskedIban} className="form-field uppercase" /></Field><Field label={labels.bic}><input name="bic" maxLength={11} defaultValue={account?.bic ?? ''} className="form-field uppercase" /></Field><Field label={labels.accountHolder}><input name="accountHolder" required defaultValue={account?.accountHolder ?? ''} className="form-field" /></Field><Field label={labels.description}><input name="description" defaultValue={account?.description ?? ''} className="form-field" /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" defaultChecked={account?.isPrimary} className="h-4 w-4 accent-primary" />{labels.makePrimary}</label><FormFooter state={state} submit={account ? labels.editResource : labels.saveBank} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} /></form>
 }
 
 function RelationsPanel({ employeeId, relations, relationTypes, locale, canManage, labels }: { employeeId: string; relations: NonNullable<EmployeeDetailViewModel['relations']>; relationTypes: EmployeeRelationTypeOption[]; locale: string; canManage: boolean; labels: EmployeePersonCardLabels }) {
+  const [editingId, setEditingId] = useState<string | null>(null)
   const typeLabels: Record<EmployeeRelation['relationType'], string> = Object.fromEntries(relationTypes.map((item) => [item.code, locale.startsWith('en') ? item.nameEn : item.nameNl])) as Record<EmployeeRelation['relationType'], string>
-  return <div><div className="flex flex-wrap items-center justify-between gap-3"><SectionHeader icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsTitle} />{canManage && <ResourceDetails title={labels.addRelation}><RelationForm employeeId={employeeId} relationTypes={relationTypes} locale={locale} labels={labels} /></ResourceDetails>}</div>{relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} text={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-3 lg:grid-cols-2">{relations.map((relation) => <li key={relation.id} className="rounded-xl border bg-background p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{relation.firstName} {relation.prefix} {relation.lastName}</p>{relation.isEmergencyContact && <span className="status-chip bg-warning-surface text-warning">{labels.emergencyContact}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType] ?? relation.relationType}</p>{(relation.mobile || relation.phone || relation.email) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{(relation.mobile || relation.phone) && <span className="flex items-center gap-1.5"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{relation.mobile ?? relation.phone}</span>}{relation.email && <span className="flex items-center gap-1.5"><Mail aria-hidden="true" className="h-3.5 w-3.5" /><EmailLink email={relation.email} /></span>}</div>}</li>)}</ul>}</div>
+  return <section>
+    <SectionHeader icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsTitle} />
+    {relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} text={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-3 lg:grid-cols-2">{relations.map((relation) => <li key={relation.id} className="rounded-xl border bg-background p-4">
+      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{[relation.firstName, relation.prefix, relation.lastName].filter(Boolean).join(' ')}</p>{relation.isEmergencyContact && <span className="status-chip bg-warning-surface text-warning">{labels.emergencyContact}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType] ?? relation.relationType}</p></div>{canManage && <div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => setEditingId(editingId === relation.id ? null : relation.id)} className="button-secondary gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</button><DeleteResourceButton url={`/api/employees/${employeeId}/relations/${relation.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} onDeleted={() => setEditingId(null)} /></div>}</div>
+      {(relation.mobile || relation.phone || relation.email) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{(relation.mobile || relation.phone) && <span className="flex items-center gap-1.5"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{relation.mobile ?? relation.phone}</span>}{relation.email && <span className="flex items-center gap-1.5"><Mail aria-hidden="true" className="h-3.5 w-3.5" /><EmailLink email={relation.email} /></span>}</div>}
+      {editingId === relation.id && <div className="mt-5 border-t pt-5"><RelationForm employeeId={employeeId} relation={relation} relationTypes={relationTypes} locale={locale} labels={labels} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
+    </li>)}</ul>}
+    {canManage && <div className="mt-6"><ResourceDetails title={labels.addRelation}><RelationForm employeeId={employeeId} relationTypes={relationTypes} locale={locale} labels={labels} /></ResourceDetails></div>}
+  </section>
 }
 
-function RelationForm({ employeeId, relationTypes, locale, labels }: { employeeId: string; relationTypes: EmployeeRelationTypeOption[]; locale: string; labels: EmployeePersonCardLabels }) {
+function RelationForm({ employeeId, relation, relationTypes, locale, labels, onCancel, onSaved }: { employeeId: string; relation?: EmployeeRelation; relationTypes: EmployeeRelationTypeOption[]; locale: string; labels: EmployeePersonCardLabels; onCancel?: () => void; onSaved?: () => void }) {
   const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const succeeded = await runJsonMutation(setState, `/api/employees/${employeeId}/relations`, 'POST', { relationType: value(form, 'relationType'), isEmergencyContact: form.get('isEmergencyContact') === 'on', firstName: nullable(value(form, 'firstName')), initials: null, prefix: nullable(value(form, 'prefix')), lastName: value(form, 'lastName'), gender: null, birthDate: null, phone: nullable(value(form, 'phone')), mobile: nullable(value(form, 'mobile')), email: nullable(value(form, 'email')), notes: nullable(value(form, 'notes')) }); if (!succeeded) return; formElement.reset(); router.refresh() }
-  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.relationType}><select name="relationType" className="form-field">{relationTypes.map((item) => <option key={item.code} value={item.code}>{locale.startsWith('en') ? item.nameEn : item.nameNl}</option>)}</select></Field><label className="flex items-center gap-2 self-end pb-3 text-sm font-medium"><input name="isEmergencyContact" type="checkbox" className="h-4 w-4 accent-primary" />{labels.emergencyContact}</label><Field label={labels.firstName}><input name="firstName" className="form-field" /></Field><Field label={labels.birthNamePrefix}><input name="prefix" className="form-field" /></Field><Field label={labels.lastName}><input name="lastName" required className="form-field" /></Field><Field label={labels.mobile}><input name="mobile" type="tel" className="form-field" /></Field><Field label={labels.privatePhone}><input name="phone" type="tel" className="form-field" /></Field><Field label={labels.email}><input name="email" type="email" className="form-field" /></Field><Field label={labels.notes} className="sm:col-span-2"><textarea name="notes" rows={3} className="form-field min-h-24" /></Field><FormFooter state={state} submit={labels.saveRelation} saving={labels.saving} saved={labels.saved} failed={labels.genericError} /></form>
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const payload = { relationType: value(form, 'relationType'), isEmergencyContact: form.get('isEmergencyContact') === 'on', firstName: nullable(value(form, 'firstName')), initials: relation?.initials ?? nullable(value(form, 'initials')), prefix: nullable(value(form, 'prefix')), lastName: value(form, 'lastName'), gender: relation?.gender ?? nullable(value(form, 'gender')), birthDate: relation?.birthDate ?? nullable(value(form, 'birthDate')), phone: nullable(value(form, 'phone')), mobile: nullable(value(form, 'mobile')), email: nullable(value(form, 'email')), notes: nullable(value(form, 'notes')) }; const succeeded = await runJsonMutation(setState, relation ? `/api/employees/${employeeId}/relations/${relation.id}` : `/api/employees/${employeeId}/relations`, relation ? 'PATCH' : 'POST', payload); if (!succeeded) return; onSaved?.(); formElement.reset(); router.refresh() }
+  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.relationType}><select name="relationType" defaultValue={relation?.relationType ?? relationTypes[0]?.code} className="form-field">{relationTypes.map((item) => <option key={item.code} value={item.code}>{locale.startsWith('en') ? item.nameEn : item.nameNl}</option>)}</select></Field><label className="flex items-center gap-2 self-end pb-3 text-sm font-medium"><input name="isEmergencyContact" type="checkbox" defaultChecked={relation?.isEmergencyContact} className="h-4 w-4 accent-primary" />{labels.emergencyContact}</label><Field label={labels.firstName}><input name="firstName" defaultValue={relation?.firstName ?? ''} className="form-field" /></Field><Field label={labels.birthNamePrefix}><input name="prefix" defaultValue={relation?.prefix ?? ''} className="form-field" /></Field><Field label={labels.lastName}><input name="lastName" required defaultValue={relation?.lastName ?? ''} className="form-field" /></Field><Field label={labels.mobile}><input name="mobile" type="tel" defaultValue={relation?.mobile ?? ''} className="form-field" /></Field><Field label={labels.privatePhone}><input name="phone" type="tel" defaultValue={relation?.phone ?? ''} className="form-field" /></Field><Field label={labels.email}><input name="email" type="email" defaultValue={relation?.email ?? ''} className="form-field" /></Field><Field label={labels.notes} className="sm:col-span-2"><textarea name="notes" rows={3} defaultValue={relation?.notes ?? ''} className="form-field min-h-24" /></Field><FormFooter state={state} submit={relation ? labels.editResource : labels.saveRelation} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} /></form>
+}
+
+function FormSection({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return <section className="rounded-2xl border bg-surface-raised p-4 sm:p-5"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">{icon}</span><h3 className="font-semibold">{title}</h3></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{children}</div></section>
+}
+
+function DeleteResourceButton({ url, label, confirmation, disabled = false, disabledTitle, onDeleted }: { url: string; label: string; confirmation: string; disabled?: boolean; disabledTitle?: string; onDeleted: () => void }) {
+  const [state, setState] = useState<MutationState>('idle')
+  async function remove(): Promise<void> {
+    if (disabled || !window.confirm(confirmation)) return
+    const succeeded = await runJsonMutation(setState, url, 'DELETE')
+    if (succeeded) onDeleted()
+  }
+  return <button type="button" onClick={remove} disabled={disabled || state === 'saving'} title={disabled ? disabledTitle : undefined} className="button-secondary gap-2 text-destructive"><Trash2 aria-hidden="true" className="h-4 w-4" />{state === 'saving' ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : label}</button>
 }
 
 function ResourceDetails({ title, children }: { title: string; children: ReactNode }) { return <details className="group w-full rounded-xl border bg-surface-raised p-4 sm:w-auto sm:min-w-[28rem]"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-primary">{title}<ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>{children}</details> }
@@ -423,4 +499,4 @@ function EmptyState({ icon, text }: { icon: ReactNode; text: string }) { return 
 function Field({ label, className = '', children }: { label: string; className?: string; children: ReactNode }) { return <label className={`grid gap-1.5 text-sm font-medium ${className}`}>{label}{children}</label> }
 function DataItem({ label, value, fallback = '', isEmail = false }: { label: string; value: string | null | undefined; fallback?: string; isEmail?: boolean }) { return <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-medium">{value ? (isEmail ? <EmailLink email={value} /> : value) : fallback}</dd></div> }
 function InlineState({ kind, children }: { kind: 'saved' | 'failed'; children: ReactNode }) { return <span role={kind === 'failed' ? 'alert' : 'status'} className={`inline-flex items-center gap-1.5 text-sm ${kind === 'saved' ? 'text-success' : 'text-destructive'}`}>{kind === 'saved' ? <Check aria-hidden="true" className="h-4 w-4" /> : <AlertTriangle aria-hidden="true" className="h-4 w-4" />}{children}</span> }
-function FormFooter({ state, submit, saving, saved, failed }: { state: MutationState; submit: string; saving: string; saved: string; failed: string }) { return <div className="flex flex-wrap items-center gap-3 border-t pt-4 sm:col-span-full"><button type="submit" disabled={state === 'saving'} className="button-primary gap-2">{state === 'saving' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{state === 'saving' ? saving : submit}</button>{state === 'saved' && <InlineState kind="saved">{saved}</InlineState>}{state === 'failed' && <InlineState kind="failed">{failed}</InlineState>}</div> }
+function FormFooter({ state, submit, saving, saved, failed, cancel, onCancel }: { state: MutationState; submit: string; saving: string; saved: string; failed: string; cancel?: string; onCancel?: () => void }) { return <div className="flex flex-wrap items-center gap-3 border-t pt-4 sm:col-span-full"><button type="submit" disabled={state === 'saving'} className="button-primary gap-2">{state === 'saving' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{state === 'saving' ? saving : submit}</button>{cancel && onCancel && <button type="button" onClick={onCancel} disabled={state === 'saving'} className="button-secondary">{cancel}</button>}{state === 'saved' && <InlineState kind="saved">{saved}</InlineState>}{state === 'failed' && <InlineState kind="failed">{failed}</InlineState>}</div> }

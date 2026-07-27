@@ -126,6 +126,7 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'employee-department') return 'employeesDepartment'
   if (id === 'employee-gender') return 'employeesGender'
   if (id === 'employee-age') return 'employeesAge'
+  if (id === 'absence-bradford') return 'absenceBradford'
   return id
 }
 

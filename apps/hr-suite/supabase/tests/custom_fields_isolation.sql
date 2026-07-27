@@ -17,12 +17,15 @@ begin
   insert into public.custom_field_definitions (
     id, tenant_id, administration_id, entity_type, key,
     label_nl, label_en, field_type, hr_access, manager_access,
-    employee_self_access, is_required
+    employee_self_access, is_required, country_code
   ) values (
     definition_id, demo_tenant, administration_one, 'EMPLOYEE', 'test_veiligheidsmiddel',
     'Veiligheidsmiddel', 'Safety equipment', 'AUTO_INCREMENT', 'WRITE', 'READ',
-    'READ', true
+    'READ', true, 'BE'
   );
+  if (select country_code from public.custom_field_definitions where id = definition_id) <> 'BE' then
+    raise exception 'Countrycode voor vrij veld ontbreekt.';
+  end if;
 
   begin
     update public.custom_field_definitions set key = 'gewijzigd' where id = definition_id;

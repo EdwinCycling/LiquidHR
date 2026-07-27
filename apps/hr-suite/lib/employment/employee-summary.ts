@@ -48,6 +48,7 @@ export interface CurrentEmployeeSummary {
   } | null
   departmentName: string | null
   jobTitle: string | null
+  managerName: string | null
 }
 
 interface EmployeeSummaryInput {
@@ -84,6 +85,7 @@ export function selectCurrentEmploymentSummary(input: EmployeeSummaryInput): Cur
       salary: null,
       departmentName: null,
       jobTitle: null,
+      managerName: null,
     }
   }
 
@@ -103,5 +105,6 @@ export function selectCurrentEmploymentSummary(input: EmployeeSummaryInput): Cur
     salary: salary ? { amount: salary.amount, currencyCode: salary.currencyCode, paymentType: salary.paymentType } : null,
     departmentName: organization?.departmentName ?? null,
     jobTitle: organization?.jobTitle ?? null,
+    managerName: null,
   }
 }

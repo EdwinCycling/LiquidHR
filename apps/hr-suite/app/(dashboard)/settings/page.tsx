@@ -4,8 +4,10 @@ import {
   Blocks,
   Building2,
   CalendarDays,
+  HeartPulse,
   Database,
   FileSliders,
+  FileText,
   LayoutDashboard,
   ShieldCheck,
   Star,
@@ -133,6 +135,8 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('department:write'),
       allowed('dashboard-widget:write'),
       allowed('star-performer:read'),
+      allowed('company-document:write'),
+      allowed('absence-settings:read'),
     ]),
   ])
 
@@ -147,6 +151,8 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     departments,
     dashboardWidgets,
     starPerformers,
+    companyDocuments,
+    absenceSettings,
   ] = capabilities
 
   const starTilesVisible = starPerformers
@@ -257,11 +263,27 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         },
         {
           kind: 'link',
+          href: '/settings/absence',
+          icon: HeartPulse,
+          title: messages('admin.tiles.absence'),
+          description: messages('admin.tiles.absenceDescription'),
+          visible: absenceSettings,
+        },
+        {
+          kind: 'link',
           href: '/settings/anniversary-rules',
           icon: CalendarDays,
           title: messages('admin.tiles.anniversaryRules'),
           description: messages('admin.tiles.anniversaryRulesDescription'),
           visible: true,
+        },
+        {
+          kind: 'link',
+          href: '/company-documents',
+          icon: FileText,
+          title: messages('admin.tiles.companyDocuments'),
+          description: messages('admin.tiles.companyDocumentsDescription'),
+          visible: companyDocuments,
         },
       ],
     },

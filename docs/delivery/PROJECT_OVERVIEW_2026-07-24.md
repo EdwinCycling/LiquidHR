@@ -1,6 +1,6 @@
 # Project overview — Liquid HR
 
-Peildatum: **24 juli 2026**. Repository: `C:\Users\Edwin\Documents\Apps\HRMyDay`. Branch: `agent/employee-dashboard-release`. Lokale laatste commit: `b32a279` (`docs: add reusable project overview skill`); remote laatste commit: `c95c782`. Applicatieversie: `1.20260724.2`.
+Peildatum: **24 juli 2026**. Repository: `C:\Users\Edwin\Documents\Apps\LiquidHR`. Branch: `agent/employee-dashboard-release`. Lokale laatste commit: `b32a279` (`docs: add reusable project overview skill`); remote laatste commit: `c95c782`. Applicatieversie: `1.20260724.2`.
 
 ## Code-KPI's
 

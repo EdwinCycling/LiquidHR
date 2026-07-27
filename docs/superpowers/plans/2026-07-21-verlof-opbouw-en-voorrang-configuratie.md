@@ -75,7 +75,7 @@ Voorbeeldscherm: **ja** — voor de drag-/toetsenbordvolgorde van de bundel, de 
 
 Vul `messages/nl/leave.json` en `messages/en/leave.json` volledig en voeg de settings-tegel, routezichtbaarheid en permission-seeds samen. Werk `docs/README.md`, `IMPLEMENTATION_STATUS.md` en `CURRENT_CONTEXT.md` bij met de gerealiseerde slice en eventuele bewust resterende onderdelen.
 
-Voer de HRMyDay-releasegate uit: gerichte en volledige Vitest-suite, ESLint, strict TypeScript, i18n-pariteit, productiebuild, typesgeneratie, Supabase advisors, positieve en negatieve database-/RLS-proeven, ingelogde browsercontrole op poort 3000 en publieke preview op desktop en 390px. Controleer specifiek parallelle dienstverbanden, manager-/selfscope, regelopvolgers, locked years, carry-forward, opbouwpauze en FIFO-preview.
+Voer de LiquidHR-releasegate uit: gerichte en volledige Vitest-suite, ESLint, strict TypeScript, i18n-pariteit, productiebuild, typesgeneratie, Supabase advisors, positieve en negatieve database-/RLS-proeven, ingelogde browsercontrole op poort 3000 en publieke preview op desktop en 390px. Controleer specifiek parallelle dienstverbanden, manager-/selfscope, regelopvolgers, locked years, carry-forward, opbouwpauze en FIFO-preview.
 
 Voorbeeldscherm: **optioneel**; alleen een eindbeeld om visueel te vergelijken tijdens de browsercontrole.
 
@@ -97,4 +97,4 @@ Voorbeeldschermen: **ja** — de drie aangeleverde beelden dekken de priority-fo
 
 - De `plan`-skill is gebruikt om dit uitvoeringsplan af te bakenen. Subagents worden niet gebruikt: `AGENTS.md` verbiedt delegatie in dit project.
 - Bij uitvoering geldt de Supabase-skill voor migratie, RLS, grants, types en advisors.
-- De opgeslagen **HRMyDay releasegate** uit `LOOPS.md` is stap 7 en is verplicht voordat deze verticale slice als klaar wordt gemeld.
+- De opgeslagen **LiquidHR releasegate** uit `LOOPS.md` is stap 7 en is verplicht voordat deze verticale slice als klaar wordt gemeld.

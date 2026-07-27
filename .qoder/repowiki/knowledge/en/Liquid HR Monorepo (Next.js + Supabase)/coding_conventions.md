@@ -1,0 +1,7 @@
+- Schema → API route → UI is the mandatory implementation order for every feature.
+- Strict TypeScript is required everywhere; `any` is forbidden.
+- Next.js Server Components and Server Actions are used instead of React Query or SWR, with URL-state for client state.
+- Every exposed database table gets Row Level Security policies generated in the same migration that defines it.
+- Database entities and identifiers are English; comments, documentation, and UI text are Dutch and i18n-ready.
+- Permissions follow the canonical `resource:action` or `self:resource:action` naming scheme.
+- New languages are added as full namespace sets under `apps/hr-suite/messages/<taalcode>/`; components never embed their own translation objects.

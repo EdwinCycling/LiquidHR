@@ -1,0 +1,91 @@
+import 'server-only'
+
+import { createHash, randomUUID } from 'node:crypto'
+import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { createClient } from '@/lib/supabase/server'
+import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
+import type { CompanyDocumentMetadataInput } from './company-schemas'
+
+const BUCKET = 'company-documents'
+
+export class CompanyDocumentServiceError extends Error {
+  constructor(public readonly code: string, public readonly status: number) {
+    super(code)
+    this.name = 'CompanyDocumentServiceError'
+  }
+}
+
+function cleanFilename(name: string): string {
+  return name.normalize('NFKC').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(-180) || 'document'
+}
+
+function contentType(file: File): string {
+  if (file.type) return file.type
+  const extension = file.name.toLocaleLowerCase('en-US').slice(file.name.lastIndexOf('.'))
+  return ({ '.pdf': 'application/pdf', '.txt': 'text/plain', '.md': 'text/markdown', '.csv': 'text/csv', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.bmp': 'image/bmp' } as Record<string, string>)[extension] ?? 'application/octet-stream'
+}
+
+export async function listCompanyDocuments() {
+  const context = await requireAuthContext()
+  const supabase = await createClient()
+  let query = supabase.from('company_documents')
+    .select('id, title, original_filename, content_type, file_size, created_at')
+    .eq('tenant_id', context.tenantId)
+    .is('deleted_at', null)
+  if (context.administrationId) query = query.eq('administration_id', context.administrationId)
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(200)
+  if (error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_READ_FAILED', 500)
+  return data
+}
+
+export async function uploadCompanyDocument(file: File, metadata: CompanyDocumentMetadataInput): Promise<string> {
+  const context = await requirePermission('company-document:write')
+  if (!context.administrationId) throw new CompanyDocumentServiceError('ADMINISTRATION_REQUIRED', 400)
+  if (!isAllowedDocumentFile(file)) throw new CompanyDocumentServiceError('DOCUMENT_TYPE_INVALID', 400)
+  if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) throw new CompanyDocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
+
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const checksum = createHash('sha256').update(bytes).digest('hex')
+  const storageKey = `${context.tenantId}/${context.administrationId}/${randomUUID()}/${cleanFilename(file.name)}`
+  const supabase = await createClient()
+  const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType: contentType(file), upsert: false })
+  if (upload.error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_UPLOAD_FAILED', 500)
+
+  const { data, error } = await supabase.from('company_documents').insert({
+    tenant_id: context.tenantId,
+    administration_id: context.administrationId,
+    title: metadata.title,
+    original_filename: file.name,
+    storage_key: storageKey,
+    file_size: file.size,
+    content_type: contentType(file),
+    checksum_sha256: checksum,
+    uploaded_by_user_id: context.userId,
+  }).select('id').single()
+  if (error || !data) {
+    await supabase.storage.from(BUCKET).remove([storageKey])
+    throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_METADATA_FAILED', 400)
+  }
+  return data.id
+}
+
+export async function createCompanyDocumentDownload(documentId: string): Promise<string> {
+  const context = await requireAuthContext()
+  const supabase = await createClient()
+  let query = supabase.from('company_documents').select('storage_key').eq('id', documentId).eq('tenant_id', context.tenantId).is('deleted_at', null)
+  if (context.administrationId) query = query.eq('administration_id', context.administrationId)
+  const { data, error } = await query.maybeSingle()
+  if (error || !data) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_NOT_FOUND', 404)
+  const signed = await supabase.storage.from(BUCKET).createSignedUrl(data.storage_key, 60)
+  if (signed.error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_DOWNLOAD_FAILED', 500)
+  return signed.data.signedUrl
+}
+
+export async function deleteCompanyDocument(documentId: string): Promise<void> {
+  const context = await requirePermission('company-document:delete')
+  const supabase = await createClient()
+  let query = supabase.from('company_documents').update({ deleted_at: new Date().toISOString() }).eq('id', documentId).eq('tenant_id', context.tenantId).is('deleted_at', null)
+  if (context.administrationId) query = query.eq('administration_id', context.administrationId)
+  const { data, error } = await query.select('id').maybeSingle()
+  if (error || !data) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_NOT_FOUND', 404)
+}

@@ -1,0 +1,6 @@
+- Document status is always tagged with one of three levels: LEIDEND (current source of truth), CONCEPT (directional but not approved), or VERVANGEN (historical, do not use for new implementation).
+- Implementation status uses four fixed states: NIET GESTART, GEDEELTELIJK, GEÏMPLEMENTEERD, and VERVANGEN, applied consistently across all requirement documents.
+- Architectural decisions use ADR-####-korte-titel.md for technical choices and FDR-####-korte-titel.md for functional choices, each containing at minimum datum, status, context, besluit, gevolgen, and vervangen besluiten.
+- Superpowers plans and specs are named with a date prefix (YYYY-MM-DD-) followed by a descriptive title, keeping plan and spec pairs discoverable by date.
+- Requirement documents are organized under `requirements/<domain>/` with one file per feature area, and the root README maintains a master table linking each domain to its lead document and current status.
+- Reading routing is enforced via a table in `docs/README.md` that maps each change category to the exact set of architecture and requirement documents that must be read before implementing.

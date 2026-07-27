@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: ""
+title: Liquid HR Monorepo (Next.js + Supabase)
+scope:
+    - package.json
+    - package-lock.json
+    - vercel.json
+    - .gitignore
+    - AGENTS.md
+    - LOOPS.md
+source_files: []
+depends_on: []
+related_to: []

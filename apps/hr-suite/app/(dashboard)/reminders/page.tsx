@@ -30,7 +30,8 @@ export default async function RemindersPage() {
     employees: t('employees'), create: t('create'), creating: t('creating'), publish: t('publish'), cancelReminder: t('cancelReminder'),
     delete: t('delete'), complete: t('complete'), dismiss: t('dismiss'), snooze: t('snooze'), created: t('created'), failed: t('failed'),
     draft: t('draft'), publishedStatus: t('publishedStatus'), cancelled: t('cancelled'), completed: t('completed'), dismissed: t('dismissed'),
-    pending: t('pending'), noHrPermission: t('noHrPermission'),
+    pending: t('pending'), noHrPermission: t('noHrPermission'), filterOpen: t('filterOpen'), filterAll: t('filterAll'), filterCompleted: t('filterCompleted'), filterDismissed: t('filterDismissed'),
+    sortSoonest: t('sortSoonest'), sortLatest: t('sortLatest'), sortTitle: t('sortTitle'), search: t('search'), selectAll: t('selectAll'), clearSelection: t('clearSelection'), bulkComplete: t('bulkComplete'), moreInfo: t('moreInfo'), employee: t('employee'), noResults: t('noResults'), selectedCount: t('selectedCount'), visibleCount: t('visibleCount'), close: t('close'),
   }
   return <main className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10"><p className="eyebrow">{t('timeHub')}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{t('title')}</h1><p className="mt-2 max-w-2xl text-muted-foreground">{t('subtitle')}</p><ReminderCenter canManageHr={canManageHr} initialManaged={managed} initialReminders={reminders} labels={labels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} targetOptions={targetOptions} /></main>
 }

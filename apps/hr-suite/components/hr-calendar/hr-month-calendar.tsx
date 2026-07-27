@@ -74,6 +74,7 @@ interface Labels {
   employeeSection: string;
   employeesSection: string;
   actionsSection: string;
+  reportAbsence: string;
   events: Record<HrChangeEventType, string>;
   legendTitle: string;
   leaveType: string;
@@ -580,6 +581,13 @@ export function HrMonthCalendar({
                     prefetch={false}
                   >
                     {labels.openEmployeeCard}
+                  </Link>
+                  <Link
+                    className="button-primary w-full justify-center"
+                    href={`/employees/${selection.employee.id}?tab=absence&date=${selection.date}`}
+                    prefetch={false}
+                  >
+                    {labels.reportAbsence}
                   </Link>
                   <button
                     className="button-primary w-full justify-center"

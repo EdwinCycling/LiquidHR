@@ -4,6 +4,7 @@
   "timeHub": "Time Hub",
   "openManagement": "Reminder management",
   "pendingCount": "{count} pending",
+  "moreReminders": "more reminders",
   "empty": "There are no reminders waiting.",
   "personal": "Personal",
   "hr": "HR reminder",
@@ -39,5 +40,9 @@
   "pending": "Pending",
   "personalList": "My reminders",
   "hrList": "HR management",
-  "noHrPermission": "You can create personal reminders. HR management is not available for your role."
+  "noHrPermission": "You can create personal reminders. HR management is not available for your role.",
+  "filterOpen": "Open", "filterAll": "Include older reminders", "filterCompleted": "Completed", "filterDismissed": "Hidden",
+  "sortSoonest": "Soonest first", "sortLatest": "Latest first", "sortTitle": "By title", "search": "Search reminders",
+  "selectAll": "Select open reminders", "clearSelection": "Clear selection", "bulkComplete": "Mark as complete",
+  "moreInfo": "More information", "employee": "Employee", "noResults": "No reminders found for this selection.", "selectedCount": "{count} selected", "visibleCount": "{count} reminders shown"
 }

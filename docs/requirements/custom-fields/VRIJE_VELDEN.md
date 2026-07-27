@@ -7,7 +7,7 @@ Om de code-complexiteit laag te houden en de prestaties te maximaliseren, gebrui
 1. We definiëren de velden in een centrale metadata-tabel (`CustomFieldDefinition`).
 2. De daadwerkelijke waarden worden per entiteit opgeslagen in een `customFields` JSONB-kolom op de doeltabel zelf (bijv. in de `Employee` of `Asset` tabel).
 
-**Implementatiestatus 2026-07-15:** de volledige verticale slice voor `EMPLOYEE` is gerealiseerd. Definities, selectopties en tellers zijn administratiegebonden. Waarden worden via een afzonderlijke RLS-tabel per definitie afgeschermd en door een interne trigger gespiegeld naar `employees.custom_fields[administrationId]`. Hierdoor kan een gebruiker nooit via de algemene medewerkerquery verborgen vrije velden uitlezen.
+**Implementatiestatus 2026-07-26:** de volledige verticale slice voor `EMPLOYEE` is gerealiseerd. Definities, selectopties en tellers zijn administratiegebonden. HR Admin kan definities beheren, activeren/deactiveren en alleen ongebruikte definities verwijderen; technische sleutel en veldtype blijven onveranderlijk. De beheer-UI ondersteunt landcode, sortering en een live preview. Waarden worden via een afzonderlijke RLS-tabel per definitie afgeschermd en door een interne trigger gespiegeld naar `employees.custom_fields[administrationId]`. Hierdoor kan een gebruiker nooit via de algemene medewerkerquery verborgen vrije velden uitlezen.
 
 ### Vastgestelde beveiligingsuitbreidingen
 

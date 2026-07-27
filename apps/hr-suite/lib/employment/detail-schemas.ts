@@ -119,16 +119,6 @@ export const profileLinkSchema = z.object({
   sortOrder: z.number().int().min(0).max(1_000).default(0),
 }).strict()
 
-export const followUpSchema = z.object({
-  changeSetId: z.string().uuid().optional(),
-  subject: z.string().trim().min(1).max(160),
-  description: z.string().trim().max(2_000).nullish(),
-  responsibleRoleCode: z.string().trim().max(80).nullish(),
-  responsibleUserId: z.string().uuid().nullish(),
-  dueOn: dateOnly.nullish(),
-  priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).default('NORMAL'),
-}).strict()
-
 export const chainAssessmentRequestSchema = z.object({
   proposed: z.object({
     startsOn: dateOnly,
@@ -143,5 +133,4 @@ export type TimelineMutationInput = z.infer<typeof timelineMutationSchema>
 export type CombinedTimelineMutationInput = z.infer<typeof combinedTimelineMutationSchema>
 export type RollbackTimelineInput = z.infer<typeof rollbackTimelineSchema>
 export type ProfileLinkInput = z.infer<typeof profileLinkSchema>
-export type FollowUpInput = z.infer<typeof followUpSchema>
 export type ChainAssessmentRequestInput = z.infer<typeof chainAssessmentRequestSchema>

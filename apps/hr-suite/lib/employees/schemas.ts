@@ -86,6 +86,7 @@ export const addressSchema = z.object({
   sourceReference: nullableText(240),
   validFrom: dateOnly,
   validUntil: dateOnly.nullish(),
+  directReminderRecipients: z.array(z.enum(['HR_ADMIN', 'MANAGER', 'EMPLOYEE'])).max(3).default([]),
 }).strict().superRefine((value, context) => {
   const addition = value.houseNumberAddition ?? value.addition
   if (value.countryCode === 'NL') {

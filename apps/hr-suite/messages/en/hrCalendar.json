@@ -14,6 +14,7 @@
   "jobGroup": "Job group",
   "job": "Job",
   "actions": "Actions",
+  "reportAbsence": "Report sick",
   "all": "All",
   "noEvents": "No employees in this selection.",
   "pageSize": "Employees on screen",

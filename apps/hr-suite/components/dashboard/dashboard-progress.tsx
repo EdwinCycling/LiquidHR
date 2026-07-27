@@ -39,7 +39,6 @@ export function WidgetCompletionSignal({ result, widgetId }: { result: Dashboard
 }
 
 export function DashboardRefreshButton({ label }: { label: string }) {
-  const progress = useContext(DashboardProgressContext)
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -48,7 +47,7 @@ export function DashboardRefreshButton({ label }: { label: string }) {
     next.set('refresh', String(Date.now()))
     router.replace(`${pathname}?${next.toString()}`, { scroll: false })
   }
-  return <button className="button-secondary min-h-10 gap-2" disabled={!progress?.isComplete} onClick={refresh} type="button"><RefreshCw aria-hidden="true" className={!progress?.isComplete ? 'animate-spin' : undefined} size={16} />{label}</button>
+  return <button className="button-secondary min-h-10 gap-2" onClick={refresh} type="button"><RefreshCw aria-hidden="true" size={16} />{label}</button>
 }
 
 function DashboardProgressIndicator({ labels }: { labels: ProgressLabels }) {

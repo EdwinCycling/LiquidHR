@@ -3,9 +3,6 @@
 import type { Database } from '@scope/db'
 import Link from 'next/link'
 import { TerminationForm } from './termination-form'
-import { ConfirmationDialog } from './confirmation-dialog'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
 
@@ -28,19 +25,15 @@ interface EmploymentTimelineProps {
     primary: string
     employmentNumber: string
     terminate: TerminationFormProps['labels']
-    openDetail: string
+    editDetail: string
     indefinite: string
     definite: string
-    delete: { title: string; description: string; confirm: string; cancel: string; failed: string }
   }
 }
 
 type TerminationFormProps = Parameters<typeof TerminationForm>[0]
 
 export function EmploymentTimeline({ employments, locale, dateFormat, options, canManage = false, labels }: EmploymentTimelineProps) {
-  const router = useRouter()
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [deleteState, setDeleteState] = useState<'idle' | 'busy' | 'failed'>('idle')
   if (employments.length === 0) {
     return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">{labels.empty}</p>
   }
@@ -48,14 +41,12 @@ export function EmploymentTimeline({ employments, locale, dateFormat, options, c
   const format = (value: string) => formatDate(value, { locale, dateFormat })
 
   return (
-    <>
-    <ol className="relative space-y-5 before:absolute before:bottom-6 before:left-[0.42rem] before:top-6 before:w-px before:bg-border">
+    <ol className={`grid gap-5 ${employments.length > 1 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
       {employments.map((employment) => {
         const status = employment.starts_on > today ? 'future' : employment.ends_on && employment.ends_on < today ? 'ended' : 'active'
         return (
-          <li key={employment.id} className="relative grid grid-cols-[1rem_1fr] gap-4">
-            <span className="mt-6 h-3.5 w-3.5 rounded-full border-2 border-surface bg-primary ring-4 ring-background" />
-            <article className="rounded-xl border bg-surface p-5 shadow-sm">
+          <li key={employment.id}>
+            <article className="h-full rounded-2xl border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -72,8 +63,7 @@ export function EmploymentTimeline({ employments, locale, dateFormat, options, c
                 {format(employment.starts_on)} — {employment.ends_on ? format(employment.ends_on) : labels.active}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link prefetch={false} href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="button-primary">{labels.openDetail}</Link>
-                {canManage ? <button className="button-secondary" onClick={() => { setDeletingId(employment.id); setDeleteState('idle') }} type="button">{labels.delete.confirm}</button> : null}
+                <Link prefetch={false} href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="button-primary">{labels.editDetail}</Link>
               </div>
               {canManage && status === 'active' && (
                 <div className="mt-5">
@@ -90,7 +80,5 @@ export function EmploymentTimeline({ employments, locale, dateFormat, options, c
         )
       })}
     </ol>
-    <ConfirmationDialog open={Boolean(deletingId)} title={labels.delete.title} description={labels.delete.description} confirmLabel={labels.delete.confirm} cancelLabel={labels.delete.cancel} busy={deleteState === 'busy'} warning onCancel={() => setDeletingId(null)} onConfirm={() => { if (!deletingId) return; setDeleteState('busy'); void fetch(`/api/employments/${deletingId}`, { method: 'DELETE' }).then((response) => { if (!response.ok) throw new Error('delete'); router.refresh(); setDeletingId(null) }).catch(() => setDeleteState('failed')) }} />
-    </>
   )
 }

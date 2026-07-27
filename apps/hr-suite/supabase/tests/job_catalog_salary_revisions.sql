@@ -6,6 +6,7 @@ declare
   administration uuid;
   actor uuid;
   group_id uuid;
+  second_group_id uuid;
   created_job_id uuid;
   scale_id uuid;
   revision_id uuid;
@@ -17,11 +18,22 @@ begin
 
   insert into public.job_groups (tenant_id, administration_id, code, name)
   values (tenant, administration, 'TEST-GROUP', 'Testgroep') returning id into group_id;
+  insert into public.job_groups (tenant_id, administration_id, code, name)
+  values (tenant, administration, 'TEST-GROUP-2', 'Tweede testgroep') returning id into second_group_id;
   created_job_id := public.create_job_with_revision(administration, jsonb_build_object(
-    'jobGroupId', group_id, 'code', 'TEST-JOB', 'name', 'Testfunctie',
-    'description', '', 'validFrom', '2026-07-01', 'validUntil', ''
+    'jobGroupIds', jsonb_build_array(group_id, second_group_id), 'code', 'TEST-JOB', 'name', 'Testfunctie',
+    'description', ''
   ));
   if (select count(*) from public.job_revisions where job_id = created_job_id) <> 1 then raise exception 'Functierevisie ontbreekt.'; end if;
+  if (select count(*) from public.job_group_jobs where job_id = created_job_id) <> 2 then raise exception 'Functie is niet aan beide functiegroepen gekoppeld.'; end if;
+  update public.job_groups set is_active = false where id = second_group_id;
+  begin
+    perform public.create_job_with_revision(administration, jsonb_build_object(
+      'jobGroupIds', jsonb_build_array(second_group_id), 'code', 'TEST-JOB-INACTIVE', 'name', 'Inactieve testfunctie'
+    ));
+    raise exception 'Inactieve functiegroep kon worden geselecteerd.';
+  exception when sqlstate 'P0001' then null;
+  end;
 
   insert into public.salary_scales (tenant_id, administration_id, code, name)
   values (tenant, administration, 'TEST-SCALE', 'Testschaal') returning id into scale_id;

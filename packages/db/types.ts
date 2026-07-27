@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -12,8 +12,462 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      absence_capacity_changes: {
+        Row: {
+          absence_percentage: number
+          case_id: string
+          created_at: string
+          created_by_user_id: string | null
+          effective_on: string
+          expected_next_review_on: string | null
+          id: string
+          spell_id: string
+          tenant_id: string
+        }
+        Insert: {
+          absence_percentage: number
+          case_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_on: string
+          expected_next_review_on?: string | null
+          id?: string
+          spell_id: string
+          tenant_id: string
+        }
+        Update: {
+          absence_percentage?: number
+          case_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_on?: string
+          expected_next_review_on?: string | null
+          id?: string
+          spell_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_capacity_changes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_capacity_changes_case_tenant_fkey"
+            columns: ["tenant_id", "case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_capacity_changes_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "absence_spells"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_capacity_changes_spell_tenant_fkey"
+            columns: ["tenant_id", "spell_id"]
+            isOneToOne: false
+            referencedRelation: "absence_spells"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_capacity_changes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_cases: {
+        Row: {
+          administration_id: string
+          archived_at: string | null
+          case_manager_employee_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          effective_clock_start_on: string
+          employee_id: string
+          employment_id: string
+          first_absence_on: string
+          frequent_absence_threshold: number
+          has_sickness_benefit_safety_net: boolean | null
+          id: string
+          is_frequent_absence: boolean
+          is_third_party_traffic_accident: boolean | null
+          is_work_accident: boolean | null
+          prior_case_count_12_months: number
+          recovery_window_ends_on: string | null
+          status: Database["public"]["Enums"]["absence_case_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          archived_at?: string | null
+          case_manager_employee_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_clock_start_on: string
+          employee_id: string
+          employment_id: string
+          first_absence_on: string
+          frequent_absence_threshold?: number
+          has_sickness_benefit_safety_net?: boolean | null
+          id?: string
+          is_frequent_absence?: boolean
+          is_third_party_traffic_accident?: boolean | null
+          is_work_accident?: boolean | null
+          prior_case_count_12_months?: number
+          recovery_window_ends_on?: string | null
+          status?: Database["public"]["Enums"]["absence_case_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          archived_at?: string | null
+          case_manager_employee_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          effective_clock_start_on?: string
+          employee_id?: string
+          employment_id?: string
+          first_absence_on?: string
+          frequent_absence_threshold?: number
+          has_sickness_benefit_safety_net?: boolean | null
+          id?: string
+          is_frequent_absence?: boolean
+          is_third_party_traffic_accident?: boolean | null
+          is_work_accident?: boolean | null
+          prior_case_count_12_months?: number
+          recovery_window_ends_on?: string | null
+          status?: Database["public"]["Enums"]["absence_case_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_cases_administration_scope_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_cases_employee_scope_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_cases_employment_scope_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "absence_cases_manager_scope_fkey"
+            columns: ["tenant_id", "case_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_cases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_mutations: {
+        Row: {
+          created_at: string
+          id: string
+          operation_key: string
+          operation_type: string
+          result_case_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operation_key: string
+          operation_type: string
+          result_case_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operation_key?: string
+          operation_type?: string
+          result_case_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_mutations_result_case_id_fkey"
+            columns: ["result_case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_mutations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_settings: {
+        Row: {
+          administration_id: string
+          created_at: string
+          default_case_manager_employee_id: string | null
+          frequent_absence_threshold: number
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          default_case_manager_employee_id?: string | null
+          frequent_absence_threshold?: number
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          default_case_manager_employee_id?: string | null
+          frequent_absence_threshold?: number
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_settings_administration_scope_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: true
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_settings_default_manager_fkey"
+            columns: ["tenant_id", "default_case_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_spells: {
+        Row: {
+          case_id: string
+          created_at: string
+          expected_recovery_on: string | null
+          id: string
+          recovered_at: string | null
+          recovered_by_user_id: string | null
+          recovered_on: string | null
+          reported_at: string
+          reported_by_user_id: string | null
+          started_on: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          expected_recovery_on?: string | null
+          id?: string
+          recovered_at?: string | null
+          recovered_by_user_id?: string | null
+          recovered_on?: string | null
+          reported_at?: string
+          reported_by_user_id?: string | null
+          started_on: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          expected_recovery_on?: string | null
+          id?: string
+          recovered_at?: string | null
+          recovered_by_user_id?: string | null
+          recovered_on?: string | null
+          reported_at?: string
+          reported_by_user_id?: string | null
+          started_on?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_spells_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_spells_case_tenant_fkey"
+            columns: ["tenant_id", "case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_spells_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_task_templates: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          due_after_effective_days: number
+          evidence_category: string | null
+          evidence_required: boolean
+          id: string
+          is_active: boolean
+          is_system: boolean
+          source: string
+          source_version: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          due_after_effective_days: number
+          evidence_category?: string | null
+          evidence_required?: boolean
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          source?: string
+          source_version?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          due_after_effective_days?: number
+          evidence_category?: string | null
+          evidence_required?: boolean
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          source?: string
+          source_version?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_task_templates_administration_id_fkey"
+            columns: ["administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_task_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       administrations: {
         Row: {
           coc_number: string | null
@@ -405,6 +859,69 @@ export type Database = {
           },
         ]
       }
+      company_documents: {
+        Row: {
+          administration_id: string
+          checksum_sha256: string
+          content_type: string
+          created_at: string
+          deleted_at: string | null
+          file_size: number
+          id: string
+          original_filename: string
+          storage_key: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          administration_id: string
+          checksum_sha256: string
+          content_type: string
+          created_at?: string
+          deleted_at?: string | null
+          file_size: number
+          id?: string
+          original_filename: string
+          storage_key: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          administration_id?: string
+          checksum_sha256?: string
+          content_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_size?: number
+          id?: string
+          original_filename?: string
+          storage_key?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_documents_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "company_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_centers: {
         Row: {
           administration_id: string
@@ -502,6 +1019,7 @@ export type Database = {
       custom_field_definitions: {
         Row: {
           administration_id: string
+          country_code: string
           created_at: string
           deleted_at: string | null
           description_en: string | null
@@ -525,6 +1043,7 @@ export type Database = {
         }
         Insert: {
           administration_id: string
+          country_code?: string
           created_at?: string
           deleted_at?: string | null
           description_en?: string | null
@@ -548,6 +1067,7 @@ export type Database = {
         }
         Update: {
           administration_id?: string
+          country_code?: string
           created_at?: string
           deleted_at?: string | null
           description_en?: string | null
@@ -1383,6 +1903,67 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      employee_notes: {
+        Row: {
+          administration_id: string
+          created_at: string
+          created_by_user_id: string
+          description: string
+          employee_id: string
+          id: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          created_by_user_id?: string
+          description?: string
+          employee_id: string
+          id?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          created_by_user_id?: string
+          description?: string
+          employee_id?: string
+          id?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_notes_administration_id_fkey"
+            columns: ["administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_notes_employee_scope_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3415,6 +3996,52 @@ export type Database = {
           },
         ]
       }
+      job_group_jobs: {
+        Row: {
+          administration_id: string
+          created_at: string
+          job_group_id: string
+          job_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          job_group_id: string
+          job_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          job_group_id?: string
+          job_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_group_jobs_group_scope_fkey"
+            columns: ["tenant_id", "administration_id", "job_group_id"]
+            isOneToOne: false
+            referencedRelation: "job_groups"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "job_group_jobs_job_scope_fkey"
+            columns: ["tenant_id", "administration_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "job_group_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_groups: {
         Row: {
           administration_id: string
@@ -4731,6 +5358,99 @@ export type Database = {
           },
         ]
       }
+      payslips: {
+        Row: {
+          administration_id: string
+          calendar_year: number
+          checksum_sha256: string
+          content_type: string
+          employee_id: string
+          employment_id: string
+          file_size: number
+          id: string
+          import_source: string
+          imported_at: string
+          imported_by_user_id: string | null
+          original_filename: string
+          period_label: string
+          storage_key: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          calendar_year: number
+          checksum_sha256: string
+          content_type: string
+          employee_id: string
+          employment_id: string
+          file_size: number
+          id?: string
+          import_source: string
+          imported_at?: string
+          imported_by_user_id?: string | null
+          original_filename: string
+          period_label: string
+          storage_key: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          calendar_year?: number
+          checksum_sha256?: string
+          content_type?: string
+          employee_id?: string
+          employment_id?: string
+          file_size?: number
+          id?: string
+          import_source?: string
+          imported_at?: string
+          imported_by_user_id?: string | null
+          original_filename?: string
+          period_label?: string
+          storage_key?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "payslips_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "payslips_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           category: string
@@ -5971,6 +6691,28 @@ export type Database = {
         }
         Returns: string
       }
+      create_employee_address_with_reminders: {
+        Args: {
+          requested_address_line_1: string
+          requested_address_line_2: string
+          requested_administration_id: string
+          requested_city: string
+          requested_country_code: string
+          requested_employee_id: string
+          requested_house_number: string
+          requested_house_number_addition: string
+          requested_postal_code: string
+          requested_region: string
+          requested_reminder_roles?: string[]
+          requested_source: string
+          requested_source_reference: string
+          requested_street: string
+          requested_tenant_id: string
+          requested_valid_from: string
+          requested_valid_until: string
+        }
+        Returns: string
+      }
       create_employee_document_metadata: {
         Args: {
           requested_administration_id: string
@@ -6112,6 +6854,30 @@ export type Database = {
         Args: { requested_administration_id: string; requested_payload: Json }
         Returns: string
       }
+      recover_absence: {
+        Args: {
+          requested_case_id: string
+          requested_idempotency_key?: string
+          requested_recovered_on: string
+        }
+        Returns: string
+      }
+      report_absence: {
+        Args: {
+          requested_absence_percentage: number
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_recovery_on?: string
+          requested_has_sickness_benefit_safety_net?: boolean
+          requested_idempotency_key?: string
+          requested_is_third_party_traffic_accident?: boolean
+          requested_is_work_accident?: boolean
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       reserve_employee_number: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -6148,6 +6914,7 @@ export type Database = {
       }
     }
     Enums: {
+      absence_case_status: "ACTIVE" | "RECOVERY_WINDOW" | "CLOSED"
       access_scope_type: "TENANT" | "ADMINISTRATION"
       administration_mode: "SEPARATE" | "COMBINED"
       ai_draft_status:
@@ -6416,8 +7183,12 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
+      absence_case_status: ["ACTIVE", "RECOVERY_WINDOW", "CLOSED"],
       access_scope_type: ["TENANT", "ADMINISTRATION"],
       administration_mode: ["SEPARATE", "COMBINED"],
       ai_draft_status: [

@@ -8,7 +8,7 @@ export const loginSchema = z.object({
 
 export function safeNextPath(value: string | null | undefined): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
-    return '/departments'
+    return '/dashboard/start'
   }
 
   return value

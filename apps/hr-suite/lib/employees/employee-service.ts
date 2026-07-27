@@ -64,6 +64,18 @@ function toAddressRow(input: AddressInput): {
   }
 }
 
+function addressDatabaseError(error: { code?: string; message?: string }, fallback: string): EmployeeServiceError {
+  if (isPostgresConflict(error)) {
+    return new EmployeeServiceError('ADDRESS_PERIOD_CONFLICT', 409)
+  }
+  const message = error.message ?? ''
+  if (message.includes('ADDRESS_LAST_CANNOT_ARCHIVE')) return new EmployeeServiceError('ADDRESS_LAST_CANNOT_ARCHIVE', 409)
+  if (message.includes('ADDRESS_REMINDER_MODULE_DISABLED')) return new EmployeeServiceError('ADDRESS_REMINDER_MODULE_DISABLED', 409)
+  if (message.includes('ADDRESS_REMINDER_ROLE_INVALID')) return new EmployeeServiceError('ADDRESS_REMINDER_ROLE_INVALID', 400)
+  if (message.includes('ADDRESS_FORBIDDEN')) return new EmployeeServiceError('ADDRESS_FORBIDDEN', 403)
+  return new EmployeeServiceError(fallback, 500)
+}
+
 async function reserveEmployeeNumber(context: AuthContext): Promise<string> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('reserve_employee_number', { p_tenant_id: context.tenantId })
@@ -271,14 +283,30 @@ export async function createEmployeeAddress(employeeId: string, input: AddressIn
   if (readContext.employeeId === employeeId) await requirePermission('address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  const { data, error } = await supabase.from('employee_addresses').insert({
-    tenant_id: readContext.tenantId,
-    employee_id: employeeId,
-    ...toAddressRow(input),
-  }).select('id').single()
-  if (isPostgresConflict(error)) throw new EmployeeServiceError('ADDRESS_PERIOD_CONFLICT', 409)
-  if (error || !data) throw new EmployeeServiceError('ADDRESS_CREATE_FAILED', 500)
-  return data.id
+  if (!readContext.administrationId) throw new EmployeeServiceError('ADMINISTRATION_REQUIRED', 400)
+  const address = toAddressRow(input)
+  const { data, error } = await supabase.rpc('create_employee_address_with_reminders', {
+    requested_tenant_id: readContext.tenantId,
+    requested_administration_id: readContext.administrationId,
+    requested_employee_id: employeeId,
+    requested_address_line_1: address.address_line_1,
+    requested_address_line_2: address.address_line_2 ?? '',
+    requested_street: address.street ?? '',
+    requested_house_number: address.house_number ?? '',
+    requested_house_number_addition: address.house_number_addition ?? '',
+    requested_postal_code: address.postal_code ?? '',
+    requested_city: address.city ?? '',
+    requested_region: address.region ?? '',
+    requested_country_code: address.country_code,
+    requested_source: address.source,
+    requested_source_reference: address.source_reference ?? '',
+    requested_valid_from: address.valid_from,
+    requested_valid_until: address.valid_until ?? '',
+    requested_reminder_roles: input.directReminderRecipients,
+  })
+  if (error) throw addressDatabaseError(error, 'ADDRESS_CREATE_FAILED')
+  if (!data) throw new EmployeeServiceError('ADDRESS_CREATE_FAILED', 500)
+  return data
 }
 
 export async function updateEmployeeAddress(
@@ -305,9 +333,11 @@ export async function archiveEmployeeAddress(employeeId: string, addressId: stri
   if (context.employeeId === employeeId) await requirePermission('address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  const { error } = await supabase.from('employee_addresses').update({ deleted_at: new Date().toISOString() })
+  const { data, error } = await supabase.from('employee_addresses').update({ deleted_at: new Date().toISOString() })
     .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
-  if (error) throw new EmployeeServiceError('ADDRESS_ARCHIVE_FAILED', 500)
+    .is('deleted_at', null).select('id').maybeSingle()
+  if (error) throw addressDatabaseError(error, 'ADDRESS_ARCHIVE_FAILED')
+  if (!data) throw new EmployeeServiceError('ADDRESS_NOT_FOUND', 404)
 }
 
 export async function createEmployeeRelation(employeeId: string, input: RelationInput): Promise<string> {

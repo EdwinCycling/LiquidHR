@@ -6,7 +6,7 @@ interface EmployeeErrorBody {
 }
 
 export function employeeErrorPayload(error: unknown): {
-  status: 400 | 404 | 409 | 500
+  status: 400 | 403 | 404 | 409 | 500
   body: EmployeeErrorBody
 } {
   if (error instanceof EmployeeServiceError) {

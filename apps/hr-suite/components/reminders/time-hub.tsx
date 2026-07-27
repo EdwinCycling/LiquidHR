@@ -14,6 +14,7 @@ export interface TimeHubLabels {
   timeHub: string
   openManagement: string
   pendingCount: string
+  moreReminders: string
   empty: string
   dueTitle: string
   complete: string
@@ -39,6 +40,7 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
   const [busy, setBusy] = useState<string | null>(null)
   const [closedPopupId, setClosedPopupId] = useState<string | null>(null)
   const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
   const reminderButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   useEffect(() => {
@@ -77,32 +79,26 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
     setBusy(null)
   }
 
-  if (collapsed) {
-    return (
-      <Link aria-label={`${labels.timeHub}: ${labels.pendingCount.replace('{count}', String(pending.length))}`} className="relative grid size-10 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/reminders">
+  return (
+    <div className={`relative ${collapsed ? '' : 'min-w-0'}`}>
+      <button aria-expanded={isOpen} aria-label={`${labels.timeHub}: ${labels.pendingCount.replace('{count}', String(pending.length))}`} className="relative grid size-10 place-items-center rounded-lg text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={() => setIsOpen((value) => !value)} type="button">
         <Bell aria-hidden="true" size={18} />
         {pending.length > 0 ? <span className="absolute right-0 top-0 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-bold text-primary-foreground">{Math.min(pending.length, 99)}</span> : null}
-      </Link>
-    )
-  }
+      </button>
 
-  return (
-    <div className="min-w-0 flex-1">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sidebar-muted"><Bell aria-hidden="true" size={14} />{labels.timeHub}</span>
-        <span className="rounded-full bg-sidebar-accent px-2 py-0.5 text-[10px] tabular-nums text-sidebar-muted">{pending.length}</span>
-      </div>
-      {visible.length === 0 ? <p className="text-xs text-sidebar-muted">{labels.empty}</p> : (
-        <ul className="space-y-1.5">
-          {visible.map((item) => <li key={item.recipientId}>
-            <button className="block w-full rounded-lg bg-sidebar-accent px-2.5 py-2 text-left transition-[filter,background-color] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-foreground" onClick={() => setSelectedRecipientId(item.recipientId)} ref={(element) => { reminderButtonRefs.current[item.recipientId] = element }} type="button">
-              <span className="block truncate text-xs font-medium">{item.title}</span>
-              <span className="mt-0.5 flex items-center gap-1 text-[10px] text-sidebar-muted"><Clock3 aria-hidden="true" size={11} />{formatReminderCountdown(now, new Date(item.remindAt), locale)}</span>
-            </button>
-          </li>)}
-        </ul>
-      )}
-      <Link className="mt-2 inline-block text-xs font-medium text-sidebar-muted underline-offset-4 hover:text-sidebar-foreground hover:underline" href="/reminders">{labels.openManagement}</Link>
+      {isOpen ? <section className={`absolute bottom-full z-[70] mb-3 w-[min(21rem,calc(100vw-2rem))] rounded-2xl border border-sidebar-border bg-sidebar p-3 text-sidebar-foreground shadow-[0_1.5rem_4rem_color-mix(in_srgb,var(--sidebar)_55%,transparent)] ${collapsed ? 'left-full ml-3' : 'left-0'}`}>
+        <header className="flex items-center justify-between gap-3 border-b border-sidebar-border pb-3">
+          <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-sidebar-muted">{labels.timeHub}</p><p className="mt-1 text-sm font-semibold">{labels.pendingCount.replace('{count}', String(pending.length))}</p></div>
+          <Link className="rounded-lg bg-sidebar-accent px-2.5 py-1.5 text-xs font-semibold text-sidebar-foreground hover:brightness-110" href="/reminders" onClick={() => setIsOpen(false)}>{labels.openManagement}</Link>
+        </header>
+        {visible.length === 0 ? <p className="px-1 py-5 text-xs text-sidebar-muted">{labels.empty}</p> : <ul className="mt-3 space-y-1.5">{visible.map((item) => <li key={item.recipientId}>
+          <button className="block w-full rounded-xl bg-sidebar-accent px-3 py-2.5 text-left transition-[filter,background-color] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-foreground" onClick={() => { setSelectedRecipientId(item.recipientId); setIsOpen(false) }} ref={(element) => { reminderButtonRefs.current[item.recipientId] = element }} type="button">
+            <span className="block truncate text-xs font-medium">{item.title}</span>
+            <span className="mt-0.5 flex items-center gap-1 text-[10px] text-sidebar-muted"><Clock3 aria-hidden="true" size={11} />{formatReminderCountdown(now, new Date(item.remindAt), locale)}</span>
+          </button>
+        </li>)}</ul>}
+        {pending.length > visible.length ? <p className="mt-2 px-1 text-[11px] text-sidebar-muted">+{pending.length - visible.length} {labels.moreReminders}</p> : null}
+      </section> : null}
 
       {popup ? (
         <ReminderDetailDialog
@@ -116,6 +112,7 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
           onClose={() => {
             const recipientId = selectedRecipientId
             setSelectedRecipientId(null)
+            setIsOpen(false)
             if (automaticDue?.recipientId === popup.recipientId) setClosedPopupId(popup.recipientId)
             if (recipientId) window.requestAnimationFrame(() => reminderButtonRefs.current[recipientId]?.focus())
           }}

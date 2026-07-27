@@ -11,6 +11,9 @@ export interface EmployeeCapabilities {
   canManageRelations: boolean
   canManageBankAccounts: boolean
   canReadSalary: boolean
+  canReadNotes?: boolean
+  canWriteNotes?: boolean
+  canDeleteNotes?: boolean
 }
 
 export interface EmployeeProfile {
@@ -114,6 +117,8 @@ export interface EmployeeDetailViewModel {
   relations?: EmployeeRelation[]
   relationTypes?: EmployeeRelationTypeOption[]
   currentEmploymentSummary: CurrentEmployeeSummary
+  profileLinks?: Array<{ id: string; label: string; url: string; linkType: string }>
+  notes?: import('@/lib/employees/employee-notes-service').EmployeeNote[]
   capabilities?: EmployeeCapabilities
   roleAssignments?: EmployeeRoleAssignment[]
 }

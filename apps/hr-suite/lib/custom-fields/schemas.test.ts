@@ -13,6 +13,15 @@ describe('vrije velden validatie', () => {
     if (parsed.success) expect(parsed.data.showInOrganizationChartFilter).toBe(false)
   })
 
+  it('normaliseert de landcode voor toekomstige landgerichte UX', () => {
+    const parsed = customFieldDefinitionSchema.safeParse({
+      key: 'work_permit', labelNl: 'Werkvergunning', labelEn: 'Work permit',
+      fieldType: 'TEXT', countryCode: 'be',
+    })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) expect(parsed.data.countryCode).toBe('BE')
+  })
+
   it('weigert een onveilige technische sleutel', () => {
     expect(customFieldDefinitionSchema.safeParse({
       key: 'Shirt maat', labelNl: 'Shirtmaat', labelEn: 'Shirt size', fieldType: 'TEXT',

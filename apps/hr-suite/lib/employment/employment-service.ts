@@ -113,6 +113,7 @@ export interface EmployeeEmploymentDetail {
     nameEn: string
   }>
   currentEmploymentSummary: CurrentEmployeeSummary
+  profileLinks: Array<{ id: string; label: string; url: string; linkType: string }>
   capabilities: {
     canEditEmployee: boolean
     canReadBsn: boolean
@@ -349,6 +350,7 @@ export async function listEmployeeEmployments(employeeId: string): Promise<Emplo
     .eq('employee_id', employeeId)
     .is('deleted_at', null)
     .order('starts_on', { ascending: false })
+    .order('is_primary', { ascending: false })
     .limit(100)
   if (error) throw new EmploymentServiceError('EMPLOYMENT_READ_FAILED', 500)
   return data
@@ -396,7 +398,7 @@ export async function getEmployeeEmploymentDetail(
     .eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
   const employmentsQuery = supabase.from('employments').select('*')
     .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).is('deleted_at', null)
-    .order('starts_on', { ascending: false }).limit(100)
+    .order('starts_on', { ascending: false }).order('is_primary', { ascending: false }).limit(100)
   const addressesQuery = includePersonalData
     ? supabase.from('employee_addresses').select('*').eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
       .is('deleted_at', null).order('valid_from', { ascending: false }).limit(100)
@@ -432,12 +434,15 @@ export async function getEmployeeEmploymentDetail(
   const organizationQuery = includeOverviewData
     ? (() => {
       const query = supabase.from('employee_organizations')
-        .select('employment_id, job_title, effective_from, effective_to, departments!employee_organizations_department_id_fkey(name)')
+        .select('employment_id, job_title, direct_manager_id, effective_from, effective_to, departments!employee_organizations_department_id_fkey(name)')
         .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('effective_from', today)
         .or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(100)
       if (context.administrationId) query.eq('administration_id', context.administrationId)
       return query
     })()
+    : Promise.resolve({ data: [], error: null })
+  const profileLinksQuery = includeOverviewData
+    ? supabase.from('employee_profile_links').select('id, label, url, link_type').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).order('sort_order').order('created_at').limit(50)
     : Promise.resolve({ data: [], error: null })
   const capabilityValuesPromise = Promise.all([
     permissionAllowed('employee:write', employeeId),
@@ -457,6 +462,7 @@ export async function getEmployeeEmploymentDetail(
     { data: schedules, error: schedulesError },
     salaryResult,
     { data: organizations, error: organizationsError },
+    { data: profileLinks, error: profileLinksError },
     capabilityValues,
     canReadSalary,
   ] = await Promise.all([
@@ -470,6 +476,7 @@ export async function getEmployeeEmploymentDetail(
     schedulesQuery,
     salaryQuery,
     organizationQuery,
+    profileLinksQuery,
     capabilityValuesPromise,
     canReadSalaryPromise,
   ])
@@ -479,7 +486,7 @@ export async function getEmployeeEmploymentDetail(
     bankAccounts: bankError !== null,
     relations: relationsError !== null || relationTypesError !== null,
   })
-  if (detailReadFailureCode || employmentsError || laborConditionsError || schedulesError || organizationsError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
+  if (detailReadFailureCode || employmentsError || laborConditionsError || schedulesError || organizationsError || profileLinksError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
 
   const currentEmploymentSummary = selectCurrentEmploymentSummary({
     today,
@@ -492,6 +499,11 @@ export async function getEmployeeEmploymentDetail(
     }),
     organizations: (organizations ?? []).map((item) => ({ employmentId: item.employment_id, departmentName: item.departments?.name ?? null, jobTitle: item.job_title, validFrom: item.effective_from, validUntil: item.effective_to })),
   })
+  const currentOrganization = (organizations ?? []).find((item) => item.employment_id === currentEmploymentSummary.employmentId)
+  if (currentOrganization?.direct_manager_id) {
+    const { data: manager } = await supabase.from('employees').select('first_name, birth_name').eq('tenant_id', context.tenantId).eq('id', currentOrganization.direct_manager_id).is('deleted_at', null).maybeSingle()
+    currentEmploymentSummary.managerName = manager ? `${manager.first_name} ${manager.birth_name}` : null
+  }
 
   return {
     employee: {
@@ -559,6 +571,7 @@ export async function getEmployeeEmploymentDetail(
     })),
     relationTypes: (relationTypes ?? []).map((relationType) => ({ code: relationType.code, nameNl: relationType.name_nl, nameEn: relationType.name_en })),
     currentEmploymentSummary,
+    profileLinks: (profileLinks ?? []).map((link) => ({ id: link.id, label: link.label, url: link.url, linkType: link.link_type })),
     capabilities: {
       canEditEmployee: capabilityValues[0], canReadBsn: capabilityValues[1],
       canWriteBsn: capabilityValues[2], canManageAddresses: capabilityValues[3],

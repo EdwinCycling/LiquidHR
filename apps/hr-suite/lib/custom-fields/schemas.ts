@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 const accessSchema = z.enum(['HIDDEN', 'READ', 'WRITE'])
+const countryCodeSchema = z.string().trim().length(2).transform((value) => value.toUpperCase()).pipe(z.string().regex(/^[A-Z]{2}$/))
 const fieldTypeSchema = z.enum([
   'TEXT', 'TEXTAREA', 'NUMBER', 'DATE', 'BOOLEAN', 'SELECT', 'MULTI_SELECT', 'AUTO_INCREMENT',
 ])
@@ -15,6 +16,7 @@ export const customFieldDefinitionSchema = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_]{1,62}$/),
   labelNl: z.string().trim().min(1).max(120),
   labelEn: z.string().trim().min(1).max(120),
+  countryCode: countryCodeSchema.default('NL'),
   descriptionNl: z.string().trim().max(500).nullable().optional(),
   descriptionEn: z.string().trim().max(500).nullable().optional(),
   fieldType: fieldTypeSchema,
@@ -38,6 +40,7 @@ export const customFieldDefinitionSchema = z.object({
 export const customFieldDefinitionUpdateSchema = z.object({
   labelNl: z.string().trim().min(1).max(120).optional(),
   labelEn: z.string().trim().min(1).max(120).optional(),
+  countryCode: countryCodeSchema.optional(),
   descriptionNl: z.string().trim().max(500).nullable().optional(),
   descriptionEn: z.string().trim().max(500).nullable().optional(),
   isRequired: z.boolean().optional(),

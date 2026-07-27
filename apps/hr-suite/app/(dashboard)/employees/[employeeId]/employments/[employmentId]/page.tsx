@@ -3,23 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  Bot,
   BriefcaseBusiness,
   CalendarDays,
-  ExternalLink,
-  FileText,
-  HeartPulse,
   Mail,
   MapPin,
-  MessageSquareText,
-  Palmtree,
-  Smartphone,
+  Phone,
   Sparkles,
 } from "lucide-react";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { WorkPatternPanel } from "@/components/employment/work-pattern-panel";
-import { ProfileLinkForm } from "@/components/employment/profile-link-form";
 import {
   EmploymentDetailError,
   getEmploymentDetail,
@@ -163,7 +156,6 @@ export default async function EmploymentDetailPage({
       "rollbackConfirm",
       "impactTitle",
       "impactDirect",
-      "impactLater",
       "impactNotApplicable",
       "impactScheduleSalary",
       "impactScheduleLeave",
@@ -238,34 +230,32 @@ export default async function EmploymentDetailPage({
         <ArrowLeft className="h-4 w-4" />
         {t("backToEmployee")}
       </Link>
-      <header className="relative mt-4 overflow-hidden rounded-3xl border bg-surface p-5 shadow-sm sm:p-7">
+      <header className={`relative mt-4 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-accent-foreground text-primary-foreground shadow-lg ${expanded ? 'p-5 sm:p-7' : 'p-2.5'}`}>
         <div
           aria-hidden="true"
           className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-accent opacity-80"
         />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+        <div className={`relative flex items-center justify-between ${expanded ? 'flex-col gap-6 lg:flex-row lg:items-center' : 'gap-3'}`}>
+          <div className="flex min-w-0 items-center gap-3 sm:gap-5">
             {detail.employee.avatar_url ? (
               <img
                 src={detail.employee.avatar_url}
                 alt={name}
-                className="h-16 w-16 rounded-2xl object-cover ring-4 ring-background sm:h-20 sm:w-20"
+                className={`${expanded ? 'h-16 w-16 sm:h-20 sm:w-20' : 'h-8 w-8 rounded-lg'} rounded-2xl object-cover ${expanded ? 'ring-4 ring-background' : ''}`}
               />
             ) : (
-              <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground sm:h-20 sm:w-20">
+              <span className={`grid shrink-0 place-items-center rounded-2xl bg-primary font-bold text-primary-foreground ${expanded ? 'h-16 w-16 text-xl sm:h-20 sm:w-20' : 'h-8 w-8 rounded-lg text-[0.65rem]'}`}>
                 {detail.employee.first_name[0]}
                 {detail.employee.birth_name[0]}
               </span>
             )}
             <div className="min-w-0">
-              <p className="eyebrow">
+              {expanded && <p className="eyebrow text-primary-foreground/70">
                 {detail.employee.employee_number} ·{" "}
                 {detail.employment.employment_number}
-              </p>
-              <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
-                {name}
-              </h1>
-              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              </p>}
+              <h1 className={`${expanded ? 'mt-1 text-2xl sm:text-3xl' : 'text-base'} truncate font-semibold tracking-tight`}>{name}</h1>
+              {expanded && <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-primary-foreground/80">
                 <span className="inline-flex items-center gap-1.5">
                   <BriefcaseBusiness className="h-4 w-4" />
                   {contractTypeLabel}
@@ -274,61 +264,40 @@ export default async function EmploymentDetailPage({
                   <MapPin className="h-4 w-4" />
                   {detail.administration.name}
                 </span>
-              </p>
+              </p>}
             </div>
           </div>
           <div className="relative flex flex-wrap items-center gap-2">
-            <span className="status-chip bg-accent text-accent-foreground">
-              {effectiveStatus}
-            </span>
+            {expanded && <><span className="status-chip bg-success-surface text-success">{t("employmentContext")}</span><span className="status-chip bg-accent text-accent-foreground">{effectiveStatus}</span></>}
             <Link
               prefetch={false}
-              className={expanded ? "button-secondary" : "button-primary"}
-              href={`?tab=${tab}&view=expanded`}
+              className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+              href={`?tab=${tab}&view=${expanded ? "compact" : "expanded"}`}
             >
-              {t("expanded")}
-            </Link>
-            <Link
-              prefetch={false}
-              className={!expanded ? "button-secondary" : "button-primary"}
-              href={`?tab=${tab}&view=compact`}
-            >
-              {t("compact")}
+              {expanded ? t("compact") : t("expanded")}
             </Link>
           </div>
         </div>
         {expanded && (
-          <div className="relative mt-6 flex flex-wrap gap-3 border-t pt-4 text-sm text-muted-foreground">
+          <div className="relative mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-primary-foreground/20 pt-4 text-sm text-primary-foreground/80">
             {detail.employee.work_email && (
               <a
                 href={`mailto:${detail.employee.work_email}`}
-                className="inline-flex items-center gap-2 hover:text-foreground"
+                className="inline-flex items-center gap-2 hover:text-primary-foreground"
               >
                 <Mail className="h-4 w-4" />
                 {detail.employee.work_email}
               </a>
             )}
-            {detail.employee.work_mobile && (
+            {(detail.employee.work_phone ?? detail.employee.work_mobile) && (
               <a
-                href={`tel:${detail.employee.work_mobile}`}
-                className="inline-flex items-center gap-2 hover:text-foreground"
+                href={`tel:${detail.employee.work_phone ?? detail.employee.work_mobile}`}
+                className="inline-flex items-center gap-2 hover:text-primary-foreground"
               >
-                <Smartphone className="h-4 w-4" />
-                {detail.employee.work_mobile}
+                <Phone className="h-4 w-4" />
+                {detail.employee.work_phone ?? detail.employee.work_mobile}
               </a>
             )}
-            {detail.profileLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 hover:text-foreground"
-              >
-                <ExternalLink className="h-4 w-4" />
-                {link.label}
-              </a>
-            ))}
           </div>
         )}
       </header>
@@ -390,94 +359,7 @@ export default async function EmploymentDetailPage({
                   {t("aiSummaryPlaceholder")}
                 </p>
               </article>
-              <article className="rounded-2xl border bg-surface p-5 shadow-sm">
-                <h2 className="text-lg font-semibold">{t("futureModules")}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("futureModulesText")}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {[
-                    [FileText, t("documents")],
-                    [Palmtree, t("leave")],
-                    [HeartPulse, t("absence")],
-                    [MessageSquareText, t("conversations")],
-                  ].map(([Icon, label]) => {
-                    const Component = Icon as typeof FileText;
-                    return (
-                      <div
-                        key={String(label)}
-                        className="rounded-xl border border-dashed p-4 text-center text-sm font-medium"
-                      >
-                        <Component className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
-                        {String(label)}
-                      </div>
-                    );
-                  })}
-                </div>
-              </article>
             </section>
-            <aside className="space-y-5">
-              <article className="rounded-2xl border bg-surface p-5 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <Bot className="h-5 w-5 text-primary" />
-                  <h2 className="font-semibold">{t("followUps")}</h2>
-                </div>
-                {detail.followUps.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    {t("noFollowUps")}
-                  </p>
-                ) : (
-                  <ul className="mt-3 space-y-3">
-                    {detail.followUps.map((item) => (
-                      <li key={item.id} className="rounded-xl bg-muted p-3">
-                        <p className="text-sm font-semibold">{item.subject}</p>
-                        {item.due_on && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {item.due_on}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-              <article className="rounded-2xl border bg-surface p-5 shadow-sm">
-                <h2 className="font-semibold">{t("profileLinks")}</h2>
-                {detail.profileLinks.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    {t("noLinks")}
-                  </p>
-                ) : (
-                  <ul className="mt-3 space-y-2">
-                    {detail.profileLinks.map((link) => (
-                      <li key={link.id}>
-                        <a
-                          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                          href={link.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {link.label}
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {detail.capabilities.canWriteEmployee && (
-                  <ProfileLinkForm
-                    employmentId={employmentId}
-                    labels={{
-                      add: t("addLink"),
-                      label: t("linkLabel"),
-                      url: t("linkUrl"),
-                      save: t("saveLink"),
-                      failed: t("changeFailed"),
-                    }}
-                  />
-                )}
-              </article>
-            </aside>
           </div>
         )}
 

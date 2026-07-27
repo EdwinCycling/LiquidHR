@@ -26,8 +26,11 @@ export async function DELETE(_request: Request, route: Context): Promise<NextRes
     const context = await requirePermission('document:write')
     const { categoryId } = await route.params
     const supabase = await createClient()
+    const { count, error: countError } = await supabase.from('employee_documents').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId ?? '').eq('category_id', categoryId)
+    if (countError) return NextResponse.json({ error: 'DOCUMENT_CATEGORY_DELETE_FAILED' }, { status: 500 })
+    if ((count ?? 0) > 0) return NextResponse.json({ error: 'DOCUMENT_CATEGORY_IN_USE' }, { status: 409 })
     const { error } = await supabase.from('document_categories').delete().eq('id', categoryId).eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId ?? '')
-    if (error) return NextResponse.json({ error: error.code === '23503' ? 'MASTER_DATA_IN_USE' : 'DOCUMENT_CATEGORY_DELETE_FAILED' }, { status: error.code === '23503' ? 409 : 500 })
+    if (error) return NextResponse.json({ error: error.code === '23503' ? 'DOCUMENT_CATEGORY_IN_USE' : 'DOCUMENT_CATEGORY_DELETE_FAILED' }, { status: error.code === '23503' ? 409 : 500 })
     return NextResponse.json({ ok: true })
   } catch { return NextResponse.json({ error: 'DOCUMENT_CATEGORY_DELETE_FAILED' }, { status: 500 }) }
 }

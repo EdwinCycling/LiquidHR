@@ -14,7 +14,7 @@ export interface DashboardRequestScope { context: AuthContext; supabase: Awaited
 export interface DashboardBootstrap { scope: DashboardRequestScope; dashboards: PersonalDashboard[]; view: DashboardView }
 
 const DEFAULT_WIDGETS: ReadonlyArray<{ type: DashboardWidgetType; position: number }> = [
-  { type: 'WELCOME', position: 0 }, { type: 'MY_REMINDERS', position: 1 }, { type: 'ORGANIZATION_OVERVIEW', position: 2 }, { type: 'EMPLOYEE_OVERVIEW', position: 3 },
+  { type: 'WELCOME', position: 0 }, { type: 'MY_REMINDERS', position: 1 }, { type: 'ORGANIZATION_OVERVIEW', position: 2 }, { type: 'EMPLOYEE_OVERVIEW', position: 3 }, { type: 'COMPANY_DOCUMENTS', position: 4 },
 ]
 
 export function defaultDashboardWidgets(): Array<{ type: DashboardWidgetType; position: number }> { return DEFAULT_WIDGETS.map((widget) => ({ ...widget })) }

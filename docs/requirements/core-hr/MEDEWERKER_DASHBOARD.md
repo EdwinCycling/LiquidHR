@@ -250,7 +250,7 @@ Alle zichtbare tekst staat in de paritaire namespaces `messages/nl` en `messages
 3. SQL-isolatietests voor self, manager/afdeling, andere administratie en andere tenant; voor documenten ook doelgroepnegatieven.
 4. Controleer dat onbevoegde salaris-, bank-, BSN-, document- en vrije-veldwaarden niet in de response of RSC-payload staan.
 5. Draai Supabase advisors en genereer `packages/db/types.ts` opnieuw wanneer schema, permissions of policies wijzigen.
-6. Draai gerichte tests, ESLint, strict TypeScript, `check:i18n`, productiebuild en de HRMyDay-releasegate.
+6. Draai gerichte tests, ESLint, strict TypeScript, `check:i18n`, productiebuild en de LiquidHR-releasegate.
 7. Voer ingelogde browsercontroles uit met minimaal een medewerker, directe manager, HR-admin en beperkte maatwerkrol, op desktop en 390 px.
 8. Meet de eerste dashboardnavigatie en warme tabwissel volgens ADR-0004 en leg de resultaten vast in `CURRENT_CONTEXT.md`.
 9. Controleer de publieke preview met dezelfde relevante rollen vóór merge/release.

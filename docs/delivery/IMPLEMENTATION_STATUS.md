@@ -1,8 +1,32 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-27: interactieve reminders
+
+De Tijdhub heeft naast de klok een compacte reminderknop met teller, popover en directe link naar Reminderbeheer. `/reminders` ondersteunt zoeken, statusfiltering inclusief oudere reminders, sortering, kleurcodering op urgentie, multi-selectie met bulk afronden, detailmodal en links naar medewerkerdossiers. De weergave blijft gebaseerd op echte, server-side geautoriseerde en administratiegebonden reminders; er is geen fake data toegevoegd. Lokale tests, i18n, strict typecheck, lint, build en een ingelogde browsercontrole zijn geslaagd.
+
+## Update 2026-07-26: éénknopswissel employment-header
+
+De employmentdetailheader heeft nu één wisselknop voor de compacte en uitgebreide weergave, gelijk aan de medewerkerdetailheader. De knop toont steeds alleen de beschikbare tegenactie: **Compact** of **Uitgebreid**. Versie `1.20260726.5`; typecheck, lint, versiecheck en lokale runtimecontrole zijn geslaagd. Deployment blijft bewust uitgesteld.
+
+## Update 2026-07-26: custom fields en functiecatalogusbeheer
+
+De HR Admin-instellingen bevatten nu een lijst-eerst-beheer voor custom fields en functies. Custom fields zijn bewerkbaar op label, landcode, toegang en overige niet-technische instellingen; de technische sleutel en het veldtype blijven onveranderlijk. Nieuwe velden openen in een collapsed venster met een live preview onderaan. Activeren/deactiveren blijft databasebehoudend en inactive velden worden uit medewerkerformulieren gefilterd. Verwijderen vereist bevestiging en wordt server-side geblokkeerd zodra waarden het veld gebruiken. Functies hebben via `job_group_jobs` een many-to-many-relatie met functiegroepen, zonder start-/einddatum in de UI. Beide catalogi ondersteunen active/inactive, CRUD en gebruikscontroles bij verwijderen. De drie nieuwe migraties zijn remote toegepast op de testdatabase; de RLS-policies zijn gescheiden per actie en de nieuwe koppeltabel heeft scope-indexen. Versie `1.20260726.4`; deployment blijft bewust uitgesteld.
+
+## Update 2026-07-26: employmentlijst, dienstverbandvenster en dashboard-refresh
+
+Deze slice is lokaal geïmplementeerd. Dienstverbandkaarten hebben nu duidelijke wijzigingsactie, responsive tweekolomsweergave en datum/primary-sortering; de overbodige teller en verwijderactie zijn weg. De dienstverbandkop en medewerkerkop ondersteunen uitgebreid/compact, met e-mail en telefoon in de uitgebreide variant en expliciete dienstverbandcontext. De overview toont **Werk in uitvoering**; follow-ups en het venster More about this employee zijn volledig uit de actieve codeflow verwijderd. Het dashboard laadt de widgets één keer server-side in plaats van via de foutgevoelige streaminglaag, zodat de refreshlus stopt. Versie `1.20260726.3`; deployment blijft bewust uitgesteld. Typecheck, lint, i18n, 353 tests en productiebuild zijn geslaagd. De lokale server draait op poort 3000 en de open interne browser-tab bleef vijf seconden zonder waarschuwingen of fouten.
+
+## Update 2026-07-26: medewerkerdetail, notities en reminders
+
+De medewerkerdetailwijzigingen zijn volledig lokaal geïmplementeerd. Notes staat na Dossier en is server-side beperkt tot HR Admin en Manager; beide rollen kunnen lezen en bewerken, alleen HR Admin kan verwijderen. Profile/external links zijn naar het medewerkerdashboard verplaatst, Additional Information staat als eigen tab na Relations en de kop toont functie, afdeling, manager en groene actieve status. Reminders tonen eerst de lijst en hebben beschrijving, standaard datum/tijd, verschuifknoppen, wijzigen en verwijderen. De twee employee-notes-migraties zijn remote toegepast op de testdatabase en de RLS/grants zijn gecontroleerd. Versie `1.20260726.2`; deployment blijft bewust uitgesteld. Volledige tests, lint, strict typecheck, i18n, build en browsercontrole zijn geslaagd.
+
+## Update 2026-07-26: Personal Details beheer en adresreminders
+
+De Personal Details-formulieren zijn gegroepeerd en uitgelijnd; Adressen, Bankaccounts en Relaties tonen nu eerst de bestaande gegevens en daarna de actie om toe te voegen. Bestaande records kunnen via dezelfde tab worden gewijzigd en verwijderd, met bescherming tegen het verwijderen van het enige actieve adres. Adresaanmaak kan transactioneel directe reminders publiceren naar de geselecteerde HR Admin-, Manager- en Medewerker-ontvangers. De remote databasefunctie is expliciet geautoriseerd, de trigger en privileges zijn gecontroleerd en de bestaande bankrekeningfunctie blijft standaard alleen beschikbaar voor HR Admin via `bank-account:write`. Versie `1.20260726.1` is verhoogd. De volledige lokale testset (97 bestanden/354 tests), ESLint, strict typecheck, i18n, SQL-contractproef en productiebuild zijn geslaagd; deployment is bewust uitgesteld.
+
 ## Update 2026-07-25: adresinvoer
 
-De nieuwe Nederlandse/internationale adresinvoer is lokaal gebouwd met landkeuze, debounce-suggesties, PDOK-postcodeaanvulling, server-only provideradapters, handmatige fallback, herkomstmetadata en internationale adresregels. Migratie `20260725132351_address_input_internationalization.sql` is nog niet remote toegepast; gerichte tests, i18n-controle, typecheck en releasegate volgen.
+De nieuwe Nederlandse/internationale adresinvoer is lokaal gebouwd met landkeuze, debounce-suggesties, PDOK-postcodeaanvulling, server-only provideradapters, handmatige fallback, herkomstmetadata en internationale adresregels. De zoek-UX focust standaard het adreszoekveld, gebruikt zoek-/locatie-iconen, houdt land en resultaten netjes uitgelijnd en verduidelijkt de postcode+huisnummer-actie als het automatisch invullen van straat en plaats. Migratie `20260725132351_address_input_internationalization.sql` is op 2026-07-25 toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De live schema-controle bevestigde de nieuwe kolommen, vijf constraints, index en één gemigreerd adresrecord; types zijn opnieuw uit de gekoppelde database gegenereerd. Lint, strict typecheck en i18n-controle zijn geslaagd. De browsercontrole kon niet afronden omdat de lokale devserver op poort 3000 geen HTTP-response teruggaf.
 
 ## Update 2026-07-24: medewerkerdashboard tweede UI-slice
 
@@ -68,7 +92,7 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | EmployeeOrganization | GEÏMPLEMENTEERD | Tijdsgebonden plaatsingen zijn aan parallelle dienstverbanden te koppelen en beheerbaar |
 | Organogram | GEDEELTELIJK | Afdelingsview, managerrelatie-view en functiegroep → functie → star performer → medewerker zijn technisch gebouwd, inclusief view-keuze, URL-state en opgeslagen filtervoorkeur. Een ingelogde visuele datasetcontrole voor de nieuwe views blijft open. |
 | Permissionmatrix | GEÏMPLEMENTEERD | Zoekbare rollenwerkruimte, gegroepeerde functiepunten, dirty/herstel-flow, grafische dekkingsheatmap, tenantrollen, API, RLS en audit aanwezig |
-| Vrije velden (Employee) | GEÏMPLEMENTEERD | Definities, opties, audience-toegang, atomaire nummering, waarden-API/UI en JSONB-spiegeling |
+| Vrije velden (Employee) | GEÏMPLEMENTEERD | Definities, opties, beheer-CRUD, landcode, preview, actieve status, audience-toegang, atomaire nummering, waarden-API/UI en JSONB-spiegeling |
 | BSN-beveiliging | GEÏMPLEMENTEERD | Afzonderlijke RLS-tabel; HR-admin en medewerker-self mogen lezen, managers niet; reveal wordt geaudit |
 | Autorisatiehelper en managementscope | GEÏMPLEMENTEERD | Selfrechten, actieve rollen, afdelingsscope en RLS zijn getest |
 | Managerresolver | GEÏMPLEMENTEERD | Override, deputy en parent-escalatie zijn getest |
@@ -97,7 +121,7 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Medewerker- en dienstverband-UI | GEDEELTELIJK | Medewerkerkaart heeft duidelijke hoofdtab Overzicht/Persoonsgegevens/Dossier/Dienstverbanden/Reminders, waarbij aanvullende gegevens alleen onder Persoonsgegevens staat; employments worden als effectieve tijdlijn getoond en het overzicht projecteert de effectieve gegevens van vandaag. De medewerkerslijst heeft per gebruiker opgeslagen weergave-, sorteer-, status- en archiefvoorkeuren, Enter-zoeken, afzonderlijk zoekveld wissen en een klikbare volledige rij. De lijst sluit functioneel beter aan op de kalender doordat `ACTIVE_EMPLOYEE` de impliciete default blijft; personeelsnummers zijn zichtbaar om naamgelijke personen te onderscheiden. Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
 | Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
-| Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen, functies en effective-dated revisies; schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
+| Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen en functies hebben CRUD, actieve status en meerdere groepsrelaties; de bestaande effective-dated revisies blijven intern beschikbaar, terwijl de jobbeheer-UI geen start-/einddatum meer vraagt. Schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
 | Tijdkaart medewerker | GEÏMPLEMENTEERD | De dienstverbandhistorie toont alle tijdvakken responsief op één tijdas, met veilige salarisprojectie. |
 | HR-maandkalender | GEÏMPLEMENTEERD | Groot adaptief desktop/tabletraster met actieve medewerkers, foto's, rooster/niet-werkdagen, feestdagen, reminders, HR-wijzigingen, opgenomen verlof, goedgekeurde werkuren/overuren, ingestelde kleuren, typepatronen, gecombineerde dagdetails, zoekfilters en 10/25/alle-max-100 paginering op `/hr-calendar`; dagkolommen zijn uitbreidbaar voor acties. |
 
@@ -110,15 +134,21 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
 | Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
+| Bedrijfsdocumenten | GEIMPLEMENTEERD | Platte tenantbrede lijst, private opslag, HR-admin upload/delete, signed downloads, viewer en dashboardwidget. |
+| Loonstroken | GEDEELTELIJK | Eigen medewerkerkaart-tab, employment-koppeling, bronvelden, private opslag en permission/RLS-readpad zijn aanwezig; Nmbrs/Loket- en bulkimport volgen later. |
+| Globale documenten en AI-compliance | GEDEELTELIJK | Bedrijfsdocumenten zijn gerealiseerd; OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
+
 ## Instellingen en tenantmodules
+
+De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeken, sortering, functiegroepfilter en modal-CRUD. De async formulierreset is veilig gemaakt door `currentTarget` vóór de request te bewaren; desktop en 390px zijn lokaal gecontroleerd.
 
 ## Rapportages en Inzichten
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Rapportagecatalogus | GEDEELTELIJK | `/insights` staat onder Kalender in de navigatie met gesloten harmonica-items, rapport-specifieke filteropzet, sortering, URL-selectie en visuele rapportcontainers. Medewerkerprojecties en Aankomende gebeurtenissen gebruiken geautoriseerde productiedata; overige rapporten tonen geen voorbeeldcijfers. |
+| Rapportagecatalogus | GEDEELTELIJK | `/insights` staat onder Kalender in de navigatie met rapport-specifieke filteropzet, sortering en URL-selectie. Medewerkerprojecties, Aankomende gebeurtenissen, het Verzuimrapport en de Bradford-factor gebruiken geautoriseerde productiedata; verlof, voorziening en WvP blijven open. |
 | Medewerkerbestandrapporten | GEDEELTELIJK | Personeel per afdeling, geslacht, leeftijd en reden uit dienst lezen via `employee:read` en bestaande RLS-scoped medewerkers-, dienstverband-, organisatie- en terminationdata. Visualisaties en detailtabellen zijn live; `insights:read`, privacydrempel en exports volgen. |
-| Verzuim, voorziening en WvP | NIET GESTART | De items zijn zichtbaar als toekomstig werk. De benodigde domeinbronnen en workflows bestaan nog niet. |
+| Verzuim, voorziening en WvP | GEDEELTELIJK | De kernverzuimslice is remote toegepast. `/settings/absence` beheert nu drempel, geldige standaardcasemanager en administratiegebonden eigen WvP-taaktemplates via `absence_task_templates` met RLS/audit, activatie/deactivatie en servervalidatie. Startpagina en `/insights?report=absence` tonen actieve dossiers, roostergewogen maand/jaar-rapportage, afdelingsfilter en Excel-export; `/insights?report=absence-bradford` voegt Bradford-factoranalyse toe voor laatste 52 weken, dit jaar en vorig jaar met team/afdelingsfilter, risicobanden, uitlegmodal en Excel-export. Wettelijke milestones/casustaken/dossier, voorziening, bewaarmatrix, payroll/13-wekenmodel en externe integraties blijven open. |
 | Rapportexport | GEDEELTELIJK | Medewerkerprojecties en Aankomende gebeurtenissen leveren Excel-compatibele CSV op. Excel/PDF en immutable exportaudit volgen later. |
 
 | Onderdeel | Status | Resterend werk |
@@ -128,6 +158,12 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten accordions; `/master-data` beheert interne redenen, documentcategorieën en tenant-relatietypen en detailterugkeer opent de juiste sectie. |
 | Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
 | Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per administratie, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
+
+## Dashboard startpagina
+
+| Onderdeel | Status | Resterend werk |
+|---|---|---|
+| Gebruiker Startpagina | GEDEELTELIJK | `/dashboard/start` gebruikt echte medewerkers-, organisatie-, verzuim-, bedrijfsdocumenten- en reminderbronnen binnen de actieve administratie en rol/RLS-scope. Lopende verzuimgevallen bevatten nu medewerker, startdatum, duur en een link naar het verzuimdossier. Declaraties, contractsignering, assets, taken/Poortwachter en gebeurtenissen volgen later. Een ingelogde desktop/390px-browsercontrole en echte rolmatrix blijven open. |
 
 ## Security en handmatige productieconfiguratie
 

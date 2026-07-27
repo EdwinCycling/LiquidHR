@@ -8,7 +8,7 @@ import { ConfirmationDialog } from './confirmation-dialog'
 type Timeline = 'LABOR_CONDITIONS' | 'SCHEDULE' | 'SALARY' | 'COST_ALLOCATION'
 interface Option { id: string; code: string; name: string }
 interface Allocation { costCenterId: string; percentage: number }
-interface ImpactChoice { key: string; label: string; directTimeline?: Timeline; choice: 'DIRECT' | 'LATER' | 'NOT_APPLICABLE' }
+interface ImpactChoice { key: string; label: string; directTimeline?: Timeline; choice: 'DIRECT' | 'NOT_APPLICABLE' }
 interface ImpactDefinition { key: string; label: string; directTimeline?: Timeline }
 interface EmploymentMutationPanelProps {
   employmentId: string
@@ -37,7 +37,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
       : timeline === 'LABOR_CONDITIONS'
         ? [{ key: 'schedule', label: labels.impactLaborSchedule, directTimeline: 'SCHEDULE' }, { key: 'salary', label: labels.impactLaborSalary, directTimeline: 'SALARY' }, { key: 'leave', label: labels.impactLaborLeave }]
         : []
-  const [impacts, setImpacts] = useState<ImpactChoice[]>(impactDefinitions.map((impact) => ({ ...impact, choice: 'LATER' })))
+  const [impacts, setImpacts] = useState<ImpactChoice[]>(impactDefinitions.map((impact) => ({ ...impact, choice: 'NOT_APPLICABLE' })))
   const allocationTotal = useMemo(() => allocations.reduce((sum, item) => sum + item.percentage, 0), [allocations])
   if (!canWrite) return null
 
@@ -83,13 +83,6 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
         ? { ...requestBody, mutations: [{ timeline, payload: payload(pending) }, ...directMutations] }
         : { ...requestBody, payload: payload(pending) }),
     })
-    if (response.ok) {
-      const result = await response.json() as { data: { changeSetId: string } }
-      await Promise.all(impacts.filter((impact) => impact.choice === 'LATER').map((impact) => fetch(`/api/employments/${employmentId}/follow-ups`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ changeSetId: result.data.changeSetId, subject: impact.label, description: null, responsibleRoleCode: null, responsibleUserId: null, dueOn: null, priority: 'NORMAL' }),
-      })))
-    }
     setBusy(false); setDialog(null); setStatus(response.ok ? 'saved' : 'failed')
     if (response.ok) router.refresh()
   }
@@ -140,7 +133,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
           <div className="flex flex-wrap items-center justify-between gap-3"><button type="button" className="button-secondary inline-flex items-center gap-2" onClick={() => setAllocations((current) => [...current, { costCenterId: costCenters[0]?.id ?? '', percentage: 0 }])}><Plus className="h-4 w-4" />{labels.addAllocation}</button><p className={allocationTotal === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>{labels.allocationTotal.replace('{total}', String(allocationTotal))}</p></div>
           {allocationTotal !== 100 && <p className="text-sm text-danger">{labels.allocationMustBe100}</p>}
         </div>}
-        {impacts.length > 0 && <fieldset className="sm:col-span-2 rounded-xl border bg-muted/40 p-4"><legend className="px-1 text-sm font-semibold">{labels.impactTitle}</legend><div className="mt-2 space-y-3">{impacts.map((impact) => <div key={impact.key} className="grid gap-2 sm:grid-cols-[1fr_12rem] sm:items-center"><p className="text-sm text-muted-foreground">{impact.label}</p><select className="form-field" value={impact.choice} onChange={(event) => setImpacts((current) => current.map((item) => item.key === impact.key ? { ...item, choice: event.target.value as ImpactChoice['choice'] } : item))}><option value="DIRECT" disabled={!impact.directTimeline || !directPayloads[impact.directTimeline]}>{labels.impactDirect}</option><option value="LATER">{labels.impactLater}</option><option value="NOT_APPLICABLE">{labels.impactNotApplicable}</option></select></div>)}</div></fieldset>}
+        {impacts.length > 0 && <fieldset className="sm:col-span-2 rounded-xl border bg-muted/40 p-4"><legend className="px-1 text-sm font-semibold">{labels.impactTitle}</legend><div className="mt-2 space-y-3">{impacts.map((impact) => <div key={impact.key} className="grid gap-2 sm:grid-cols-[1fr_12rem] sm:items-center"><p className="text-sm text-muted-foreground">{impact.label}</p><select className="form-field" value={impact.choice} onChange={(event) => setImpacts((current) => current.map((item) => item.key === impact.key ? { ...item, choice: event.target.value as ImpactChoice['choice'] } : item))}><option value="DIRECT" disabled={!impact.directTimeline || !directPayloads[impact.directTimeline]}>{labels.impactDirect}</option><option value="NOT_APPLICABLE">{labels.impactNotApplicable}</option></select></div>)}</div></fieldset>}
         <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">{labels.changeReason}<textarea className="form-field min-h-24" name="reason" required maxLength={500} /></label>
         <div className="sm:col-span-2 flex items-center gap-3"><button className="button-primary" type="submit">{labels.continue}</button>{status === 'saved' && <span className="text-sm text-success">{labels.changeSaved}</span>}{status === 'failed' && <span className="text-sm text-danger">{labels.changeFailed}</span>}</div>
       </form>

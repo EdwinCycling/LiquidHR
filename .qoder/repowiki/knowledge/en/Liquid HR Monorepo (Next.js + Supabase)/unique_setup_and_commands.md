@@ -1,0 +1,1 @@
+`npm run dev` boots the hr-suite app; `npm run build|lint|test|type-check|migrate` dispatch to all workspaces that expose those scripts. Vercel builds only `@liquid-hr/hr-suite` into `.next` using `npm run build --workspace @liquid-hr/hr-suite`.

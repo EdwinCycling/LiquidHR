@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Werk uitsluitend in `C:\Users\Edwin\Documents\Apps\HRMyDay\.worktrees\settings-rosters-calendar` op branch `codex/settings-rosters-calendar`.
+- Werk uitsluitend in `C:\Users\Edwin\Documents\Apps\LiquidHR\.worktrees\settings-rosters-calendar` op branch `codex/settings-rosters-calendar`.
 - Gebruik geen subagents, `any`, React Query of SWR.
 - Houd `schema → API/service → UI` aan; deze slice gebruikt de bestaande widgetconfiguratietabellen en voegt geen nieuw schema toe.
 - Autorisatie wordt server-side én met RLS afgedwongen; UI-verberging is alleen UX.

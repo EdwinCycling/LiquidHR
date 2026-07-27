@@ -21,6 +21,7 @@ describe('selectCurrentEmploymentSummary', () => {
       salary: { amount: 4200, currencyCode: 'EUR', paymentType: 'PERIODIC_FIXED' },
       departmentName: 'Product',
       jobTitle: 'HR Adviseur',
+      managerName: null,
     })
   })
 
@@ -37,6 +38,7 @@ describe('selectCurrentEmploymentSummary', () => {
       salary: null,
       departmentName: null,
       jobTitle: null,
+      managerName: null,
     })
   })
 })

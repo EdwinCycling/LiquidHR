@@ -4,7 +4,8 @@ import { getTranslator } from '@/lib/i18n/server'
 export default async function MenuOrderPage() {
   const [navigation, settings] = await Promise.all([getTranslator('navigation'), getTranslator('settings')])
   const items = [
-    { href: '/dashboard', label: navigation('dashboard') }, { href: '/employees', label: navigation('employees') },
+    { href: '/dashboard', label: navigation('dashboard') }, { href: '/dashboard/start', label: navigation('startPage') },
+    { href: '/employees', label: navigation('employees') },
     { href: '/organization-chart', label: navigation('organizationChart') }, { href: '/hr-calendar', label: navigation('hrCalendar') },
     { href: '/insights', label: navigation('insights') }, { href: '/settings', label: navigation('settings') },
   ]

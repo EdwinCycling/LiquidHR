@@ -28,7 +28,7 @@ describe('toReminderItem', () => {
         status: 'PUBLISHED', created_by_user_id: 'user-1',
       },
     })).toEqual({
-      recipientId: 'recipient-1', reminderId: 'reminder-1', title: 'Contract controleren',
+      recipientId: 'recipient-1', employeeId: null, employeeName: null, reminderId: 'reminder-1', title: 'Contract controleren',
       description: null, remindAt: '2026-07-16T12:00:00.000Z', originalRemindAt: '2026-07-16T12:00:00.000Z',
       type: 'HR', targetType: 'EVERYONE', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED',
       createdByUserId: 'user-1',

@@ -6,7 +6,7 @@ import { useState } from 'react'
 import type { DashboardView, DashboardWidget, PersonalDashboard } from '@/lib/dashboard/service'
 import type { DashboardWidgetPresentation } from '@/lib/dashboard/widget-presentation'
 import { DashboardEditor } from './dashboard-editor'
-import { DashboardProgressProvider, DashboardRefreshButton } from './dashboard-progress'
+import { DashboardRefreshButton } from './dashboard-progress'
 import { DashboardSwitcher } from './dashboard-switcher'
 import { addWidgetToDraft, moveWidget, normalizeWidgetPositions, removeWidget } from './dashboard-workspace-model'
 import type { DashboardWidgetLabels } from './widget-renderer'
@@ -21,8 +21,8 @@ export interface DashboardWorkspaceLabels extends DashboardWidgetLabels {
 
 export interface DashboardWorkspaceData { dashboards: PersonalDashboard[]; view: DashboardView }
 
-export function DashboardWorkspace({ children, data, generation, labels, locale, presentations }: { children: React.ReactNode; data: DashboardWorkspaceData; generation: string; labels: DashboardWorkspaceLabels; locale: string; presentations: DashboardWidgetPresentation[] }) {
-  return <DashboardProgressProvider generation={generation} labels={{ loadedProgress: labels.loadedProgress, updated: labels.updated, loadedWithErrors: labels.loadedWithErrors, refresh: labels.refresh }} total={data.view.widgets.length}><DashboardWorkspaceContent data={data} labels={labels} locale={locale} presentations={presentations}>{children}</DashboardWorkspaceContent></DashboardProgressProvider>
+export function DashboardWorkspace({ children, data, labels, locale, presentations }: { children: React.ReactNode; data: DashboardWorkspaceData; labels: DashboardWorkspaceLabels; locale: string; presentations: DashboardWidgetPresentation[] }) {
+  return <DashboardWorkspaceContent data={data} labels={labels} locale={locale} presentations={presentations}>{children}</DashboardWorkspaceContent>
 }
 
 function DashboardWorkspaceContent({ children, data, labels, locale, presentations }: { children: React.ReactNode; data: DashboardWorkspaceData; labels: DashboardWorkspaceLabels; locale: string; presentations: DashboardWidgetPresentation[] }) {

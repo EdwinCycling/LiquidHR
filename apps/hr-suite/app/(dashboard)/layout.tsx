@@ -62,6 +62,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         labels={{
           appName: common('appName'),
           dashboard: navigation('dashboard'),
+          startPage: navigation('startPage'),
           version: `${common('version')} ${APP_VERSION}`,
           organizationChart: navigation('organizationChart'),
           employees: navigation('employees'),
@@ -87,6 +88,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           timeHub: reminderMessages('timeHub'),
           openManagement: reminderMessages('openManagement'),
           pendingCount: reminderMessages('pendingCount', { count: '{count}' }),
+          moreReminders: reminderMessages('moreReminders'),
           empty: reminderMessages('empty'),
           dueTitle: reminderMessages('dueTitle'),
           complete: reminderMessages('complete'),

@@ -3,7 +3,6 @@ import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type {
   CombinedTimelineMutationInput,
-  FollowUpInput,
   ChainAssessmentRequestInput,
   ProfileLinkInput,
   RollbackTimelineInput,
@@ -97,7 +96,7 @@ export async function getEmploymentDetail(
   const canWriteWorkSchedulePromise = includeSchedule
     ? permissionAllowed('work-schedule:write', employeeId)
     : Promise.resolve(false)
-  const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_mobile, avatar_url')
+  const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_phone, work_mobile, avatar_url')
     .eq('id', employeeId).maybeSingle()
   const administrationQuery = supabase.from('administrations').select('id, code, name')
     .eq('id', employment.administration_id).maybeSingle()
@@ -127,10 +126,6 @@ export async function getEmploymentDetail(
     : Promise.resolve({ data: [], error: null })
   const linksQuery = supabase.from('employee_profile_links').select('*').eq('employee_id', employeeId)
     .order('sort_order').order('created_at').limit(50)
-  const followUpsQuery = includeOverview
-    ? supabase.from('employment_change_follow_ups').select('*').eq('employment_id', employmentId)
-      .order('status').order('due_on').limit(100)
-    : Promise.resolve({ data: [], error: null })
   const auditQuery = canReadAuditPromise.then(async (canReadAudit) => canReadAudit
     ? await supabase.from('audit_logs').select('*').eq('employment_id', employmentId)
       .order('created_at', { ascending: false }).limit(100)
@@ -146,7 +141,7 @@ export async function getEmploymentDetail(
 
   const [
     employeeResult, administrationResult, incomeLinksResult, laborResult, scheduleResult,
-    salaryResult, costResult, organizationResult, linksResult, followUpsResult, auditResult,
+    salaryResult, costResult, organizationResult, linksResult, auditResult,
     costCentersResult, scalesResult,
     canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule,
   ] = await Promise.all([
@@ -159,7 +154,6 @@ export async function getEmploymentDetail(
     costQuery,
     organizationQuery,
     linksQuery,
-    followUpsQuery,
     auditQuery,
     costCentersQuery,
     scalesQuery,
@@ -171,7 +165,7 @@ export async function getEmploymentDetail(
     canWriteWorkSchedulePromise,
   ])
   const results = [employeeResult, administrationResult, incomeLinksResult, laborResult, scheduleResult,
-    salaryResult, costResult, organizationResult, linksResult, followUpsResult, auditResult,
+    salaryResult, costResult, organizationResult, linksResult, auditResult,
     costCentersResult, scalesResult]
   if (results.some((result) => result.error)) throw new EmploymentDetailError('EMPLOYMENT_DETAIL_FAILED', 500)
   if (!employeeResult.data || !administrationResult.data) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
@@ -184,7 +178,7 @@ export async function getEmploymentDetail(
     laborConditions: laborResult.data ?? [], schedules: scheduleResult.data ?? [],
     salaries: salaryResult.data ?? [], costAllocations: costResult.data ?? [],
     organizations: organizationResult.data ?? [], profileLinks: linksResult.data ?? [],
-    followUps: followUpsResult.data ?? [], auditLogs: auditResult.data ?? [],
+    auditLogs: auditResult.data ?? [],
     options: { costCenters: costCentersResult.data ?? [], salaryScaleSteps: scalesResult.data ?? [] },
     capabilities: { canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule },
   }
@@ -262,22 +256,6 @@ export async function deleteEmployment(employmentId: string): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('employments').update({ deleted_at: new Date().toISOString() }).eq('id', employment.id).eq('tenant_id', employment.tenant_id)
   if (error) throwDatabaseError(error.message)
-}
-
-export async function createFollowUp(employmentId: string, input: FollowUpInput) {
-  const employment = await loadEmploymentForAction(employmentId, 'contract:write')
-  if (!input.changeSetId) throw new EmploymentDetailError('CHANGE_SET_REQUIRED', 400)
-  const supabase = await createClient()
-  const { data, error } = await supabase.from('employment_change_follow_ups').insert({
-    tenant_id: employment.tenant_id, administration_id: employment.administration_id,
-    employee_id: employment.employee_id, employment_id: employment.id, change_set_id: input.changeSetId,
-    subject: input.subject, description: input.description ?? null,
-    responsible_role_code: input.responsibleRoleCode ?? null,
-    responsible_user_id: input.responsibleUserId ?? null, due_on: input.dueOn ?? null,
-    priority: input.priority,
-  }).select('*').single()
-  if (error || !data) throwDatabaseError(error?.message ?? 'FOLLOW_UP_CREATE_FAILED')
-  return data
 }
 
 export async function assessProposedEmploymentChain(employeeId: string, input: ChainAssessmentRequestInput) {

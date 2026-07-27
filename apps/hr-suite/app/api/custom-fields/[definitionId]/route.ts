@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import {
-  archiveCustomFieldDefinition,
-  CustomFieldServiceError,
-  updateCustomFieldDefinition,
-} from '@/lib/custom-fields/service'
+import { CustomFieldServiceError, deleteCustomFieldDefinition, updateCustomFieldDefinition } from '@/lib/custom-fields/service'
 import { customFieldDefinitionUpdateSchema } from '@/lib/custom-fields/schemas'
 
 function handleError(error: unknown): NextResponse {
@@ -34,7 +30,7 @@ export async function DELETE(
 ): Promise<NextResponse> {
   try {
     const { definitionId } = await params
-    await archiveCustomFieldDefinition(definitionId)
+    await deleteCustomFieldDefinition(definitionId)
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     return handleError(error)

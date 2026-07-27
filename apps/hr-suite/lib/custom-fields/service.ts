@@ -22,6 +22,7 @@ export interface CustomFieldDefinition {
   key: string
   labelNl: string
   labelEn: string
+  countryCode: string
   descriptionNl: string | null
   descriptionEn: string | null
   fieldType: DefinitionRow['field_type']
@@ -59,6 +60,7 @@ function toDefinition(row: DefinitionRow, options: OptionRow[]): CustomFieldDefi
     key: row.key,
     labelNl: row.label_nl,
     labelEn: row.label_en,
+    countryCode: row.country_code,
     descriptionNl: row.description_nl,
     descriptionEn: row.description_en,
     fieldType: row.field_type,
@@ -88,7 +90,7 @@ export async function listCustomFieldDefinitions(): Promise<CustomFieldDefinitio
   const [{ data: definitions, error }, { data: options, error: optionsError }] = await Promise.all([
     supabase.from('custom_field_definitions').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
-      .is('deleted_at', null).order('sort_order').order('key'),
+      .is('deleted_at', null).order('label_nl').order('key'),
     supabase.from('custom_field_select_options').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .order('sort_order').order('value'),
@@ -109,6 +111,7 @@ export async function createCustomFieldDefinition(
     key: input.key,
     label_nl: input.labelNl,
     label_en: input.labelEn,
+    country_code: input.countryCode,
     description_nl: input.descriptionNl ?? null,
     description_en: input.descriptionEn ?? null,
     field_type: input.fieldType,
@@ -137,7 +140,7 @@ export async function createCustomFieldDefinition(
       }))).select('*')
     if (optionError) {
       await supabase.from('custom_field_definitions').update({
-        is_active: false, deleted_at: new Date().toISOString(),
+        is_active: false,
       }).eq('id', data.id)
       throw new CustomFieldServiceError('CUSTOM_FIELD_OPTIONS_CREATE_FAILED', 500)
     }
@@ -153,19 +156,20 @@ export async function updateCustomFieldDefinition(
   const context = await requirePermission('custom-fields:write')
   const administrationId = requireAdministration(context.administrationId)
   const supabase = await createClient()
-  const { data, error } = await supabase.from('custom_field_definitions').update({
-    label_nl: input.labelNl,
-    label_en: input.labelEn,
-    description_nl: input.descriptionNl,
-    description_en: input.descriptionEn,
-    is_required: input.isRequired,
-    show_in_organization_chart_filter: input.showInOrganizationChartFilter,
-    hr_access: input.hrAccess,
-    manager_access: input.managerAccess,
-    employee_self_access: input.employeeSelfAccess,
-    sort_order: input.sortOrder,
-    is_active: input.isActive,
-  }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+  const updatePayload: Database['public']['Tables']['custom_field_definitions']['Update'] = {}
+  if (input.labelNl !== undefined) updatePayload.label_nl = input.labelNl
+  if (input.labelEn !== undefined) updatePayload.label_en = input.labelEn
+  if (input.countryCode !== undefined) updatePayload.country_code = input.countryCode
+  if (input.descriptionNl !== undefined) updatePayload.description_nl = input.descriptionNl
+  if (input.descriptionEn !== undefined) updatePayload.description_en = input.descriptionEn
+  if (input.isRequired !== undefined) updatePayload.is_required = input.isRequired
+  if (input.showInOrganizationChartFilter !== undefined) updatePayload.show_in_organization_chart_filter = input.showInOrganizationChartFilter
+  if (input.hrAccess !== undefined) updatePayload.hr_access = input.hrAccess
+  if (input.managerAccess !== undefined) updatePayload.manager_access = input.managerAccess
+  if (input.employeeSelfAccess !== undefined) updatePayload.employee_self_access = input.employeeSelfAccess
+  if (input.sortOrder !== undefined) updatePayload.sort_order = input.sortOrder
+  if (input.isActive !== undefined) updatePayload.is_active = input.isActive
+  const { data, error } = await supabase.from('custom_field_definitions').update(updatePayload).eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
     .eq('id', definitionId).is('deleted_at', null).select('*').maybeSingle()
   if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_UPDATE_FAILED', 500)
   if (!data) throw new CustomFieldServiceError('CUSTOM_FIELD_NOT_FOUND', 404)
@@ -174,15 +178,21 @@ export async function updateCustomFieldDefinition(
   return toDefinition(data, options ?? [])
 }
 
-export async function archiveCustomFieldDefinition(definitionId: string): Promise<void> {
-  await updateCustomFieldDefinition(definitionId, { isActive: false })
+export async function deleteCustomFieldDefinition(definitionId: string): Promise<void> {
   const context = await requirePermission('custom-fields:write')
   const administrationId = requireAdministration(context.administrationId)
   const supabase = await createClient()
-  const { error } = await supabase.from('custom_field_definitions')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', definitionId)
-  if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_ARCHIVE_FAILED', 500)
+  const { count, error: valuesError } = await supabase.from('employee_custom_field_values')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('definition_id', definitionId)
+  if (valuesError) throw new CustomFieldServiceError('CUSTOM_FIELD_USAGE_CHECK_FAILED', 500)
+  if ((count ?? 0) > 0) throw new CustomFieldServiceError('CUSTOM_FIELD_IN_USE', 409)
+  const { data, error } = await supabase.from('custom_field_definitions')
+    .delete().eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', definitionId)
+    .select('id').maybeSingle()
+  if (error?.code === '23503') throw new CustomFieldServiceError('CUSTOM_FIELD_IN_USE', 409)
+  if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_DELETE_FAILED', 500)
+  if (!data) throw new CustomFieldServiceError('CUSTOM_FIELD_NOT_FOUND', 404)
 }
 
 export async function getEmployeeCustomFieldValues(employeeId: string): Promise<Json> {

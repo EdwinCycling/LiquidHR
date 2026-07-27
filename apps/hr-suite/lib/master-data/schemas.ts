@@ -11,11 +11,24 @@ export const jobGroupCreateSchema = z.object({
 export const jobCreateSchema = z.object({
   code: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1).max(160),
-  jobGroupId: z.string().uuid(),
+  jobGroupIds: z.array(z.string().uuid()).min(1).max(50).refine((values) => new Set(values).size === values.length, 'DUPLICATE_JOB_GROUP'),
   description: z.string().trim().max(1000).nullish(),
-  validFrom: dateOnly,
-  validUntil: dateOnly.nullish(),
-}).strict().refine((value) => !value.validUntil || value.validUntil > value.validFrom, { path: ['validUntil'], message: 'INVALID_PERIOD' })
+}).strict()
+
+export const jobGroupUpdateSchema = z.object({
+  code: z.string().trim().min(1).max(40).optional(),
+  name: z.string().trim().min(1).max(160).optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
+  isActive: z.boolean().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0)
+
+export const jobUpdateSchema = z.object({
+  code: z.string().trim().min(1).max(40).optional(),
+  name: z.string().trim().min(1).max(160).optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
+  jobGroupIds: z.array(z.string().uuid()).min(1).max(50).refine((values) => new Set(values).size === values.length, 'DUPLICATE_JOB_GROUP').optional(),
+  isActive: z.boolean().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0)
 
 const salaryStepSchema = z.object({
   stepCode: z.string().trim().min(1).max(40),
@@ -48,5 +61,7 @@ export const salaryRevisionSchema = z.object({
 
 export type JobGroupCreateInput = z.infer<typeof jobGroupCreateSchema>
 export type JobCreateInput = z.infer<typeof jobCreateSchema>
+export type JobGroupUpdateInput = z.infer<typeof jobGroupUpdateSchema>
+export type JobUpdateInput = z.infer<typeof jobUpdateSchema>
 export type SalaryScaleCreateInput = z.infer<typeof salaryScaleCreateSchema>
 export type SalaryRevisionInput = z.infer<typeof salaryRevisionSchema>

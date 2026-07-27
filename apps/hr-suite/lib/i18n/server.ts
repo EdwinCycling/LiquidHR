@@ -14,6 +14,7 @@ import customFieldsEn from '@/messages/en/customFields.json'
 import remindersEn from '@/messages/en/reminders.json'
 import heraEn from '@/messages/en/hera.json'
 import dashboardEn from '@/messages/en/dashboard.json'
+import startpageEn from '@/messages/en/startpage.json'
 import masterDataEn from '@/messages/en/masterData.json'
 import documentsEn from '@/messages/en/documents.json'
 import hrCalendarEn from '@/messages/en/hrCalendar.json'
@@ -34,6 +35,7 @@ import customFieldsNl from '@/messages/nl/customFields.json'
 import remindersNl from '@/messages/nl/reminders.json'
 import heraNl from '@/messages/nl/hera.json'
 import dashboardNl from '@/messages/nl/dashboard.json'
+import startpageNl from '@/messages/nl/startpage.json'
 import masterDataNl from '@/messages/nl/masterData.json'
 import documentsNl from '@/messages/nl/documents.json'
 import hrCalendarNl from '@/messages/nl/hrCalendar.json'
@@ -63,6 +65,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     reminders: remindersNl,
     hera: heraNl,
     dashboard: dashboardNl,
+    startpage: startpageNl,
     masterData: masterDataNl,
     documents: documentsNl,
     hrCalendar: hrCalendarNl,
@@ -85,6 +88,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     reminders: remindersEn,
     hera: heraEn,
     dashboard: dashboardEn,
+    startpage: startpageEn,
     masterData: masterDataEn,
     documents: documentsEn,
     hrCalendar: hrCalendarEn,

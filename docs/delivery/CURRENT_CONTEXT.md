@@ -1,8 +1,42 @@
 # Actuele overdracht Liquid HR
 
-## Update 2026-07-25: adresinvoer gebouwd en versie verhoogd
+## Update 2026-07-26: éénknopswissel employment-header
 
-De adresinvoerflow is lokaal gebouwd volgens de requirements in `docs/requirements/core-hr/ADRESINVOER.md`. `employee_addresses` ondersteunt nu vrije internationale adresregels, herkomstmetadata (`manual`, `pdok`, `geoapify`), genormaliseerde postcodes en landafhankelijke verplichtingen in migratie `20260725132351_address_input_internationalization.sql`. De serverroutes `/api/address-suggestions` en `/api/address-lookup` houden providercalls server-only; zonder `GEOAPIFY_API_KEY` blijft buitenlandse handmatige invoer beschikbaar. De medewerkerkaart ondersteunt landkeuze, debounce-suggesties, PDOK-postcodeaanvulling en handmatige invoer. De applicatieversie is `1.20260725.2`. Lokaal zijn 97 testbestanden/353 tests, lint, strict TypeScript, i18n-pariteit en productiebuild geslaagd; de migratie is nog niet remote toegepast.
+De header op de employmentdetailpagina gebruikt nu dezelfde bediening als de medewerkerheader: er is altijd precies één knop zichtbaar. In uitgebreide modus toont de knop **Compact**; in compacte modus toont de knop **Uitgebreid**. De bestaande tab- en view-queryparameters blijven behouden. Applicatieversie is `1.20260726.5`. Typecheck, lint, de versiecheck en lokale runtimecontrole zijn geslaagd; de server luistert op poort 3000 en de interne browser gaf geen errors of warnings. Er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-07-26: start uitvoering Verzuim
+
+De Verzuim- en WvP-brondocumenten uit `C:\Users\Edwin\Downloads` zijn vertaald naar leidende requirements, ADR-0005 en FDR-0002. Het model gebruikt `absence_case` per `employment_id` met één of meer `absence_spells`; medische oorzaken, diagnoses en vrij medische tekst zijn uitgesloten. De gebruiker heeft volledige uitvoering met databasewijzigingen, versienummerverhoging en browsercontrole op poort 3000 gevraagd. Supabase-project: `wnpfloqpjvaacobppbpk`.
+
+## Update 2026-07-26: verzuim verticale slice lokaal uitgevoerd
+
+De pure verzuimengine en Zod-contracten zijn geïmplementeerd met 9 geslaagde tests. De lokale migratie `20260726150000_add_absence_core.sql` bevat `absence_settings`, `absence_cases`, `absence_spells`, `absence_capacity_changes`, RLS/policies, audittriggers en de beveiligde RPC's `report_absence` en `recover_absence`. De API-routes `/api/absence/report`, `/api/absence/recovery` en `/api/absence/employees/[employeeId]` zijn toegevoegd. Het medewerkerdashboard heeft een echt verzuimvenster, de medewerkerdetailpagina een tab Verzuim en de kalender linkt vanuit de medewerkeractie naar ziek melden. Applicatieversie is `1.20260726.7`.
+
+Typecheck, lint, i18n-pariteit, productiebuild en lokale login/browsercontrole op poort 3000 zijn geslaagd. Remote toepassing van de migratie en officiële typesgeneratie konden in deze beurt niet worden uitgevoerd omdat de Supabase-MCP-bewerking niet beschikbaar was en de CLI geen databasewachtwoord heeft; voer dit uit vóór live gebruik en controleer daarna advisors, RLS-isolatie en `packages/db/types.ts` opnieuw.
+
+## Handoff voor volgende chat
+
+Start vanuit `C:\Users\Edwin\Documents\Apps\LiquidHR`, lees eerst `AGENTS.md` en ga verder vanaf dit bestand. Alle bestaande wijzigingen horen bij één nog niet gedeployde release. Behoud versie `1.20260726.5` tenzij de volgende wijziging opnieuw een versieophoging vereist. Controleer bij hervatten opnieuw de lokale server, git-status en Supabase-migratiehistorie; neem de huidige poort-3000-processen en browser-tabs niet blind over.
+
+## Update 2026-07-26: custom fields en functiecatalogusbeheer
+
+Custom fields kunnen in HR Admin worden beheerd met een lijst-eerst-scherm, bewerken van niet-technische eigenschappen, actieve/inactieve status, sortering op label of status, landcode en een live preview onderaan het ingeklapte formulier voor nieuwe velden. De technische sleutel en het veldtype blijven bewust onveranderlijk. Verwijderen vraagt bevestiging en wordt geblokkeerd wanneer waarden het veld gebruiken. Inactieve velden blijven in de database maar worden niet meer aan medewerkers getoond. Functies kunnen aan meerdere functiegroepen worden gekoppeld; de HR Admin-catalogus begint met functiegroepen en toont daarna de gerelateerde functies. Functies en groepen hebben CRUD en een actieve status; verwijderen is geblokkeerd wanneer relaties bestaan. Migraties `20260726093311_custom_fields_and_job_catalog_management.sql`, `20260726094618_split_job_group_jobs_policies.sql` en `20260726094654_index_job_group_jobs_group_scope.sql` zijn toegepast op test-Supabase-project `wnpfloqpjvaacobppbpk`. De SQL-regressieproeven voor countrycode, meerdere functiegroepen en inactieve functiegroepen zijn geslaagd. 97 testbestanden/355 tests, typecheck, lint, i18n, productiebuild en de lokale browsercontrole zijn geslaagd. Applicatieversie is `1.20260726.4`. Er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-07-26: employmentlijst, dienstverbandvenster en dashboard-refresh
+
+De employmentlijst toont geen overbodig aantal meer, verwijdert de onduidelijke verwijderactie, gebruikt **Dienstverband wijzigen**, toont meerdere kaarten in twee kolommen en sorteert op startdatum aflopend met primaire dienstverbanden eerst bij gelijke datum. De dienstverbanddetailkop gebruikt dezelfde compacte/uitgebreide opzet als de medewerkerkop, toont e-mail en telefoon onderaan en markeert expliciet dat het om een dienstverband gaat. Compact toont alleen een kleine foto en naam; dit geldt voor medewerkerdetail en dienstverbanddetail. Het employment-overview toont **Werk in uitvoering** als AI-samenvatting; Follow-up actions en More about this employee zijn uit de applicatiecode verwijderd. De dashboardwidgets worden niet meer via de instabiele server-Suspense-stream geladen, waardoor de automatische refreshlus is gestopt; handmatig vernieuwen blijft beschikbaar. Applicatieversie is `1.20260726.3`. Typecheck, lint, i18n, 353 tests en productiebuild zijn geslaagd. De lokale server draait op poort 3000 en de open interne browser-tab bleef vijf seconden zonder waarschuwingen of fouten. Er is geen databasewijziging nodig en er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-07-26: medewerkerdetail, notities en reminders
+
+De medewerkerdetailpagina heeft nu Notes na Dossier met server-side toegang voor HR Admin en Manager, automatische auteur/tijdregistratie, aflopende sortering en rolafhankelijke verwijderrechten. Profile/external links staan op het medewerkerdashboard; Additional Information is een eigen tab na Relations. Reminders tonen eerst de bestaande lijst, ondersteunen beschrijving, wijzigen/verwijderen en datumverschuivingen; nieuwe reminders starten op de huidige lokale datum/tijd. De medewerkerkop toont actieve status, huidige functie, afdeling en manager. Migraties `20260726061219_employee_notes_and_detail_access.sql` en `20260726062600_harden_employee_notes_grants.sql` zijn toegepast op test-Supabase-project `wnpfloqpjvaacobppbpk` en gecontroleerd met RLS/grants. Applicatieversie is `1.20260726.2`. Typecheck, lint, i18n, 354 tests, build en een ingelogde lokale browsercontrole zijn geslaagd. Er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-07-26: Personal Details beheer en adresreminders
+
+De tabs Persoonsgegevens, Adressen, Bankrekeningen en Relaties zijn opnieuw ingericht met gegroepeerde formulieren, lijst-eerst-weergave, wijzigen en verwijderen. Het enige actieve adres kan niet worden verwijderd; de database-trigger `prevent_last_employee_address_archive` bewaakt dit ook buiten de UI. Een nieuw adres kan optioneel direct reminders publiceren voor HR Admin, Manager en/of Medewerker. De HR Admin-reminder bevat aanvullend `Controleer reiskosten etc.`. Migratie `20260726054248_personal_details_management.sql` is toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; de bestaande bank-account-permission blijft standaard HR-admin-only en is via de bestaande autorisatiematrix instelbaar. Applicatieversie is `1.20260726.1`. Tests, lint, strict TypeScript, i18n, SQL-contractproef en productiebuild zijn geslaagd. Er is niet gedeployed; de lokale ingelogde Personal Details-browsercontrole blijft open omdat de lokale browser geen gebruikerssessie had.
+
+## Update 2026-07-25: adresinvoer gebouwd en remote schema toegepast
+
+De adresinvoerflow is lokaal gebouwd volgens de requirements in `docs/requirements/core-hr/ADRESINVOER.md`. `employee_addresses` ondersteunt nu vrije internationale adresregels, herkomstmetadata (`manual`, `pdok`, `geoapify`), genormaliseerde postcodes en landafhankelijke verplichtingen in migratie `20260725132351_address_input_internationalization.sql`. De serverroutes `/api/address-suggestions` en `/api/address-lookup` houden providercalls server-only; zonder `GEOAPIFY_API_KEY` blijft buitenlandse handmatige invoer beschikbaar. De medewerkerkaart ondersteunt landkeuze, debounce-suggesties, PDOK-postcodeaanvulling en handmatige invoer. De zoek-UX focust standaard het adreszoekveld, toont een zoek-/locatie-icoon, houdt land en resultaten bovenaan uitgelijnd en verduidelijkt dat postcode + huisnummer straat en plaats automatisch invullen. De applicatieversie is `1.20260725.2`. Lokaal zijn 97 testbestanden/353 tests, lint, strict TypeScript, i18n-pariteit en productiebuild geslaagd. De migratie is op 2026-07-25 toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; live controle bevestigde de nieuwe kolommen, vijf constraints, index en één gemigreerd adresrecord. De lokale browsercontrole kon in deze beurt niet afronden omdat de devserver op poort 3000 geen HTTP-response teruggaf.
 
 ## Update 2026-07-24: release naar main en lokale runtime
 
@@ -205,6 +239,82 @@ Liquid HR is een Nederlandstalig, i18n-klaar HR/payrollplatform op Next.js, Supa
 - Configureer SMTP, Google OAuth/redirects en stabiele server-only secrets per omgeving.
 
 Zie `docs/delivery/HANDMATIGE_ACTIES.md` voor de externe actielijst. Gebruikerswijzigingen in dat bestand en `package-lock.json` worden niet overschreven.
+
+Documentenslice 2026-07-26: de leidende blueprint staat in `docs/requirements/documents/Documenten_en_Dossier_Systeem_Master.md`. Het medewerkersdossier heeft een viewer en expliciete categorie-verwijderguardrail; bedrijfsdocumenten hebben private tenantbrede opslag, HR-beheer en dashboardwidget; loonstroken hebben een eigen tab, employment-koppeling en strict permission/RLS-readpad. De vier nieuwe Supabase-migraties zijn op de testdatabase toegepast en met lege documenttabellen gecontroleerd. Bulkimport, Nmbrs/Loket-koppelingen en AI/OCR/RAG zijn bewust later.
+
+Functiecatalogus-UI 2026-07-26: de job- en functiegroepbeheerpagina is nu lijst-eerst met zoeken, sortering, groepsfilter, duidelijke add-knoppen en modal-formulieren voor toevoegen/wijzigen/verwijderen. De `event.currentTarget.reset()`-crash is opgelost door het form-element vóór de async request vast te leggen. Typecheck, lint, i18n, build en lokale desktop/390px-browsercontrole zijn geslaagd.
+
+## Update 2026-07-27: Supabase-connectie en lokale runtime
+
+De Supabase REST- en Auth-endpoints zijn read-only gecontroleerd voor project `wnpfloqpjvaacobppbpk`: REST-query `tenants` gaf HTTP 200 en Auth settings gaf HTTP 200. De officiële MCP-endpoint is bereikbaar maar geeft zonder OAuth-sessie HTTP 401. De projectconfiguratie staat nu in `.mcp.json`; authenticatie en de remote migratie-uitrol moeten nog vanuit een MCP-sessie worden afgerond. De lokale Next-server is op poort 3000 gereset; het oude listenerproces is gestopt, een nieuw proces luistert op 3000 en `/login` geeft HTTP 200. Browsercontrole van `/login` is uitgevoerd.
+
+## Update 2026-07-27: verzuim remote uitgerold en releasegate
+
+De migratie `20260726150000_add_absence_core.sql` is rechtstreeks op het gekoppelde Supabase-project toegepast nadat de FK-unieke constraint voor tenant/casus was gecorrigeerd. De aanvullende migraties `20260727155229_harden_absence_security.sql`, `20260727181000_revoke_absence_anon_grants.sql` en `20260727182000_harden_absence_recovery_idempotency.sql` verplaatsen de interne SECURITY DEFINER-logica naar `internal_security`, trekken anonieme tabelrechten in, laten alleen authenticated de publieke invoker-wrappers aanroepen, splitsen de instellingenpolicies en maken herstel idempotent. Alle vier migraties zijn als applied geregistreerd. De historische remote migratiegeschiedenis bevat oudere versies die niet in deze checkout staan; daarom is `db push` niet als migratiebron gebruikt en zijn bestaande versies niet gerepareerd.
+
+Remote bewijs: `absence_cases`, `absence_spells`, `absence_capacity_changes`, `absence_mutations` en `absence_settings` hebben RLS; de privacycontractproef bevestigt geen medische oorzaakvelden, een verzuimselectpolicy en geen leesrecht op mutatiesleutels. De PostgREST-query op `absence_cases` geeft voor de publieke sleutel HTTP 200 met een lege dataset. De Supabase security-advisor toont geen nieuwe verzuimbevindingen; alleen bestaande waarschuwingen voor oudere leave-RPC's, enkele bestaande dubbele policies en uitgeschakelde leaked-password protection blijven staan. `packages/db/types.ts` is opnieuw gegenereerd met de officiële gekoppelde database-types.
+
+Releasegate 2026-07-27: applicatieversie `1.20260727.2`; 101 testbestanden/369 tests, strict typecheck, ESLint, i18n-pariteit en productiebuild zijn geslaagd. De devserver is opnieuw gestart en luistert op poort 3000; `/login` geeft HTTP 200. De in-app browser had geen bestaande ingelogde tab, dus alleen de publieke loginstaat is gecontroleerd. Een ingelogde end-to-end verzuimactie blijft handmatig open totdat een gebruiker in de browser is aangemeld. De kernverzuimslice en HR-admininstellingen zijn af; wettelijke WvP-milestones/casustaken/dossier, voorziening/bewaarduur, payroll/13-wekenmodel, rapportages en externe integraties zijn niet onderdeel van deze afgeronde slice.
+
+## Update 2026-07-27: Gebruiker Startpagina
+
+De nieuwe server-rendered Startpagina staat op `/dashboard/start` en is als ingesprongen item **Startpagina** onder **Dashboard** toegevoegd aan het hoofdmenu. `/` verwijst nu naar deze startpagina; `/dashboard` blijft de bestaande vrije dashboardwerkplek voor later besluitvorming. De UI gebruikt alleen bestaande RLS-scoped bronnen: medewerkers, afdelingen, verzuim, bedrijfsdocumenten en gepubliceerde persoonlijke reminders. Declaraties, contractondertekening, activumaanvragen, taken/Poortwachter en gebeurtenissen tonen bewust **Werk in uitvoering** zonder voorbeelddata. NL/EN heeft een volledige `startpage`-namespace.
+
+Verificatie: `check:i18n`, strict TypeScript, ESLint, 99 Vitest-bestanden/364 tests en productiebuild geslaagd. Poort 3000 geeft `/login` HTTP 200 en `/dashboard/start` zonder sessie een veilige 307 naar `/login?next=%2Fdashboard%2Fstart`; de verse browser had geen ingelogde sessie, dus de beschermde Startpagina-dataset en 390px-UI blijven handmatig open.
+
+## Update 2026-07-27: Startpagina login- en autorisatiescope
+
+De veilige fallback van de login- en auth-callbackflow is gewijzigd naar `/dashboard/start`; een expliciete veilige `next`-bestemming blijft leidend. De startpagina, reminderwidgets, bedrijfsdocumentenservice en bestaande dashboardwidgets filteren nu expliciet op de actieve administratie wanneer die context van toepassing is. Medewerkerstellingen gebruiken actuele `employee_administration_assignments` en blijven daarna onder de bestaande permission- en RLS-scope vallen. In gecombineerde tenants blijft de tenantbrede context intact.
+
+De read-only live-audit van Supabase bevestigde RLS op medewerkers, administratie-toewijzingen, afdelingen, verzuim, bedrijfsdocumenten en reminders. Er was één echte omissie: `company_documents` en private `company-documents` storage-objecten waren alleen tenant-scoped. Migratie `20260727161805_harden_company_document_administration_scope` is live toegepast en beide read-policies gebruiken nu `has_administration_access`. De security advisor meldt daarnaast alleen bestaande, niet aan deze wijziging gerelateerde bevindingen. De anonieme routecontrole blijft geslaagd; een echte ingelogde rolmatrix voor desktop/390px vraagt nog een beschikbare browsersessie met testgebruikers.
+
+De Startpagina is daarna als volwaardig hoofdmenu-item naast Dashboard gezet. `/dashboard/start` staat ook in de beheerpagina Menuvolgorde; ontbrekende nieuwe items vallen bij bestaande lokale menuvoorkeuren terug op hun standaardpositie.
+
+## Update 2026-07-27: HR-admin verzuimbeheer en eigen WvP-taaktemplates
+
+`/settings/absence` is uitgebreid van een statisch formulier naar een administratiegebonden HR-adminscherm. De pagina laadt de echte frequentieverzuimdrempel en alleen actieve medewerkers met een Liquid HR-gebruikersaccount als standaardcasemanager. De API valideert bereik, administratie en casemanagerkeuze server-side en toont duidelijke foutstatussen in de UI.
+
+De nieuwe migraties `20260727164511_absence_task_templates.sql` en `20260727165641_absence_task_template_immutability.sql` zijn remote toegepast en als applied geregistreerd. `absence_task_templates` heeft tenant-/administratiescope, RLS, audittrigger, geen anon-grants, soft-deactivatie en immutable tenant-, administratie-, code- en systeemvelden. De nieuwe API `/api/settings/absence/tasks` en het lijst-eerst scherm ondersteunen eigen niet-wettelijke taaktemplates met code, deadline na casusstart, bewijsvereiste en activatie/deactivatie. Er zijn bewust geen wettelijke taken geseed zolang de inhoudelijke validatie ontbreekt; de remote beginstand is leeg.
+
+Verificatie: remote RLS/grants zijn groen (`rls_enabled=true`, anon select=false, authenticated select=true); Supabase SQL-lint toont alleen bestaande bevindingen buiten verzuim. De nieuwe schema-, settings- en tasktests zijn geslaagd, i18n-pariteit, strict typecheck, ESLint en productiebuild zijn geslaagd. De in-app browser heeft nog geen beschikbare ingelogde tab; `/settings/absence` redirecteert zonder sessie veilig naar `/login?next=%2Fsettings%2Fabsence`.
+
+## Update 2026-07-27: ingelogde browsercontrole verzuim
+
+De bestaande Codex-in-app-browser-tab op `http://localhost:3000/dashboard/start` is succesvol geclaimd; de sessie is ingelogd als `edwin@editsolutions.nl` in administratie `Liquid HR Demo Holding B.V.`. De startpagina toont echte tellingen (6 actieve medewerkers, 0 actieve verzuimgevallen) en versie `1.20260727.2`. `/settings/absence` rendert de echte frequentiedrempel (3), casemanagerkeuze en het lijst-eerst scherm voor eigen WvP-taaktemplates. De medewerkerkaart van Lina Bakker rendert het tabblad **Verzuim** met eerste ziektedag, arbeidsongeschiktheidspercentage, verwacht herstel en opslaanknop. In `/hr-calendar` is na selectie van Lina's dagcel de actie **Ziek melden** zichtbaar met de datumparameter; de kalender toont daarnaast de personeelskaartactie. Geen demo-ziekmelding of taaktemplate is opgeslagen tijdens deze read-only controle.
+
+## Update 2026-07-27: rijke verzuimtestfixture Fin en Noah
+
+De expliciet geautoriseerde testfixture `20260727171300_seed_rich_absence_demo_employees.sql` is rechtstreeks toegepast op Supabase-project `wnpfloqpjvaacobppbpk` en als applied geregistreerd. De migratie gebruikt vaste UUID's, is idempotent uitgevoerd (tweede run gaf dezelfde aantallen) en raakt uitsluitend de demo-tenant `Liquid HR Demo Holding`.
+
+Toegevoegd voor **Fin de Groot** (`TEST-VERZ-047`) en **Noah Hendriks** (`TEST-VERZ-048`): actieve medewerkerprofielen, administratie-toewijzing, organisatieplaatsing met afdeling/functie/manager, primair dienstverband en contract, loonrelatie/IKV, arbeidsvoorwaarden, rooster, salaris, kostenallocatie, adres, gemaskeerde bankrekening, twee relaties, vier gepubliceerde HR-reminders, twee verzuimcasussen per medewerker (één actief en één gesloten met herstelhistorie), ziekteperiodes/capaciteitswijzigingen en drie eigen niet-wettelijke testtaaktemplates. Er zijn geen BSN's, medische oorzaken of echte contactgegevens gebruikt; e-mailadressen eindigen op `.invalid`.
+
+Remote verificatie: 2 medewerkers, 2 toewijzingen, 2 organisatiekaarten, 2 dienstverbanden, 2 loonrelaties, 2 arbeidsvoorwaarden, 2 roosters, 2 salarissen, 2 kostenallocaties, 2 adressen, 2 bankrekeningen, 4 relaties, 4 reminder-ontvangers, 4 verzuimcasussen, 4 ziekteperiodes, 4 capaciteitsregels en 3 testtemplates. De actieve casussen zijn Fin 70% vanaf 2026-07-18 en Noah 50% vanaf 2026-07-08; de historische casussen zijn gesloten.
+
+Applicatieversie verhoogd naar `1.20260727.3`; de versie-unit-test en de zichtbare versietekst op `/dashboard/start` zijn geslaagd.
+
+Ingelogde browsercontrole geslaagd: `/employees` toont beide medewerkers, hun detailkaarten tonen organisatie-, adres-, relatie-, bank- en dienstverbandgegevens, het tabblad **Verzuim** toont actieve en gesloten historie, `/hr-calendar` toont beide namen en `/dashboard/start` toont 2 lopende verzuimgevallen. Het geopende tabblad staat op de startpagina. Supabase `db lint` gaf alleen reeds bestaande waarschuwingen buiten deze fixture (`create_job_with_revision`, `upsert_star_performer_assessment` en de bestaande leave-RPC `create_leave_opening_balance`).
+
+## Update 2026-07-27: Startpagina en verzuimrapportage
+
+De Startpagina toont naast de verzuim-KPI nu een compacte lijst met lopende verzuimgevallen. Iedere rij bevat medewerker, startdatum, duur, status en een directe link naar het tabblad **Verzuim** in het medewerkerdossier; de lijst blijft administratie-, permission- en RLS-gebonden.
+
+`/insights?report=absence` is beschikbaar als standaard Verzuimrapport. Het rapport ondersteunt maand of volledig kalenderjaar, afdeling, KPI's, maandtrend, dossierlinks en een Excel-compatibele `.xls`-export via `/api/insights/absence`. Het percentage gebruikt geplande verzuimuren gedeeld door beschikbare geplande uren × 100, met rooster-, deeltijd- en gedeeltelijke-verzuimweging. De startpagina- en rapportlabels hebben volledige NL/EN-pariteit.
+
+Applicatieversie verhoogd naar `1.20260727.4`. Verificatie: strict TypeScript, `check:i18n`, lint, vier gerichte verzuimquery/exporttests, productiebuild en ingelogde browsercontrole op poort 3000 zijn geslaagd.
+
+## Update 2026-07-27: Bradford-factorrapport
+
+Het verzuimrapport heeft een tweede rapport gekregen via `/insights?report=absence-bradford`. De Bradford-factor gebruikt `S² × D`, waarbij `S` afzonderlijke ziekteperioden telt en `D` roostergewogen verzuimdagen. De filters zijn laatste 52 weken, dit jaar, vorig jaar, team als afdeling, risiconiveau en medewerkerzoekopdracht; segment en kalendertype zijn bewust niet opgenomen. De uitlegmodal beschrijft formule, risicobanden en de menselijke beoordelingsgrens. De bestaande Excel-route exporteert ook Bradford-resultaten met actieve periode- en afdelingsfilter.
+
+De datalaag blijft RLS-gebonden aan de bestaande `absence_cases`, `absence_spells`, capaciteit, dienstverbanden, roosters en afdelingen; er was voor deze rapportageslice geen nieuw schema nodig. Applicatieversie verhoogd naar `1.20260727.6`. Verificatie: typecheck, lint, i18n-pariteit, volledige testsuite (106 bestanden/379 tests), productiebuild en ingelogde browsercontrole op poort 3000 zijn geslaagd. De browsercontrole bevestigde de drie periodekeuzes, team/afdelingsfilter, risicofilter, uitlegmodal, dossierlinks en Excel-download.
+
+## Update 2026-07-27: Reminderbeheer en Tijdhub
+
+De Tijdhub in de linkerzijbalk toont nu een compacte reminderknop naast de klok. De knop opent maximaal drie actuele reminders, meldt extra reminders expliciet en bevat een werkende link naar Reminderbeheer. Een reminder opent vanuit de Tijdhub in het bestaande standaardvenster met details en acties.
+
+`/reminders` is uitgebreid naar een interactief persoonlijk overzicht met zoeken, filteren op openstaand/alles/afgerond/verborgen, sorteren op eerstvolgende/laatste/titel, kleurcodering voor verlopen en naderende reminders, bulkselectie en bulk afronden. Kaarten tonen waar beschikbaar de medewerker en linken naar het medewerkerdossier; de detailmodal bevat dezelfde context en acties. De lijst gebruikt uitsluitend echte reminders uit de bestaande administratie- en autorisatiescope.
+
+Verificatie: i18n-pariteit, gerichte reminder-tests, volledige lokale tests, strict typecheck, productiebuild en ESLint zijn uitgevoerd. De ingelogde browsercontrole bevestigde de Tijdhubknop, `+1 meer reminder`, de detailmodal en de filter voor oudere reminders. Er is geen schemawijziging of deployment nodig voor deze UI-slice.
 
 ## Hervatten
 

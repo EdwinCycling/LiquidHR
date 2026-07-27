@@ -42,7 +42,7 @@ export function EmployeeArchiveToggle({ employeeId, archived, labels }: { employ
 
   return (
     <>
-      <button type="button" className="button-secondary gap-2" onClick={() => setOpen(true)}>
+      <button type="button" className="button-secondary inline-flex min-h-9 items-center gap-2" onClick={() => setOpen(true)}>
         {archived ? <ArchiveRestore aria-hidden="true" className="h-4 w-4" /> : <Archive aria-hidden="true" className="h-4 w-4" />}
         {archived ? labels.unarchive : labels.archive}
       </button>
