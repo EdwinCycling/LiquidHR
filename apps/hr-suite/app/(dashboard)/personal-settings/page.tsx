@@ -8,7 +8,7 @@ export default async function PersonalSettingsPage() {
   const labels: SettingsModalLabels = {
     open: settings('open'), close: settings('close'), title: settings('title'),
     language: settings('language'), languageHelp: settings('languageHelp'), dutch: settings('dutch'), english: settings('english'),
-    theme: settings('theme'), themeHelp: settings('themeHelp'), clock: settings('clock'), clockHelp: settings('clockHelp'),
+    theme: settings('theme'), themeHelp: settings('themeHelp'), companyTheme: settings('companyTheme'), companyThemeDescription: settings('companyThemeDescription'), clock: settings('clock'), clockHelp: settings('clockHelp'),
     analog: settings('analog'), digital: settings('digital'), hidden: settings('hidden'), clockStyle: settings('clockStyle'),
     classic: settings('classic'), minimal: settings('minimal'), liquid: settings('liquid'), appearanceTab: settings('appearanceTab'),
     dateFormat: settings('dateFormat'), dateFormatHelp: settings('dateFormatHelp'), dmy: settings('dmy'), mdy: settings('mdy'), ymd: settings('ymd'),

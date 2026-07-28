@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- the private administration logo is served by an authenticated route. */
 'use client'
 
 import Link from 'next/link'
@@ -12,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  BriefcaseBusiness,
   Users,
   X,
 } from 'lucide-react'
@@ -41,6 +43,7 @@ interface SidebarLabels {
   personalSettings: string
   hrCalendar: string
   insights: string
+  workforce: string
   navigation: string
   openMenu: string
   closeMenu: string
@@ -99,6 +102,7 @@ export function Sidebar({
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true, nested: false },
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
+    { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: true, nested: false },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false },
   ]
   useEffect(() => {
@@ -106,11 +110,15 @@ export function Sidebar({
       try {
         const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]')
         if (!Array.isArray(saved)) return
-        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/organization-chart', '/hr-calendar', '/insights', '/settings'])
+        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/settings'])
         const normalized = saved.filter((value): value is string => typeof value === 'string' && allowedMenuHrefs.has(value))
         if (!normalized.includes('/dashboard/start')) {
           const dashboardIndex = normalized.indexOf('/dashboard')
           normalized.splice(dashboardIndex < 0 ? 0 : dashboardIndex + 1, 0, '/dashboard/start')
+        }
+        if (!normalized.includes('/workforce')) {
+          const settingsIndex = normalized.indexOf('/settings')
+          normalized.splice(settingsIndex < 0 ? normalized.length : settingsIndex, 0, '/workforce')
         }
         setMenuOrder(normalized)
       } catch { setMenuOrder([]) }
@@ -129,7 +137,7 @@ export function Sidebar({
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-surface px-4 md:hidden">
-        <span className="text-sm font-semibold tracking-tight text-primary">{labels.appName}</span>
+        <span className="flex items-center gap-2 text-sm font-semibold tracking-tight text-primary">{preferences.companyBranding?.logoUrl ? <img alt="" className="max-h-8 max-w-28 object-contain" src={preferences.companyBranding.logoUrl} /> : null}{labels.appName}</span>
         <button aria-label={labels.openMenu} className="grid size-10 place-items-center rounded-lg text-foreground hover:bg-muted" onClick={() => setMobileOpen(true)} type="button">
           <Menu aria-hidden="true" size={21} />
         </button>
@@ -143,12 +151,10 @@ export function Sidebar({
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed ? (
             <div className="flex min-w-0 items-center gap-3">
-              <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>
+              {preferences.companyBranding?.logoUrl ? <img alt="" className="max-h-9 max-w-32 shrink-0 object-contain" src={preferences.companyBranding.logoUrl} /> : <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>}
               <span className="truncate text-sm font-semibold tracking-tight">{labels.appName}</span>
             </div>
-          ) : (
-            <span aria-hidden="true" className="mx-auto grid size-9 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>
-          )}
+          ) : preferences.companyBranding?.logoUrl ? <img alt="" className="mx-auto max-h-9 max-w-12 object-contain" src={preferences.companyBranding.logoUrl} /> : <span aria-hidden="true" className="mx-auto grid size-9 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>}
           <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
             <X aria-hidden="true" size={19} />
           </button>

@@ -70,6 +70,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           personalSettings: navigation('personalSettings'),
           hrCalendar: navigation('hrCalendar'),
           insights: navigation('insights'),
+          workforce: navigation('workforce'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

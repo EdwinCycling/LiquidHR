@@ -3,7 +3,8 @@
 import { Bell, Building2, Check, Clock3, EyeOff, ExternalLink, UserRound, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import type { Locale } from '@/lib/i18n/config'
 import type { ReminderItem } from '@/lib/reminders/reminder-service'
 import { formatReminderCountdown } from '@/lib/reminders/reminder-rules'
@@ -41,6 +42,7 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
   const [closedPopupId, setClosedPopupId] = useState<string | null>(null)
   const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const isMounted = useSyncExternalStore(() => () => undefined, () => true, () => false)
   const reminderButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
         {pending.length > visible.length ? <p className="mt-2 px-1 text-[11px] text-sidebar-muted">+{pending.length - visible.length} {labels.moreReminders}</p> : null}
       </section> : null}
 
-      {popup ? (
+      {isMounted && popup ? createPortal(
         <ReminderDetailDialog
           busy={busy === popup.recipientId}
           item={popup}
@@ -116,7 +118,8 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
             if (automaticDue?.recipientId === popup.recipientId) setClosedPopupId(popup.recipientId)
             if (recipientId) window.requestAnimationFrame(() => reminderButtonRefs.current[recipientId]?.focus())
           }}
-        />
+        />,
+        document.body,
       ) : null}
     </div>
   )

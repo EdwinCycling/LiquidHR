@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMonthDays, formatCalendarMonth, formatCalendarWeekday, formatScheduledHours, getCalendarDayOccupancy, getCalendarWeekNumber, getCalendarWeekOptions, getCalendarWeekSegments, getEmployeePageSize, groupCalendarTypeEventsByEmployee, groupEventsByEmployee, isWeekendDay } from './calendar-model'
+import { buildMonthDays, formatCalendarMonth, formatCalendarWeekday, formatScheduledHours, getAbsenceCellState, getCalendarDayOccupancy, getCalendarWeekNumber, getCalendarWeekOptions, getCalendarWeekSegments, getEmployeePageSize, groupCalendarTypeEventsByEmployee, groupEventsByEmployee, isWeekendDay } from './calendar-model'
 import type { HrChangeEvent } from '@/lib/hr-events/types'
 import type { CalendarTypeEvent } from './calendar-service'
 const event=(id:string):HrChangeEvent=>({id,eventDate:'2026-07-15',eventType:'SCHEDULE_CHANGED',employeeId:'11111111-1111-4111-8111-111111111111',employmentId:null,titleKey:'key',titleValues:{},sourceHref:'/x',severity:'INFO'})
@@ -26,6 +26,14 @@ describe('calendar locale formatting', () => {
 })
 
 describe('calendar day helpers', () => {
+  it('marks active and projected absence days through the expected recovery date', () => {
+    const absence = { startedOn: '2026-07-10', expectedRecoveryOn: '2026-07-15' }
+    expect(getAbsenceCellState('2026-07-09', '2026-07-12', absence)).toBe('none')
+    expect(getAbsenceCellState('2026-07-12', '2026-07-12', absence)).toBe('active')
+    expect(getAbsenceCellState('2026-07-15', '2026-07-12', absence)).toBe('projected')
+    expect(getAbsenceCellState('2026-07-16', '2026-07-12', absence)).toBe('none')
+  })
+
   it('detects weekends and formats scheduled hours compactly', () => {
     expect(isWeekendDay('2026-07-04')).toBe(true)
     expect(isWeekendDay('2026-07-06')).toBe(false)

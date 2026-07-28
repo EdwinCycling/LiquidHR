@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, type ReactNode, useMemo, useState } from 'react'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
 
-interface EmploymentCreateFormProps {
+export interface EmploymentCreateFormProps {
   employeeId: string
   options: EmploymentCreationOptions
   labels: {

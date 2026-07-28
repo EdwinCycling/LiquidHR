@@ -1,5 +1,35 @@
 # Actuele overdracht Liquid HR
 
+## Release-status 2026-07-28
+
+Branding is nu remote actief op Supabase-project `wnpfloqpjvaacobppbpk`: migratie `20260728110000_administration_branding.sql`, private storage-bucket, RLS/policies, `settings:write` voor `TENANT_ADMIN` en `user_preferences.use_company_theme` zijn live gecontroleerd. Applicatieversie: `1.20260728.5`. GitHub push en Vercel-verificatie volgen in deze releaseflow.
+
+## Update 2026-07-28: consistente dienstverbandprojectie en bedrijfsstijl
+
+De medewerkerslijst en medewerkerdetailpagina gebruiken voor dienstverbanden dezelfde RLS-geautoriseerde tenantprojectie. De detailroute blokkeert niet langer ten onrechte een zichtbaar dienstverband uit een andere administratie; de tenant- en permissiongrenzen blijven server-side en via RLS gelden. Lina Bakker met twee dienstverbanden wordt hierdoor in beide schermen consistent weergegeven. Klikbare medewerker- en dienstverbandkaarten gebruiken expliciet `cursor-pointer` en behouden `prefetch={false}` op dynamische detailroutes.
+
+Onder Instellingen → Platform & uitbreidingen is lokaal een tegel **Bedrijfsinstellingen** toegevoegd. De pagina heeft een harmonica-onderdeel voor bedrijfskleuren en logo. De nieuwe administratiegebonden tabel/storage-bucket/RLS staan in migratie `20260728110000_administration_branding.sql`; de API ondersteunt kleuren, privé-logo-upload en verwijderen. De bedrijfsstijl wordt server-side als standaardthema geladen en kan in persoonlijke instellingen door een gebruiker worden overschreven; logo's verschijnen in de sidebar-header en de startbanner. i18n, strict typecheck en lint zijn geslaagd. Remote migratie toepassen, Supabase-advisors en officiële typegeneratie blijven open omdat remote writes niet zonder expliciete toestemming zijn uitgevoerd; de gekoppelde Supabase-MCP-readverbinding werkt wel. Er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-07-28: dienstverbandkaarten en aanmaakwizard
+
+De medewerkerdetailpagina toont dienstverbanden administratiegebonden, zodat een zichtbare kaart niet meer naar een andere administratie kan verwijzen en daardoor 404 geeft. De kaarten zijn samenvattingen zonder beëindig- of verwijderactie, vullen de beschikbare breedte en staan vanaf twee dienstverbanden in twee kolommen. Iedere kaart is als geheel klikbaar en bevat een duidelijke detailactie met pointer-cursor. **Nieuw dienstverband** staat rechts onder de lijst en opent een modal met de bestaande wizard; annuleren sluit de modal en bewaren gaat door naar het nieuwe dienstverbanddetail. Primaire knoppen gebruiken nu overal de handcursor; employment-kaarten doen dat expliciet als klikbare lijstitems. Check:i18n, strict typecheck en lint zijn geslaagd. De lokale runtimecontrole kon niet worden uitgevoerd omdat poort 3000 niet luistert na een bestaande startconflictmelding; er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-07-28: verzuimvisualisatie in kalender
+
+De kalender gebruikt nu de administratiegebonden actieve verzuimcasusprojectie. Zieke dagen krijgen rode cellen; dagen na vandaag tot en met `expected_recovery_on` krijgen rood gearceerde cellen. Naast medewerkers met een actieve casus staat in de eerste kolom een klikbaar ziekte-icoon naar `/employees/[employeeId]?tab=absence`. `RECOVERY_WINDOW` wordt niet als ziek weergegeven. Zonder `absence:read` worden verzuimdetails niet geladen. De databasecontrole bevestigde de gebruikte kolommen en twee actieve casussen op testproject `wnpfloqpjvaacobppbpk`. De datumhelpertest (11 tests), check:i18n, strict typecheck en lint zijn geslaagd.
+
+## Update 2026-07-28: Star Performers naar Workforce verplaatst
+
+Star Performers en Cloud tags zijn uit `Instellingen` verwijderd en verhuisd naar `/workforce` met de routes `/workforce/star-performers` en `/workforce/star-performer-tags`. Oude `/settings/...`-routes blijven als redirects bestaan; de bestaande permission `star-performer:read` blijft server-side gelden. De Workforce-pagina toont deze twee beschikbare vensters naast de eerdere work-in-progress-vensters. Check:i18n, strict typecheck en lint zijn geslaagd; anonieme routechecks redirecten correct naar login.
+
+## Update 2026-07-28: Workforce-navigatie en WIP-pagina
+
+De hoofdnavigatie bevat nu `Workforce` direct boven `Instellingen`, inclusief opname in Menu sorting en migratie van bestaande opgeslagen menuvolgordes. `/workforce` toont een responsive tweekoloms-pagina met de work-in-progress-vensters `9-grid` en `Functioneringsgesprekken`. Beide NL/EN-vertalingen zijn toegevoegd. Check:i18n, strict typecheck en lint zijn geslaagd; de anonieme runtimecontrole bevestigde de verwachte redirect naar `/login?next=%2Fworkforce`.
+
+## Update 2026-07-28: reminder-dialog boven dashboardlaag
+
+De reminder-detaildialog vanuit de Tijdhub wordt via een portal naar `document.body` gerenderd. Daarmee blijft de dialog niet langer gevangen in de getransformeerde, `overflow-hidden` sidebar en opent hij viewport-gecentreerd boven het hoofdscherm. De hydration-guard gebruikt `useSyncExternalStore`. Gerichte ESLint en strict TypeScript zijn geslaagd; ingelogde browsercontrole van de reminderklik blijft open omdat de lokale browser geen sessie had.
+
 ## Update 2026-07-28: werkurentypen bij verlofregels
 
 Werkurentypen ondersteunen drie algemene instellingen (actief, selfservice en vastpinnen in de kalender), dezelfde vier beperkingstypen als overuren en administratiegebonden uitzonderingen voor één of meerdere medewerkers. De geavanceerde tab blijft leeg als toekomstige uitbreidingsplek.

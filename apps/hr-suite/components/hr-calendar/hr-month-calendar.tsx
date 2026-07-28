@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BriefcaseBusiness, CalendarDays, ChevronDown, Clock3, Timer, Umbrella, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, ChevronDown, Clock3, HeartPulse, Timer, Umbrella, X } from "lucide-react";
 import {
   buildMonthDays,
   formatScheduledHours,
@@ -12,6 +12,7 @@ import {
   getCalendarWeekSegments,
   groupCalendarTypeEventsByEmployee,
   groupEventsByEmployee,
+  getAbsenceCellState,
   isWeekendDay,
 } from "@/lib/hr-calendar/calendar-model";
 import type { Locale } from "@/lib/i18n/config";
@@ -19,6 +20,7 @@ import type { WeekNumberingSystem } from "@/lib/preferences/user-preferences";
 import type { HrChangeEvent, HrChangeEventType } from "@/lib/hr-events/types";
 import type {
   CalendarReminder,
+  CalendarAbsencePeriod,
   CalendarTypeEvent,
   CalendarWorkDay,
 } from "@/lib/hr-calendar/calendar-service";
@@ -75,6 +77,9 @@ interface Labels {
   employeesSection: string;
   actionsSection: string;
   reportAbsence: string;
+  absence: string;
+  openAbsenceDossier: string;
+  absenceExpectedRecovery: string;
   events: Record<HrChangeEventType, string>;
   legendTitle: string;
   leaveType: string;
@@ -117,6 +122,7 @@ export function HrMonthCalendar({
   employees,
   events,
   calendarEvents,
+  absencePeriods,
   holidays,
   reminders,
   generalReminders,
@@ -135,6 +141,7 @@ export function HrMonthCalendar({
   employees: Employee[];
   events: HrChangeEvent[];
   calendarEvents: CalendarTypeEvent[];
+  absencePeriods: CalendarAbsencePeriod[];
   holidays: Holiday[];
   reminders: CalendarReminder[];
   generalReminders: CalendarReminder[];
@@ -159,6 +166,11 @@ export function HrMonthCalendar({
   );
   const grouped = groupEventsByEmployee(events);
   const typedEventsByEmployee = useMemo(() => groupCalendarTypeEventsByEmployee(calendarEvents), [calendarEvents]);
+  const absenceByEmployee = useMemo(() => {
+    const result = new Map<string, CalendarAbsencePeriod>();
+    for (const period of absencePeriods) if (!result.has(period.employeeId)) result.set(period.employeeId, period);
+    return result;
+  }, [absencePeriods]);
   const [selection, setSelection] = useState<Selection>(null);
   const [requestTarget, setRequestTarget] = useState<{ employeeId: string; date: string; mode: "PRIORITY" | "DIRECT" } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -326,16 +338,7 @@ export function HrMonthCalendar({
                 gridTemplateColumns: `18rem repeat(${days.length},2.75rem)`,
               }}
             >
-              <button
-                className="sticky left-0 z-10 flex items-center gap-3 border-b border-r bg-surface p-2.5 text-sm font-semibold hover:text-primary"
-                onClick={() =>
-                  setSelection({
-                    type: "employee-summary",
-                    employee,
-                  })
-                }
-                type="button"
-              >
+              <div className="sticky left-0 z-10 flex items-center gap-2 border-b border-r bg-surface p-2.5 text-sm font-semibold">
                 {employee.avatar_url ? (
                   <img src={employee.avatar_url} alt="" className="size-8 shrink-0 rounded-full object-cover" />
                 ) : (
@@ -344,7 +347,7 @@ export function HrMonthCalendar({
                     {employee.birth_name[0]}
                   </span>
                 )}
-                <span className="min-w-0 truncate">
+                <button className="min-w-0 flex-1 truncate text-left hover:text-primary" onClick={() => setSelection({ type: "employee-summary", employee })} type="button">
                   {employee.first_name} {employee.birth_name}
                   <span className="block text-[11px] font-normal text-muted-foreground">
                     {(employee.averageMinutesPerWeek / 60).toLocaleString(
@@ -353,8 +356,9 @@ export function HrMonthCalendar({
                     )}{" "}
                     {labels.hoursPerWeek}
                   </span>
-                </span>
-              </button>
+                </button>
+                {absenceByEmployee.has(employee.id) ? <Link aria-label={`${labels.openAbsenceDossier}: ${employee.first_name} ${employee.birth_name}`} className="grid size-8 shrink-0 place-items-center rounded-lg bg-destructive-surface text-destructive hover:bg-destructive/20" href={`/employees/${employee.id}?tab=absence`} prefetch={false} title={labels.openAbsenceDossier}><HeartPulse aria-hidden="true" size={16} /></Link> : null}
+              </div>
               {days.map((day) => {
                 const items = grouped.get(employee.id)?.get(day) ?? [];
                 const typeItems = typedEventsByEmployee.get(employee.id)?.get(day) ?? [];
@@ -364,15 +368,19 @@ export function HrMonthCalendar({
                 const holiday = holidayByDate.get(day);
                 const isWeekend = isWeekendDay(day);
                 const isToday = day === todayDate;
+                const absence = absenceByEmployee.get(employee.id);
+                const absenceState = getAbsenceCellState(day, todayDate, absence);
+                const isAbsenceDay = absenceState !== 'none';
+                const absenceClass = absenceState === 'projected' ? "calendar-absence-projected" : absenceState === 'active' ? "calendar-absence-active" : "";
                 const typeTitles = typeItems.map((event) => `${event.kind === "LEAVE" ? labels.leaveType : event.kind === "OVERTIME" ? labels.overtimeType : labels.workHourType}: ${event.typeName} · ${event.hours.toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 })}u`);
                 return (
                   <button
-                    className={`relative flex min-h-14 flex-col items-center justify-center gap-1 border-b border-r p-1 hover:bg-accent/70 ${isToday ? "bg-primary/5 ring-1 ring-inset ring-primary/25" : showWeekendsAndHolidays && holiday ? "bg-warning-surface/65" : showWeekendsAndHolidays && isWeekend ? "bg-muted/35" : ""}`}
+                    className={`relative flex min-h-14 flex-col items-center justify-center gap-1 border-b border-r p-1 hover:bg-accent/70 ${absenceClass} ${isToday ? "ring-1 ring-inset ring-primary/25" : showWeekendsAndHolidays && holiday ? "bg-warning-surface/65" : showWeekendsAndHolidays && isWeekend ? "bg-muted/35" : ""}`}
                     key={day}
                     onClick={() =>
                       setSelection({ type: "employee", date: day, employee })
                     }
-                    title={[work?.isWorkingDay ? `${labels.workHours} ${work.scheduledMinutes / 60}h` : labels.nonWorking, ...typeTitles].join(" · ")}
+                    title={[isAbsenceDay ? `${labels.absence}${absence?.expectedRecoveryOn ? ` · ${labels.absenceExpectedRecovery}: ${absence.expectedRecoveryOn}` : ""}` : work?.isWorkingDay ? `${labels.workHours} ${work.scheduledMinutes / 60}h` : labels.nonWorking, ...typeTitles].join(" · ")}
                   >
                     {work && !work.isWorkingDay ? (
                       <span className="h-1.5 w-full rounded-full bg-muted-foreground/45" />

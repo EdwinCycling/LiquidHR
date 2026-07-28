@@ -40,6 +40,13 @@
   --radius-2xl: calc(var(--radius) + 0.5rem);
 }
 
+a[href],
+summary,
+button:not(:disabled),
+[role="button"] {
+  cursor: pointer;
+}
+
 :root,
 [data-theme="liquid-navy"] {
   --background: #f3f5f9;
@@ -376,6 +383,17 @@ select {
     border-radius: 0.2rem;
   }
 
+  .calendar-absence-active {
+    background-color: color-mix(in srgb, var(--destructive) 24%, var(--surface));
+    color: var(--destructive);
+  }
+
+  .calendar-absence-projected {
+    background-color: color-mix(in srgb, var(--destructive) 12%, var(--surface));
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--destructive) 42%, transparent) 0 2px, transparent 2px 6px);
+    color: var(--destructive);
+  }
+
   .form-field {
     @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground hover:border-primary/40 focus:border-primary focus:outline-none;
   }
@@ -392,7 +410,7 @@ select {
   .button-primary,
   .button-secondary,
   .button-danger {
-    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
     -webkit-backdrop-filter: blur(1rem) saturate(1.35);
     backdrop-filter: blur(1rem) saturate(1.35);
     box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);

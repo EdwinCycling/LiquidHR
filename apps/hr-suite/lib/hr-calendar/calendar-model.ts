@@ -77,6 +77,13 @@ export function isWeekendDay(day: string): boolean {
   return weekday === 0 || weekday === 6
 }
 
+export type CalendarAbsenceCellState = 'none' | 'active' | 'projected'
+
+export function getAbsenceCellState(day: string, today: string, absence: { startedOn: string; expectedRecoveryOn: string | null } | undefined): CalendarAbsenceCellState {
+  if (!absence || day < absence.startedOn || (absence.expectedRecoveryOn !== null && day > absence.expectedRecoveryOn)) return 'none'
+  return absence.expectedRecoveryOn !== null && day > today ? 'projected' : 'active'
+}
+
 export function formatScheduledHours(minutes: number): string {
   const hours = minutes / 60
   const formatted = Number.isInteger(hours) ? String(hours) : hours.toLocaleString('nl-NL', { maximumFractionDigits: 2 })

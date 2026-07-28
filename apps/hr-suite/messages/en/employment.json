@@ -1,6 +1,7 @@
 {
   "title": "Employments",
   "new": "New employment",
+  "newWizardTitle": "Set up new employment",
   "parallel": "Parallel employment",
   "startDate": "Start date",
   "endDate": "End date",

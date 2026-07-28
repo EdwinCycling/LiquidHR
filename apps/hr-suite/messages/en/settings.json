@@ -12,6 +12,8 @@
   "english": "English",
   "theme": "Theme",
   "themeHelp": "Choose an appearance that feels comfortable on your screen.",
+  "companyTheme": "Company style",
+  "companyThemeDescription": "Use the default style of the active administration.",
   "clock": "Clock",
   "clockHelp": "Choose how the clock appears in your Time Hub.",
   "analog": "Analog",
@@ -58,7 +60,7 @@
       "salary": "Scales and steps", "salaryDescription": "Manage effective salary scales, revisions and steps.",
       "holidays": "Public holidays", "holidaysDescription": "Import national holidays and add local dates.",
       "masterData": "Master data", "masterDataDescription": "Manage internal reasons and tenant-wide master data.", "leave": "Leave accrual", "leaveDescription": "Manage leave types, work hours, overtime and accrual rules.", "absence": "Absence", "absenceDescription": "Frequent absence threshold and case management.", "anniversaryRules": "Anniversary rules", "anniversaryRulesDescription": "Choose after how many service years work anniversaries appear in reports.", "companyDocuments": "Company documents", "companyDocumentsDescription": "Upload and delete company-wide documents for all signed-in users.",
-      "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.",
+      "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.", "companyBranding": "Company settings", "companyBrandingDescription": "Set company colors and logo for this administration.",
       "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role."
     },
     "menuOrderTitle": "Menu order", "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.", "menuOrderSave": "Save order", "menuOrderSaved": "Menu order saved.", "menuOrderMoveUp": "up", "menuOrderMoveDown": "down"
@@ -108,5 +110,24 @@
     "warm-zand": "Warm neutral tones for a soft workspace.",
     "aubergine": "Refined purple with warm, professional depth.",
     "nacht": "A complete dark theme for low-light environments."
+  },
+  "companyBranding": {
+    "title": "Company settings",
+    "subtitle": "Make this administration recognisable for everyone who works in it.",
+    "colorsTitle": "Company colors and logo",
+    "colorsSubtitle": "Company colors and logo",
+    "colorsHelp": "The company style is the default for users without a personal theme choice. Users can choose another theme in personal settings.",
+    "primaryColor": "Primary color",
+    "accentColor": "Accent color",
+    "sidebarColor": "Sidebar color",
+    "logoTitle": "Company logo",
+    "logoHelp": "Use a PNG, JPG or WebP file up to 2 MB.",
+    "upload": "Upload logo",
+    "removeLogo": "Remove logo",
+    "save": "Save company style",
+    "saving": "Saving…",
+    "saved": "Company style saved.",
+    "failed": "The company style could not be saved.",
+    "invalid": "Check the colors and logo."
   }
 }

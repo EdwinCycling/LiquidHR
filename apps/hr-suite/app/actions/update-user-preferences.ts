@@ -21,6 +21,7 @@ export async function updateUserPreferences(
   const parsed = userPreferencesSchema.safeParse({
     locale: formData.get('locale'),
     theme: formData.get('theme'),
+    useCompanyTheme: formData.get('useCompanyTheme') === 'true',
     clockMode: formData.get('clockMode'),
     analogClockStyle: formData.get('analogClockStyle'),
     dateFormat: formData.get('dateFormat'),
@@ -38,6 +39,7 @@ export async function updateUserPreferences(
     auth_user_id: userId,
     locale: parsed.data.locale,
     theme: parsed.data.theme,
+    use_company_theme: parsed.data.useCompanyTheme,
     clock_mode: parsed.data.clockMode,
     analog_clock_style: parsed.data.analogClockStyle,
     date_format: parsed.data.dateFormat,
@@ -57,5 +59,5 @@ export async function updateUserPreferences(
   cookieStore.set(LOCALE_COOKIE, parsed.data.locale, options)
   cookieStore.set(THEME_COOKIE, parsed.data.theme, options)
 
-  return { code: 'saved', preferences: parsed.data }
+  return { code: 'saved', preferences: { ...parsed.data, companyBranding: null } }
 }

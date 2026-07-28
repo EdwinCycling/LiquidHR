@@ -6,7 +6,7 @@ import { EmployeeDashboard, type EmployeeDashboardDocument } from '@/components/
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
-import { EmploymentCreateForm } from '@/components/employment/employment-create-form'
+import { EmploymentCreateModal } from '@/components/employment/employment-create-modal'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
 import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
@@ -14,7 +14,6 @@ import {
   EmploymentServiceError,
   getEmployeeEmploymentDetail,
   getEmploymentCreationOptions,
-  getTerminationOptions,
 } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getUserPreferences } from '@/lib/preferences/server'
@@ -63,12 +62,9 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
         permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
       ])
       : [false, false, false]
-    const [terminationOptions, creationOptions] = canManageEmployments
-      ? await Promise.all([getTerminationOptions(), getEmploymentCreationOptions(employeeId)])
-      : [
-          { internalReasons: [], statutoryReasons: [] },
-          { departments: [], costCenters: [], salaryScaleSteps: [], nextIkvNumber: 1, canWriteSalary: false },
-        ]
+    const creationOptions = canManageEmployments
+      ? await getEmploymentCreationOptions(employeeId)
+      : { departments: [], costCenters: [], salaryScaleSteps: [], nextIkvNumber: 1, canWriteSalary: false }
     const [documents, documentOptions] = tab === 'documents' ? await Promise.all([
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
@@ -79,7 +75,7 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       ? (await listEmployeeDocuments(employeeId)).filter((document) => document.deleted_at === null).slice(0, 3).map((document) => ({ id: document.id, title: document.title, expiresOn: document.expires_on, createdAt: document.created_at }))
       : []
     const absenceCases = tab === 'overview' || tab === 'absence' ? await listEmployeeAbsence(employeeId).catch(() => []) : []
-    const base = [detail, customFields, reminders, roleAssignments, terminationOptions, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases] as const
+    const base = [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases] as const
     const canReadNotes = await employeeNotesPermissionAllowed(employeeId)
     const [canWriteNotes, canDeleteNotes] = canReadNotes ? await Promise.all([permissionAllowed('employee-note:write', employeeId), permissionAllowed('employee-note:delete', employeeId)]) : [false, false]
     const notes = tab === 'notes' && canReadNotes ? await listEmployeeNotes(employeeId) : []
@@ -104,7 +100,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   const { employeeId } = await params
   const { tab: requestedTab, create, view } = await searchParams
   const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' ? requestedTab : 'overview'
-  const [detail, customFields, reminders, roleAssignments, options, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await loadPageData(employeeId, tab)
+  const [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await loadPageData(employeeId, tab)
   const compact = view === 'compact'
   const statusLabel = {
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
@@ -219,7 +215,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'notes' && canReadNotes && <EmployeeNotes employeeId={employeeId} notes={notes} canWrite={canWriteNotes} canDelete={canDeleteNotes} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('notesTitle'), accessNotice: tEmployees('notesAccessNotice'), empty: tEmployees('notesEmpty'), add: tEmployees('addNote'), edit: tEmployees('editNote'), remove: tEmployees('deleteNote'), noteTitle: tEmployees('noteTitle'), description: tEmployees('description'), author: tEmployees('noteAuthor'), createdAt: tEmployees('noteCreatedAt'), save: tEmployees('saveNote'), cancel: tEmployees('cancel'), saving: tEmployees('saving'), failed: tErrors('generic'), saved: tEmployees('noteSaved'), confirmDelete: tEmployees('confirmDelete') }} />}
 
-        {tab === 'employments' && <div className={`mt-8 grid gap-8 ${canManageEmployments ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]' : ''}`}>
+        {tab === 'employments' && <div className="mt-8">
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">{tEmployment('title')}</h2>
@@ -228,8 +224,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
               employments={detail.employments}
               locale={locale}
               dateFormat={preferences.dateFormat}
-              options={options}
-              canManage={canManageEmployments}
               labels={{
                 empty: tEmployment('empty'),
                 active: tEmployment('active'),
@@ -238,29 +232,21 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 primary: tEmployment('primary'),
                 employmentNumber: tEmployment('employmentNumber'),
                 editDetail: tEmployment('editDetail'),
+                status: tEmployment('status'),
                 indefinite: tEmployment('indefinite'),
                 definite: tEmployment('definite'),
-                terminate: {
-                  title: tEmployment('terminate'),
-                  lastDay: tEmployment('lastWorkingDay'),
-                  internalReason: tEmployment('internalReason'),
-                  statutoryReason: tEmployment('statutoryReason'),
-                  submit: tEmployment('confirmTermination'),
-                  saved: tEmployment('terminationSaved'),
-                  failed: tErrors('generic'),
-                },
               }}
             />
           </section>
-          {canManageEmployments && <aside>
-            {create !== '1' ? <Link className="button-primary" href={`/employees/${employeeId}/employments/new`}>{tEmployment('new')}</Link> : <details className="rounded-2xl border bg-surface p-5 shadow-sm" open>
-              <summary className="button-primary inline-flex cursor-pointer list-none">{tEmployment('new')}</summary>
-              <div className="mt-5">
-            <EmploymentCreateForm
+          {canManageEmployments && <div className="mt-6 flex justify-end">
+            <EmploymentCreateModal
               employeeId={employeeId}
               options={creationOptions}
+              initialOpen={create === '1'}
               labels={{
                 title: tEmployment('new'),
+                modalTitle: tEmployment('newWizardTitle'),
+                cancel: tEmployment('cancel'),
                 number: tEmployment('employmentNumber'),
                 contractType: tEmployment('contractType'),
                 indefinite: tEmployment('indefinite'),
@@ -287,9 +273,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 completeSummary: tEmployment('completeSummary'), requiredFields: tEmployment('requiredFields'),
               }}
             />
-              </div>
-            </details>}
-          </aside>}
+          </div>}
         </div>}
       </main>
   )

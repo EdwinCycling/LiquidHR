@@ -126,7 +126,7 @@ export function StarPerformerManager({ workspace, query, labels }: StarPerformer
     if (merged.jobId) params.set('jobId', merged.jobId)
     if (merged.tagId) params.set('tagId', merged.tagId)
     if (merged.minStars) params.set('minStars', merged.minStars)
-    router.replace(`/settings/star-performers?${params.toString()}`)
+    router.replace(`/workforce/star-performers?${params.toString()}`)
   }
 
   function findAssessment(employeeId: string) {
@@ -232,7 +232,7 @@ export function StarPerformerManager({ workspace, query, labels }: StarPerformer
               </button>
             </div>
           </div>
-          <Link className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold" href="/settings/star-performer-tags">
+          <Link className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold" href="/workforce/star-performer-tags">
             <Tag size={16} />
             {labels.manageTags}
           </Link>

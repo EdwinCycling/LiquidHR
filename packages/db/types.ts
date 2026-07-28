@@ -522,6 +522,50 @@ export type Database = {
           },
         ]
       }
+      administration_branding: {
+        Row: {
+          accent_color: string
+          administration_id: string
+          created_at: string
+          logo_storage_path: string | null
+          primary_color: string
+          sidebar_color: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string
+          administration_id: string
+          created_at?: string
+          logo_storage_path?: string | null
+          primary_color?: string
+          sidebar_color?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string
+          administration_id?: string
+          created_at?: string
+          logo_storage_path?: string | null
+          primary_color?: string
+          sidebar_color?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administration_branding_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: true
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       ai_action_drafts: {
         Row: {
           action_type: string
@@ -6641,6 +6685,7 @@ export type Database = {
           locale: Database["public"]["Enums"]["ui_locale"]
           theme: Database["public"]["Enums"]["ui_theme"]
           time_format: Database["public"]["Enums"]["time_format"]
+          use_company_theme: boolean
           ui_state: Json
           updated_at: string
           week_numbering_system: Database["public"]["Enums"]["week_numbering_system"]
@@ -6654,6 +6699,7 @@ export type Database = {
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
           time_format?: Database["public"]["Enums"]["time_format"]
+          use_company_theme?: boolean
           ui_state?: Json
           updated_at?: string
           week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
@@ -6667,6 +6713,7 @@ export type Database = {
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
           time_format?: Database["public"]["Enums"]["time_format"]
+          use_company_theme?: boolean
           ui_state?: Json
           updated_at?: string
           week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]

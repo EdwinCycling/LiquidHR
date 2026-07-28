@@ -37,7 +37,7 @@ async function loadEmploymentForAction(employmentId: string, permission: string)
     .eq('id', employmentId).is('deleted_at', null).maybeSingle()
   if (error || !data) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   const context = await requirePermission(permission, data.employee_id)
-  if (context.tenantId !== data.tenant_id || context.administrationId !== data.administration_id) {
+  if (context.tenantId !== data.tenant_id) {
     throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   }
   return data

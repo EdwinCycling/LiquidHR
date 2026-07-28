@@ -14,6 +14,7 @@ export function PersonalSettingsForm({ labels, preferences }: { labels: Settings
   const [state, action, pending] = useActionState(updateUserPreferences, initialState)
   const [locale, setLocale] = useState(preferences.locale)
   const [theme, setTheme] = useState(preferences.theme)
+  const [useCompanyTheme, setUseCompanyTheme] = useState(preferences.useCompanyTheme)
   const [clockMode, setClockMode] = useState(preferences.clockMode)
   const [analogClockStyle, setAnalogClockStyle] = useState(preferences.analogClockStyle)
   const [dateFormat, setDateFormat] = useState(preferences.dateFormat)
@@ -23,8 +24,21 @@ export function PersonalSettingsForm({ labels, preferences }: { labels: Settings
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    const root = document.documentElement
+    const branding = preferences.companyBranding
+    if (useCompanyTheme && branding) {
+      root.style.setProperty('--primary', branding.primaryColor)
+      root.style.setProperty('--primary-hover', branding.primaryColor)
+      root.style.setProperty('--accent', branding.accentColor)
+      root.style.setProperty('--accent-foreground', branding.primaryColor)
+      root.style.setProperty('--focus', branding.primaryColor)
+      root.style.setProperty('--sidebar', branding.sidebarColor)
+      root.style.setProperty('--sidebar-accent', branding.primaryColor)
+    } else {
+      for (const property of ['--primary', '--primary-hover', '--accent', '--accent-foreground', '--focus', '--sidebar', '--sidebar-accent']) root.style.removeProperty(property)
+    }
     document.documentElement.lang = locale
-  }, [locale, theme])
+  }, [locale, theme, useCompanyTheme, preferences.companyBranding])
 
   useEffect(() => {
     if (state.code !== 'saved' || !state.preferences) return
@@ -32,6 +46,7 @@ export function PersonalSettingsForm({ labels, preferences }: { labels: Settings
     queueMicrotask(() => {
       setLocale(preferences.locale)
       setTheme(preferences.theme)
+      setUseCompanyTheme(preferences.useCompanyTheme)
       setClockMode(preferences.clockMode)
       setAnalogClockStyle(preferences.analogClockStyle)
       setDateFormat(preferences.dateFormat)
@@ -47,6 +62,7 @@ export function PersonalSettingsForm({ labels, preferences }: { labels: Settings
     <form action={action} className="space-y-6">
       <input name="locale" type="hidden" value={locale} />
       <input name="theme" type="hidden" value={theme} />
+      <input name="useCompanyTheme" type="hidden" value={String(useCompanyTheme)} />
       <input name="dateFormat" type="hidden" value={dateFormat} />
       <input name="timeFormat" type="hidden" value={timeFormat} />
       <input name="weekNumberingSystem" type="hidden" value={weekNumberingSystem} />
@@ -57,7 +73,7 @@ export function PersonalSettingsForm({ labels, preferences }: { labels: Settings
         <SettingsAccordionSection
           isOpen={openSection === 'appearance'}
           onToggle={() => setOpenSection((current) => current === 'appearance' ? null : 'appearance')}
-          subtitle={`${labels.language}: ${locale === 'nl' ? labels.dutch : labels.english} · ${labels.theme}: ${labels.themes[theme].name}`}
+          subtitle={`${labels.language}: ${locale === 'nl' ? labels.dutch : labels.english} · ${labels.theme}: ${useCompanyTheme ? labels.companyTheme : labels.themes[theme].name}`}
           title={labels.appearanceTab}
         >
           <fieldset>
@@ -76,9 +92,14 @@ export function PersonalSettingsForm({ labels, preferences }: { labels: Settings
             <legend className="text-sm font-semibold">{labels.theme}</legend>
             <p className="mt-1 text-sm text-muted-foreground">{labels.themeHelp}</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {preferences.companyBranding ? <label className={`cursor-pointer rounded-xl border p-4 ${useCompanyTheme ? 'border-focus bg-accent' : 'bg-surface-raised'}`}>
+                <input checked={useCompanyTheme} className="sr-only" onChange={() => setUseCompanyTheme(true)} type="radio" />
+                <span aria-hidden="true" className="mb-3 flex h-10 overflow-hidden rounded-lg border"><span className="w-1/3" style={{ backgroundColor: preferences.companyBranding.sidebarColor }} /><span className="flex-1 bg-background p-2"><span className="block h-full rounded" style={{ backgroundColor: preferences.companyBranding.primaryColor }} /></span></span>
+                <span className="block text-sm font-semibold">{labels.companyTheme}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{labels.companyThemeDescription}</span>
+              </label> : null}
               {UI_THEMES.map((value) => (
-                <label className={`cursor-pointer rounded-xl border p-4 ${theme === value ? 'border-focus bg-accent' : 'bg-surface-raised'}`} data-theme={value} key={value}>
-                  <input checked={theme === value} className="sr-only" onChange={() => setTheme(value)} type="radio" />
+                <label className={`cursor-pointer rounded-xl border p-4 ${!useCompanyTheme && theme === value ? 'border-focus bg-accent' : 'bg-surface-raised'}`} data-theme={value} key={value}>
+                  <input checked={!useCompanyTheme && theme === value} className="sr-only" onChange={() => { setUseCompanyTheme(false); setTheme(value) }} type="radio" />
                   <span aria-hidden="true" className="mb-3 flex h-10 overflow-hidden rounded-lg border"><span className="w-1/3 bg-sidebar" /><span className="flex-1 bg-background p-2"><span className="block h-full rounded bg-primary" /></span></span>
                   <span className="block text-sm font-semibold">{labels.themes[value].name}</span>
                   <span className="mt-1 block text-xs leading-5 text-muted-foreground">{labels.themes[value].description}</span>

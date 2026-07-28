@@ -9,9 +9,8 @@ import {
   FileSliders,
   FileText,
   LayoutDashboard,
+  Palette,
   ShieldCheck,
-  Star,
-  Tags,
   Umbrella,
   Users,
   type LucideIcon,
@@ -134,7 +133,6 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('modules:read'),
       allowed('department:write'),
       allowed('dashboard-widget:write'),
-      allowed('star-performer:read'),
       allowed('company-document:write'),
       allowed('absence-settings:read'),
     ]),
@@ -150,24 +148,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     modules,
     departments,
     dashboardWidgets,
-    starPerformers,
     companyDocuments,
     absenceSettings,
   ] = capabilities
 
-  const starTilesVisible = starPerformers
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
     {
       title: messages('admin.sections.organization'),
       items: [
-        {
-          kind: 'link',
-          href: '/settings/star-performer-tags',
-          icon: Tags,
-          title: messages('admin.tiles.starPerformerTags'),
-          description: messages('admin.tiles.starPerformerTagsDescription'),
-          visible: starTilesVisible,
-        },
         {
           kind: 'link',
           href: '/authorization',
@@ -183,14 +171,6 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.roleAssignments'),
           description: messages('admin.tiles.roleAssignmentsDescription'),
           visible: authorization,
-        },
-        {
-          kind: 'link',
-          href: '/settings/star-performers',
-          icon: Star,
-          title: messages('admin.tiles.starPerformers'),
-          description: messages('admin.tiles.starPerformersDescription'),
-          visible: starTilesVisible,
         },
         {
           kind: 'link',
@@ -312,6 +292,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           icon: LayoutDashboard,
           title: messages('admin.menuOrderTitle'),
           description: messages('admin.menuOrderDescription'),
+          visible: true,
+        },
+        {
+          kind: 'link',
+          href: '/settings/company-branding',
+          icon: Palette,
+          title: messages('admin.tiles.companyBranding'),
+          description: messages('admin.tiles.companyBrandingDescription'),
           visible: true,
         },
       ],

@@ -1,5 +1,5 @@
 import 'server-only'
-import { requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { buildMonthDays } from './calendar-model'
 import { getPatternDay, type WorkPatternDay } from '@/lib/work-patterns/work-pattern-model'
@@ -8,6 +8,7 @@ import { employeeAvatarHref } from '@/lib/employees/employee-service'
 
 export type CalendarWorkDay = { isWorkingDay: boolean; startsAt: string | null; endsAt: string | null; scheduledMinutes: number }
 export type CalendarReminder = { id: string; employeeId: string | null; date: string; title: string }
+export type CalendarAbsencePeriod = { employeeId: string; caseId: string; startedOn: string; expectedRecoveryOn: string | null }
 export type CalendarTypeEventKind = 'LEAVE' | 'WORK_HOUR' | 'OVERTIME'
 export interface CalendarTypeEvent { id: string; employeeId: string; employmentId: string; date: string; kind: CalendarTypeEventKind; typeId: string; typeName: string; colorCode: string; hours: number }
 export interface CalendarJobGroupOption { id: string; code: string; name: string }
@@ -28,10 +29,15 @@ export async function loadUnifiedCalendar(month: string) {
   const employments = employmentsResult.data ?? []
   const employeeIds = [...new Set(employments.map((employment) => employment.employee_id))]
   const employmentIds = employments.map((employment) => employment.id)
-  const empty = { employees: [], departments: [], holidays: [], reminders: [], generalReminders: [], events: [], calendarEvents: [], jobGroups: [], jobs: [] }
+  const empty = { employees: [], departments: [], holidays: [], reminders: [], generalReminders: [], events: [], calendarEvents: [], absencePeriods: [], jobGroups: [], jobs: [] }
   if (!employeeIds.length) return empty
+  let canReadAbsence = true
+  try { await requirePermission('absence:read') } catch (error) {
+    if (error instanceof AuthorizationError) canReadAbsence = false
+    else throw error
+  }
 
-  const [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult, hrData] = await Promise.all([
+  const [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult, hrData] = await Promise.all([
     supabase.from('employees').select('id,employee_number,first_name,birth_name,avatar_url,is_archived').in('id', employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id,job_id,job_title,effective_from').in('employee_id', employeeIds).eq('administration_id', administrationId).lte('effective_from', to).or(`effective_to.is.null,effective_to.gte.${from}`).order('effective_from', { ascending: false }).limit(4000),
     supabase.from('departments').select('id,code,name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(500),
@@ -39,10 +45,16 @@ export async function loadUnifiedCalendar(month: string) {
     supabase.from('holidays').select('id,holiday_date,display_name,provider_name,source').eq('administration_id', administrationId).eq('is_active', true).gte('holiday_date', from).lt('holiday_date', to).order('holiday_date').limit(400),
     supabase.from('reminder_recipients').select('id,employee_id,effective_remind_at,reminder_id').not('employee_id', 'is', null).gte('effective_remind_at', `${from}T00:00:00Z`).lt('effective_remind_at', `${to}T00:00:00Z`).limit(5000),
     supabase.from('reminders').select('id,title,remind_at').eq('administration_id', administrationId).eq('status', 'PUBLISHED').eq('target_type', 'EVERYONE').gte('remind_at', `${from}T00:00:00Z`).lt('remind_at', `${to}T00:00:00Z`).limit(500),
+    canReadAbsence ? supabase.from('absence_cases').select('id,employee_id').eq('administration_id', administrationId).eq('status', 'ACTIVE').is('archived_at', null).in('employee_id', employeeIds).lte('first_absence_on', to).limit(2000) : Promise.resolve({ data: [], error: null }),
     listCalendarHrEvents(month),
   ])
-  const failed = [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult].find((result) => result.error)
+  const failed = [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult].find((result) => result.error)
   if (failed?.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
+  const absenceCaseRows = absenceCasesResult.data ?? []
+  const absenceSpellResult = canReadAbsence && absenceCaseRows.length ? await supabase.from('absence_spells').select('id,case_id,started_on,expected_recovery_on,recovered_on').in('case_id', absenceCaseRows.map((row) => row.id)).is('recovered_on', null).order('started_on', { ascending: false }) : { data: [], error: null }
+  if (absenceSpellResult.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
+  const employeeByCaseId = new Map(absenceCaseRows.map((row) => [row.id, row.employee_id]))
+  const absencePeriods: CalendarAbsencePeriod[] = (absenceSpellResult.data ?? []).flatMap((spell) => { const employeeId = employeeByCaseId.get(spell.case_id); return employeeId ? [{ employeeId, caseId: spell.case_id, startedOn: spell.started_on, expectedRecoveryOn: spell.expected_recovery_on }] : [] })
   const latestOrganizationByEmployee = new Map<string, NonNullable<typeof organizationsResult.data>[number]>()
   for (const organization of organizationsResult.data ?? []) {
     if (!latestOrganizationByEmployee.has(organization.employee_id)) latestOrganizationByEmployee.set(organization.employee_id, organization)
@@ -154,6 +166,7 @@ export async function loadUnifiedCalendar(month: string) {
     generalReminders: (generalResult.data ?? []).map((reminder) => ({ id: reminder.id, employeeId: null, date: reminder.remind_at.slice(0, 10), title: reminder.title })),
     events: hrData.events,
     calendarEvents,
+    absencePeriods,
     jobGroups,
     jobs,
   }

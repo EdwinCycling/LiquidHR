@@ -26,6 +26,7 @@ export const MESSAGE_NAMESPACES = [
   'starPerformers',
   'leave',
   'insights',
+  'workforce',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

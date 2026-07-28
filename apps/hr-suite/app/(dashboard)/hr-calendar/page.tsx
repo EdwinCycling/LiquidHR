@@ -275,6 +275,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
         employees={employees}
         events={events}
         calendarEvents={calendarEvents}
+        absencePeriods={data.absencePeriods}
         generalReminders={data.generalReminders}
         holidays={data.holidays}
         labels={{
@@ -305,6 +306,9 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           employeesSection: t('selectedEmployees'),
           actionsSection: t('actions'),
           reportAbsence: t('reportAbsence'),
+          absence: t('absence'),
+          openAbsenceDossier: t('openAbsenceDossier'),
+          absenceExpectedRecovery: t('absenceExpectedRecovery'),
           events: eventLabels,
           legendTitle: t('legendTitle'),
           leaveType: t('leaveType'),

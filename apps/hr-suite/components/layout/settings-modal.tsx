@@ -24,6 +24,8 @@ export interface SettingsModalLabels {
   english: string
   theme: string
   themeHelp: string
+  companyTheme: string
+  companyThemeDescription: string
   clock: string
   clockHelp: string
   analog: string
@@ -80,14 +82,28 @@ export function SettingsModal({
   )
   const [locale, setLocale] = useState(preferences.locale)
   const [theme, setTheme] = useState<UiTheme>(preferences.theme)
+  const [useCompanyTheme, setUseCompanyTheme] = useState(preferences.useCompanyTheme)
   const [clockMode, setClockMode] = useState(preferences.clockMode)
   const [analogClockStyle, setAnalogClockStyle] = useState(preferences.analogClockStyle)
   const [activeTab, setActiveTab] = useState<'appearance' | 'timeHub'>('appearance')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    const root = document.documentElement
+    const branding = preferences.companyBranding
+    if (useCompanyTheme && branding) {
+      root.style.setProperty('--primary', branding.primaryColor)
+      root.style.setProperty('--primary-hover', branding.primaryColor)
+      root.style.setProperty('--accent', branding.accentColor)
+      root.style.setProperty('--accent-foreground', branding.primaryColor)
+      root.style.setProperty('--focus', branding.primaryColor)
+      root.style.setProperty('--sidebar', branding.sidebarColor)
+      root.style.setProperty('--sidebar-accent', branding.primaryColor)
+    } else {
+      for (const property of ['--primary', '--primary-hover', '--accent', '--accent-foreground', '--focus', '--sidebar', '--sidebar-accent']) root.style.removeProperty(property)
+    }
     document.documentElement.lang = locale
-  }, [locale, theme])
+  }, [locale, theme, useCompanyTheme, preferences.companyBranding])
 
   useEffect(() => {
     if (state.code !== 'saved' || !state.preferences) return
@@ -99,6 +115,7 @@ export function SettingsModal({
     onBeforeOpen?.()
     setLocale(preferences.locale)
     setTheme(preferences.theme)
+    setUseCompanyTheme(preferences.useCompanyTheme)
     setClockMode(preferences.clockMode)
     setAnalogClockStyle(preferences.analogClockStyle)
     dialogRef.current?.showModal()
@@ -106,6 +123,7 @@ export function SettingsModal({
 
   function closeDialog() {
     setTheme(preferences.theme)
+    setUseCompanyTheme(preferences.useCompanyTheme)
     setLocale(preferences.locale)
     setClockMode(preferences.clockMode)
     setAnalogClockStyle(preferences.analogClockStyle)
@@ -155,6 +173,7 @@ export function SettingsModal({
       >
         <form action={action} className="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100dvh-3rem)]">
           <input name="dateFormat" type="hidden" value={preferences.dateFormat} />
+          <input name="useCompanyTheme" type="hidden" value={String(useCompanyTheme)} />
           <input name="timeFormat" type="hidden" value={preferences.timeFormat} />
           <input name="weekNumberingSystem" type="hidden" value={preferences.weekNumberingSystem} />
           <header className="flex items-start justify-between gap-6 border-b px-5 py-5 sm:px-7">
@@ -201,8 +220,13 @@ export function SettingsModal({
               <legend className="text-sm font-semibold text-foreground">{labels.theme}</legend>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.themeHelp}</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {preferences.companyBranding ? <label className={`group relative cursor-pointer overflow-hidden rounded-xl border bg-surface-raised p-3 transition-[border-color,transform] hover:-translate-y-0.5 ${useCompanyTheme ? 'border-focus' : 'hover:border-muted-foreground/45'}`}>
+                  <input checked={useCompanyTheme} className="sr-only" onChange={() => setUseCompanyTheme(true)} type="radio" />
+                  <span aria-hidden="true" className="mb-3 flex h-12 overflow-hidden rounded-lg border"><span className="w-[28%]" style={{ backgroundColor: preferences.companyBranding.sidebarColor }} /><span className="flex flex-1 items-center gap-1.5 bg-background px-2"><span className="h-6 flex-1 rounded bg-surface" /><span className="size-6" style={{ backgroundColor: preferences.companyBranding.primaryColor }} /></span></span>
+                  <span className="block text-sm font-semibold text-foreground">{labels.companyTheme}</span><span className="mt-1 block text-xs leading-4 text-muted-foreground">{labels.companyThemeDescription}</span>
+                </label> : null}
                 {UI_THEMES.map((value) => {
-                  const selected = theme === value
+                  const selected = !useCompanyTheme && theme === value
                   const themeLabel = labels.themes[value]
                   return (
                     <label
@@ -214,7 +238,7 @@ export function SettingsModal({
                         checked={selected}
                         className="sr-only"
                         name="theme"
-                        onChange={() => previewTheme(value)}
+                        onChange={() => { setUseCompanyTheme(false); previewTheme(value) }}
                         type="radio"
                         value={value}
                       />

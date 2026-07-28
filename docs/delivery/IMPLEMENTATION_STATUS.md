@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## Release-status 2026-07-28
+
+Branding-migratie `20260728110000_administration_branding.sql` is remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; tabel, bucket, RLS, roltoewijzing en `use_company_theme` zijn live gecontroleerd. Applicatieversie: `1.20260728.5`. GitHub push en Vercel-verificatie volgen.
+
+## Update 2026-07-28: dienstverbandprojectie en bedrijfsstijl
+
+De medewerkerdetailtab Dienstverbanden gebruikt nu dezelfde tenant-brede, geautoriseerde dienstverbandprojectie als de medewerkerslijst; Lina Bakker met twee dienstverbanden wordt daardoor volledig getoond. Dienstverbandkaarten zijn volledige detailkoppelingen met een duidelijke detailactie, en klikbare lijst-/kaartinteractie gebruikt consequent de handcursor.
+
+Onder Admin instellingen → Platform en uitbreidingen is lokaal een bedrijfsinstellingenpagina toegevoegd. De eerste harmonica bevat bedrijfskleuren en een privé logo-upload; de bedrijfsstijl wordt als standaardthema toegepast en kan in persoonlijke instellingen worden overschreven. De lokale migratie `20260728110000_administration_branding.sql` en gegenereerde type-uitbreiding staan klaar. Remote toepassen, advisors en officiële typegeneratie blijven open totdat daarvoor expliciet toestemming is gegeven. Typecheck, ESLint, i18n-pariteit en productiebuild zijn lokaal geslaagd; deployment, push en commit blijven uitgesteld.
+
 ## Update 2026-07-28: werkurentypen bij verlofregels
 
 Werkurentypen hebben nu drie algemene instellingen, gedeelde beperkingstypen met overuren en uitzonderingen voor één of meerdere administratie-medewerkers met selfservice-keuze. De geavanceerde tab blijft leeg voor toekomstige instellingen. Migratie `20260728072505_work_hour_type_settings_and_restrictions.sql` is remote toegepast en de officiële types zijn opnieuw gegenereerd. Typecheck, i18n en de gerichte schema-tests zijn geslaagd. Versie `1.20260728.4`; deployment, push en commit blijven uitgesteld.

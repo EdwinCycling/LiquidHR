@@ -12,6 +12,8 @@
   "english": "Engels",
   "theme": "Thema",
   "themeHelp": "Kies een uitstraling die prettig werkt op jouw scherm.",
+  "companyTheme": "Bedrijfsstijl",
+  "companyThemeDescription": "Gebruik de standaardstijl van de actieve administratie.",
   "clock": "Klok",
   "clockHelp": "Kies hoe de klok in je Tijdhub wordt weergegeven.",
   "analog": "Analoog",
@@ -58,7 +60,7 @@
       "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
       "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe.",
       "masterData": "Stamtabellen", "masterDataDescription": "Beheer interne redenen en tenantbrede stamtabellen.", "leave": "Verlofopbouw", "leaveDescription": "Beheer verloftypen, werkuren, overuren en opbouwregels.", "absence": "Verzuim", "absenceDescription": "Drempel voor frequent verzuim en casusbeheer.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.", "companyDocuments": "Bedrijfsdocumenten", "companyDocumentsDescription": "Upload en verwijder bedrijfsbrede documenten voor alle ingelogde gebruikers.",
-      "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.",
+      "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.", "companyBranding": "Bedrijfsinstellingen", "companyBrandingDescription": "Stel bedrijfskleuren en het logo in voor deze administratie.",
       "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
     },
     "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag"
@@ -108,5 +110,24 @@
     "warm-zand": "Warme neutrale tinten voor een zachte werkomgeving.",
     "aubergine": "Verfijnd paars met warme, zakelijke diepte.",
     "nacht": "Een volwaardig donker thema voor weinig omgevingslicht."
+  },
+  "companyBranding": {
+    "title": "Bedrijfsinstellingen",
+    "subtitle": "Maak de uitstraling van deze administratie herkenbaar voor iedereen die ermee werkt.",
+    "colorsTitle": "Bedrijfskleuren en logo",
+    "colorsSubtitle": "Bedrijfskleuren en logo",
+    "colorsHelp": "De bedrijfsstijl wordt de standaard voor gebruikers zonder eigen themakeuze. Kies daarna eventueel een ander thema in persoonlijke instellingen.",
+    "primaryColor": "Primaire kleur",
+    "accentColor": "Accentkleur",
+    "sidebarColor": "Menubalkkleur",
+    "logoTitle": "Bedrijfslogo",
+    "logoHelp": "Gebruik een PNG-, JPG- of WebP-bestand van maximaal 2 MB.",
+    "upload": "Logo uploaden",
+    "removeLogo": "Logo verwijderen",
+    "save": "Bedrijfsstijl opslaan",
+    "saving": "Opslaan…",
+    "saved": "Bedrijfsstijl opgeslagen.",
+    "failed": "De bedrijfsstijl kon niet worden opgeslagen.",
+    "invalid": "Controleer de kleuren en het logo."
   }
 }

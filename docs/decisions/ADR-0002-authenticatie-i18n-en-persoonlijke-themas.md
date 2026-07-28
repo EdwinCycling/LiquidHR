@@ -14,7 +14,7 @@ Terugkerende magic links zijn onhandig op meerdere browsers en apparaten. Liquid
 - Preboarding gebruikt het privé-e-mailadres dat aan de vooraf aangemaakte Employee is gekoppeld. Zakelijke gebruikers worden op hun zakelijke adres uitgenodigd.
 - Een geverifieerd zakelijk adres kan later aan dezelfde auth-user en Employee worden gekoppeld; er ontstaat geen tweede persoonskaart.
 - Nederlands is standaard en Engels is verplicht. Ieder namespacebestand heeft in beide talen exact dezelfde sleutels.
-- Locale en één van zes thema's worden self-only in `user_preferences` opgeslagen. De HTML-root krijgt server-side `lang` en `data-theme` om een zichtbare themaflits te voorkomen.
+- Locale, de persoonlijke themakeuze en de keuze om de bedrijfsstijl te gebruiken worden self-only in `user_preferences` opgeslagen. Een administratie kan daarnaast een bedrijfsstijl met kleuren en logo instellen; die is de standaard zolang de gebruiker geen persoonlijk thema kiest. De HTML-root krijgt server-side `lang` en `data-theme` om een zichtbare themaflits te voorkomen.
 
 ## Gevolgen
 

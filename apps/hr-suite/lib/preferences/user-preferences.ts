@@ -20,11 +20,18 @@ export type AnalogClockStyle = (typeof ANALOG_CLOCK_STYLES)[number]
 export type DateFormat = (typeof DATE_FORMATS)[number]
 export type TimeFormat = (typeof TIME_FORMATS)[number]
 export type WeekNumberingSystem = (typeof WEEK_NUMBERING_SYSTEMS)[number]
+export interface CompanyBranding {
+  primaryColor: string
+  accentColor: string
+  sidebarColor: string
+  logoUrl: string | null
+}
 
 export const userPreferencesSchema = z
   .object({
     locale: z.enum(['nl', 'en']),
     theme: z.enum(UI_THEMES),
+    useCompanyTheme: z.boolean().default(true),
     clockMode: z.enum(CLOCK_MODES).default('ANALOG'),
     analogClockStyle: z.enum(ANALOG_CLOCK_STYLES).default('LIQUID'),
     dateFormat: z.enum(DATE_FORMATS).default('DMY'),
@@ -33,21 +40,23 @@ export const userPreferencesSchema = z
   })
   .strict()
 
-export type UserPreferences = z.infer<typeof userPreferencesSchema>
+export type UserPreferences = z.infer<typeof userPreferencesSchema> & { companyBranding: CompanyBranding | null }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   locale: 'nl',
   theme: 'liquid-navy',
+  useCompanyTheme: true,
   clockMode: 'ANALOG',
   analogClockStyle: 'LIQUID',
   dateFormat: 'DMY',
   timeFormat: '24H',
   weekNumberingSystem: 'JANUARY_FIRST',
+  companyBranding: null,
 }
 
 export function parseUserPreferences(value: unknown): UserPreferences {
   const result = userPreferencesSchema.safeParse(value)
-  return result.success ? result.data : DEFAULT_PREFERENCES
+  return result.success ? { ...result.data, companyBranding: null } : DEFAULT_PREFERENCES
 }
 
 export function resolveUserPreferences(
@@ -55,7 +64,7 @@ export function resolveUserPreferences(
   cookieValue: unknown,
 ): UserPreferences {
   const databaseResult = userPreferencesSchema.safeParse(databaseValue)
-  if (databaseResult.success) return databaseResult.data
+  if (databaseResult.success) return { ...databaseResult.data, companyBranding: null }
 
   const cookieRecord = typeof cookieValue === 'object' && cookieValue !== null
     ? cookieValue as Readonly<Record<string, unknown>>
@@ -66,10 +75,12 @@ export function resolveUserPreferences(
   return {
     locale: localeResult.success ? localeResult.data : DEFAULT_PREFERENCES.locale,
     theme: themeResult.success ? themeResult.data : DEFAULT_PREFERENCES.theme,
+    useCompanyTheme: DEFAULT_PREFERENCES.useCompanyTheme,
     clockMode: DEFAULT_PREFERENCES.clockMode,
     analogClockStyle: DEFAULT_PREFERENCES.analogClockStyle,
     dateFormat: DEFAULT_PREFERENCES.dateFormat,
     timeFormat: DEFAULT_PREFERENCES.timeFormat,
     weekNumberingSystem: DEFAULT_PREFERENCES.weekNumberingSystem,
+    companyBranding: null,
   }
 }
