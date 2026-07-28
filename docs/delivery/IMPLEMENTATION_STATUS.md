@@ -1,5 +1,31 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-28: werkurentypen bij verlofregels
+
+Werkurentypen hebben nu drie algemene instellingen, gedeelde beperkingstypen met overuren en uitzonderingen voor één of meerdere administratie-medewerkers met selfservice-keuze. De geavanceerde tab blijft leeg voor toekomstige instellingen. Migratie `20260728072505_work_hour_type_settings_and_restrictions.sql` is remote toegepast en de officiële types zijn opnieuw gegenereerd. Typecheck, i18n en de gerichte schema-tests zijn geslaagd. Versie `1.20260728.4`; deployment, push en commit blijven uitgesteld.
+
+Afronding: ESLint, volledige testset (384 tests) en productiebuild zijn geslaagd. De anonieme instellingenroute is op poort 3000 gecontroleerd met 0 console-errors; alleen een bestaande preload-warning blijft open.
+
+## Update 2026-07-28: aparte bonusregels voor leeftijd en anciënniteit
+
+De gewone opbouweditor accepteert nu uitsluitend `CONTRACT_HOURS` en `WORKED_HOURS`. Leeftijd en anciënniteit zijn als afzonderlijke bonusregeltegels uitgewerkt. Elke tegel toont de gekoppelde profielkeuze, trigger, timing, pro-rata-instelling en één of meer unieke traptreden. De catalogus/API levert de traptreden mee; de schema-constraint voorkomt dat de legacy-enumwaarde `AGE_SENIORITY` nog voor een gewone regel wordt gebruikt. De pure engine bevat selectie van de hoogste blijvende trede, triggerdatum, FTE-relatieve toekenning en pro-rata in het eerste triggerjaar.
+
+Migratie `20260728065641_separate_bonus_accrual_basis.sql` is remote toegepast op de gekoppelde Supabase-testdatabase en als `applied` geregistreerd. Live controle bevestigde de constraint, `AGE`/`SENIORITY`-enums, RLS op beide bonustabellen en de rollback-contracttest. Advisors geven alleen bestaande waarschuwingen buiten deze wijziging. Typecheck, i18n en 20 gerichte tests zijn geslaagd. Applicatieversie `1.20260728.3`; lint, volledige tests, productiebuild en ingelogde browsercontrole moeten nog worden uitgevoerd. Deployment, push en commit blijven bewust uitgesteld.
+
+## Update 2026-07-28: verloftype-instellingen en opvolgende opbouwregels
+
+De verloftype-editor bevat nu de uitgebreide algemene instellingen zonder afwezigheid-specifieke opties. De kleurkeuze gebruikt dezelfde uitgebreide tokens als overuren en toont bestaand gebruik. De tab Beperkingen toont de opbouwketen met ingangsdata, voorgangerselectie, basis (contracturen, werkuren of voorbereid leeftijd/anciënniteit), periode, moment, hoeveelheden, één of meer werkurentypen, pauzes, vervaltermijn en een samenvatting. Bestaande versies blijven alleen-lezen; een opvolger sluit de voorganger op de nieuwe startdatum. De geavanceerde tab is als latere uitbreidingsplek gemarkeerd.
+
+Uitzonderingen zijn administratiegebonden, ondersteunen één of meerdere medewerkers, selfservice, geen opbouw of een aangepaste hoeveelheid, tonen een samenvatting en worden na bewaren/annuleren opnieuw geladen met paginering van tien regels.
+
+De migraties `20260728062208_leave_accrual_rule_basis_and_leave_type_settings.sql` en `20260728063339_leave_accrual_rule_age_seniority_rpc.sql` zijn uitgevoerd op de gekoppelde Supabase-testdatabase en als `applied` geregistreerd. Live controle bevestigde `AGE_SENIORITY`, vijf nieuwe verloftype-instellingen, de hoeveelheidconstraint, successor-RPC en bestaande RLS op verloftypen en opbouwregels. Advisors tonen alleen eerder bekende waarschuwingen buiten deze slice. `packages/db/types.ts` is opnieuw gegenereerd. Typecheck, ESLint, i18n-pariteit en 382 tests zijn geslaagd; productiebuild en ingelogde browsercontrole blijven nog open. Applicatieversie `1.20260728.2`; deployment, push en commit blijven bewust uitgesteld.
+
+## Update 2026-07-28: verlofopbouw en overwerkbeheer lokaal uitgebreid
+
+De verlofopbouwcatalogus gebruikt nu duidelijk gemarkeerde actieve tabs, een werkende driepuntmenukaart met kleurgebruik-overzicht en een uitgebreidere kleurkeuze. Bestaande verloftypen, werkurentypen en opbouwregelversies zijn in de UI alleen-lezen; archiveren en een successor voor opbouwregels blijven de expliciete mutatiepaden. De migratie `20260728052250_configure_overtime_restrictions_and_immutable_catalog.sql` voegt immutable database-triggers toe en introduceert administratiegebonden overwerkconfiguratie met een globale limiet (`UNLIMITED`, maanduren, jaaruren of contracturen × factor), managernotificatie, selfservice en medewerkeruitzonderingen inclusief `mag geen overuren schrijven`. De uitzonderingendialoog ondersteunt één of meerdere medewerkers; de lijst wordt na toevoegen vernieuwd en toont medewerkernaam en beperkingstype.
+
+Lokaal geslaagd: strict typecheck, ESLint, i18n-pariteit, 380 tests en productiebuild. De migratie is toegepast op de gekoppelde testdatabase; tabellen, enum, RLS/policies, audittriggers en immutable triggers zijn live gecontroleerd. De nieuwe migratie staat als `applied` in de remote historie. Advisors tonen alleen bestaande waarschuwingen buiten deze slice. `packages/db/types.ts` is officieel opnieuw gegenereerd; alleen ingelogde browsercontrole blijft open. Applicatieversie `1.20260728.1`; deployment blijft bewust uitgesteld.
+
 ## Update 2026-07-27: interactieve reminders
 
 De Tijdhub heeft naast de klok een compacte reminderknop met teller, popover en directe link naar Reminderbeheer. `/reminders` ondersteunt zoeken, statusfiltering inclusief oudere reminders, sortering, kleurcodering op urgentie, multi-selectie met bulk afronden, detailmodal en links naar medewerkerdossiers. De weergave blijft gebaseerd op echte, server-side geautoriseerde en administratiegebonden reminders; er is geen fake data toegevoegd. Lokale tests, i18n, strict typecheck, lint, build en een ingelogde browsercontrole zijn geslaagd.

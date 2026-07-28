@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const configurationParsed = leaveConfigurationMutationSchema.safeParse(body)
     if (!configurationParsed.success) return NextResponse.json({ error: 'LEAVE_INPUT_INVALID' }, { status: 400 })
     const input = configurationParsed.data
-    if (input.action === 'UPDATE_LEAVE_TYPE' || input.action === 'UPDATE_WORK_HOUR_TYPE' || input.action === 'UPDATE_PROFILE' || input.action === 'ARCHIVE_LEAVE_TYPE' || input.action === 'ARCHIVE_WORK_HOUR_TYPE' || input.action === 'ARCHIVE_PROFILE') {
+    if (input.action === 'UPDATE_PROFILE' || input.action === 'ARCHIVE_LEAVE_TYPE' || input.action === 'ARCHIVE_WORK_HOUR_TYPE' || input.action === 'ARCHIVE_PROFILE') {
       return NextResponse.json({ data: await updateLeaveCatalogItem(input) })
     }
     if (input.action === 'ACCRUAL_RULE') return NextResponse.json({ data: await createLeaveAccrualRule(input) }, { status: 201 })

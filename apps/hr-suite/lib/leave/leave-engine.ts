@@ -3,6 +3,7 @@ export type LeaveAccrualFrequency = 'PAYROLL_PERIOD' | 'YEARLY'
 export type LeaveWorkHourCategory = 'REGULAR_WORK' | 'OVERTIME' | 'INFORMATIONAL'
 export type LeaveWorkHourStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED'
 export type BonusAwardTiming = 'START_OF_YEAR' | 'ON_TRIGGER_DATE'
+export type BonusTriggerType = 'AGE' | 'SENIORITY'
 
 export class LeaveEngineError extends Error {
   constructor(public readonly code: 'LEAVE_PAYROLL_FREQUENCY_REQUIRED' | 'LEAVE_FEBRUARY_29_POLICY_REQUIRED') {
@@ -149,6 +150,35 @@ export function calculateBonusAward(input: {
   if (input.awardTiming === 'START_OF_YEAR' || input.triggerDate < yearStart || !input.proRateFirstYear) return fullAward
   const remainingDays = Math.round((utcDate(yearEnd).getTime() - utcDate(input.triggerDate).getTime()) / 86_400_000)
   return fullAward * (remainingDays / daysInYear(input.calendarYear))
+}
+
+function yearsAtDate(baseDate: string, asOfDate: string): number {
+  const base = parseDate(baseDate)
+  const asOf = parseDate(asOfDate)
+  let years = asOf.year - base.year
+  if (asOf.month < base.month || (asOf.month === base.month && asOf.day < base.day)) years -= 1
+  return Math.max(0, years)
+}
+
+export function calculateBonusAccrualForYear(input: {
+  calendarYear: number
+  baseDate: string | null
+  triggerType: BonusTriggerType
+  tiers: readonly { thresholdYears: number; bonusAmount: number }[]
+  awardTiming: BonusAwardTiming
+  proRateFirstYear: boolean
+  partTimeFactor: number
+}): { amount: number; thresholdYears: number; achievedYears: number; triggerDate: string; reason: string } | null {
+  if (!input.baseDate) return null
+  const achievedYears = yearsAtDate(input.baseDate, String(input.calendarYear) + '-12-31')
+  const tier = selectBonusTier(achievedYears, input.tiers)
+  if (!tier) return null
+  const baseYear = parseDate(input.baseDate).year
+  const triggerDate = resolveAnnualTriggerDate(input.baseDate, baseYear + tier.thresholdYears)
+  const amount = calculateBonusAward({ ...input, triggerDate, bonusAmount: tier.bonusAmount })
+  if (amount <= 0) return null
+  const label = input.triggerType === 'AGE' ? 'Leeftijdsbonus' : 'Anciënniteitsbonus'
+  return { amount, thresholdYears: tier.thresholdYears, achievedYears, triggerDate, reason: `${label} (${achievedYears} jaar)` }
 }
 
 export type FifoBucket = {

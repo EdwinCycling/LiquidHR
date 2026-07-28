@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { balanceReportQuerySchema, leaveCatalogMutationSchema, leaveConfigurationMutationSchema } from './schemas'
+import { balanceReportQuerySchema, leaveCatalogMutationSchema, leaveConfigurationMutationSchema, overtimeConfigurationMutationSchema, workHourConfigurationMutationSchema } from './schemas'
 
 describe('leave api schemas', () => {
   it('accepteert een rapportdatum en optioneel dienstverband', () => {
@@ -46,6 +46,84 @@ describe('leave api schemas', () => {
       pauseLeaveTypeIds: [],
     })
     expect(result.success).toBe(false)
+  })
+
+  it('ondersteunt leeftijd/anciënniteit zonder hoeveelheid of werkurentypen', () => {
+    const result = leaveConfigurationMutationSchema.safeParse({
+      action: 'BONUS_RULE',
+      leaveProfileId: 'profile-1',
+      leaveTypeId: 'leave-1',
+      name: 'Seniorendagen',
+      triggerType: 'AGE',
+      awardTiming: 'START_OF_YEAR',
+      tiers: [{ thresholdYears: 55, bonusAmount: 8 }],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepteert een verlofuitzondering voor meerdere medewerkers', () => {
+    const result = leaveConfigurationMutationSchema.safeParse({
+      action: 'ACCRUAL_EXCEPTION',
+      employeeIds: ['employee-1', 'employee-2'],
+      leaveTypeId: 'leave-1',
+      validFrom: '2026-01-01',
+      noAccrual: false,
+      accrualAmount: 12,
+      expirationMonths: 6,
+      reason: 'Collectieve afspraak',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('valideert de vier overwerklimieten en de invoerblokkade voor uitzonderingen', () => {
+    expect(overtimeConfigurationMutationSchema.safeParse({
+      action: 'OVERTIME_SETTINGS',
+      workHourTypeId: 'overtime-1',
+      notifyManagerOnEntry: true,
+      isSelfService: true,
+      limitMode: 'MONTHLY_HOURS',
+      limitHours: 24,
+    }).success).toBe(true)
+    expect(overtimeConfigurationMutationSchema.safeParse({
+      action: 'OVERTIME_EXCEPTION',
+      workHourTypeId: 'overtime-1',
+      employeeIds: ['employee-1'],
+      allowOvertimeEntry: false,
+      isSelfService: false,
+      limitMode: 'UNLIMITED',
+    }).success).toBe(true)
+    expect(overtimeConfigurationMutationSchema.safeParse({
+      action: 'OVERTIME_SETTINGS',
+      workHourTypeId: 'overtime-1',
+      notifyManagerOnEntry: false,
+      isSelfService: true,
+      limitMode: 'CONTRACT_HOURS_FACTOR',
+    }).success).toBe(false)
+  })
+
+  it('hergebruikt de vier beperkingstypen voor werkuren en ondersteunt uitzonderingen', () => {
+    expect(workHourConfigurationMutationSchema.safeParse({
+      action: 'WORK_HOUR_SETTINGS',
+      workHourTypeId: 'work-1',
+      isSelfService: false,
+      pinInCalendar: true,
+      limitMode: 'UNLIMITED',
+    }).success).toBe(true)
+    expect(workHourConfigurationMutationSchema.safeParse({
+      action: 'WORK_HOUR_EXCEPTION',
+      workHourTypeId: 'work-1',
+      employeeIds: ['employee-1', 'employee-2'],
+      isSelfService: true,
+      limitMode: 'CONTRACT_HOURS_FACTOR',
+      contractHoursFactor: 1.25,
+    }).success).toBe(true)
+    expect(workHourConfigurationMutationSchema.safeParse({
+      action: 'WORK_HOUR_EXCEPTION',
+      workHourTypeId: 'work-1',
+      employeeIds: ['employee-1'],
+      isSelfService: true,
+      limitMode: 'MONTHLY_HOURS',
+    }).success).toBe(false)
   })
 
   it('accepteert een bonusregel met ten minste een trede', () => {

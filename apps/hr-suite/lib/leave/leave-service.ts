@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import type { Database, Json, Tables } from '@scope/db'
 import { permissionErrorResponse, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import type { LeaveCatalogMutation, LeaveConfigurationMutation } from './schemas'
+import type { LeaveCatalogMutation, LeaveConfigurationMutation, OvertimeConfigurationMutation, WorkHourConfigurationMutation } from './schemas'
 import { calculateLeaveBalanceReport, type ReportAccrualMoment, type ReportBucket, type ReportCarryForward, type ReportLeaveType, type ReportTransaction } from './report'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = Pick<Tables<'employments'>, 'id' | 'employee_id' | 'starts_on' | 'ends_on' | 'administration_id' | 'tenant_id'>
+type OvertimeLimitMode = Database['public']['Enums']['overtime_limit_mode']
 type CreateLeaveAccrualRuleArgs = Omit<
   Database['public']['Functions']['create_leave_accrual_rule']['Args'],
   'requested_predecessor_rule_id' | 'requested_valid_until' | 'requested_accrual_amount' | 'requested_accrual_rate'
@@ -232,23 +233,60 @@ export async function listLeaveCatalog() {
   const context = await requirePermission('leave:read')
   const administrationId = requireAdministration(context)
   const supabase = await createClient()
-  const [leaveTypes, workHourTypes, profiles, rules, bonusRules, priorityRules, priorityRuleItems] = await Promise.all([
-    supabase.from('leave_types').select('id, name, color_code, scope, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor, is_active, is_self_service, is_system').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('name').limit(500),
-    supabase.from('work_hour_types').select('id, name, color_code, category, is_active').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('name').limit(500),
+  const today = new Date().toISOString().slice(0, 10)
+  const [leaveTypes, workHourTypes, overtimeSettings, profiles, rules, bonusRules, bonusTiers, priorityRules, priorityRuleItems, accrualRuleWorkHourTypes, accrualRulePauseTypes, leaveAccrualExceptions, exceptionEmployees, exceptionEmployments] = await Promise.all([
+    supabase.from('leave_types').select('id, name, color_code, scope, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor, is_active, is_self_service, is_system, allow_limit_overrun, pin_in_calendar, requires_manager_approval, notify_manager_on_request, requires_manager_approval_on_cancellation').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('name').limit(500),
+    supabase.from('work_hour_types').select('id, name, color_code, category, is_active, is_self_service, pin_in_calendar').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('name').limit(500),
+    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).limit(500),
     supabase.from('leave_profiles').select('id, name, description, is_active').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('name').limit(500),
     supabase.from('leave_accrual_rules').select('id, leave_profile_id, leave_type_id, predecessor_rule_id, valid_from, valid_until, accrual_basis, accrual_frequency, accrual_timing, accrual_amount, accrual_rate, expiration_months').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('valid_from').limit(2000),
     supabase.from('leave_bonus_rules').select('id, leave_profile_id, leave_type_id, name, trigger_type, award_timing, pro_rate_first_year, is_active').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('name').limit(500),
+    supabase.from('leave_bonus_tiers').select('id, bonus_rule_id, threshold_years, bonus_amount').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('threshold_years').limit(5000),
     supabase.from('leave_priority_rules').select('id, leave_profile_id, name, valid_from, valid_until, is_active').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('valid_from').limit(500),
     supabase.from('leave_priority_rule_items').select('priority_rule_id, leave_type_id, sort_order').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('sort_order').limit(5000),
+    supabase.from('leave_accrual_rule_work_hour_types').select('accrual_rule_id, work_hour_type_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).limit(5000),
+    supabase.from('leave_accrual_rule_pause_types').select('accrual_rule_id, pause_leave_type_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).limit(5000),
+    supabase.from('leave_accrual_exceptions').select('id, employee_id, employment_id, leave_type_id, valid_from, valid_until, no_accrual, accrual_amount, expiration_months, reason').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).order('valid_from', { ascending: false }).limit(2000),
+    supabase.from('employees').select('id, employee_number, first_name, birth_name_prefix, birth_name').eq('tenant_id', context.tenantId).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).order('birth_name').order('first_name').limit(2000),
+    supabase.from('employments').select('id, employee_id, employment_number, starts_on, ends_on, is_primary').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).order('is_primary', { ascending: false }).order('starts_on', { ascending: false }).limit(2000),
   ])
   if (leaveTypes.error) databaseError(leaveTypes.error)
   if (workHourTypes.error) databaseError(workHourTypes.error)
+  if (overtimeSettings.error) databaseError(overtimeSettings.error)
   if (profiles.error) databaseError(profiles.error)
   if (rules.error) databaseError(rules.error)
   if (bonusRules.error) databaseError(bonusRules.error)
+  if (bonusTiers.error) databaseError(bonusTiers.error)
   if (priorityRules.error) databaseError(priorityRules.error)
   if (priorityRuleItems.error) databaseError(priorityRuleItems.error)
-  return { leaveTypes: leaveTypes.data, workHourTypes: workHourTypes.data, profiles: profiles.data, accrualRules: rules.data, bonusRules: bonusRules.data, priorityRules: priorityRules.data, priorityRuleItems: priorityRuleItems.data }
+  if (accrualRuleWorkHourTypes.error) databaseError(accrualRuleWorkHourTypes.error)
+  if (accrualRulePauseTypes.error) databaseError(accrualRulePauseTypes.error)
+  if (leaveAccrualExceptions.error) databaseError(leaveAccrualExceptions.error)
+  if (exceptionEmployees.error) databaseError(exceptionEmployees.error)
+  if (exceptionEmployments.error) databaseError(exceptionEmployments.error)
+  const currentEmploymentByEmployee = new Map<string, (typeof exceptionEmployments.data)[number]>()
+  for (const employment of exceptionEmployments.data) if (!currentEmploymentByEmployee.has(employment.employee_id)) currentEmploymentByEmployee.set(employment.employee_id, employment)
+  const employeeNames = new Map(exceptionEmployees.data.map((employee) => [employee.id, [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ')]))
+  return {
+    leaveTypes: leaveTypes.data,
+    workHourTypes: workHourTypes.data,
+    overtimeSettings: overtimeSettings.data,
+    profiles: profiles.data,
+    accrualRules: rules.data,
+    bonusRules: bonusRules.data,
+    bonusTiers: bonusTiers.data,
+    priorityRules: priorityRules.data,
+    priorityRuleItems: priorityRuleItems.data,
+    accrualRuleWorkHourTypes: accrualRuleWorkHourTypes.data,
+    accrualRulePauseTypes: accrualRulePauseTypes.data,
+    leaveAccrualExceptions: leaveAccrualExceptions.data.map((exception) => ({ ...exception, employee_name: employeeNames.get(exception.employee_id) ?? exception.employee_id })),
+    leaveExceptionEmployees: exceptionEmployments.data.filter((employment) => currentEmploymentByEmployee.get(employment.employee_id)?.id === employment.id).map((employment) => ({
+      employee_id: employment.employee_id,
+      employment_id: employment.id,
+      employment_number: employment.employment_number,
+      employee_name: employeeNames.get(employment.employee_id) ?? employment.employee_id,
+    })),
+  }
 }
 
 export type LeaveCatalog = Awaited<ReturnType<typeof listLeaveCatalog>>
@@ -269,6 +307,11 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
       annual_hours_cap: input.entitlementMode === 'ANNUAL_HOURS_CAP' ? input.annualHoursCap ?? null : null,
       weekly_hours_cap_factor: input.entitlementMode === 'WEEKLY_HOURS_FACTOR_CAP' ? input.weeklyHoursCapFactor ?? null : null,
       is_self_service: input.isSelfService,
+      allow_limit_overrun: input.allowLimitOverrun,
+      pin_in_calendar: input.pinInCalendar,
+      requires_manager_approval: input.requiresManagerApproval,
+      notify_manager_on_request: input.notifyManagerOnRequest,
+      requires_manager_approval_on_cancellation: input.requiresManagerApprovalOnCancellation,
       is_active: input.isActive,
       is_system: false,
       created_by: context.userId,
@@ -286,10 +329,27 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
       color_code: input.colorCode,
       category: input.category,
       is_active: input.isActive,
+      is_self_service: input.isSelfService,
+      pin_in_calendar: input.pinInCalendar,
       created_by: context.userId,
       updated_by: context.userId,
     }).select('id').single()
     if (result.error || !result.data) databaseError(result.error)
+    {
+      const settings = await supabase.from('overtime_type_settings').insert({
+        tenant_id: context.tenantId,
+        administration_id: administrationId,
+        work_hour_type_id: result.data.id,
+        notify_manager_on_entry: input.notifyManagerOnEntry,
+        is_self_service: input.isSelfService,
+        limit_mode: input.limitMode,
+        limit_hours: input.limitMode === 'MONTHLY_HOURS' || input.limitMode === 'YEARLY_HOURS' ? input.limitHours ?? null : null,
+        contract_hours_factor: input.limitMode === 'CONTRACT_HOURS_FACTOR' ? input.contractHoursFactor ?? null : null,
+        created_by: context.userId,
+        updated_by: context.userId,
+      }).select('id').single()
+      if (settings.error || !settings.data) databaseError(settings.error)
+    }
     return { kind: input.action, id: result.data.id }
   }
 
@@ -306,7 +366,7 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
   return { kind: input.action, id: result.data.id }
 }
 
-type CatalogUpdateInput = Extract<LeaveConfigurationMutation, { action: 'UPDATE_LEAVE_TYPE' | 'UPDATE_WORK_HOUR_TYPE' | 'UPDATE_PROFILE' }>
+type CatalogUpdateInput = Extract<LeaveConfigurationMutation, { action: 'UPDATE_PROFILE' }>
 type CatalogArchiveInput = Extract<LeaveConfigurationMutation, { action: 'ARCHIVE_LEAVE_TYPE' | 'ARCHIVE_WORK_HOUR_TYPE' | 'ARCHIVE_PROFILE' }>
 
 export async function updateLeaveCatalogItem(input: CatalogUpdateInput | CatalogArchiveInput) {
@@ -321,40 +381,8 @@ export async function updateLeaveCatalogItem(input: CatalogUpdateInput | Catalog
     return { id: result.data.id, action: input.action }
   }
 
-  if (input.action === 'UPDATE_LEAVE_TYPE') {
-    const patch = {
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.colorCode !== undefined ? { color_code: input.colorCode } : {}),
-      ...(input.scope !== undefined ? { scope: input.scope } : {}),
-      ...(input.entitlementMode !== undefined ? { entitlement_mode: input.entitlementMode } : {}),
-      ...(input.annualHoursCap !== undefined ? { annual_hours_cap: input.annualHoursCap } : {}),
-      ...(input.weeklyHoursCapFactor !== undefined ? { weekly_hours_cap_factor: input.weeklyHoursCapFactor } : {}),
-      ...(input.isSelfService !== undefined ? { is_self_service: input.isSelfService } : {}),
-      ...(input.isActive !== undefined ? { is_active: input.isActive } : {}),
-      updated_by: context.userId,
-    }
-    const result = await supabase.from('leave_types').update(patch).eq('id', input.id).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).select('id').maybeSingle()
-    if (result.error) databaseError(result.error)
-    if (!result.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
-    return { id: result.data.id, action: input.action }
-  }
-
   if (input.action === 'ARCHIVE_WORK_HOUR_TYPE') {
     const result = await supabase.from('work_hour_types').update({ is_active: false, updated_by: context.userId }).eq('id', input.id).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).select('id').maybeSingle()
-    if (result.error) databaseError(result.error)
-    if (!result.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
-    return { id: result.data.id, action: input.action }
-  }
-
-  if (input.action === 'UPDATE_WORK_HOUR_TYPE') {
-    const patch = {
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.colorCode !== undefined ? { color_code: input.colorCode } : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
-      ...(input.isActive !== undefined ? { is_active: input.isActive } : {}),
-      updated_by: context.userId,
-    }
-    const result = await supabase.from('work_hour_types').update(patch).eq('id', input.id).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).select('id').maybeSingle()
     if (result.error) databaseError(result.error)
     if (!result.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
     return { id: result.data.id, action: input.action }
@@ -377,6 +405,180 @@ export async function updateLeaveCatalogItem(input: CatalogUpdateInput | Catalog
   if (result.error) databaseError(result.error)
   if (!result.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
   return { id: result.data.id, action: input.action }
+}
+
+export interface OvertimeEmployeeOption {
+  id: string
+  employeeNumber: string
+  name: string
+}
+
+export interface OvertimeExceptionRow {
+  id: string
+  employeeId: string
+  employeeName: string
+  allowOvertimeEntry: boolean
+  isSelfService: boolean
+  limitMode: OvertimeLimitMode
+  limitHours: number | null
+  contractHoursFactor: number | null
+}
+
+export interface OvertimeSettingsPageData {
+  settings: {
+    id: string
+    workHourTypeId: string
+    notifyManagerOnEntry: boolean
+    isSelfService: boolean
+    limitMode: OvertimeLimitMode
+    limitHours: number | null
+    contractHoursFactor: number | null
+  }
+  exceptions: OvertimeExceptionRow[]
+  employees: OvertimeEmployeeOption[]
+}
+
+export async function getOvertimeSettingsPageData(workHourTypeId: string, mode: 'OVERTIME' | 'WORK' = 'OVERTIME'): Promise<OvertimeSettingsPageData> {
+  const context = await requirePermission('leave:read')
+  const administrationId = requireAdministration(context)
+  const supabase = await createClient()
+  const type = await supabase.from('work_hour_types').select('id, category').eq('id', workHourTypeId).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle()
+  if (type.error) databaseError(type.error)
+  if (!type.data || (mode === 'OVERTIME' ? type.data.category !== 'OVERTIME' : type.data.category === 'INFORMATIONAL')) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
+
+  const [settings, exceptions, assignments] = await Promise.all([
+    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('work_hour_type_id', workHourTypeId).maybeSingle(),
+    supabase.from('overtime_type_exceptions').select('id, employee_id, allow_overtime_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('work_hour_type_id', workHourTypeId).order('created_at').limit(500),
+    supabase.from('employee_administration_assignments').select('employee_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('effective_from', new Date().toISOString().slice(0, 10)).or(`effective_to.is.null,effective_to.gte.${new Date().toISOString().slice(0, 10)}`).limit(5000),
+  ])
+  if (settings.error) databaseError(settings.error)
+  if (exceptions.error) databaseError(exceptions.error)
+  if (assignments.error) databaseError(assignments.error)
+  if (!settings.data) throw new LeaveServiceError('OVERTIME_SETTINGS_NOT_FOUND', 404)
+
+  const employeeIds = [...new Set(assignments.data.map((row) => row.employee_id))]
+  const employees = employeeIds.length
+    ? await supabase.from('employees').select('id, employee_number, first_name, birth_name_prefix, birth_name').eq('tenant_id', context.tenantId).in('id', employeeIds).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).order('birth_name').order('first_name').limit(500)
+    : { data: [], error: null }
+  if (employees.error) databaseError(employees.error)
+  const employeeNames = new Map(employees.data.map((employee) => [employee.id, [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ')]))
+  return {
+    settings: {
+      id: settings.data.id,
+      workHourTypeId: settings.data.work_hour_type_id,
+      notifyManagerOnEntry: settings.data.notify_manager_on_entry,
+      isSelfService: settings.data.is_self_service,
+      limitMode: settings.data.limit_mode,
+      limitHours: settings.data.limit_hours,
+      contractHoursFactor: settings.data.contract_hours_factor,
+    },
+    exceptions: exceptions.data.map((row) => ({
+      id: row.id,
+      employeeId: row.employee_id,
+      employeeName: employeeNames.get(row.employee_id) ?? row.employee_id,
+      allowOvertimeEntry: row.allow_overtime_entry,
+      isSelfService: row.is_self_service,
+      limitMode: row.limit_mode,
+      limitHours: row.limit_hours,
+      contractHoursFactor: row.contract_hours_factor,
+    })),
+    employees: employees.data.map((employee) => ({ id: employee.id, employeeNumber: employee.employee_number, name: [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ') })),
+  }
+}
+
+function overtimeLimitPayload(input: { limitMode: OvertimeLimitMode; limitHours?: number | null; contractHoursFactor?: number | null }) {
+  return {
+    limit_mode: input.limitMode,
+    limit_hours: input.limitMode === 'MONTHLY_HOURS' || input.limitMode === 'YEARLY_HOURS' ? input.limitHours ?? null : null,
+    contract_hours_factor: input.limitMode === 'CONTRACT_HOURS_FACTOR' ? input.contractHoursFactor ?? null : null,
+  }
+}
+
+export async function updateOvertimeConfiguration(input: Extract<OvertimeConfigurationMutation, { action: 'OVERTIME_SETTINGS' }>) {
+  const context = await requirePermission('leave:write')
+  const administrationId = requireAdministration(context)
+  const supabase = await createClient()
+  const type = await supabase.from('work_hour_types').select('id, category').eq('id', input.workHourTypeId).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle()
+  if (type.error) databaseError(type.error)
+  if (!type.data || type.data.category !== 'OVERTIME') throw new LeaveServiceError('OVERTIME_TYPE_NOT_FOUND', 404)
+  const result = await supabase.from('overtime_type_settings').update({
+    notify_manager_on_entry: input.notifyManagerOnEntry,
+    is_self_service: input.isSelfService,
+    ...overtimeLimitPayload(input),
+    updated_by: context.userId,
+  }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
+  if (result.error) databaseError(result.error)
+  if (!result.data) throw new LeaveServiceError('OVERTIME_SETTINGS_NOT_FOUND', 404)
+  return { id: result.data.id }
+}
+
+export async function createOvertimeExceptions(input: Extract<OvertimeConfigurationMutation, { action: 'OVERTIME_EXCEPTION' }>) {
+  const context = await requirePermission('leave:write')
+  const administrationId = requireAdministration(context)
+  const supabase = await createClient()
+  const type = await supabase.from('work_hour_types').select('id, category').eq('id', input.workHourTypeId).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle()
+  if (type.error) databaseError(type.error)
+  if (!type.data || type.data.category !== 'OVERTIME') throw new LeaveServiceError('OVERTIME_TYPE_NOT_FOUND', 404)
+  const today = new Date().toISOString().slice(0, 10)
+  const assignments = await supabase.from('employee_administration_assignments').select('employee_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).in('employee_id', input.employeeIds).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(500)
+  if (assignments.error) databaseError(assignments.error)
+  const employeeIds = [...new Set(assignments.data.map((row) => row.employee_id))]
+  if (employeeIds.length !== input.employeeIds.length) throw new LeaveServiceError('OVERTIME_EXCEPTION_EMPLOYEE_INVALID', 400)
+  const result = await supabase.from('overtime_type_exceptions').upsert(employeeIds.map((employeeId) => ({
+    tenant_id: context.tenantId,
+    administration_id: administrationId,
+    work_hour_type_id: input.workHourTypeId,
+    employee_id: employeeId,
+    allow_overtime_entry: input.allowOvertimeEntry,
+    is_self_service: input.isSelfService,
+    ...overtimeLimitPayload(input),
+    created_by: context.userId,
+    updated_by: context.userId,
+  })), { onConflict: 'tenant_id,administration_id,work_hour_type_id,employee_id' }).select('id')
+  if (result.error) databaseError(result.error)
+  return { count: result.data.length }
+}
+
+export async function updateWorkHourSettings(input: Extract<WorkHourConfigurationMutation, { action: 'WORK_HOUR_SETTINGS' }>) {
+  const context = await requirePermission('leave:write')
+  const administrationId = requireAdministration(context)
+  const supabase = await createClient()
+  const type = await supabase.from('work_hour_types').select('id, category').eq('id', input.workHourTypeId).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle()
+  if (type.error) databaseError(type.error)
+  if (!type.data || type.data.category === 'INFORMATIONAL') throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
+  const result = await supabase.from('work_hour_types').update({ is_self_service: input.isSelfService, ...(input.pinInCalendar === undefined ? {} : { pin_in_calendar: input.pinInCalendar }), updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', input.workHourTypeId).select('id').maybeSingle()
+  if (result.error) databaseError(result.error)
+  if (!result.data) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
+  const settings = await supabase.from('overtime_type_settings').update({ limit_mode: input.limitMode, limit_hours: input.limitHours ?? null, contract_hours_factor: input.contractHoursFactor ?? null, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
+  if (settings.error) databaseError(settings.error)
+  return { id: result.data.id }
+}
+
+export async function createWorkHourExceptions(input: Extract<WorkHourConfigurationMutation, { action: 'WORK_HOUR_EXCEPTION' }>) {
+  const context = await requirePermission('leave:write')
+  const administrationId = requireAdministration(context)
+  const supabase = await createClient()
+  const type = await supabase.from('work_hour_types').select('id, category').eq('id', input.workHourTypeId).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle()
+  if (type.error) databaseError(type.error)
+  if (!type.data || type.data.category === 'INFORMATIONAL') throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
+  const today = new Date().toISOString().slice(0, 10)
+  const assignments = await supabase.from('employee_administration_assignments').select('employee_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).in('employee_id', input.employeeIds).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(500)
+  if (assignments.error) databaseError(assignments.error)
+  const employeeIds = [...new Set(assignments.data.map((row) => row.employee_id))]
+  if (employeeIds.length !== input.employeeIds.length) throw new LeaveServiceError('WORK_HOUR_EXCEPTION_EMPLOYEE_INVALID', 400)
+  const result = await supabase.from('overtime_type_exceptions').upsert(employeeIds.map((employeeId) => ({
+    tenant_id: context.tenantId,
+    administration_id: administrationId,
+    work_hour_type_id: input.workHourTypeId,
+    employee_id: employeeId,
+    allow_overtime_entry: true,
+    is_self_service: input.isSelfService,
+    ...overtimeLimitPayload(input),
+    created_by: context.userId,
+    updated_by: context.userId,
+  })), { onConflict: 'tenant_id,administration_id,work_hour_type_id,employee_id' }).select('id')
+  if (result.error) databaseError(result.error)
+  return { count: result.data.length }
 }
 
 type AccrualRuleInput = Extract<LeaveConfigurationMutation, { action: 'ACCRUAL_RULE' }>
@@ -440,11 +642,17 @@ export async function createLeaveException(input: ExceptionInput) {
   const context = await requirePermission('leave:write')
   const administrationId = requireAdministration(context)
   const supabase = await createClient()
-  const result = await supabase.from('leave_accrual_exceptions').insert({
+  const today = new Date().toISOString().slice(0, 10)
+  const employments = await supabase.from('employments').select('id, employee_id, starts_on, ends_on, is_primary').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).in('employee_id', input.employeeIds).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).order('is_primary', { ascending: false }).order('starts_on', { ascending: false }).limit(2000)
+  if (employments.error) databaseError(employments.error)
+  const selectedEmploymentByEmployee = new Map<string, (typeof employments.data)[number]>()
+  for (const employment of employments.data) if (!selectedEmploymentByEmployee.has(employment.employee_id)) selectedEmploymentByEmployee.set(employment.employee_id, employment)
+  if (selectedEmploymentByEmployee.size !== new Set(input.employeeIds).size) throw new LeaveServiceError('LEAVE_EXCEPTION_EMPLOYMENT_INVALID', 400)
+  const result = await supabase.from('leave_accrual_exceptions').insert(input.employeeIds.map((employeeId) => ({
     tenant_id: context.tenantId,
     administration_id: administrationId,
-    employee_id: input.employeeId,
-    employment_id: input.employmentId,
+    employee_id: employeeId,
+    employment_id: selectedEmploymentByEmployee.get(employeeId)?.id ?? '',
     leave_type_id: input.leaveTypeId,
     valid_from: input.validFrom,
     valid_until: input.validUntil ?? null,
@@ -453,9 +661,9 @@ export async function createLeaveException(input: ExceptionInput) {
     expiration_months: input.expirationMonths ?? null,
     reason: input.reason,
     created_by: context.userId,
-  }).select('id').single()
-  if (result.error || !result.data) databaseError(result.error)
-  return { id: result.data.id }
+  }))).select('id')
+  if (result.error) databaseError(result.error)
+  return { count: result.data.length, ids: result.data.map((row) => row.id) }
 }
 
 export async function assignLeaveProfile(input: ProfileAssignmentInput) {

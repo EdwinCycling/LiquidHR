@@ -7,6 +7,10 @@ export const LEAVE_COLOR_OPTIONS = [
   { value: 'var(--color-primary)', labelKey: 'primary' },
   { value: 'var(--color-success)', labelKey: 'success' },
   { value: 'var(--color-warning)', labelKey: 'warning' },
+  { value: 'var(--color-destructive)', labelKey: 'destructive' },
+  { value: 'var(--accent-foreground)', labelKey: 'accent' },
+  { value: 'var(--muted-foreground)', labelKey: 'muted' },
+  { value: 'var(--sidebar)', labelKey: 'sidebar' },
 ] as const
 
 export type LeaveColorToken = (typeof LEAVE_COLOR_OPTIONS)[number]['value']
@@ -21,6 +25,10 @@ const COLOR_BY_VALUE = new Map<string, string>([
   ['primary', 'var(--color-primary)'],
   ['success', 'var(--color-success)'],
   ['warning', 'var(--color-warning)'],
+  ['destructive', 'var(--color-destructive)'],
+  ['accent', 'var(--accent-foreground)'],
+  ['muted', 'var(--muted-foreground)'],
+  ['sidebar', 'var(--sidebar)'],
 ])
 
 export function colorCodeToCssValue(colorCode: string | null | undefined): string {

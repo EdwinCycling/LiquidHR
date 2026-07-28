@@ -1,5 +1,33 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-28: werkurentypen bij verlofregels
+
+Werkurentypen ondersteunen drie algemene instellingen (actief, selfservice en vastpinnen in de kalender), dezelfde vier beperkingstypen als overuren en administratiegebonden uitzonderingen voor één of meerdere medewerkers. De geavanceerde tab blijft leeg als toekomstige uitbreidingsplek.
+
+Migraties `20260728072505_work_hour_type_settings_and_restrictions.sql` en `20260728074000_harden_work_hour_restriction_grants.sql` zijn toegepast op gekoppeld Supabase-testproject `wnpfloqpjvaacobppbpk`; officiële DB-types zijn opnieuw gegenereerd. Werkuren delen bewust de bestaande overwerkbeperkingstabellen en administratie-/RLS-scoping. De SQL-configuratiecheck, 385 tests, lint, TypeScript, i18n en productiebuild zijn geslaagd. Applicatieversie is `1.20260728.4`. Er is nog niet gedeployed naar GitHub.
+
+Afronding van deze slice: ESLint, volledige testset (384 tests), productiebuild en anonieme browsercontrole zijn inmiddels ook geslaagd. De instellingenroute stuurt zonder sessie veilig naar login met 0 console-errors; alleen een bestaande preload-warning blijft zichtbaar.
+
+## Update 2026-07-28: bonusverlof leeftijd en anciënniteit
+
+Leeftijd en anciënniteit zijn nu een afzonderlijk verlofopbouwtype naast contracturen en werkuren. De officiële aanvulling staat in [`docs/requirements/leave/Verlof_Bonus_Regelingen_Addendum.md`](../requirements/leave/Verlof_Bonus_Regelingen_Addendum.md). De bestaande bonusentiteiten, enums, RPC, RLS en audittriggers zijn aangevuld met een constraint die `AGE_SENIORITY` uit gewone opbouwregels houdt. De catalogus-API levert nu ook traptreden; het verloftype toont aparte tegels voor `AGE` en `SENIORITY`, met meerdere treden, timing, pro-rata eerste jaar, FTE-basis en samenvatting. De pure engine berekent de hoogste blijvende trede, triggerdatum, FTE en pro-rata.
+
+Migratie `20260728065641_separate_bonus_accrual_basis.sql` is toegepast op gekoppeld Supabase-testproject `wnpfloqpjvaacobppbpk`; live verificatie bevestigde de nieuwe constraint zonder `AGE_SENIORITY`, beide bonus-enums, RLS op `leave_bonus_rules`/`leave_bonus_tiers` en de migratiestatus `applied`. De read-only SQL-contracttest is geslaagd. Advisors tonen alleen eerder bekende waarschuwingen buiten deze slice. `packages/db/types.ts` is opnieuw gegenereerd. Typecheck, i18n en de relevante 20 tests zijn geslaagd; lint, volledige tests, build en ingelogde browsercontrole blijven open. Applicatieversie is `1.20260728.3`. Er is niet gedeployed, gepusht of gecommit; ongerelateerde `.qoder/repowiki`-wijzigingen zijn behouden.
+
+## Update 2026-07-28: verloftype-instellingen en opvolgende opbouwregels
+
+De verlofopbouwbeheerflow is uitgebreid met algemene verloftype-instellingen, uitgebreide kleurkeuze/kleurgebruik, effectieve opbouwregelketens en uitzonderingen. Bestaande verloftypen en regelversies blijven alleen-lezen; wijzigingen lopen via archiveren of een opvolger. De regel-editor ondersteunt contracturen, werkuren met één of meer gewone/overwerktypen, de voorbereidende basis leeftijd/anciënniteit, periode, opbouwmoment, uren/minuten(/seconden), pauzes, vervaltermijn en een onderste samenvatting. Uitzonderingen ondersteunen één of meerdere medewerkers, selfservice, geen opbouw/aangepaste hoeveelheid, samenvatting en paginering per tien.
+
+Supabase-migraties `20260728062208` en `20260728063339` zijn uitgevoerd op de gekoppelde testdatabase en als `applied` geregistreerd. Live schema-controle bevestigde de enumwaarde `AGE_SENIORITY`, vijf verloftypekolommen, de regelconstraint, successor-RPC en RLS op `leave_types`/`leave_accrual_rules`. Advisors tonen alleen bestaande waarschuwingen buiten deze slice. `packages/db/types.ts` is opnieuw gegenereerd. Typecheck, lint, i18n en 382 tests zijn geslaagd; productiebuild en ingelogde browsercontrole blijven open. Applicatieversie is `1.20260728.2`. Er is niet gedeployed, gepusht of gecommit; ongerelateerde `.qoder/repowiki`-wijzigingen zijn behouden.
+
+## Update 2026-07-28: verlofopbouw en overwerkbeheer lokaal uitgebreid
+
+De lokale slice voor `/settings/leave-accrual` is uitgebreid. Actieve catalogustabbladen zijn visueel duidelijker, de driepuntmenukaart opent acties en een overzicht van bestaand kleurgebruik. De kleurkeuze bevat nu twaalf CSS-tokens. Bestaande verloftypen, werkurentypen en opbouwregels kunnen niet meer vanuit de UI worden bewerkt; opbouwregels worden via successor-versies gewijzigd en catalogusitems kunnen alleen worden gearchiveerd. De migratie `apps/hr-suite/supabase/migrations/20260728052250_configure_overtime_restrictions_and_immutable_catalog.sql` voegt immutable triggers toe.
+
+Overuren hebben nu een aparte, administratiegebonden configuratielaag: globale beperking onbeperkt/maanduren/jaaruren/contracturen × factor, manager inlichten bij invoer, selfservice en medewerkeruitzonderingen. De uitzonderingendialoog ondersteunt één persoon of meerdere medewerkers en de optie **Mag geen overuren schrijven**. `/api/leave/overtime` verwerkt instellingen en uitzonderingen server-side met `leave:write`; na succes ververst de UI de lijst en toont zij een toast.
+
+Verificatie: strict typecheck, lint, i18n, 380 tests en productiebuild zijn geslaagd. De migratie is op de gekoppelde testdatabase uitgevoerd en de nieuwe tabellen, enum, RLS/policies en triggers zijn live gecontroleerd. De migratiehistorie toont `20260728052250` als applied. Supabase advisors geven alleen bestaande waarschuwingen buiten deze slice. `packages/db/types.ts` is officieel opnieuw gegenereerd vanaf de testdatabase; ingelogde browsercontrole blijft open. Applicatieversie is `1.20260728.1`. Er is niet gedeployed, gepusht of gecommit. De bestaande ongerelateerde `.qoder/repowiki`-wijzigingen zijn behouden.
+
 ## Update 2026-07-27: release naar GitHub en Vercel
 
 Applicatieversie `1.20260727.6` en de volledige geautoriseerde werkboom zijn vastgelegd in commits `c1a7fbe` en `eaf850a` op `main` en naar `origin/main` gepusht. GitHub bevestigt remote commit `eaf850ae513a04e942944a3cce078a3b3cd939c6`. De gekoppelde Vercel-deployment is voltooid (`success`) via [deployment 4GZVgjp5SY5wHfmnXdGGBej2Hjnt](https://vercel.com/edwinitsolutions/liquidhr/4GZVgjp5SY5wHfmnXdGGBej2Hjnt). De productiehost `https://liquid-hr-hr-suite.vercel.app` is bereikbaar en stuurt anonieme dashboardbezoeken correct naar `/login`; een ingelogde productiecontrole blijft een handmatige vervolgstap.
@@ -20,7 +48,7 @@ Typecheck, lint, i18n-pariteit, productiebuild en lokale login/browsercontrole o
 
 ## Handoff voor volgende chat
 
-Start vanuit `C:\Users\Edwin\Documents\Apps\LiquidHR`, lees eerst `AGENTS.md` en ga verder vanaf dit bestand. Alle bestaande wijzigingen horen bij één nog niet gedeployde release. Behoud versie `1.20260726.5` tenzij de volgende wijziging opnieuw een versieophoging vereist. Controleer bij hervatten opnieuw de lokale server, git-status en Supabase-migratiehistorie; neem de huidige poort-3000-processen en browser-tabs niet blind over.
+Start vanuit `C:\Users\Edwin\Documents\Apps\LiquidHR`, lees eerst `AGENTS.md` en ga verder vanaf dit bestand. Alle bestaande wijzigingen horen bij één nog niet gedeployde release. Behoud versie `1.20260728.3` tenzij de volgende wijziging opnieuw een versieophoging vereist. Controleer bij hervatten opnieuw de lokale server, git-status en Supabase-migratiehistorie; neem de huidige poort-3000-processen en browser-tabs niet blind over.
 
 ## Update 2026-07-26: custom fields en functiecatalogusbeheer
 

@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+Actuele verlofstatus (2026-07-28, versie `1.20260728.4`): werkurentypen hebben nu algemene instellingen, gedeelde beperkingstypen en administratiegebonden uitzonderingen voor één of meerdere medewerkers. De geavanceerde tab blijft voorbereid voor later.
+
+Actuele verlofstatus (2026-07-28): aparte bonusregels voor `AGE` en `SENIORITY` met traptreden, FTE/pro-rata-engine, catalogus/API en HR-admintegels zijn aanwezig. De periodieke bonusmutatie-runner, volledige opbouwprojectie en ingelogde browsercontrole blijven open.
+
+Verificatie afgerond voor deze slice: ESLint, 384 tests, productiebuild en anonieme browsercontrole zijn geslaagd; de browsercontrole vond 0 console-errors en alleen een bestaande preload-warning.
+
 De leidende documentenblueprint voor deze slice staat in [`requirements/documents/Documenten_en_Dossier_Systeem_Master.md`](requirements/documents/Documenten_en_Dossier_Systeem_Master.md). De oudere AI/compliance-notitie blijft aanvullend voor een latere OCR/RAG-slice.
 
 Actuele verlofstatus (2026-07-22): de verlof-engine bevat nu schema/RLS, configuratie- en balans-API, catalogus/opvolger/voorrangsregel-UI, idempotente HR-admin-aanvragen vanuit de kalender en centrale ledgermutaties voor startsaldo, handmatige correcties, jaarafsluiting, overheveling en verval. Feestdagen worden in booking en preview overgeslagen. De flow is remote en op poort 3000 met Lina Bakker gecontroleerd. Resterend zijn toekomstige opbouwprojectie voor maandelijkse regels, volledige saldo-audit/ledgerformulieren en later ESS, managerworkflow en notificaties.
@@ -36,7 +42,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 
 | Domein | Document | Documentstatus | Implementatie |
 |---|---|---|---|
-| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/opvolgers/voorrangsregels, ledger-RPC's/API en settings-UI zijn aanwezig; toekomstige opbouwprojectie, volledige auditformulieren en enkele rapportdetails volgen |
+| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/API, opvolgende opbouwregels, kleurgebruik, overwerkbeperkingen en de eerste verloftype-/uitzonderingen-UI zijn aanwezig; age/seniority-regels, volledige opbouwprojectie en ingelogde browsercontrole volgen |
 | Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | GEDEELTELIJK — geautoriseerde HR-admin/managerflow, priority/FIFO, directe goedkeuring, saldo-overzicht en kalenderweergave zijn geïmplementeerd; ESS, notificaties en manager-UI volgen later |
 | Verzuim en herstel | [`requirements/absence/VERZUIM_EN_HERSTEL.md`](requirements/absence/VERZUIM_EN_HERSTEL.md) | LEIDEND | GEDEELTELIJK — schema/RLS/RPC, API, dashboardvenster, startpagina, kalenderactie, medewerker-tab, herstel, instellingen en verzuimrapportage zijn live; voorziening en verdere WvP blijven open |
 | WvP Poortwachter | [`requirements/absence/WVP_POORTWACHTER_ENGINE.md`](requirements/absence/WVP_POORTWACHTER_ENGINE.md) | LEIDEND | GEDEELTELIJK — HR Admin kan eigen niet-wettelijke taaktemplates beheren; wettelijke milestone-engine, casustaken, dossier en signaleringen blijven open totdat de set inhoudelijk is bevestigd |

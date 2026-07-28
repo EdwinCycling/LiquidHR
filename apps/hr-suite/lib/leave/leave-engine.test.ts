@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyAccrualPause,
   calculateBonusAward,
+  calculateBonusAccrualForYear,
   calculateContractAccrual,
   calculateWorkedHoursAccrual,
   expirationDateForAccrualYear,
@@ -71,6 +72,40 @@ describe('leave engine', () => {
   it('maakt exacte verjaardags- en jubileumdatums expliciet, inclusief schrikkeldagbeleid', () => {
     expect(resolveAnnualTriggerDate('1990-05-04', 2026)).toBe('2026-05-04')
     expect(() => resolveAnnualTriggerDate('2000-02-29', 2025)).toThrowError('LEAVE_FEBRUARY_29_POLICY_REQUIRED')
+  })
+
+  it('kent een leeftijdsbonus toe vanaf de drempel en houdt de hoogste trede vast', () => {
+    expect(calculateBonusAccrualForYear({
+      calendarYear: 2026,
+      baseDate: '1971-06-15',
+      triggerType: 'AGE',
+      tiers: [{ thresholdYears: 50, bonusAmount: 4 }, { thresholdYears: 55, bonusAmount: 8 }],
+      awardTiming: 'START_OF_YEAR',
+      proRateFirstYear: true,
+      partTimeFactor: 0.8,
+    })).toMatchObject({ amount: 6.4, thresholdYears: 55, achievedYears: 55, triggerDate: '2026-06-15' })
+
+    expect(calculateBonusAccrualForYear({
+      calendarYear: 2027,
+      baseDate: '1971-06-15',
+      triggerType: 'AGE',
+      tiers: [{ thresholdYears: 55, bonusAmount: 8 }],
+      awardTiming: 'START_OF_YEAR',
+      proRateFirstYear: true,
+      partTimeFactor: 0.8,
+    })?.amount).toBeCloseTo(6.4, 5)
+  })
+
+  it('kent een anciënniteitsbonus pro-rata toe op het jubileum', () => {
+    expect(calculateBonusAccrualForYear({
+      calendarYear: 2026,
+      baseDate: '2021-07-01',
+      triggerType: 'SENIORITY',
+      tiers: [{ thresholdYears: 5, bonusAmount: 12 }],
+      awardTiming: 'ON_TRIGGER_DATE',
+      proRateFirstYear: true,
+      partTimeFactor: 0.5,
+    })?.amount).toBeCloseTo(3.024658, 5)
   })
 
   it('sorteert buckets FIFO op vervaldatum en daarna op jaar/id', () => {

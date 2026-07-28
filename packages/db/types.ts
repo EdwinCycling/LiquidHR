@@ -5057,6 +5057,7 @@ export type Database = {
       leave_types: {
         Row: {
           administration_id: string
+          allow_limit_overrun: boolean
           annual_hours_cap: number | null
           color_code: string
           created_at: string
@@ -5067,6 +5068,10 @@ export type Database = {
           is_self_service: boolean
           is_system: boolean
           name: string
+          notify_manager_on_request: boolean
+          pin_in_calendar: boolean
+          requires_manager_approval: boolean
+          requires_manager_approval_on_cancellation: boolean
           scope: Database["public"]["Enums"]["leave_type_scope"]
           tenant_id: string
           updated_at: string
@@ -5075,6 +5080,7 @@ export type Database = {
         }
         Insert: {
           administration_id: string
+          allow_limit_overrun?: boolean
           annual_hours_cap?: number | null
           color_code?: string
           created_at?: string
@@ -5085,6 +5091,10 @@ export type Database = {
           is_self_service?: boolean
           is_system?: boolean
           name: string
+          notify_manager_on_request?: boolean
+          pin_in_calendar?: boolean
+          requires_manager_approval?: boolean
+          requires_manager_approval_on_cancellation?: boolean
           scope: Database["public"]["Enums"]["leave_type_scope"]
           tenant_id: string
           updated_at?: string
@@ -5093,6 +5103,7 @@ export type Database = {
         }
         Update: {
           administration_id?: string
+          allow_limit_overrun?: boolean
           annual_hours_cap?: number | null
           color_code?: string
           created_at?: string
@@ -5103,6 +5114,10 @@ export type Database = {
           is_self_service?: boolean
           is_system?: boolean
           name?: string
+          notify_manager_on_request?: boolean
+          pin_in_calendar?: boolean
+          requires_manager_approval?: boolean
+          requires_manager_approval_on_cancellation?: boolean
           scope?: Database["public"]["Enums"]["leave_type_scope"]
           tenant_id?: string
           updated_at?: string
@@ -5355,6 +5370,128 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_type_exceptions: {
+        Row: {
+          administration_id: string
+          allow_overtime_entry: boolean
+          contract_hours_factor: number | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          is_self_service: boolean
+          limit_hours: number | null
+          limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          work_hour_type_id: string
+        }
+        Insert: {
+          administration_id: string
+          allow_overtime_entry?: boolean
+          contract_hours_factor?: number | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          is_self_service?: boolean
+          limit_hours?: number | null
+          limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          work_hour_type_id: string
+        }
+        Update: {
+          administration_id?: string
+          allow_overtime_entry?: boolean
+          contract_hours_factor?: number | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          is_self_service?: boolean
+          limit_hours?: number | null
+          limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          work_hour_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_type_exceptions_employee_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "overtime_type_exceptions_scope_fkey"
+            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            isOneToOne: false
+            referencedRelation: "work_hour_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      overtime_type_settings: {
+        Row: {
+          administration_id: string
+          contract_hours_factor: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_self_service: boolean
+          limit_hours: number | null
+          limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
+          notify_manager_on_entry: boolean
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          work_hour_type_id: string
+        }
+        Insert: {
+          administration_id: string
+          contract_hours_factor?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_self_service?: boolean
+          limit_hours?: number | null
+          limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
+          notify_manager_on_entry?: boolean
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          work_hour_type_id: string
+        }
+        Update: {
+          administration_id?: string
+          contract_hours_factor?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_self_service?: boolean
+          limit_hours?: number | null
+          limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
+          notify_manager_on_entry?: boolean
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          work_hour_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_type_settings_scope_fkey"
+            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            isOneToOne: true
+            referencedRelation: "work_hour_types"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
         ]
       }
@@ -6545,7 +6682,9 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_self_service: boolean
           name: string
+          pin_in_calendar: boolean
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -6558,7 +6697,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_self_service?: boolean
           name: string
+          pin_in_calendar?: boolean
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -6571,7 +6712,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_self_service?: boolean
           name?: string
+          pin_in_calendar?: boolean
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -6967,7 +7110,7 @@ export type Database = {
       invitation_email_kind: "PRIVATE" | "BUSINESS"
       invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
-      leave_accrual_basis: "CONTRACT_HOURS" | "WORKED_HOURS"
+      leave_accrual_basis: "CONTRACT_HOURS" | "WORKED_HOURS" | "AGE_SENIORITY"
       leave_accrual_frequency: "PAYROLL_PERIOD" | "YEARLY"
       leave_accrual_timing: "UPFRONT" | "ARREARS"
       leave_bonus_award_timing: "START_OF_YEAR" | "ON_TRIGGER_DATE"
@@ -7011,6 +7154,11 @@ export type Database = {
         | "PARTNER_NAME"
         | "PARTNER_BEFORE_BIRTH_NAME"
         | "BIRTH_NAME_BEFORE_PARTNER_NAME"
+      overtime_limit_mode:
+        | "UNLIMITED"
+        | "MONTHLY_HOURS"
+        | "YEARLY_HOURS"
+        | "CONTRACT_HOURS_FACTOR"
       payroll_reporting_status: "DRAFT" | "READY" | "REPORTED" | "CLOSED"
       relation_type:
         | "PARTNER"
@@ -7250,7 +7398,7 @@ export const Constants = {
       invitation_email_kind: ["PRIVATE", "BUSINESS"],
       invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
-      leave_accrual_basis: ["CONTRACT_HOURS", "WORKED_HOURS"],
+      leave_accrual_basis: ["CONTRACT_HOURS", "WORKED_HOURS", "AGE_SENIORITY"],
       leave_accrual_frequency: ["PAYROLL_PERIOD", "YEARLY"],
       leave_accrual_timing: ["UPFRONT", "ARREARS"],
       leave_bonus_award_timing: ["START_OF_YEAR", "ON_TRIGGER_DATE"],
@@ -7300,6 +7448,12 @@ export const Constants = {
         "PARTNER_NAME",
         "PARTNER_BEFORE_BIRTH_NAME",
         "BIRTH_NAME_BEFORE_PARTNER_NAME",
+      ],
+      overtime_limit_mode: [
+        "UNLIMITED",
+        "MONTHLY_HOURS",
+        "YEARLY_HOURS",
+        "CONTRACT_HOURS_FACTOR",
       ],
       payroll_reporting_status: ["DRAFT", "READY", "REPORTED", "CLOSED"],
       relation_type: [
