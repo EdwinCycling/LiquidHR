@@ -1,5 +1,9 @@
 # Actuele overdracht Liquid HR
 
+## Release 2026-07-29: versie 1.20260729.7
+
+De volledige release staat op `main` en `origin/main` als commit `3e324e7`. Vercel Production is `READY` op deployment `dpl_6Wwho9qoYsKBK8DZrxrAh6PC5aAU`, met aliases `liquid-hr-hr-suite.vercel.app`, `liquidhr-edwinitsolutions.vercel.app` en `liquidhr-git-main-edwinitsolutions.vercel.app`. De anonieme productiecontrole toont de loginpagina en Vercel meldt geen runtime errors in het afgelopen uur. Een ingelogde productiecontrole blijft handmatig.
+
 ## Update 2026-07-29: verlofopbouw, werkuren en overuren zichtbaar gemaakt
 
 Versie `1.20260729.7` herstelt de volledige configuratiestroom onder HR-beheer → Verlofopbouw. De catalogus toont contextafhankelijke toevoegknoppen, Voorrangsregels alleen bij Afwezigheden en uitsluitend Kleuren en gebruik in het driepuntsmenu. Nieuwe verloftypen hebben Annuleren, Soort verlof en Opbouw; bij regelopbouw staat de effectieve opbouweditor inline met contracturen, één of meer werkurentypen, periode, moment, uren/minuten/seconden, pauzetypen, vervaltermijn, opvolgerketen en samenvatting. Uitzonderingen blijven voor iedere opbouwvorm beschikbaar. Werkuren en overuren tonen algemene instellingen op Basisinformatie en de vier beperkingstypen plus administratiegebonden uitzonderingen op Beperkingen; Geavanceerd blijft bewust leeg.

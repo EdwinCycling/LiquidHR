@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Release 2026-07-29: versie 1.20260729.7
+
+De volledige release staat op `main` en `origin/main` als commit `3e324e7`. De releasechecks zijn groen: 110 testbestanden/405 tests, ESLint, i18n-pariteit, strict TypeScript en productiebuild. Vercel Production is `READY` op deployment `dpl_6Wwho9qoYsKBK8DZrxrAh6PC5aAU`, gekoppeld aan dezelfde commit. De productiehost antwoordt anoniem met de loginpagina; runtime errors zijn in het afgelopen uur niet gevonden.
+
 ## Update 2026-07-29: verlofconfiguratie gecorrigeerd
 
 De beheer-UX voor verloftypen, opbouwregels, werkuren en overuren is compleet aangesloten op de bestaande administratiegebonden services. Nieuwe en bestaande opbouwregels zijn vanuit de tab Beperkingen zichtbaar, opvolgers worden als keten gekozen, leeftijd en anciënniteit blijven afzonderlijke bonustypen, en uitzonderingen ondersteunen één of meerdere medewerkers met paginering per tien. Werkuren en overuren gebruiken dezelfde vier beperkingsvormen en hebben hun algemene instellingen op Basisinformatie. Versie: `1.20260729.6`.
