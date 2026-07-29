@@ -18,7 +18,7 @@ interface Labels {
   notAvailable: string
 }
 
-export function SalaryReveal({ employeeId, locale, canRead, labels }: { employeeId: string; locale: string; canRead: boolean; labels: Labels }) {
+export function SalaryReveal({ employeeId, employmentId, locale, canRead, labels }: { employeeId: string; employmentId?: string; locale: string; canRead: boolean; labels: Labels }) {
   const [value, setValue] = useState<SalaryValue | null>(null)
   const [active, setActive] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -28,7 +28,8 @@ export function SalaryReveal({ employeeId, locale, canRead, labels }: { employee
     setActive(true)
     if (value || loading || failed || !canRead) return
     setLoading(true)
-    const response = await fetch(`/api/employees/${employeeId}/salary`, { cache: 'no-store' })
+    const query = employmentId ? `?employmentId=${encodeURIComponent(employmentId)}` : ''
+    const response = await fetch(`/api/employees/${employeeId}/salary${query}`, { cache: 'no-store' })
     if (!response.ok) setFailed(true)
     else {
       const result = await response.json() as { data?: SalaryValue | null }

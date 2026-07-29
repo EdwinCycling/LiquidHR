@@ -15,7 +15,7 @@ export default async function EmploymentContractSettingsPage() {
   ])
   const labels = {
     search: t('catalogSearch'), code: t('catalogCode'), name: t('catalogName'),
-    add: t('catalogAdd'), active: t('active'), inactive: t('catalogInactive'),
+    add: t('catalogAdd'), edit: t('catalogEdit'), save: t('catalogSave'), cancel: t('catalogCancel'), active: t('active'), inactive: t('catalogInactive'),
     activate: t('catalogActivate'), deactivate: t('catalogDeactivate'),
     empty: t('catalogEmpty'), failed: t('changeFailed'),
   }
@@ -32,7 +32,7 @@ export default async function EmploymentContractSettingsPage() {
         title: t('general'),
         children: <EmploymentGeneralSettings
           defaultCountryCode={settings.defaultCountryCode}
-          labels={{ country: t('defaultEmploymentCountry'), save: t('confirm'), saved: t('changeSaved'), failed: t('changeFailed') }}
+          labels={{ country: t('defaultEmploymentCountry'), save: t('confirm'), saved: t('changeSaved'), failed: t('changeFailed'), search: t('catalogSearch'), empty: t('catalogEmpty') }}
         />,
       },
       {
@@ -74,6 +74,11 @@ export default async function EmploymentContractSettingsPage() {
           rows={settings.costCarriers.map((row) => ({ id: row.id, code: row.code, name: row.name, isActive: row.is_active, numericValue: null }))}
           labels={labels}
         />,
+      },
+      {
+        id: 'costCenters',
+        title: t('costCenter'),
+        children: <EmploymentCatalogManager catalog="COST_CENTER" numericLabel={null} rows={settings.costCenters.map((row) => ({ id: row.id, code: row.code, name: row.name, isActive: row.is_active, numericValue: null }))} labels={labels} />,
       },
     ]} />
   </main>

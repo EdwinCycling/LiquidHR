@@ -714,8 +714,20 @@ export async function getEmployeeEmploymentDetail(
   }
 }
 
-export async function getEmployeeSalarySummary(employeeId: string): Promise<CurrentEmployeeSummary['salary']> {
+export async function getEmployeeSalarySummary(employeeId: string, employmentId?: string): Promise<CurrentEmployeeSummary['salary']> {
   await requirePermission('salary:read', employeeId)
+  if (employmentId) {
+    const supabase = await createClient()
+    const today = new Date().toISOString().slice(0, 10)
+    const { data, error } = await supabase.from('employment_salaries')
+      .select('employment_id, fulltime_amount, hourly_rate, currency_code, payment_type')
+      .eq('employee_id', employeeId).eq('employment_id', employmentId).lte('valid_from', today)
+      .or(`valid_until.is.null,valid_until.gte.${today}`).order('valid_from', { ascending: false }).limit(1).maybeSingle()
+    if (error) throw new EmploymentServiceError('EMPLOYEE_SALARY_READ_FAILED', 500)
+    if (!data) return null
+    const amount = data.payment_type === 'PERIODIC_FIXED' ? data.fulltime_amount : data.hourly_rate
+    return amount === null ? null : { amount, currencyCode: data.currency_code, paymentType: data.payment_type }
+  }
   const detail = await getEmployeeEmploymentDetail(employeeId, 'overview', { includeSalary: true })
   return detail.currentEmploymentSummary.salary
 }

@@ -7,8 +7,8 @@ import type { LeaveCatalog } from '@/lib/leave/leave-service'
 
 type Basis = 'CONTRACT_HOURS' | 'WORKED_HOURS'
 type Parts = { hours: string; minutes: string; seconds: string }
-type Labels = {
-  chainTitle: string; chainDescription: string; profile: string; predecessor: string; successorStart: string; basis: string; period: string; timing: string; amountPerYear: string; amountPerHour: string; hours: string; minutes: string; seconds: string; expiry: string; pause: string; pauseHelp: string; workHours: string; contractHours: string; workedHours: string; ageSeniority: string; payrollPeriod: string; yearly: string; upfront: string; arrears: string; noPredecessor: string; version: string; current: string; selected: string; successor: string; validFrom: string; validUntil: string; noValue: string; specialRulesLater: string; summary: string; save: string; saving: string; failed: string; saved: string; selectAtLeastOne: string; noWorkHours: string; noPauseTypes: string
+export type AccrualRuleEditorLabels = {
+  chainTitle: string; chainDescription: string; profile: string; predecessor: string; successorStart: string; basis: string; period: string; timing: string; amountPerYear: string; amountPerHour: string; hours: string; minutes: string; seconds: string; expiry: string; pause: string; pauseHelp: string; workHours: string; contractHours: string; workedHours: string; ageSeniority: string; payrollPeriod: string; yearly: string; upfront: string; arrears: string; noPredecessor: string; version: string; current: string; selected: string; successor: string; validFrom: string; validUntil: string; noValue: string; specialRulesLater: string; summary: string; save: string; cancel: string; saving: string; failed: string; saved: string; selectAtLeastOne: string; noWorkHours: string; noPauseTypes: string
 }
 
 function partsFromDecimal(value: number | null | undefined): Parts {
@@ -23,10 +23,10 @@ function decimalFromParts(parts: Parts): number {
   return Number(parts.hours || 0) + Number(parts.minutes || 0) / 60 + Number(parts.seconds || 0) / 3600
 }
 
-export function AccrualRuleEditor({ catalog, leaveTypeId, predecessorRuleId, labels }: { catalog: LeaveCatalog; leaveTypeId: string; predecessorRuleId?: string; labels: Labels }) {
+export function AccrualRuleEditor({ catalog, leaveTypeId, predecessorRuleId, labels, ensureLeaveTypeId, onCancel, onSaved }: { catalog: LeaveCatalog; leaveTypeId?: string; predecessorRuleId?: string; labels: AccrualRuleEditorLabels; ensureLeaveTypeId?: () => Promise<string | null>; onCancel?: () => void; onSaved?: (leaveTypeId: string) => void }) {
   const router = useRouter()
   const leaveType = catalog.leaveTypes.find((item) => item.id === leaveTypeId)
-  const rules = useMemo(() => catalog.accrualRules.filter((rule) => rule.leave_type_id === leaveTypeId).sort((left, right) => left.valid_from.localeCompare(right.valid_from)), [catalog.accrualRules, leaveTypeId])
+  const rules = useMemo(() => leaveTypeId ? catalog.accrualRules.filter((rule) => rule.leave_type_id === leaveTypeId).sort((left, right) => left.valid_from.localeCompare(right.valid_from)) : [], [catalog.accrualRules, leaveTypeId])
   const predecessor = rules.find((rule) => rule.id === predecessorRuleId)
   const initialBasis: Basis = predecessor?.accrual_basis === 'WORKED_HOURS' ? 'WORKED_HOURS' : 'CONTRACT_HOURS'
   const [profileId, setProfileId] = useState(predecessor?.leave_profile_id ?? catalog.profiles[0]?.id ?? '')
@@ -45,10 +45,13 @@ export function AccrualRuleEditor({ catalog, leaveTypeId, predecessorRuleId, lab
     if (!profileId || (basis === 'WORKED_HOURS' && workHourTypeIds.length === 0)) { setStatus('failed'); return }
     setStatus('saving')
     try {
-      const response = await fetch('/api/leave/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'ACCRUAL_RULE', leaveProfileId: profileId, leaveTypeId, predecessorRuleId: predecessorRuleId ?? null, validFrom, validUntil: null, accrualBasis: basis, accrualFrequency: frequency, accrualTiming: timing, accrualAmount: basis === 'CONTRACT_HOURS' ? decimalFromParts(amount) : null, accrualRate: basis === 'WORKED_HOURS' ? decimalFromParts(rate) : null, expirationMonths: Number(expiryMonths), workHourTypeIds: basis === 'WORKED_HOURS' ? workHourTypeIds : [], pauseLeaveTypeIds }) })
+      const resolvedLeaveTypeId = leaveTypeId ?? await ensureLeaveTypeId?.()
+      if (!resolvedLeaveTypeId) throw new Error('LEAVE_TYPE_REQUIRED')
+      const response = await fetch('/api/leave/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'ACCRUAL_RULE', leaveProfileId: profileId, leaveTypeId: resolvedLeaveTypeId, predecessorRuleId: predecessorRuleId ?? null, validFrom, validUntil: null, accrualBasis: basis, accrualFrequency: frequency, accrualTiming: timing, accrualAmount: basis === 'CONTRACT_HOURS' ? decimalFromParts(amount) : null, accrualRate: basis === 'WORKED_HOURS' ? decimalFromParts(rate) : null, expirationMonths: Number(expiryMonths), workHourTypeIds: basis === 'WORKED_HOURS' ? workHourTypeIds : [], pauseLeaveTypeIds }) })
       if (!response.ok) throw new Error('LEAVE_RULE_SAVE_FAILED')
       setStatus('saved')
-      router.push(`/settings/leave-accrual/types/${leaveTypeId}`)
+      onSaved?.(resolvedLeaveTypeId)
+      router.push(`/settings/leave-accrual/types/${resolvedLeaveTypeId}?tab=limits`)
       router.refresh()
     } catch { setStatus('failed') }
   }
@@ -64,6 +67,6 @@ export function AccrualRuleEditor({ catalog, leaveTypeId, predecessorRuleId, lab
     </section>
     <section className="grid gap-5 md:grid-cols-2"><fieldset className="rounded-2xl border bg-surface p-6 shadow-sm"><legend className="px-1 text-sm font-semibold">{labels.workHours}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.selectAtLeastOne}</p><div className="mt-3 space-y-2">{catalog.workHourTypes.filter((item) => item.category !== 'INFORMATIONAL').map((item) => <label className="flex items-center gap-3 text-sm" key={item.id}><input checked={workHourTypeIds.includes(item.id)} className="size-4 accent-primary" disabled={basis !== 'WORKED_HOURS'} onChange={() => toggle(workHourTypeIds, item.id, setWorkHourTypeIds)} type="checkbox" />{item.name}</label>)}{catalog.workHourTypes.filter((item) => item.category !== 'INFORMATIONAL').length === 0 ? <p className="text-sm text-muted-foreground">{labels.noWorkHours}</p> : null}</div></fieldset><fieldset className="rounded-2xl border bg-surface p-6 shadow-sm"><legend className="px-1 text-sm font-semibold">{labels.pause}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.pauseHelp}</p><div className="mt-3 space-y-2">{catalog.leaveTypes.filter((item) => item.id !== leaveTypeId).map((item) => <label className="flex items-center gap-3 text-sm" key={item.id}><input checked={pauseLeaveTypeIds.includes(item.id)} className="size-4 accent-primary" onChange={() => toggle(pauseLeaveTypeIds, item.id, setPauseLeaveTypeIds)} type="checkbox" />{item.name}</label>)}{catalog.leaveTypes.filter((item) => item.id !== leaveTypeId).length === 0 ? <p className="text-sm text-muted-foreground">{labels.noPauseTypes}</p> : null}</div></fieldset></section>
     <section className="rounded-2xl border bg-muted/50 p-5"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{labels.summary}</p><p className="mt-2 text-sm font-medium">{summary} · {labels.expiry}: {expiryMonths} · {labels.pause}: {pauseLeaveTypeIds.length} · {labels.workHours}: {workHourTypeIds.length}</p></section>
-    <div className="flex items-center gap-3"><button className="button-primary" disabled={status === 'saving'} onClick={() => void save()} type="button">{status === 'saving' ? labels.saving : labels.save}</button>{status === 'failed' ? <p className="text-sm text-destructive">{labels.failed}</p> : null}{status === 'saved' ? <p className="text-sm text-success">{labels.saved}</p> : null}</div>
+    <div className="flex items-center gap-3">{onCancel ? <button className="button-secondary" onClick={onCancel} type="button">{labels.cancel}</button> : null}<button className="button-primary" disabled={status === 'saving'} onClick={() => void save()} type="button">{status === 'saving' ? labels.saving : labels.save}</button>{status === 'failed' ? <p className="text-sm text-destructive">{labels.failed}</p> : null}{status === 'saved' ? <p className="text-sm text-success">{labels.saved}</p> : null}</div>
   </div>
 }

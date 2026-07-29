@@ -5,7 +5,7 @@ import { ArrowRight, Download, HeartPulse } from 'lucide-react'
 import type { AbsenceInsightQuery, AbsenceInsightReport } from '@/lib/insights/absence-report'
 
 interface AbsenceReportLabels {
-  period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; exportExcel: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; monthlyTrend: string; yearLabel: string; bradfordReport: string; bradfordDescription: string
+  period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; exportExcel: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; monthlyTrend: string; yearLabel: string
   jan: string; feb: string; mar: string; apr: string; may: string; jun: string; jul: string; aug: string; sep: string; oct: string; nov: string; dec: string
 }
 
@@ -33,8 +33,6 @@ export function AbsenceReportView({ report, query, labels, locale }: { report: A
       <button className="button-primary h-11 whitespace-nowrap" type="submit">{labels.applyFilters}</button>
       <a className="button-secondary inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap" download href={`/api/insights/absence?${exportParams.toString()}`}><Download aria-hidden="true" size={16} />{labels.exportExcel}</a>
     </form>
-
-    <div className="flex flex-col gap-3 rounded-xl border border-chart-2/25 bg-chart-2/5 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{labels.bradfordReport}</p><p className="text-sm text-muted-foreground">{labels.bradfordDescription}</p></div><Link className="button-secondary inline-flex w-fit items-center gap-2" href="/insights?report=absence-bradford&period=52-weeks"><ArrowRight aria-hidden="true" size={16} />{labels.bradfordReport}</Link></div>
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <Kpi label={labels.activeCases} value={String(report.activeCases)} />

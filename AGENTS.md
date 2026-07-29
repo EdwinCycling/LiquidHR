@@ -58,6 +58,11 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 - Maak tests wanneer zij betekenisvolle bescherming bieden; niet mechanisch voor een triviale wijziging.
 - Herhaal geen onveranderde falende opdracht; herstel alleen in-scope fouten en rapporteer bestaande, niet-gerelateerde failures afzonderlijk.
 
+## Vaste beheerscherm-UX
+
+- Kiesbare waarden gebruiken altijd een toegankelijke keuzecomponent met zoekfunctie en zichtbare selectie; voer ISO-codes, referenties of andere gesloten waardelijsten niet als vrij tekstveld in.
+- Beheerbare stamdata volgt altijd **lijst eerst**: zoeken/filteren/sorteren, klikrij, en een modal voor toevoegen of wijzigen met bewaren en annuleren. Deactiveren/archiveren blijft een expliciete actie in die modal.
+
 ## Documentatie bijhouden
 
 - Nieuwe requirements worden als Markdown onder `docs/requirements/<domein>/` opgeslagen.

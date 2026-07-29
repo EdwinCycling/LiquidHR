@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 import { listMyReminders } from '@/lib/reminders/reminder-service'
 import { getEnabledTenantModules } from '@/lib/modules/module-service'
 import { HeRaFloating } from '@/components/hera/hera-floating'
-import { createHeRaLabels } from './hera/page'
+import { createHeRaLabels } from '@/lib/hera/labels'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const supabase = await createClient()

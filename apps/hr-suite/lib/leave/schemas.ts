@@ -244,8 +244,10 @@ export type OvertimeConfigurationMutation = z.infer<typeof overtimeConfiguration
 const workHourSettingsMutationSchema = z.object({
   action: z.literal('WORK_HOUR_SETTINGS'),
   workHourTypeId: z.string().trim().min(1).max(100),
+  isActive: z.boolean().optional(),
   isSelfService: z.boolean(),
   pinInCalendar: z.boolean().optional(),
+  notifyManagerOnEntry: z.boolean().optional(),
   ...overtimeLimitFields,
 }).strict().superRefine(overtimeLimitRefinement)
 

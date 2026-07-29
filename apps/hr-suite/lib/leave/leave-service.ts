@@ -546,10 +546,10 @@ export async function updateWorkHourSettings(input: Extract<WorkHourConfiguratio
   const type = await supabase.from('work_hour_types').select('id, category').eq('id', input.workHourTypeId).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle()
   if (type.error) databaseError(type.error)
   if (!type.data || type.data.category === 'INFORMATIONAL') throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
-  const result = await supabase.from('work_hour_types').update({ is_self_service: input.isSelfService, ...(input.pinInCalendar === undefined ? {} : { pin_in_calendar: input.pinInCalendar }), updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', input.workHourTypeId).select('id').maybeSingle()
+  const result = await supabase.from('work_hour_types').update({ is_self_service: input.isSelfService, ...(input.isActive === undefined ? {} : { is_active: input.isActive }), ...(input.pinInCalendar === undefined ? {} : { pin_in_calendar: input.pinInCalendar }), updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', input.workHourTypeId).select('id').maybeSingle()
   if (result.error) databaseError(result.error)
   if (!result.data) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
-  const settings = await supabase.from('overtime_type_settings').update({ limit_mode: input.limitMode, limit_hours: input.limitHours ?? null, contract_hours_factor: input.contractHoursFactor ?? null, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
+  const settings = await supabase.from('overtime_type_settings').update({ ...(input.notifyManagerOnEntry === undefined ? {} : { notify_manager_on_entry: input.notifyManagerOnEntry }), is_self_service: input.isSelfService, limit_mode: input.limitMode, limit_hours: input.limitHours ?? null, contract_hours_factor: input.contractHoursFactor ?? null, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
   if (settings.error) databaseError(settings.error)
   return { id: result.data.id }
 }

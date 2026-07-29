@@ -4,10 +4,11 @@ import { getEmployeeSalarySummary } from '@/lib/employment/employment-service'
 
 interface Context { params: Promise<{ employeeId: string }> }
 
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   try {
     const { employeeId } = await context.params
-    return NextResponse.json({ data: await getEmployeeSalarySummary(employeeId) })
+    const employmentId = new URL(request.url).searchParams.get('employmentId') ?? undefined
+    return NextResponse.json({ data: await getEmployeeSalarySummary(employeeId, employmentId) })
   } catch (error) {
     const permission = permissionErrorResponse(error)
     if (permission) return permission

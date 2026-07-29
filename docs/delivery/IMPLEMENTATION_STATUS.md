@@ -1,5 +1,19 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-29: verlofconfiguratie gecorrigeerd
+
+De beheer-UX voor verloftypen, opbouwregels, werkuren en overuren is compleet aangesloten op de bestaande administratiegebonden services. Nieuwe en bestaande opbouwregels zijn vanuit de tab Beperkingen zichtbaar, opvolgers worden als keten gekozen, leeftijd en anciënniteit blijven afzonderlijke bonustypen, en uitzonderingen ondersteunen één of meerdere medewerkers met paginering per tien. Werkuren en overuren gebruiken dezelfde vier beperkingsvormen en hebben hun algemene instellingen op Basisinformatie. Versie: `1.20260729.6`.
+
+Remote Supabase is gecontroleerd: HR Admin heeft `leave:read` en `leave:write`, de relevante tabellen hebben per actie RLS-policies en de demo-administratie bevat testvoorbeelden van alle vormen. 405 tests, gerichte ESLint en i18n-pariteit slagen. Buildcompilatie slaagt; de totale typecheck blijft geblokkeerd door twee reeds aanwezige fouten buiten verlof.
+
+## Update 2026-07-29: Next.js dev-servergeheugenonderzoek
+
+Het geheugenonderzoek staat in [`docs/delivery/NEXT_DEV_MEMORY_INVESTIGATION.md`](NEXT_DEV_MEMORY_INVESTIGATION.md). De standaard lokale dev-run gebruikt Webpack na een gecontroleerde vergelijking met Turbopack: Webpack bleef rond 1,20 GB na vijf minuten, terwijl Turbopack onder actieve routeverkenning naar 3,04 GB working set na 60 minuten groeide. De historische 11,12 GB is niet opnieuw gereproduceerd; de diagnose wijst op Turbopack compilergraph-/dev-stategroei, niet op een server-side applicatiecache. `npm run dev:turbopack` blijft beschikbaar. De afsluitende typecheck heeft bestaande fouten gemeld rond `createHeRaLabels` en `hasActiveEmployment`; die staan los van deze slice.
+
+## Update 2026-07-29: medewerkerdashboardvensters
+
+De dashboardkaarten zijn aangescherpt op basis van de visuele controlefeedback. Persoonlijke informatie toont naam, leeftijd/verjaardag, telefoons, e-mailadressen en adres; geslacht, geboortedatum en geboorteplaats zijn uit deze kaart verwijderd. De avatar toont geen technische opslaguitleg meer en behoudt de geautoriseerde upload-/wijzig-/verwijderacties. Verzuim toont expliciet de actuele status en laatste geschiedenis; nieuwe ziekmeldingen openen in een aparte modal met de bestaande operationele velden. De drag-toolbar staat niet meer over kaartlinks. Bij meerdere actieve dienstverbanden kan Contract en salaris per dienstverband worden gewisseld en wordt de salarisreveal per `employmentId` geladen. `check:i18n`, strict typecheck, ESLint en productiebuild zijn geslaagd. Niet gedeployed of gepusht.
+
 ## Update 2026-07-29: dienstverbandweergave op medewerkerdashboard
 
 Het medewerkerdashboard toont nu per dienstverband actuele projectiedata en een duidelijke status. Regels zijn volledig klikbaar naar het dienstverbanddetail en behouden een terugpad naar het dashboard; bij geen actieve dienstverbanden verschijnt een afsluitingsmelding en voor geautoriseerde gebruikers een link naar de bestaande aanmaakwizard. De persoonsheader toont geen functie, afdeling of manager; de dienstverbandheader toont het medewerkertype naast het statusblok. Statuslogica voor actief, toekomstig, beëindigd en geannuleerd heeft drie gerichte tests. Typecheck, ESLint, i18n-pariteit en productiebuild zijn geslaagd. Niet gedeployed of gepusht.

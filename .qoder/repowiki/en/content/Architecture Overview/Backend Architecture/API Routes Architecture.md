@@ -18,6 +18,14 @@
 - [apps/hr-suite/app/layout.tsx](file://apps/hr-suite/app/layout.tsx)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Added new Employment Contract Management endpoints for contract lifecycle operations
+- Enhanced Organization Services with additional management capabilities
+- Integrated Company Branding API endpoints for logo and settings management
+- Updated employment domain documentation to reflect contract-focused architecture
+- Expanded organization services section with new branding capabilities
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -35,6 +43,8 @@ LiquidHR is a comprehensive Human Resource Management System built with Next.js 
 
 The API routes are organized by business domains rather than technical layers, promoting clear separation of concerns and maintainable code structure. Each domain encapsulates its own CRUD operations, validation logic, and business rules while maintaining consistency across the entire application.
 
+**Updated** The architecture now includes enhanced employment contract management capabilities and company branding services, expanding the system's ability to handle complex employment scenarios and organizational identity management.
+
 ## Project Structure
 
 The API routes follow a feature-based organization pattern where each major business domain has its own directory containing route handlers:
@@ -49,17 +59,20 @@ B["employees/"]
 C["employments/"]
 D["organization/"]
 E["custom-fields/"]
+F["settings/"]
 end
 subgraph "Supporting Domains"
-F["departments/"]
-G["master-data/"]
-H["settings/"]
+G["departments/"]
+H["master-data/"]
 I["hr-events/"]
 J["context/"]
+K["company-documents/"]
 end
 subgraph "Utility Endpoints"
-K["address-lookup/"]
-L["address-suggestions/"]
+L["address-lookup/"]
+M["address-suggestions/"]
+N["invitations/"]
+O["preferences/"]
 end
 A --> B
 A --> C
@@ -72,12 +85,16 @@ A --> I
 A --> J
 A --> K
 A --> L
+A --> M
+A --> N
+A --> O
 ```
 
 **Diagram sources**
 - [apps/hr-suite/app/api/employees/route.ts](file://apps/hr-suite/app/api/employees/route.ts)
 - [apps/hr-suite/app/api/employments/[employmentId]/route.ts](file://apps/hr-suite/app/api/employments/[employmentId]/route.ts)
 - [apps/hr-suite/app/api/custom-fields/route.ts](file://apps/hr-suite/app/api/custom-fields/route.ts)
+- [apps/hr-suite/app/api/company-documents/route.ts](file://apps/hr-suite/app/api/company-documents/route.ts)
 
 **Section sources**
 - [apps/hr-suite/app/api/employees/route.ts](file://apps/hr-suite/app/api/employees/route.ts)
@@ -93,13 +110,16 @@ Each business domain implements a consistent pattern for handling HTTP requests:
 The employees domain provides comprehensive CRUD operations for employee records with nested resources for employments, documents, addresses, and custom fields.
 
 #### Employment Lifecycle Domain  
-The employments domain manages the complete employment lifecycle including changes, terminations, work patterns, and timeline tracking.
+The employments domain manages the complete employment lifecycle including changes, terminations, work patterns, timeline tracking, and **enhanced contract management capabilities**.
 
 #### Custom Fields Domain
 The custom-fields domain enables dynamic field configuration and value management for flexible data modeling.
 
 #### Organization Domain
-The organization domain handles hierarchical structures including departments, roles, assignments, and management relationships.
+The organization domain handles hierarchical structures including departments, roles, assignments, management relationships, **and company branding configuration**.
+
+#### Settings and Configuration Domain
+The settings domain manages application configuration including holidays, dashboard widgets, module toggles, **and company branding settings**.
 
 ### Request/Response Handling Patterns
 
@@ -150,22 +170,27 @@ C["Request Validators<br/>Zod Schemas"]
 D["Business Logic Services"]
 E["Authentication Middleware"]
 F["Authorization Checks"]
+G["Company Branding Service"]
 end
 subgraph "Data Layer"
-G["Database Queries"]
-H["Cache Layer"]
-I["External APIs"]
+H["Database Queries"]
+I["Cache Layer"]
+J["External APIs"]
+K["File Storage"]
 end
 A --> B
 B --> C
 B --> E
 B --> F
+B --> G
 C --> D
 E --> D
 F --> D
-D --> G
+G --> D
 D --> H
 D --> I
+D --> J
+D --> K
 ```
 
 **Diagram sources**
@@ -256,46 +281,90 @@ class Employment {
 +Date endDate
 +string status
 +WorkPattern workPattern
++EmploymentContract contract
 }
 Employee --> Address : has many
 Employee --> Employment : has many
+Employment --> EmploymentContract : has one
 ```
 
 **Diagram sources**
 - [apps/hr-suite/app/api/employees/route.ts](file://apps/hr-suite/app/api/employees/route.ts)
 - [apps/hr-suite/app/api/employees/[employeeId]/route.ts](file://apps/hr-suite/app/api/employees/[employeeId]/route.ts)
 
-### Employment Lifecycle Management
+### Employment Contract Management
 
-The employment domain manages the complete employment lifecycle with change tracking and audit trails:
+**New** The employment contract management system provides comprehensive contract lifecycle operations with detailed audit trails and compliance tracking:
 
-#### Employment Operations
-- **GET /api/employments/[employmentId]**: Retrieve employment details
-- **PUT /api/employments/[employmentId]**: Update employment terms
-- **POST /api/employments/[employmentId]/changes**: Record employment changes
-- **POST /api/employments/[employmentId]/termination**: Process termination
-- **GET /api/employments/[employmentId]/timeline**: View employment timeline
+#### Contract Operations
+- **GET /api/employments/[employmentId]/contracts**: List all contracts for an employment
+- **POST /api/employments/[employmentId]/contracts**: Create new employment contracts
+- **GET /api/employments/[employmentId]/contracts/[contractId]**: Retrieve specific contract details
+- **PUT /api/employments/[employmentId]/contracts/[contractId]**: Update contract terms
+- **DELETE /api/employments/[employmentId]/contracts/[contractId]**: Archive contract versions
 
-#### Change Management
-The system tracks all employment changes with detailed audit trails, supporting compliance requirements and historical analysis.
+#### Contract Lifecycle Management
+The system tracks contract creation, modifications, renewals, and terminations with full audit trails supporting legal compliance requirements.
 
 ```mermaid
 flowchart TD
-Start([Employment Created]) --> Active["Active Employment"]
-Active --> Change["Change Request"]
-Change --> Review["Review & Approve"]
-Review --> |Approved| Update["Update Employment"]
-Review --> |Rejected| Cancel["Cancel Change"]
+Start([Contract Created]) --> Active["Active Contract"]
+Active --> Amendment["Amendment Request"]
+Amendment --> Review["Review & Approve"]
+Review --> |Approved| Update["Update Contract Terms"]
+Review --> |Rejected| Cancel["Cancel Amendment"]
 Update --> Active
+Active --> Renewal["Renewal Process"]
+Renewal --> NewContract["Create New Contract"]
+NewContract --> Active
 Active --> Termination["Termination Process"]
-Termination --> Pending["Pending Termination"]
-Pending --> Effective["Effective Date Reached"]
-Effective --> Terminated["Employment Terminated"]
+Termination --> Archived["Archived Contract"]
 Cancel --> Active
 ```
 
 **Diagram sources**
 - [apps/hr-suite/app/api/employments/[employmentId]/route.ts](file://apps/hr-suite/app/api/employments/[employmentId]/route.ts)
+
+### Enhanced Organization Services
+
+**Updated** The organization services now include comprehensive company branding management alongside traditional organizational structure management:
+
+#### Organizational Structure Management
+- **GET /api/organization/departments**: List organizational departments
+- **POST /api/organization/departments**: Create new departments
+- **PUT /api/organization/departments/[departmentId]**: Update department details
+- **GET /api/organization/roles**: List available roles
+- **POST /api/organization/roles**: Create new roles
+- **PUT /api/organization/roles/[roleId]**: Update role permissions
+
+#### Company Branding Management
+- **GET /api/organization/branding**: Get company branding settings
+- **PUT /api/organization/branding**: Update company branding
+- **POST /api/organization/branding/logo**: Upload company logo
+- **DELETE /api/organization/branding/logo**: Remove company logo
+- **GET /api/organization/branding/colors**: Get color scheme settings
+
+### Company Branding API
+
+**New** The company branding API provides centralized management of organizational visual identity:
+
+#### Logo Management
+- **Upload**: Support for multiple logo formats (PNG, SVG, JPG)
+- **Validation**: Automatic size and format validation
+- **Storage**: Secure file storage with CDN integration
+- **Versioning**: Logo version tracking and rollback capabilities
+
+#### Color Scheme Management
+- **Primary Colors**: Main brand colors configuration
+- **Secondary Colors**: Accent and complementary colors
+- **Theme Variants**: Light and dark theme support
+- **Accessibility**: WCAG compliance checking
+
+#### Brand Settings
+- **Company Name**: Display name configuration
+- **Tagline**: Company tagline management
+- **Contact Information**: Default contact details
+- **Legal Information**: Required legal disclosures
 
 ### Custom Fields System
 
@@ -348,36 +417,44 @@ A["employees/route.ts"]
 B["employments/route.ts"]
 C["custom-fields/route.ts"]
 D["organization/route.ts"]
+E["company-branding/route.ts"]
 end
 subgraph "Shared Dependencies"
-E["auth/middleware.ts"]
-F["validation/schemas.ts"]
-G["database/client.ts"]
-H["cache/redis.ts"]
+F["auth/middleware.ts"]
+G["validation/schemas.ts"]
+H["database/client.ts"]
+I["cache/redis.ts"]
+J["file-storage/service.ts"]
 end
 subgraph "External Services"
-I["Supabase Auth"]
-J["PostgreSQL"]
-K["Redis Cache"]
-L["File Storage"]
+K["Supabase Auth"]
+L["PostgreSQL"]
+M["Redis Cache"]
+N["File Storage"]
+O["CDN Service"]
 end
-A --> E
 A --> F
 A --> G
-B --> E
+A --> H
 B --> F
 B --> G
-C --> E
+B --> H
 C --> F
 C --> G
-D --> E
+C --> H
 D --> F
 D --> G
-E --> I
-G --> J
-H --> K
-A --> L
-B --> L
+D --> H
+E --> F
+E --> G
+E --> H
+E --> J
+F --> K
+G --> L
+H --> L
+I --> M
+J --> N
+E --> O
 ```
 
 **Diagram sources**
@@ -484,4 +561,6 @@ LiquidHR's API routes architecture demonstrates a mature, production-ready imple
 - **Security First**: Comprehensive authentication, authorization, and data protection
 - **Developer Experience**: Intuitive API design with comprehensive documentation
 
-The architecture successfully balances flexibility with consistency, enabling rapid development while maintaining code quality and system reliability. The modular design supports future enhancements and scaling requirements while providing a solid foundation for HR management functionality.
+**Updated** The recent enhancements to employment contract management and company branding services significantly expand the system's capabilities, providing more comprehensive support for complex HR scenarios and organizational identity management. The modular design supports future enhancements and scaling requirements while providing a solid foundation for HR management functionality.
+
+The architecture successfully balances flexibility with consistency, enabling rapid development while maintaining code quality and system reliability. With the addition of specialized contract management and branding capabilities, LiquidHR now offers a more complete solution for enterprise HR needs.

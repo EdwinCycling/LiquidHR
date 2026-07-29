@@ -58,7 +58,7 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, labels }:
   function render(column: 'wide' | 'narrow', items: readonly string[]) {
     return items.map((id, index) => (
       <div
-        className="group relative"
+        className="group"
         draggable
         key={id}
         onDragEnd={() => setDragged(null)}
@@ -66,7 +66,7 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, labels }:
         onDrop={() => drop(column, id)}
         onDragStart={() => setDragged({ column, id })}
       >
-        <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-lg border bg-surface/95 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="mb-2 flex min-h-9 items-center justify-end gap-1 rounded-lg border border-dashed border-border/70 bg-surface/80 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
           <span aria-label={labels.drag} className="px-1 text-muted-foreground" title={labels.drag}><GripVertical aria-hidden="true" size={15} /></span>
           <button aria-label={labels.moveUp} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" disabled={index === 0} onClick={() => move(column, id, -1)} type="button"><ArrowUp aria-hidden="true" size={14} /></button>
           <button aria-label={labels.moveDown} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" disabled={index === items.length - 1} onClick={() => move(column, id, 1)} type="button"><ArrowDown aria-hidden="true" size={14} /></button>

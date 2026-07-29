@@ -5,16 +5,16 @@ import {
   createEmploymentCatalogItem,
   EmploymentSettingsError,
   setEmploymentCatalogItemActive,
+  updateEmploymentCatalogItem,
   updateDefaultEmploymentCountry,
 } from '@/lib/employment/employment-settings'
 
-const catalog = z.enum(['LABOR_CONDITION_SET', 'FLEX_PHASE', 'SALARY_FREQUENCY', 'COST_CARRIER'])
+const catalog = z.enum(['LABOR_CONDITION_SET', 'FLEX_PHASE', 'SALARY_FREQUENCY', 'COST_CARRIER', 'COST_CENTER'])
+const catalogInput = z.object({ catalog, code: z.string().trim().min(1).max(40), name: z.string().trim().min(1).max(160), numericValue: z.number().min(0).max(999).nullish() }).strict()
 const requestSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('COUNTRY'), countryCode: z.string().regex(/^[A-Z]{2}$/) }).strict(),
-  z.object({
-    action: z.literal('CREATE'), catalog, code: z.string().trim().min(1).max(40),
-    name: z.string().trim().min(1).max(160), numericValue: z.number().positive().max(999).nullish(),
-  }).strict(),
+  z.object({ action: z.literal('CREATE'), ...catalogInput.shape }).strict(),
+  z.object({ action: z.literal('UPDATE'), id: z.string().uuid(), ...catalogInput.shape }).strict(),
   z.object({ action: z.literal('ACTIVE'), catalog, id: z.string().uuid(), isActive: z.boolean() }).strict(),
 ])
 
@@ -38,6 +38,8 @@ export async function PATCH(request: Request): Promise<NextResponse> {
         ...parsed.data,
         numericValue: parsed.data.numericValue ?? null,
       })
+    } else if (parsed.data.action === 'UPDATE') {
+      await updateEmploymentCatalogItem(parsed.data.catalog, parsed.data.id, { ...parsed.data, numericValue: parsed.data.numericValue ?? null })
     } else {
       await setEmploymentCatalogItemActive(parsed.data.catalog, parsed.data.id, parsed.data.isActive)
     }

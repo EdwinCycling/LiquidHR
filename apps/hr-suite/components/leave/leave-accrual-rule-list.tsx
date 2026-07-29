@@ -1,4 +1,5 @@
-import Link from 'next/link'
+'use client'
+
 import type { LeaveCatalog } from '@/lib/leave/leave-service'
 
 type Labels = {
@@ -32,14 +33,14 @@ function quantity(rule: LeaveCatalog['accrualRules'][number], labels: Labels): s
   return `${labels.rate}: ${rule.accrual_rate ?? 0}u/u`
 }
 
-export function LeaveAccrualRuleList({ catalog, leaveTypeId, labels }: { catalog: LeaveCatalog; leaveTypeId: string; labels: Labels }) {
+export function LeaveAccrualRuleList({ catalog, leaveTypeId, labels, onAdd, onSelect }: { catalog: LeaveCatalog; leaveTypeId: string; labels: Labels; onAdd: () => void; onSelect: (ruleId: string) => void }) {
   const rules = catalog.accrualRules.filter((rule) => rule.leave_type_id === leaveTypeId).sort((left, right) => left.valid_from.localeCompare(right.valid_from))
   const profileNames = new Map(catalog.profiles.map((profile) => [profile.id, profile.name]))
   return (
     <section className="rounded-2xl border bg-surface p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 className="text-lg font-semibold">{labels.title}</h2><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{labels.description}</p></div>
-        <Link className="button-secondary" href={`/settings/leave-accrual/rules/new?leaveTypeId=${leaveTypeId}`}>{labels.add}</Link>
+        <button className="button-secondary" onClick={onAdd} type="button">{labels.add}</button>
       </div>
       <div className="mt-5 space-y-3">
         {rules.map((rule, index) => <article className="rounded-xl border p-4" key={rule.id}>
@@ -54,7 +55,7 @@ export function LeaveAccrualRuleList({ catalog, leaveTypeId, labels }: { catalog
             <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{labels.amount}</dt><dd className="mt-1 font-medium">{quantity(rule, labels)} · {rule.accrual_frequency === 'PAYROLL_PERIOD' ? labels.payrollPeriod : labels.yearly} · {rule.accrual_timing === 'UPFRONT' ? labels.upfront : labels.arrears}</dd></div>
           </dl>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link className="button-secondary" href={`/settings/leave-accrual/rules/new?leaveTypeId=${leaveTypeId}&predecessorRuleId=${rule.id}`}>{rule.valid_until ? labels.select : labels.successor}</Link>
+            <button className="button-secondary" onClick={() => onSelect(rule.id)} type="button">{rule.valid_until ? labels.select : labels.successor}</button>
           </div>
         </article>)}
         {rules.length === 0 ? <div className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">{labels.empty}</div> : null}

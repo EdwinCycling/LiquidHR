@@ -53,7 +53,7 @@
 - [20260718120000_add_hr_change_event_projection.sql](file://apps/hr-suite/supabase/migrations/20260718120000_add_hr_change_event_projection.sql)
 - [20260718121308_add_settings_modules_work_patterns_holidays.sql](file://apps/hr-suite/supabase/migrations/20260718121308_add_settings_modules_work_patterns_holidays.sql)
 - [20260718122138_harden_settings_rosters_holidays.sql](file://apps/hr-suite/supabase/migrations/20260718122138_harden_settings_rosters_holidays.sql)
-- [20260718122614_enforce_optional_module_guards.sql](file://apps/hr-suite/supabase/migrations/202660718122614_enforce_optional_module_guards.sql)
+- [20260718122614_enforce_optional_module_guards.sql](file://apps/hr-suite/supabase/migrations/20260718122614_enforce_optional_module_guards.sql)
 - [20260718122751_expose_module_state_to_tenant_users.sql](file://apps/hr-suite/supabase/migrations/20260718122751_expose_module_state_to_tenant_users.sql)
 - [20260718123742_add_holiday_snapshot_import.sql](file://apps/hr-suite/supabase/migrations/20260718123742_add_holiday_snapshot_import.sql)
 - [20260718124240_allow_hr_calendar_recipient_read.sql](file://apps/hr-suite/supabase/migrations/20260718124240_allow_hr_calendar_recipient_read.sql)
@@ -83,7 +83,7 @@
 - [20260722190500_seed_leave_demo_linda.sql](file://apps/hr-suite/supabase/migrations/20260722190500_seed_leave_demo_linda.sql)
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
-- [20260722192100_seed_leave_demo_year_controls.sql](file://apps/hr-suite/supabase/migrations/20260722192100_seed_leave_demo_year controls.sql)
+- [20260722192100_seed_leave_demo_year_controls.sql](file://apps/hr-suite/supabase/migrations/20260722192100_seed_leave_demo_year_controls.sql)
 - [20260722192500_skip_holidays_in_leave_requests.sql](file://apps/hr-suite/supabase/migrations/20260722192500_skip_holidays_in_leave_requests.sql)
 - [20260723151000_optimize_employee_overview.sql](file://apps/hr-suite/supabase/migrations/20260723151000_optimize_employee_overview.sql)
 - [20260724095433_insights_report_permissions.sql](file://apps/hr-suite/supabase/migrations/20260724095433_insights_report_permissions.sql)
@@ -93,8 +93,24 @@
 - [20260724160000_add_employee_activity_entries.sql](file://apps/hr-suite/supabase/migrations/20260724160000_add_employee_activity_entries.sql)
 - [20260724172716_harden_employee_activity_entries.sql](file://apps/hr-suite/supabase/migrations/20260724172716_harden_employee_activity_entries.sql)
 - [20260725132351_address_input_internationalization.sql](file://apps/hr-suite/supabase/migrations/20260725132351_address_input_internationalization.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260729084634_publish_restructured_employment.sql](file://apps/hr-suite/supabase/migrations/20260729084634_publish_restructured_employment.sql)
+- [20260729085605_manage_employment_contract_chain.sql](file://apps/hr-suite/supabase/migrations/20260729085605_manage_employment_contract_chain.sql)
+- [20260729091013_manage_employment_organization_timeline.sql](file://apps/hr-suite/supabase/migrations/20260729091013_manage_employment_organization_timeline.sql)
+- [20260729091441_adapt_employment_timeline_payloads.sql](file://apps/hr-suite/supabase/migrations/20260729091441_adapt_employment_timeline_payloads.sql)
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
+- [20260729092342_optimize_employment_contract_configuration.sql](file://apps/hr-suite/supabase/migrations/20260729092342_optimize_employment_contract_configuration.sql)
 - [config.toml](file://apps/hr-suite/supabase/config.toml)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added new section on Employment Contract Restructuring and Management
+- Updated Administration Branding section with new migration details
+- Enhanced Statutory Minimum Wages coverage with dedicated section
+- Expanded Performance Optimizations section with employment contract configuration improvements
+- Updated Employment Lifecycle section to reflect contract chain management capabilities
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -109,7 +125,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive database design for LiquidHR’s PostgreSQL schema hosted on Supabase. It focuses on the entity relationship model for core HR entities (employees, employments, organizations), advanced features such as leave management and custom fields, and operational concerns including migration strategy, performance optimization, data integrity, backup and recovery, and monitoring. The documentation is designed to be accessible to both technical and non-technical readers while remaining grounded in the actual migration files that define the schema.
+This document provides a comprehensive database design for LiquidHR's PostgreSQL schema hosted on Supabase. It focuses on the entity relationship model for core HR entities (employees, employments, organizations), advanced features such as leave management and custom fields, and operational concerns including migration strategy, performance optimization, data integrity, backup and recovery, and monitoring. The documentation is designed to be accessible to both technical and non-technical readers while remaining grounded in the actual migration files that define the schema.
+
+**Updated** Recent additions include employment contract restructuring, administration branding capabilities, statutory minimum wage management, and performance optimizations for employment contract configuration.
 
 ## Project Structure
 The database schema is defined using numbered SQL migration files under apps/hr-suite/supabase/migrations. Each file represents an incremental change to the schema or policies. Configuration for Supabase is stored in apps/hr-suite/supabase/config.toml.
@@ -121,6 +139,8 @@ B --> C["Core Tables<br/>employees, employments, organizations"]
 B --> D["Advanced Features<br/>leave engine, custom fields"]
 B --> E["Security & Policies<br/>RLS, RBAC, triggers"]
 B --> F["Indexes & Performance<br/>FK indexes, query tuning"]
+B --> G["Employment Contracts<br/>Restructuring & Chain Management"]
+B --> H["Administration<br/>Branding & Compliance"]
 ```
 
 **Diagram sources**
@@ -129,6 +149,8 @@ B --> F["Indexes & Performance<br/>FK indexes, query tuning"]
 - [20260712124911_add_tenant_rbac_and_organization.sql](file://apps/hr-suite/supabase/migrations/20260712124911_add_tenant_rbac_and_organization.sql)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260715122802_add_custom_field_definitions.sql](file://apps/hr-suite/supabase/migrations/20260715122802_add_custom_field_definitions.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
 
 **Section sources**
 - [config.toml](file://apps/hr-suite/supabase/config.toml)
@@ -136,7 +158,7 @@ B --> F["Indexes & Performance<br/>FK indexes, query tuning"]
 - [20260712124911_add_tenant_rbac_and_organization.sql](file://apps/hr-suite/supabase/migrations/20260712124911_add_tenant_rbac_and_organization.sql)
 
 ## Core Components
-LiquidHR’s database centers around:
+LiquidHR's database centers around:
 - Employees: identity, personal details, secure identifiers, and archival state.
 - Employments: employment lifecycle, timelines, terminations, and change management.
 - Organizations: multi-tenancy, RBAC, authorization, and administration scope.
@@ -145,11 +167,16 @@ LiquidHR’s database centers around:
 - Master Data: jobs, salary scales, end reasons, relation types, holidays, work patterns.
 - Settings & Dashboards: module toggles, widget catalogs, personal dashboards.
 - Activity & Insights: employee activity entries, upcoming events, anniversary rules.
+- **New**: Employment Contract Management: contract restructuring, chain management, and timeline adaptations.
+- **New**: Administration Branding: organization-specific branding and customization.
+- **New**: Statutory Minimum Wages: compliance tracking and wage validation.
 
 Key responsibilities:
 - Enforce tenant isolation and role-based access control via RLS policies.
 - Provide robust auditability through event projections and activity entries.
 - Support flexible extensibility via custom fields and master data catalogs.
+- **Enhanced**: Manage complex employment contract lifecycles with chain tracking.
+- **Enhanced**: Ensure regulatory compliance through statutory minimum wage enforcement.
 
 **Section sources**
 - [20260712124858_init_employee_core_hr.sql](file://apps/hr-suite/supabase/migrations/20260712124858_init_employee_core_hr.sql)
@@ -157,6 +184,9 @@ Key responsibilities:
 - [20260715071156_add_employment_core.sql](file://apps/hr-suite/supabase/migrations/20260715071156_add_employment_core.sql)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260715122802_add_custom_field_definitions.sql](file://apps/hr-suite/supabase/migrations/20260715122802_add_custom_field_definitions.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
 
 ## Architecture Overview
 The database architecture follows a layered approach:
@@ -164,6 +194,8 @@ The database architecture follows a layered approach:
 - Feature layers: leave engine, custom fields, master data, settings, dashboards.
 - Security layer: RLS policies, RBAC roles, triggers, and grants.
 - Performance layer: indexes, FK constraints, optimized queries, and RPCs.
+- **Enhanced**: Employment Contract layer: contract restructuring, chain management, and timeline adaptations.
+- **Enhanced**: Compliance layer: statutory minimum wages and regulatory requirements.
 
 ```mermaid
 graph TB
@@ -177,6 +209,9 @@ LEAVE["Leave Engine"]
 CF["Custom Fields"]
 MASTER["Master Data"]
 SETTINGS["Settings & Dashboards"]
+CONTRACTS["Employment Contracts"]
+COMPLIANCE["Statutory Compliance"]
+BRANDING["Administration Branding"]
 end
 subgraph "Security Layer"
 RLS["RLS Policies"]
@@ -196,6 +231,9 @@ LEAVE --> EMPLOY
 CF --> EMP
 MASTER --> EMPLOY
 SETTINGS --> ORG
+CONTRACTS --> EMPLOY
+COMPLIANCE --> EMPLOY
+BRANDING --> ORG
 RLS --> EMP
 RLS --> EMPLOY
 RLS --> ORG
@@ -215,6 +253,9 @@ RPC --> LEAVE
 - [20260715071156_add_employment_core.sql](file://apps/hr-suite/supabase/migrations/20260715071156_add_employment_core.sql)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260715122802_add_custom_field_definitions.sql](file://apps/hr-suite/supabase/migrations/20260715122802_add_custom_field_definitions.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
 
 ## Detailed Component Analysis
 
@@ -267,19 +308,24 @@ Organization --> Tenant : "belongs to"
 - [20260715124506_isolate_employee_secure_identifiers.sql](file://apps/hr-suite/supabase/migrations/20260715124506_isolate_employee_secure_identifiers.sql)
 - [20260718150000_add_employee_archive_and_avatar_state.sql](file://apps/hr-suite/supabase/migrations/20260718150000_add_employee_archive_and_avatar_state.sql)
 
-### Employment Lifecycle
-- Purpose: Manages employment records, timelines, terminations, and change sets.
+### Employment Lifecycle and Contract Management
+- Purpose: Manages employment records, timelines, terminations, change sets, and contract chains.
 - Key tables and concepts:
   - Employment core attributes and status.
   - Timeline entries capturing changes over time.
   - Termination records and workflows.
   - Combined change sets for atomic updates.
+  - **New**: Employment contract restructuring and chain management.
+  - **New**: Organization timeline adaptations for contract changes.
 - Constraints and relationships:
   - Strong foreign key links to employees and organizations.
   - RLS policies securing employment data per tenant.
+  - **Enhanced**: Contract chain integrity and temporal validity.
 - Triggers and RPCs:
   - Change management functions and optimizations.
   - Complete employment flow procedures.
+  - **New**: Contract chain management procedures.
+  - **New**: Timeline payload adaptations for contract restructuring.
 
 ```mermaid
 sequenceDiagram
@@ -288,10 +334,13 @@ participant API as "API Route"
 participant DB as "PostgreSQL"
 participant Policy as "RLS Policies"
 participant Trigger as "Triggers/RPCs"
-Client->>API : "Create/Update Employment"
+participant Contract as "Contract Manager"
+Client->>API : "Create/Update Employment Contract"
 API->>DB : "Insert/Update Employment"
 DB->>Policy : "Check tenant isolation"
 Policy-->>DB : "Allow/Deny"
+DB->>Contract : "Manage Contract Chain"
+Contract->>DB : "Update Timeline Payloads"
 DB->>Trigger : "Record timeline entry"
 Trigger-->>DB : "Log change"
 DB-->>API : "Success/Failure"
@@ -305,27 +354,36 @@ API-->>Client : "Response"
 - [20260715141843_add_employment_change_management.sql](file://apps/hr-suite/supabase/migrations/20260715141843_add_employment_change_management.sql)
 - [20260716100000_add_combined_employment_change_sets.sql](file://apps/hr-suite/supabase/migrations/20260716100000_add_combined_employment_change_sets.sql)
 - [20260718090000_complete_employment_flow.sql](file://apps/hr-suite/supabase/migrations/20260718090000_complete_employment_flow.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260729085605_manage_employment_contract_chain.sql](file://apps/hr-suite/supabase/migrations/20260729085605_manage_employment_contract_chain.sql)
+- [20260729091441_adapt_employment_timeline_payloads.sql](file://apps/hr-suite/supabase/migrations/20260729091441_adapt_employment_timeline_payloads.sql)
 
 **Section sources**
-- [20260715071156_add_employment_core.sql](file://apps/hr-suite/supabase/migrations/202607150715071156_add_employment_core.sql)
+- [20260715071156_add_employment_core.sql](file://apps/hr-suite/supabase/migrations/20260715071156_add_employment_core.sql)
 - [20260715071422_add_employment_timelines.sql](file://apps/hr-suite/supabase/migrations/20260715071422_add_employment_timelines.sql)
 - [20260715071717_add_employment_terminations.sql](file://apps/hr-suite/supabase/migrations/20260715071717_add_employment_terminations.sql)
 - [20260715141843_add_employment_change_management.sql](file://apps/hr-suite/supabase/migrations/20260715141843_add_employment_change_management.sql)
 - [20260716100000_add_combined_employment_change_sets.sql](file://apps/hr-suite/supabase/migrations/20260716100000_add_combined_employment_change_sets.sql)
 - [20260718090000_complete_employment_flow.sql](file://apps/hr-suite/supabase/migrations/20260718090000_complete_employment_flow.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260729085605_manage_employment_contract_chain.sql](file://apps/hr-suite/supabase/migrations/20260729085605_manage_employment_contract_chain.sql)
+- [20260729091441_adapt_employment_timeline_payloads.sql](file://apps/hr-suite/supabase/migrations/20260729091441_adapt_employment_timeline_payloads.sql)
 
-### Organizations and Multi-Tenancy
-- Purpose: Defines organizational structure, tenant boundaries, and RBAC.
+### Organizations and Multi-Tenancy with Administration Branding
+- Purpose: Defines organizational structure, tenant boundaries, RBAC, and administration branding.
 - Key tables and concepts:
   - Organizations and administrations.
   - Role assignments and scopes.
   - Authorization hardening and policy enforcement.
+  - **New**: Administration branding and customization.
 - Constraints and relationships:
   - Foreign keys linking employees and employments to organizations.
   - RLS policies enforcing tenant isolation.
+  - **Enhanced**: Branding inheritance and override mechanisms.
 - Triggers and policies:
   - Administration management scope enforcement.
   - Indexes optimizing organization-scoped queries.
+  - **New**: Branding consistency checks and validation.
 
 ```mermaid
 flowchart TD
@@ -333,7 +391,8 @@ Start(["Tenant User"]) --> CheckRole["Check Role & Scope"]
 CheckRole --> Allowed{"Allowed?"}
 Allowed --> |Yes| AccessOrg["Access Organization Data"]
 Allowed --> |No| Deny["Deny Access"]
-AccessOrg --> Query["Execute Query with RLS"]
+AccessOrg --> Branding["Apply Administration Branding"]
+Branding --> Query["Execute Query with RLS"]
 Query --> Result["Return Scoped Results"]
 Deny --> End(["End"])
 Result --> End
@@ -345,6 +404,7 @@ Result --> End
 - [20260714174305_add_multitenancy_administrations.sql](file://apps/hr-suite/supabase/migrations/20260714174305_add_multitenancy_administrations.sql)
 - [20260714180142_enforce_administration_management_scope.sql](file://apps/hr-suite/supabase/migrations/20260714180142_enforce_administration_management_scope.sql)
 - [20260714180309_index_employee_organization_scope_foreign_keys.sql](file://apps/hr-suite/supabase/migrations/20260714180309_index_employee_organization_scope_foreign_keys.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
 
 **Section sources**
 - [20260712124911_add_tenant_rbac_and_organization.sql](file://apps/hr-suite/supabase/migrations/20260712124911_add_tenant_rbac_and_organization.sql)
@@ -352,6 +412,56 @@ Result --> End
 - [20260714174305_add_multitenancy_administrations.sql](file://apps/hr-suite/supabase/migrations/20260714174305_add_multitenancy_administrations.sql)
 - [20260714180142_enforce_administration_management_scope.sql](file://apps/hr-suite/supabase/migrations/20260714180142_enforce_administration_management_scope.sql)
 - [20260714180309_index_employee_organization_scope_foreign_keys.sql](file://apps/hr-suite/supabase/migrations/20260714180309_index_employee_organization_scope_foreign_keys.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
+
+### Statutory Minimum Wages and Compliance
+- Purpose: Ensures compliance with statutory minimum wage regulations and validates employment compensation.
+- Key tables and concepts:
+  - Statutory minimum wage definitions by jurisdiction and date.
+  - Wage validation against legal requirements.
+  - Compliance reporting and audit trails.
+- Constraints and relationships:
+  - Foreign keys linking to employment records and jurisdictions.
+  - Validation constraints ensuring wage compliance.
+  - Temporal validity for wage rate changes.
+- Business logic:
+  - Automatic wage validation during employment creation and updates.
+  - Historical wage rate tracking and compliance checking.
+  - Regulatory update mechanisms for changing minimum wage laws.
+
+```mermaid
+classDiagram
+class StatutoryMinimumWage {
++id
++jurisdiction_code
++effective_date
++minimum_amount
++currency_code
++is_active
+}
+class Employment {
++id
++employee_id
++salary_amount
++start_date
++end_date
+}
+class ComplianceCheck {
++id
++employment_id
++wage_violation
++violation_amount
++check_date
+}
+StatutoryMinimumWage --> Employment : "validates"
+Employment --> ComplianceCheck : "generates"
+```
+
+**Diagram sources**
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
+
+**Section sources**
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
 
 ### Leave Management Engine
 - Purpose: Provides leave configuration, request booking, and ledger operations.
@@ -471,6 +581,8 @@ The database schema exhibits clear dependency chains:
 - Leave requests depend on employees, employments, and leave configuration.
 - Custom field values depend on definitions and target entities.
 - Master data supports employments and settings.
+- **Enhanced**: Employment contracts depend on employments and statutory minimum wages.
+- **Enhanced**: Administration branding depends on organizations and tenant configurations.
 
 ```mermaid
 graph LR
@@ -482,6 +594,9 @@ LEAVE_REQ --> LEDGER["Ledger"]
 EMP --> CF_VAL["Custom Field Value"]
 CF_VAL --> CF_DEF["Custom Field Definition"]
 EMPLOY --> MASTER["Master Data"]
+EMPLOY --> CONTRACT["Employment Contract"]
+CONTRACT --> MIN_WAGE["Statutory Minimum Wage"]
+ORG --> BRANDING["Administration Branding"]
 ```
 
 **Diagram sources**
@@ -490,6 +605,8 @@ EMPLOY --> MASTER["Master Data"]
 - [20260715071156_add_employment_core.sql](file://apps/hr-suite/supabase/migrations/20260715071156_add_employment_core.sql)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260715122802_add_custom_field_definitions.sql](file://apps/hr-suite/supabase/migrations/20260715122802_add_custom_field_definitions.sql)
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
 
 **Section sources**
 - [20260712124911_add_tenant_rbac_and_organization.sql](file://apps/hr-suite/supabase/migrations/20260712124911_add_tenant_rbac_and_organization.sql)
@@ -497,20 +614,27 @@ EMPLOY --> MASTER["Master Data"]
 - [20260715071156_add_employment_core.sql](file://apps/hr-suite/supabase/migrations/20260715071156_add_employment_core.sql)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260715122802_add_custom_field_definitions.sql](file://apps/hr-suite/supabase/migrations/20260715122802_add_custom_field_definitions.sql)
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
+- [20260728110000_administration_branding.sql](file://apps/hr-suite/supabase/migrations/20260728110000_administration_branding.sql)
 
 ## Performance Considerations
 - Indexing strategies:
   - FK indexes for employee-organization scope.
   - Leave engine FK indexes and transaction bucket indexes.
   - Master data FK indexes and Hera preferences indexes.
+  - **Enhanced**: Employment contract configuration indexes.
 - Query optimization:
   - Optimized employee overview queries.
   - RLS policy optimizations and trigger execution revocations.
+  - **Enhanced**: Employment contract chain query optimizations.
 - Connection pooling:
   - Use Supabase connection pooling defaults; tune max connections based on workload.
 - Storage and archiving:
   - Employee archive state and document dossiers.
   - Holiday snapshot imports for historical accuracy.
+  - **Enhanced**: Employment contract history archiving.
+
+**Updated** Performance optimizations now include employment contract configuration improvements and enhanced indexing for contract chain management.
 
 **Section sources**
 - [20260714180309_index_employee_organization_scope_foreign_keys.sql](file://apps/hr-suite/supabase/migrations/20260714180309_index_employee_organization_scope_foreign_keys.sql)
@@ -521,6 +645,7 @@ EMPLOY --> MASTER["Master Data"]
 - [20260712125420_revoke_public_rls_trigger_execution.sql](file://apps/hr-suite/supabase/migrations/20260712125420_revoke_public_rls_trigger_execution.sql)
 - [20260718110000_add_employee_document_dossiers.sql](file://apps/hr-suite/supabase/migrations/20260718110000_add_employee_document_dossiers.sql)
 - [20260718123742_add_holiday_snapshot_import.sql](file://apps/hr-suite/supabase/migrations/20260718123742_add_holiday_snapshot_import.sql)
+- [20260729092342_optimize_employment_contract_configuration.sql](file://apps/hr-suite/supabase/migrations/20260729092342_optimize_employment_contract_configuration.sql)
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -532,15 +657,27 @@ Common issues and resolutions:
   - Validate RPC permissions and policy grants.
 - Leave ledger inconsistencies:
   - Re-run ledger operations and verify balances.
+- **New**: Employment contract chain issues:
+  - Verify contract chain integrity and temporal validity.
+  - Check timeline payload adaptations for contract restructuring.
+- **New**: Statutory minimum wage violations:
+  - Review wage validation rules and compliance checks.
+  - Update minimum wage rates for affected jurisdictions.
+
+**Updated** Added troubleshooting guidance for employment contract chain management and statutory minimum wage compliance issues.
 
 **Section sources**
 - [20260716090000_fix_reminder_recipient_rls_recursion.sql](file://apps/hr-suite/supabase/migrations/20260716090000_fix_reminder_recipient_rls_recursion.sql)
 - [20260716092000_fix_reminder_publish_auth_lookup.sql](file://apps/hr-suite/supabase/migrations/20260716092000_fix_reminder_publish_auth_lookup.sql)
 - [20260715123927_harden_custom_field_values.sql](file://apps/hr-suite/supabase/migrations/20260715123927_harden_custom_field_values.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
+- [20260729091718_add_statutory_minimum_wages.sql](file://apps/hr-suite/supabase/migrations/20260729091718_add_statutory_minimum_wages.sql)
 
 ## Conclusion
-LiquidHR’s database design emphasizes strong tenant isolation, flexible extensibility, and robust performance. The migration-driven approach ensures version control and rollback capabilities. Advanced features like leave management and custom fields provide powerful functionality while maintaining data integrity through constraints and policies. Continuous optimization and monitoring are essential to sustain performance and reliability.
+LiquidHR's database design emphasizes strong tenant isolation, flexible extensibility, and robust performance. The migration-driven approach ensures version control and rollback capabilities. Advanced features like leave management and custom fields provide powerful functionality while maintaining data integrity through constraints and policies. 
+
+**Enhanced** Recent additions include sophisticated employment contract management with chain tracking, administration branding capabilities, and statutory minimum wage compliance enforcement. Continuous optimization and monitoring are essential to sustain performance and reliability across all enhanced features.
 
 ## Appendices
 
@@ -551,16 +688,21 @@ LiquidHR’s database design emphasizes strong tenant isolation, flexible extens
   - Atomic migrations with explicit transactions.
   - Backward-compatible schema changes where possible.
   - Comprehensive testing before deployment.
+  - **Enhanced**: Employment contract restructuring migrations maintain data integrity through careful sequencing.
+
+**Updated** Migration strategy now includes specialized handling for employment contract restructuring and compliance-related changes.
 
 **Section sources**
 - [20260712124858_init_employee_core_hr.sql](file://apps/hr-suite/supabase/migrations/20260712124858_init_employee_core_hr.sql)
 - [20260712124911_add_tenant_rbac_and_organization.sql](file://apps/hr-suite/supabase/migrations/20260712124911_add_tenant_rbac_and_organization.sql)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
+- [20260729084046_restructure_employment_contracts.sql](file://apps/hr-suite/supabase/migrations/20260729084046_restructure_employment_contracts.sql)
 
 ### Backup and Recovery Procedures
 - Regular backups using Supabase managed backups.
 - Point-in-time recovery for critical incidents.
 - Archiving strategies for historical data and documents.
+- **Enhanced**: Specialized backup considerations for employment contract chains and compliance data.
 
 [No sources needed since this section provides general guidance]
 
@@ -568,5 +710,6 @@ LiquidHR’s database design emphasizes strong tenant isolation, flexible extens
 - Query performance monitoring via Supabase analytics.
 - Alerting on slow queries and policy violations.
 - Audit logs for compliance and troubleshooting.
+- **Enhanced**: Monitoring for employment contract chain integrity and statutory minimum wage compliance.
 
 [No sources needed since this section provides general guidance]

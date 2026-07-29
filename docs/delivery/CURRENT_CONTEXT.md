@@ -1,5 +1,23 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-29: verlofopbouw, werkuren en overuren zichtbaar gemaakt
+
+Versie `1.20260729.7` herstelt de volledige configuratiestroom onder HR-beheer → Verlofopbouw. De catalogus toont contextafhankelijke toevoegknoppen, Voorrangsregels alleen bij Afwezigheden en uitsluitend Kleuren en gebruik in het driepuntsmenu. Nieuwe verloftypen hebben Annuleren, Soort verlof en Opbouw; bij regelopbouw staat de effectieve opbouweditor inline met contracturen, één of meer werkurentypen, periode, moment, uren/minuten/seconden, pauzetypen, vervaltermijn, opvolgerketen en samenvatting. Uitzonderingen blijven voor iedere opbouwvorm beschikbaar. Werkuren en overuren tonen algemene instellingen op Basisinformatie en de vier beperkingstypen plus administratiegebonden uitzonderingen op Beperkingen; Geavanceerd blijft bewust leeg.
+
+Supabase-project `wnpfloqpjvaacobppbpk` is gecontroleerd op rollen, administratie-RLS en migratiehistorie. De ontbrekende lokale no-op historie-entry `20260729101206_syntax_probe_ops.sql` is hersteld. In de demo-administratie zijn idempotente testtypen toegevoegd voor alle verlofvormen, gewerkte-urenopbouw en maand-, jaar- en contractfactorbeperkingen voor werkuren en overuren. Gerichte ESLint, i18n-pariteit en 405 tests slagen. De productiecompilatie slaagt, maar de afsluitende typecheck/build stopt op twee bestaande wijzigingen buiten deze slice (`createHeRaLabels` en `hasActiveEmployment`). De server is op poort 3000 bereikbaar; zonder nieuwe ingelogde browsersessie kon alleen de login/redirect en console worden gecontroleerd, niet de afgeschermde HR-route.
+
+## Update 2026-07-29: Next.js dev-servergeheugenonderzoek
+
+Het volledige onderzoek staat in [`docs/delivery/NEXT_DEV_MEMORY_INVESTIGATION.md`](NEXT_DEV_MEMORY_INVESTIGATION.md). Next `16.2.12` gebruikt standaard Turbopack; een routeverkenning van 60 minuten groeide van circa 1,30 naar 3,04 GB working set, terwijl een korte Webpack-vergelijking rond 1,20 GB bleef. De historische 11,12 GB is niet opnieuw bereikt en er is geen applicatie-side globale cache, timerlek of watcher gevonden. De standaard lokale `dev`-script gebruikt daarom Webpack; `npm run dev:turbopack` blijft beschikbaar voor diagnose. `turbopack.root` is stabiel aan `__dirname` gekoppeld. De meethelper staat in `scripts/measure-next-memory.ps1`. Cache-/devservers zijn lokaal gecontroleerd; er is niet gedeployed, gepusht of gemigreerd. De afsluitende typecheck heeft twee bestaande, losstaande fouten gemeld; zie het onderzoeksdocument.
+
+## Update 2026-07-29: dashboardvensters medewerker
+
+- Het dashboardvenster Persoonlijke informatie toont nu naam, leeftijd, dagen tot verjaardag, zakelijke/privé telefoons, e-mailadressen en huidig adres; geslacht, geboortedatum en geboorteplaats worden daar niet meer getoond.
+- De foto-uitlegtekst is verwijderd. Foto uploaden/wijzigen/verwijderen blijft zichtbaar voor gebruikers met `employee:write`; de bestaande servervalidatie en opslag blijven leidend.
+- De verzuimkaart onderscheidt **Nu ziek** en **Nu niet ziek** met een rood/groen statusvlak. Bij geen lopende ziekmelding blijft het laatste verzuimgeval zichtbaar. De ziekmeldingsvelden staan nu in een aparte viewport-modal; medische oorzaken of vrije medische tekst zijn niet toegevoegd.
+- De dashboard-drag-toolbar staat niet meer absoluut over links heen. Bij meerdere actieve dienstverbanden toont Contract en salaris tabs per dienstverband; de salarisreveal haalt de gekozen `employmentId` server-side op.
+- Verificatie: `check:i18n`, strict typecheck, ESLint en productiebuild geslaagd. Geen schemawijziging, Supabase-migratie, push of deployment uitgevoerd. Een nieuwe ingelogde browsercontrole kon niet worden afgerond omdat poort 3000 tijdens deze beurt niet bleef luisteren; de build compileerde de nieuwe route en componenten wel volledig.
+
 ## Update 2026-07-29: dienstverbandweergave op medewerkerdashboard
 
 De persoonsheader toont geen functie, afdeling of manager meer. De dienstverbandheader toont rechts het medewerkertype van het actuele/laatste contract. Het dashboardvenster Dienstverbanden toont per dienstverband de periode, status, functie, afdeling, uren, arbeidsvoorwaarden en medewerkertype; iedere regel is volledig klikbaar naar het dienstverbanddetail. Wanneer geen actief dienstverband bestaat, wordt dit expliciet gemarkeerd en ziet een geautoriseerde gebruiker de knop naar de bestaande wizard. Statuslogica en de scenario's actief, toekomstig, beëindigd en geannuleerd zijn getest. Typecheck, ESLint, i18n-pariteit en productiebuild zijn geslaagd. Niet gedeployed of gepusht.

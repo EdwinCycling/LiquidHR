@@ -105,8 +105,10 @@ describe('leave api schemas', () => {
     expect(workHourConfigurationMutationSchema.safeParse({
       action: 'WORK_HOUR_SETTINGS',
       workHourTypeId: 'work-1',
+      isActive: true,
       isSelfService: false,
       pinInCalendar: true,
+      notifyManagerOnEntry: false,
       limitMode: 'UNLIMITED',
     }).success).toBe(true)
     expect(workHourConfigurationMutationSchema.safeParse({

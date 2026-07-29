@@ -3,7 +3,7 @@ import 'server-only'
 import { requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
-export type EmploymentCatalog = 'LABOR_CONDITION_SET' | 'FLEX_PHASE' | 'SALARY_FREQUENCY' | 'COST_CARRIER'
+export type EmploymentCatalog = 'LABOR_CONDITION_SET' | 'FLEX_PHASE' | 'SALARY_FREQUENCY' | 'COST_CARRIER' | 'COST_CENTER'
 
 export class EmploymentSettingsError extends Error {
   constructor(readonly code: string, readonly status: 400 | 404 | 409 | 500) {
@@ -20,7 +20,7 @@ export async function getEmploymentSettings() {
   const context = await requirePermission('contract:read')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
-  const [settings, labor, flex, frequencies, carriers] = await Promise.all([
+  const [settings, labor, flex, frequencies, carriers, centers] = await Promise.all([
     supabase.from('administration_hr_settings').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).single(),
     supabase.from('labor_condition_sets').select('*')
@@ -31,8 +31,10 @@ export async function getEmploymentSettings() {
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
     supabase.from('cost_carriers').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
+    supabase.from('cost_centers').select('*')
+      .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
   ])
-  if ([settings, labor, flex, frequencies, carriers].some((result) => result.error) || !settings.data) {
+  if ([settings, labor, flex, frequencies, carriers, centers].some((result) => result.error) || !settings.data) {
     throw new EmploymentSettingsError('EMPLOYMENT_SETTINGS_READ_FAILED', 500)
   }
   return {
@@ -41,6 +43,7 @@ export async function getEmploymentSettings() {
     flexPhases: flex.data ?? [],
     salaryFrequencies: frequencies.data ?? [],
     costCarriers: carriers.data ?? [],
+    costCenters: centers.data ?? [],
   }
 }
 
@@ -68,7 +71,7 @@ export async function createEmploymentCatalogItem(
       ? await supabase.from('flex_phases').insert({ ...scope, sort_order: input.numericValue ?? 0 })
       : catalog === 'SALARY_FREQUENCY'
         ? await supabase.from('salary_frequencies').insert({ ...scope, periods_per_year: input.numericValue ?? 12 })
-        : await supabase.from('cost_carriers').insert(scope)
+    : catalog === 'COST_CARRIER' ? await supabase.from('cost_carriers').insert(scope) : await supabase.from('cost_centers').insert(scope)
   if (result.error?.code === '23505') throw new EmploymentSettingsError('CATALOG_CODE_CONFLICT', 409)
   if (result.error) throw new EmploymentSettingsError('CATALOG_CREATE_FAILED', 500)
 }
@@ -87,7 +90,26 @@ export async function setEmploymentCatalogItemActive(
       ? await supabase.from('flex_phases').update({ is_active: isActive }, { count: 'exact' }).eq('id', id).eq('administration_id', adminId)
       : catalog === 'SALARY_FREQUENCY'
         ? await supabase.from('salary_frequencies').update({ is_active: isActive }, { count: 'exact' }).eq('id', id).eq('administration_id', adminId)
-        : await supabase.from('cost_carriers').update({ is_active: isActive }, { count: 'exact' }).eq('id', id).eq('administration_id', adminId)
+        : catalog === 'COST_CARRIER' ? await supabase.from('cost_carriers').update({ is_active: isActive }, { count: 'exact' }).eq('id', id).eq('administration_id', adminId) : await supabase.from('cost_centers').update({ is_active: isActive }, { count: 'exact' }).eq('id', id).eq('administration_id', adminId)
+  if (result.error) throw new EmploymentSettingsError('CATALOG_UPDATE_FAILED', 500)
+  if (!result.count) throw new EmploymentSettingsError('CATALOG_NOT_FOUND', 404)
+}
+
+export async function updateEmploymentCatalogItem(catalog: EmploymentCatalog, id: string, input: { code: string; name: string; numericValue: number | null }): Promise<void> {
+  const context = await requirePermission(catalog === 'SALARY_FREQUENCY' ? 'salary:write' : 'contract:write')
+  const adminId = administrationId(context.administrationId)
+  const supabase = await createClient()
+  const fields = { code: input.code, name: input.name }
+  const result = catalog === 'LABOR_CONDITION_SET'
+    ? await supabase.from('labor_condition_sets').update({ ...fields, standard_hours_per_week: input.numericValue ?? 40 }, { count: 'exact' }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+    : catalog === 'FLEX_PHASE'
+      ? await supabase.from('flex_phases').update({ ...fields, sort_order: input.numericValue ?? 0 }, { count: 'exact' }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+      : catalog === 'SALARY_FREQUENCY'
+        ? await supabase.from('salary_frequencies').update({ ...fields, periods_per_year: input.numericValue ?? 12 }, { count: 'exact' }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+        : catalog === 'COST_CARRIER'
+          ? await supabase.from('cost_carriers').update(fields, { count: 'exact' }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+          : await supabase.from('cost_centers').update(fields, { count: 'exact' }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+  if (result.error?.code === '23505') throw new EmploymentSettingsError('CATALOG_CODE_CONFLICT', 409)
   if (result.error) throw new EmploymentSettingsError('CATALOG_UPDATE_FAILED', 500)
   if (!result.count) throw new EmploymentSettingsError('CATALOG_NOT_FOUND', 404)
 }

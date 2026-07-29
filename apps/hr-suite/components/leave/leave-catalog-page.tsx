@@ -12,6 +12,7 @@ type Tab = 'leave' | 'overtime' | 'workHours'
 export type LeaveCatalogLabels = {
   addType: string
   addWorkHour: string
+  addOvertime: string
   priorityRules: string
   showInactive: string
   empty: string
@@ -39,7 +40,6 @@ export type LeaveCatalogLabels = {
   noColorUsage: string
   colorUnused: string
   colorOptions: Record<string, string>
-  menuAddRule: string
 }
 
 function resolveTab(value: string | null): Tab {
@@ -69,6 +69,8 @@ export function LeaveCatalogPage({ initial, labels }: { initial: LeaveCatalog; l
   }, [initial, showInactive, tab])
 
   const addHref = tab === 'leave' ? '/settings/leave-accrual/types/new' : '/settings/leave-accrual/work-hours/new'
+  const addLabel = tab === 'leave' ? labels.addType : tab === 'overtime' ? labels.addOvertime : labels.addWorkHour
+  const addUrl = tab === 'overtime' ? `${addHref}?category=OVERTIME` : addHref
   const colorUsage = useMemo(() => {
     const usage = new Map<string, string[]>()
     for (const item of [...initial.leaveTypes.map((type) => ({ name: type.name, color: type.color_code })), ...initial.workHourTypes.map((type) => ({ name: type.name, color: type.color_code }))]) {
@@ -89,11 +91,11 @@ export function LeaveCatalogPage({ initial, labels }: { initial: LeaveCatalog; l
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Link className="button-secondary" href="/settings/leave-accrual/priority-rules">{labels.priorityRules}</Link>
-          <Link className="button-primary gap-2" href={addHref}><Plus aria-hidden="true" size={16} />{tab === 'leave' ? labels.addType : labels.addWorkHour}</Link>
+          {tab === 'leave' ? <Link className="button-secondary" href="/settings/leave-accrual/priority-rules">{labels.priorityRules}</Link> : null}
+          <Link className="button-primary gap-2" href={addUrl}><Plus aria-hidden="true" size={16} />{addLabel}</Link>
           <div className="relative">
             <button aria-expanded={menuOpen} aria-label={labels.moreActions} className="button-secondary px-2.5" onClick={() => setMenuOpen((open) => !open)} type="button"><MoreVertical aria-hidden="true" size={17} /></button>
-            {menuOpen ? <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border bg-surface p-2 shadow-lg"><button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setColorOverviewOpen(true); setMenuOpen(false) }} type="button"><Palette aria-hidden="true" size={16} />{labels.colorOverview}</button><Link className="block rounded-lg px-3 py-2 text-sm hover:bg-muted" href={addHref} onClick={() => setMenuOpen(false)}>{labels.menuAddRule}</Link><button className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setShowInactive((visible) => !visible); setMenuOpen(false) }} type="button">{labels.showInactive}</button></div> : null}
+            {menuOpen ? <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border bg-surface p-2 shadow-lg"><button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => { setColorOverviewOpen(true); setMenuOpen(false) }} type="button"><Palette aria-hidden="true" size={16} />{labels.colorOverview}</button></div> : null}
           </div>
         </div>
       </div>
