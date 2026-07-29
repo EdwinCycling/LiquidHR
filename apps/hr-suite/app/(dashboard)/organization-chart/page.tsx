@@ -1,11 +1,13 @@
 import { Building2, CalendarDays, UsersRound } from 'lucide-react'
 import { OrganizationChartExplorer, type OrganizationChartExplorerLabels, type OrganizationChartExplorerQuery } from '@/components/organization-chart/organization-chart-explorer'
-import { getLocale } from '@/lib/i18n/server'
+import { DepartmentCreateForm } from '@/components/organization/department-create-form'
+import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { createTranslator } from '@/lib/i18n/translator'
 import { organizationChartQuerySchema } from '@/lib/organization-chart/schemas'
 import { getOrganizationChart } from '@/lib/organization-chart/service'
 import { getStoredOrganizationChartFilter } from '@/lib/preferences/organization-chart'
-import type { AdministrationChartNode } from '@/lib/organization-chart/types'
+import type { AdministrationChartNode, DepartmentChartNode } from '@/lib/organization-chart/types'
 import messagesEn from '@/messages/en/organization-chart.json'
 import messagesNl from '@/messages/nl/organization-chart.json'
 
@@ -64,8 +66,13 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
   }
   const query = organizationChartQuerySchema.parse(candidate)
   const graph = await getOrganizationChart(query)
+  const organizationTranslate = await getTranslator('organization')
+  let canWrite = true
+  try { await requirePermission('department:write') }
+  catch (error) { if (error instanceof AuthorizationError) canWrite = false; else throw error }
   const translate = createTranslator(locale === 'en' ? messagesEn : messagesNl)
   const administration = graph.nodes.find((node): node is AdministrationChartNode => node.type === 'administration')
+  const departments = graph.nodes.filter((node): node is DepartmentChartNode => node.type === 'department')
   const explorerQuery: OrganizationChartExplorerQuery = query
   const labels: OrganizationChartExplorerLabels = {
     viewLabel: translate('viewLabel'),
@@ -104,7 +111,8 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
         </div>
       </header>
 
-      <OrganizationChartExplorer defaultDate={defaultDate} graph={graph} labels={labels} query={explorerQuery} />
+      {canWrite ? <DepartmentCreateForm departments={departments.map((department) => ({ id: department.departmentId, name: `${department.code} · ${department.name}` }))} labels={{ title: organizationTranslate('departmentCreate'), code: organizationTranslate('departmentCode'), name: organizationTranslate('departmentName'), parent: organizationTranslate('parentDepartment'), noParent: organizationTranslate('noParent'), create: organizationTranslate('create'), saved: organizationTranslate('saved'), failed: organizationTranslate('failed') }} /> : null}
+      <div className="mt-6"><OrganizationChartExplorer defaultDate={defaultDate} graph={graph} labels={labels} query={explorerQuery} /></div>
     </section>
   )
 }

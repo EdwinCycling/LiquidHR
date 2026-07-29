@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Update 2026-07-29: dienstverbandweergave op medewerkerdashboard
+
+De persoonsheader toont geen functie, afdeling of manager meer. De dienstverbandheader toont rechts het medewerkertype van het actuele/laatste contract. Het dashboardvenster Dienstverbanden toont per dienstverband de periode, status, functie, afdeling, uren, arbeidsvoorwaarden en medewerkertype; iedere regel is volledig klikbaar naar het dienstverbanddetail. Wanneer geen actief dienstverband bestaat, wordt dit expliciet gemarkeerd en ziet een geautoriseerde gebruiker de knop naar de bestaande wizard. Statuslogica en de scenario's actief, toekomstig, beëindigd en geannuleerd zijn getest. Typecheck, ESLint, i18n-pariteit en productiebuild zijn geslaagd. Niet gedeployed of gepusht.
+
+## Update 2026-07-29: API-landschap vastgelegd
+
+De inventarisatie van de API's staat in [`docs/architecture/API_LANDSCHAP_EN_EXTERN_INTEGRATIE.md`](../architecture/API_LANDSCHAP_EN_EXTERN_INTEGRATIE.md). Liquid HR heeft 112 interne Next.js-BFF-routes onder `/api/*`, met Supabase-claims, server-side permissies, actieve tenant-/administratiecontext en RLS als datagrens. Er is nog geen publieke/partner-API, versionering, uniform pagineringscontract, OpenAPI-contract, generieke rate limiting of inkomende webhooklaag. Uitgaande diensten zijn Supabase, Google Gemini voor HeRa, PDOK, Geoapify en Nager.Date. Toekomstige externe ontsluiting start afzonderlijk onder `/api/v1/*`; bestaande interne routes worden niet geopend. Geen code-, database- of deploymentwijziging uitgevoerd.
+
 ## Release-status 2026-07-28
 
 Branding is nu remote actief op Supabase-project `wnpfloqpjvaacobppbpk`: migratie `20260728110000_administration_branding.sql`, private storage-bucket, RLS/policies, `settings:write` voor `TENANT_ADMIN` en `user_preferences.use_company_theme` zijn live gecontroleerd. Applicatieversie: `1.20260728.5`. Commit `f650279` staat op `origin/main`; Vercel production deployment `dpl_FPXqx9mrjiY5aDo1dN2kSRJAXdZj` is `READY`.
@@ -380,7 +388,64 @@ Verificatie: i18n-pariteit, gerichte reminder-tests, volledige lokale tests, str
 
 ## Hervatten
 
+## Update 2026-07-29: instellingenbeheer afgerond
+
+- Rollen en rechten heet nu correct; iedere grafische dekkingscel opent een modal met de onderliggende autorisaties. Ook globale systeemrollen zijn veilig bewerkbaar via een administratiegebonden override, zonder de globale rol te muteren.
+- Roltoewijzingen bieden drie standaard ingeklapte werkwijzen naast elkaar: vanaf medewerker, vanaf afdeling en voor meerdere afdelingen zonder leidinggevende. Medewerkers met gelijke namen zijn herkenbaar aan personeelsnummer, functie en afdeling. De lijst zoekt, filtert en sorteert, en een klikrij opent details met verwijderactie.
+- Afdelingen kunnen ook vanuit de organisatiestructuur worden toegevoegd; formulieren resetten en verversen na opslaan.
+- Vrije velden starten met entiteitkeuze medewerker/document. Rijen zijn volledig klikbaar, toevoegen en annuleren legen/sluiten het formulier, vereiste sleutel en label worden gevalideerd en documentvelden worden als metadata bij upload en weergave in het dossier gebruikt.
+- Functies en salarisschalen zijn volledig gescheiden. Het functiescherm heeft losse aanmaakacties, standaard ingeklapte filters, een grafisch groepsoverzicht en toont gekoppelde functies bij groepsbewerking.
+- Stamtabellen tonen geen overig-paneel meer. Redenen uitdienst zijn per land beheerbaar met CRUD en actief/inactief. Nederland gebruikt codes 01, 02, 03, 04, 20, 21, 30, 32, 33, 34, 40, 41, 90 en 99; ontbrekende landspecifieke inrichting valt terug op `Einde contract`.
+- Remote migraties `20260729061253_extend_custom_fields_to_documents`, `20260729064035_country_scoped_employment_end_reasons` en `20260729070552_normalize_nl_employment_end_reasons` zijn toegepast. Database-types zijn vernieuwd.
+- Applicatieversie: `1.20260729.2`. Typecheck, lint, i18n, volledige testsuite, productiebuild, ingelogde desktop-/390px-browsercontrole en de definitieve herstart op poort 3000 zijn uitgevoerd.
+
+## Hotfix 2026-07-29: behoud eigen autorisatiebeheer
+
+- De demo-HR Admin-override miste `authorization:read`, waardoor de kaarten op Instellingen zichtbaar bleven maar `/authorization` na een verversing terecht met onvoldoende rechten stopte. Het recht is gericht hersteld.
+- Bij het opslaan van rechten voorkomt de server nu dat een gebruiker lezen of beheren van Rollen en autorisaties uit de eigen actieve rol verwijdert. De UI toont hiervoor een concrete uitleg in plaats van een generieke fout.
+- Verificatie: strict TypeScript, ESLint, i18n-pariteit en de remote controle van beide autorisatierechten zijn groen. Applicatieversie: `1.20260729.3`.
+
+## Update 2026-07-29: dienstverband- en contractherstructurering
+
+- Dienstverbanden dragen nu de primaire status, IKV 1–99, begin-/anciënniteitsdatum en contractland. Parallelle en sequentiële dienstverbanden blijven ondersteund; per medewerker kan maar één primair dienstverband tegelijk actief zijn.
+- Ieder dienstverband heeft een rechtstreeks aansluitende reeks `employment_contracts` met medewerkerstype, flexfase, arbeidsvoorwaardenregeling, looptijd en proeftijd. DGA is niet meer beschikbaar.
+- De nieuwe wizard controleert vooraf personeelsnummer, nationaliteit, geboortedatum, geslacht en bij Nederland het BSN. Daarna worden dienstverband, contract, rooster, salaris, organisatie en kosten in één transactie gepubliceerd.
+- HR-instellingen bevatten Algemeen met het standaard contractland en beheerbare arbeidsvoorwaarden, flexfasen, salarisfrequenties en kostendragers. `Bedrijfseigen regeling`, maand, 4-weken en de gevraagde flexfasen zijn voorgevuld.
+- Overzicht toont dienstverband-/IKV-gegevens en selecteerbare contractkaarten. Basis/IKV en Arbeidsvoorwaarden zijn geen losse tabs meer. Rooster, Salaris, Organisatie en Kostenverdeling gebruiken dezelfde selecteerbare tijdlijnopzet.
+- Wettelijke minimumuurlonen voor Nederland zijn per leeftijd en ingangsdatum als administratiegebonden gegevens opgenomen. Applicatieversie: `1.20260729.4`.
+- De schema-, API- en UI-slices zijn lokaal gebouwd en remote op het gekoppelde Supabase-testproject toegepast. De lokale en remote historische migratieversies verschillen al uit eerder werk; daarom is de bestaande historie niet gerepareerd en zijn deze migraties gecontroleerd op naam toegepast.
+- Browsercontrole op poort 3000 is ingelogd uitgevoerd voor HR-inrichting, de verplichte basisgegevenscontrole, alle wizardstappen, contractkaarten en de rooster-, salaris-, organisatie- en kostentijdlijnen. Hiervoor is bij testmedewerker Lina de nationaliteit genormaliseerd naar `NL` en een synthetisch geldig test-BSN veilig opgeslagen; er is geen extra dienstverband gepubliceerd.
+- Eindverificatie: strict TypeScript, ESLint zonder waarschuwingen, i18n-pariteit, 107 testbestanden/396 tests en de productiebuild zijn geslaagd. De Supabase security-advisor meldt geen nieuwe domeinbevindingen; de vijf nieuwe ontbrekende FK-indexen en dubbele permissieve cataloguspolicies zijn opgelost. Remote staan 60 contracten op 60 dienstverbanden en er zijn geen ongeldige contractopvolgingen.
+
+## Update 2026-07-29: compact dienstverband- en landenoverzicht
+
+- De dienstverbandkaarten op Persoonsgegevens tonen anciënniteit als jaren plus maanden, berekend vanaf `seniority_date`. Voor uitsluitend actieve dienstverbanden tonen ze ook afdeling, functie, uren per week, CAO/arbeidsvoorwaarden en medewerkerstype.
+- Het minioverzicht op de dienstverbanddetailpagina toont dezelfde anciënniteitsduur plus de actuele CAO en het medewerkerstype.
+- Geboorteland en nationaliteit zijn geen vrije ISO-tekstvelden meer: beide gebruiken een doorzoekbare landenkeuze. Lege waarden starten met het ingestelde standaardland van de actieve administratie.
+- Verificatie: gerichte anciënniteitstest (3 assertions), strict TypeScript, ESLint en i18n-pariteit geslaagd. Een ingelogde browsercontrole van de nieuwe weergave blijft nog open.
+
+## Update 2026-07-29: Operations B.V. tienjarige dienstverbandfixture
+
+De expliciet gevraagde synthetische fixture `20260729101802_seed_operations_employment_history.sql` is toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De data is volledig herkenbaar met personeelsnummers `OPS-TEST-001` t/m `OPS-TEST-010`, vaste UUID's en `.invalid`-e-mailadressen; bestaande testdata buiten deze scope is niet geraakt.
+
+De fixture bevat 10 medewerkers, 12 dienstverbanden en 18 contracten: historische en actuele dienstverbanden, een herindiensttreding, parallelle primaire/secundaire dienstverbanden, contractreeksen van bepaalde naar onbepaalde tijd, drie opeenvolgende bepaalde contracten, verschillende landen/IKV's, functies, afdelingen, salarissen, roosters, kostenplaatsen en kostendragers. Vier medewerkers zijn uit dienst met verschillende reden/initiator-combinaties (werkgever, werknemer, wederzijds en van rechtswege). Er zijn 17 salarisregels, 16 organisatieplaatsingen en 18 kostenregels.
+
+Remote invariantcontrole: geen overlappende primaire dienstverbanden, geen gebroken contractopvolgingen, alle roosters sluiten exact aan op de contracturen en alle kostenverdelingen tellen op tot 100%. De statusverdeling is 6 actieve en 4 vertrokken medewerkers. De migratie staat als applied geregistreerd; wegens de bestaande lokale/remote migratiehistorie is zij rechtstreeks op naam toegepast en niet via een brede `db push`.
+
+Ingelogde browsercontrole op poort 3000 is geslaagd in administratie `Liquid HR Operations B.V.`. Anna Vermeer (`OPS-TEST-001`) toont op Overzicht haar drie contracten door de tijd; de tabbladen Salaris, Organisatie en Kostenverdeling tonen respectievelijk drie salarisperioden, drie organisatieperioden en vijf kostenverdelingen. Applicatieversie blijft `1.20260729.4` omdat dit een datafixture is.
+
+## Hotfix 2026-07-29: medewerkerfilters en administratiecontext
+
+De medewerkerlijst slaat zoektekst niet langer mee op als blijvende gebruikersvoorkeur. Zoektekst blijft URL-state; alleen status, archiefstatus, sortering, weergave en de open/dicht-status van het filterpaneel worden naar `user_preferences` geschreven. Daarmee verdwijnt de 400 op `PATCH /api/preferences/employees` bij zoeken.
+
+Na een geslaagde administratie-wissel wordt de gebruiker altijd naar `/dashboard/start` gestuurd. De startpagina laadt daarna opnieuw met de gegevens van de gekozen administratie; de actieve context blijft server-side gevalideerd.
+
+Supabase security- en performance-advisors zijn opnieuw uitgevoerd. De meldingen zijn bestaande projectbrede adviezen buiten deze fixture (onder andere absence-RLS zonder policy, SECURITY DEFINER-rechten en bestaande index/permissive-policy adviezen); er is geen nieuwe fixture-specifieke bevinding vastgesteld. De bestaande schema-inconsistentie rond een echt `is_on_call`-rooster blijft als open productpunt bestaan; Daan is daarom veilig als parttime-contract met oproepscenario in custom data opgenomen zonder de databasecheck te omzeilen.
+
 1. Lees `AGENTS.md`, `docs/README.md` en dit bestand.
 2. Controleer werkboom, branch, poort 3000, Supabase en Vercel opnieuw.
 3. Gebruik `docs/delivery/IMPLEMENTATION_STATUS.md` en de relevante requirements voor resterend werk.
 4. Werk na iedere materiële slice dit bestand en de status bij.
+## Hotfix 2026-07-29: medewerkerfoto wijzigen en compact opslaan
+
+Op de medewerkerdetailpagina kan een gebruiker met `employee:write` de profielfoto wijzigen of verwijderen. De bediening is ook in de compacte detailweergave zichtbaar. Nieuwe uploads worden server-side geroteerd, naar maximaal 512x512 verkleind en als WebP van maximaal 750 KB opgeslagen. De nieuwe migratie `20260729130000_compact_employee_avatars.sql` verlaagt daarnaast de bucketlimiet naar 1 MB; deze moet nog naar Supabase worden uitgerold.

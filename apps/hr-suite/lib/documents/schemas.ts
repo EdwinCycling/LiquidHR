@@ -11,6 +11,7 @@ export const documentMetadataSchema = z.object({
   description: z.string().trim().max(2000).nullish(),
   tags: z.array(z.string().trim().min(1).max(50)).max(30).transform((tags) => [...new Set(tags.map((tag) => tag.toLocaleLowerCase('nl-NL')))]),
   categoryId: z.string().uuid(),
+  customFields: z.record(z.string().regex(/^[a-z][a-z0-9_]{1,62}$/), z.json()).default({}),
   expiresOn: dateOnly.nullish(),
   audiences: z.array(target).min(1, 'DOCUMENT_AUDIENCE_REQUIRED').max(100).transform((items) => [...new Map(items.map((item) => [`${item.type}:${item.targetId}`, item])).values()]),
   reminder: z.object({

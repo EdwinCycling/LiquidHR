@@ -13,6 +13,14 @@ describe('document metadata', () => {
     expect(documentMetadataSchema.parse({ ...valid, tags: [' Contract ', 'contract'] }).tags).toEqual(['contract'])
   })
 
+  it('preserves typed custom document metadata', () => {
+    expect(documentMetadataSchema.parse({ ...valid, customFields: { document_year: 2026, signed: true } }).customFields).toEqual({ document_year: 2026, signed: true })
+  })
+
+  it('rejects invalid custom-field keys', () => {
+    expect(() => documentMetadataSchema.parse({ ...valid, customFields: { 'Invalid key': 'waarde' } })).toThrow()
+  })
+
   it('requires at least one visibility audience', () => {
     expect(() => documentMetadataSchema.parse({ ...valid, audiences: [] })).toThrow()
   })

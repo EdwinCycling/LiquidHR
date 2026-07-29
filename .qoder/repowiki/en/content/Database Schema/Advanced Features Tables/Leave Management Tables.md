@@ -6,6 +6,8 @@
 - [20260722144232_add_leave_engine_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722144232_add_leave_engine_fk_indexes.sql)
 - [20260722144344_add_leave_transaction_bucket_fk_index.sql](file://apps/hr-suite/supabase/migrations/20260722144344_add_leave_transaction_bucket_fk_index.sql)
 - [20260722151920_add_leave_configuration_mutation_functions.sql](file://apps/hr-suite/supabase/migrations/20260722151920_add_leave_configuration_mutation_functions.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
@@ -15,6 +17,14 @@
 - [route.ts](file://apps/hr-suite/app/api/leave/catalog/route.ts)
 - [route.ts](file://apps/hr-suite/app/api/leave/ledger/route.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for overtime restrictions and work hour type settings
+- Updated leave accrual rules section with new immutable catalog system integration
+- Enhanced work pattern integration details with color-coded work hour types
+- Expanded configuration mutation functions to include work hour type management
+- Added new database schema components for overtime restriction enforcement
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -29,13 +39,14 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides comprehensive data model documentation for LiquidHR’s leave management system. It focuses on the leave engine foundation, including leave types, accrual rules, and balance calculations; the leave request workflow with approval states; the booking engine for conflict detection; and ledger operations for audit trails. It also explains the transaction bucket system for batch processing, configuration mutation functions for rule updates, and foreign key indexes for query optimization. Examples are provided for leave type configurations, accrual rule definitions, and request lifecycle states. The document addresses complex business logic such as holiday handling, work pattern integration, and multi-tenant data isolation, and concludes with performance considerations for large-scale leave calculations and real-time balance updates.
+This document provides comprehensive data model documentation for LiquidHR's leave management system. It focuses on the leave engine foundation, including leave types, accrual rules, and balance calculations; the leave request workflow with approval states; the booking engine for conflict detection; and ledger operations for audit trails. The system now includes enhanced overtime restrictions, an immutable catalog system for consistent data management, and sophisticated work hour type settings with color coding. It also explains the transaction bucket system for batch processing, configuration mutation functions for rule updates, and foreign key indexes for query optimization. Examples are provided for leave type configurations, accrual rule definitions, work hour type settings, and request lifecycle states. The document addresses complex business logic such as holiday handling, work pattern integration, overtime restriction enforcement, and multi-tenant data isolation, and concludes with performance considerations for large-scale leave calculations and real-time balance updates.
 
 ## Project Structure
 The leave management feature spans database migrations, API routes, and UI components within the HR Suite application:
 - Database schema and behavior are defined through Supabase migrations under apps/hr-suite/supabase/migrations.
 - API endpoints for leave requests, balances, catalog, and ledger live under apps/hr-suite/app/api/leave.
 - UI components for leave configuration and editing reside under apps/hr-suite/components/leave.
+- New work hour type settings and overtime restriction controls are integrated throughout the schema.
 
 ```mermaid
 graph TB
@@ -44,25 +55,32 @@ A["Leave Request Route"]
 B["Balance Report Route"]
 C["Catalog Route"]
 D["Ledger Route"]
+E["Work Hour Type Routes"]
 end
 subgraph "Database Layer"
-E["Leave Engine Foundation"]
-F["FK Indexes"]
-G["Transaction Bucket Index"]
-H["Configuration Mutation Functions"]
-I["Booking Engine"]
-J["Request FK Indexes"]
-K["Ledger Operations"]
+F["Leave Engine Foundation"]
+G["FK Indexes"]
+H["Transaction Bucket Index"]
+I["Configuration Mutation Functions"]
+J["Booking Engine"]
+K["Request FK Indexes"]
+L["Ledger Operations"]
+M["Work Hour Type Settings"]
+N["Overtime Restrictions"]
+O["Immutable Catalog System"]
 end
-A --> I
-B --> E
-C --> E
-D --> K
-E --> F
-E --> G
-E --> H
-I --> J
-K --> F
+A --> J
+B --> F
+C --> O
+D --> L
+E --> M
+F --> G
+F --> H
+F --> I
+J --> K
+L --> G
+M --> N
+O --> M
 ```
 
 **Diagram sources**
@@ -70,6 +88,8 @@ K --> F
 - [20260722144232_add_leave_engine_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722144232_add_leave_engine_fk_indexes.sql)
 - [20260722144344_add_leave_transaction_bucket_fk_index.sql](file://apps/hr-suite/supabase/migrations/20260722144344_add_leave_transaction_bucket_fk_index.sql)
 - [20260722151920_add_leave_configuration_mutation_functions.sql](file://apps/hr-suite/supabase/migrations/20260722151920_add_leave_configuration_mutation_functions.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
@@ -79,6 +99,8 @@ K --> F
 - [20260722144232_add_leave_engine_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722144232_add_leave_engine_fk_indexes.sql)
 - [20260722144344_add_leave_transaction_bucket_fk_index.sql](file://apps/hr-suite/supabase/migrations/20260722144344_add_leave_transaction_bucket_fk_index.sql)
 - [20260722151920_add_leave_configuration_mutation_functions.sql](file://apps/hr-suite/supabase/migrations/20260722151920_add_leave_configuration_mutation_functions.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
@@ -92,35 +114,48 @@ K --> F
 - Ledger Operations: Immutable audit trail entries recording every change to balances and bookings for compliance and reconciliation.
 - Transaction Buckets: Batch containers grouping related transactions to support efficient processing and rollback semantics.
 - Configuration Mutations: Safe functions to update leave types, accrual rules, and policies without manual schema changes.
+- Work Hour Type Settings: Configurable work hour categories with color coding for visual distinction in calendars and reports.
+- Overtime Restrictions: Enforceable limits on overtime hours based on employment contracts and labor regulations.
+- Immutable Catalog System: Centralized reference data management ensuring consistency across leave types, work patterns, and policies.
 - FK Indexes: Optimized indexes on foreign keys to accelerate queries across employees, employments, leave types, and requests.
+
+**Updated** Added work hour type settings, overtime restrictions, and immutable catalog system components
 
 **Section sources**
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
 - [20260722151920_add_leave_configuration_mutation_functions.sql](file://apps/hr-suite/supabase/migrations/20260722151920_add_leave_configuration_mutation_functions.sql)
 
 ## Architecture Overview
-The leave management architecture integrates API routes with database-level logic to ensure consistency, performance, and auditability.
+The leave management architecture integrates API routes with database-level logic to ensure consistency, performance, and auditability. The system now incorporates work hour type management and overtime restriction enforcement.
 
 ```mermaid
 sequenceDiagram
 participant Client as "Client App"
 participant API as "Leave Request Route"
+participant WorkHour as "Work Hour Type Manager"
+participant Overtime as "Overtime Restriction Engine"
 participant Booking as "Booking Engine"
 participant DB as "Database"
 participant Ledger as "Ledger Operations"
 Client->>API : "Submit leave request"
+API->>WorkHour : "Validate work hour type"
+WorkHour-->>API : "Work hour constraints"
+API->>Overtime : "Check overtime restrictions"
+Overtime-->>API : "Overtime compliance status"
 API->>Booking : "Validate dates, conflicts, holidays, work patterns"
 Booking->>DB : "Check existing bookings and calendar"
 DB-->>Booking : "Conflict status"
-alt "No conflicts"
+alt "No conflicts and compliant"
 Booking->>DB : "Create request record"
 DB-->>Booking : "Request ID"
 Booking->>Ledger : "Record initial state"
 Ledger-->>API : "Audit entry created"
 API-->>Client : "Request accepted"
-else "Conflicts found"
+else "Conflicts or violations found"
 Booking-->>API : "Rejection with details"
 API-->>Client : "Error response"
 end
@@ -130,6 +165,7 @@ end
 - [route.ts](file://apps/hr-suite/app/api/leave/request/route.ts)
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
 
 ## Detailed Component Analysis
 
@@ -194,6 +230,66 @@ EMPLOYMENT ||--o{ WORK_PATTERN : "has many"
 **Section sources**
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 
+### Work Hour Type Settings and Color Coding
+New work hour type settings provide configurable categories for different work patterns with visual color coding for enhanced user experience.
+
+Features:
+- Configurable work hour categories (full-time, part-time, flexible, etc.)
+- Color-coded visual representation in calendars and reports
+- Integration with work pattern validation
+- Support for custom work hour definitions
+
+```mermaid
+erDiagram
+WORK_HOUR_TYPE {
+uuid id PK
+uuid administration_id FK
+string name
+string color_code
+boolean active
+json configuration
+}
+WORK_PATTERN {
+uuid id PK
+uuid administration_id FK
+uuid employment_id FK
+json schedule
+uuid work_hour_type_id FK
+}
+WORK_HOUR_TYPE ||--o{ WORK_PATTERN : "defines"
+```
+
+**Diagram sources**
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+
+**Section sources**
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
+
+### Overtime Restrictions and Enforcement
+Overtime restriction system enforces labor regulations and company policies regarding maximum working hours.
+
+Capabilities:
+- Configurable overtime limits per employment contract
+- Real-time overtime calculation during leave request validation
+- Compliance checking against labor laws and company policies
+- Alert system for potential overtime violations
+
+**Section sources**
+- [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
+
+### Immutable Catalog System
+The immutable catalog system ensures data consistency across leave types, work patterns, and policy configurations.
+
+Benefits:
+- Centralized reference data management
+- Version control for catalog items
+- Consistent data validation across all modules
+- Audit trail for catalog changes
+
+**Section sources**
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
+
 ### Foreign Key Indexes for Query Optimization
 Indexes on foreign keys improve join performance across employees, employments, leave types, and requests. They reduce latency for balance reports and request validations.
 
@@ -217,12 +313,14 @@ Benefits:
 - [20260722144344_add_leave_transaction_bucket_fk_index.sql](file://apps/hr-suite/supabase/migrations/20260722144344_add_leave_transaction_bucket_fk_index.sql)
 
 ### Configuration Mutation Functions for Rule Updates
-Safe mutation functions allow administrators to update leave types, accrual rules, and policies without direct SQL manipulation. These functions enforce validation and maintain referential integrity.
+Safe mutation functions allow administrators to update leave types, accrual rules, policies, and work hour types without direct SQL manipulation. These functions enforce validation and maintain referential integrity.
 
 Capabilities:
 - Create/update/delete leave types with validation.
 - Adjust accrual rates and formulas safely.
+- Manage work hour type configurations.
 - Enforce tenant isolation during mutations.
+- Validate overtime restriction settings.
 
 **Section sources**
 - [20260722151920_add_leave_configuration_mutation_functions.sql](file://apps/hr-suite/supabase/migrations/20260722151920_add_leave_configuration_mutation_functions.sql)
@@ -252,28 +350,33 @@ Rejected --> [*]
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 
 ### Booking Engine for Conflict Detection
-The booking engine validates new requests against existing bookings, holidays, and work patterns to prevent overlaps and ensure compliance.
+The booking engine validates new requests against existing bookings, holidays, work patterns, work hour types, and overtime restrictions to prevent overlaps and ensure compliance.
 
 Validation steps:
 - Check overlapping requests for the same employee and leave type.
 - Exclude non-working days and public holidays.
 - Respect work pattern schedules (e.g., part-time availability).
+- Validate work hour type constraints.
+- Enforce overtime restriction limits.
 
 ```mermaid
 flowchart TD
 Start(["Start Validation"]) --> LoadContext["Load Employee Context<br/>and Work Pattern"]
-LoadContext --> CheckHolidays["Check Holidays in Range"]
+LoadContext --> CheckWorkHourType["Validate Work Hour Type"]
+CheckWorkHourType --> CheckHolidays["Check Holidays in Range"]
 CheckHolidays --> CheckOverlaps{"Overlapping Requests?"}
 CheckOverlaps --> |Yes| Reject["Reject with Conflict Details"]
 CheckOverlaps --> |No| CheckAvailability["Check Availability vs Work Pattern"]
-CheckAvailability --> |Insufficient| Reject
-CheckAvailability --> |Sufficient| Approve["Approve for Booking"]
+CheckAvailability --> CheckOvertime["Check Overtime Restrictions"]
+CheckOvertime --> |Violation| Reject
+CheckOvertime --> |Compliant| Approve["Approve for Booking"]
 Reject --> End(["End"])
 Approve --> End
 ```
 
 **Diagram sources**
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
 
 **Section sources**
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
@@ -285,6 +388,8 @@ Operations include:
 - Accrual postings when entitlements increase.
 - Deductions when requests are booked.
 - Adjustments due to corrections or policy changes.
+- Overtime violation tracking.
+- Work hour type change logging.
 
 **Section sources**
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
@@ -299,16 +404,19 @@ Focus areas:
 **Section sources**
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 
-### Complex Business Logic: Holiday Handling and Work Patterns
-Holiday handling excludes non-working days from leave calculations. Work pattern integration ensures partial availability is respected, especially for part-time employees.
+### Complex Business Logic: Holiday Handling, Work Patterns, and Overtime
+Holiday handling excludes non-working days from leave calculations. Work pattern integration ensures partial availability is respected, especially for part-time employees. Overtime restrictions enforce labor regulations and company policies.
 
 Considerations:
 - Public holidays and company-specific holidays are excluded automatically.
 - Work patterns define valid working days and hours.
 - Accruals may be prorated based on work patterns.
+- Work hour type constraints affect leave availability.
+- Overtime restrictions prevent excessive working hours.
 
 **Section sources**
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
 
 ### Multi-Tenant Data Isolation
 Multi-tenancy is enforced via administration_id on all core tables. API routes and database policies ensure data isolation between tenants.
@@ -317,31 +425,38 @@ Mechanisms:
 - Row-level security policies scoped by administration_id.
 - API context injection of tenant identifier.
 - Migrations seed tenant-specific demo data.
+- Work hour type catalogs are tenant-specific.
 
 **Section sources**
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 
 ## Dependency Analysis
-The leave system exhibits clear layering: API routes depend on database functions and tables, which are optimized by indexes. Configuration mutations provide safe updates without breaking dependencies.
+The leave system exhibits clear layering: API routes depend on database functions and tables, which are optimized by indexes. Configuration mutations provide safe updates without breaking dependencies. The new work hour type and overtime restriction systems integrate seamlessly with existing components.
 
 ```mermaid
 graph LR
 API_Request["Leave Request Route"] --> Booking["Booking Engine"]
 API_Balance["Balance Report Route"] --> Foundation["Leave Engine Foundation"]
-API_Catalog["Catalog Route"] --> Foundation
+API_Catalog["Catalog Route"] --> ImmutableCatalog["Immutable Catalog System"]
 API_Ledger["Ledger Route"] --> LedgerOps["Ledger Operations"]
+API_WorkHour["Work Hour Type Route"] --> WorkHourTypes["Work Hour Type Settings"]
 Foundation --> FK_Indexes["FK Indexes"]
 Booking --> Request_Indexes["Request FK Indexes"]
+Booking --> OvertimeEngine["Overtime Restriction Engine"]
+Booking --> WorkHourValidation["Work Hour Type Validation"]
 LedgerOps --> FK_Indexes
+WorkHourTypes --> ColorDefaults["Color Defaults"]
 ```
 
 **Diagram sources**
 - [route.ts](file://apps/hr-suite/app/api/leave/request/route.ts)
-- [route.ts](file://apps/hr-suite/app/api/balance-report/route.ts)
-- [route.ts](file://apps/hr-suite/app/api/catalog/route.ts)
-- [route.ts](file://apps/hr-suite/app/api/ledger/route.ts)
+- [route.ts](file://apps/hr-suite/app/api/leave/balance-report/route.ts)
+- [route.ts](file://apps/hr-suite/app/api/leave/catalog/route.ts)
+- [route.ts](file://apps/hr-suite/app/api/leave/ledger/route.ts)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260722144232_add_leave_engine_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722144232_add_leave_engine_fk_indexes.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
 
@@ -352,18 +467,20 @@ LedgerOps --> FK_Indexes
 - [route.ts](file://apps/hr-suite/app/api/leave/ledger/route.ts)
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 - [20260722144232_add_leave_engine_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722144232_add_leave_engine_fk_indexes.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 - [20260722191500_add_leave_request_fk_indexes.sql](file://apps/hr-suite/supabase/migrations/20260722191500_add_leave_request_fk_indexes.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
 
 ## Performance Considerations
 - Use FK indexes to minimize join costs on large datasets.
 - Batch process transactions via buckets to reduce write amplification.
-- Cache frequently accessed catalog data (leave types, accrual rules) at the API layer when appropriate.
+- Cache frequently accessed catalog data (leave types, accrual rules, work hour types) at the API layer when appropriate.
 - Partition balances and ledger entries by administration_id and year for scalable queries.
 - Avoid recalculating entire balance histories; compute deltas based on recent ledger entries.
 - Optimize booking validations with targeted indexes on employee_id, leave_type_id, and date ranges.
-
-[No sources needed since this section provides general guidance]
+- Implement caching for work hour type configurations to reduce database queries.
+- Use materialized views for complex overtime calculations.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -371,15 +488,18 @@ Common issues and resolutions:
 - Balance discrepancies: Inspect ledger entries for missing accruals or incorrect deductions.
 - Tenant data leakage: Verify RLS policies and administration_id scoping in queries.
 - Slow queries: Ensure FK indexes exist and consider adding composite indexes for frequent filters.
+- Work hour type validation failures: Check work hour type configurations and employment assignments.
+- Overtime restriction violations: Review overtime limits and employment contract settings.
+- Color display issues: Verify work hour type color codes and default color normalization.
 
 **Section sources**
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
 - [20260722192000_add_leave_ledger_operations.sql](file://apps/hr-suite/supabase/migrations/20260722192000_add_leave_ledger_operations.sql)
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
 
 ## Conclusion
-LiquidHR’s leave management system combines robust data modeling, secure configuration mutations, and efficient indexing to deliver accurate leave calculations, reliable booking validation, and comprehensive audit trails. By leveraging transaction buckets, multi-tenant isolation, and optimized queries, the system scales effectively for large organizations while maintaining clarity and compliance.
-
-[No sources needed since this section summarizes without analyzing specific files]
+LiquidHR's leave management system combines robust data modeling, secure configuration mutations, and efficient indexing to deliver accurate leave calculations, reliable booking validation, and comprehensive audit trails. The addition of work hour type settings, overtime restriction enforcement, and an immutable catalog system enhances the system's flexibility and compliance capabilities. By leveraging transaction buckets, multi-tenant isolation, optimized queries, and advanced work pattern integration, the system scales effectively for large organizations while maintaining clarity and regulatory compliance.
 
 ## Appendices
 
@@ -400,12 +520,31 @@ LiquidHR’s leave management system combines robust data modeling, secure confi
 **Section sources**
 - [20260722142551_add_leave_engine_foundation.sql](file://apps/hr-suite/supabase/migrations/20260722142551_add_leave_engine_foundation.sql)
 
+### Example Work Hour Type Configuration
+- Name: Descriptive label for the work hour category.
+- Color code: Hex color value for visual representation.
+- Active: Boolean flag for enabling/disabling the type.
+- Configuration: JSON object containing specific work hour parameters.
+
+**Section sources**
+- [20260722173000_add_work_hour_type_colors.sql](file://apps/hr-suite/supabase/migrations/20260722173000_add_work_hour_type_colors.sql)
+- [20260722173100_normalize_catalog_color_defaults.sql](file://apps/hr-suite/supabase/migrations/20260722173100_normalize_catalog_color_defaults.sql)
+
 ### Request Lifecycle States
 - Draft: Created but not submitted.
 - Submitted: Pending approval.
 - Approved: Authorized by manager.
 - Rejected: Denied with reason.
 - Booked: Confirmed and deducted.
+
+**Section sources**
+- [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)
+
+### Overtime Restriction Parameters
+- Maximum weekly hours: Upper limit for weekly working hours.
+- Maximum daily hours: Upper limit for daily working hours.
+- Mandatory rest periods: Required break times between shifts.
+- Penalty factors: Multipliers for overtime calculations.
 
 **Section sources**
 - [20260722190000_add_leave_request_booking_engine.sql](file://apps/hr-suite/supabase/migrations/20260722190000_add_leave_request_booking_engine.sql)

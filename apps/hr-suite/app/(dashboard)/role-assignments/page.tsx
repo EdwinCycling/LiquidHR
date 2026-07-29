@@ -4,7 +4,7 @@ import { listRoleAssignments } from '@/lib/organization/management-service'
 
 export default async function RoleAssignmentsPage() {
   const [data, t] = await Promise.all([listRoleAssignments(), getTranslator('organization')])
-  const keys: (keyof RoleAssignmentManagerLabels)[] = ['title', 'subtitle', 'employee', 'role', 'department', 'effectiveFrom', 'effectiveTo', 'allRoles', 'searchEmployees', 'addAssignment', 'save', 'delete', 'export', 'noDepartment', 'scopeRequired', 'tenantWide', 'empty', 'saved', 'failed', 'needsReview']
+  const keys: (keyof RoleAssignmentManagerLabels)[] = ['title', 'subtitle', 'employee', 'role', 'department', 'effectiveFrom', 'effectiveTo', 'allRoles', 'searchEmployees', 'searchDepartments', 'addAssignment', 'save', 'delete', 'export', 'noDepartment', 'scopeRequired', 'tenantWide', 'empty', 'saved', 'failed', 'needsReview', 'fromEmployee', 'fromDepartment', 'withoutManager', 'currentAssignments', 'selectDepartments', 'assignManager', 'details', 'cancel', 'job', 'employeeNumber', 'noCurrentAssignments', 'noMissingDepartments', 'openSection']
   const sharedKeys: Partial<Record<keyof RoleAssignmentManagerLabels, string>> = {
     employee: 'employee', role: 'role', department: 'department', effectiveFrom: 'effectiveFrom', effectiveTo: 'effectiveTo',
   }

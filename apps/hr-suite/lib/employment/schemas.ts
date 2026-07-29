@@ -51,7 +51,7 @@ export const createEmploymentSchema = z
   .superRefine(validateEmploymentDates)
 
 const completeIncomeRelationshipSchema = z.object({
-  ikvNumber: z.number().int().min(1).max(9999),
+  ikvNumber: z.number().int().min(1).max(99),
   payrollTaxSubnumber: z.string().trim().min(1).max(20),
   validFrom: dateOnly,
   validUntil: dateOnly.nullish(),
@@ -59,6 +59,7 @@ const completeIncomeRelationshipSchema = z.object({
 
 const completeOrganizationSchema = z.object({
   departmentId: z.string().uuid(),
+  jobId: z.string().uuid(),
   jobTitle: z.string().trim().min(1).max(160),
   managerEmployeeId: z.string().uuid().nullish(),
   directManagerDeputyId: z.string().uuid().nullish(),
@@ -67,11 +68,35 @@ const completeOrganizationSchema = z.object({
   effectiveTo: dateOnly.nullish(),
 }).strict()
 
-const completeLaborConditionSchema = z.object({
-  conditionGroup: z.string().trim().min(1).max(160),
-  validFrom: dateOnly,
-  validUntil: dateOnly.nullish(),
-}).strict()
+const completeContractSchema = z.object({
+  workerType: z.enum(['EMPLOYEE', 'STUDENT_INTERN', 'TEMPORARY_AGENCY', 'EXTERNAL_NO_PAYROLL']),
+  flexPhaseId: z.string().uuid().nullish(),
+  laborConditionSetId: z.string().uuid(),
+  durationType: z.enum(['INDEFINITE', 'DEFINITE']),
+  startsOn: dateOnly,
+  endsOn: dateOnly.nullish(),
+  probationApplies: z.boolean(),
+  probationEndsOn: dateOnly.nullish(),
+}).strict().superRefine((value, context) => {
+  if (value.workerType === 'TEMPORARY_AGENCY' && !value.flexPhaseId) {
+    context.addIssue({ code: 'custom', path: ['flexPhaseId'], message: 'FLEX_PHASE_REQUIRED' })
+  }
+  if (value.workerType !== 'TEMPORARY_AGENCY' && value.flexPhaseId) {
+    context.addIssue({ code: 'custom', path: ['flexPhaseId'], message: 'FLEX_PHASE_NOT_ALLOWED' })
+  }
+  if (value.durationType === 'INDEFINITE' && value.endsOn) {
+    context.addIssue({ code: 'custom', path: ['endsOn'], message: 'CONTRACT_END_DATE_NOT_ALLOWED' })
+  }
+  if (value.durationType === 'DEFINITE' && (!value.endsOn || value.endsOn < value.startsOn)) {
+    context.addIssue({ code: 'custom', path: ['endsOn'], message: 'CONTRACT_END_DATE_REQUIRED' })
+  }
+  if (value.probationApplies && (!value.probationEndsOn || value.probationEndsOn < value.startsOn)) {
+    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_INVALID' })
+  }
+  if (!value.probationApplies && value.probationEndsOn) {
+    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_NOT_ALLOWED' })
+  }
+})
 
 const completeScheduleSchema = z.object({
   scheduleType: z.enum(['HOURS_PER_DAY', 'HOURS_AND_AVG_DAYS', 'HOURS_AND_SPECIFIC_DAYS', 'TIMES_PER_DAY']),
@@ -87,17 +112,42 @@ const completeScheduleSchema = z.object({
   fridayHours: z.number().min(0).max(24).nullish(),
   saturdayHours: z.number().min(0).max(24).nullish(),
   sundayHours: z.number().min(0).max(24).nullish(),
+  isOnCall: z.boolean(),
+  onCallObligation: z.boolean().nullish(),
+  workScope: z.enum(['FULL_TIME', 'PART_TIME']).nullish(),
   validFrom: dateOnly,
   validUntil: dateOnly.nullish(),
-}).strict()
+}).strict().superRefine((value, context) => {
+  if (value.averageHoursPerWeek > 50) {
+    context.addIssue({ code: 'custom', path: ['averageHoursPerWeek'], message: 'WEEKLY_HOURS_INVALID' })
+  }
+  if (value.isOnCall && value.onCallObligation == null) {
+    context.addIssue({ code: 'custom', path: ['onCallObligation'], message: 'ON_CALL_OBLIGATION_REQUIRED' })
+  }
+  if (!value.isOnCall && !value.workScope) {
+    context.addIssue({ code: 'custom', path: ['workScope'], message: 'WORK_SCOPE_REQUIRED' })
+  }
+  if (!value.isOnCall && value.workScope === 'FULL_TIME' && Math.abs(value.partTimeFactor - 1) > 0.000001) {
+    context.addIssue({ code: 'custom', path: ['partTimeFactor'], message: 'FULL_TIME_FACTOR_INVALID' })
+  }
+  const rosterHours = [
+    value.mondayHours, value.tuesdayHours, value.wednesdayHours, value.thursdayHours,
+    value.fridayHours, value.saturdayHours, value.sundayHours,
+  ].reduce<number>((sum, hours) => sum + (hours ?? 0), 0)
+  if (Math.abs(rosterHours - value.averageHoursPerWeek) > 0.0001) {
+    context.addIssue({ code: 'custom', path: ['averageHoursPerWeek'], message: 'ROSTER_HOURS_MISMATCH' })
+  }
+})
 
 const completeSalarySchema = z.object({
   paymentType: z.enum(['PERIODIC_FIXED', 'HOURLY_VARIABLE']),
   paymentFrequency: z.enum(['MONTHLY', 'FOUR_WEEKLY']),
   salaryBasis: z.enum(['MANUAL', 'MINIMUM_WAGE', 'CUSTOM_SCALE', 'CAO_SCALE']),
   fulltimeAmount: z.number().nonnegative().nullish(),
+  parttimeAmount: z.number().nonnegative().nullish(),
   hourlyRate: z.number().nonnegative().nullish(),
   currencyCode: z.string().regex(/^[A-Z]{3}$/).default('EUR'),
+  salaryFrequencyId: z.string().uuid(),
   salaryScaleStepId: z.string().uuid().nullish(),
   caoScaleName: z.string().trim().min(1).max(100).nullish(),
   caoStepName: z.string().trim().min(1).max(100).nullish(),
@@ -120,6 +170,7 @@ const completeCostAllocationSchema = z.object({
   validUntil: dateOnly.nullish(),
   allocations: z.array(z.object({
     costCenterId: z.string().uuid(),
+    costCarrierId: z.string().uuid(),
     percentage: z.number().gt(0).max(100),
   }).strict()).min(1).max(50),
 }).strict().superRefine((value, context) => {
@@ -130,20 +181,26 @@ const completeCostAllocationSchema = z.object({
 })
 
 export const completeEmploymentCreateSchema = z.object({
-  employment: createEmploymentRequestSchema,
+  employment: z.object({
+    employmentNumber: z.string().trim().min(1).max(40),
+    startsOn: dateOnly,
+    seniorityDate: dateOnly,
+    countryCode: z.string().regex(/^[A-Z]{2}$/),
+    isPrimary: z.boolean(),
+  }).strict(),
   incomeRelationship: completeIncomeRelationshipSchema,
   organization: completeOrganizationSchema,
-  laborCondition: completeLaborConditionSchema,
+  contract: completeContractSchema,
   schedule: completeScheduleSchema,
   salary: completeSalarySchema.optional(),
   costAllocation: completeCostAllocationSchema,
 }).strict().superRefine((value, context) => {
   const startsOn = value.employment.startsOn
-  const endsOn = value.employment.endsOn
+  const endsOn = value.contract.endsOn
   const dates = [
     ['incomeRelationship', value.incomeRelationship.validFrom],
     ['organization', value.organization.effectiveFrom],
-    ['laborCondition', value.laborCondition.validFrom],
+    ['contract', value.contract.startsOn],
     ['schedule', value.schedule.validFrom],
     ['costAllocation', value.costAllocation.validFrom],
     ...(value.salary ? [['salary', value.salary.validFrom]] : []),
@@ -154,6 +211,9 @@ export const completeEmploymentCreateSchema = z.object({
     } else if (endsOn && date > endsOn) {
       context.addIssue({ code: 'custom', path: [field], message: 'TIMELINE_DATE_OUTSIDE_EMPLOYMENT' })
     }
+  }
+  if (value.employment.seniorityDate > startsOn) {
+    context.addIssue({ code: 'custom', path: ['employment', 'seniorityDate'], message: 'SENIORITY_DATE_INVALID' })
   }
 })
 

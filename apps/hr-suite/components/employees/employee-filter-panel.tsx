@@ -75,7 +75,13 @@ export function EmployeeFilterPanel({
   }
 
   async function navigate(next: { search: string; status: EmployeeStatusFilter; archive: EmployeeArchiveFilter; sort: EmployeeListSort; view: EmployeeListView }): Promise<void> {
-    await savePreferences(next)
+    // Zoektekst hoort bij URL-state en wordt bewust niet als blijvende voorkeur opgeslagen.
+    await savePreferences({
+      status: next.status,
+      archive: next.archive,
+      sort: next.sort,
+      view: next.view,
+    })
     router.push(employeeListHref(next))
   }
 

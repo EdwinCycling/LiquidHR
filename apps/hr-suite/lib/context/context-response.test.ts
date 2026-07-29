@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ActiveContext } from './administration-context'
+import { ADMINISTRATION_SWITCH_SUCCESS_PATH, type ActiveContext } from './administration-context'
 import {
   ContextSelectionError,
   parseAdministrationSelection,
@@ -26,6 +26,10 @@ const context: ActiveContext = {
 }
 
 describe('administratiecontext valideren', () => {
+  it('stuurt na een contextwissel naar de startpagina van de gekozen administratie', () => {
+    expect(ADMINISTRATION_SWITCH_SUCCESS_PATH).toBe('/dashboard/start')
+  })
+
   it('accepteert uitsluitend een UUID-body', () => {
     expect(parseAdministrationSelection({
       administrationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',

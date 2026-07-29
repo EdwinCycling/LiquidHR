@@ -72,22 +72,19 @@ function createFakeClient(options: FakeClientOptions = {}) {
       }
 
       if (table === 'management_roles') {
-        return {
-          select: () => ({
-            in: (_column: string, roleIds: string[]) => {
-              requestedRoleIds = roleIds
-              return Promise.resolve({
-                data: roleIds.map((id) => ({ id, code: options.roleCodes?.[id] ?? 'TENANT_ADMIN' })),
-                error: null,
-              })
-            },
-            eq: () => ({
-              is: () => ({
-                maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'employee-role' }, error: null }),
-              }),
-            }),
-          }),
+        const builder = {
+          in: (_column: string, roleIds: string[]) => {
+            requestedRoleIds = roleIds
+            return Promise.resolve({
+              data: roleIds.map((id) => ({ id, code: options.roleCodes?.[id] ?? 'TENANT_ADMIN' })),
+              error: null,
+            })
+          },
+          eq: () => builder,
+          or: vi.fn().mockResolvedValue({ data: [{ id: 'employee-role', tenant_id: null }], error: null }),
+          is: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'employee-role' }, error: null }) }),
         }
+        return { select: () => builder }
       }
 
       if (table === 'role_permissions') {

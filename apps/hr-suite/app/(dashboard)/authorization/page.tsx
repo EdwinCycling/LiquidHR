@@ -15,7 +15,7 @@ export default async function AuthorizationPage() {
     'assignedPermissions', 'coveredCategories', 'selectedCount', 'selectAll', 'clearAll', 'unsavedChanges',
     'resetChanges', 'readOnlyRole', 'inactiveRole', 'activeRole', 'coverage', 'coverageExplanation', 'overviewTitle',
     'overviewSubtitle', 'scopeNoticeTitle', 'scopeNotice', 'assignmentTitle', 'assignmentSubtitle', 'noSearchResults',
-    'permissionCode',
+    'permissionCode', 'selfAuthorizationLockout',
   ]
   const labels = Object.fromEntries(labelKeys.map((key) => [key, t(key)])) as unknown as AuthorizationLabels
   return <section className="mx-auto w-full max-w-[96rem] px-5 py-8 sm:px-8 sm:py-10 lg:px-10"><AdminSettingsPageHeader backLabel={settings('admin.backToOverview')} eyebrow={t('eyebrow')} subtitle={t('subtitle')} title={t('title')} /><AuthorizationManager {...matrix} labels={labels} /></section>

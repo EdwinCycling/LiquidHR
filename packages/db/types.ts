@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       absence_capacity_changes: {
@@ -468,6 +443,92 @@ export type Database = {
           },
         ]
       }
+      administration_branding: {
+        Row: {
+          accent_color: string
+          administration_id: string
+          created_at: string
+          logo_storage_path: string | null
+          primary_color: string
+          sidebar_color: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string
+          administration_id: string
+          created_at?: string
+          logo_storage_path?: string | null
+          primary_color?: string
+          sidebar_color?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string
+          administration_id?: string
+          created_at?: string
+          logo_storage_path?: string | null
+          primary_color?: string
+          sidebar_color?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administration_branding_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: true
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      administration_hr_settings: {
+        Row: {
+          administration_id: string
+          created_at: string
+          default_employment_country_code: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          default_employment_country_code?: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          default_employment_country_code?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administration_hr_settings_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: true
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "administration_hr_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       administrations: {
         Row: {
           coc_number: string | null
@@ -519,50 +580,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      administration_branding: {
-        Row: {
-          accent_color: string
-          administration_id: string
-          created_at: string
-          logo_storage_path: string | null
-          primary_color: string
-          sidebar_color: string
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          accent_color?: string
-          administration_id: string
-          created_at?: string
-          logo_storage_path?: string | null
-          primary_color?: string
-          sidebar_color?: string
-          tenant_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          accent_color?: string
-          administration_id?: string
-          created_at?: string
-          logo_storage_path?: string | null
-          primary_color?: string
-          sidebar_color?: string
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "administration_branding_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: true
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -959,6 +976,54 @@ export type Database = {
           },
           {
             foreignKeyName: "company_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_carriers: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_carriers_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "cost_carriers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1857,6 +1922,7 @@ export type Database = {
           checksum_sha256: string
           content_type: string
           created_at: string
+          custom_fields: Json
           delete_reason: string | null
           deleted_at: string | null
           deleted_by_user_id: string | null
@@ -1880,6 +1946,7 @@ export type Database = {
           checksum_sha256: string
           content_type: string
           created_at?: string
+          custom_fields?: Json
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by_user_id?: string | null
@@ -1903,6 +1970,7 @@ export type Database = {
           checksum_sha256?: string
           content_type?: string
           created_at?: string
+          custom_fields?: Json
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by_user_id?: string | null
@@ -2844,10 +2912,104 @@ export type Database = {
           },
         ]
       }
+      employment_contracts: {
+        Row: {
+          administration_id: string
+          created_at: string
+          duration_type: Database["public"]["Enums"]["contract_duration_type"]
+          employee_id: string
+          employment_id: string
+          ends_on: string | null
+          flex_phase_id: string | null
+          id: string
+          labor_condition_set_id: string
+          probation_applies: boolean
+          probation_ends_on: string | null
+          sequence_number: number
+          starts_on: string
+          tenant_id: string
+          updated_at: string
+          worker_type: Database["public"]["Enums"]["employment_worker_type"]
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          duration_type: Database["public"]["Enums"]["contract_duration_type"]
+          employee_id: string
+          employment_id: string
+          ends_on?: string | null
+          flex_phase_id?: string | null
+          id?: string
+          labor_condition_set_id: string
+          probation_applies?: boolean
+          probation_ends_on?: string | null
+          sequence_number: number
+          starts_on: string
+          tenant_id: string
+          updated_at?: string
+          worker_type: Database["public"]["Enums"]["employment_worker_type"]
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          duration_type?: Database["public"]["Enums"]["contract_duration_type"]
+          employee_id?: string
+          employment_id?: string
+          ends_on?: string | null
+          flex_phase_id?: string | null
+          id?: string
+          labor_condition_set_id?: string
+          probation_applies?: boolean
+          probation_ends_on?: string | null
+          sequence_number?: number
+          starts_on?: string
+          tenant_id?: string
+          updated_at?: string
+          worker_type?: Database["public"]["Enums"]["employment_worker_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contracts_employment_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "employment_contracts_flex_phase_fkey"
+            columns: ["tenant_id", "administration_id", "flex_phase_id"]
+            isOneToOne: false
+            referencedRelation: "flex_phases"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_labor_condition_set_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "labor_condition_set_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "labor_condition_sets"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
       employment_cost_allocations: {
         Row: {
           administration_id: string
           change_set_id: string | null
+          cost_carrier_id: string
           cost_center_id: string
           created_at: string
           employee_id: string
@@ -2862,6 +3024,7 @@ export type Database = {
         Insert: {
           administration_id: string
           change_set_id?: string | null
+          cost_carrier_id: string
           cost_center_id: string
           created_at?: string
           employee_id: string
@@ -2876,6 +3039,7 @@ export type Database = {
         Update: {
           administration_id?: string
           change_set_id?: string | null
+          cost_carrier_id?: string
           cost_center_id?: string
           created_at?: string
           employee_id?: string
@@ -2894,6 +3058,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employment_change_sets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_cost_allocations_cost_carrier_fkey"
+            columns: ["tenant_id", "administration_id", "cost_carrier_id"]
+            isOneToOne: false
+            referencedRelation: "cost_carriers"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
             foreignKeyName: "employment_cost_allocations_cost_center_fkey"
@@ -2925,6 +3096,7 @@ export type Database = {
         Row: {
           administration_id: string
           code: string
+          country_code: string
           created_at: string
           id: string
           is_active: boolean
@@ -2936,6 +3108,7 @@ export type Database = {
         Insert: {
           administration_id: string
           code: string
+          country_code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2947,6 +3120,7 @@ export type Database = {
         Update: {
           administration_id?: string
           code?: string
+          country_code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -3060,6 +3234,7 @@ export type Database = {
           condition_group: string
           created_at: string
           employee_id: string
+          employment_contract_id: string
           employment_id: string
           id: string
           tenant_id: string
@@ -3073,6 +3248,7 @@ export type Database = {
           condition_group: string
           created_at?: string
           employee_id: string
+          employment_contract_id: string
           employment_id: string
           id?: string
           tenant_id: string
@@ -3086,6 +3262,7 @@ export type Database = {
           condition_group?: string
           created_at?: string
           employee_id?: string
+          employment_contract_id?: string
           employment_id?: string
           id?: string
           tenant_id?: string
@@ -3100,6 +3277,25 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employment_change_sets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_labor_conditions_contract_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+              "employment_contract_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+              "id",
+            ]
           },
           {
             foreignKeyName: "employment_labor_conditions_employment_fkey"
@@ -3200,9 +3396,11 @@ export type Database = {
           fulltime_amount: number | null
           hourly_rate: number | null
           id: string
+          parttime_amount: number | null
           payment_frequency: Database["public"]["Enums"]["salary_frequency"]
           payment_type: Database["public"]["Enums"]["salary_payment_type"]
           salary_basis: Database["public"]["Enums"]["salary_basis"]
+          salary_frequency_id: string
           salary_scale_step_id: string | null
           tenant_id: string
           updated_at: string
@@ -3221,9 +3419,11 @@ export type Database = {
           fulltime_amount?: number | null
           hourly_rate?: number | null
           id?: string
+          parttime_amount?: number | null
           payment_frequency: Database["public"]["Enums"]["salary_frequency"]
           payment_type: Database["public"]["Enums"]["salary_payment_type"]
           salary_basis: Database["public"]["Enums"]["salary_basis"]
+          salary_frequency_id: string
           salary_scale_step_id?: string | null
           tenant_id: string
           updated_at?: string
@@ -3242,9 +3442,11 @@ export type Database = {
           fulltime_amount?: number | null
           hourly_rate?: number | null
           id?: string
+          parttime_amount?: number | null
           payment_frequency?: Database["public"]["Enums"]["salary_frequency"]
           payment_type?: Database["public"]["Enums"]["salary_payment_type"]
           salary_basis?: Database["public"]["Enums"]["salary_basis"]
+          salary_frequency_id?: string
           salary_scale_step_id?: string | null
           tenant_id?: string
           updated_at?: string
@@ -3277,6 +3479,13 @@ export type Database = {
             ]
           },
           {
+            foreignKeyName: "employment_salaries_frequency_fkey"
+            columns: ["tenant_id", "administration_id", "salary_frequency_id"]
+            isOneToOne: false
+            referencedRelation: "salary_frequencies"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
             foreignKeyName: "employment_salaries_scale_step_fkey"
             columns: ["tenant_id", "administration_id", "salary_scale_step_id"]
             isOneToOne: false
@@ -3296,7 +3505,9 @@ export type Database = {
           employment_id: string
           friday_hours: number | null
           id: string
+          is_on_call: boolean
           monday_hours: number | null
+          on_call_obligation: boolean | null
           part_time_factor: number
           saturday_hours: number | null
           schedule_type: Database["public"]["Enums"]["schedule_type"]
@@ -3310,6 +3521,7 @@ export type Database = {
           valid_from: string
           valid_until: string | null
           wednesday_hours: number | null
+          work_scope: Database["public"]["Enums"]["employment_work_scope"]
         }
         Insert: {
           administration_id: string
@@ -3321,7 +3533,9 @@ export type Database = {
           employment_id: string
           friday_hours?: number | null
           id?: string
+          is_on_call?: boolean
           monday_hours?: number | null
+          on_call_obligation?: boolean | null
           part_time_factor: number
           saturday_hours?: number | null
           schedule_type: Database["public"]["Enums"]["schedule_type"]
@@ -3335,6 +3549,7 @@ export type Database = {
           valid_from: string
           valid_until?: string | null
           wednesday_hours?: number | null
+          work_scope?: Database["public"]["Enums"]["employment_work_scope"]
         }
         Update: {
           administration_id?: string
@@ -3346,7 +3561,9 @@ export type Database = {
           employment_id?: string
           friday_hours?: number | null
           id?: string
+          is_on_call?: boolean
           monday_hours?: number | null
+          on_call_obligation?: boolean | null
           part_time_factor?: number
           saturday_hours?: number | null
           schedule_type?: Database["public"]["Enums"]["schedule_type"]
@@ -3360,6 +3577,7 @@ export type Database = {
           valid_from?: string
           valid_until?: string | null
           wednesday_hours?: number | null
+          work_scope?: Database["public"]["Enums"]["employment_work_scope"]
         }
         Relationships: [
           {
@@ -3711,6 +3929,7 @@ export type Database = {
           administration_id: string
           contract_document_url: string | null
           contract_type: Database["public"]["Enums"]["contract_type"]
+          country_code: string
           created_at: string
           deleted_at: string | null
           employee_id: string
@@ -3732,6 +3951,7 @@ export type Database = {
           administration_id: string
           contract_document_url?: string | null
           contract_type: Database["public"]["Enums"]["contract_type"]
+          country_code?: string
           created_at?: string
           deleted_at?: string | null
           employee_id: string
@@ -3753,6 +3973,7 @@ export type Database = {
           administration_id?: string
           contract_document_url?: string | null
           contract_type?: Database["public"]["Enums"]["contract_type"]
+          country_code?: string
           created_at?: string
           deleted_at?: string | null
           employee_id?: string
@@ -3787,6 +4008,57 @@ export type Database = {
           },
           {
             foreignKeyName: "employments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flex_phases: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flex_phases_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "flex_phases_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4215,6 +4487,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "job_groups"
             referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      labor_condition_sets: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          standard_hours_per_week: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          standard_hours_per_week?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          standard_hours_per_week?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_condition_sets_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "labor_condition_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -6058,6 +6381,57 @@ export type Database = {
           },
         ]
       }
+      salary_frequencies: {
+        Row: {
+          administration_id: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          periods_per_year: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          periods_per_year: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          periods_per_year?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_frequencies_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "salary_frequencies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salary_scale_revisions: {
         Row: {
           administration_id: string
@@ -6377,6 +6751,66 @@ export type Database = {
           },
         ]
       }
+      statutory_minimum_wages: {
+        Row: {
+          administration_id: string
+          country_code: string
+          created_at: string
+          currency_code: string
+          hourly_amount: number
+          id: string
+          minimum_age: number
+          source_url: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          administration_id: string
+          country_code: string
+          created_at?: string
+          currency_code?: string
+          hourly_amount: number
+          id?: string
+          minimum_age: number
+          source_url: string
+          tenant_id: string
+          updated_at?: string
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          administration_id?: string
+          country_code?: string
+          created_at?: string
+          currency_code?: string
+          hourly_amount?: number
+          id?: string
+          minimum_age?: number
+          source_url?: string
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statutory_minimum_wages_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "statutory_minimum_wages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statutory_termination_reasons: {
         Row: {
           code: string
@@ -6685,9 +7119,9 @@ export type Database = {
           locale: Database["public"]["Enums"]["ui_locale"]
           theme: Database["public"]["Enums"]["ui_theme"]
           time_format: Database["public"]["Enums"]["time_format"]
-          use_company_theme: boolean
           ui_state: Json
           updated_at: string
+          use_company_theme: boolean
           week_numbering_system: Database["public"]["Enums"]["week_numbering_system"]
         }
         Insert: {
@@ -6699,9 +7133,9 @@ export type Database = {
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
           time_format?: Database["public"]["Enums"]["time_format"]
-          use_company_theme?: boolean
           ui_state?: Json
           updated_at?: string
+          use_company_theme?: boolean
           week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
         }
         Update: {
@@ -6713,9 +7147,9 @@ export type Database = {
           locale?: Database["public"]["Enums"]["ui_locale"]
           theme?: Database["public"]["Enums"]["ui_theme"]
           time_format?: Database["public"]["Enums"]["time_format"]
-          use_company_theme?: boolean
           ui_state?: Json
           updated_at?: string
+          use_company_theme?: boolean
           week_numbering_system?: Database["public"]["Enums"]["week_numbering_system"]
         }
         Relationships: []
@@ -6820,6 +7254,17 @@ export type Database = {
           requested_effective_on: string
           requested_employment_id: string
           requested_mutations: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: string
+      }
+      apply_employment_cost_allocation: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_payload: Json
           requested_reason: string
           requested_warning_codes?: string[]
         }
@@ -7020,6 +7465,24 @@ export type Database = {
           work_email: string
         }[]
       }
+      manage_employment_contract: {
+        Args: {
+          requested_contract_id: string
+          requested_employment_id: string
+          requested_payload: Json
+        }
+        Returns: string
+      }
+      manage_employment_organization_timeline: {
+        Args: {
+          requested_department_id: string
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_job_id: string
+          requested_placement_id: string
+        }
+        Returns: string
+      }
       next_custom_field_value: {
         Args: { p_definition_id: string }
         Returns: number
@@ -7121,6 +7584,7 @@ export type Database = {
       ai_message_role: "USER" | "ASSISTANT" | "TOOL"
       analog_clock_style: "CLASSIC" | "MINIMAL" | "LIQUID"
       clock_mode: "ANALOG" | "DIGITAL" | "HIDDEN"
+      contract_duration_type: "INDEFINITE" | "DEFINITE"
       contract_type:
         | "INDEFINITE"
         | "DEFINITE"
@@ -7128,7 +7592,7 @@ export type Database = {
         | "TEMPORARY_AGENCY"
         | "EXTERNAL"
       custom_field_audience_access: "HIDDEN" | "READ" | "WRITE"
-      custom_field_entity_type: "EMPLOYEE"
+      custom_field_entity_type: "EMPLOYEE" | "DOCUMENT"
       custom_field_type:
         | "TEXT"
         | "TEXTAREA"
@@ -7143,6 +7607,12 @@ export type Database = {
       education_level: "MBO" | "HBO" | "WO" | "HIGHSCHOOL" | "OTHER" | "UNKNOWN"
       employment_record_status: "DRAFT" | "CONFIRMED" | "CANCELLED"
       employment_type: "EMPLOYEE" | "INTERN" | "APPRENTICE" | "CONTRACTOR"
+      employment_work_scope: "FULL_TIME" | "PART_TIME"
+      employment_worker_type:
+        | "EMPLOYEE"
+        | "STUDENT_INTERN"
+        | "TEMPORARY_AGENCY"
+        | "EXTERNAL_NO_PAYROLL"
       final_settlement_status:
         | "NOT_STARTED"
         | "IN_PROGRESS"
@@ -7378,9 +7848,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       absence_case_status: ["ACTIVE", "RECOVERY_WINDOW", "CLOSED"],
@@ -7401,6 +7868,7 @@ export const Constants = {
       ai_message_role: ["USER", "ASSISTANT", "TOOL"],
       analog_clock_style: ["CLASSIC", "MINIMAL", "LIQUID"],
       clock_mode: ["ANALOG", "DIGITAL", "HIDDEN"],
+      contract_duration_type: ["INDEFINITE", "DEFINITE"],
       contract_type: [
         "INDEFINITE",
         "DEFINITE",
@@ -7409,7 +7877,7 @@ export const Constants = {
         "EXTERNAL",
       ],
       custom_field_audience_access: ["HIDDEN", "READ", "WRITE"],
-      custom_field_entity_type: ["EMPLOYEE"],
+      custom_field_entity_type: ["EMPLOYEE", "DOCUMENT"],
       custom_field_type: [
         "TEXT",
         "TEXTAREA",
@@ -7429,6 +7897,13 @@ export const Constants = {
       education_level: ["MBO", "HBO", "WO", "HIGHSCHOOL", "OTHER", "UNKNOWN"],
       employment_record_status: ["DRAFT", "CONFIRMED", "CANCELLED"],
       employment_type: ["EMPLOYEE", "INTERN", "APPRENTICE", "CONTRACTOR"],
+      employment_work_scope: ["FULL_TIME", "PART_TIME"],
+      employment_worker_type: [
+        "EMPLOYEE",
+        "STUDENT_INTERN",
+        "TEMPORARY_AGENCY",
+        "EXTERNAL_NO_PAYROLL",
+      ],
       final_settlement_status: [
         "NOT_STARTED",
         "IN_PROGRESS",

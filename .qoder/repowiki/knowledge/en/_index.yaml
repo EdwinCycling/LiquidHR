@@ -3,7 +3,7 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-07-27T19:41:26Z"
+exported_at: "2026-07-27T20:36:57Z"
 modules:
     "":
         dir_name: Liquid HR Monorepo
@@ -21,8 +21,8 @@ modules:
         depends_on: []
         related_to: []
     docs:
-        dir_name: Liquid HR Documentation & Decision Registry
-        title: Liquid HR Documentation & Decision Registry
+        dir_name: Liquid HR Documentation & Decision Repository
+        title: Liquid HR Documentation & Decision Repository
         scope:
             - docs/
         source_files: []

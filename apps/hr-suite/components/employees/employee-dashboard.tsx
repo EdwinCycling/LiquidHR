@@ -35,12 +35,13 @@ import type { EmployeeCustomField } from '@/lib/custom-fields/service'
 import type { ReminderItem } from '@/lib/reminders/reminder-service'
 import type { AbsenceCaseSummary } from '@/lib/absence/service'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
+import { getEmploymentCardStatus, hasActiveEmployment } from '@/lib/employment/employment-card-state'
 import type { EmployeeDetailViewModel } from './types'
 
 export interface EmployeeDashboardDocument { id: string; title: string; expiresOn: string | null; createdAt: string }
 
 export interface EmployeeDashboardLabels {
-  title: string; subtitle: string; openDetails: string; edit: string; personal: string; contact: string; workContact: string; privateContact: string; noContact: string; address: string; noAddress: string; birthDate: string; nationality: string; birthPlace: string; gender: string; notRecorded: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; absenceDescription: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string
+  title: string; subtitle: string; openDetails: string; edit: string; personal: string; contact: string; workContact: string; privateContact: string; noContact: string; address: string; noAddress: string; birthDate: string; nationality: string; birthPlace: string; gender: string; notRecorded: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; absenceDescription: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; employmentNumber: string; employmentPeriod: string; employmentActive: string; employmentFuture: string; employmentEnded: string; employmentNoActive: string; employmentAdd: string; laborConditions: string; workerType: string; workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string
 }
 
 interface EmployeeDashboardProps {
@@ -55,10 +56,11 @@ interface EmployeeDashboardProps {
   dateFormat: DateFormat
   timeFormat: TimeFormat
   labels: EmployeeDashboardLabels
+  canManageEmployments: boolean
   absence?: AbsenceCaseSummary | null
 }
 
-export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, absence }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
   const currentAddress = (detail.addresses ?? []).find((address) => !address.validUntil) ?? detail.addresses?.[0]
@@ -71,7 +73,7 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
     { id: 'leave' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.leave}><EmptyModule title={labels.leaveDescription} labels={labels} /></DashboardCard> },
     { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence} actionHref="?tab=absence" actionLabel={labels.absenceReport}><div className="space-y-4">{absence ? <div className="rounded-xl bg-accent/50 p-4 text-sm"><p className="font-semibold">{absence.status === 'RECOVERY_WINDOW' ? labels.absenceRecoveredOn : labels.absenceReport}</p><p className="mt-1 text-muted-foreground">{absence.firstAbsenceOn}</p><p className="mt-1 text-xs text-muted-foreground">{absence.spells[0]?.absencePercentage ?? 100}%</p></div> : <EmptyInline>{labels.absenceDescription}</EmptyInline>}<AbsenceQuickForm employeeId={employee.id} employmentId={detail.employments[0]?.id} currentCase={absence} labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, failed: labels.absenceSaveFailed }} /></div></DashboardCard> },
     { id: 'budgets' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.budgets}><EmptyModule title={labels.budgetsDescription} labels={labels} /></DashboardCard> },
-    { id: 'contracts' as const, node: <DashboardCard icon={<BriefcaseBusiness className="h-4 w-4" />} title={labels.contracts} actionHref="?tab=employments" actionLabel={labels.viewContracts}><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-accent/50 p-4"><div><p className="text-sm font-semibold">{labels.contractCount.replace('{count}', String(detail.employments.length))}</p><p className="mt-1 text-sm text-muted-foreground">{labels.contractsDescription}</p></div><ArrowUpRight aria-hidden="true" className="h-5 w-5 text-primary" /></div></DashboardCard> },
+    { id: 'contracts' as const, node: <DashboardCard icon={<BriefcaseBusiness className="h-4 w-4" />} title={labels.contracts} actionHref="?tab=employments" actionLabel={labels.viewContracts}><EmploymentSummaryList employeeId={employee.id} employments={detail.employments} summaries={detail.employmentCards} locale={locale} dateFormat={dateFormat} labels={labels} canManageEmployments={canManageEmployments} /></DashboardCard> },
     { id: 'activity' as const, node: <DashboardCard icon={<ClipboardList className="h-4 w-4" />} title={labels.activity}><EmployeeActivityFeed employeeId={employee.id} items={activity} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} canWrite={canWriteActivity} labels={{ placeholder: labels.activityPlaceholder, add: labels.activityAdd, save: labels.activitySave, saving: labels.activitySaving, empty: labels.activityEmpty, failed: labels.activityFailed }} /></DashboardCard> },
   ]
   const narrow = [
@@ -88,6 +90,73 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
   ]
 
   return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><header className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow text-primary">{labels.title}</p><h2 id="employee-dashboard-title" className="mt-1 text-2xl font-semibold tracking-tight">{labels.subtitle}</h2></div><Link href="?tab=personal" className="button-secondary inline-flex items-center gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.openDetails}</Link></header><EmployeeDashboardLayout wide={wide} narrow={narrow} initialLayout={initialLayout} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
+}
+
+function EmploymentSummaryList({
+  employeeId,
+  employments,
+  summaries,
+  locale,
+  dateFormat,
+  labels,
+  canManageEmployments,
+}: {
+  employeeId: string
+  employments: EmployeeDetailViewModel['employments']
+  summaries: EmployeeDetailViewModel['employmentCards']
+  locale: string
+  dateFormat: DateFormat
+  labels: EmployeeDashboardLabels
+  canManageEmployments: boolean
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+  const active = hasActiveEmployment(employments.map((employment) => ({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status })), today)
+  const workerTypeLabel = (workerType: string | null) => workerType === 'EMPLOYEE'
+    ? labels.workerEmployee
+    : workerType === 'STUDENT_INTERN'
+      ? labels.workerStudentIntern
+      : workerType === 'TEMPORARY_AGENCY'
+        ? labels.workerTemporaryAgency
+        : workerType === 'EXTERNAL_NO_PAYROLL'
+          ? labels.workerExternal
+          : labels.notRecorded
+  const statusLabel = (status: ReturnType<typeof getEmploymentCardStatus>) => status === 'ACTIVE'
+    ? labels.employmentActive
+    : status === 'FUTURE'
+      ? labels.employmentFuture
+      : labels.employmentEnded
+
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm font-semibold">{labels.contractCount.replace('{count}', String(employments.length))}</p>
+      {!active && <span className="status-chip bg-warning-surface text-warning">{labels.employmentNoActive}</span>}
+    </div>
+    {employments.length === 0 ? <div className="rounded-xl border border-dashed border-primary/25 bg-accent/20 p-4"><p className="text-sm text-muted-foreground">{labels.employmentEmpty}</p>{canManageEmployments && <Link href={`/employees/${employeeId}/employments/new`} className="button-primary mt-4 inline-flex items-center gap-2"><Plus aria-hidden="true" className="h-4 w-4" />{labels.employmentAdd}</Link>}</div> : <div className="space-y-3">
+      {!active && <div className="rounded-xl bg-warning-surface/60 p-4 text-sm text-warning">{labels.employmentNoActive}{canManageEmployments && <Link href={`/employees/${employeeId}/employments/new`} className="ml-2 font-semibold underline underline-offset-2">{labels.employmentAdd}</Link>}</div>}
+      {employments.map((employment) => {
+        const summary = summaries.find((item) => item.employmentId === employment.id)
+        const status = getEmploymentCardStatus({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status }, today)
+        const period = `${formatDate(employment.starts_on, { locale, dateFormat })} – ${employment.ends_on ? formatDate(employment.ends_on, { locale, dateFormat }) : '…'}`
+        return <Link key={employment.id} prefetch={false} href={`/employees/${employeeId}/employments/${employment.id}?fromTab=overview`} className="group block rounded-xl border border-border/70 bg-background p-4 transition-colors hover:border-primary/45 hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{labels.employmentNumber}: {employment.employment_number}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{labels.employmentPeriod}: {period}</p>
+            </div>
+            <span className={`status-chip ${status === 'ACTIVE' ? 'bg-success-surface text-success' : status === 'FUTURE' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>{statusLabel(status)}</span>
+          </div>
+          <dl className="mt-4 grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+            <DataPoint label={labels.jobTitle} value={summary?.jobTitle ?? labels.notRecorded} />
+            <DataPoint label={labels.department} value={summary?.departmentName ?? labels.notRecorded} />
+            <DataPoint label={labels.workerType} value={workerTypeLabel(summary?.workerType ?? null)} />
+            <DataPoint label={labels.hoursPerWeek} value={summary?.hoursPerWeek === null || summary?.hoursPerWeek === undefined ? labels.notRecorded : `${summary.hoursPerWeek}u`} />
+            <DataPoint label={labels.laborConditions} value={summary?.laborConditionName ?? labels.notRecorded} />
+          </dl>
+          <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-80 transition-opacity group-hover:opacity-100"><ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />{labels.viewContracts}</span>
+        </Link>
+      })}
+    </div>}
+  </div>
 }
 
 function DashboardCard({ icon, title, actionHref, actionLabel, compact = false, children }: { icon: React.ReactNode; title: string; actionHref?: string; actionLabel?: string; compact?: boolean; children: React.ReactNode }) {

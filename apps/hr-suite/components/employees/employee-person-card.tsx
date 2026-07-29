@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, MapPin, Pencil, Phone, Search, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useMemo, useState } from 'react'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
 import { EmployeeCustomFields } from '@/components/custom-fields/employee-custom-fields'
 import type { EmployeeCustomField } from '@/lib/custom-fields/service'
@@ -55,6 +55,8 @@ export interface EmployeePersonCardLabels {
   birthPlace: string
   birthCountry: string
   nationality: string
+  countrySearch: string
+  countryNoResults: string
   preferredLanguage: string
   privateEmail: string
   privatePhone: string
@@ -149,6 +151,7 @@ interface EmployeePersonCardProps {
   labels: EmployeePersonCardLabels
   roleAssignments?: EmployeeRoleAssignment[]
   customFields?: EmployeeCustomField[]
+  defaultCountryCode: string
 }
 
 function value(form: FormData, name: string): string {
@@ -182,7 +185,7 @@ async function runJsonMutation(
   }
 }
 
-export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAssignments = [], customFields = [] }: EmployeePersonCardProps) {
+export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAssignments = [], customFields = [], defaultCountryCode }: EmployeePersonCardProps) {
   const [tab, setTab] = useState<Tab>('personal')
   const capabilities = detail.capabilities ?? NO_EMPLOYEE_CAPABILITIES
   const addresses = detail.addresses ?? []
@@ -226,7 +229,7 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAss
         </div>
       </nav>
       <div id={`employee-panel-${tab}`} role="tabpanel" aria-labelledby={`employee-tab-${tab}`} className="p-4 sm:p-6">
-        {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} roleAssignments={roleAssignments} locale={locale} dateFormat={dateFormat} />}
+        {tab === 'personal' && <PersonalPanel employee={detail.employee} capabilities={capabilities} labels={labels} roleAssignments={roleAssignments} locale={locale} dateFormat={dateFormat} defaultCountryCode={defaultCountryCode} />}
         {tab === 'addresses' && <AddressesPanel employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
         {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} relationTypes={detail.relationTypes ?? []} locale={locale} canManage={capabilities.canManageRelations} labels={labels} />}
@@ -236,7 +239,7 @@ export function EmployeePersonCard({ detail, locale, dateFormat, labels, roleAss
   )
 }
 
-function PersonalPanel({ employee, capabilities, labels, roleAssignments, locale, dateFormat }: { employee: EmployeeDetailViewModel['employee']; capabilities: NonNullable<EmployeeDetailViewModel['capabilities']>; labels: EmployeePersonCardLabels; roleAssignments: EmployeeRoleAssignment[]; locale: string; dateFormat: DateFormat }) {
+function PersonalPanel({ employee, capabilities, labels, roleAssignments, locale, dateFormat, defaultCountryCode }: { employee: EmployeeDetailViewModel['employee']; capabilities: NonNullable<EmployeeDetailViewModel['capabilities']>; labels: EmployeePersonCardLabels; roleAssignments: EmployeeRoleAssignment[]; locale: string; dateFormat: DateFormat; defaultCountryCode: string }) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [state, setState] = useState<MutationState>('idle')
@@ -276,8 +279,8 @@ function PersonalPanel({ employee, capabilities, labels, roleAssignments, locale
           <FormSection icon={<MapPin className="h-4 w-4" />} title={labels.birthDate}>
             <Field label={labels.birthDate}><input name="birthDate" type="date" defaultValue={employee.birthDate ?? ''} className="form-field" /></Field>
             <Field label={labels.birthPlace}><input name="birthPlace" defaultValue={employee.birthPlace ?? ''} className="form-field" /></Field>
-            <Field label={labels.birthCountry}><input name="birthCountry" minLength={2} maxLength={2} defaultValue={employee.birthCountry ?? ''} className="form-field uppercase" /></Field>
-            <Field label={labels.nationality}><input name="nationality" minLength={2} maxLength={2} defaultValue={employee.nationality ?? ''} className="form-field uppercase" /></Field>
+            <CountrySelect name="birthCountry" label={labels.birthCountry} initialValue={employee.birthCountry ?? defaultCountryCode} defaultCountryCode={defaultCountryCode} locale={locale} labels={labels} />
+            <CountrySelect name="nationality" label={labels.nationality} initialValue={employee.nationality ?? defaultCountryCode} defaultCountryCode={defaultCountryCode} locale={locale} labels={labels} />
             <Field label={labels.preferredLanguage}><input name="preferredLanguage" defaultValue={employee.preferredLanguage ?? 'nl-NL'} className="form-field" /></Field>
           </FormSection>
           <FormSection icon={<Phone className="h-4 w-4" />} title={labels.privateContact}>
@@ -425,6 +428,16 @@ function AddressForm({ employeeId, locale, labels, address, onCancel, onSaved }:
     {isNew && <fieldset className="rounded-xl border bg-surface-raised p-4"><legend className="px-1 text-sm font-semibold">{labels.directReminderTitle}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.directReminderHelp}</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{([['HR_ADMIN', labels.reminderHrAdmin], ['MANAGER', labels.reminderManager], ['EMPLOYEE', labels.reminderEmployee]] as const).map(([role, label]) => <label key={role} className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={reminderRoles.includes(role)} onChange={() => toggleReminderRole(role)} className="h-4 w-4 accent-primary" />{label}</label>)}</div></fieldset>}
     <FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} />
   </form>
+}
+
+function CountrySelect({ name, label, initialValue, defaultCountryCode, locale, labels }: { name: string; label: string; initialValue: string; defaultCountryCode: string; locale: string; labels: Pick<EmployeePersonCardLabels, 'countrySearch' | 'countryNoResults'> }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState(initialValue || defaultCountryCode)
+  const countries = useMemo(() => getCountryOptions(locale), [locale])
+  const matches = countries.filter((country) => `${country.label} ${country.code}`.toLocaleLowerCase(locale).includes(query.toLocaleLowerCase(locale)))
+  const selectedLabel = countries.find((country) => country.code === selected)?.label ?? selected
+  return <Field label={label} className="relative"><input name={name} type="hidden" value={selected} /><button aria-expanded={open} aria-haspopup="listbox" className="form-field flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpen((value) => !value)} type="button"><span className="truncate">{selectedLabel}</span><ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" /></button>{open && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border bg-background p-2 shadow-xl"><input aria-label={labels.countrySearch} autoFocus className="form-field" onChange={(event) => setQuery(event.target.value)} placeholder={labels.countrySearch} value={query} />{matches.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">{labels.countryNoResults}</p> : <ul className="mt-2 max-h-56 overflow-y-auto" role="listbox">{matches.map((country) => <li key={country.code}><button aria-selected={selected === country.code} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted ${selected === country.code ? 'bg-primary/10 font-semibold text-primary' : ''}`} onClick={() => { setSelected(country.code); setOpen(false); setQuery('') }} role="option" type="button"><span>{country.label}</span><span className="text-xs text-muted-foreground">{country.code}</span></button></li>)}</ul>}</div>}</Field>
 }
 
 function getCountryOptions(locale: string): Array<{ code: string; label: string }> {

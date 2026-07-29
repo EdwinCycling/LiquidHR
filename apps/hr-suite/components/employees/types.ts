@@ -111,6 +111,14 @@ export interface EmployeeRoleAssignment {
 export interface EmployeeDetailViewModel {
   employee: EmployeeProfile
   employments: Employment[]
+  employmentCards: Array<{
+    employmentId: string
+    departmentName: string | null
+    jobTitle: string | null
+    hoursPerWeek: number | null
+    laborConditionName: string | null
+    workerType: Database['public']['Enums']['employment_worker_type'] | null
+  }>
   status: 'ACTIVE_EMPLOYEE' | 'FUTURE_EMPLOYEE' | 'FORMER_EMPLOYEE' | 'NEVER_EMPLOYED'
   addresses?: EmployeeAddress[]
   bankAccounts?: EmployeeBankAccount[]

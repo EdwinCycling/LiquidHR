@@ -1,6 +1,6 @@
 {
   "eyebrow": "Organisation management",
-  "title": "Roles, permissions and placements",
+  "title": "Roles and permissions",
   "subtitle": "Manage tenant roles, permission points and effective-dated organisational responsibilities.",
   "roles": "Roles",
   "newRole": "New tenant role",
@@ -53,6 +53,7 @@
   "addManagement": "Add role holder",
   "saved": "Change saved.",
   "failed": "The change could not be saved.",
+  "selfAuthorizationLockout": "This change would remove your own access to Roles and permissions. Keep read and manage access on this active role first.",
   "empty": "No records found.",
   "departmentCreate": "Add department",
   "departmentCode": "Department code",
@@ -75,4 +76,18 @@
   "roleAssignmentsSaved": "Role assignment saved.",
   "roleAssignmentsFailed": "The role assignment could not be saved.",
   "roleAssignmentsNeedsReview": "Review needed"
+  ,"roleAssignmentsSearchDepartments": "Search department"
+  ,"roleAssignmentsFromEmployee": "Assign from employee"
+  ,"roleAssignmentsFromDepartment": "Assign from department"
+  ,"roleAssignmentsWithoutManager": "Departments without manager"
+  ,"roleAssignmentsCurrentAssignments": "Current role holders"
+  ,"roleAssignmentsSelectDepartments": "Select one or more departments"
+  ,"roleAssignmentsAssignManager": "Assign manager"
+  ,"roleAssignmentsDetails": "Role assignment details"
+  ,"roleAssignmentsCancel": "Cancel"
+  ,"roleAssignmentsJob": "Job"
+  ,"roleAssignmentsEmployeeNumber": "Employee number"
+  ,"roleAssignmentsNoCurrentAssignments": "This department has no current role holders."
+  ,"roleAssignmentsNoMissingDepartments": "Every department has a manager."
+  ,"roleAssignmentsOpenSection": "Open"
 }

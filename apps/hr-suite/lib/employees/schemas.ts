@@ -63,7 +63,7 @@ export const employeeBsnSchema = z.object({
 const employeeUpdateFields = z.object(employeeMutableShape).partial().strict()
 
 export const employeeUpdateSchema = employeeUpdateFields.extend({
-  updatedAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime({ offset: true }),
 }).superRefine((value, context) => {
   if (Object.keys(value).every((key) => key === 'updatedAt')) {
     context.addIssue({ code: 'custom', message: 'EMPLOYEE_UPDATE_EMPTY' })

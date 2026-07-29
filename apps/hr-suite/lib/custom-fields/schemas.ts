@@ -5,6 +5,7 @@ const countryCodeSchema = z.string().trim().length(2).transform((value) => value
 const fieldTypeSchema = z.enum([
   'TEXT', 'TEXTAREA', 'NUMBER', 'DATE', 'BOOLEAN', 'SELECT', 'MULTI_SELECT', 'AUTO_INCREMENT',
 ])
+const entityTypeSchema = z.enum(['EMPLOYEE', 'DOCUMENT'])
 const optionSchema = z.object({
   value: z.string().trim().min(1).max(120),
   labelNl: z.string().trim().min(1).max(120),
@@ -13,6 +14,7 @@ const optionSchema = z.object({
 })
 
 export const customFieldDefinitionSchema = z.object({
+  entityType: entityTypeSchema.default('EMPLOYEE'),
   key: z.string().regex(/^[a-z][a-z0-9_]{1,62}$/),
   labelNl: z.string().trim().min(1).max(120),
   labelEn: z.string().trim().min(1).max(120),

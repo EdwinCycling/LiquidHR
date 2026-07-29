@@ -4,190 +4,434 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, type ReactNode, useMemo, useState } from 'react'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
 
+type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
+type DurationType = 'INDEFINITE' | 'DEFINITE'
+type SalaryBasis = 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE'
+
 export interface EmploymentCreateFormProps {
   employeeId: string
   options: EmploymentCreationOptions
   labels: {
-    title: string; number: string; contractType: string; indefinite: string; definite: string
-    startDate: string; seniorityDate: string; endDate: string; submit: string; saved: string
-    failed: string; chainAdvice: string; chainChecking: string; chainClear: string
-    chainAttention: string; chainIndefinite: string; chainInsufficient: string
-    chainOverrideReason: string; historyComplete: string; knownContracts: string; review: string
-    previous: string; next: string; stepContract: string; stepIkvOrganization: string
-    stepConditions: string; stepSalaryCosts: string; stepReview: string; payrollTaxSubnumber: string
-    ikvNumber: string; department: string; jobTitle: string; conditionGroup: string
-    averageDays: string; averageHours: string; partTimeFactor: string; salary: string
-    includeSalary: string; salaryScaleStep: string; manualSalary: string; fulltimeAmount: string
-    costCenter: string; completeSummary: string; requiredFields: string
+    title: string; submit: string; saved: string; failed: string; previous: string; next: string
+    requiredFields: string; employmentNumber: string; primaryEmployment: string; yes: string; no: string
+    startDate: string; seniorityDate: string; country: string; ikvNumber: string
+    prerequisitesTitle: string; nationality: string; bsn: string; birthDate: string; gender: string
+    employeeNumber: string; savePrerequisites: string; prerequisiteSaved: string
+    genderMale: string; genderFemale: string; genderOther: string; genderUndisclosed: string
+    stepEmployment: string; stepContract: string; stepSchedule: string; stepSalary: string
+    stepOther: string; stepReview: string; workerType: string; workerEmployee: string
+    workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string
+    flexPhase: string; laborConditions: string; duration: string; indefinite: string; definite: string
+    endDate: string; probation: string; probationEnd: string; addFourWeeks: string
+    addOneMonth: string; addTwoMonths: string; onCallEmployee: string; onCallObligation: string
+    employmentScope: string; fullTime: string; partTime: string; weeklyHours: string
+    partTimeFactor: string; roster: string; rosterMismatch: string; monday: string; tuesday: string
+    wednesday: string; thursday: string; friday: string; saturday: string; sunday: string
+    salaryCalculation: string; salaryManual: string; salaryMinimum: string; salaryTable: string
+    frequency: string; fulltimeSalary: string; parttimeSalary: string; salaryScaleStep: string
+    minimumHourlyRate: string
+    department: string; job: string; costCenter: string; costCarrier: string
+    completeSummary: string; createHint: string
   }
-}
-
-interface ChainAssessment {
-  outcome: 'CLEAR' | 'ATTENTION' | 'LIKELY_INDEFINITE' | 'INSUFFICIENT_DATA'
-  chainContractCount: number
-  ruleVersion: 'NL_CHAIN_2020' | 'NL_CHAIN_2028'
 }
 
 interface Draft {
-  employmentNumber: string; contractType: 'INDEFINITE' | 'DEFINITE'; startsOn: string
-  endsOn: string; seniorityDate: string; payrollTaxSubnumber: string; ikvNumber: string
-  departmentId: string; jobTitle: string; conditionGroup: string; averageDaysPerWeek: string
-  averageHoursPerWeek: string; partTimeFactor: string; includeSalary: boolean
-  salaryScaleStepId: string; fulltimeAmount: string; costCenterId: string
-  historyComplete: boolean; chainOverrideReason: string
+  employeeNumber: string; nationality: string; bsn: string; birthDate: string; gender: string
+  employmentNumber: string; isPrimary: boolean; startsOn: string; seniorityDate: string
+  countryCode: string; ikvNumber: string; workerType: WorkerType; flexPhaseId: string
+  laborConditionSetId: string; durationType: DurationType; endsOn: string
+  probationApplies: boolean; probationEndsOn: string; isOnCall: boolean
+  onCallObligation: boolean; workScope: 'FULL_TIME' | 'PART_TIME'; weeklyHours: string
+  partTimeFactor: string; days: Record<DayKey, string>; salaryBasis: SalaryBasis
+  salaryFrequencyId: string; fulltimeAmount: string; parttimeAmount: string
+  salaryScaleStepId: string; departmentId: string; jobId: string
+  costCenterId: string; costCarrierId: string
 }
 
-const steps = ['contract', 'ikv', 'conditions', 'salary', 'review'] as const
+type DayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+const dayKeys: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+function addToDate(value: string, mode: 'FOUR_WEEKS' | 'ONE_MONTH' | 'TWO_MONTHS'): string {
+  if (!value) return ''
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (mode === 'FOUR_WEEKS') date.setUTCDate(date.getUTCDate() + 28)
+  else date.setUTCMonth(date.getUTCMonth() + (mode === 'ONE_MONTH' ? 1 : 2))
+  return date.toISOString().slice(0, 10)
+}
+
+function normalizeNationalityCode(value: string | null): string {
+  const normalized = value?.trim().toUpperCase() ?? ''
+  if (/^[A-Z]{2}$/.test(normalized)) return normalized
+  if (['NEDERLANDS', 'NEDERLANDSE', 'DUTCH', 'NETHERLANDS'].includes(normalized)) return 'NL'
+  return ''
+}
 
 export function EmploymentCreateForm({ employeeId, options, labels }: EmploymentCreateFormProps) {
   const router = useRouter()
+  const missingPrerequisites = !options.prerequisites.nationality
+    || !options.prerequisites.birthDate || !options.prerequisites.gender
+    || (options.defaultCountryCode === 'NL' && !options.prerequisites.hasBsn)
+  const [prerequisitesComplete, setPrerequisitesComplete] = useState(!missingPrerequisites)
   const [step, setStep] = useState(0)
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
-  const [assessment, setAssessment] = useState<ChainAssessment | null>(null)
+  const [errorCode, setErrorCode] = useState('')
   const [draft, setDraft] = useState<Draft>({
-    employmentNumber: '', contractType: 'INDEFINITE', startsOn: '', endsOn: '', seniorityDate: '',
-    payrollTaxSubnumber: '0001', ikvNumber: String(options.nextIkvNumber),
-    departmentId: options.departments[0]?.id ?? '', jobTitle: '', conditionGroup: '',
-    averageDaysPerWeek: '5', averageHoursPerWeek: '36', partTimeFactor: '1',
-    includeSalary: options.canWriteSalary, salaryScaleStepId: '', fulltimeAmount: '',
-    costCenterId: options.costCenters[0]?.id ?? '', historyComplete: true, chainOverrideReason: '',
+    employeeNumber: options.prerequisites.employeeNumber,
+    nationality: normalizeNationalityCode(options.prerequisites.nationality),
+    bsn: '',
+    birthDate: options.prerequisites.birthDate ?? '',
+    gender: options.prerequisites.gender ?? '',
+    employmentNumber: '',
+    isPrimary: !options.hasActivePrimaryEmployment,
+    startsOn: options.defaultStartDate,
+    seniorityDate: options.defaultStartDate,
+    countryCode: options.defaultCountryCode,
+    ikvNumber: String(options.nextIkvNumber),
+    workerType: 'EMPLOYEE',
+    flexPhaseId: options.flexPhases[0]?.id ?? '',
+    laborConditionSetId: options.laborConditionSets[0]?.id ?? '',
+    durationType: 'INDEFINITE',
+    endsOn: '',
+    probationApplies: false,
+    probationEndsOn: '',
+    isOnCall: false,
+    onCallObligation: true,
+    workScope: 'FULL_TIME',
+    weeklyHours: String(options.laborConditionSets[0]?.standardHoursPerWeek ?? 40),
+    partTimeFactor: '1',
+    days: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' },
+    salaryBasis: 'MANUAL',
+    salaryFrequencyId: options.salaryFrequencies.find((item) => item.code === 'MONTHLY')?.id
+      ?? options.salaryFrequencies[0]?.id ?? '',
+    fulltimeAmount: '',
+    parttimeAmount: '',
+    salaryScaleStepId: '',
+    departmentId: options.departments[0]?.id ?? '',
+    jobId: options.jobs[0]?.id ?? '',
+    costCenterId: options.costCenters[0]?.id ?? '',
+    costCarrierId: options.costCarriers[0]?.id ?? '',
   })
 
-  const stepLabels = [labels.stepContract, labels.stepIkvOrganization, labels.stepConditions, labels.stepSalaryCosts, labels.stepReview]
-  const selectedStep = useMemo(
-    () => options.salaryScaleSteps.find((item) => item.id === draft.salaryScaleStepId),
-    [draft.salaryScaleStepId, options.salaryScaleSteps],
+  const steps = [
+    labels.stepEmployment, labels.stepContract, labels.stepSchedule,
+    labels.stepSalary, labels.stepOther, labels.stepReview,
+  ]
+  const selectedLaborSet = useMemo(
+    () => options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId),
+    [draft.laborConditionSetId, options.laborConditionSets],
   )
+  const selectedJob = options.jobs.find((item) => item.id === draft.jobId)
+  const selectedScale = options.salaryScaleSteps.find((item) => item.id === draft.salaryScaleStepId)
+  const employeeAge = ageOn(draft.birthDate, draft.startsOn)
+  const minimumRate = options.minimumWageRates.find((rate) =>
+    rate.minimumAge === Math.min(Math.max(employeeAge, 15), 21)
+    && rate.validFrom <= draft.startsOn
+    && (!rate.validUntil || rate.validUntil > draft.startsOn))
+  const rosterTotal = dayKeys.reduce((sum, day) => sum + (Number(draft.days[day]) || 0), 0)
+  const rosterMatches = Math.abs(rosterTotal - (Number(draft.weeklyHours) || 0)) < 0.0001
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]): void {
     setDraft((current) => ({ ...current, [key]: value }))
-    setAssessment(null)
+    setState('idle')
+    setErrorCode('')
+  }
+
+  function updateDay(day: DayKey, value: string): void {
+    setDraft((current) => ({ ...current, days: { ...current.days, [day]: value } }))
     setState('idle')
   }
 
-  function stepValid(index: number): boolean {
-    if (index === 0) return Boolean(draft.employmentNumber && draft.startsOn)
-    if (index === 1) return Boolean(draft.payrollTaxSubnumber && draft.ikvNumber && draft.departmentId && draft.jobTitle)
-    if (index === 2) return Boolean(draft.conditionGroup && draft.averageDaysPerWeek && draft.averageHoursPerWeek && draft.partTimeFactor)
-    if (index === 3) return Boolean(draft.costCenterId && (!draft.includeSalary || selectedStep || draft.fulltimeAmount))
+  function distributeHours(hours: string): void {
+    const weekly = Number(hours) || 0
+    const daily = weekly / 5
+    setDraft((current) => ({
+      ...current,
+      weeklyHours: hours,
+      days: {
+        monday: String(daily), tuesday: String(daily), wednesday: String(daily),
+        thursday: String(daily), friday: String(daily), saturday: '0', sunday: '0',
+      },
+      partTimeFactor: current.workScope === 'FULL_TIME'
+        ? '1'
+        : String(weekly / (selectedLaborSet?.standardHoursPerWeek ?? 40)),
+    }))
+  }
+
+  async function savePrerequisites(): Promise<void> {
+    setState('saving')
+    const employeeResponse = await fetch(`/api/employees/${employeeId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        updatedAt: options.prerequisites.updatedAt,
+        employeeNumber: draft.employeeNumber,
+        nationality: draft.nationality,
+        birthDate: draft.birthDate,
+        gender: draft.gender,
+      }),
+    })
+    if (!employeeResponse.ok) {
+      const result = await employeeResponse.json().catch(() => ({ error: '' })) as { error?: string }
+      setErrorCode(result.error ?? '')
+      setState('failed')
+      return
+    }
+    if (draft.countryCode === 'NL' && !options.prerequisites.hasBsn) {
+      const bsnResponse = await fetch(`/api/employees/${employeeId}/bsn`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ bsn: draft.bsn }),
+      })
+      if (!bsnResponse.ok) {
+        const result = await bsnResponse.json().catch(() => ({ error: '' })) as { error?: string }
+        setErrorCode(result.error ?? '')
+        setState('failed')
+        return
+      }
+    }
+    setPrerequisitesComplete(true)
+    setState('idle')
+  }
+
+  function valid(index: number): boolean {
+    if (index === 0) return Boolean(
+      draft.employmentNumber && draft.startsOn && draft.seniorityDate
+      && draft.countryCode && Number(draft.ikvNumber) >= 1 && Number(draft.ikvNumber) <= 99,
+    )
+    if (index === 1) return Boolean(
+      draft.laborConditionSetId
+      && (draft.workerType !== 'TEMPORARY_AGENCY' || draft.flexPhaseId)
+      && (draft.durationType === 'INDEFINITE' || (draft.endsOn && draft.endsOn >= draft.startsOn))
+      && (!draft.probationApplies || draft.probationEndsOn),
+    )
+    if (index === 2) return rosterMatches && Number(draft.weeklyHours) >= 0
+      && Number(draft.weeklyHours) <= 50
+    if (index === 3) return !options.canWriteSalary || (draft.salaryBasis === 'MINIMUM_WAGE' && Boolean(minimumRate))
+      || (draft.salaryBasis === 'CUSTOM_SCALE' ? Boolean(draft.salaryScaleStepId) : Boolean(draft.fulltimeAmount))
+    if (index === 4) return Boolean(
+      draft.departmentId && draft.jobId && draft.costCenterId && draft.costCarrierId,
+    )
     return true
   }
 
   function next(): void {
-    if (!stepValid(step)) { setState('failed'); return }
+    if (!valid(step)) { setState('failed'); return }
     setStep((current) => Math.min(current + 1, steps.length - 1))
     setState('idle')
   }
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    if (!steps.every((_item, index) => stepValid(index))) { setState('failed'); return }
+    if (!steps.every((_item, index) => valid(index))) { setState('failed'); return }
     setState('saving')
-    if (!assessment) {
-      const assessmentResponse = await fetch(`/api/employees/${employeeId}/employment-chain-assessment`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          proposed: { startsOn: draft.startsOn, endsOn: draft.endsOn || null, contractType: draft.contractType },
-          historyComplete: draft.historyComplete, exceptionCode: null,
-        }),
-      })
-      if (!assessmentResponse.ok) { setState('failed'); return }
-      const result = await assessmentResponse.json() as { data: ChainAssessment }
-      setAssessment(result.data); setState('idle'); return
-    }
-
-    const salaryAmount = selectedStep?.fulltimeAmount ?? Number(draft.fulltimeAmount)
+    const fulltimeAmount = selectedScale?.fulltimeAmount ?? Number(draft.fulltimeAmount)
+    const standardHours = selectedLaborSet?.standardHoursPerWeek ?? 40
+    const factor = draft.isOnCall ? 0 : Number(draft.weeklyHours) / standardHours
     const response = await fetch(`/api/employees/${employeeId}/employments`, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         employment: {
-          employmentNumber: draft.employmentNumber, employmentType: 'EMPLOYEE', contractType: draft.contractType,
-          startsOn: draft.startsOn, endsOn: draft.endsOn || null, seniorityDate: draft.seniorityDate || draft.startsOn,
-          originalHireDate: draft.startsOn, isPrimary: false, reasonStarted: draft.chainOverrideReason || null,
+          employmentNumber: draft.employmentNumber,
+          startsOn: draft.startsOn,
+          seniorityDate: draft.seniorityDate,
+          countryCode: draft.countryCode,
+          isPrimary: draft.isPrimary,
         },
         incomeRelationship: {
-          payrollTaxSubnumber: draft.payrollTaxSubnumber, ikvNumber: Number(draft.ikvNumber), validFrom: draft.startsOn,
+          payrollTaxSubnumber: '0001',
+          ikvNumber: Number(draft.ikvNumber),
+          validFrom: draft.startsOn,
         },
-        organization: { departmentId: draft.departmentId, jobTitle: draft.jobTitle, effectiveFrom: draft.startsOn },
-        laborCondition: { conditionGroup: draft.conditionGroup, validFrom: draft.startsOn },
+        contract: {
+          workerType: draft.workerType,
+          flexPhaseId: draft.workerType === 'TEMPORARY_AGENCY' ? draft.flexPhaseId : null,
+          laborConditionSetId: draft.laborConditionSetId,
+          durationType: draft.durationType,
+          startsOn: draft.startsOn,
+          endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null,
+          probationApplies: draft.probationApplies,
+          probationEndsOn: draft.probationApplies ? draft.probationEndsOn : null,
+        },
         schedule: {
-          scheduleType: 'HOURS_AND_AVG_DAYS', startWeek: 1,
-          averageDaysPerWeek: Number(draft.averageDaysPerWeek), averageHoursPerWeek: Number(draft.averageHoursPerWeek),
-          partTimeFactor: Number(draft.partTimeFactor), timeForTimeAccrual: 0, validFrom: draft.startsOn,
+          scheduleType: 'HOURS_PER_DAY',
+          startWeek: 1,
+          averageDaysPerWeek: dayKeys.filter((day) => Number(draft.days[day]) > 0).length,
+          averageHoursPerWeek: Number(draft.weeklyHours),
+          partTimeFactor: draft.workScope === 'FULL_TIME' ? 1 : factor,
+          timeForTimeAccrual: 0,
+          mondayHours: Number(draft.days.monday), tuesdayHours: Number(draft.days.tuesday),
+          wednesdayHours: Number(draft.days.wednesday), thursdayHours: Number(draft.days.thursday),
+          fridayHours: Number(draft.days.friday), saturdayHours: Number(draft.days.saturday),
+          sundayHours: Number(draft.days.sunday),
+          isOnCall: draft.isOnCall,
+          onCallObligation: draft.isOnCall ? draft.onCallObligation : null,
+          workScope: draft.isOnCall ? null : draft.workScope,
+          validFrom: draft.startsOn,
         },
-        salary: draft.includeSalary ? {
-          paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
-          salaryBasis: selectedStep ? 'CUSTOM_SCALE' : 'MANUAL', fulltimeAmount: salaryAmount,
-          currencyCode: 'EUR', salaryScaleStepId: selectedStep?.id ?? null, validFrom: draft.startsOn,
+        salary: options.canWriteSalary ? {
+          paymentType: draft.salaryBasis === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED',
+          paymentFrequency: options.salaryFrequencies.find(
+            (item) => item.id === draft.salaryFrequencyId,
+          )?.code ?? 'MONTHLY',
+          salaryFrequencyId: draft.salaryFrequencyId,
+          salaryBasis: draft.salaryBasis,
+          fulltimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : fulltimeAmount,
+          parttimeAmount: draft.salaryBasis === 'MINIMUM_WAGE'
+            ? null
+            : Number(draft.parttimeAmount || fulltimeAmount * factor),
+          hourlyRate: draft.salaryBasis === 'MINIMUM_WAGE' ? minimumRate?.hourlyAmount ?? null : null,
+          currencyCode: 'EUR',
+          salaryScaleStepId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleStepId : null,
+          validFrom: draft.startsOn,
         } : undefined,
+        organization: {
+          departmentId: draft.departmentId,
+          jobId: draft.jobId,
+          jobTitle: selectedJob?.name ?? '',
+          effectiveFrom: draft.startsOn,
+        },
         costAllocation: {
           validFrom: draft.startsOn,
-          allocations: [{ costCenterId: draft.costCenterId, percentage: 100 }],
+          allocations: [{
+            costCenterId: draft.costCenterId,
+            costCarrierId: draft.costCarrierId,
+            percentage: 100,
+          }],
         },
       }),
     })
-    if (!response.ok) { setState('failed'); return }
-    const result = await response.json() as { data: { employmentId: string } }
+    const result = await response.json() as { data?: { employmentId: string }; code?: string }
+    if (!response.ok || !result.data) {
+      setErrorCode(result.code ?? '')
+      setState('failed')
+      return
+    }
     setState('saved')
     router.push(`/employees/${employeeId}/employments/${result.data.employmentId}`)
     router.refresh()
   }
 
   const inputClass = 'form-field'
+  if (!prerequisitesComplete) {
+    return <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+      <h3 className="text-lg font-semibold">{labels.prerequisitesTitle}</h3>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <Field label={labels.employeeNumber}><input className={inputClass} value={draft.employeeNumber} onChange={(event) => update('employeeNumber', event.target.value)} /></Field>
+        <Field label={labels.country}><input className={inputClass} maxLength={2} value={draft.countryCode} onChange={(event) => update('countryCode', event.target.value.toUpperCase())} /></Field>
+        <Field label={labels.nationality}><input className={inputClass} maxLength={2} value={draft.nationality} onChange={(event) => update('nationality', event.target.value.toUpperCase())} /></Field>
+        <Field label={labels.birthDate}><input type="date" className={inputClass} value={draft.birthDate} onChange={(event) => update('birthDate', event.target.value)} /></Field>
+        <Field label={labels.gender}><select className={inputClass} value={draft.gender} onChange={(event) => update('gender', event.target.value)}><option value="" /><option value="MALE">{labels.genderMale}</option><option value="FEMALE">{labels.genderFemale}</option><option value="OTHER">{labels.genderOther}</option><option value="PREFER_NOT_TO_SAY">{labels.genderUndisclosed}</option></select></Field>
+        {draft.countryCode === 'NL' && !options.prerequisites.hasBsn && <Field label={labels.bsn}><input inputMode="numeric" className={inputClass} value={draft.bsn} onChange={(event) => update('bsn', event.target.value)} /></Field>}
+      </div>
+      {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{labels.failed}</p>}
+      <div className="mt-5 flex justify-end border-t pt-4"><button type="button" className="button-primary" disabled={state === 'saving'} onClick={savePrerequisites}>{labels.savePrerequisites}</button></div>
+    </section>
+  }
+
   return <form onSubmit={submit} className="rounded-2xl border bg-surface p-5 shadow-sm">
-    <h2 className="text-lg font-semibold">{labels.title}</h2>
-    <ol className="mt-4 grid grid-cols-5 gap-1" aria-label={labels.title}>
-      {stepLabels.map((label, index) => <li key={label} className={`h-2 rounded-full ${index <= step ? 'bg-primary' : 'bg-muted'}`} title={label} />)}
-    </ol>
-    <p className="mt-3 text-sm font-semibold text-primary">{step + 1}. {stepLabels[step]}</p>
+    <nav aria-label={labels.title}>
+      <ol className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {steps.map((label, index) => <li key={label} className={`rounded-xl border px-3 py-2 text-center text-xs font-semibold ${index === step ? 'border-primary bg-primary/10 text-primary' : index < step ? 'border-success/40 bg-success/10' : 'text-muted-foreground'}`}>{index + 1}. {label}</li>)}
+      </ol>
+    </nav>
 
-    {step === 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2">
-      <Field label={labels.number}><input className={inputClass} value={draft.employmentNumber} onChange={(e) => update('employmentNumber', e.target.value)} /></Field>
-      <Field label={labels.contractType}><select className={inputClass} value={draft.contractType} onChange={(e) => update('contractType', e.target.value as Draft['contractType'])}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option></select></Field>
-      <Field label={labels.startDate}><input type="date" className={inputClass} value={draft.startsOn} onChange={(e) => update('startsOn', e.target.value)} /></Field>
-      <Field label={labels.endDate}><input type="date" className={inputClass} value={draft.endsOn} onChange={(e) => update('endsOn', e.target.value)} /></Field>
-      <Field label={labels.seniorityDate}><input type="date" className={inputClass} value={draft.seniorityDate} onChange={(e) => update('seniorityDate', e.target.value)} /></Field>
-    </div>}
+    {step === 0 && <WizardStep title={labels.stepEmployment}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={labels.employmentNumber}><input autoFocus className={inputClass} value={draft.employmentNumber} onChange={(event) => update('employmentNumber', event.target.value)} /></Field>
+        <Field label={labels.country}><input className={inputClass} maxLength={2} value={draft.countryCode} onChange={(event) => update('countryCode', event.target.value.toUpperCase())} /></Field>
+        <Field label={labels.primaryEmployment}><select className={inputClass} value={String(draft.isPrimary)} onChange={(event) => update('isPrimary', event.target.value === 'true')}><option value="true">{labels.yes}</option><option value="false">{labels.no}</option></select></Field>
+        <Field label={labels.ikvNumber}><input type="number" min="1" max="99" className={inputClass} value={draft.ikvNumber} onChange={(event) => update('ikvNumber', event.target.value)} /></Field>
+        <Field label={labels.startDate}><input type="date" className={inputClass} value={draft.startsOn} onChange={(event) => { update('startsOn', event.target.value); update('seniorityDate', event.target.value) }} /></Field>
+        <Field label={labels.seniorityDate}><input type="date" className={inputClass} value={draft.seniorityDate} onChange={(event) => update('seniorityDate', event.target.value)} /></Field>
+      </div>
+    </WizardStep>}
 
-    {step === 1 && <div className="mt-4 grid gap-4 sm:grid-cols-2">
-      <Field label={labels.payrollTaxSubnumber}><input className={inputClass} value={draft.payrollTaxSubnumber} onChange={(e) => update('payrollTaxSubnumber', e.target.value)} /></Field>
-      <Field label={labels.ikvNumber}><input type="number" min="1" className={inputClass} value={draft.ikvNumber} onChange={(e) => update('ikvNumber', e.target.value)} /></Field>
-      <Field label={labels.department}><select className={inputClass} value={draft.departmentId} onChange={(e) => update('departmentId', e.target.value)}>{options.departments.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></Field>
-      <Field label={labels.jobTitle}><input className={inputClass} value={draft.jobTitle} onChange={(e) => update('jobTitle', e.target.value)} /></Field>
-    </div>}
+    {step === 1 && <WizardStep title={labels.stepContract}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={labels.workerType}><select className={inputClass} value={draft.workerType} onChange={(event) => update('workerType', event.target.value as WorkerType)}><option value="EMPLOYEE">{labels.workerEmployee}</option><option value="STUDENT_INTERN">{labels.workerStudentIntern}</option><option value="TEMPORARY_AGENCY">{labels.workerTemporaryAgency}</option><option value="EXTERNAL_NO_PAYROLL">{labels.workerExternal}</option></select></Field>
+        {draft.workerType === 'TEMPORARY_AGENCY' && <Field label={labels.flexPhase}><select className={inputClass} value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>}
+        <Field label={labels.laborConditions}><select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+        <Field label={labels.duration}><select className={inputClass} value={draft.durationType} onChange={(event) => update('durationType', event.target.value as DurationType)}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option></select></Field>
+        <Field label={labels.startDate}><input type="date" readOnly className={`${inputClass} bg-muted/40`} value={draft.startsOn} /></Field>
+        {draft.durationType === 'DEFINITE' && <Field label={labels.endDate}><input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /></Field>}
+        <Field label={labels.probation}><select className={inputClass} value={String(draft.probationApplies)} onChange={(event) => update('probationApplies', event.target.value === 'true')}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></Field>
+        {draft.probationApplies && <Field label={labels.probationEnd}><input type="date" min={draft.startsOn} className={inputClass} value={draft.probationEndsOn} onChange={(event) => update('probationEndsOn', event.target.value)} /><span className="flex flex-wrap gap-2"><SmallButton onClick={() => update('probationEndsOn', addToDate(draft.startsOn, 'FOUR_WEEKS'))}>{labels.addFourWeeks}</SmallButton><SmallButton onClick={() => update('probationEndsOn', addToDate(draft.startsOn, 'ONE_MONTH'))}>{labels.addOneMonth}</SmallButton><SmallButton onClick={() => update('probationEndsOn', addToDate(draft.startsOn, 'TWO_MONTHS'))}>{labels.addTwoMonths}</SmallButton></span></Field>}
+      </div>
+    </WizardStep>}
 
-    {step === 2 && <div className="mt-4 grid gap-4 sm:grid-cols-2">
-      <Field label={labels.conditionGroup}><input className={inputClass} value={draft.conditionGroup} onChange={(e) => update('conditionGroup', e.target.value)} /></Field>
-      <Field label={labels.averageDays}><input type="number" min="0" max="7" step="0.1" className={inputClass} value={draft.averageDaysPerWeek} onChange={(e) => update('averageDaysPerWeek', e.target.value)} /></Field>
-      <Field label={labels.averageHours}><input type="number" min="0" max="168" step="0.01" className={inputClass} value={draft.averageHoursPerWeek} onChange={(e) => update('averageHoursPerWeek', e.target.value)} /></Field>
-      <Field label={labels.partTimeFactor}><input type="number" min="0" max="2" step="0.0001" className={inputClass} value={draft.partTimeFactor} onChange={(e) => update('partTimeFactor', e.target.value)} /></Field>
-    </div>}
+    {step === 2 && <WizardStep title={labels.stepSchedule}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={labels.onCallEmployee}><select className={inputClass} value={String(draft.isOnCall)} onChange={(event) => update('isOnCall', event.target.value === 'true')}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></Field>
+        {draft.isOnCall ? <Field label={labels.onCallObligation}><select className={inputClass} value={String(draft.onCallObligation)} onChange={(event) => update('onCallObligation', event.target.value === 'true')}><option value="true">{labels.yes}</option><option value="false">{labels.no}</option></select></Field> : <Field label={labels.employmentScope}><select className={inputClass} value={draft.workScope} onChange={(event) => update('workScope', event.target.value as Draft['workScope'])}><option value="FULL_TIME">{labels.fullTime}</option><option value="PART_TIME">{labels.partTime}</option></select></Field>}
+        <Field label={labels.weeklyHours}><input type="number" min="0" max="50" step="0.01" className={inputClass} value={draft.weeklyHours} onChange={(event) => distributeHours(event.target.value)} /></Field>
+        {!draft.isOnCall && <Field label={labels.partTimeFactor}><input readOnly className={`${inputClass} bg-muted/40`} value={draft.workScope === 'FULL_TIME' ? '100%' : `${Math.round(Number(draft.partTimeFactor) * 10000) / 100}%`} /></Field>}
+      </div>
+      <h4 className="mt-6 font-semibold">{labels.roster}</h4>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">{dayKeys.map((day) => <Field key={day} label={labels[day]}><input type="number" min="0" max="24" step="0.25" className={inputClass} value={draft.days[day]} onChange={(event) => updateDay(day, event.target.value)} /></Field>)}</div>
+      {!rosterMatches && <p role="alert" className="mt-3 text-sm text-destructive">{labels.rosterMismatch}</p>}
+    </WizardStep>}
 
-    {step === 3 && <div className="mt-4 grid gap-4">
-      {options.canWriteSalary && <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={draft.includeSalary} onChange={(e) => update('includeSalary', e.target.checked)} />{labels.includeSalary}</label>}
-      {draft.includeSalary && <div className="grid gap-4 sm:grid-cols-2"><Field label={labels.salaryScaleStep}><select className={inputClass} value={draft.salaryScaleStepId} onChange={(e) => update('salaryScaleStepId', e.target.value)}><option value="">{labels.manualSalary}</option>{options.salaryScaleSteps.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></Field>{!selectedStep && <Field label={labels.fulltimeAmount}><input type="number" min="0" step="0.01" className={inputClass} value={draft.fulltimeAmount} onChange={(e) => update('fulltimeAmount', e.target.value)} /></Field>}</div>}
-      <Field label={labels.costCenter}><select className={inputClass} value={draft.costCenterId} onChange={(e) => update('costCenterId', e.target.value)}>{options.costCenters.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></Field>
-    </div>}
+    {step === 3 && <WizardStep title={labels.stepSalary}>
+      {!options.canWriteSalary ? <p className="text-sm text-muted-foreground">{labels.failed}</p> : <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={labels.salaryCalculation}><select className={inputClass} value={draft.salaryBasis} onChange={(event) => update('salaryBasis', event.target.value as SalaryBasis)}><option value="MANUAL">{labels.salaryManual}</option><option value="MINIMUM_WAGE">{labels.salaryMinimum}</option><option value="CUSTOM_SCALE">{labels.salaryTable}</option></select></Field>
+        <Field label={labels.frequency}><select className={inputClass} value={draft.salaryFrequencyId} onChange={(event) => update('salaryFrequencyId', event.target.value)}>{options.salaryFrequencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+        {draft.salaryBasis === 'CUSTOM_SCALE' && <Field label={labels.salaryScaleStep}><select className={inputClass} value={draft.salaryScaleStepId} onChange={(event) => update('salaryScaleStepId', event.target.value)}><option value="" />{options.salaryScaleSteps.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></Field>}
+        {draft.salaryBasis === 'MINIMUM_WAGE' && <Field label={labels.minimumHourlyRate}><input readOnly className={`${inputClass} bg-muted/40`} value={minimumRate ? `€ ${minimumRate.hourlyAmount.toFixed(2)}` : '—'} /></Field>}
+        {draft.salaryBasis === 'MANUAL' && <><Field label={labels.fulltimeSalary}><input type="number" min="0" step="0.01" className={inputClass} value={draft.fulltimeAmount} onChange={(event) => { update('fulltimeAmount', event.target.value); const factor = Number(draft.weeklyHours) / (selectedLaborSet?.standardHoursPerWeek ?? 40); update('parttimeAmount', String(Number(event.target.value) * factor)) }} /></Field>{Number(draft.weeklyHours) !== (selectedLaborSet?.standardHoursPerWeek ?? 40) && <Field label={labels.parttimeSalary}><input type="number" min="0" step="0.01" className={inputClass} value={draft.parttimeAmount} onChange={(event) => { update('parttimeAmount', event.target.value); const factor = Number(draft.weeklyHours) / (selectedLaborSet?.standardHoursPerWeek ?? 40); if (factor > 0) update('fulltimeAmount', String(Number(event.target.value) / factor)) }} /></Field>}</>}
+      </div>}
+    </WizardStep>}
 
-    {step === 4 && <div className="mt-4 space-y-4">
-      <section className="rounded-xl bg-muted p-4"><h3 className="font-semibold">{labels.completeSummary}</h3><dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2"><Summary label={labels.number} value={draft.employmentNumber} /><Summary label={labels.startDate} value={draft.startsOn} /><Summary label={labels.jobTitle} value={draft.jobTitle} /><Summary label={labels.averageHours} value={draft.averageHoursPerWeek} /></dl></section>
-      <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={draft.historyComplete} onChange={(e) => update('historyComplete', e.target.checked)} />{labels.historyComplete}</label>
-      {assessment && <section className={`rounded-xl border p-4 ${assessment.outcome === 'CLEAR' ? 'bg-success/10' : 'bg-warning/10'}`}><h3 className="font-semibold">{labels.chainAdvice}</h3><p className="mt-1 text-sm">{{ CLEAR: labels.chainClear, ATTENTION: labels.chainAttention, LIKELY_INDEFINITE: labels.chainIndefinite, INSUFFICIENT_DATA: labels.chainInsufficient }[assessment.outcome]}</p><p className="mt-2 text-xs text-muted-foreground">{labels.knownContracts.replace('{count}', String(assessment.chainContractCount))}</p>{assessment.outcome !== 'CLEAR' && <Field label={labels.chainOverrideReason}><textarea className={`${inputClass} min-h-20`} value={draft.chainOverrideReason} onChange={(e) => update('chainOverrideReason', e.target.value)} /></Field>}</section>}
-    </div>}
+    {step === 4 && <WizardStep title={labels.stepOther}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={labels.job}><select className={inputClass} value={draft.jobId} onChange={(event) => update('jobId', event.target.value)}>{options.jobs.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></Field>
+        <Field label={labels.department}><select className={inputClass} value={draft.departmentId} onChange={(event) => update('departmentId', event.target.value)}>{options.departments.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></Field>
+        <Field label={labels.costCenter}><select className={inputClass} value={draft.costCenterId} onChange={(event) => update('costCenterId', event.target.value)}>{options.costCenters.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></Field>
+        <Field label={labels.costCarrier}><select className={inputClass} value={draft.costCarrierId} onChange={(event) => update('costCarrierId', event.target.value)}>{options.costCarriers.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></Field>
+      </div>
+    </WizardStep>}
 
-    {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{labels.requiredFields}</p>}
+    {step === 5 && <WizardStep title={labels.completeSummary}>
+      <p className="text-sm text-muted-foreground">{labels.createHint}</p>
+      <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Summary label={labels.employmentNumber} value={draft.employmentNumber} />
+        <Summary label={labels.startDate} value={draft.startsOn} />
+        <Summary label={labels.workerType} value={draft.workerType} />
+        <Summary label={labels.laborConditions} value={selectedLaborSet?.name ?? ''} />
+        <Summary label={labels.weeklyHours} value={draft.weeklyHours} />
+        <Summary label={labels.job} value={selectedJob?.name ?? ''} />
+      </dl>
+    </WizardStep>}
+
+    {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{errorCode || labels.requiredFields}</p>}
     {state === 'saved' && <p className="mt-4 text-sm text-success">{labels.saved}</p>}
     <div className="mt-5 flex items-center justify-between gap-3 border-t pt-4">
-      <button type="button" className="button-secondary" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))}>{labels.previous}</button>
-      {step < steps.length - 1 ? <button type="button" className="button-primary" onClick={next}>{labels.next}</button> : <button type="submit" className="button-primary" disabled={state === 'saving'}>{assessment ? labels.submit : labels.review}</button>}
+      <button type="button" className="button-secondary" disabled={step === 0 || state === 'saving'} onClick={() => setStep((current) => Math.max(0, current - 1))}>{labels.previous}</button>
+      {step < steps.length - 1 ? <button type="button" className="button-primary" onClick={next}>{labels.next}</button> : <button type="submit" className="button-primary" disabled={state === 'saving'}>{labels.submit}</button>}
     </div>
   </form>
 }
 
+function WizardStep({ title, children }: { title: string; children: ReactNode }) {
+  return <section className="mt-6"><h3 className="mb-5 text-xl font-semibold">{title}</h3>{children}</section>
+}
+
 function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="grid gap-1.5 text-sm font-medium">{label}{children}</label>
+  return <label className="grid content-start gap-1.5 text-sm font-medium">{label}{children}</label>
+}
+
+function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return <button type="button" className="rounded-lg border px-2.5 py-1 text-xs font-semibold hover:bg-muted" onClick={onClick}>{children}</button>
 }
 
 function Summary({ label, value }: { label: string; value: string }) {
-  return <div><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold">{value || '—'}</dd></div>
+  return <div className="rounded-xl border bg-muted/20 p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value || '—'}</dd></div>
+}
+
+function ageOn(birthDate: string, date: string): number {
+  if (!birthDate || !date) return 21
+  const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number)
+  const [year, month, day] = date.split('-').map(Number)
+  return year - birthYear - (month < birthMonth || (month === birthMonth && day < birthDay) ? 1 : 0)
 }

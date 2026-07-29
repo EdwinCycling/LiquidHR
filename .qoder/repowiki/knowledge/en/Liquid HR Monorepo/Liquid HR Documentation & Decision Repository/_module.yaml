@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: docs
-title: Liquid HR Documentation & Decision Registry
+title: Liquid HR Documentation & Decision Repository
 scope:
     - docs/
 source_files: []

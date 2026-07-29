@@ -1,6 +1,6 @@
 {
   "eyebrow": "Organisatiebeheer",
-  "title": "Rollen, rechten en plaatsingen",
+  "title": "Rollen en rechten",
   "subtitle": "Beheer tenantrollen, functiepunten en tijdsgebonden organisatieverantwoordelijkheden.",
   "roles": "Rollen",
   "newRole": "Nieuwe tenantrol",
@@ -53,6 +53,7 @@
   "addManagement": "Rolhouder toevoegen",
   "saved": "Wijziging opgeslagen.",
   "failed": "De wijziging kon niet worden opgeslagen.",
+  "selfAuthorizationLockout": "Deze wijziging zou jouw eigen toegang tot Rollen en autorisaties wegnemen. Bewaar eerst lezen en beheren voor deze actieve rol.",
   "empty": "Geen records gevonden.",
   "departmentCreate": "Afdeling toevoegen",
   "departmentCode": "Afdelingscode",
@@ -75,4 +76,18 @@
   "roleAssignmentsSaved": "Roltoewijzing opgeslagen.",
   "roleAssignmentsFailed": "De roltoewijzing kon niet worden opgeslagen.",
   "roleAssignmentsNeedsReview": "Controle nodig"
+  ,"roleAssignmentsSearchDepartments": "Zoek afdeling"
+  ,"roleAssignmentsFromEmployee": "Toewijzen vanuit medewerker"
+  ,"roleAssignmentsFromDepartment": "Toewijzen vanuit afdeling"
+  ,"roleAssignmentsWithoutManager": "Afdelingen zonder leidinggevende"
+  ,"roleAssignmentsCurrentAssignments": "Huidige rolhouders"
+  ,"roleAssignmentsSelectDepartments": "Selecteer één of meer afdelingen"
+  ,"roleAssignmentsAssignManager": "Leidinggevende toewijzen"
+  ,"roleAssignmentsDetails": "Details roltoewijzing"
+  ,"roleAssignmentsCancel": "Annuleren"
+  ,"roleAssignmentsJob": "Functie"
+  ,"roleAssignmentsEmployeeNumber": "Medewerkernummer"
+  ,"roleAssignmentsNoCurrentAssignments": "Voor deze afdeling zijn geen actuele rolhouders."
+  ,"roleAssignmentsNoMissingDepartments": "Alle afdelingen hebben een leidinggevende."
+  ,"roleAssignmentsOpenSection": "Openen"
 }

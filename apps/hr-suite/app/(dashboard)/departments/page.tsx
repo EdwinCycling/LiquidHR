@@ -43,7 +43,7 @@ function DepartmentBranch({
   return (
     <li className="relative">
       {hasChildren ? (
-        <details className="group" open={depth === 0}>
+        <details className="group" open>
           <summary
             aria-label={translate('expand', { name: node.name })}
             className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden"

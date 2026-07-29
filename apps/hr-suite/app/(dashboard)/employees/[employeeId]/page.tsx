@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, BriefcaseBusiness, Building2, Mail, Phone, UserRound } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, Mail, Phone } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
 import { EmployeeDashboard, type EmployeeDashboardDocument } from '@/components/employees/employee-dashboard'
@@ -44,7 +44,7 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       tab === 'personal' || tab === 'overview' ? getEmployeeCustomFields(employeeId) : Promise.resolve([]),
       tab === 'overview' || tab === 'reminders' ? listEmployeeReminders(employeeId).catch(() => []) : Promise.resolve([]),
       tab === 'personal' ? listEmployeeRoleAssignments(employeeId).catch(() => []) : Promise.resolve([]),
-      tab === 'employments' ? permissionAllowed('contract:write', employeeId) : Promise.resolve(false),
+      tab === 'employments' || tab === 'overview' ? permissionAllowed('contract:write', employeeId) : Promise.resolve(false),
       getLocale(),
       getUserPreferences(),
       getTranslator('employees'),
@@ -62,9 +62,9 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
         permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
       ])
       : [false, false, false]
-    const creationOptions = canManageEmployments
+    const creationOptions = canManageEmployments && tab === 'employments'
       ? await getEmploymentCreationOptions(employeeId)
-      : { departments: [], costCenters: [], salaryScaleSteps: [], nextIkvNumber: 1, canWriteSalary: false }
+      : null
     const [documents, documentOptions] = tab === 'documents' ? await Promise.all([
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
@@ -117,7 +117,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           <div aria-hidden="true" className="absolute -bottom-24 left-1/3 h-48 w-48 rounded-full border border-primary-foreground/10" />
           <div className={`relative flex items-center justify-between ${compact ? 'gap-3' : 'flex-col gap-5 sm:flex-row sm:items-center'}`}>
             <div className="flex min-w-0 items-center gap-4">
-              <EmployeeAvatarManager compact={compact} employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
+              <EmployeeAvatarManager compact={compact} employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), help: tEmployees('photoHelp'), failed: tEmployees('archiveFailed') }} />
               <div className="min-w-0">
                 {!compact && <p className="eyebrow text-primary-foreground/70">{detail.employee.employeeNumber}</p>}
                 <h1 className={`${compact ? '' : 'mt-1'} truncate font-semibold tracking-tight ${compact ? 'text-base' : 'text-3xl'}`}>{detail.employee.firstName} {detail.employee.birthName}</h1>
@@ -135,9 +135,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             <span className="flex items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4" />{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink className="text-primary-foreground/85 hover:text-primary-foreground hover:underline" email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span>
             {(detail.employee.workPhone ?? detail.employee.workMobile) && <a className="flex items-center gap-2 hover:text-primary-foreground" href={`tel:${detail.employee.workPhone ?? detail.employee.workMobile}`}><Phone aria-hidden="true" className="h-4 w-4" />{detail.employee.workPhone ?? detail.employee.workMobile}</a>}
             <span className="flex items-center gap-2"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4" />{tEmployees('employmentCount', { count: detail.employments.length })}</span>
-            <span className="flex items-center gap-2"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4" />{detail.currentEmploymentSummary.jobTitle ?? tEmployees('notRecorded')}</span>
-            <span className="flex items-center gap-2"><Building2 aria-hidden="true" className="h-4 w-4" />{detail.currentEmploymentSummary.departmentName ?? tEmployees('notRecorded')}</span>
-            <span className="flex items-center gap-2"><UserRound aria-hidden="true" className="h-4 w-4" />{detail.currentEmploymentSummary.managerName ?? tEmployees('notRecorded')}</span>
           </div>}
         </div>
 
@@ -149,14 +146,14 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           })}
         </nav>
 
-        {tab === 'overview' && <EmployeeDashboard absence={absenceCases[0] ?? null} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{
+        {tab === 'overview' && <EmployeeDashboard canManageEmployments={canManageEmployments} absence={absenceCases[0] ?? null} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{
           title: tEmployees('dashboardTitle'), subtitle: tEmployees('dashboardSubtitle'), openDetails: tEmployees('dashboardOpenDetails'), edit: tEmployees('editPersonal'), personal: tEmployees('dashboardPersonal'), contact: tEmployees('contactTitle'),
           workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'), noContact: tEmployees('noContact'), address: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), birthDate: tEmployees('birthDate'),
           nationality: tEmployees('nationality'), birthPlace: tEmployees('birthPlace'), gender: tEmployees('gender'), notRecorded: tEmployees('notRecorded'), customFields: tCustomFields('employeeTitle'), customFieldsEmpty: tEmployees('dashboardCustomFieldsEmpty'),
           employment: tEmployees('dashboardEmployment'), employmentEmpty: tEmployees('dashboardEmploymentEmpty'), department: tEmployees('department'), jobTitle: tEmployees('jobTitle'), manager: tEmployees('manager'), hoursPerWeek: tEmployees('hoursPerWeek'), salary: tEmployees('salary'),
           salaryHidden: tEmployees('salaryRevealHelp'), salaryNotAvailable: tEmployees('dashboardSalaryNotAvailable'), salaryMonthly: tEmployees('salaryMonthlySuffix'), salaryHourly: tEmployees('salaryHourlySuffix'), salaryLoading: tEmployees('dashboardSalaryLoading'), salaryFailed: tEmployees('dashboardSalaryFailed'), leave: tEmployees('dashboardLeave'), leaveDescription: tEmployees('dashboardLeaveDescription'),
           absence: tEmployees('dashboardAbsence'), absenceDescription: tEmployees('dashboardAbsenceDescription'), budgets: tEmployees('dashboardBudgets'), budgetsDescription: tEmployees('dashboardBudgetsDescription'), contracts: tEmployees('dashboardContracts'), contractsDescription: tEmployees('dashboardContractsDescription'),
-          contractCount: tEmployees('dashboardContractCount'), activity: tEmployees('dashboardActivity'), activityDescription: tEmployees('dashboardActivityDescription'), activityEmpty: tEmployees('dashboardActivityEmpty'), activityAdd: tEmployees('dashboardActivityAdd'), activityPlaceholder: tEmployees('dashboardActivityPlaceholder'), activitySave: tEmployees('dashboardActivitySave'), activitySaving: tEmployees('dashboardActivitySaving'), activityFailed: tEmployees('dashboardActivityFailed'), reminders: tEmployees('tabReminders'), remindersEmpty: tEmployees('remindersEmpty'), workflows: tEmployees('dashboardWorkflows'), workflowsDescription: tEmployees('dashboardWorkflowsDescription'),
+          contractCount: tEmployees('dashboardContractCount'), employmentNumber: tEmployment('employmentNumber'), employmentPeriod: tEmployment('period'), employmentActive: tEmployment('active'), employmentFuture: tEmployment('future'), employmentEnded: tEmployment('ended'), employmentNoActive: tEmployment('dashboardNoActive'), employmentAdd: tEmployment('dashboardAddEmployment'), laborConditions: tEmployment('laborConditions'), workerType: tEmployment('workerType'), workerEmployee: tEmployment('workerEmployee'), workerStudentIntern: tEmployment('workerStudentIntern'), workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'), activity: tEmployees('dashboardActivity'), activityDescription: tEmployees('dashboardActivityDescription'), activityEmpty: tEmployees('dashboardActivityEmpty'), activityAdd: tEmployees('dashboardActivityAdd'), activityPlaceholder: tEmployees('dashboardActivityPlaceholder'), activitySave: tEmployees('dashboardActivitySave'), activitySaving: tEmployees('dashboardActivitySaving'), activityFailed: tEmployees('dashboardActivityFailed'), reminders: tEmployees('tabReminders'), remindersEmpty: tEmployees('remindersEmpty'), workflows: tEmployees('dashboardWorkflows'), workflowsDescription: tEmployees('dashboardWorkflowsDescription'),
           assets: tEmployees('dashboardAssets'), assetsDescription: tEmployees('dashboardAssetsDescription'), vehicles: tEmployees('dashboardVehicles'), vehiclesDescription: tEmployees('dashboardVehiclesDescription'), software: tEmployees('dashboardSoftware'), softwareDescription: tEmployees('dashboardSoftwareDescription'),
           education: tEmployees('dashboardEducation'), educationDescription: tEmployees('dashboardEducationDescription'), documents: tEmployees('tabDocuments'), documentsEmpty: tEmployees('dashboardDocumentsEmpty'), performance: tEmployees('dashboardPerformance'),
           performanceDescription: tEmployees('dashboardPerformanceDescription'), futureModule: tEmployees('dashboardFutureModule'), futureModuleDescription: tEmployees('dashboardFutureModuleDescription'), viewContracts: tEmployees('tabEmployments'), viewDocuments: tEmployees('tabDocuments'), viewReminders: tEmployees('tabReminders'), moveUp: tEmployees('dashboardMoveUp'), moveDown: tEmployees('dashboardMoveDown'), drag: tEmployees('dashboardDrag'), layoutSaving: tEmployees('dashboardLayoutSaving'), layoutSaved: tEmployees('dashboardLayoutSaved'), layoutFailed: tEmployees('dashboardLayoutFailed'), profileLinks: tEmployees('profileLinks'), noProfileLinks: tEmployees('noProfileLinks'), addProfileLink: tEmployees('addProfileLink'), linkLabel: tEmployees('linkLabel'), linkUrl: tEmployees('linkUrl'), saveLink: tEmployees('saveLink'), linkFailed: tEmployees('linkFailed'), absenceReport: tEmployees('absenceReport'), absenceStartDate: tEmployees('absenceStartDate'), absencePercentage: tEmployees('absencePercentage'), absenceExpectedRecovery: tEmployees('absenceExpectedRecovery'), absenceSubmit: tEmployees('absenceSubmit'), absenceRecover: tEmployees('absenceRecover'), absenceRecoveredOn: tEmployees('absenceRecoveredOn'), absenceSaveFailed: tEmployees('absenceSaveFailed'),
@@ -167,6 +164,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         {tab === 'personal' && <>
         <EmployeePersonCard
           detail={detail}
+          defaultCountryCode={detail.defaultCountryCode}
           customFields={customFields}
           roleAssignments={roleAssignments}
           locale={locale}
@@ -184,7 +182,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             nameUsage: tEmployees('nameUsage'), nameUsageBirth: tEmployees('nameUsageBirth'), nameUsagePartner: tEmployees('nameUsagePartner'),
             nameUsagePartnerBirth: tEmployees('nameUsagePartnerBirth'), nameUsageBirthPartner: tEmployees('nameUsageBirthPartner'), gender: tEmployees('gender'),
             genderMale: tEmployees('genderMale'), genderFemale: tEmployees('genderFemale'), genderOther: tEmployees('genderOther'), genderUndisclosed: tEmployees('genderUndisclosed'),
-            birthDate: tEmployees('birthDate'), birthPlace: tEmployees('birthPlace'), birthCountry: tEmployees('birthCountry'), nationality: tEmployees('nationality'),
+            birthDate: tEmployees('birthDate'), birthPlace: tEmployees('birthPlace'), birthCountry: tEmployees('birthCountry'), nationality: tEmployees('nationality'), countrySearch: tEmployees('countrySearch'), countryNoResults: tEmployees('countryNoResults'),
             preferredLanguage: tEmployees('preferredLanguage'), privateEmail: tEmployees('privateEmail'), privatePhone: tEmployees('privatePhone'),
             privateMobile: tEmployees('privateMobile'), workEmail: tEmployees('workEmail'), workPhone: tEmployees('workPhone'),
             workPhoneExtension: tEmployees('workPhoneExtension'), workMobile: tEmployees('workMobile'), bsnTitle: tEmployees('bsnTitle'),
@@ -207,7 +205,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         </>}
 
-        {tab === 'documents' && canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), uploadAdvanced: tDocuments('uploadAdvanced'), file: tDocuments('file'), fileDropTitle: tDocuments('fileDropTitle'), fileDropHelp: tDocuments('fileDropHelp'), fileSelected: tDocuments('fileSelected'), fileReplace: tDocuments('fileReplace'), fileRemove: tDocuments('fileRemove'), fileRules: tDocuments('fileRules'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), noCloudTags: tDocuments('noCloudTags'), category: tDocuments('category'), requiredFields: tDocuments('requiredFields'), advancedSettings: tDocuments('advancedSettings'), visibleToTitle: tDocuments('visibleToTitle'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), visibilityDefault: tDocuments('visibilityDefault'), reminderTitle: tDocuments('reminderTitle'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn'), employeeVisibilityAllowed: tDocuments('employeeVisibilityAllowed'), employeeVisibilityBlocked: tDocuments('employeeVisibilityBlocked'), additionalRoles: tDocuments('additionalRoles'), additionalDepartments: tDocuments('additionalDepartments'), noExtraVisibility: tDocuments('noExtraVisibility'), noReminderRecipients: tDocuments('noReminderRecipients'), invalidType: tDocuments('invalidType'), invalidSize: tDocuments('invalidSize'), invalidInput: tDocuments('invalidInput'), audienceRequired: tDocuments('audienceRequired'), expiryRequired: tDocuments('expiryRequired'), reminderTargetRequired: tDocuments('reminderTargetRequired'), singleFileOnly: tDocuments('singleFileOnly'), view: tDocuments('view'), viewerClose: tDocuments('viewerClose'), viewerUnsupported: tDocuments('viewerUnsupported') }} />}
+        {tab === 'documents' && canReadDocuments && <EmployeeDocumentDossier employeeId={employeeId} documents={documents} options={documentOptions} canWrite={canWriteDocuments} canDelete={canDeleteDocuments} labels={{ title: tDocuments('title'), subtitle: tDocuments('subtitle'), upload: tDocuments('upload'), uploadAdvanced: tDocuments('uploadAdvanced'), file: tDocuments('file'), fileDropTitle: tDocuments('fileDropTitle'), fileDropHelp: tDocuments('fileDropHelp'), fileSelected: tDocuments('fileSelected'), fileReplace: tDocuments('fileReplace'), fileRemove: tDocuments('fileRemove'), fileRules: tDocuments('fileRules'), documentTitle: tDocuments('documentTitle'), description: tDocuments('description'), tags: tDocuments('tags'), noCloudTags: tDocuments('noCloudTags'), category: tDocuments('category'), customMetadata: tDocuments('customMetadata'), automaticValue: tDocuments('automaticValue'), requiredFields: tDocuments('requiredFields'), advancedSettings: tDocuments('advancedSettings'), visibleToTitle: tDocuments('visibleToTitle'), visibleToEmployee: tDocuments('visibleToEmployee'), visibleToRole: tDocuments('visibleToRole'), visibleToDepartment: tDocuments('visibleToDepartment'), visibilityDefault: tDocuments('visibilityDefault'), reminderTitle: tDocuments('reminderTitle'), expiresOn: tDocuments('expiresOn'), reminderAt: tDocuments('reminderAt'), reminderForEmployee: tDocuments('reminderForEmployee'), reminderForRole: tDocuments('reminderForRole'), save: tDocuments('save'), saving: tDocuments('saving'), failed: tDocuments('failed'), empty: tDocuments('empty'), download: tDocuments('download'), delete: tDocuments('delete'), restore: tDocuments('restore'), deleteReason: tDocuments('deleteReason'), deleted: tDocuments('deleted'), expires: tDocuments('expires'), reminderActive: tDocuments('reminderActive'), addedOn: tDocuments('addedOn'), employeeVisibilityAllowed: tDocuments('employeeVisibilityAllowed'), employeeVisibilityBlocked: tDocuments('employeeVisibilityBlocked'), additionalRoles: tDocuments('additionalRoles'), additionalDepartments: tDocuments('additionalDepartments'), noExtraVisibility: tDocuments('noExtraVisibility'), noReminderRecipients: tDocuments('noReminderRecipients'), invalidType: tDocuments('invalidType'), invalidSize: tDocuments('invalidSize'), invalidInput: tDocuments('invalidInput'), audienceRequired: tDocuments('audienceRequired'), expiryRequired: tDocuments('expiryRequired'), reminderTargetRequired: tDocuments('reminderTargetRequired'), singleFileOnly: tDocuments('singleFileOnly'), view: tDocuments('view'), viewerClose: tDocuments('viewerClose'), viewerUnsupported: tDocuments('viewerUnsupported') }} />}
 
         {tab === 'payslips' && canReadPayslips && <EmployeePayslips employeeId={employeeId} payslips={payslips} labels={{ title: tDocuments('payslipsTitle'), subtitle: tDocuments('payslipsSubtitle'), empty: tDocuments('payslipsEmpty'), view: tDocuments('view'), download: tDocuments('download'), close: tDocuments('viewerClose'), unsupported: tDocuments('viewerUnsupported'), source: tDocuments('payslipSource'), imported: tDocuments('payslipImported') }} />}
 
@@ -222,6 +220,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             </div>
             <EmploymentTimeline
               employments={detail.employments}
+              summaries={detail.employmentCards}
               locale={locale}
               dateFormat={preferences.dateFormat}
               labels={{
@@ -235,10 +234,16 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 status: tEmployment('status'),
                 indefinite: tEmployment('indefinite'),
                 definite: tEmployment('definite'),
+                seniority: tEmployment('seniorityDate'), seniorityDuration: tEmployment('seniorityDuration'),
+                department: tEmployment('department'), jobTitle: tEmployment('jobTitle'), hoursPerWeek: tEmployment('weeklyHours'),
+                laborConditions: tEmployment('laborConditions'), workerType: tEmployment('workerType'),
+                workerEmployee: tEmployment('workerEmployee'), workerStudentIntern: tEmployment('workerStudentIntern'),
+                workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'),
+                notRecorded: tEmployment('notRecorded'),
               }}
             />
           </section>
-          {canManageEmployments && <div className="mt-6 flex justify-end">
+          {canManageEmployments && creationOptions && <div className="mt-6 flex justify-end">
             <EmploymentCreateModal
               employeeId={employeeId}
               options={creationOptions}
@@ -247,30 +252,45 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 title: tEmployment('new'),
                 modalTitle: tEmployment('newWizardTitle'),
                 cancel: tEmployment('cancel'),
-                number: tEmployment('employmentNumber'),
-                contractType: tEmployment('contractType'),
-                indefinite: tEmployment('indefinite'),
-                definite: tEmployment('definite'),
-                startDate: tEmployment('startDate'),
-                seniorityDate: tEmployment('seniorityDate'),
-                endDate: tEmployment('endsOn'),
-                submit: tEmployment('create'),
-                saved: tEmployment('created'),
-                failed: tErrors('generic'),
-                chainAdvice: tEmployment('chainAdvice'), chainChecking: tEmployment('chainChecking'),
-                chainClear: tEmployment('chainClear'), chainAttention: tEmployment('chainAttention'),
-                chainIndefinite: tEmployment('chainIndefinite'), chainInsufficient: tEmployment('chainInsufficient'),
-                chainOverrideReason: tEmployment('chainOverrideReason'), historyComplete: tEmployment('historyComplete'),
-                knownContracts: tEmployment('knownContracts'), review: tEmployment('continue'),
-                previous: tEmployment('previous'), next: tEmployment('next'), stepContract: tEmployment('stepContract'),
-                stepIkvOrganization: tEmployment('stepIkvOrganization'), stepConditions: tEmployment('stepConditions'),
-                stepSalaryCosts: tEmployment('stepSalaryCosts'), stepReview: tEmployment('stepReview'),
-                payrollTaxSubnumber: tEmployment('payrollTaxSubnumber'), ikvNumber: tEmployment('incomeRelationshipNumber'),
-                department: tEmployment('department'), jobTitle: tEmployment('jobTitle'), conditionGroup: tEmployment('conditionGroup'),
-                averageDays: tEmployment('averageDays'), averageHours: tEmployment('averageHours'), partTimeFactor: tEmployment('partTimeFactor'),
-                salary: tEmployment('tabsSalary'), includeSalary: tEmployment('includeSalary'), salaryScaleStep: tEmployment('salaryScaleStep'),
-                manualSalary: tEmployment('manualSalary'), fulltimeAmount: tEmployment('fulltimeAmount'), costCenter: tEmployment('costCenter'),
-                completeSummary: tEmployment('completeSummary'), requiredFields: tEmployment('requiredFields'),
+                submit: tEmployment('create'), saved: tEmployment('created'), failed: tErrors('generic'),
+                previous: tEmployment('previous'), next: tEmployment('next'),
+                requiredFields: tEmployment('requiredFields'),
+                employmentNumber: tEmployment('employmentNumber'), primaryEmployment: tEmployment('primaryEmployment'),
+                yes: tEmployment('yes'), no: tEmployment('no'), startDate: tEmployment('startDate'),
+                seniorityDate: tEmployment('seniorityDate'), country: tEmployment('country'),
+                ikvNumber: tEmployment('incomeRelationshipNumber'), prerequisitesTitle: tEmployment('prerequisitesTitle'),
+                nationality: tEmployment('nationality'), bsn: tEmployment('bsn'), birthDate: tEmployment('birthDate'),
+                gender: tEmployment('gender'), employeeNumber: tEmployment('employeeNumber'),
+                savePrerequisites: tEmployment('savePrerequisites'), prerequisiteSaved: tEmployment('prerequisiteSaved'),
+                genderMale: tEmployment('genderMale'), genderFemale: tEmployment('genderFemale'),
+                genderOther: tEmployment('genderOther'), genderUndisclosed: tEmployment('genderUndisclosed'),
+                stepEmployment: tEmployment('stepEmployment'), stepContract: tEmployment('stepContract'),
+                stepSchedule: tEmployment('stepSchedule'), stepSalary: tEmployment('stepSalary'),
+                stepOther: tEmployment('stepOther'), stepReview: tEmployment('stepReview'),
+                workerType: tEmployment('workerType'), workerEmployee: tEmployment('workerEmployee'),
+                workerStudentIntern: tEmployment('workerStudentIntern'),
+                workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'),
+                flexPhase: tEmployment('flexPhase'), laborConditions: tEmployment('laborConditions'),
+                duration: tEmployment('duration'), indefinite: tEmployment('indefinite'),
+                definite: tEmployment('definite'), endDate: tEmployment('endsOn'),
+                probation: tEmployment('probation'), probationEnd: tEmployment('probationEnd'),
+                addFourWeeks: tEmployment('addFourWeeks'), addOneMonth: tEmployment('addOneMonth'),
+                addTwoMonths: tEmployment('addTwoMonths'), onCallEmployee: tEmployment('onCallEmployee'),
+                onCallObligation: tEmployment('onCallObligation'), employmentScope: tEmployment('employmentScope'),
+                fullTime: tEmployment('fullTime'), partTime: tEmployment('partTime'),
+                weeklyHours: tEmployment('weeklyHours'), partTimeFactor: tEmployment('partTimeFactor'),
+                roster: tEmployment('roster'), rosterMismatch: tEmployment('rosterMismatch'),
+                monday: tEmployment('monday'), tuesday: tEmployment('tuesday'),
+                wednesday: tEmployment('wednesday'), thursday: tEmployment('thursday'),
+                friday: tEmployment('friday'), saturday: tEmployment('saturday'), sunday: tEmployment('sunday'),
+                salaryCalculation: tEmployment('salaryCalculation'), salaryManual: tEmployment('salaryManual'),
+                salaryMinimum: tEmployment('salaryMinimum'), salaryTable: tEmployment('salaryTable'),
+                frequency: tEmployment('frequency'), fulltimeSalary: tEmployment('fulltimeSalary'),
+                parttimeSalary: tEmployment('parttimeSalary'), salaryScaleStep: tEmployment('salaryScaleStep'),
+                minimumHourlyRate: tEmployment('minimumHourlyRate'),
+                department: tEmployment('department'), job: tEmployment('job'),
+                costCenter: tEmployment('costCenter'), costCarrier: tEmployment('costCarrier'),
+                completeSummary: tEmployment('completeSummary'), createHint: tEmployment('createHint'),
               }}
             />
           </div>}

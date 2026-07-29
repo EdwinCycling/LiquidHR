@@ -2,6 +2,7 @@ import Link from 'next/link'
 import {
   ArrowUpRight,
   Blocks,
+  BriefcaseBusiness,
   Building2,
   CalendarDays,
   HeartPulse,
@@ -135,6 +136,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('dashboard-widget:write'),
       allowed('company-document:write'),
       allowed('absence-settings:read'),
+      allowed('contract:read'),
     ]),
   ])
 
@@ -150,6 +152,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     dashboardWidgets,
     companyDocuments,
     absenceSettings,
+    employmentContracts,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -201,6 +204,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     {
       title: messages('admin.sections.hrSetup'),
       items: [
+        {
+          kind: 'link',
+          href: '/settings/employment-contracts',
+          icon: BriefcaseBusiness,
+          title: messages('admin.tiles.employmentContracts'),
+          description: messages('admin.tiles.employmentContractsDescription'),
+          visible: employmentContracts,
+        },
         {
           kind: 'link',
           href: '/master-data/jobs',

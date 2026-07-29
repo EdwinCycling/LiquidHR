@@ -19,6 +19,7 @@ export class CustomFieldServiceError extends Error {
 
 export interface CustomFieldDefinition {
   id: string
+  entityType: DefinitionRow['entity_type']
   key: string
   labelNl: string
   labelEn: string
@@ -57,6 +58,7 @@ function requireAdministration(administrationId: string | null): string {
 function toDefinition(row: DefinitionRow, options: OptionRow[]): CustomFieldDefinition {
   return {
     id: row.id,
+    entityType: row.entity_type,
     key: row.key,
     labelNl: row.label_nl,
     labelEn: row.label_en,
@@ -83,13 +85,13 @@ function toDefinition(row: DefinitionRow, options: OptionRow[]): CustomFieldDefi
   }
 }
 
-export async function listCustomFieldDefinitions(): Promise<CustomFieldDefinition[]> {
+export async function listCustomFieldDefinitions(entityType: DefinitionRow['entity_type'] = 'EMPLOYEE'): Promise<CustomFieldDefinition[]> {
   const context = await requirePermission('custom-field-values:read')
   const administrationId = requireAdministration(context.administrationId)
   const supabase = await createClient()
   const [{ data: definitions, error }, { data: options, error: optionsError }] = await Promise.all([
     supabase.from('custom_field_definitions').select('*')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('entity_type', entityType)
       .is('deleted_at', null).order('label_nl').order('key'),
     supabase.from('custom_field_select_options').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
@@ -108,6 +110,7 @@ export async function createCustomFieldDefinition(
   const { data, error } = await supabase.from('custom_field_definitions').insert({
     tenant_id: context.tenantId,
     administration_id: administrationId,
+    entity_type: input.entityType,
     key: input.key,
     label_nl: input.labelNl,
     label_en: input.labelEn,

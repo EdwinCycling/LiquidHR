@@ -10,6 +10,7 @@ import type {
 } from './detail-schemas'
 import { assessEmploymentChain } from './chain-assessment'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
+import type { EmploymentContractMutationInput } from './contract-schemas'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -46,8 +47,6 @@ async function loadEmploymentForAction(employmentId: string, permission: string)
 export type EmploymentDetailLoadScope =
   | 'all'
   | 'overview'
-  | 'basics'
-  | 'labor'
   | 'schedule'
   | 'salary'
   | 'organization'
@@ -71,10 +70,10 @@ export async function getEmploymentDetail(
   const supabase = await createClient()
   const isAllScope = scope === 'all'
   const includeOverview = isAllScope || scope === 'overview'
-  const includeBasics = includeOverview || scope === 'basics'
-  const includeLabor = includeOverview || scope === 'labor'
-  const includeSchedule = includeOverview || scope === 'schedule' || scope === 'labor' || scope === 'salary'
-  const includeSalary = includeOverview || scope === 'salary' || scope === 'labor' || scope === 'schedule'
+  const includeBasics = includeOverview
+  const includeLabor = includeOverview
+  const includeSchedule = includeOverview || scope === 'schedule' || scope === 'salary'
+  const includeSalary = includeOverview || scope === 'salary' || scope === 'schedule'
   const includeOrganization = includeOverview || scope === 'organization'
   const includeCosts = includeOverview || scope === 'costs'
   const includeHistory = isAllScope || scope === 'history'
@@ -96,6 +95,9 @@ export async function getEmploymentDetail(
   const canWriteWorkSchedulePromise = includeSchedule
     ? permissionAllowed('work-schedule:write', employeeId)
     : Promise.resolve(false)
+  const canWriteOrganizationPromise = includeOrganization
+    ? permissionAllowed('organization-placement:write', employeeId)
+    : Promise.resolve(false)
   const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_phone, work_mobile, avatar_url')
     .eq('id', employeeId).maybeSingle()
   const administrationQuery = supabase.from('administrations').select('id, code, name')
@@ -108,6 +110,11 @@ export async function getEmploymentDetail(
     ? supabase.from('employment_labor_conditions').select('*').eq('employment_id', employmentId)
       .order('valid_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
+  const contractsQuery = includeOverview
+    ? supabase.from('employment_contracts')
+      .select('*, flex_phases(code, name), labor_condition_sets(code, name, standard_hours_per_week)')
+      .eq('employment_id', employmentId).order('starts_on', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
   const scheduleQuery = includeSchedule
     ? supabase.from('employment_schedules').select('*').eq('employment_id', employmentId)
       .order('valid_from', { ascending: false }).limit(100)
@@ -117,11 +124,11 @@ export async function getEmploymentDetail(
       .order('valid_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null }))
   const costQuery = includeCosts
-    ? supabase.from('employment_cost_allocations').select('*, cost_centers(code, name)').eq('employment_id', employmentId)
+    ? supabase.from('employment_cost_allocations').select('*, cost_centers(code, name), cost_carriers(code, name)').eq('employment_id', employmentId)
       .order('valid_from', { ascending: false }).limit(500)
     : Promise.resolve({ data: [], error: null })
   const organizationQuery = includeOrganization
-    ? supabase.from('employee_organizations').select('*, departments!employee_organizations_department_id_fkey(code, name)').eq('employment_id', employmentId)
+    ? supabase.from('employee_organizations').select('*, departments!employee_organizations_department_id_fkey(code, name), jobs(code)').eq('employment_id', employmentId)
       .order('effective_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
   const linksQuery = supabase.from('employee_profile_links').select('*').eq('employee_id', employeeId)
@@ -134,21 +141,50 @@ export async function getEmploymentDetail(
     ? supabase.from('cost_centers').select('id, code, name').eq('administration_id', employment.administration_id)
       .eq('is_active', true).order('code').limit(500)
     : Promise.resolve({ data: [], error: null })
+  const costCarriersQuery = includeCosts
+    ? supabase.from('cost_carriers').select('id, code, name')
+      .eq('administration_id', employment.administration_id)
+      .eq('is_active', true).order('code').limit(500)
+    : Promise.resolve({ data: [], error: null })
   const scalesQuery = canReadSalaryPromise.then(async (canReadSalary) => canReadSalary && includeSalary
     ? await supabase.from('salary_scale_steps').select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
       .eq('administration_id', employment.administration_id).order('valid_from', { ascending: false }).limit(500)
     : Promise.resolve({ data: [], error: null }))
+  const contractOptionsQuery = includeOverview
+    ? Promise.all([
+      supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week')
+        .eq('administration_id', employment.administration_id).eq('is_active', true).order('code').limit(500),
+      supabase.from('flex_phases').select('id, code, name')
+        .eq('administration_id', employment.administration_id).eq('is_active', true).order('sort_order').limit(500),
+    ])
+    : Promise.resolve([
+      { data: [], error: null },
+      { data: [], error: null },
+    ] as const)
+  const organizationOptionsQuery = includeOrganization
+    ? Promise.all([
+      supabase.from('departments').select('id, code, name')
+        .eq('administration_id', employment.administration_id).eq('is_active', true).order('code').limit(500),
+      supabase.from('jobs').select('id, code, job_revisions(name)')
+        .eq('administration_id', employment.administration_id).eq('is_active', true).order('code').limit(500),
+    ])
+    : Promise.resolve([
+      { data: [], error: null },
+      { data: [], error: null },
+    ] as const)
 
   const [
-    employeeResult, administrationResult, incomeLinksResult, laborResult, scheduleResult,
+    employeeResult, administrationResult, incomeLinksResult, laborResult, contractsResult, scheduleResult,
     salaryResult, costResult, organizationResult, linksResult, auditResult,
-    costCentersResult, scalesResult,
+    costCentersResult, costCarriersResult, scalesResult, contractOptionsResult, organizationOptionsResult,
     canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule,
+    canWriteOrganization,
   ] = await Promise.all([
     employeeQuery,
     administrationQuery,
     incomeLinksQuery,
     laborQuery,
+    contractsQuery,
     scheduleQuery,
     salaryQuery,
     costQuery,
@@ -156,17 +192,22 @@ export async function getEmploymentDetail(
     linksQuery,
     auditQuery,
     costCentersQuery,
+    costCarriersQuery,
     scalesQuery,
+    contractOptionsQuery,
+    organizationOptionsQuery,
     canWriteContractPromise,
     canReadSalaryPromise,
     canWriteSalaryPromise,
     canReadAuditPromise,
     canWriteEmployeePromise,
     canWriteWorkSchedulePromise,
+    canWriteOrganizationPromise,
   ])
-  const results = [employeeResult, administrationResult, incomeLinksResult, laborResult, scheduleResult,
+  const results = [employeeResult, administrationResult, incomeLinksResult, laborResult, contractsResult, scheduleResult,
     salaryResult, costResult, organizationResult, linksResult, auditResult,
-    costCentersResult, scalesResult]
+    costCentersResult, costCarriersResult, scalesResult,
+    ...contractOptionsResult, ...organizationOptionsResult]
   if (results.some((result) => result.error)) throw new EmploymentDetailError('EMPLOYMENT_DETAIL_FAILED', 500)
   if (!employeeResult.data || !administrationResult.data) throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
 
@@ -175,12 +216,28 @@ export async function getEmploymentDetail(
     employee: { ...employeeResult.data, avatar_url: employeeAvatarHref(employeeId, employeeResult.data.avatar_url) },
     administration: administrationResult.data,
     incomeRelationships: incomeLinksResult.data ?? [],
+    contracts: contractsResult.data ?? [],
     laborConditions: laborResult.data ?? [], schedules: scheduleResult.data ?? [],
     salaries: salaryResult.data ?? [], costAllocations: costResult.data ?? [],
     organizations: organizationResult.data ?? [], profileLinks: linksResult.data ?? [],
     auditLogs: auditResult.data ?? [],
-    options: { costCenters: costCentersResult.data ?? [], salaryScaleSteps: scalesResult.data ?? [] },
-    capabilities: { canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee, canWriteWorkSchedule },
+    options: {
+      costCenters: costCentersResult.data ?? [],
+      costCarriers: costCarriersResult.data ?? [],
+      salaryScaleSteps: scalesResult.data ?? [],
+      laborConditionSets: contractOptionsResult[0].data ?? [],
+      flexPhases: contractOptionsResult[1].data ?? [],
+      departments: organizationOptionsResult[0].data ?? [],
+      jobs: (organizationOptionsResult[1].data ?? []).map((job) => ({
+        id: job.id,
+        code: job.code,
+        name: job.job_revisions[0]?.name ?? job.code,
+      })),
+    },
+    capabilities: {
+      canWriteContract, canReadSalary, canWriteSalary, canReadAudit, canWriteEmployee,
+      canWriteWorkSchedule, canWriteOrganization,
+    },
   }
 }
 
@@ -188,15 +245,24 @@ export async function applyTimelineMutation(employmentId: string, input: Timelin
   const permission = input.timeline === 'SALARY' ? 'salary:write' : 'contract:write'
   await loadEmploymentForAction(employmentId, permission)
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('apply_employment_timeline_mutation', {
-    requested_employment_id: employmentId,
-    requested_timeline: input.timeline,
-    requested_effective_on: input.effectiveOn,
-    requested_payload: input.payload as Json,
-    requested_reason: input.reason,
-    requested_warning_codes: input.warningCodes,
-    requested_acknowledgements: input.acknowledgements as Json,
-  })
+  const { data, error } = input.timeline === 'COST_ALLOCATION'
+    ? await supabase.rpc('apply_employment_cost_allocation', {
+      requested_employment_id: employmentId,
+      requested_effective_on: input.effectiveOn,
+      requested_payload: input.payload as Json,
+      requested_reason: input.reason,
+      requested_warning_codes: input.warningCodes,
+      requested_acknowledgements: input.acknowledgements as Json,
+    })
+    : await supabase.rpc('apply_employment_timeline_mutation', {
+      requested_employment_id: employmentId,
+      requested_timeline: input.timeline,
+      requested_effective_on: input.effectiveOn,
+      requested_payload: input.payload as Json,
+      requested_reason: input.reason,
+      requested_warning_codes: input.warningCodes,
+      requested_acknowledgements: input.acknowledgements as Json,
+    })
   if (error || !data) throwDatabaseError(error?.message ?? 'EMPLOYMENT_CHANGE_FAILED')
   return data
 }
@@ -218,6 +284,41 @@ export async function applyCombinedTimelineMutation(
     requested_acknowledgements: input.acknowledgements as Json,
   })
   if (error || !data) throwDatabaseError(error?.message ?? 'EMPLOYMENT_CHANGE_FAILED')
+  return data
+}
+
+export async function manageEmploymentContract(
+  employmentId: string,
+  contractId: string | null,
+  input: EmploymentContractMutationInput,
+): Promise<string> {
+  await loadEmploymentForAction(employmentId, 'contract:write')
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('manage_employment_contract', {
+    requested_employment_id: employmentId,
+    requested_contract_id: contractId as string,
+    requested_payload: input as Json,
+  })
+  if (error || !data) throwDatabaseError(error?.message ?? 'CONTRACT_CHANGE_FAILED')
+  return data
+}
+
+export async function manageEmploymentOrganization(
+  employmentId: string,
+  placementId: string | null,
+  input: { effectiveOn: string; departmentId: string; jobId: string },
+): Promise<string> {
+  const employment = await loadEmploymentForAction(employmentId, 'contract:read')
+  await requirePermission('organization-placement:write', employment.employee_id)
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('manage_employment_organization_timeline', {
+    requested_employment_id: employmentId,
+    requested_placement_id: placementId as string,
+    requested_effective_on: input.effectiveOn,
+    requested_department_id: input.departmentId,
+    requested_job_id: input.jobId,
+  })
+  if (error || !data) throwDatabaseError(error?.message ?? 'ORGANIZATION_CHANGE_FAILED')
   return data
 }
 

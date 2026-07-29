@@ -42,7 +42,18 @@ export type { EmployeeOverview } from './employee-overview'
 
 export interface EmploymentCreationOptions {
   departments: Array<{ id: string; code: string; name: string }>
+  jobs: Array<{ id: string; code: string; name: string }>
   costCenters: Array<{ id: string; code: string; name: string }>
+  costCarriers: Array<{ id: string; code: string; name: string }>
+  laborConditionSets: Array<{ id: string; code: string; name: string; standardHoursPerWeek: number }>
+  flexPhases: Array<{ id: string; code: string; name: string }>
+  salaryFrequencies: Array<{ id: string; code: string; name: string }>
+  minimumWageRates: Array<{
+    minimumAge: number
+    hourlyAmount: number
+    validFrom: string
+    validUntil: string | null
+  }>
   salaryScaleSteps: Array<{
     id: string
     label: string
@@ -50,6 +61,17 @@ export interface EmploymentCreationOptions {
   }>
   nextIkvNumber: number
   canWriteSalary: boolean
+  defaultCountryCode: string
+  defaultStartDate: string
+  hasActivePrimaryEmployment: boolean
+  prerequisites: {
+    employeeNumber: string
+    updatedAt: string
+    nationality: string | null
+    birthDate: string | null
+    gender: Database['public']['Enums']['gender'] | null
+    hasBsn: boolean
+  }
 }
 
 export interface EmployeeEmploymentDetail {
@@ -88,6 +110,15 @@ export interface EmployeeEmploymentDetail {
     isArchived: boolean
   }
   employments: EmploymentRow[]
+  defaultCountryCode: string
+  employmentCards: Array<{
+    employmentId: string
+    departmentName: string | null
+    jobTitle: string | null
+    hoursPerWeek: number | null
+    laborConditionName: string | null
+    workerType: Database['public']['Enums']['employment_worker_type'] | null
+  }>
   status: EmploymentStatus
   addresses: Array<{
     id: string; addressLine1: string; addressLine2: string | null; street: string | null
@@ -304,17 +335,56 @@ export async function getEmploymentCreationOptions(
   const canWriteSalary = await permissionAllowed('salary:write', employeeId)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
+  const [currentYear, currentMonth] = today.split('-').map(Number)
+  const defaultStartDate = new Date(Date.UTC(currentYear, currentMonth, 1)).toISOString().slice(0, 10)
 
-  const [departmentsResult, costCentersResult, ikvResult, scaleStepsResult] = await Promise.all([
+  const [
+    departmentsResult, jobsResult, costCentersResult, costCarriersResult,
+    laborConditionSetsResult, flexPhasesResult, salaryFrequenciesResult,
+    hrSettingsResult, employeeResult, bsnResult, primaryResult, ikvResult,
+    minimumWagesResult, scaleStepsResult,
+  ] = await Promise.all([
     supabase.from('departments').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('code').limit(500),
+    supabase.from('jobs').select('id, code, job_revisions(name)')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('cost_centers').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .eq('is_active', true).order('code').limit(500),
+    supabase.from('cost_carriers').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('code').limit(500),
+    supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('code').limit(500),
+    supabase.from('flex_phases').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('sort_order').limit(500),
+    supabase.from('salary_frequencies').select('id, code, name')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('is_active', true).order('code').limit(100),
+    supabase.from('administration_hr_settings').select('default_employment_country_code')
+      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle(),
+    supabase.from('employees').select('employee_number, nationality, birth_date, gender, updated_at')
+      .eq('tenant_id', context.tenantId).eq('id', employeeId).maybeSingle(),
+    supabase.from('employee_secure_identifiers').select('employee_id')
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
+      .not('bsn_fingerprint', 'is', null).maybeSingle(),
+    supabase.from('employments').select('id, starts_on, ends_on')
+      .eq('tenant_id', context.tenantId)
+      .eq('employee_id', employeeId).eq('is_primary', true).is('deleted_at', null)
+      .order('starts_on', { ascending: false }).limit(100),
     supabase.from('income_relationships').select('ikv_number')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .order('ikv_number', { ascending: false }).limit(1),
+    canWriteSalary
+      ? supabase.from('statutory_minimum_wages')
+        .select('minimum_age, hourly_amount, valid_from, valid_until')
+        .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+        .eq('country_code', 'NL').order('valid_from').order('minimum_age').limit(100)
+      : Promise.resolve({ data: [], error: null }),
     canWriteSalary
       ? supabase.from('salary_scale_steps')
         .select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
@@ -323,20 +393,58 @@ export async function getEmploymentCreationOptions(
         .order('fulltime_amount').limit(500)
       : Promise.resolve({ data: [], error: null }),
   ])
-  if (departmentsResult.error || costCentersResult.error || ikvResult.error || scaleStepsResult.error) {
+  const optionResults = [
+    departmentsResult, jobsResult, costCentersResult, costCarriersResult,
+    laborConditionSetsResult, flexPhasesResult, salaryFrequenciesResult,
+    hrSettingsResult, employeeResult, bsnResult, primaryResult, ikvResult,
+    minimumWagesResult, scaleStepsResult,
+  ]
+  if (optionResults.some((result) => result.error) || !employeeResult.data) {
     throw new EmploymentServiceError('EMPLOYMENT_OPTIONS_FAILED', 500)
   }
 
   return {
-    departments: departmentsResult.data,
-    costCenters: costCentersResult.data,
+    departments: departmentsResult.data ?? [],
+    jobs: (jobsResult.data ?? []).map((job) => ({
+      id: job.id,
+      code: job.code,
+      name: job.job_revisions[0]?.name ?? job.code,
+    })),
+    costCenters: costCentersResult.data ?? [],
+    costCarriers: costCarriersResult.data ?? [],
+    laborConditionSets: (laborConditionSetsResult.data ?? []).map((item) => ({
+      id: item.id,
+      code: item.code,
+      name: item.name,
+      standardHoursPerWeek: item.standard_hours_per_week,
+    })),
+    flexPhases: flexPhasesResult.data ?? [],
+    salaryFrequencies: salaryFrequenciesResult.data ?? [],
+    minimumWageRates: (minimumWagesResult.data ?? []).map((rate) => ({
+      minimumAge: rate.minimum_age,
+      hourlyAmount: rate.hourly_amount,
+      validFrom: rate.valid_from,
+      validUntil: rate.valid_until,
+    })),
     salaryScaleSteps: (scaleStepsResult.data ?? []).map((step) => ({
       id: step.id,
       label: `${step.salary_scales?.code ?? ''} · ${step.step_name || step.step_code}`,
       fulltimeAmount: step.fulltime_amount,
     })),
-    nextIkvNumber: (ikvResult.data[0]?.ikv_number ?? 0) + 1,
+    nextIkvNumber: Math.min((ikvResult.data?.[0]?.ikv_number ?? 0) + 1, 99),
     canWriteSalary,
+    defaultCountryCode: hrSettingsResult.data?.default_employment_country_code ?? 'NL',
+    defaultStartDate,
+    hasActivePrimaryEmployment: (primaryResult.data ?? []).some((employment) =>
+      employment.starts_on <= today && (!employment.ends_on || employment.ends_on >= today)),
+    prerequisites: {
+      employeeNumber: employeeResult.data.employee_number,
+      updatedAt: employeeResult.data.updated_at,
+      nationality: employeeResult.data.nationality,
+      birthDate: employeeResult.data.birth_date,
+      gender: employeeResult.data.gender,
+      hasBsn: Boolean(bsnResult.data),
+    },
   }
 }
 
@@ -382,7 +490,7 @@ export async function getEmployeeEmploymentDetail(
   const today = new Date().toISOString().slice(0, 10)
   const isAllScope = scope === 'all'
   const includePersonalData = isAllScope || scope === 'overview' || scope === 'personal'
-  const includeOverviewData = isAllScope || scope === 'overview'
+  const includeOverviewData = isAllScope || scope === 'overview' || scope === 'employments'
   const canReadSalaryPromise = includeOverviewData
     ? permissionAllowed('salary:read', employeeId)
     : Promise.resolve(false)
@@ -441,9 +549,17 @@ export async function getEmployeeEmploymentDetail(
       return query
     })()
     : Promise.resolve({ data: [], error: null })
+  const contractsQuery = includeOverviewData
+    ? supabase.from('employment_contracts').select('employment_id, worker_type, starts_on, ends_on, labor_condition_sets(name)')
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('starts_on', today)
+      .or(`ends_on.is.null,ends_on.gte.${today}`).order('starts_on', { ascending: false }).limit(100)
+    : Promise.resolve({ data: [], error: null })
   const profileLinksQuery = includeOverviewData
     ? supabase.from('employee_profile_links').select('id, label, url, link_type').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).order('sort_order').order('created_at').limit(50)
     : Promise.resolve({ data: [], error: null })
+  const settingsQuery = context.administrationId
+    ? supabase.from('administration_hr_settings').select('default_employment_country_code').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).maybeSingle()
+    : Promise.resolve({ data: null, error: null })
   const capabilityValuesPromise = Promise.all([
     permissionAllowed('employee:write', employeeId),
     includePersonalData ? permissionAllowed('employee-bsn:read', employeeId) : Promise.resolve(false),
@@ -460,9 +576,11 @@ export async function getEmployeeEmploymentDetail(
     { data: relationTypes, error: relationTypesError },
     { data: laborConditions, error: laborConditionsError },
     { data: schedules, error: schedulesError },
+    { data: contracts, error: contractsError },
     salaryResult,
     { data: organizations, error: organizationsError },
     { data: profileLinks, error: profileLinksError },
+    { data: settings, error: settingsError },
     capabilityValues,
     canReadSalary,
   ] = await Promise.all([
@@ -474,9 +592,11 @@ export async function getEmployeeEmploymentDetail(
     relationTypesQuery,
     laborConditionsQuery,
     schedulesQuery,
+    contractsQuery,
     salaryQuery,
     organizationQuery,
     profileLinksQuery,
+    settingsQuery,
     capabilityValuesPromise,
     canReadSalaryPromise,
   ])
@@ -486,7 +606,7 @@ export async function getEmployeeEmploymentDetail(
     bankAccounts: bankError !== null,
     relations: relationsError !== null || relationTypesError !== null,
   })
-  if (detailReadFailureCode || employmentsError || laborConditionsError || schedulesError || organizationsError || profileLinksError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
+  if (detailReadFailureCode || employmentsError || laborConditionsError || schedulesError || contractsError || organizationsError || profileLinksError || settingsError || salaryResult.error) throw new EmploymentServiceError(detailReadFailureCode ?? 'EMPLOYMENT_SUMMARY_READ_FAILED', 500)
 
   const currentEmploymentSummary = selectCurrentEmploymentSummary({
     today,
@@ -541,6 +661,20 @@ export async function getEmployeeEmploymentDetail(
       isArchived: employee.is_archived,
     },
     employments,
+    defaultCountryCode: settings?.default_employment_country_code ?? 'NL',
+    employmentCards: employments.map((employment) => {
+      const organization = (organizations ?? []).find((item) => item.employment_id === employment.id)
+      const schedule = (schedules ?? []).find((item) => item.employment_id === employment.id)
+      const contract = (contracts ?? []).find((item) => item.employment_id === employment.id)
+      return {
+        employmentId: employment.id,
+        departmentName: organization?.departments?.name ?? null,
+        jobTitle: organization?.job_title ?? null,
+        hoursPerWeek: schedule?.average_hours_per_week ?? null,
+        laborConditionName: contract?.labor_condition_sets?.name ?? null,
+        workerType: contract?.worker_type ?? null,
+      }
+    }),
     status: deriveEmploymentStatus(
       employments.map((employment) => ({
         startsOn: employment.starts_on,

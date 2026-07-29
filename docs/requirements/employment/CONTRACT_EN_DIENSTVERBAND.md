@@ -4,6 +4,25 @@
 
 > **Aanvulling 2026-07-18.** De aanmaakflow publiceert een dienstverband atomair met IKV-koppeling, organisatieplaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en een kostenverdeling van exact 100%. Functies, functiegroepen en salarisschaalrevisies zijn administratiegebonden en effective-dated. Gepubliceerde revisies zijn onveranderlijk; correcties krijgen een nieuwe geldigheidsperiode.
 
+> **Aanvulling 2026-07-29 — actuele contractstructuur.** Een `Employment` is het dienstverband en bevat land, IKV-nummer, primaire status, begin-/anciënniteitsdatum en de uitdienstgegevens. Eén dienstverband heeft één of meer direct aansluitende `employment_contracts`. Een contract bevat medewerkerstype, arbeidsvoorwaardenregeling, bepaalde/onbepaalde duur en proeftijd. Rooster, salaris, organisatieplaatsing en kostenverdeling blijven afzonderlijke, aansluitende tijdlijnen onder het dienstverband.
+
+### Goedgekeurde aanmaakflow 2026-07-29
+
+1. Controleer vóór de wizard personeelsnummer, nationaliteit, geboortedatum, geslacht en voor Nederland het BSN. Ontbrekende gegevens worden eerst in een verplicht tussenscherm aangevuld.
+2. Maak het dienstverband aan met primair ja/nee, IKV 1–99, begin- en anciënniteitsdatum en contractland. De begindatum staat standaard op de eerste dag van de volgende maand; het land komt uit de administratie-inrichting.
+3. Leg het eerste contract vast met medewerkerstype, eventuele flexfase, arbeidsvoorwaardenregeling, looptijd en proeftijd. De contractstart is in deze flow gelijk aan de dienstverbandstart en alleen-lezen.
+4. Leg rooster en weekuren vast. Oproepstatus, oproepverplichting en voltijd/deeltijd zijn conditioneel; het gemiddelde rooster moet exact gelijk zijn aan de contracturen per week.
+5. Leg salaris vast via handmatig, wettelijk minimumuurloon of salaristabel. Frequenties zijn administratiegebonden stamdata; voltijd- en deeltijdbedrag worden met de deeltijdfactor aan elkaar gerelateerd.
+6. Leg functie, afdeling, kostenplaats en kostendrager vast en publiceer alle onderdelen atomair.
+
+### Goedgekeurde detail-UX 2026-07-29
+
+- **Overzicht** bevat de dienstverband-/IKV-gegevens en een selecteerbare contracttijdlijn. Contracten kunnen vanuit een dialoog worden bekeken, gewijzigd en aansluitend toegevoegd.
+- De oude tabs **Basis/IKV** en **Arbeidsvoorwaarden** vervallen; hun gegevens staan op Overzicht en per contract.
+- **Rooster**, **Salaris**, **Organisatie** en **Kostenverdeling** gebruiken dezelfde selecteerbare tijdlijnopzet met detaildialoog, wijzigen en een aansluitende nieuwe periode.
+- Het dienstverband blijft alleen-lezen wanneer een nieuw contract aan een bestaand dienstverband wordt toegevoegd.
+- Er kan maximaal één primair actief dienstverband per medewerker bestaan, terwijl parallelle niet-primaire dienstverbanden en sequentiële herintredingen geldig blijven.
+
 ## 0. Goedgekeurde domeingrenzen
 
 - Een `Employee` is de permanente persoonskaart binnen precies één tenant en heeft **nul, één of meerdere** dienstverbanden. Een bezoeker, beveiliger of andere externe relatie mag dus zonder dienstverband bestaan.
@@ -20,6 +39,7 @@
 | Domein | Tabel |
 |---|---|
 | Arbeidsrelatie | `employments` |
+| Contractreeks binnen arbeidsrelatie | `employment_contracts` |
 | Fiscale inkomstenverhouding | `income_relationships` |
 | Tijdgebonden Employment–IKV-koppeling | `employment_income_relationships` |
 | Arbeidsvoorwaarden | `employment_labor_conditions` |
@@ -27,7 +47,7 @@
 | Salaris | `employment_salaries` |
 | Kostenverdeling | `employment_cost_allocations` |
 | Uitdienstworkflow | `employment_terminations` |
-| Stamtabellen | `job_groups`, `jobs`, `job_revisions`, `salary_scales`, `salary_scale_revisions`, `salary_scale_steps`, `cost_centers`, `employment_end_reasons` |
+| Stamtabellen | `job_groups`, `jobs`, `job_revisions`, `salary_scales`, `salary_scale_revisions`, `salary_scale_steps`, `cost_centers`, `cost_carriers`, `labor_condition_sets`, `flex_phases`, `salary_frequencies`, `statutory_minimum_wages`, `employment_end_reasons` |
 | HR-wijzigingenprojectie | `hr_change_events` (security-invoker view, zonder salarisbedragen) |
 | Duplicaatbesluit | `identity_match_decisions` |
 

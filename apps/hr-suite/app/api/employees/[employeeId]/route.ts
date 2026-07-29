@@ -7,7 +7,7 @@ import { employeeUpdateSchema } from '@/lib/employees/schemas'
 import { getEmployeeEmploymentDetail } from '@/lib/employment/employment-service'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
-const archiveSchema = z.object({ updatedAt: z.iso.datetime() }).strict()
+const archiveSchema = z.object({ updatedAt: z.iso.datetime({ offset: true }) }).strict()
 
 function errorResponse(error: unknown): NextResponse {
   const permission = permissionErrorResponse(error)

@@ -35,6 +35,7 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 | [`architecture/LOGIC_AND_WORKFLOW.md`](architecture/LOGIC_AND_WORKFLOW.md) | LEIDEND | Businesslogica, state, validatie, foutafhandeling en workflows |
 | [`architecture/UI_FLOW_BLUEPRINT.md`](architecture/UI_FLOW_BLUEPRINT.md) | LEIDEND | Pagina's, layouts, formulieren, navigatie en RBAC-zichtbaarheid |
 | [`architecture/LIQUID_DISPLAY_DOCUMENTATIE.md`](architecture/LIQUID_DISPLAY_DOCUMENTATIE.md) | LEIDEND | Alleen volledig bij Liquid Display, AI-querying, widgets of contextmanagement |
+| [`architecture/API_LANDSCHAP_EN_EXTERN_INTEGRATIE.md`](architecture/API_LANDSCHAP_EN_EXTERN_INTEGRATIE.md) | INVENTARISATIE | Bij externe koppelingen, API-ontsluiting, webhooks of AI-providerbeleid |
 
 ## Requirements
 
@@ -50,7 +51,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport |
 | Core HR | [`requirements/core-hr/MEDEWERKER.md`](requirements/core-hr/MEDEWERKER.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Medewerkerdashboard | [`requirements/core-hr/MEDEWERKER_DASHBOARD.md`](requirements/core-hr/MEDEWERKER_DASHBOARD.md) | LEIDEND | GEDEELTELIJK — dashboard-UI, lazy salaris, reminders, activity-notities en persoonlijke widgetvolgorde aanwezig; remote schema/advisors en per-rol browsercontrole volgen |
-| Contract & dienstverband | [`requirements/employment/CONTRACT_EN_DIENSTVERBAND.md`](requirements/employment/CONTRACT_EN_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — volledige publicatieflow en tijdkaart gereed; detailmutaties basis/IKV blijven open |
+| Contract & dienstverband | [`requirements/employment/CONTRACT_EN_DIENSTVERBAND.md`](requirements/employment/CONTRACT_EN_DIENSTVERBAND.md) | LEIDEND | GEÏMPLEMENTEERD — contractreeks, vernieuwde wizard, contract-/rooster-/salaris-/organisatie-/kostentijdlijnen en HR-inrichting gereed |
 | Organisatie | [`requirements/organization/AFDELINGEN_EN_ROLLEN.md`](requirements/organization/AFDELINGEN_EN_ROLLEN.md) | LEIDEND | GEÏMPLEMENTEERD |
 | Organogram | [`requirements/organization/ORGANOGRAM.md`](requirements/organization/ORGANOGRAM.md) | LEIDEND | GEÏMPLEMENTEERD |
 
@@ -98,7 +99,7 @@ Er zijn momenteel geen documenten met status **VERVANGEN**. Zodra een document w
 - Verzuimcasus per dienstverband en ziekteperioden: [`decisions/ADR-0005-verzuimcasus-en-ziekteperioden.md`](decisions/ADR-0005-verzuimcasus-en-ziekteperioden.md)
 - Verzuimcasusscope en privacy: [`decisions/FDR-0002-verzuim-casusscope-en-privacy.md`](decisions/FDR-0002-verzuim-casusscope-en-privacy.md)
 
-Actuele verticale slice (2026-07-27): de server-rendered Startpagina is de veilige loginbestemming en is expliciet administratie- en rol/RLS-gescoord; ontbrekende bronnen tonen Werk in uitvoering zonder fictieve data. De bedrijfsdocument-read-policies zijn live administratiegebonden gehard. De employment-header, custom-fieldbeheer, functiecatalogusbeheer en eerdere medewerkerverbeteringen blijven onderdeel van dezelfde release. De actuele status staat in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
+Actuele verticale slice (2026-07-29): dienstverbanden ondersteunen parallelle en sequentiële relaties met één actief primair dienstverband, een eigen contractreeks en onafhankelijke tijdlijnen. De vernieuwde aanmaakwizard controleert eerst de basisgegevens en publiceert daarna dienstverband, contract, rooster, salaris, organisatie en kosten atomair. Contractinrichting is als administratiegebonden stamdata beschikbaar onder Instellingen. De actuele status staat in `delivery/IMPLEMENTATION_STATUS.md` en `delivery/CURRENT_CONTEXT.md`.
 
 Het autorisatiebeheer en grafische rechtenoverzicht zijn beschreven in [`superpowers/specs/2026-07-18-autorisatieoverzicht-design.md`](superpowers/specs/2026-07-18-autorisatieoverzicht-design.md).
 
@@ -106,4 +107,4 @@ De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport
 
 De medewerkerlijst/persoonskaart-UX-slice van 2026-07-19 is geïmplementeerd: gebruikersgebonden lijstvoorkeuren zonder zoekterm, Enter-zoeken met afzonderlijk wissen, volledige klikrij, hoofdtab Overzicht vóór Persoonsgegevens en een effective-dated samenvatting van het huidige dienstverband met beschermd salaris-hover.
 
-De HR-admin-stamtabellenslice van 2026-07-19 staat op `codex/settings-rosters-calendar`: `/master-data` gebruikt gesloten accordions voor interne redenen, documentcategorieën en tenant-relatietypen; documenten gebruiken actieve Cloud tags. De relation-typecatalogus staat in migratie `20260719170000_add_tenant_relation_type_catalog.sql` met RLS en standaardseedrecords.
+De HR-admin-stamtabellen staan op `/master-data`: Redenen uitdienst, documentcategorieën en tenant-relatietypen zijn afzonderlijke onderdelen. Redenen uitdienst zijn landgebonden; Nederland gebruikt de actuele codes 01-99 en andere landen krijgen bij ontbrekende inrichting de veilige standaardreden `Einde contract`.

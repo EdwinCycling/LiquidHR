@@ -59,9 +59,27 @@ export const salaryRevisionSchema = z.object({
   if (new Set(sequences).size !== sequences.length) context.addIssue({ code: 'custom', path: ['steps'], message: 'DUPLICATE_SEQUENCE_NUMBER' })
 })
 
+const countryCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/)
+
+export const endReasonCreateSchema = z.object({
+  countryCode: countryCodeSchema,
+  code: z.string().trim().min(1).max(40),
+  nameNl: z.string().trim().min(1).max(300),
+  nameEn: z.string().trim().min(1).max(300),
+}).strict()
+
+export const endReasonUpdateSchema = z.object({
+  code: z.string().trim().min(1).max(40).optional(),
+  nameNl: z.string().trim().min(1).max(300).optional(),
+  nameEn: z.string().trim().min(1).max(300).optional(),
+  isActive: z.boolean().optional(),
+}).strict().refine((value) => Object.keys(value).length > 0)
+
 export type JobGroupCreateInput = z.infer<typeof jobGroupCreateSchema>
 export type JobCreateInput = z.infer<typeof jobCreateSchema>
 export type JobGroupUpdateInput = z.infer<typeof jobGroupUpdateSchema>
 export type JobUpdateInput = z.infer<typeof jobUpdateSchema>
 export type SalaryScaleCreateInput = z.infer<typeof salaryScaleCreateSchema>
 export type SalaryRevisionInput = z.infer<typeof salaryRevisionSchema>
+export type EndReasonCreateInput = z.infer<typeof endReasonCreateSchema>
+export type EndReasonUpdateInput = z.infer<typeof endReasonUpdateSchema>

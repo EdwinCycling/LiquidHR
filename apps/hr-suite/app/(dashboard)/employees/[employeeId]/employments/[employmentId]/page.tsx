@@ -9,9 +9,13 @@ import {
   MapPin,
   Phone,
   Sparkles,
+  UserRound,
 } from "lucide-react";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
+import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
+import { SelectableTimelineList } from "@/components/employment/selectable-timeline-list";
+import { OrganizationTimelineManager } from "@/components/employment/organization-timeline-manager";
 import { WorkPatternPanel } from "@/components/employment/work-pattern-panel";
 import {
   EmploymentDetailError,
@@ -20,6 +24,7 @@ import {
 import { getLocale, getTranslator } from "@/lib/i18n/server";
 import { getUserPreferences } from "@/lib/preferences/server";
 import { formatDate, formatDateTime } from "@/lib/preferences/formatters";
+import { seniorityDuration } from "@/lib/employment/seniority";
 import type { DateFormat } from "@/lib/preferences/user-preferences";
 import { listEmployeeHrEvents } from "@/lib/hr-events/service";
 
@@ -30,8 +35,6 @@ interface PageProps {
 
 const tabs = [
   "overview",
-  "basics",
-  "labor",
   "schedule",
   "salary",
   "organization",
@@ -106,6 +109,8 @@ export default async function EmploymentDetailPage({
   );
   const expanded = query.view !== "compact";
   const today = new Date().toISOString().slice(0, 10);
+  const seniority = seniorityDuration(detail.employment.seniority_date, today);
+  const currentContract = detail.contracts.find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on >= today)) ?? detail.contracts[0];
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? "")
     ? query.date!
     : today;
@@ -136,6 +141,7 @@ export default async function EmploymentDetailPage({
       "fulltimeAmount",
       "hourlyRate",
       "costCenter",
+      "costCarrier",
       "percentage",
       "addAllocation",
       "allocationTotal",
@@ -171,8 +177,6 @@ export default async function EmploymentDetailPage({
   );
   const tabLabels: Record<Tab, string> = {
     overview: t("tabsOverview"),
-    basics: t("tabsBasics"),
-    labor: t("tabsLabor"),
     schedule: t("tabsSchedule"),
     salary: t("tabsSalary"),
     organization: t("tabsOrganization"),
@@ -185,46 +189,27 @@ export default async function EmploymentDetailPage({
       : detail.employment.ends_on && detail.employment.ends_on < today
         ? t("ended")
         : t("active");
-  const currentSchedule = detail.schedules[0];
-  const currentSalary = detail.salaries[0];
   const contractTypeLabel = detail.employment.contract_type === 'INDEFINITE' ? t('indefinite') : t('definite');
-  const directPayloads = {
-    SCHEDULE: currentSchedule
-      ? {
-          scheduleType: currentSchedule.schedule_type,
-          startWeek: currentSchedule.start_week,
-          averageDaysPerWeek: currentSchedule.average_days_per_week,
-          averageHoursPerWeek: currentSchedule.average_hours_per_week,
-          partTimeFactor: currentSchedule.part_time_factor,
-          timeForTimeAccrual: currentSchedule.time_for_time_accrual,
-          mondayHours: currentSchedule.monday_hours,
-          tuesdayHours: currentSchedule.tuesday_hours,
-          wednesdayHours: currentSchedule.wednesday_hours,
-          thursdayHours: currentSchedule.thursday_hours,
-          fridayHours: currentSchedule.friday_hours,
-          saturdayHours: currentSchedule.saturday_hours,
-          sundayHours: currentSchedule.sunday_hours,
-        }
-      : undefined,
-    SALARY: currentSalary
-      ? {
-          paymentType: currentSalary.payment_type,
-          paymentFrequency: currentSalary.payment_frequency,
-          salaryBasis: currentSalary.salary_basis,
-          fulltimeAmount: currentSalary.fulltime_amount,
-          hourlyRate: currentSalary.hourly_rate,
-          currencyCode: currentSalary.currency_code,
-          salaryScaleStepId: currentSalary.salary_scale_step_id,
-          caoScaleName: currentSalary.cao_scale_name,
-          caoStepName: currentSalary.cao_step_name,
-        }
-      : undefined,
+  const workerTypeLabel = currentContract?.worker_type === 'EMPLOYEE'
+    ? t('workerEmployee')
+    : currentContract?.worker_type === 'STUDENT_INTERN'
+      ? t('workerStudentIntern')
+      : currentContract?.worker_type === 'TEMPORARY_AGENCY'
+        ? t('workerTemporaryAgency')
+        : currentContract?.worker_type === 'EXTERNAL_NO_PAYROLL'
+          ? t('workerExternal')
+          : t('notRecorded');
+  const timelineListLabels = {
+    current: t("currentValue"),
+    history: t("historyLabel"),
+    empty: t("notRecorded"),
+    close: t("cancel"),
   };
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
       <Link
-        href={`/employees/${employeeId}?tab=${query.fromTab === 'reminders' ? 'reminders' : 'employments'}`}
+        href={`/employees/${employeeId}?tab=${query.fromTab === 'overview' ? 'overview' : query.fromTab === 'personal' ? 'personal' : query.fromTab === 'reminders' ? 'reminders' : 'employments'}`}
         className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -268,7 +253,14 @@ export default async function EmploymentDetailPage({
             </div>
           </div>
           <div className="relative flex flex-wrap items-center gap-2">
-            {expanded && <><span className="status-chip bg-success-surface text-success">{t("employmentContext")}</span><span className="status-chip bg-accent text-accent-foreground">{effectiveStatus}</span></>}
+            {expanded && <>
+              <span className="status-chip bg-success-surface text-success">{t("employmentContext")}</span>
+              <span className="status-chip bg-accent text-accent-foreground">{effectiveStatus}</span>
+              <span className="status-chip bg-primary-foreground/15 text-primary-foreground">
+                <UserRound aria-hidden="true" className="h-3.5 w-3.5" />
+                {workerTypeLabel}
+              </span>
+            </>}
             <Link
               prefetch={false}
               className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
@@ -324,12 +316,12 @@ export default async function EmploymentDetailPage({
 
       <div className="mt-6">
         {tab === "overview" && (
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]">
+          <div className="space-y-5">
             <section className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <DataCard
-                  title={t("contractType")}
-                  value={contractTypeLabel}
+                  title={t("employmentNumber")}
+                  value={detail.employment.employment_number}
                 />
                 <DataCard
                   title={t("startDate")}
@@ -341,131 +333,82 @@ export default async function EmploymentDetailPage({
                     t("active"),
                   )}
                 />
+                <DataCard title={t("seniorityDate")} value={detail.employment.seniority_date} meta={seniority ? t("seniorityDuration", { years: seniority.years, months: seniority.months }) : t("notRecorded")} />
+                <DataCard title={t("country")} value={detail.employment.country_code} />
                 <DataCard
-                  title={t("administration")}
-                  value={detail.administration.name}
-                  meta={detail.administration.code}
+                  title={t("incomeRelationshipNumber")}
+                  value={String(detail.incomeRelationships[0]?.income_relationships?.ikv_number ?? t("notRecorded"))}
                 />
-                <DataCard title={t("status")} value={effectiveStatus} />
+                <DataCard title={t("laborConditions")} value={currentContract?.labor_condition_sets?.name ?? t("notRecorded")} />
+                <DataCard title={t("workerType")} value={currentContract?.worker_type === "EMPLOYEE" ? t("workerEmployee") : currentContract?.worker_type === "STUDENT_INTERN" ? t("workerStudentIntern") : currentContract?.worker_type === "TEMPORARY_AGENCY" ? t("workerTemporaryAgency") : currentContract?.worker_type === "EXTERNAL_NO_PAYROLL" ? t("workerExternal") : t("notRecorded")} />
               </div>
-              <article className="rounded-2xl border bg-surface p-5 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-foreground">
-                    <Sparkles className="h-5 w-5" />
-                  </span>
-                  <h2 className="text-lg font-semibold">{t("aiSummary")}</h2>
-                </div>
-                <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  {t("aiSummaryPlaceholder")}
-                </p>
-              </article>
             </section>
-          </div>
-        )}
-
-        {tab === "basics" && (
-          <div className="grid gap-5 lg:grid-cols-2">
-            <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-              <h2 className="text-lg font-semibold">{t("tabsBasics")}</h2>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs font-semibold text-muted-foreground">
-                    {t("employmentNumber")}
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    {detail.employment.employment_number}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold text-muted-foreground">
-                    {t("seniorityDate")}
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    {detail.employment.seniority_date}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold text-muted-foreground">
-                    {t("startDate")}
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    {detail.employment.starts_on}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold text-muted-foreground">
-                    {t("endsOn")}
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    {detail.employment.ends_on ?? t("notRecorded")}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-            <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-              <h2 className="text-lg font-semibold">
-                {t("incomeRelationship")}
-              </h2>
-              {detail.incomeRelationships.length === 0 ? (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  {t("notRecorded")}
-                </p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {detail.incomeRelationships.map((link) => (
-                    <article key={link.id} className="rounded-xl bg-muted p-4">
-                      <p className="font-semibold">
-                        {t("incomeRelationshipNumber")}{" "}
-                        {link.income_relationships?.ikv_number}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {periodLabel(
-                          link.valid_from,
-                          link.valid_until,
-                          locale,
-                          preferences.dateFormat,
-                          t("active"),
-                        )}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-        )}
-
-        {tab === "labor" && (
-          <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
-            <section className="space-y-3">
-              {detail.laborConditions.map((row, index) => (
-                <DataCard
-                  key={row.id}
-                  title={index === 0 ? t("currentValue") : t("historyLabel")}
-                  value={row.condition_group}
-                  meta={periodLabel(
-                    row.valid_from,
-                    row.valid_until,
-                    locale,
-                    preferences.dateFormat,
-                    t("active"),
-                  )}
-                />
-              ))}
-            </section>
-            <EmploymentMutationPanel
+            <EmploymentContractTimeline
               employmentId={employmentId}
-              timeline="LABOR_CONDITIONS"
               canWrite={detail.capabilities.canWriteContract}
-              blockCount={detail.laborConditions.length}
-              latestEffectiveOn={detail.laborConditions[0]?.valid_from}
-              directPayloads={directPayloads}
-              labels={mutationLabels}
+              contracts={detail.contracts.map((contract) => ({
+                id: contract.id,
+                sequenceNumber: contract.sequence_number,
+                workerType: contract.worker_type,
+                flexPhaseId: contract.flex_phase_id,
+                flexPhaseName: contract.flex_phases?.name ?? null,
+                laborConditionSetId: contract.labor_condition_set_id,
+                laborConditionName: contract.labor_condition_sets?.name ?? t("notRecorded"),
+                durationType: contract.duration_type,
+                startsOn: contract.starts_on,
+                endsOn: contract.ends_on,
+                probationApplies: contract.probation_applies,
+                probationEndsOn: contract.probation_ends_on,
+              }))}
+              options={{
+                laborConditionSets: [...detail.options.laborConditionSets],
+                flexPhases: [...detail.options.flexPhases],
+              }}
+              labels={{
+                title: t("contractsTitle"), add: t("contractAdd"), edit: t("change"),
+                close: t("cancel"), save: t("confirm"), cancel: t("cancel"),
+                workerType: t("workerType"), flexPhase: t("flexPhase"),
+                laborConditions: t("laborConditions"), duration: t("duration"),
+                startDate: t("startDate"), endDate: t("endsOn"),
+                probation: t("probation"), probationEnd: t("probationEnd"),
+                indefinite: t("indefinite"), definite: t("definite"),
+                yes: t("yes"), no: t("no"), workerEmployee: t("workerEmployee"),
+                workerStudentIntern: t("workerStudentIntern"),
+                workerTemporaryAgency: t("workerTemporaryAgency"),
+                workerExternal: t("workerExternal"), active: t("active"),
+                failed: t("changeFailed"), addBlocked: t("contractAddBlocked"),
+              }}
             />
+            <article className="rounded-2xl border bg-surface p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-foreground">
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <h2 className="text-lg font-semibold">{t("aiSummary")}</h2>
+              </div>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+                {t("aiSummaryPlaceholder")}
+              </p>
+            </article>
           </div>
         )}
         {tab === "schedule" && (
           <div className="space-y-6">
+            <SelectableTimelineList
+              labels={timelineListLabels}
+              items={detail.schedules.map((row) => ({
+                id: row.id,
+                title: `${row.average_hours_per_week} ${t("weeklyHours")}`,
+                period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
+                summary: `${row.average_days_per_week} ${t("averageDays")} · ${Math.round(Number(row.part_time_factor) * 100)}%`,
+                details: [
+                  { label: t("scheduleType"), value: row.schedule_type },
+                  { label: t("weeklyHours"), value: String(row.average_hours_per_week) },
+                  { label: t("partTimeFactor"), value: `${Math.round(Number(row.part_time_factor) * 100)}%` },
+                  { label: t("onCallEmployee"), value: row.is_on_call ? t("yes") : t("no") },
+                ],
+              }))}
+            />
             <WorkPatternPanel
               employmentId={employmentId}
               canWrite={detail.capabilities.canWriteWorkSchedule}
@@ -532,25 +475,24 @@ export default async function EmploymentDetailPage({
         )}
         {tab === "salary" && detail.capabilities.canReadSalary && (
           <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
-            <section className="space-y-3">
-              {detail.salaries.map((row, index) => (
-                <DataCard
-                  key={row.id}
-                  title={index === 0 ? t("currentValue") : t("historyLabel")}
-                  value={new Intl.NumberFormat(locale, {
+            <SelectableTimelineList
+              labels={timelineListLabels}
+              items={detail.salaries.map((row) => ({
+                id: row.id,
+                title: new Intl.NumberFormat(locale, {
                     style: "currency",
                     currency: row.currency_code,
-                  }).format(row.fulltime_amount ?? row.hourly_rate ?? 0)}
-                  meta={periodLabel(
-                    row.valid_from,
-                    row.valid_until,
-                    locale,
-                    preferences.dateFormat,
-                    t("active"),
-                  )}
-                />
-              ))}
-            </section>
+                }).format(row.parttime_amount ?? row.fulltime_amount ?? row.hourly_rate ?? 0),
+                period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
+                summary: `${row.salary_basis} · ${row.payment_frequency}`,
+                details: [
+                  { label: t("salaryCalculation"), value: row.salary_basis },
+                  { label: t("fulltimeSalary"), value: String(row.fulltime_amount ?? "—") },
+                  { label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") },
+                  { label: t("frequency"), value: row.payment_frequency },
+                ],
+              }))}
+            />
             <EmploymentMutationPanel
               employmentId={employmentId}
               timeline="SALARY"
@@ -562,35 +504,47 @@ export default async function EmploymentDetailPage({
           </div>
         )}
         {tab === "organization" && (
-          <section className="space-y-3">
-            {detail.organizations.map((row, index) => (
-              <DataCard
-                key={row.id}
-                title={index === 0 ? t("currentValue") : t("historyLabel")}
-                value={`${row.departments?.code ?? ""} · ${row.departments?.name ?? t("notRecorded")}`}
-                meta={`${row.job_title ?? t("notRecorded")} · ${periodLabel(row.effective_from, row.effective_to, locale, preferences.dateFormat, t("active"))}`}
-              />
-            ))}
-          </section>
+          <OrganizationTimelineManager
+            employmentId={employmentId}
+            canWrite={detail.capabilities.canWriteOrganization}
+            placements={detail.organizations.map((row) => ({
+              id: row.id,
+              departmentId: row.department_id,
+              departmentName: `${row.departments?.code ?? ""} · ${row.departments?.name ?? t("notRecorded")}`,
+              jobId: row.job_id,
+              jobName: row.job_title ?? t("notRecorded"),
+              effectiveFrom: row.effective_from,
+              effectiveTo: row.effective_to,
+            }))}
+            options={{
+              departments: [...detail.options.departments],
+              jobs: [...detail.options.jobs],
+            }}
+            labels={{
+              current: t("currentValue"), history: t("historyLabel"),
+              add: t("timelineAdd"), edit: t("change"), save: t("confirm"),
+              cancel: t("cancel"), department: t("department"), job: t("job"),
+              effectiveOn: t("effectiveOn"), active: t("active"), failed: t("changeFailed"),
+            }}
+          />
         )}
         {tab === "costs" && (
           <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
-            <section className="space-y-3">
-              {detail.costAllocations.map((row) => (
-                <DataCard
-                  key={row.id}
-                  title={`${row.cost_centers?.code ?? ""} · ${row.cost_centers?.name ?? t("costCenter")}`}
-                  value={`${row.percentage}%`}
-                  meta={periodLabel(
-                    row.valid_from,
-                    row.valid_until,
-                    locale,
-                    preferences.dateFormat,
-                    t("active"),
-                  )}
-                />
-              ))}
-            </section>
+            <SelectableTimelineList
+              labels={timelineListLabels}
+              items={detail.costAllocations.map((row) => ({
+                id: row.id,
+                title: `${row.cost_centers?.code ?? ""} · ${row.cost_centers?.name ?? t("costCenter")}`,
+                period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
+                summary: `${row.percentage}% · ${row.cost_carriers?.name ?? t("costCarrier")}`,
+                details: [
+                  { label: t("costCenter"), value: row.cost_centers?.name ?? t("notRecorded") },
+                  { label: t("costCarrier"), value: row.cost_carriers?.name ?? t("notRecorded") },
+                  { label: t("percentage"), value: `${row.percentage}%` },
+                  { label: t("startDate"), value: row.valid_from },
+                ],
+              }))}
+            />
             <EmploymentMutationPanel
               employmentId={employmentId}
               timeline="COST_ALLOCATION"
@@ -601,6 +555,7 @@ export default async function EmploymentDetailPage({
               }
               latestEffectiveOn={detail.costAllocations[0]?.valid_from}
               costCenters={detail.options.costCenters}
+              costCarriers={detail.options.costCarriers}
               labels={mutationLabels}
             />
           </div>

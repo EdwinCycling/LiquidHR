@@ -1,3 +1,5 @@
 import { NextResponse } from 'next/server'
-import { EndReasonError, listEndReasons } from '@/lib/master-data/end-reasons'
-export async function GET() { try { return NextResponse.json({ data: await listEndReasons() }) } catch (error) { return NextResponse.json({ error: error instanceof EndReasonError ? error.code : 'END_REASON_READ_FAILED' }, { status: error instanceof EndReasonError ? error.status : 500 }) } }
+import { createEndReason, EndReasonError, listEndReasons } from '@/lib/master-data/end-reasons'
+import { endReasonCreateSchema } from '@/lib/master-data/schemas'
+export async function GET(request: Request) { try { return NextResponse.json({ data: await listEndReasons(new URL(request.url).searchParams.get('country') ?? 'NL') }) } catch (error) { return NextResponse.json({ error: error instanceof EndReasonError ? error.code : 'END_REASON_READ_FAILED' }, { status: error instanceof EndReasonError ? error.status : 500 }) } }
+export async function POST(request: Request) { try { const input = endReasonCreateSchema.safeParse(await request.json()); if (!input.success) return NextResponse.json({ error: 'END_REASON_INPUT_INVALID' }, { status: 400 }); return NextResponse.json({ data: { id: await createEndReason(input.data) } }, { status: 201 }) } catch (error) { return NextResponse.json({ error: error instanceof EndReasonError ? error.code : 'END_REASON_CREATE_FAILED' }, { status: error instanceof EndReasonError ? error.status : 500 }) } }

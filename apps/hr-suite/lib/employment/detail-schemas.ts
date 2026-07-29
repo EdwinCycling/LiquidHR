@@ -69,6 +69,7 @@ const costAllocationMutation = z.object({
   payload: z.object({
     allocations: z.array(z.object({
       costCenterId: z.string().uuid(),
+      costCarrierId: z.string().uuid(),
       percentage: z.number().gt(0).max(100),
     }).strict()).min(1).max(50),
   }).strict().superRefine((value, context) => {

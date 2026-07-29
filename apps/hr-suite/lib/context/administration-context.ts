@@ -62,6 +62,8 @@ export class ContextAccessError extends Error {
 
 export type AdministrationSwitcherMode = 'HIDDEN' | 'LABEL' | 'SELECT'
 
+export const ADMINISTRATION_SWITCH_SUCCESS_PATH = '/dashboard/start'
+
 export function getAdministrationSwitcherMode(context: ActiveContext): AdministrationSwitcherMode {
   if (context.tenant.administrationMode === 'COMBINED') return 'HIDDEN'
   return context.administrations.length > 1 ? 'SELECT' : 'LABEL'

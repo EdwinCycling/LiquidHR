@@ -17,6 +17,8 @@
   "description": "Omschrijving",
   "tags": "Tags, gescheiden door komma’s",
   "category": "Categorie",
+  "customMetadata": "Vrije documentvelden",
+  "automaticValue": "Wordt automatisch toegekend",
   "visibleToTitle": "Wie mag dit document zien?",
   "visibleToEmployee": "Medewerker mag inzien",
   "visibleToRole": "Extra rollen met inzage",

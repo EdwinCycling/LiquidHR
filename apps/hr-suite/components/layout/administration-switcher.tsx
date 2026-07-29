@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { ADMINISTRATION_SWITCH_SUCCESS_PATH } from '@/lib/context/administration-context'
 import type {
   AdministrationContextOption,
   AdministrationSwitcherMode,
@@ -72,7 +73,7 @@ export function AdministrationSwitcher({
         throw new Error(message)
       }
 
-      router.refresh()
+      router.replace(ADMINISTRATION_SWITCH_SUCCESS_PATH)
     } catch (switchError) {
       setError(switchError instanceof Error ? switchError.message : labels.switchFailed)
     } finally {

@@ -54,11 +54,9 @@ describe('completeEmploymentCreateSchema', () => {
   const valid = {
     employment: {
       employmentNumber: 'DV-100',
-      employmentType: 'EMPLOYEE',
-      contractType: 'INDEFINITE',
       startsOn: '2026-08-01',
       seniorityDate: '2026-08-01',
-      originalHireDate: '2026-08-01',
+      countryCode: 'NL',
       isPrimary: true,
     },
     incomeRelationship: {
@@ -68,20 +66,31 @@ describe('completeEmploymentCreateSchema', () => {
     },
     organization: {
       departmentId: '343cb812-9b7f-4a22-97bc-7351ad088c8a',
+      jobId: '683b3fb4-3183-4f4c-9adb-4a356164c51e',
       jobTitle: 'HR adviseur',
       effectiveFrom: '2026-08-01',
     },
-    laborCondition: {
-      conditionGroup: 'Cao Gemeenten',
-      validFrom: '2026-08-01',
+    contract: {
+      workerType: 'EMPLOYEE',
+      laborConditionSetId: 'a0f5d57b-0956-473e-a84a-970ab42e1826',
+      durationType: 'INDEFINITE',
+      startsOn: '2026-08-01',
+      probationApplies: false,
     },
     schedule: {
       scheduleType: 'HOURS_AND_AVG_DAYS',
       startWeek: 1,
       averageDaysPerWeek: 5,
-      averageHoursPerWeek: 36,
+      averageHoursPerWeek: 40,
       partTimeFactor: 1,
       timeForTimeAccrual: 0,
+      isOnCall: false,
+      workScope: 'FULL_TIME',
+      mondayHours: 8,
+      tuesdayHours: 8,
+      wednesdayHours: 8,
+      thursdayHours: 8,
+      fridayHours: 8,
       validFrom: '2026-08-01',
     },
     salary: {
@@ -89,14 +98,24 @@ describe('completeEmploymentCreateSchema', () => {
       paymentFrequency: 'MONTHLY',
       salaryBasis: 'MANUAL',
       fulltimeAmount: 4200,
+      parttimeAmount: 4200,
       currencyCode: 'EUR',
+      salaryFrequencyId: '4dc72351-5bcc-45f2-9823-253c597583c0',
       validFrom: '2026-08-01',
     },
     costAllocation: {
       validFrom: '2026-08-01',
       allocations: [
-        { costCenterId: '62e73cdd-c95f-477c-934d-3c17b308bda2', percentage: 60 },
-        { costCenterId: '7c8733fc-7765-4f75-9e61-18458ac31dd8', percentage: 40 },
+        {
+          costCenterId: '62e73cdd-c95f-477c-934d-3c17b308bda2',
+          costCarrierId: 'f5f460c0-1815-48da-8857-999297a97e06',
+          percentage: 60,
+        },
+        {
+          costCenterId: '7c8733fc-7765-4f75-9e61-18458ac31dd8',
+          costCarrierId: 'f5f460c0-1815-48da-8857-999297a97e06',
+          percentage: 40,
+        },
       ],
     },
   }
@@ -126,6 +145,31 @@ describe('completeEmploymentCreateSchema', () => {
     expect(completeEmploymentCreateSchema.safeParse({
       ...valid,
       schedule: { ...valid.schedule, validFrom: '2026-08-02' },
+    }).success).toBe(false)
+  })
+
+  it('vereist een flexfase uitsluitend voor een uitzendkracht', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      contract: { ...valid.contract, workerType: 'TEMPORARY_AGENCY', flexPhaseId: null },
+    }).success).toBe(false)
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      contract: { ...valid.contract, flexPhaseId: crypto.randomUUID() },
+    }).success).toBe(false)
+  })
+
+  it('vereist dat het rooster exact aansluit op de weekuren', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      schedule: { ...valid.schedule, fridayHours: 7 },
+    }).success).toBe(false)
+  })
+
+  it('weigert een IKV-nummer buiten 1 tot en met 99', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      incomeRelationship: { ...valid.incomeRelationship, ikvNumber: 100 },
     }).success).toBe(false)
   })
 })

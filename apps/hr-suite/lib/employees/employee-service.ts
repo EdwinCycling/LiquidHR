@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { decryptPii, encryptPii } from '@/lib/security/pii-crypto'
 import { EmployeeServiceError } from './errors'
+import { compactEmployeeAvatar } from './avatar-image'
 import {
   isPostgresConflict,
   toEmployeeInsert,
@@ -20,6 +21,7 @@ import type {
 } from './schemas'
 
 export { EmployeeServiceError } from './errors'
+
 
 function toAddressLine1(input: AddressInput): string {
   const supplied = input.addressLine1?.trim()
@@ -199,15 +201,12 @@ export function employeeAvatarHref(employeeId: string, storedValue: string | nul
 
 export async function uploadEmployeeAvatar(employeeId: string, file: File): Promise<void> {
   const context = await requirePermission('employee:write', employeeId)
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-    throw new EmployeeServiceError('EMPLOYEE_AVATAR_INPUT_INVALID', 400)
-  }
+  const compacted = await compactEmployeeAvatar(file)
   const supabase = await createClient()
   const { data: current, error: currentError } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
   if (currentError || !current) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
-  const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
-  const path = `${context.tenantId}/${employeeId}/${crypto.randomUUID()}.${extension}`
-  const upload = await supabase.storage.from('employee-avatars').upload(path, file, { contentType: file.type, upsert: false })
+  const path = `${context.tenantId}/${employeeId}/${crypto.randomUUID()}.webp`
+  const upload = await supabase.storage.from('employee-avatars').upload(path, compacted, { contentType: 'image/webp', upsert: false })
   if (upload.error) throw new EmployeeServiceError('EMPLOYEE_AVATAR_UPLOAD_FAILED', 500)
   const { error } = await supabase.from('employees').update({ avatar_url: `storage://${path}` }).eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null)
   if (error) {

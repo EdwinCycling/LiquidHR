@@ -5,7 +5,6 @@ import { KeyRound, Layers3, Network, Plus, RotateCcw, Save, Search, ShieldCheck,
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import {
-  authorizationCoverageTarget,
   buildAuthorizationOverview,
   normalizeAuthorizationTab,
   permissionCoverage,
@@ -28,7 +27,7 @@ export interface AuthorizationLabels {
   selectedCount: string; selectAll: string; clearAll: string; unsavedChanges: string; resetChanges: string
   readOnlyRole: string; inactiveRole: string; activeRole: string; coverage: string; coverageExplanation: string
   overviewTitle: string; overviewSubtitle: string; scopeNoticeTitle: string; scopeNotice: string
-  assignmentTitle: string; assignmentSubtitle: string; noSearchResults: string; permissionCode: string
+  assignmentTitle: string; assignmentSubtitle: string; noSearchResults: string; permissionCode: string; selfAuthorizationLockout: string
 }
 interface AuthorizationManagerProps {
   roles: Role[]
@@ -61,6 +60,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
   const [permissionSearch, setPermissionSearch] = useState('')
   const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [coverageDialog, setCoverageDialog] = useState<{ roleId: string; category: string } | null>(null)
 
   const groups = useMemo(() => Map.groupBy(permissions, (permission) => permission.category), [permissions])
   const overview = useMemo(() => buildAuthorizationOverview({
@@ -69,7 +69,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     rolePermissions: rolePermissions.map((assignment) => ({ roleId: assignment.management_role_id, permissionId: assignment.permission_id })),
   }), [permissions, rolePermissions, roles])
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null
-  const editable = Boolean(selectedRole?.tenant_id && !selectedRole.is_system)
+  const editable = Boolean(selectedRole && ((selectedRole.tenant_id && !selectedRole.is_system) || (selectedRole.tenant_id === null && selectedRole.is_system)))
   const dirty = permissionSelectionChanged(savedPermissionIds, permissionIds)
   const changedCount = new Set([...savedPermissionIds, ...permissionIds].filter((id) => savedPermissionIds.has(id) !== permissionIds.has(id))).size
   const normalizedRoleSearch = roleSearch.trim().toLocaleLowerCase()
@@ -93,19 +93,21 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     setHighlightedCategory(null)
   }
 
-  function inspectCoverage(roleId: string, category: string): void {
-    const target = authorizationCoverageTarget(roleId, category)
-    selectRole(target.roleId)
-    setHighlightedCategory(target.category)
-    setPermissionSearch('')
-    setTab('permissions')
-  }
+  const coverageRole = coverageDialog ? roles.find((role) => role.id === coverageDialog.roleId) ?? null : null
+  const coveragePermissions = coverageDialog && coverageRole
+    ? (groups.get(coverageDialog.category) ?? []).map((permission) => ({ permission, checked: rolePermissionSet(coverageRole.id, rolePermissions).has(permission.id) }))
+    : []
 
   async function send(url: string, method: string, body: object): Promise<boolean> {
     setMessage(null)
     try {
       const response = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-      if (!response.ok) throw new Error('FAILED')
+      if (!response.ok) {
+        const payload: unknown = await response.json().catch(() => null)
+        const code = payload && typeof payload === 'object' && 'error' in payload ? payload.error : null
+        setMessage(code === 'SELF_AUTHORIZATION_LOCKOUT' ? labels.selfAuthorizationLockout : labels.failed)
+        return false
+      }
       setMessage(labels.saved)
       router.refresh()
       return true
@@ -169,7 +171,14 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
       </section>
     </div> : null}
 
-    {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={inspectCoverage} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
+    {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={(roleId, category) => { selectRole(roleId); setCoverageDialog({ roleId, category }) }} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
+    {coverageDialog && coverageRole ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-foreground/35 p-4" role="dialog" aria-label={`${coverageRole.name} ${coverageDialog.category}`}>
+      <section className="max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-surface p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-4"><div><p className="eyebrow">{coverageDialog.category}</p><h2 className="mt-1 text-xl font-semibold">{coverageRole.name}</h2><p className="mt-2 text-sm text-muted-foreground">{labels.coverageExplanation}</p></div><button className="button-secondary" onClick={() => setCoverageDialog(null)} type="button">×</button></div>
+        <div className="mt-5 space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-xl border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><input checked={checked} disabled={!editable || selectedRoleId !== coverageRole.id} onChange={(event) => setPermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
+        <div className="mt-6 flex justify-end gap-2"><button className="button-secondary" onClick={() => { setPermissionIds(new Set(savedPermissionIds)); setCoverageDialog(null) }} type="button">{labels.resetChanges}</button>{editable ? <button className="button-primary" disabled={!dirty} onClick={() => { void savePermissions().then(() => setCoverageDialog(null)) }} type="button">{labels.savePermissions}</button> : null}</div>
+      </section>
+    </div> : null}
 
   </div>
 }

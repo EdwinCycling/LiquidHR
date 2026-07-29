@@ -9,6 +9,7 @@ interface Labels {
   upload: string
   replace: string
   remove: string
+  help: string
   failed: string
 }
 
@@ -52,11 +53,12 @@ export function EmployeeAvatarManager({ employeeId, avatarUrl, name, gender, can
     : <span aria-label={name} className={`flex ${avatarClass} items-center justify-center text-primary-foreground shadow-sm ${gender === 'FEMALE' ? 'bg-chart-2' : 'bg-primary'}`}><UserRound aria-hidden="true" className={compact ? 'h-4 w-4' : 'h-10 w-10'} strokeWidth={1.6} /></span>
   return <div className="flex flex-col items-center gap-2">
     {avatarUrl ? <img src={avatarUrl} alt={name} className={`${avatarClass} object-cover shadow-sm`} /> : fallback}
-    {canManage && !compact && <div className="flex flex-wrap justify-center gap-2">
+    {canManage && <div className="flex flex-wrap justify-center gap-2">
       <input ref={inputRef} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = '' }} />
       <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" disabled={saving} onClick={() => inputRef.current?.click()}><Camera aria-hidden="true" className="h-3.5 w-3.5" />{avatarUrl ? labels.replace : labels.upload}</button>
       {avatarUrl && <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-destructive hover:underline" disabled={saving} onClick={() => void remove()}><Trash2 aria-hidden="true" className="h-3.5 w-3.5" />{labels.remove}</button>}
     </div>}
+    {canManage && !compact && <p className="max-w-56 text-center text-[0.68rem] leading-4 text-muted-foreground">{labels.help}</p>}
     {failed && <p className="text-xs text-destructive">{labels.failed}</p>}
   </div>
 }

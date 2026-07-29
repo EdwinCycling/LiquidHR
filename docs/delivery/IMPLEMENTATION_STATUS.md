@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Update 2026-07-29: dienstverbandweergave op medewerkerdashboard
+
+Het medewerkerdashboard toont nu per dienstverband actuele projectiedata en een duidelijke status. Regels zijn volledig klikbaar naar het dienstverbanddetail en behouden een terugpad naar het dashboard; bij geen actieve dienstverbanden verschijnt een afsluitingsmelding en voor geautoriseerde gebruikers een link naar de bestaande aanmaakwizard. De persoonsheader toont geen functie, afdeling of manager; de dienstverbandheader toont het medewerkertype naast het statusblok. Statuslogica voor actief, toekomstig, beëindigd en geannuleerd heeft drie gerichte tests. Typecheck, ESLint, i18n-pariteit en productiebuild zijn geslaagd. Niet gedeployed of gepusht.
+
 ## Release-status 2026-07-28
 
 Branding-migratie `20260728110000_administration_branding.sql` is remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; tabel, bucket, RLS, roltoewijzing en `use_company_theme` zijn live gecontroleerd. Applicatieversie: `1.20260728.5`. Commit `f650279` staat op `origin/main`; Vercel production deployment `dpl_FPXqx9mrjiY5aDo1dN2kSRJAXdZj` is `READY`.
@@ -111,6 +115,10 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Gedeelde databasetypes | GEÏMPLEMENTEERD | `packages/db/types.ts`; opnieuw genereren na iedere migratie |
 | Documentatierouting | GEÏMPLEMENTEERD | Root `AGENTS.md`, architectuurindex, deze status en verplichte `CURRENT_CONTEXT.md`-overdracht voor nieuwe/fork-chats |
 
+### Hotfix 2026-07-29: medewerkerlijst en administratiecontext
+
+De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken blijft URL-state en veroorzaakt daardoor geen 400 meer op `PATCH /api/preferences/employees`. Na een succesvolle administratie-wissel navigeert de UI altijd naar `/dashboard/start`, zodat de geselecteerde administratie direct als nieuwe startcontext wordt geladen.
+
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
 | Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
 | HeRa AI-agent | GEÏMPLEMENTEERD | Data-first orchestratie, echte rol/permissioncontext, owner- en tenantgebonden memory/voorkeuren, beheer-UI, toon/detail/senioriteit, salaris-/medewerker-/dienstverband-/organisatietools en vijf bevestigbare schrijftools zijn gebouwd. RLS en serverautorisatie zijn live transactioneel negatief getest; lokale, preview- en Production-eindtests zijn geslaagd. |
@@ -140,7 +148,7 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Absolute tenantgrens | GEÏMPLEMENTEERD | Expliciete toegang, samengestelde tenant-FK's, RLS en negatieve isolatietests zijn live |
 | Hiërarchische administraties | GEÏMPLEMENTEERD | Parentconstraint, tenantgelijkheid, cyclusbeveiliging en drie demo-administraties zijn live |
 | Administratiecontext en switcher | GEÏMPLEMENTEERD | Resolver, context-API, HTTP-only cookie en responsive switcher; PostgreSQL-UUID-notatie wordt correct geaccepteerd en gecontroleerd tegen de toegestane administratieopties |
-| Stamtabellenscope | GEÏMPLEMENTEERD | Afdelingen, functies, functiegroepen, loonschalen/revisies, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden |
+| Stamtabellenscope | GEÏMPLEMENTEERD | Afdelingen, functies, functiegroepen, loonschalen/revisies, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden. Redenen uitdienst zijn bovendien per land ingericht, met `Einde contract` als fallback wanneer een land geen eigen redenen heeft. |
 | Onomkeerbaar combineren | GEÏMPLEMENTEERD | Alleen `SEPARATE → COMBINED`; database blokkeert terugkeer |
 | Demo-omgevingen | GEÏMPLEMENTEERD | Hoofdtenant: 3 administraties/50 medewerkers; tweede tenant: 1 administratie/10 medewerkers |
 
@@ -154,10 +162,10 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 | Arbeidsvoorwaarden, urenafspraak, werkpatroon, salaris en kostenverdeling | GEDEELTELIJK | Atomaire apply/rollback-RPC's, afzonderlijke 1–4-weeks werkpatroontijdlijn met exacte urencontrole, TWK-splitsing, 100%-kostenverdeling, audit en mutatieformulieren zijn aanwezig. Eén multi-domein-RPC voor direct gecombineerde wijzigingen volgt nog. |
 | Uitdienstmelding | GEÏMPLEMENTEERD | Workflow met wettelijke reden, datum en bevestiging; beëindiging wordt pas definitief via de confirm-RPC |
 | Herintreding | GEÏMPLEMENTEERD | Bestaande Employee wordt hergebruikt en krijgt een nieuw Employment; identity-match voorkomt stil dupliceren |
-| Medewerker- en dienstverband-UI | GEDEELTELIJK | Medewerkerkaart heeft duidelijke hoofdtab Overzicht/Persoonsgegevens/Dossier/Dienstverbanden/Reminders, waarbij aanvullende gegevens alleen onder Persoonsgegevens staat; employments worden als effectieve tijdlijn getoond en het overzicht projecteert de effectieve gegevens van vandaag. De medewerkerslijst heeft per gebruiker opgeslagen weergave-, sorteer-, status- en archiefvoorkeuren, Enter-zoeken, afzonderlijk zoekveld wissen en een klikbare volledige rij. De lijst sluit functioneel beter aan op de kalender doordat `ACTIVE_EMPLOYEE` de impliciete default blijft; personeelsnummers zijn zichtbaar om naamgelijke personen te onderscheiden. Eigen dienstverbanddetailroute met acht tabs, foto, compacte/uitgebreide modus, profielkoppelingen, AI-samenvattingsslot, follow-ups en logboek bestaat. Basis/IKV en organisatieplaatsing zijn nog alleen leesbaar op deze route; aanmaak van een volledig nieuwe persoonskaart na 'geen match' volgt. |
+| Medewerker- en dienstverband-UI | GEÏMPLEMENTEERD | Medewerkerkaart toont effective-dated dienstverbanden met anciënniteit vanaf de afwijkende datum en actuele samenvatting (afdeling, functie, uren, CAO en medewerkerstype). De dienstverbanddetailroute bundelt basis/IKV en de selecteerbare contractreeks op Overzicht; rooster, salaris, organisatie en kostenverdeling gebruiken uniforme, wijzigbare tijdlijnen. Persoonsgegevens gebruiken doorzoekbare landkeuzes voor geboorteland en nationaliteit, met het administratie-standaardland als beginwaarde. De verplichte basisgegevenscontrole en volledige dienstverband-/contractwizard zijn aanwezig. Aanmaak van een volledig nieuwe persoonskaart na 'geen match' blijft een afzonderlijke toekomstige flow. |
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
-| Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | Vijfstappenwizard publiceert Employment, IKV-koppeling, plaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en exact 100% kostenverdeling in één transactie. |
-| Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Administratiegebonden functiegroepen en functies hebben CRUD, actieve status en meerdere groepsrelaties; de bestaande effective-dated revisies blijven intern beschikbaar, terwijl de jobbeheer-UI geen start-/einddatum meer vraagt. Schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
+| Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | De wizard controleert eerst verplichte medewerkergegevens en publiceert daarna Employment, IKV-koppeling, eerste contract, arbeidsvoorwaarden, rooster, salaris, plaatsing en exact 100% kostenverdeling in één transactie. |
+| Functie- en salarisschaalbeheer | GEÏMPLEMENTEERD | Functies en salarisschalen hebben volledig gescheiden routes en schermen. Functies tonen een standaard ingeklapt zoek-/filterblok, losse aanmaakacties en een grafisch groepsoverzicht; groepsbewerking toont de gekoppelde functies. Schalen hebben een vrij aantal treden en gepubliceerde revisies zijn onveranderlijk. |
 | Tijdkaart medewerker | GEÏMPLEMENTEERD | De dienstverbandhistorie toont alle tijdvakken responsief op één tijdas, met veilige salarisprojectie. |
 | HR-maandkalender | GEÏMPLEMENTEERD | Groot adaptief desktop/tabletraster met actieve medewerkers, foto's, rooster/niet-werkdagen, feestdagen, reminders, HR-wijzigingen, opgenomen verlof, goedgekeurde werkuren/overuren, ingestelde kleuren, typepatronen, gecombineerde dagdetails, zoekfilters en 10/25/alle-max-100 paginering op `/hr-calendar`; dagkolommen zijn uitbreidbaar voor acties. |
 
@@ -191,7 +199,7 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 |---|---|---|
 | Verlofopbouw-engine | GEDEELTELIJK | Schema/RLS, pure engine/report, catalogus/opvolgers/voorrangsregels, kleuren, HR-admin-aanvragen, FIFO-booking, feestdaguitsluiting en de centrale ledger-operaties staan in de migraties `20260722142551_add_leave_engine_foundation.sql`, `20260722151920_add_leave_configuration_mutation_functions.sql`, `20260722173000_add_work_hour_type_colors.sql`, `20260722190000_add_leave_request_booking_engine.sql`, `20260722192000_add_leave_ledger_operations.sql`, `20260722192100_seed_leave_demo_year_controls.sql` en `20260722192500_skip_holidays_in_leave_requests.sql`, met routes onder `/api/leave` en UI onder `/settings/leave-accrual` en `/hr-calendar`. Toekomstige opbouwprojectie en volledige saldo-auditformulieren blijven open. |
 | Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema, Tijdhubklok, datumformaat (DMY/MDY/YMD) en tijdformaat (24H/12H) voor iedere ingelogde gebruiker; voorkeuren worden centraal toegepast op relevante datum- en tijdweergaven. Gedeelde knoppen gebruiken een iOS-geïnspireerde glasstijl; medewerker-tabs verbergen de native scrollbar met behoud van horizontale bediening. |
-| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten accordions; `/master-data` beheert interne redenen, documentcategorieën en tenant-relatietypen en detailterugkeer opent de juiste sectie. |
+| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten onderdelen. `/master-data` beheert Redenen uitdienst per land, documentcategorieën en tenant-relatietypen; functies en salarisschalen staan uitsluitend in hun eigen instellingenschermen. |
 | Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
 | Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per administratie, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
 
@@ -207,7 +215,7 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 
 - HeRa staat niet meer in de linker navigatie. De zwevende knop links onder opent een overlay; docken naar rechts en de breedte zijn gebruikersvoorkeuren die lokaal worden bewaard.
 - De medewerkerkaart heeft een reminders-tab. Dienstverbanden openen als primaire knop, verwijderen is een bevestigde soft-delete en de teruglink bewaart de medewerker-brontab.
-- Interne uitdienstredenen zijn beheerbaar onder `/master-data/end-reasons` met actief/inactief en een blokkade wanneer de reden al is gebruikt. Andere bestaande stamtabellen blijven afzonderlijke beheerschermen.
+- Redenen uitdienst zijn onder `/master-data/end-reasons` per land beheerbaar met toevoegen, wijzigen, activeren/deactiveren en een blokkade wanneer een reden al is gebruikt. Nederland gebruikt de officiële codes 01, 02, 03, 04, 20, 21, 30, 32, 33, 34, 40, 41, 90 en 99; zonder landspecifieke inrichting geldt `Einde contract`.
 
 ## Dashboard widgetbibliotheek
 
@@ -271,3 +279,6 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 - Feestdagen: handmatige records zijn visueel onderscheiden van geïmporteerde records.
 - Organogram: de weergavekeuze staat zichtbaar in het filterblok; manager-only en functiegroep/functie/medewerker zijn beschikbaar, inclusief afdeling op medewerkerkaarten.
 - Branch/deploy: `main` is de enige blijvende test/live-branch; previews zijn uitsluitend voor controle.
+### Hotfix 2026-07-29: medewerkerfoto's
+
+Foto wijzigen/verwijderen is zichtbaar op de medewerkerdetailpagina voor gebruikers met `employee:write`, ook in compacte weergave. Uploads worden server-side naar maximaal 512x512 WebP en maximaal 750 KB gecompacteerd. De migratie voor de bucketlimiet staat klaar maar is nog niet live toegepast.

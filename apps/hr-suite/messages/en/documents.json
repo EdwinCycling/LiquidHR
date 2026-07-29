@@ -17,6 +17,8 @@
   "description": "Description",
   "tags": "Comma-separated tags",
   "category": "Category",
+  "customMetadata": "Custom document fields",
+  "automaticValue": "Assigned automatically",
   "visibleToTitle": "Who may view this document?",
   "visibleToEmployee": "Employee may view",
   "visibleToRole": "Additional roles with access",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jobCreateSchema, salaryRevisionSchema } from './schemas'
+import { endReasonCreateSchema, jobCreateSchema, salaryRevisionSchema } from './schemas'
 
 const revision = {
   scaleId: '11111111-1111-4111-8111-111111111111', validFrom: '2026-07-01',
@@ -33,5 +33,13 @@ describe('master-data schemas', () => {
     expect(jobCreateSchema.parse({
       code: 'HRADV', name: 'HR-adviseur', jobGroupIds: ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'],
     }).jobGroupIds).toHaveLength(2)
+  })
+
+  it('normalizes the country code for a termination reason', () => {
+    expect(endReasonCreateSchema.parse({ countryCode: 'nl', code: '30', nameNl: 'Einde contract', nameEn: 'End of contract' }).countryCode).toBe('NL')
+  })
+
+  it('rejects a termination reason without an ISO-2 country code', () => {
+    expect(() => endReasonCreateSchema.parse({ countryCode: 'NLD', code: '30', nameNl: 'Einde contract', nameEn: 'End of contract' })).toThrow()
   })
 })

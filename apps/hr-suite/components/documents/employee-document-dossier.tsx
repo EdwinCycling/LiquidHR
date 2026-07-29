@@ -3,6 +3,7 @@
 import { Download, Eye, FileText, RotateCcw, ShieldAlert, Trash2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type DragEvent, type FormEvent, useRef, useState } from 'react'
+import type { Json } from '@scope/db'
 import {
   DOCUMENT_FILE_ACCEPT,
   isAllowedDocumentFile,
@@ -23,6 +24,7 @@ interface DocumentItem {
   title: string
   description: string | null
   tags: string[]
+  custom_fields: Json
   original_filename: string
   content_type: string
   file_size: number
@@ -36,7 +38,13 @@ interface DocumentItem {
 }
 interface Option { id: string; code: string; name: string }
 interface EmployeeOption { id: string; employee_number: string; first_name: string; birth_name: string }
-interface Options { categories: Option[]; departments: Option[]; roles: Option[]; employees: EmployeeOption[]; cloudTags: Array<{ id: string; name: string }> }
+interface DocumentCustomField {
+  id: string; key: string; label_nl: string; label_en: string
+  field_type: 'TEXT' | 'TEXTAREA' | 'NUMBER' | 'DATE' | 'BOOLEAN' | 'SELECT' | 'MULTI_SELECT' | 'AUTO_INCREMENT'
+  is_required: boolean
+  options: Array<{ definition_id: string; value: string; label_nl: string; label_en: string; sort_order: number }>
+}
+interface Options { categories: Option[]; departments: Option[]; roles: Option[]; employees: EmployeeOption[]; cloudTags: Array<{ id: string; name: string }>; documentCustomFields: DocumentCustomField[] }
 
 interface Labels {
   title: string
@@ -95,6 +103,8 @@ interface Labels {
   view: string
   viewerClose: string
   viewerUnsupported: string
+  customMetadata: string
+  automaticValue: string
 }
 
 const inputClass = 'mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm'
@@ -159,11 +169,23 @@ export function EmployeeDocumentDossier({
       ...(reminderEmployee ? [{ type: 'EMPLOYEE' as const, targetId: employeeId }] : []),
       ...reminderRoleIds.map((targetId) => ({ type: 'MANAGEMENT_ROLE' as const, targetId })),
     ]
+    const customFieldEntries: Array<[string, Json]> = []
+    for (const definition of options.documentCustomFields) {
+      if (definition.field_type === 'AUTO_INCREMENT') continue
+      const name = `customField.${definition.key}`
+      if (definition.field_type === 'MULTI_SELECT') { customFieldEntries.push([definition.key, form.getAll(name).map(String)]); continue }
+      if (definition.field_type === 'BOOLEAN') { customFieldEntries.push([definition.key, form.get(name) === 'on']); continue }
+      const raw = form.get(name)
+      if (raw === null || raw === '') continue
+      customFieldEntries.push([definition.key, definition.field_type === 'NUMBER' ? Number(raw) : String(raw)])
+    }
+    const customFields = Object.fromEntries(customFieldEntries)
     const metadata = {
       title: form.get('title'),
       description: form.get('description') || null,
       tags: options.cloudTags.filter((tag) => selectedCloudTagIds.includes(tag.id)).map((tag) => tag.name),
       categoryId: form.get('categoryId'),
+      customFields,
       expiresOn: expiresOn || null,
       audiences,
       reminder: reminderAt ? { remindAt: new Date(reminderAt).toISOString(), targets: reminderTargets } : null,
@@ -358,6 +380,7 @@ export function EmployeeDocumentDossier({
                   </div>
                 </fieldset>
               </div>
+              {options.documentCustomFields.length ? <fieldset className="mt-4 rounded-xl border bg-background/80 p-4"><legend className="px-1 text-sm font-semibold">{labels.customMetadata}</legend><div className="mt-3 grid gap-4 md:grid-cols-2">{options.documentCustomFields.map((definition) => <DocumentCustomFieldControl definition={definition} key={definition.id} labels={labels} />)}</div></fieldset> : null}
             </div>
 
             <details className="rounded-xl border p-4">
@@ -515,6 +538,7 @@ export function EmployeeDocumentDossier({
                 </div>
 
                 {document.description ? <p className="mt-3 text-sm text-muted-foreground">{document.description}</p> : null}
+                {document.custom_fields && typeof document.custom_fields === 'object' && !Array.isArray(document.custom_fields) ? <dl className="mt-3 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2 text-xs">{Object.entries(document.custom_fields).map(([key, value]) => <div className="contents" key={key}><dt className="font-medium text-muted-foreground">{options?.documentCustomFields.find((definition) => definition.key === key)?.label_nl ?? key}</dt><dd>{displayCustomFieldValue(value)}</dd></div>)}</dl> : null}
 
                 <div className="mt-3 flex flex-wrap gap-1">
                   {document.tags.map((tag) => (
@@ -572,6 +596,26 @@ export function EmployeeDocumentDossier({
       {previewDocument ? <DocumentViewer contentType={previewDocument.content_type} filename={previewDocument.original_filename} labels={{ close: labels.viewerClose, download: labels.download, unsupported: labels.viewerUnsupported }} onClose={() => setPreviewDocument(null)} previewHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/download`} title={previewDocument.title} /> : null}
     </section>
   )
+}
+
+function DocumentCustomFieldControl({ definition, labels }: { definition: DocumentCustomField; labels: Labels }) {
+  const name = `customField.${definition.key}`
+  const common = { className: inputClass, name, required: definition.is_required }
+  return <label className={`text-sm font-medium ${definition.field_type === 'TEXTAREA' || definition.field_type === 'MULTI_SELECT' ? 'md:col-span-2' : ''}`}>{definition.label_nl}{definition.is_required ? ' *' : ''}
+    {definition.field_type === 'TEXTAREA' ? <textarea {...common} rows={3} />
+      : definition.field_type === 'SELECT' ? <select {...common}><option value="" />{definition.options.map((option) => <option key={option.value} value={option.value}>{option.label_nl}</option>)}</select>
+        : definition.field_type === 'MULTI_SELECT' ? <select {...common} multiple>{definition.options.map((option) => <option key={option.value} value={option.value}>{option.label_nl}</option>)}</select>
+          : definition.field_type === 'BOOLEAN' ? <span className="mt-2 flex items-center gap-2"><input name={name} type="checkbox" />{definition.label_nl}</span>
+            : definition.field_type === 'AUTO_INCREMENT' ? <input className={inputClass} disabled placeholder={labels.automaticValue} />
+              : <input {...common} type={definition.field_type === 'NUMBER' ? 'number' : definition.field_type === 'DATE' ? 'date' : 'text'} />}
+  </label>
+}
+
+function displayCustomFieldValue(value: Json | undefined): string {
+  if (Array.isArray(value)) return value.map((item) => String(item)).join(', ')
+  if (typeof value === 'boolean') return value ? '✓' : '—'
+  if (value === null || value === undefined) return '—'
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }
 
 function CheckboxCard({

@@ -7,7 +7,7 @@ import { ConfirmationDialog } from './confirmation-dialog'
 
 type Timeline = 'LABOR_CONDITIONS' | 'SCHEDULE' | 'SALARY' | 'COST_ALLOCATION'
 interface Option { id: string; code: string; name: string }
-interface Allocation { costCenterId: string; percentage: number }
+interface Allocation { costCenterId: string; costCarrierId: string; percentage: number }
 interface ImpactChoice { key: string; label: string; directTimeline?: Timeline; choice: 'DIRECT' | 'NOT_APPLICABLE' }
 interface ImpactDefinition { key: string; label: string; directTimeline?: Timeline }
 interface EmploymentMutationPanelProps {
@@ -17,11 +17,12 @@ interface EmploymentMutationPanelProps {
   blockCount: number
   latestEffectiveOn?: string
   costCenters?: Option[]
+  costCarriers?: Option[]
   directPayloads?: Partial<Record<Timeline, object>>
   labels: Record<string, string>
 }
 
-export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], directPayloads = {}, labels }: EmploymentMutationPanelProps) {
+export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], directPayloads = {}, labels }: EmploymentMutationPanelProps) {
   const router = useRouter()
   const today = new Date().toISOString().slice(0, 10)
   const [dialog, setDialog] = useState<'change' | 'rollback' | null>(null)
@@ -29,7 +30,7 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
   const [status, setStatus] = useState<'idle' | 'saved' | 'failed'>('idle')
   const [pending, setPending] = useState<Record<string, FormDataEntryValue> | null>(null)
   const [rollbackReason, setRollbackReason] = useState('')
-  const [allocations, setAllocations] = useState<Allocation[]>([{ costCenterId: costCenters[0]?.id ?? '', percentage: 100 }])
+  const [allocations, setAllocations] = useState<Allocation[]>([{ costCenterId: costCenters[0]?.id ?? '', costCarrierId: costCarriers[0]?.id ?? '', percentage: 100 }])
   const impactDefinitions: ImpactDefinition[] = timeline === 'SCHEDULE'
     ? [{ key: 'salary', label: labels.impactScheduleSalary, directTimeline: 'SALARY' }, { key: 'leave', label: labels.impactScheduleLeave }, { key: 'pension', label: labels.impactSchedulePension }, { key: 'payroll', label: labels.impactSchedulePayroll }]
     : timeline === 'SALARY'
@@ -125,12 +126,13 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
           <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeAmount} / {labels.hourlyRate}<input className="form-field" name="amount" type="number" min="0" step="0.01" required /></label>
         </>}
         {timeline === 'COST_ALLOCATION' && <div className="sm:col-span-2 space-y-3">
-          {allocations.map((allocation, index) => <div key={index} className="grid grid-cols-[1fr_8rem_auto] gap-2">
+          {allocations.map((allocation, index) => <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_8rem_auto]">
             <select aria-label={labels.costCenter} className="form-field" value={allocation.costCenterId} onChange={(event) => setAllocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, costCenterId: event.target.value } : item))}>{costCenters.map((option) => <option key={option.id} value={option.id}>{option.code} · {option.name}</option>)}</select>
+            <select aria-label={labels.costCarrier} className="form-field" value={allocation.costCarrierId} onChange={(event) => setAllocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, costCarrierId: event.target.value } : item))}>{costCarriers.map((option) => <option key={option.id} value={option.id}>{option.code} · {option.name}</option>)}</select>
             <input aria-label={labels.percentage} className="form-field" type="number" min="0.01" max="100" step="0.01" value={allocation.percentage} onChange={(event) => setAllocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, percentage: Number(event.target.value) } : item))} />
             <button aria-label={labels.rollback} type="button" className="rounded-lg p-2 hover:bg-muted" onClick={() => setAllocations((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></button>
           </div>)}
-          <div className="flex flex-wrap items-center justify-between gap-3"><button type="button" className="button-secondary inline-flex items-center gap-2" onClick={() => setAllocations((current) => [...current, { costCenterId: costCenters[0]?.id ?? '', percentage: 0 }])}><Plus className="h-4 w-4" />{labels.addAllocation}</button><p className={allocationTotal === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>{labels.allocationTotal.replace('{total}', String(allocationTotal))}</p></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><button type="button" className="button-secondary inline-flex items-center gap-2" onClick={() => setAllocations((current) => [...current, { costCenterId: costCenters[0]?.id ?? '', costCarrierId: costCarriers[0]?.id ?? '', percentage: 0 }])}><Plus className="h-4 w-4" />{labels.addAllocation}</button><p className={allocationTotal === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>{labels.allocationTotal.replace('{total}', String(allocationTotal))}</p></div>
           {allocationTotal !== 100 && <p className="text-sm text-danger">{labels.allocationMustBe100}</p>}
         </div>}
         {impacts.length > 0 && <fieldset className="sm:col-span-2 rounded-xl border bg-muted/40 p-4"><legend className="px-1 text-sm font-semibold">{labels.impactTitle}</legend><div className="mt-2 space-y-3">{impacts.map((impact) => <div key={impact.key} className="grid gap-2 sm:grid-cols-[1fr_12rem] sm:items-center"><p className="text-sm text-muted-foreground">{impact.label}</p><select className="form-field" value={impact.choice} onChange={(event) => setImpacts((current) => current.map((item) => item.key === impact.key ? { ...item, choice: event.target.value as ImpactChoice['choice'] } : item))}><option value="DIRECT" disabled={!impact.directTimeline || !directPayloads[impact.directTimeline]}>{labels.impactDirect}</option><option value="NOT_APPLICABLE">{labels.impactNotApplicable}</option></select></div>)}</div></fieldset>}

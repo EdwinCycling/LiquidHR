@@ -37,25 +37,40 @@ const getRequestAuthorizationContext = cache(async (): Promise<RequestAuthorizat
   return { supabase, context: await requireAuthContext(supabase) }
 })
 
-const getSelfPermissions = cache(async (supabase: SupabaseServerClient): Promise<string[]> => {
-  const { data: employeeRole, error: employeeRoleError } = await supabase
+const getSelfPermissions = cache(async (supabase: SupabaseServerClient, tenantId: string): Promise<string[]> => {
+  const { data: employeeRoles, error: employeeRoleError } = await supabase
     .from('management_roles')
-    .select('id')
+    .select('id,tenant_id')
     .eq('code', 'EMPLOYEE')
-    .is('tenant_id', null)
-    .maybeSingle()
+    .eq('is_active', true)
+    .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
 
   if (employeeRoleError) throw employeeRoleError
+  const employeeRole = employeeRoles.find((role) => role.tenant_id === tenantId) ?? employeeRoles.find((role) => role.tenant_id === null)
   return employeeRole ? permissionCodesForRoleIds([employeeRole.id], supabase) : []
 })
 
-async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient): Promise<string[]> {
+async function permissionCodesForRoleIds(roleIds: string[], supabase: SupabaseServerClient, tenantId?: string): Promise<string[]> {
   if (roleIds.length === 0) return []
+
+  let effectiveRoleIds = roleIds
+  if (tenantId) {
+    const { data: assignedRoles, error: assignedRolesError } = await supabase.from('management_roles').select('id,code,tenant_id').in('id', roleIds)
+    if (assignedRolesError) throw assignedRolesError
+    const globalCodes = assignedRoles.filter((role) => role.tenant_id === null).map((role) => role.code)
+    if (globalCodes.length > 0) {
+      const { data: tenantOverrides, error: tenantOverridesError } = await supabase.from('management_roles').select('id,code')
+        .eq('tenant_id', tenantId).eq('is_active', true).in('code', globalCodes)
+      if (tenantOverridesError) throw tenantOverridesError
+      const overrideByCode = new Map(tenantOverrides.map((role) => [role.code, role.id]))
+      effectiveRoleIds = assignedRoles.map((role) => role.tenant_id === null ? overrideByCode.get(role.code) ?? role.id : role.id)
+    }
+  }
 
   const { data: rolePermissions, error: rolePermissionsError } = await supabase
     .from('role_permissions')
     .select('permission_id')
-    .in('management_role_id', roleIds)
+    .in('management_role_id', effectiveRoleIds)
 
   if (rolePermissionsError) throw rolePermissionsError
   const permissionIds = rolePermissions.map((rolePermission) => rolePermission.permission_id)
@@ -143,7 +158,7 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient):
   ]
   const [activeRoles, permissions] = await Promise.all([
     roleCodesForRoleIds(roleIds, supabase),
-    permissionCodesForRoleIds(roleIds, supabase),
+    permissionCodesForRoleIds(roleIds, supabase, tenantId),
   ])
 
   return {
@@ -160,7 +175,7 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
   const { supabase, context } = await getRequestAuthorizationContext()
 
   if (context.employeeId && targetEmployeeId === context.employeeId) {
-    const selfPermissions = await getSelfPermissions(supabase)
+    const selfPermissions = await getSelfPermissions(supabase, context.tenantId)
     if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
       throw new AuthorizationError('Je hebt geen selfservice-recht voor deze actie.')
     }
