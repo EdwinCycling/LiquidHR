@@ -2,6 +2,18 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isProtectedApplicationPath } from '@/lib/auth/route-access'
 
+function isInvalidRefreshTokenError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const candidate = error as { code?: unknown; message?: unknown; status?: unknown }
+  return candidate.code === 'refresh_token_not_found' || (candidate.status === 400 && candidate.message === 'Invalid Refresh Token: Refresh Token Not Found')
+}
+
+function clearInvalidAuthCookies(response: NextResponse, request: NextRequest): void {
+  request.cookies.getAll()
+    .filter(({ name }) => name.startsWith('sb-'))
+    .forEach(({ name }) => response.cookies.set(name, '', { expires: new Date(0), maxAge: 0, path: '/' }))
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
@@ -19,7 +31,14 @@ export async function proxy(request: NextRequest) {
     },
   )
 
-  const { data } = await supabase.auth.getClaims()
+  let data: Awaited<ReturnType<typeof supabase.auth.getClaims>>['data'] = null
+  let hadInvalidRefreshToken = false
+  try {
+    data = (await supabase.auth.getClaims()).data
+  } catch (error) {
+    if (!isInvalidRefreshTokenError(error)) throw error
+    hadInvalidRefreshToken = true
+  }
   const isAuthenticated = Boolean(data?.claims)
   const { pathname } = request.nextUrl
 
@@ -27,7 +46,9 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('next', `${pathname}${request.nextUrl.search}`)
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    if (hadInvalidRefreshToken) clearInvalidAuthCookies(redirectResponse, request)
+    return redirectResponse
   }
 
   if (pathname === '/login' && isAuthenticated) {
@@ -36,6 +57,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (hadInvalidRefreshToken) clearInvalidAuthCookies(response, request)
   return response
 }
 
