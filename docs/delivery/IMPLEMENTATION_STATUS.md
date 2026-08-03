@@ -1,5 +1,29 @@
 # Implementatiestatus Liquid HR
 
+## Actuele update 2026-08-03: doorlopende beoordeling remote en testklaar
+
+De Continuous Appraisal-slice is remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`: tenant-owned timeline, RLS/permissions, audit, FK-indexen en private screenshot-/bijlagenopslag. De services/API ondersteunen upload, metadata-RLS en signed downloads; de UI toont bijlagen op de timeline en biedt upload voor toekomstige items. De routes zijn `/my-appraisal`, `/workforce/continuous-appraisal` en de startpagina-samenvatting/link.
+
+Remote contracttest slaagt. Security-advisor meldt geen nieuwe Continuous Appraisal-securitybevinding; performance-advisor meldt geen nieuwe unindexed-FK-bevinding. De kleine remote testdataset bevat 9 items, 3 reacties en 1 attachment. Authenticated browsercontrole heeft de drie fixtureaccounts doorlopen; de finale managercontrole toonde Noahs 8 items, `screen-4.png` en de download als `image/png`. Lokale verificatie: 125 testbestanden/458 tests, i18n-pariteit met 28 namespaces, strict typecheck en productiebuild met 163 pagina’s geslaagd. Geen commit, push of deployment uitgevoerd.
+
+## Actuele update 2026-08-03: testrolwissel voor fixtureaccounts
+
+De lokale/testomgeving heeft in de ingelogde sidebar een allowlisted testrolwisselaar voor Edwin, de test-HR-admin, testmanager en testmedewerker. De server voert volledige logout/login uit via een eenmalige Supabase Auth magic-link-handoff zonder wachtwoord in de browser. De functie staat lokaal/test aan en productie uit tenzij `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true` expliciet wordt gezet. De vier vaste accounts kunnen onderling wisselen zodat een volledige testcyclus kan worden herhaald.
+
+Verificatie: 125 hr-suite-testbestanden/458 tests, strict typecheck, ESLint, i18n-pariteit met 28 namespaces, productiebuild met 163 pagina's en een lokale browsercyclus HR Admin -> Manager -> Medewerker -> Edwin zijn geslaagd. Geen schemawijziging, remote write, commit, push of deployment.
+
+## Actuele update 2026-08-03: doorlopende beoordeling lokaal toegevoegd
+
+De lokale verticale slice voor doorlopende beoordeling bevat de tenant-owned timeline, permissions/RLS, audit, managerwissel-systeemevent, services/API, `/my-appraisal`, `/workforce/continuous-appraisal`, startpagina-samenvatting en NL/EN i18n. De database voorkomt verwijderen, vergrendelt historische inhoud en begrenst reacties op 100 tekens. De nieuwe migration `20260803133000_continuous_appraisal_timeline.sql` is nog niet remote toegepast; daardoor zijn remote contractcontrole, advisors, echte testdata en authenticated browsergate nog open. Geen remote write, commit, push of deployment uitgevoerd.
+
+## Actuele update 2026-08-03: Workforce 9-grid-vlootschouw remote toegepast
+
+De nieuwe requirements en het besluit staan in `docs/requirements/Talent/09-LiquidHR-Vlootschouw-9-grid-Requirements.md` en `docs/decisions/FDR-0004-talent-vlootschouw-9-grid-campagnes-en-reminders.md`. De tenant-owned campagnetabellen met RLS/policies/audit, de `talent-review:*` permissions, campaign-start met teamsnapshot, 7-dagen-/korte-campagnereminders, managerstatus, HR-reminderactie, manager-drag-and-drop, scorehistorie en de role-aware route `/workforce/9-grid` zijn gebouwd en remote toegepast. De slice gebruikt bestaande employee-scope- en reminderpatronen; er is geen fake seeddata toegevoegd.
+
+De self-scope is extra afgedwongen. Een medewerker zonder review-permission kan geen route, campagne of scorefunctionaliteit starten. Ook een Manager kan zichzelf nooit als reviewsubject zien of scoren, ook niet bij een zelfverwijzende `direct_manager_id`; de grens zit in de campaign-start-query, databaseconstraints, RLS, service en UI.
+
+Remote contractproef geslaagd voor vier RLS-tabellen, authenticated-only table/RPC-grants, lifecycle-RPC's, self-scope constraints en RLS-policytekst. Security-advisor: geen nieuwe 9-grid-bevinding. Performance-advisor: geen nieuwe 9-grid unindexed-FK-bevinding; ongebruikte nieuwe indexen blijven als verwachte INFO zichtbaar zolang er nog geen campagnegegevens zijn. De officiële DB-types zijn via Supabase MCP opnieuw gegenereerd. De authenticated browsergate is met de drie fixtureaccounts geslaagd: HR-admin en manager openen `/workforce/9-grid`, medewerker wordt naar `/geen-toegang` gestuurd en krijgt geen 9-grid-heading of functionaliteit, review-API's geven voor manager/medewerker `403`, en de volledige Talent-gate rapporteert 0 axe-violations. Er blijft 1 axe-`incomplete` color-contrast-check op de select voor vorige campagne. Geen seed, commit, push of deployment uitgevoerd.
+
 ## Uitgebreide Talent Management-testhandleiding 2026-08-03
 
 Een afzonderlijk Markdown-testdocument is toegevoegd: `docs/delivery/TALENT_MANAGEMENT_FUNCTIONAL_TEST_GUIDE_20260803.md`. Dit document is de praktische testbasis voor de drie fixtureaccounts en beschrijft wat HR Admin, manager en medewerker mogen openen, zien, instellen en niet mogen zien, inclusief de verwachte demo-seeddata, dashboards, periodefilters, check-ins, Role Explorer, negatieve autorisatiechecks en performancecontrole. Wachtwoorden en tokens zijn bewust uitgesloten. Geen databasewijziging, deployment of seedreset uitgevoerd.
@@ -12,11 +36,11 @@ De capability-record read gebruikt alleen benodigde kolommen en tenantfilters vo
 
 ## UI-update 2026-08-03: werkweer op landing-header
 
-De startpagina koppelt de actuele werkcontext aan een server-side Open-Meteo-forecast. Een toegewezen actieve bedrijfslocatie gaat voor het bedrijfsadres; thuisgegevens worden niet gelezen. Zonder vindbare locatie gebruikt de kaart Amsterdam als vaste fallback. De rechterkaart volgt de referentie-indeling met circa 25% kleinere temperatuur- en luchtvochtigheidscijfers, luchtdrukbalk en trendpijl, plus een windrichtingcirkel met Nederlandse kompasrichtingen; onderaan staat uitsluitend de volledige stadnaam. De begroeting is eveneens verkleind. Onder de begroeting verschijnen server-side conditioneel de dagen tot het volgende goedgekeurde persoonlijke verlof en de eerstvolgende actieve feestdag; ontbrekende verlofdata wordt niet getoond. Onder de headerdrempel wordt de kaart verborgen in plaats van onder de begroeting te stapelen. Geen commit, push of deployment.
+De startpagina koppelt de actuele werkcontext aan een server-side Open-Meteo-forecast. Een toegewezen actieve bedrijfslocatie gaat voor het bedrijfsadres; zonder vindbare werklocatie gebruikt de kaart Amsterdam als vaste fallback. De kaart toont de actuele temperatuur met daaronder klein de maximale temperatuur van vandaag (`temperature_2m_max`), circa 25% kleinere luchtvochtigheidscijfers, luchtdrukbalk en trendpijl, plus een windrichtingcirkel met Nederlandse kompasrichtingen; onderaan staat uitsluitend de volledige stadnaam. De kantoorlocatie is standaard geselecteerd. Via de compacte kantoor/thuis-iconen kan een medewerker wisselen naar het weer van de actuele primaire thuislocatie; alleen stad en land worden server-side uit `employee_addresses` gebruikt. Zonder gekoppelde thuislocatie blijft die keuze uitgeschakeld. De begroeting is eveneens verkleind. Onder de begroeting verschijnen server-side conditioneel de dagen tot het volgende goedgekeurde persoonlijke verlof en de eerstvolgende actieve feestdag; ontbrekende verlofdata wordt niet getoond. Onder de headerdrempel wordt de kaart verborgen in plaats van onder de begroeting te stapelen. Geen commit, push of deployment.
 
 ## UI-update 2026-08-03: accountmenu typografie en versieregel
 
-Het ingelogde accountmenu in de sidebar heeft gelijke standaardtypografie voor persoonlijke instellingen en uitloggen. De actieve appversie staat daaronder als gewone, niet-klikbare informatieregel. Gerichte browsercontrole bevestigt `Versie 1.20260803.2`; geen schema/API-wijziging.
+Het ingelogde accountmenu in de sidebar heeft gelijke standaardtypografie voor persoonlijke instellingen en uitloggen. De actieve appversie staat daaronder als gewone, niet-klikbare informatieregel. Gerichte browsercontrole bevestigt `Versie 1.20260803.3`; geen schema/API-wijziging.
 
 ## UI-update 2026-08-03: ingeklapte sidebar-controls uitgelijnd
 

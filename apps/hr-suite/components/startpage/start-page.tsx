@@ -1,88 +1,20 @@
 /* eslint-disable @next/next/no-img-element -- administration branding is served by an authenticated route. */
 import Link from 'next/link'
-import { ArrowDown, ArrowRight, ArrowUp, BriefcaseBusiness, CalendarDays, CircleDashed, Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, FileText, Gift, HeartPulse, LayoutDashboard, Minus, PartyPopper, Sun, UserPlus, Users, Wrench } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CircleDashed, FileText, Gift, HeartPulse, LayoutDashboard, MessageSquareText, PartyPopper, UserPlus, Users, Wrench } from 'lucide-react'
 import { formatDateTime } from '@/lib/preferences/formatters'
 import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 import type { Locale } from '@/lib/i18n/config'
 import type { StartPageData, StartPageLeavePerson } from '@/lib/startpage/service'
-import type { WeatherCurrent, WeatherDay } from '@/lib/weather/open-meteo'
+import { WeatherInstrument } from './weather-instrument'
+import type { WeatherLabels } from './weather-instrument'
 
-interface StartPageLabels {
-  weatherTitle: string; weatherUnavailable: string; weatherPressureUp: string; weatherPressureDown: string; weatherPressureSteady: string;
-  nextLeave: string; nextHoliday: string;
-  eyebrow: string; headline: string; subtitle: string; activeScope: string; administration: string; tenant: string; peopleInScope: string; operationalTitle: string; liveSource: string; documentsTitle: string; documentsDescription: string; openDocuments: string; notAvailable: string; yourPriorities: string; prioritiesBody: string; remindersTitle: string; remindersDescription: string; openReminders: string; noReminders: string; moreReminders: string; workInProgress: string; workInProgressBody: string; futureDeclarations: string; futureContracts: string; futureAssets: string; futureTasks: string; futureEvents: string; futureSource: string; dashboardHint: string; openDashboard: string; quickLinks: string; calendar: string; insights: string; updated: string; fallbackName: string; absenceCasesTitle: string; absenceCasesDescription: string; absenceSince: string; absenceDays: string; openAbsenceDossier: string; noActiveAbsences: string; absenceRecovery: string; absenceMore: string; openAbsenceOverview: string; leaveTitle: string; leaveToday: string; leaveTomorrow: string; leavePersons: string; leavePerson: string; leaveNoAbsences: string; openCalendar: string; eventsTitle: string; eventsToday: string; eventsTomorrow: string; eventsNoEvents: string; openAllEvents: string; eventBirthday: string; eventAnniversary: string; eventStarter: string; eventYears: string; kpiEmployees: string; kpiRecurringAbsence: string; kpiLongTermSick: string; openEmployees: string
+interface StartPageAppraisalLabels { continuousAppraisalTitle: string; continuousAppraisalDescription: string; openContinuousAppraisal: string; openManagerAppraisal: string; appraisalLatest: string; appraisalOpenActions: string; appraisalNoItems: string }
+
+interface StartPageLabels extends WeatherLabels, StartPageAppraisalLabels {
+  nextLeave: string; nextHoliday: string; eyebrow: string; headline: string; subtitle: string; activeScope: string; administration: string; tenant: string; peopleInScope: string; operationalTitle: string; liveSource: string; documentsTitle: string; documentsDescription: string; openDocuments: string; notAvailable: string; yourPriorities: string; prioritiesBody: string; remindersTitle: string; remindersDescription: string; openReminders: string; noReminders: string; moreReminders: string; workInProgress: string; workInProgressBody: string; futureDeclarations: string; futureContracts: string; futureAssets: string; futureTasks: string; futureEvents: string; futureSource: string; dashboardHint: string; openDashboard: string; quickLinks: string; calendar: string; insights: string; updated: string; fallbackName: string; absenceCasesTitle: string; absenceCasesDescription: string; absenceSince: string; absenceDays: string; openAbsenceDossier: string; noActiveAbsences: string; absenceRecovery: string; absenceMore: string; openAbsenceOverview: string; leaveTitle: string; leaveToday: string; leaveTomorrow: string; leavePersons: string; leavePerson: string; leaveNoAbsences: string; openCalendar: string; eventsTitle: string; eventsToday: string; eventsTomorrow: string; eventsNoEvents: string; openAllEvents: string; eventBirthday: string; eventAnniversary: string; eventStarter: string; eventYears: string; kpiEmployees: string; kpiRecurringAbsence: string; kpiLongTermSick: string; openEmployees: string
 }
 
 interface StartPageProps { data: StartPageData; locale: Locale; dateFormat: DateFormat; timeFormat: TimeFormat; logoUrl?: string | null; greeting: string; labels: StartPageLabels }
-
-function WeatherGlyph({ code }: { code: number }) {
-  const props = { 'aria-hidden': true, className: 'text-warning', size: 18, strokeWidth: 1.8 }
-  if (code === 0) return <Sun {...props} />
-  if (code === 1 || code === 2) return <CloudSun {...props} />
-  if (code === 3) return <Cloud {...props} />
-  if (code === 45 || code === 48) return <CloudFog {...props} />
-  if (code >= 51 && code <= 67) return <CloudRain {...props} />
-  if (code >= 71 && code <= 77) return <CloudSnow {...props} />
-  if (code >= 80 && code <= 82) return <CloudRain {...props} />
-  if (code >= 95) return <CloudLightning {...props} />
-  return <Cloud {...props} />
-}
-
-function PressureTrendGlyph({ trend }: { trend: WeatherCurrent['pressureTrend'] }) {
-  if (trend === 'up') return <ArrowUp aria-hidden="true" size={14} strokeWidth={2.5} />
-  if (trend === 'down') return <ArrowDown aria-hidden="true" size={14} strokeWidth={2.5} />
-  return <Minus aria-hidden="true" size={14} strokeWidth={2.5} />
-}
-
-function PressureBar({ current, labels }: { current: WeatherCurrent; labels: StartPageLabels }) {
-  const position = Math.min(96, Math.max(4, ((current.pressure - 980) / 60) * 100))
-  const trendLabel = current.pressureTrend === 'up' ? labels.weatherPressureUp : current.pressureTrend === 'down' ? labels.weatherPressureDown : labels.weatherPressureSteady
-  return <div aria-label={`${Math.round(current.pressure)} hPa, ${trendLabel}`} className="mt-0">
-    <div className="relative h-3.5 overflow-visible rounded-md border-2 border-foreground/40 bg-muted-foreground/20 shadow-inner">
-      <div className="flex h-full overflow-hidden rounded-[0.2rem]"><span className="w-1/3 bg-warning/80" /><span className="w-1/3 bg-success/75" /><span className="w-1/3 bg-accent/80" /></div>
-      <span aria-hidden="true" className="absolute -top-3 -translate-x-1/2 text-foreground" style={{ left: `${position}%` }}><PressureTrendGlyph trend={current.pressureTrend} /></span>
-    </div>
-    <div className="mt-0 flex items-center justify-between font-mono text-[0.5rem] font-semibold tabular-nums text-foreground/70"><span>980</span><span>{Math.round(current.pressure)} hPa</span><span>1040</span></div>
-  </div>
-}
-
-function compassDirection(degrees: number) {
-  const directions = ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'] as const
-  return directions[Math.round(degrees / 45) % directions.length]
-}
-
-function WindDirection({ degrees, speed }: { degrees: number; speed: number }) {
-  const direction = compassDirection(degrees)
-  return <div aria-label={`Windrichting ${direction}, ${Math.round(speed)} km/u`} className="flex flex-col items-center gap-0.5 [&>span:last-child]:hidden">
-    <span className="grid size-8 place-items-center rounded-full border-2 border-foreground/50 bg-background/25 shadow-inner"><span style={{ transform: `rotate(${degrees}deg)` }}><ArrowUp aria-hidden="true" className="text-foreground" size={18} strokeWidth={2.4} /></span></span>
-    <span className="font-mono text-[0.6rem] font-semibold tabular-nums text-foreground/70">{direction}</span>
-    <span className="font-mono text-[0.55rem] font-semibold tabular-nums text-foreground/70">{Math.round(degrees)}°</span>
-  </div>
-}
-
-function WeatherInstrument({ data, labels }: { data: StartPageData['workWeather']; labels: StartPageLabels }) {
-  return <aside aria-label={labels.weatherTitle} className="hidden w-[15rem] shrink-0 xl:block">
-    {data ? <div className="rounded-[1rem] border-[0.25rem] border-primary-foreground/35 bg-muted px-2 py-1 text-foreground shadow-[inset_0_0.15rem_0.4rem_color-mix(in_srgb,var(--foreground)_18%,transparent),0_0.7rem_1.4rem_color-mix(in_srgb,var(--primary)_25%,transparent)] [&>div:first-child>span:first-child]:text-[1.8rem] [&>div:first-child>span:first-child]:leading-[0.9]">
-      <div className="flex items-start justify-between gap-3"><span className="font-mono text-[3.15rem] font-semibold leading-[0.9] tracking-[-0.12em] tabular-nums">{data.current.temperature.toFixed(1)}°</span><WindDirection degrees={data.current.windDirection} speed={data.current.windSpeed} /></div>
-      <PressureBar current={data.current} labels={labels} />
-      <div className="mt-0 flex items-end justify-between gap-2"><span className="font-mono text-[1.8rem] font-semibold leading-[0.9] tracking-[-0.1em] tabular-nums">{Math.round(data.current.humidity)}%</span><WeatherGlyph code={data.current.weatherCode} /></div>
-      <p className="mt-0.5 break-words text-center text-[0.58rem] font-semibold leading-3 text-foreground/75" title={data.location.city ?? data.location.name}>{data.location.city ?? data.location.name}</p>
-    </div> : <p className="text-sm text-primary-foreground/65">{labels.weatherUnavailable}</p>}
-  </aside>
-}
-
-// Retained as a compatible helper for the former forecast-card boundary.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function LegacyWeatherDayCard({ day, label }: { day: WeatherDay; label: string }) {
-  return <div className="min-w-24 flex-1 rounded-xl bg-primary-foreground/10 px-3 py-2.5 sm:min-w-28">
-    <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-primary-foreground/70">{label}</p>
-    <div className="mt-1.5 flex items-center gap-2"><WeatherGlyph code={day.weatherCode} /><span className="text-sm font-semibold tabular-nums">{Math.round(day.temperatureMax)}°</span><span className="text-xs tabular-nums text-primary-foreground/60">{Math.round(day.temperatureMin)}°</span></div>
-  </div>
-}
-
-function WeatherStrip({ data, labels }: { data: StartPageData['workWeather']; labels: StartPageLabels }) {
-  return <WeatherInstrument data={data} labels={labels} />
-}
 
 function AvatarCircle({ person }: { person: StartPageLeavePerson }) {
   const initials = person.employeeName.split(' ').filter(Boolean).map((part) => part.slice(0, 1)).slice(0, 2).join('').toUpperCase()
@@ -104,7 +36,7 @@ export function StartPage({ data, locale, dateFormat, timeFormat, logoUrl, greet
   return <div className="relative min-h-full overflow-hidden bg-background"><div aria-hidden="true" className="pointer-events-none absolute -right-36 -top-36 size-[28rem] rounded-full bg-accent/55 blur-3xl" /><div aria-hidden="true" className="pointer-events-none absolute -bottom-48 left-1/4 size-[24rem] rounded-full bg-success-surface/60 blur-3xl" />
     <main className="relative mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-8 sm:py-9 lg:px-10">
       {logoUrl ? <div className="mb-4 flex justify-end"><img alt="" className="max-h-12 max-w-48 object-contain" src={logoUrl} /></div> : null}
-      <section className="relative overflow-hidden rounded-[2rem] border border-primary/15 bg-primary p-4 text-primary-foreground shadow-[0_1.6rem_4rem_color-mix(in_srgb,var(--primary)_24%,transparent)] sm:p-5 lg:p-6"><div aria-hidden="true" className="absolute -right-16 -top-24 size-72 rounded-full border border-primary-foreground/10 bg-primary-foreground/5 blur-2xl" /><div aria-hidden="true" className="absolute -bottom-28 right-1/3 size-56 rounded-full bg-primary-foreground/10 blur-3xl" /><div className="relative flex items-center justify-between gap-6"><div className="min-w-0"><h1 className="min-w-0 max-w-3xl text-2xl font-semibold tracking-[-0.04em] sm:text-3xl lg:text-3xl">{greeting}, {name}</h1>{data.nextLeaveInDays !== null || data.nextHolidayInDays !== null ? <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.68rem] leading-4 text-primary-foreground/70">{data.nextLeaveInDays !== null ? <span>{labels.nextLeave.replace('{days}', String(data.nextLeaveInDays))}</span> : null}{data.nextHolidayInDays !== null ? <span>{labels.nextHoliday.replace('{days}', String(data.nextHolidayInDays))}</span> : null}</div> : null}</div><WeatherStrip data={data.workWeather} labels={labels} /></div></section>
+      <section className="relative overflow-hidden rounded-[2rem] border border-primary/15 bg-primary p-4 text-primary-foreground shadow-[0_1.6rem_4rem_color-mix(in_srgb,var(--primary)_24%,transparent)] sm:p-5 lg:p-6"><div aria-hidden="true" className="absolute -right-16 -top-24 size-72 rounded-full border border-primary-foreground/10 bg-primary-foreground/5 blur-2xl" /><div aria-hidden="true" className="absolute -bottom-28 right-1/3 size-56 rounded-full bg-primary-foreground/10 blur-3xl" /><div className="relative flex items-center justify-between gap-6"><div className="min-w-0"><h1 className="min-w-0 max-w-3xl text-2xl font-semibold tracking-[-0.04em] sm:text-3xl lg:text-3xl">{greeting}, {name}</h1>{data.nextLeaveInDays !== null || data.nextHolidayInDays !== null ? <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.68rem] leading-4 text-primary-foreground/70">{data.nextLeaveInDays !== null ? <span>{labels.nextLeave.replace('{days}', String(data.nextLeaveInDays))}</span> : null}{data.nextHolidayInDays !== null ? <span>{labels.nextHoliday.replace('{days}', String(data.nextHolidayInDays))}</span> : null}</div> : null}</div><WeatherInstrument workWeather={data.workWeather} homeWeather={data.homeWeather} labels={labels} /></div></section>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.38fr)_minmax(19rem,.62fr)]"><section>
         <header className="mb-5 flex flex-wrap items-center justify-between gap-3"><span className="text-sm font-medium text-muted-foreground">{labels.operationalTitle}</span><span className="text-sm text-muted-foreground">{new Intl.DateTimeFormat(dateLocale, { dateStyle: 'full' }).format(new Date())}</span></header>
@@ -115,6 +47,8 @@ export function StartPage({ data, locale, dateFormat, timeFormat, logoUrl, greet
           <div className="mt-5"><p className="text-sm font-semibold text-foreground">{labels.documentsTitle}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.documentsDescription}</p><p className="mt-3 text-4xl font-semibold tracking-[-0.06em] text-foreground">{data.companyDocuments ?? '—'}</p></div>
           <Link className="mt-5 inline-flex w-fit items-center gap-2 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href="/company-documents">{data.companyDocuments === null ? labels.notAvailable : labels.openDocuments}<ArrowRight aria-hidden="true" size={15} /></Link>
         </article>
+
+        {data.continuousAppraisal ? <article className="mt-6 overflow-hidden rounded-[1.35rem] border bg-surface shadow-[0_1rem_2.5rem_color-mix(in_srgb,var(--primary)_7%,transparent)]"><div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6"><div className="flex items-start gap-3"><span className="grid size-11 place-items-center rounded-2xl bg-accent text-primary"><MessageSquareText aria-hidden="true" size={20} /></span><div><p className="text-sm font-semibold">{labels.continuousAppraisalTitle}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.continuousAppraisalDescription}</p></div></div><span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">{data.continuousAppraisal.itemCount}</span></div><div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{labels.appraisalOpenActions}</p><p className="mt-2 text-3xl font-semibold tabular-nums">{data.continuousAppraisal.openActionCount}</p></div><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{labels.appraisalLatest}</p><p className="mt-2 truncate text-sm font-semibold">{data.continuousAppraisal.latestItem?.title ?? labels.appraisalNoItems}</p>{data.continuousAppraisal.latestItem ? <time className="mt-1 block text-xs text-muted-foreground" dateTime={data.continuousAppraisal.latestItem.occurred_on}>{new Intl.DateTimeFormat(dateLocale, { dateStyle: 'medium' }).format(new Date(`${data.continuousAppraisal.latestItem.occurred_on}T00:00:00Z`))}</time> : null}</div></div><div className="flex flex-wrap gap-3 border-t px-5 py-4 sm:px-6"><Link className="button-primary gap-2" href={data.continuousAppraisal.href}>{labels.openContinuousAppraisal}<ArrowRight aria-hidden="true" size={15} /></Link>{data.continuousAppraisal.workforceHref ? <Link className="button-secondary gap-2" href={data.continuousAppraisal.workforceHref}>{labels.openManagerAppraisal}<ArrowRight aria-hidden="true" size={15} /></Link> : null}</div></article> : null}
 
         {/* Afwezigheden */}
         <section className="mt-6 overflow-hidden rounded-[1.5rem] border bg-surface shadow-sm">

@@ -1,5 +1,13 @@
 # Liquid HR documentatie-index
 
+## Actuele update 2026-08-03: doorlopende beoordeling remote en testklaar
+
+De nieuwe requirements [`requirements/Talent/10-LiquidHR-Continuous-Appraisal-Requirements.md`](requirements/Talent/10-LiquidHR-Continuous-Appraisal-Requirements.md) en het functionele besluit [`decisions/FDR-0005-continuous-appraisal-gedeelde-timeline-en-handover.md`](decisions/FDR-0005-continuous-appraisal-gedeelde-timeline-en-handover.md) beschrijven de medewerker-manager-tijdlijn voor notities, acties, afspraken, feedback, doelen/ontwikkelpunten en gesprekssamenvattingen. De remote migrations/RLS/grants, services/API, private Storage voor screenshots/bijlagen, `/my-appraisal`, `/workforce/continuous-appraisal`, startpagina-samenvatting en i18n zijn actief. De remote testtenant bevat 9 items, 3 reacties en 1 veilige voorbeeldbijlage; contract, advisors en authenticated browsercontrole zijn uitgevoerd. Historische items zijn onveranderlijk, verwijderen bestaat niet en reacties zijn maximaal 100 tekens. Geen commit, push of deployment uitgevoerd.
+
+## Actuele update 2026-08-03: 9-grid-vlootschouw lokaal doorgetrokken
+
+De campagnegestuurde Workforce 9-grid is als nieuwe, tenantgescopeerde verticale slice uitgewerkt volgens `schema -> RLS/permissions -> service/API -> UI`. De leidende requirements staan in [`requirements/Talent/09-LiquidHR-Vlootschouw-9-grid-Requirements.md`](requirements/Talent/09-LiquidHR-Vlootschouw-9-grid-Requirements.md) en het functionele besluit in [`decisions/FDR-0004-talent-vlootschouw-9-grid-campagnes-en-reminders.md`](decisions/FDR-0004-talent-vlootschouw-9-grid-campagnes-en-reminders.md). De lokale migration, API, HR-/managerworkspace, drag-and-drop, historie, campagnevoortgang en automatische/handmatige reminders zijn toegevoegd. De migration is nog niet remote toegepast; er is geen remote write, seed, commit, push of deployment uitgevoerd.
+
 ## Actuele update 2026-08-03: P3 functioneel gesloten in testfase
 
 P3.0, P3.1, P3.2 en P3.4 zijn lokaal en remote doorgetrokken volgens `schema -> RLS/permissions -> service/API -> UI -> tests`. Talent heeft nu minimale tenantgescopeerde opvolgmeldingen, doelgesprekken/check-ins met gescheiden medewerkerreflectie en managerobservatie, en historische periodefilters voor rapportage en CSV-export. De meldingen zijn geen autorisatiebron en bevatten geen evidence-inhoud. HR Admin ziet tenantbreed; de manager ziet de eigen directe scope; de medewerker ziet alleen eigen meldingen en reflecties.
@@ -125,6 +133,9 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Organogram | [`requirements/organization/ORGANOGRAM.md`](requirements/organization/ORGANOGRAM.md) | LEIDEND | GEÏMPLEMENTEERD |
 
 | Workforce Talent | [`requirements/Talent/01-LiquidHR-Workforce-Talent-Product-Blueprint-v2.0.md`](requirements/Talent/01-LiquidHR-Workforce-Talent-Product-Blueprint-v2.0.md) | LEIDEND | GEDEELTELIJK — stappen 1-8 zijn uitgevoerd; stap 9 is inhoudelijk ingezet maar de geauthenticeerde drie-rollen-gate, volledige axe-audit, grote-dataset-baseline en rollbackbewijs staan open; cycli, formulieren, talent pools en opleidingscatalogus volgen later |
+| Doorlopende beoordeling | [`requirements/Talent/10-LiquidHR-Continuous-Appraisal-Requirements.md`](requirements/Talent/10-LiquidHR-Continuous-Appraisal-Requirements.md) | LEIDEND | TESTKLAAR — remote schema/RLS, private tenant Storage, API, medewerker-/managerworkspace, startpagina-link, fixturedata, contract/advisors en authenticated browsergate zijn uitgevoerd |
+
+| Workforce 9-grid / Vlootschouw | [`requirements/Talent/09-LiquidHR-Vlootschouw-9-grid-Requirements.md`](requirements/Talent/09-LiquidHR-Vlootschouw-9-grid-Requirements.md) | LEIDEND | GEDEELTELIJK - lokale schema/RLS, API, HR-/managerworkspace, historie en reminders zijn toegevoegd; remote migratie en geauthenticeerde browsergate volgen |
 
 ### Actuele Talentstatus 2026-08-02
 

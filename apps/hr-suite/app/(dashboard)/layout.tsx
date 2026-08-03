@@ -16,6 +16,8 @@ import { createHeRaLabels } from '@/lib/hera/labels'
 import { getProductUpdateDashboardData } from '@/lib/product-updates/service'
 import { ProductUpdateBanner, ProductUpdateLoginPopup } from '@/components/product-updates/product-update-surfaces'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
+import { TEST_ROLE_SWITCH_TARGETS, isTestRoleSwitchAccount, isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
+import type { TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const supabase = await createClient()
@@ -53,6 +55,13 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   ])
   const profileFirstName = profile?.first_name?.trim() || (typeof data.claims.email === 'string' ? data.claims.email.split('@')[0] : '') || common('appName')
   const profileAvatarUrl = authContext.employeeId ? employeeAvatarHref(authContext.employeeId, profile?.avatar_url ?? null) : null
+  const currentEmail = typeof data.claims.email === 'string' ? data.claims.email.trim().toLowerCase() : null
+  const testRoleSwitchOptions: TestRoleSwitchOption[] = [
+    { key: TEST_ROLE_SWITCH_TARGETS[0].key, email: TEST_ROLE_SWITCH_TARGETS[0].email, label: navigation('testRoleSwitchEdwin') },
+    { key: TEST_ROLE_SWITCH_TARGETS[1].key, email: TEST_ROLE_SWITCH_TARGETS[1].email, label: navigation('testRoleSwitchHrAdmin') },
+    { key: TEST_ROLE_SWITCH_TARGETS[2].key, email: TEST_ROLE_SWITCH_TARGETS[2].email, label: navigation('testRoleSwitchManager') },
+    { key: TEST_ROLE_SWITCH_TARGETS[3].key, email: TEST_ROLE_SWITCH_TARGETS[3].email, label: navigation('testRoleSwitchEmployee') },
+  ]
   const updateSurfaceLabels = {
     title: productUpdateMessages('title'),
     open: productUpdateMessages('open'),
@@ -134,6 +143,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         }}
         enabledModules={enabledModules}
         productUpdateUnreadCount={productUpdates.unreadGiftCount}
+        testRoleSwitch={{
+          currentEmail,
+          enabled: isTestRoleSwitchEnabled() && isTestRoleSwitchAccount(currentEmail),
+          labels: {
+            title: navigation('testRoleSwitchTitle'),
+            hint: navigation('testRoleSwitchHint'),
+          },
+          options: testRoleSwitchOptions,
+        }}
       />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0"><ProductUpdateBanner labels={updateSurfaceLabels} updates={productUpdates.bannerUpdates} />{children}</main>
       {enabledModules.includes('HERA') ? <HeRaFloating labels={createHeRaLabels(preferences.locale)} /> : null}

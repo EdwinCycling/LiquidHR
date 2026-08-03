@@ -28,6 +28,8 @@ export const MESSAGE_NAMESPACES = [
   'insights',
   'workforce',
   'talent',
+  'talentReview',
+  'continuousAppraisal',
   'productUpdates',
   'support',
 ] as const

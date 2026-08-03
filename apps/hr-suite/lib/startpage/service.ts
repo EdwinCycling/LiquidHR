@@ -5,6 +5,7 @@ import { loadActiveContext } from '@/lib/context/server-context'
 import { listMyReminders, type ReminderItem } from '@/lib/reminders/reminder-service'
 import { createClient } from '@/lib/supabase/server'
 import { FALLBACK_WEATHER_LOCATION, getWorkWeather, type WorkWeather } from '@/lib/weather/open-meteo'
+import { getContinuousAppraisalSummary, type ContinuousAppraisalSummary } from '@/lib/continuous-appraisal/service'
 
 export interface StartPageData {
   employeeId: string | null
@@ -22,8 +23,10 @@ export interface StartPageData {
   recurringAbsenceCount: number | null
   longTermSickCount: number | null
   workWeather: WorkWeather | null
+  homeWeather: WorkWeather | null
   nextLeaveInDays: number | null
   nextHolidayInDays: number | null
+  continuousAppraisal: ContinuousAppraisalSummary | null
 }
 
 export interface StartPageLeavePerson {
@@ -318,6 +321,40 @@ async function getStartPageWorkWeather(auth: AuthContext): Promise<WorkWeather |
   })
 }
 
+async function getStartPageHomeWeather(auth: AuthContext): Promise<WorkWeather | null> {
+  if (!auth.employeeId) return null
+  const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+  const { data, error } = await supabase.from('employee_addresses')
+    .select('city, country_code')
+    .eq('tenant_id', auth.tenantId)
+    .eq('employee_id', auth.employeeId)
+    .eq('address_type', 'PRIMARY')
+    .lte('valid_from', today)
+    .or(`valid_until.is.null,valid_until.gte.${today}`)
+    .is('deleted_at', null)
+    .order('valid_from', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !data?.city) return null
+  return getWorkWeather({
+    name: data.city,
+    city: data.city,
+    countryCode: data.country_code,
+    latitude: 0,
+    longitude: 0,
+  })
+}
+
+async function getStartPageContinuousAppraisal(): Promise<ContinuousAppraisalSummary | null> {
+  try {
+    return await getContinuousAppraisalSummary()
+  } catch {
+    // De startpagina blijft beschikbaar zolang de optionele module nog niet is geactiveerd.
+    return null
+  }
+}
+
 export async function getStartPageData(): Promise<StartPageData> {
   const supabase = await createClient()
   const auth = await requireAuthContext(supabase)
@@ -325,7 +362,7 @@ export async function getStartPageData(): Promise<StartPageData> {
   const managementRoles = new Set(['TENANT_ADMIN', 'HR_ADMIN', 'HR_ADVISOR', 'DIRECT_MANAGER', 'TEAM_LEAD'])
   const isEmployeeOnly = auth.activeRoles.every((role) => !managementRoles.has(role))
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, countdowns] = await Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal] = await Promise.all([
     auth.employeeId
       ? supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -338,7 +375,9 @@ export async function getStartPageData(): Promise<StartPageData> {
     countRecurringAbsence(auth),
     countLongTermSick(auth),
     getStartPageWorkWeather(auth),
+    getStartPageHomeWeather(auth),
     getStartPageCountdowns(auth),
+    getStartPageContinuousAppraisal(),
   ])
 
   return {
@@ -357,7 +396,9 @@ export async function getStartPageData(): Promise<StartPageData> {
     recurringAbsenceCount,
     longTermSickCount,
     workWeather,
+    homeWeather,
     nextLeaveInDays: countdowns.nextLeaveInDays,
     nextHolidayInDays: countdowns.nextHolidayInDays,
+    continuousAppraisal,
   }
 }

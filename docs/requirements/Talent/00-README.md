@@ -18,6 +18,8 @@
 | `06-LiquidHR-Decision-Register-Glossary.md` | Definitieve besluiten, rationale en vaste terminologie. |
 | `07-LiquidHR-UI-Reference-Library.md` | Uitleg en correcties bij UI-001 t/m UI-013. |
 | `08-LiquidHR-Requirement-Traceability-Matrix.md` | Koppeling tussen requirements, implementatiestappen, prompts, tests en UI-references. |
+| `09-LiquidHR-Vlootschouw-9-grid-Requirements.md` | Leidende requirements voor campagnegestuurde 9-grid-scoring, historie en managerreminders. |
+| `10-LiquidHR-Continuous-Appraisal-Requirements.md` | Leidende requirements voor de gedeelde medewerker-manager-timeline, commentaren, historische integriteit en handover. |
 | `ui-references/` | De 13 officiële mockups plus één extra alternatief dashboardconcept. |
 
 ---
@@ -53,13 +55,15 @@
 - De Product Blueprint is leidend.
 - Mockups zijn ondersteunend, niet pixel-perfect.
 - Settings configureert; Workforce gebruikt; medewerker consumeert.
-- HR Admin beheert. Manager en medewerker zijn read-only in fase 1.
+- HR Admin beheert de Talent-fundamenten. Voor de afzonderlijke Continuous Appraisal-slice geldt document 10: medewerker en manager mogen binnen hun gedeelde timeline items en commentaren toevoegen volgens de daar beschreven permissions en historische grenzen.
 - Functiegroep → Functie is de vereiste kern; Functiefamilie is optioneel.
 - Senioriteit is optioneel per functie en configureerbaar.
 - Eén dynamisch Talent Level Model per tenant, locked na eerste gebruik.
 - Capability is intern generiek met vijf herkenbare UI-typen.
 - Eén logisch functieprofiel per functie met opvolgende datumversies.
 - Geen AI, import, assessments, approvals, profile comparison of Team Talent analytics in fase 1.
+- De 9-grid is sinds 3 augustus 2026 een expliciete operationele uitbreiding voor HR Admin en Manager; zie document 09 en FDR-0004.
+- Continuous Appraisal is sinds 3 augustus 2026 een expliciete medewerker-manager-uitbreiding; document 10 en FDR-0005 zijn leidend voor die module.
 - Dashboards tonen alleen echte data.
 - Tenantisolatie en profile history zijn release blockers.
 

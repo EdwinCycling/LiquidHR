@@ -24,6 +24,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
 import { Clock } from '@/components/layout/clock'
+import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
 import { ProductUpdateSidebarLink } from '@/components/product-updates/product-update-surfaces'
 import type {
@@ -77,6 +78,15 @@ interface SidebarProps {
   reminders: ReminderItem[]
   locale: Locale
   productUpdateUnreadCount: number
+  testRoleSwitch: {
+    enabled: boolean
+    currentEmail: string | null
+    options: TestRoleSwitchOption[]
+    labels: {
+      title: string
+      hint: string
+    }
+  }
 }
 
 export function Sidebar({
@@ -96,6 +106,7 @@ export function Sidebar({
   reminders,
   locale,
   productUpdateUnreadCount,
+  testRoleSwitch,
 }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -205,6 +216,9 @@ export function Sidebar({
         </nav>
 
         <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
+          {!collapsed && testRoleSwitch.enabled && testRoleSwitch.currentEmail ? (
+            <TestRoleSwitcher currentEmail={testRoleSwitch.currentEmail} labels={testRoleSwitch.labels} options={testRoleSwitch.options} />
+          ) : null}
           <div className={collapsed ? 'grid place-items-center gap-2' : 'flex items-center justify-between gap-3'} title={collapsed ? labels.timeHub : undefined}>
             {!collapsed ? <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} /> : null}
             {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} /> : null}

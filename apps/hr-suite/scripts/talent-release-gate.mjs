@@ -11,14 +11,14 @@ const roles = [
     id: 'hr-admin',
     email: process.env.TALENT_HR_ADMIN_EMAIL,
     password: process.env.TALENT_HR_ADMIN_PASSWORD,
-    allowedRoutes: ['/settings/talent', '/workforce/talent'],
+    allowedRoutes: ['/settings/talent', '/workforce/talent', '/workforce/9-grid'],
     deniedRoutes: ['/my-talent'],
   },
   {
     id: 'manager',
     email: process.env.TALENT_MANAGER_EMAIL,
     password: process.env.TALENT_MANAGER_PASSWORD,
-    allowedRoutes: ['/workforce/talent'],
+    allowedRoutes: ['/workforce/talent', '/workforce/9-grid'],
     deniedRoutes: ['/settings/talent', '/my-talent'],
   },
   {
@@ -26,7 +26,7 @@ const roles = [
     email: process.env.TALENT_EMPLOYEE_EMAIL,
     password: process.env.TALENT_EMPLOYEE_PASSWORD,
     allowedRoutes: ['/my-talent'],
-    deniedRoutes: ['/settings/talent', '/workforce/talent'],
+    deniedRoutes: ['/settings/talent', '/workforce/talent', '/workforce/9-grid'],
   },
 ]
 
@@ -51,8 +51,9 @@ if (!outOfScopeJobCode) {
 }
 
 const routeReadyText = {
-  '/settings/talent': 'Talentfundament',
+  '/settings/talent': 'Talent Management',
   '/workforce/talent': 'Talentprofielen',
+  '/workforce/9-grid': 'Vlootschouw 9-grid',
   '/my-talent': 'Mijn talentprofiel',
 }
 
@@ -105,9 +106,12 @@ async function visitDenied(page, roleId, route) {
   await page.goto(`${baseUrl}${route}`, { waitUntil: 'domcontentloaded' })
   const currentPath = pathOf(page.url())
   const noAccessPage = await page.getByText('Nog geen toegang', { exact: true }).waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false)
-  const denied = currentPath === '/geen-toegang' || currentPath === '/login' || noAccessPage
+  const featureHeadingVisible = route === '/workforce/9-grid'
+    ? await page.getByRole('heading', { name: routeReadyText[route], exact: true }).isVisible().catch(() => false)
+    : false
+  const denied = currentPath === '/geen-toegang' || currentPath === '/login' || noAccessPage || (route === '/workforce/9-grid' && currentPath === route && !featureHeadingVisible)
   if (!denied) throw new Error(`${roleId} kreeg onverwacht toegang tot ${route}: ${page.url()}`)
-  return { route, denied, finalPath: noAccessPage ? '/geen-toegang' : currentPath }
+  return { route, denied, finalPath: noAccessPage ? '/geen-toegang' : currentPath, featureHeadingVisible }
 }
 
 async function assertDeniedMutation(context, roleId) {

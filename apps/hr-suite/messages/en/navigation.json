@@ -27,5 +27,11 @@
   "talent": "Talent",
   "talentProfiles": "Talent profiles",
   "talentFoundation": "Talent Management",
-  "productUpdates": "What's new"
+  "productUpdates": "What's new",
+  "testRoleSwitchTitle": "Switch test role",
+  "testRoleSwitchHint": "You will be fully signed in again as the selected test user.",
+  "testRoleSwitchEdwin": "Edwin — own account",
+  "testRoleSwitchHrAdmin": "Test HR Admin",
+  "testRoleSwitchManager": "Test Manager",
+  "testRoleSwitchEmployee": "Test Employee"
 }

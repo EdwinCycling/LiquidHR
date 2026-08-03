@@ -27,5 +27,11 @@
   "talent": "Talent",
   "talentProfiles": "Talentprofielen",
   "talentFoundation": "Talent Management",
-  "productUpdates": "Wat is nieuw"
+  "productUpdates": "Wat is nieuw",
+  "testRoleSwitchTitle": "Testrol wisselen",
+  "testRoleSwitchHint": "Je wordt volledig opnieuw ingelogd als de gekozen testgebruiker.",
+  "testRoleSwitchEdwin": "Edwin — eigen account",
+  "testRoleSwitchHrAdmin": "Test HR Admin",
+  "testRoleSwitchManager": "Test Manager",
+  "testRoleSwitchEmployee": "Test Medewerker"
 }

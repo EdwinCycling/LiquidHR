@@ -23,6 +23,8 @@ import leaveEn from '@/messages/en/leave.json'
 import insightsEn from '@/messages/en/insights.json'
 import workforceEn from '@/messages/en/workforce.json'
 import talentEn from '@/messages/en/talent.json'
+import talentReviewEn from '@/messages/en/talentReview.json'
+import continuousAppraisalEn from '@/messages/en/continuousAppraisal.json'
 import productUpdatesEn from '@/messages/en/productUpdates.json'
 import supportEn from '@/messages/en/support.json'
 import authNl from '@/messages/nl/auth.json'
@@ -48,6 +50,8 @@ import leaveNl from '@/messages/nl/leave.json'
 import insightsNl from '@/messages/nl/insights.json'
 import workforceNl from '@/messages/nl/workforce.json'
 import talentNl from '@/messages/nl/talent.json'
+import talentReviewNl from '@/messages/nl/talentReview.json'
+import continuousAppraisalNl from '@/messages/nl/continuousAppraisal.json'
 import productUpdatesNl from '@/messages/nl/productUpdates.json'
 import supportNl from '@/messages/nl/support.json'
 import { getUserPreferences } from '@/lib/preferences/server'
@@ -82,6 +86,8 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     insights: insightsNl,
     workforce: workforceNl,
     talent: talentNl,
+    talentReview: talentReviewNl,
+    continuousAppraisal: continuousAppraisalNl,
     productUpdates: productUpdatesNl,
     support: supportNl,
   },
@@ -109,6 +115,8 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     insights: insightsEn,
     workforce: workforceEn,
     talent: talentEn,
+    talentReview: talentReviewEn,
+    continuousAppraisal: continuousAppraisalEn,
     productUpdates: productUpdatesEn,
     support: supportEn,
   },

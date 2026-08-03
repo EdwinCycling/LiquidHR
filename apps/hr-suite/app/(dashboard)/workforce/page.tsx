@@ -5,7 +5,7 @@ import { getTranslator } from '@/lib/i18n/server'
 
 export default async function WorkforcePage() {
   const [t, star] = await Promise.all([getTranslator('workforce'), getTranslator('starPerformers')])
-  const [canReadStarPerformers, canReadTalentProfiles] = await Promise.all([
+  const [canReadStarPerformers, canReadTalentProfiles, canReadTalentReview, canReadContinuousAppraisal] = await Promise.all([
     requirePermission('star-performer:read').then(() => true).catch((error) => {
       if (error instanceof AuthorizationError) return false
       throw error
@@ -14,19 +14,26 @@ export default async function WorkforcePage() {
       if (error instanceof AuthorizationError) return false
       throw error
     }),
+    requirePermission('talent-review:read').then(() => true).catch((error) => {
+      if (error instanceof AuthorizationError) return false
+      throw error
+    }),
+    requirePermission('continuous-appraisal:read').then(() => true).catch((error) => {
+      if (error instanceof AuthorizationError) return false
+      throw error
+    }),
   ])
 
   const windows = [
-    {
-      icon: Grid2X2,
-      title: t('gridNineTitle'),
-      description: t('gridNineDescription'),
-    },
-    {
+    ...(canReadTalentReview ? [
+      { icon: Grid2X2, title: t('gridNineTitle'), description: t('gridNineDescription'), href: '/workforce/9-grid', status: t('available'), footer: t('openWorkspace') },
+    ] : []),
+    ...(canReadContinuousAppraisal ? [{
       icon: MessageSquareText,
       title: t('performanceTalksTitle'),
       description: t('performanceTalksDescription'),
-    },
+      href: '/workforce/continuous-appraisal', status: t('available'), footer: t('openWorkspace'),
+    }] : []),
     ...(canReadTalentProfiles ? [
       { icon: Sparkles, title: t('talentProfilesTitle'), description: t('talentProfilesDescription'), href: '/workforce/talent', status: t('available'), footer: t('openWorkspace') },
     ] : []),

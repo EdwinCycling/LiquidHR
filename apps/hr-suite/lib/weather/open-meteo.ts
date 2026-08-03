@@ -18,6 +18,7 @@ export const FALLBACK_WEATHER_LOCATION: WeatherLocation = {
 
 export interface WeatherCurrent {
   temperature: number
+  temperatureMax: number
   humidity: number
   pressure: number
   pressureTrend: 'up' | 'down' | 'steady'
@@ -60,6 +61,9 @@ interface ForecastPayload {
   hourly?: {
     time?: unknown
     pressure_msl?: unknown
+  }
+  daily?: {
+    temperature_2m_max?: unknown
   }
 }
 
@@ -135,6 +139,8 @@ export async function getWorkWeather(location: WeatherLocation): Promise<WorkWea
     url.searchParams.set('longitude', String(weatherLocation.longitude))
     url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,pressure_msl,wind_direction_10m,wind_speed_10m,weather_code')
     url.searchParams.set('hourly', 'pressure_msl')
+    url.searchParams.set('daily', 'temperature_2m_max')
+    url.searchParams.set('forecast_days', '1')
     url.searchParams.set('past_hours', '6')
     url.searchParams.set('forecast_hours', '1')
     url.searchParams.set('wind_speed_unit', 'kmh')
@@ -143,16 +149,18 @@ export async function getWorkWeather(location: WeatherLocation): Promise<WorkWea
     const current = payload.current
     const currentTime = stringValue(current?.time)
     const temperature = finiteNumber(current?.temperature_2m)
+    const temperatureMax = Math.max(temperature ?? Number.NEGATIVE_INFINITY, arrayNumber(payload.daily?.temperature_2m_max, 0) ?? Number.NEGATIVE_INFINITY)
     const humidity = finiteNumber(current?.relative_humidity_2m)
     const pressure = finiteNumber(current?.pressure_msl)
     const windDirection = finiteNumber(current?.wind_direction_10m)
     const windSpeed = finiteNumber(current?.wind_speed_10m)
     const weatherCode = finiteNumber(current?.weather_code)
-    if (!currentTime || temperature === null || humidity === null || pressure === null || windDirection === null || windSpeed === null || weatherCode === null) return null
+    if (!currentTime || temperature === null || !Number.isFinite(temperatureMax) || humidity === null || pressure === null || windDirection === null || windSpeed === null || weatherCode === null) return null
     return {
       location: weatherLocation,
       current: {
         temperature,
+        temperatureMax,
         humidity,
         pressure,
         pressureTrend: pressureTrend(pressure, payload.hourly, currentTime),

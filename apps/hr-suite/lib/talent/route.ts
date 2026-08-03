@@ -8,12 +8,13 @@ import { TalentNotificationError } from './notification-service'
 import { TalentCheckInError } from './check-in-service'
 import { TalentTeamError } from './team-service'
 import { TalentServiceError } from './service'
+import { TalentReviewError } from '@/lib/talent-review/service'
 
 export function talentErrorResponse(error: unknown, fallback = 'TALENT_OPERATION_FAILED') {
   const permission = permissionErrorResponse(error)
   if (permission) return permission
   if (error instanceof TalentServiceError) return NextResponse.json({ error: error.code }, { status: error.status })
-  if (error instanceof TalentAssessmentError || error instanceof TalentGoalError || error instanceof TalentTeamError || error instanceof TalentReportError || error instanceof TalentNotificationError || error instanceof TalentCheckInError) return NextResponse.json({ error: error.code }, { status: error.status })
+  if (error instanceof TalentAssessmentError || error instanceof TalentGoalError || error instanceof TalentTeamError || error instanceof TalentReportError || error instanceof TalentNotificationError || error instanceof TalentCheckInError || error instanceof TalentReviewError) return NextResponse.json({ error: error.code }, { status: error.status })
   if (error instanceof ModuleError) return moduleErrorResponse(error)
   return NextResponse.json({ error: fallback }, { status: 500 })
 }
