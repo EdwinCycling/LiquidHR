@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === '/login' && isAuthenticated) {
     const url = request.nextUrl.clone()
-    url.pathname = '/departments'
+    url.pathname = '/dashboard/start'
     return NextResponse.redirect(url)
   }
 

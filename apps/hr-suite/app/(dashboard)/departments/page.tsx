@@ -1,4 +1,5 @@
 import { Building2, ChevronRight, FolderTree } from 'lucide-react'
+import { redirect } from 'next/navigation'
 import { DepartmentCreateForm } from '@/components/organization/department-create-form'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { AuthorizationError } from '@/lib/auth/permissions'
@@ -67,8 +68,15 @@ function DepartmentBranch({
 }
 
 export default async function DepartmentsPage() {
+  let departmentData: Awaited<ReturnType<typeof loadDepartmentTree>>
+  try {
+    departmentData = await loadDepartmentTree()
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
   const [{ roots, administrationName, count }, translate, organizationTranslate, settingsTranslate] = await Promise.all([
-    loadDepartmentTree(),
+    departmentData,
     getTranslator('departments'),
     getTranslator('organization'),
     getTranslator('settings'),
@@ -141,15 +149,11 @@ async function loadDepartmentTree(): Promise<{
   const context = await requirePermission('department:read')
   const activeContext = await loadActiveContext(context.userId)
   const supabase = await createClient()
-  let query = supabase
+  const query = supabase
     .from('departments')
     .select('id, code, name, parent_id')
     .eq('tenant_id', context.tenantId)
     .eq('is_active', true)
-
-  if (context.administrationId) {
-    query = query.eq('administration_id', context.administrationId)
-  }
 
   const { data: departments, error } = await query
     .order('name')

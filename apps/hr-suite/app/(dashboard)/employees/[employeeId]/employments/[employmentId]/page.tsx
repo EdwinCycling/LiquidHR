@@ -16,6 +16,7 @@ import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
 import { SelectableTimelineList } from "@/components/employment/selectable-timeline-list";
 import { OrganizationTimelineManager } from "@/components/employment/organization-timeline-manager";
+import { CompanyLocationTimelineManager } from "@/components/employment/company-location-timeline-manager";
 import { WorkPatternPanel } from "@/components/employment/work-pattern-panel";
 import {
   EmploymentDetailError,
@@ -38,6 +39,7 @@ const tabs = [
   "schedule",
   "salary",
   "organization",
+  "company-location",
   "costs",
   "history",
 ] as const;
@@ -180,6 +182,7 @@ export default async function EmploymentDetailPage({
     schedule: t("tabsSchedule"),
     salary: t("tabsSalary"),
     organization: t("tabsOrganization"),
+    "company-location": t("tabsCompanyLocation"),
     costs: t("tabsCosts"),
     history: t("tabsHistory"),
   };
@@ -525,6 +528,40 @@ export default async function EmploymentDetailPage({
               add: t("timelineAdd"), edit: t("change"), save: t("confirm"),
               cancel: t("cancel"), department: t("department"), job: t("job"),
               effectiveOn: t("effectiveOn"), active: t("active"), failed: t("changeFailed"),
+            }}
+          />
+        )}
+        {tab === "company-location" && (
+          <CompanyLocationTimelineManager
+            employmentId={employmentId}
+            canWrite={detail.capabilities.canWriteCompanyLocation}
+            company={{
+              name: detail.administration.name,
+              single_location: detail.companyLocation.company?.single_location ?? true,
+              address: detail.companyLocation.company ? {
+                address_line_1: detail.companyLocation.company.address_line_1,
+                address_line_2: detail.companyLocation.company.address_line_2,
+                street: detail.companyLocation.company.street,
+                house_number: detail.companyLocation.company.house_number,
+                house_number_addition: detail.companyLocation.company.house_number_addition,
+                postal_code: detail.companyLocation.company.postal_code,
+                city: detail.companyLocation.company.city,
+                region: detail.companyLocation.company.region,
+                country_code: detail.companyLocation.company.country_code,
+              } : null,
+            }}
+            locations={[...detail.companyLocation.locations]}
+            assignments={[...detail.companyLocation.assignments]}
+            labels={{
+              title: t("companyLocationTitle"), description: t("companyLocationDescription"),
+              company: t("company"), companyAddress: t("companyAddress"), locations: t("locations"),
+              current: t("currentValue"), history: t("historyLabel"), active: t("active"),
+              notRecorded: t("notRecorded"), readOnly: t("readOnly"), noLocations: t("noLocations"),
+              location: t("location"), locationSearch: t("locationSearch"), locationSearchPlaceholder: t("locationSearchPlaceholder"),
+              noLocationResults: t("noLocationResults"), add: t("timelineAdd"), edit: t("change"),
+              save: t("confirm"), cancel: t("cancel"), effectiveOn: t("effectiveOn"),
+              failed: t("changeFailed"), saving: t("saving"), changeSaved: t("changeSaved"),
+              singleLocationMode: t("singleLocationMode"),
             }}
           />
         )}

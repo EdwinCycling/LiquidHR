@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ADMINISTRATION_SWITCH_SUCCESS_PATH } from '@/lib/context/administration-context'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 import type {
   AdministrationContextOption,
   AdministrationSwitcherMode,
@@ -12,7 +13,6 @@ interface AdministrationSwitcherProps {
   activeAdministrationId: string | null
   administrations: AdministrationContextOption[]
   mode: AdministrationSwitcherMode
-  tenantName: string
   labels: {
     administration: string
     switching: string
@@ -24,7 +24,6 @@ export function AdministrationSwitcher({
   activeAdministrationId,
   administrations,
   mode,
-  tenantName,
   labels,
 }: AdministrationSwitcherProps) {
   const router = useRouter()
@@ -38,17 +37,6 @@ export function AdministrationSwitcher({
   ) ?? administrations[0]
 
   if (!activeAdministration) return null
-
-  if (mode === 'LABEL') {
-    return (
-      <div className="rounded-lg bg-sidebar-accent/70 px-3 py-2">
-        <p className="truncate text-[0.65rem] uppercase tracking-[0.16em] text-sidebar-foreground/60">
-          {tenantName}
-        </p>
-        <p className="mt-1 truncate text-sm font-medium">{activeAdministration.name}</p>
-      </div>
-    )
-  }
 
   async function switchAdministration(administrationId: string) {
     setIsSwitching(true)
@@ -82,13 +70,11 @@ export function AdministrationSwitcher({
   }
 
   return (
-    <div className="rounded-lg bg-sidebar-accent/70 p-3">
-      <label className="block text-[0.65rem] uppercase tracking-[0.16em] text-sidebar-foreground/60" htmlFor="administration-switcher">
-        {labels.administration}
-      </label>
-      <select
+    <div className="rounded-lg bg-sidebar-accent/70 p-2">
+      <DropdownSelect
+        aria-label={labels.administration}
         aria-describedby={error ? 'administration-switcher-error' : undefined}
-        className="mt-2 w-full rounded-md border border-white/15 bg-sidebar px-2 py-2 text-sm text-sidebar-foreground outline-none focus:ring-2 focus:ring-sidebar-foreground/50 disabled:opacity-60"
+        className="!border-white/15 !bg-sidebar !text-sidebar-foreground focus-visible:!ring-sidebar-foreground/50"
         disabled={isSwitching}
         id="administration-switcher"
         onChange={(event) => void switchAdministration(event.target.value)}
@@ -99,8 +85,7 @@ export function AdministrationSwitcher({
             {administration.name}
           </option>
         ))}
-      </select>
-      <p className="mt-2 truncate text-xs text-sidebar-foreground/60">{tenantName}</p>
+      </DropdownSelect>
       {isSwitching ? <p className="mt-2 text-xs text-sidebar-muted" role="status">{labels.switching}</p> : null}
       {error ? <p className="mt-2 text-xs text-sidebar-foreground" id="administration-switcher-error" role="alert">{error}</p> : null}
     </div>

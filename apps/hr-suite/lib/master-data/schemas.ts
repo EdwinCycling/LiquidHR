@@ -6,19 +6,22 @@ export const jobGroupCreateSchema = z.object({
   code: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(1000).nullish(),
+  jobFamilyId: z.string().uuid().nullish(),
 }).strict()
 
 export const jobCreateSchema = z.object({
   code: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1).max(160),
-  jobGroupIds: z.array(z.string().uuid()).min(1).max(50).refine((values) => new Set(values).size === values.length, 'DUPLICATE_JOB_GROUP'),
+  jobGroupIds: z.array(z.string().uuid()).length(1, 'EXACTLY_ONE_JOB_GROUP'),
   description: z.string().trim().max(1000).nullish(),
+  seniorityId: z.string().uuid().nullish(),
 }).strict()
 
 export const jobGroupUpdateSchema = z.object({
   code: z.string().trim().min(1).max(40).optional(),
   name: z.string().trim().min(1).max(160).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
+  jobFamilyId: z.string().uuid().nullable().optional(),
   isActive: z.boolean().optional(),
 }).strict().refine((value) => Object.keys(value).length > 0)
 
@@ -26,7 +29,8 @@ export const jobUpdateSchema = z.object({
   code: z.string().trim().min(1).max(40).optional(),
   name: z.string().trim().min(1).max(160).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
-  jobGroupIds: z.array(z.string().uuid()).min(1).max(50).refine((values) => new Set(values).size === values.length, 'DUPLICATE_JOB_GROUP').optional(),
+  jobGroupIds: z.array(z.string().uuid()).length(1, 'EXACTLY_ONE_JOB_GROUP').optional(),
+  seniorityId: z.string().uuid().nullable().optional(),
   isActive: z.boolean().optional(),
 }).strict().refine((value) => Object.keys(value).length > 0)
 

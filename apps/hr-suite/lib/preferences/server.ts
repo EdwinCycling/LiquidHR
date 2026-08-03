@@ -12,7 +12,16 @@ import {
 } from './user-preferences'
 import { getBrandingForAdministration } from '@/lib/settings/branding-service'
 
-export const getUserPreferences = cache(async (): Promise<UserPreferences> => {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+type UserPreferencesDependencies = {
+  supabase: SupabaseServerClient
+  userId: string
+  tenantId?: string
+  administrationId?: string | null
+}
+
+export const getUserPreferences = cache(async (dependencies?: UserPreferencesDependencies): Promise<UserPreferences> => {
   const cookieStore = await cookies()
   const cookiePreferences = {
     locale: cookieStore.get(LOCALE_COOKIE)?.value,
@@ -23,9 +32,8 @@ export const getUserPreferences = cache(async (): Promise<UserPreferences> => {
     timeFormat: undefined,
     weekNumberingSystem: undefined,
   }
-  const supabase = await createClient()
-  const { data: claimsData } = await supabase.auth.getClaims()
-  const userId = claimsData?.claims.sub
+  const supabase = dependencies?.supabase ?? await createClient()
+  const userId = dependencies?.userId ?? (await supabase.auth.getClaims()).data?.claims.sub
 
   if (!userId) return resolveUserPreferences(null, cookiePreferences)
 
@@ -46,10 +54,10 @@ export const getUserPreferences = cache(async (): Promise<UserPreferences> => {
     timeFormat: data.time_format,
     weekNumberingSystem: data.week_numbering_system,
   } : null, cookiePreferences)
-  const administrationId = cookieStore.get(ACTIVE_ADMINISTRATION_COOKIE)?.value
+  const administrationId = dependencies?.administrationId ?? cookieStore.get(ACTIVE_ADMINISTRATION_COOKIE)?.value
   if (!administrationId) return preferences
-  const { data: administration } = await supabase.from('administrations').select('tenant_id, id').eq('id', administrationId).maybeSingle()
-  if (!administration) return preferences
-  const branding = await getBrandingForAdministration(administration.tenant_id, administration.id)
+  const tenantId = dependencies?.tenantId ?? (await supabase.from('administrations').select('tenant_id').eq('id', administrationId).maybeSingle()).data?.tenant_id
+  if (!tenantId) return preferences
+  const branding = await getBrandingForAdministration(tenantId, administrationId, supabase)
   return { ...preferences, companyBranding: branding }
 })

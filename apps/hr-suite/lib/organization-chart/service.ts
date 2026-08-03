@@ -49,7 +49,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
   const scope = { tenantId: context.tenantId, administrationId: context.administrationId }
   const [administrationResult, departmentsResult, placementsResult, managementResult, rolesResult, definitionsResult, employeesResult] = await Promise.all([
     supabase.from('administrations').select('id, code, name').eq('tenant_id', scope.tenantId).eq('id', scope.administrationId).maybeSingle(),
-    supabase.from('departments').select('id, parent_id, code, name').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).eq('is_active', true).order('code').limit(500),
+    supabase.from('departments').select('id, parent_id, code, name').eq('tenant_id', scope.tenantId).eq('is_active', true).order('code').limit(500),
     supabase.from('employee_organizations').select('id, employee_id, employment_id, department_id, direct_manager_id, job_id, job_title, effective_from, effective_to').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).lte('effective_from', query.date).or(`effective_to.is.null,effective_to.gte.${query.date}`).limit(5000),
     supabase.from('department_management').select('id, department_id, employee_id, management_role_id, effective_from, effective_to').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).lte('effective_from', query.date).or(`effective_to.is.null,effective_to.gte.${query.date}`).limit(5000),
     supabase.from('management_roles').select('id, code, name, is_organization_scoped').or(`tenant_id.is.null,tenant_id.eq.${scope.tenantId}`).eq('is_active', true).is('deleted_at', null).limit(500),
@@ -70,10 +70,10 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
 
   const [jobsResult, jobRevisionsResult, starAssessments] = await Promise.all([
     jobIds.length > 0
-      ? supabase.from('jobs').select('id, code, job_group_id').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).in('id', jobIds).limit(2000)
+      ? supabase.from('jobs').select('id, code, job_group_id').eq('tenant_id', scope.tenantId).in('id', jobIds).limit(2000)
       : Promise.resolve({ data: [], error: null }),
     jobIds.length > 0
-      ? supabase.from('job_revisions').select('job_id, name, valid_from, valid_until').eq('administration_id', scope.administrationId).in('job_id', jobIds).lte('valid_from', query.date).or(`valid_until.is.null,valid_until.gt.${query.date}`).order('valid_from', { ascending: false }).limit(4000)
+      ? supabase.from('job_revisions').select('job_id, name, valid_from, valid_until').eq('tenant_id', scope.tenantId).in('job_id', jobIds).lte('valid_from', query.date).or(`valid_until.is.null,valid_until.gt.${query.date}`).order('valid_from', { ascending: false }).limit(4000)
       : Promise.resolve({ data: [], error: null }),
     listStarPerformerAssessmentsSafe(supabase, scope.administrationId),
   ])
@@ -81,7 +81,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
 
   const jobGroupIds = [...new Set((jobsResult.data ?? []).flatMap((job) => job.job_group_id ? [job.job_group_id] : []))]
   const jobGroupsResult = jobGroupIds.length > 0
-    ? await supabase.from('job_groups').select('id, code, name').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).in('id', jobGroupIds).limit(500)
+    ? await supabase.from('job_groups').select('id, code, name').eq('tenant_id', scope.tenantId).in('id', jobGroupIds).limit(500)
     : { data: [], error: null }
   if (jobGroupsResult.error) throw new OrganizationChartError('ORGANIZATION_CHART_READ_FAILED', 500)
 

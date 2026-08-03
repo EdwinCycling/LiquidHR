@@ -6,6 +6,8 @@
 
 Liquid HR ondersteunt meerdere klanten in één applicatie en één Supabase-project. Iedere klant is een `Tenant` en vormt een absolute gegevensgrens. Een tenant bevat één of meer juridische of loontechnische `Administrations`.
 
+De volledige ownershipmatrix voor nieuwe modules staat in [`ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`](ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md). Dit document beschrijft de context- en beveiligingsbasis; de ownershipmatrix bepaalt wanneer een catalogus tenantbreed of administratiegebonden is.
+
 Geen klantgebruiker mag gegevens van een andere tenant lezen, wijzigen, afleiden of via een foreign key bereiken. Deze regel wordt tegelijk afgedwongen door samengestelde databaseconstraints, expliciete serverfilters, permissions en Row Level Security.
 
 ## 2. Vastgestelde besluiten
@@ -15,7 +17,7 @@ Geen klantgebruiker mag gegevens van een andere tenant lezen, wijzigen, afleiden
 - Administraties kunnen via `parent_id` een holdingstructuur vormen, maar nooit tenantgrenzen kruisen.
 - Een lege `administration_id` verleent nooit impliciet toegang tot alle administraties.
 - Gebruikerstoegang heeft expliciet scope `TENANT` of `ADMINISTRATION`.
-- Stamtabellen zijn standaard administratiegebonden.
+- Stamtabellen volgen de expliciete ownershipmatrix. Juridische, fiscale, financiële en werkgeversgebonden stamdata is administratiegebonden; functiehuis, capability-/talentcatalogi en niet-juridische bedrijfsbrede organisatiecatalogi zijn tenantbreed.
 - Medewerker-persoonsidentiteit is tenantbreed; dienstverband-, salaris-, rooster- en payrollgegevens zijn administratiegebonden.
 - `SEPARATE → COMBINED` is een gecontroleerde eenmalige actie.
 - `COMBINED → SEPARATE` wordt door de database geblokkeerd.
@@ -82,11 +84,13 @@ Self-parenting, indirecte cycli en cross-tenant parents zijn verboden.
 - Gevoelige tijdlijnen blijven altijd beperkt tot de administratie van het dienstverband en de exacte permission.
 - `self:employee:read` verleent geen salaris-, contract- of adresrecht.
 
-## 7. Stamtabellen
+## 7. Stamtabellen en ownership
 
-Administratiegebonden stamtabellen omvatten minimaal afdelingen, kostenplaatsen, kostendragers, werklocaties, loonschalen, payroll-inrichting en administratiegebonden vrije-velddefinities.
+Administratiegebonden stamtabellen omvatten minimaal kostenplaatsen, kostendragers, werklocaties, loonschalen, payroll-inrichting en administratiegebonden vrije-velddefinities. Ook CAO-/pensioenregelingen, verlofboekhouding en verzuiminstellingen horen bij de administratie wanneer zij de juridische werkgever bepalen.
 
-Tenantbreed zijn uitsluitend gegevens die expliciet zo zijn ontworpen, waaronder medewerker-persoonsidentiteit, tenantconfiguratie en globale permissiondefinities. Een nullable `administration_id` wordt niet als generiek deelmechanisme gebruikt.
+Tenantbreed zijn onder andere medewerker-persoonsidentiteit, functies, functiegroepen, functiefamilies, functieniveaus, senioriteiten, capabilities, Cloud Tags, performance-/talenttemplates en afdelingen/divisies die niet juridisch exclusief zijn. Een nullable `administration_id` wordt niet als generiek deelmechanisme gebruikt; een gemengde entiteit gebruikt een expliciete scopevariant met databasecheck.
+
+De huidige functiecatalogus is nog administratiegebonden in `jobs`, `job_groups`, `job_revisions` en `job_group_jobs`. Deze implementatiedrift wordt opgeheven volgens [`ADR-0006`](../../decisions/ADR-0006-entiteitseigendom-en-koppelingen.md) en het algemene ownershipdocument. `employee_organizations` blijft een administratiegebonden plaatsing die naar de tenantfunctie verwijst.
 
 Een child-administratie erft geen stamgegevens van een parent. Hergebruik vereist later een expliciete kopieeractie of versioned template; dit voorkomt onduidelijke eigendom-, mutatie- en RLS-regels.
 
@@ -122,4 +126,3 @@ De overgang naar `COMBINED` verloopt via één interne databasefunctie en wordt 
 - `Liquid HR Demo Holding`: drie hiërarchische administraties en vijftig medewerkers; de bestaande Edwin-authuser krijgt expliciete tenantbrede hoofdtoegang.
 - `Noorderlicht Zorggroep`: afzonderlijke tenant met één administratie en tien medewerkers; nog niet gekoppeld aan een loginaccount.
 - Alle demo-inrichting is deterministisch en herhaalbaar. `auth.users` wordt niet door seeds verwijderd.
-

@@ -12,6 +12,7 @@ const brandingColorsSchema = z.object({
 }).strict()
 
 type BrandingRow = Database['public']['Tables']['administration_branding']['Row']
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
 function brandingFromRow(row: Pick<BrandingRow, 'primary_color' | 'accent_color' | 'sidebar_color' | 'logo_storage_path'>): CompanyBranding {
   return {
@@ -22,8 +23,8 @@ function brandingFromRow(row: Pick<BrandingRow, 'primary_color' | 'accent_color'
   }
 }
 
-export async function getBrandingForAdministration(tenantId: string, administrationId: string): Promise<CompanyBranding | null> {
-  const supabase = await createClient()
+export async function getBrandingForAdministration(tenantId: string, administrationId: string, existingClient?: SupabaseServerClient): Promise<CompanyBranding | null> {
+  const supabase = existingClient ?? await createClient()
   const { data, error } = await supabase
     .from('administration_branding')
     .select('primary_color, accent_color, sidebar_color, logo_storage_path')

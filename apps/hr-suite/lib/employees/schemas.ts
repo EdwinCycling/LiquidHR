@@ -71,6 +71,8 @@ export const employeeUpdateSchema = employeeUpdateFields.extend({
 })
 
 export const addressSchema = z.object({
+  addressType: z.enum(['PRIMARY', 'SECONDARY']).default('PRIMARY'),
+  description: nullableText(240),
   addressLine1: nullableText(240),
   addressLine2: nullableText(240),
   street: nullableText(160),
@@ -99,7 +101,14 @@ export const addressSchema = z.object({
   } else if (!value.addressLine1) {
     context.addIssue({ code: 'custom', path: ['addressLine1'], message: 'ADDRESS_LINE_1_REQUIRED' })
   }
-  if (value.validUntil && value.validUntil < value.validFrom) {
+  if (value.addressType === 'PRIMARY' && value.validUntil) {
+    context.addIssue({ code: 'custom', path: ['validUntil'], message: 'ADDRESS_PRIMARY_END_NOT_ALLOWED' })
+  }
+  if (value.addressType === 'SECONDARY' && (!value.description || !value.validUntil)) {
+    if (!value.description) context.addIssue({ code: 'custom', path: ['description'], message: 'ADDRESS_SECONDARY_DESCRIPTION_REQUIRED' })
+    if (!value.validUntil) context.addIssue({ code: 'custom', path: ['validUntil'], message: 'ADDRESS_SECONDARY_END_REQUIRED' })
+  }
+  if (value.validUntil && value.validUntil <= value.validFrom) {
     context.addIssue({ code: 'custom', path: ['validUntil'], message: 'ADDRESS_DATE_RANGE_INVALID' })
   }
 })
@@ -140,5 +149,6 @@ export const relationSchema = z.object({
 export type EmployeeCreateInput = Omit<z.infer<typeof employeeCreateSchema>, 'bsn'> & { bsn?: string }
 export type EmployeeUpdateInput = z.infer<typeof employeeUpdateSchema>
 export type AddressInput = z.infer<typeof addressSchema>
+export type AddressType = AddressInput['addressType']
 export type BankAccountInput = z.infer<typeof bankAccountSchema>
 export type RelationInput = z.infer<typeof relationSchema>

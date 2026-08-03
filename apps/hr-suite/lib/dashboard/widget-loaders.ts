@@ -60,9 +60,8 @@ export async function loadDashboardWidgetData(
       return { status: 'ready', kind: 'metric', value: result.count ?? 0, href: '/reminders' }
     }
     if (widget.type === 'ORGANIZATION_OVERVIEW') {
-      let query = scope.supabase.from('departments').select('id', { count: 'exact', head: true })
+      const query = scope.supabase.from('departments').select('id', { count: 'exact', head: true })
         .eq('tenant_id', scope.context.tenantId).eq('is_active', true)
-      if (scope.context.administrationId) query = query.eq('administration_id', scope.context.administrationId)
       const result = await query
       if (result.error) throw result.error
       return { status: 'ready', kind: 'metric', value: result.count ?? 0, href: '/organization' }

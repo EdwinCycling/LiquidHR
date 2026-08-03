@@ -29,15 +29,11 @@ export async function GET() {
   try {
     const context = await requirePermission('department:read')
     const supabase = await createClient()
-    let query = supabase
+    const query = supabase
       .from('departments')
       .select('id, code, name, description, parent_id')
       .eq('tenant_id', context.tenantId)
       .eq('is_active', true)
-
-    if (context.administrationId) {
-      query = query.eq('administration_id', context.administrationId)
-    }
 
     const { data, error } = await query
       .order('name')

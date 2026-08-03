@@ -276,6 +276,53 @@ select {
   font: inherit;
 }
 
+select:not([multiple]) {
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.05rem) 50%,
+    calc(100% - 0.8rem) 50%;
+  background-repeat: no-repeat;
+  background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
+  color: var(--foreground);
+  padding-block: 0.5rem;
+  padding-inline: 0.75rem 2.75rem;
+  appearance: none;
+  box-shadow: 0 0.2rem 0.65rem color-mix(in srgb, var(--primary) 6%, transparent);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+select:not([multiple]):hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background-color: var(--surface-raised);
+}
+
+select:not([multiple]):focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--focus) 20%, transparent), 0 0.2rem 0.65rem color-mix(in srgb, var(--primary) 6%, transparent);
+  outline: none;
+}
+
+select:not([multiple]):disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+select[multiple] {
+  min-height: 7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 0.2rem 0.65rem color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
 :focus-visible {
   outline: 0.1875rem solid var(--focus);
   outline-offset: 0.1875rem;
@@ -394,8 +441,21 @@ select {
     color: var(--destructive);
   }
 
-  .form-field {
-    @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground hover:border-primary/40 focus:border-primary focus:outline-none;
+  .form-field,
+  .input {
+    @apply min-h-11 w-full rounded-xl border bg-surface px-3 py-2 text-foreground shadow-sm transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-primary/40 hover:bg-surface-raised focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-focus/20;
+  }
+
+  .dropdown-trigger {
+    @apply inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-border/90 bg-surface px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .dropdown-menu {
+    @apply overflow-hidden rounded-2xl border border-border bg-surface p-2 shadow-2xl;
+  }
+
+  .dropdown-option {
+    @apply flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted;
   }
 
   .tabs-scroll {
@@ -410,21 +470,21 @@ select {
   .button-primary,
   .button-secondary,
   .button-danger {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
     -webkit-backdrop-filter: blur(1rem) saturate(1.35);
     backdrop-filter: blur(1rem) saturate(1.35);
     box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);
   }
 
   .button-primary {
-    border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
-    background: color-mix(in srgb, var(--surface) 76%, var(--primary) 24%);
-    color: var(--foreground);
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
 
   .button-primary:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
-    background: color-mix(in srgb, var(--surface) 66%, var(--primary) 34%);
+    border-color: var(--primary-hover);
+    background: var(--primary-hover);
     box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary) 14%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
     transform: translateY(-1px);
   }
@@ -482,6 +542,70 @@ select {
 @keyframes liquid-drift {
   from { transform: rotate(-17deg) translate3d(0, 0, 0) scale(1); }
   to { transform: rotate(-10deg) translate3d(-1.5rem, 1.25rem, 0) scale(1.06); }
+}
+
+.product-update-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--border));
+  background:
+    radial-gradient(125% 190% at 5% -70%, color-mix(in srgb, var(--warning) 78%, white 22%) 0%, transparent 48%),
+    radial-gradient(90% 210% at 94% 135%, color-mix(in srgb, var(--chart-4) 76%, var(--warning) 24%) 0%, transparent 54%),
+    linear-gradient(115deg, color-mix(in srgb, var(--primary) 78%, var(--warning) 22%) 0%, color-mix(in srgb, var(--warning) 68%, var(--chart-4) 32%) 48%, color-mix(in srgb, var(--primary) 72%, var(--chart-4) 28%) 100%);
+  color: var(--primary-foreground);
+  box-shadow: 0 0.7rem 2rem color-mix(in srgb, var(--warning) 16%, transparent), inset 0 1px 0 color-mix(in srgb, white 48%, transparent);
+}
+
+.product-update-banner::before,
+.product-update-banner::after {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+}
+
+.product-update-banner::before {
+  inset: -190% -20%;
+  background: linear-gradient(112deg, transparent 40%, color-mix(in srgb, white 48%, transparent) 48%, color-mix(in srgb, var(--warning-surface) 40%, transparent) 51%, transparent 60%);
+  filter: blur(0.3rem);
+  opacity: 0.7;
+  transform: rotate(-8deg);
+  animation: product-update-metallic-sweep 10s ease-in-out infinite;
+}
+
+.product-update-banner::after {
+  inset: -100% -10% -120% 52%;
+  border-radius: 999px;
+  background: radial-gradient(ellipse, color-mix(in srgb, white 34%, transparent) 0%, transparent 68%);
+  filter: blur(1.3rem);
+  opacity: 0.55;
+  transform: rotate(-14deg);
+}
+
+.product-update-banner__icon {
+  color: var(--warning-surface);
+  filter: drop-shadow(0 0 0.55rem color-mix(in srgb, var(--warning-surface) 72%, transparent));
+}
+
+.product-update-banner__link {
+  border-color: color-mix(in srgb, var(--primary-foreground) 42%, transparent);
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--primary-foreground);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 52%, transparent);
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.product-update-banner__link:hover {
+  background: color-mix(in srgb, var(--primary-foreground) 18%, transparent);
+  box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 22%, transparent), inset 0 1px 0 color-mix(in srgb, white 72%, transparent);
+  transform: translateY(-1px);
+}
+
+@keyframes product-update-metallic-sweep {
+  0%, 18% { transform: translate3d(-34%, 0, 0) rotate(-8deg); }
+  48%, 64% { transform: translate3d(30%, 0, 0) rotate(-8deg); }
+  100% { transform: translate3d(76%, 0, 0) rotate(-8deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

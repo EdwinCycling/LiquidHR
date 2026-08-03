@@ -1,5 +1,259 @@
 # Actuele overdracht Liquid HR
 
+## Besluitupdate 2026-08-03
+
+Snapshot/restore via providerbranch is bewust uitgesloten en is geen open releaseactie. LMS/P3.6 wordt niet gebouwd zonder nieuw productbesluit; P3.3 en P3.5 blijven `GEPARKEERD`; P4-P6 worden niet gestart. De gerichte Supabase-timeout in Talent is aangepakt met scope-indexen, RLS-short-circuiting en lazy rapportopties. `TALENT-NEXT-01` is als eerste read-only spiderwebslice gebouwd en met medewerker, manager en HR-admin op poort 3000 getest. Onderstaande oudere overdrachtsteksten zijn historische context; deze besluitupdate is leidend.
+
+## Meest recente overdracht 2026-08-03: P3 functioneel gesloten in testfase
+
+P3 is voor medewerker, manager en HR Admin functioneel afgerond. De drie-rollen releasegate is opnieuw uitgevoerd met 0 echte axe-violations, keyboard-focus op alle toegestane routes en geslaagde route-, mutatie-, cross-tenant- en self-bound-denies. HR Admin heeft periodefilter 2026-01-01 t/m 2026-03-31 en CSV-export in de Codex-browser op poort 3000 doorlopen; de exportresponse was `200`. De medewerkerlanding is aangepast naar `/dashboard/start`; directe onbevoegde toegang tot `/departments` eindigt op `/geen-toegang`.
+
+Open voor formele release: formele acceptatie van één thematische axe-`incomplete` contrastcheck, eventuele herhaling van manager-/medewerkerperiodefilter en CSV als releasebewijs, en P3.7 release-eigenaarsacceptatie. De eerdere brede Supabase-timeout is voor de gerichte Talentvergelijking en rapportopties aangepakt met indexen, RLS-short-circuiting en lazy opties. Provider snapshot/restore is op verzoek uitgesloten; LMS/P3.6 wordt niet gebouwd zonder nieuw productbesluit. P3.3 en P3.5 blijven `GEPARKEERD`. P4-P6 worden niet gestart. `TALENT-NEXT-01` is nu als eerste read-only spiderwebslice gebouwd; zie het handoffdocument en de requirementsanalyse. Geen commit, push of deployment.
+
+De complete testset, de drie-rollenstappen en de extra volgende-taakinstructie staan in `docs/delivery/TALENT_P3_TESTPLAN_AND_HANDOFF_20260803.md`.
+
+## Meest recente overdracht 2026-08-03: P3 gebouwd in testfase
+
+P3.0, P3.1, P3.2 en P3.4 zijn uitgevoerd. De nieuwe Talent-notificatielaag is tenantgescopeerd, deduplicerend en minimaal van inhoud; HR kan tenantbreed opvolgen, manager en medewerker zien alleen hun toegestane ontvangers. Check-ins gebruiken `talent_goal_check_ins` met RLS, audit en versioning: medewerkerreflectie, managerobservatie en follow-up blijven afzonderlijke entry types. De bestaande doel- en rapportservices zijn hergebruikt; rapportage heeft periode vanaf/tot en dezelfde filters voor scherm, API, export en exportaudit.
+
+De testdatabase bevat voor Noah Hendriks historische/actuele/toekomstige capabilityrecords, historische/actuele/toekomstige doelen en check-ins. De medewerkerflow heeft aanvullend een geldige reflectie aangemaakt; daarmee is zowel seeddata als een echte self-write getest. De vijf fixturemeldingen zijn verdeeld over medewerker en manager en blijven open voor herhaaltesten. De drie fixtureaccounts zijn op poort 3000 opnieuw doorlopen; detailteststappen en verwachte uitkomsten staan in `docs/delivery/TALENT_P3_TESTPLAN_AND_HANDOFF_20260803.md`.
+
+Open: P3.3 en P3.5 zijn `GEPARKEERD`; P3.6/LMS wordt niet gebouwd zonder nieuw productbesluit; P4-P6 zijn niet gestart. Provider snapshot/restore is bewust uitgesloten. De `/departments`-rechtenroute is voor de directe medewerkerroute opgelost; labelkwaliteit van bestaande manager-capabilityrecords blijft een datakwaliteitsopvolgpunt. Geen commit, push of deployment.
+
+## UI-update 2026-08-03: app-brede controlbasis en gedeelde dropdownset
+
+De gedeelde controlbasis van `apps/hr-suite` behandelt nu alle native selects consistent met vaste maatvoering, afgeronde randen, theme-based chevrons, hover/focus-states en een herkenbare multi-selectvariant. `.form-field` en het bestaande `.input`-patroon gebruiken dezelfde strakke veldstijl; primaire/secondaire knoppen breken hun labels niet meer af en primaire acties hebben duidelijker contrast. De filterbalk op `/workforce/talent` gebruikt daarnaast zichtbare micro-labels, korte waarden (`Alle`, `Concept`, enz.) en een responsive grid zonder horizontale overflow.
+
+`apps/hr-suite/components/ui/dropdown-select.tsx` is toegevoegd als gedeelde single-select voor zoekbare, toetsenbordbedienbare keuzes met zichtbare selectie, portal-menu, disabled/error-states en native form-submission. CountryPicker, de administratiekeuze, Talentfilters/-modal, Insights-selects, employee-landen/talen, organisatie-rolkeuzes en de Insights custom menus gebruiken deze gedeelde controltaal. Niet-gemigreerde eenvoudige/native en multiple selects blijven functioneel via de globale fallbackstyling. Er zijn geen schema- of API-wijzigingen gedaan. Strict typecheck, gerichte ESLint, `git diff --check` en geauthenticeerde Talent-browsercontrole zijn na de uitbreiding geslaagd; volledige testsuite en productiebuild volgen als afsluitende controle. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2.9 hardening grotendeels gesloten
+
+De medewerkerlanding is hersteld. Een geauthenticeerde `/login` gaat nu naar `/dashboard/start`, zodat een medewerker niet meer onbedoeld op `/departments` belandt; directe toegang tot `/departments` eindigt netjes op `/geen-toegang` in plaats van een serverfout. De drie-rollen-gate is opnieuw uitgevoerd in de Codex-browser op poort 3000: HR Admin, manager en medewerker behouden hun eigen Talentroutes, manager-scope, cross-tenant-denies, negatieve mutatiedenies en medewerker-self-bound gedrag.
+
+De veilige grote-dataset-baseline gebruikt tijdelijke tabellen met 20.000 synthetische rijen en een volledige transactionele rollback. Doelen, capabilityrecords en importregels gebruiken op schaal hun tenant-/scope-indexen; de zwaarste importselectie van 5.000 regels bleef op 7,545 ms. De volledige axe/keyboard-herhaling heeft 0 echte axe-violations en keyboard-focus op alle vier toegestane routes. Eén themed/shared color-contrastcheck blijft technisch `incomplete`, maar is handmatig gecontroleerd zonder vastgestelde contrastfout.
+
+Applicatieve importrollback is bewezen: de batch en rij zijn `ROLLED_BACK`, het nieuw aangemaakte imported capabilityrecord is `ARCHIVED`, auditdata blijft staan en er is geen actief imported record achtergebleven. Een provider-database snapshot/restore is nog formeel open. Een tijdelijke Supabase-branch kost $0,01344 per uur en is zonder expliciete kosten-/hersteltoestemming niet aangemaakt. Detailbewijs staat in `docs/delivery/TALENT_M2_RELEASE_HARDENING_20260802.md`. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2 functioneel afgerond in testfase
+
+M2.0 t/m M2.8 zijn lokaal en remote volgens `schema -> RLS/grants -> service/API -> UI` uitgevoerd. M2.7 levert tenantgescopeerde ontwikkeldoelen met statusmachine, versioning en audit. M2.8 levert read-only rapportage en CSV-export met vaste rolallowlists, scopefilters en `EXPORT`-audit. Er zijn geen automatische scores, adviezen, AI-besluiten of notificaties toegevoegd.
+
+M2.6 is nu end-to-end bewezen: HR Admin doorloopt in `/settings/talent/import` `PREVIEW -> COMMITTED -> ROLLED_BACK`. De rollback archiveert het door de batch aangemaakte capabilityrecord en laat batch- en auditdata intact. De demo-tenant heeft hiervoor uitsluitend voor `TENANT_ADMIN` de bestaande canonieke rechten `talent-import:manage` en `talent-record:write` gekregen; manager en medewerker hebben geen importschrijfrechten. De preview valideert nu ook de database-compatibele waarden voor capabilitytypes, zodat een ongeldige evidence/certificate-combinatie vóór commit wordt afgewezen.
+
+Drie-fixture-browserbewijs op `http://localhost:3000` is opnieuw uitgevoerd met lokale fixtures, zonder credentials te documenteren. HR Admin kan Talentbeheer/import gebruiken; manager opent `/workforce/talent/goals` maar krijgt `/geen-toegang` voor `/settings/talent/import`; medewerker opent `/my-talent/goals` maar krijgt eveneens `/geen-toegang` voor import. Het medewerkerlandingspad `/departments` geeft nog een bestaande algemene rechten-serverfout; de directe Talent-route werkt en dit valt buiten de M2-scope.
+
+Verificatie: 119 testbestanden/442 tests, gerichte importtests 6/6, strict typecheck, ESLint zonder warnings, i18n-pariteit (26 namespaces), productiebuild (151 pagina's), `git diff --check`, remote comparison/import- en goals/reporting-contracten slagen. Naast de kleine fixture-EXPLAIN is nu een tijdelijke 20.000-rijen-baseline uitgevoerd; de zwaarste importselectie bleef op 7,545 ms en alle tijdelijke data is teruggedraaid. De formele M2.9-release-hardening blijft alleen open voor provider snapshot/restore. Supabase-advisors tonen projectbreed security 12 (10 WARN/2 INFO) en performance 237 (3 WARN/234 INFO), vooral bestaande `SECURITY DEFINER`, auth- en index/policy-meldingen. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2.5/M2.6 drie-fixture-gate
+
+De lokale fixturecredentials uit `.env.talent-auth.local` zijn gebruikt in de Codex-browser op poort 3000. HR Admin opent M2.5 en maakt M2.6 previews; manager opent de directe-scopevergelijking met 22 medewerkers en twee profielen en wordt uit HR-instellingen/import geweerd; employee ziet `/my-talent` en wordt uit vergelijking/import geweerd. De employee-landingsroute `/departments` geeft nog een bestaande onvoldoende-rechten-serverfout.
+
+M2.6 preview is functioneel bewezen met ongeldige en geldige CSV-rijen. De commit wordt door de bestaande tenant-specifieke RLS geweigerd: de `TENANT_ADMIN`-override mist `talent-record:write`. Er is geen remote autorisatie-uitbreiding toegepast; echte commit/rollback blijft open tot die exacte securitykeuze expliciet is goedgekeurd. Importaudittriggers zijn gehard. `20260802232000_talent_capability_fk_indexes` is remote toegepast; Talent foreign-key-advisorregels zijn daarna weg.
+
+Verificatie: tests 116/434 plus control 2/7, lint, i18n en `git diff --check` zijn groen. Typecheck en productiebuild stoppen op drie bestaande fouten buiten deze slice: `employee-service.ts:316` en `employment-detail-service.ts:362/369`. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2.5 vergelijking en M2.6 import
+
+M2.5 en M2.6 zijn lokaal en remote volgens `schema → RLS/grants → service/API → UI` toegevoegd. M2.5 gebruikt actieve, actuele functieprofielversies, tenant-/directe managerscope en uitsluitend actuele vrijgegeven capabilityrecords als bron voor individuele `MATCH`, `GAP`, `MISSING_EVIDENCE` en `UNKNOWN`-uitkomsten. Concepten, verlopen en niet-vrijgegeven records krijgen geen bronrecord-ID en er wordt geen totaalscore berekend. De routes zijn `/settings/talent/comparison` voor HR Admin en `/workforce/talent/comparison` voor managers.
+
+M2.6 gebruikt `talent_import_batches` en `talent_import_rows` met immutable invoer, RLS, authenticated-only grants, statusguards, gesaneerde auditmetadata en HR-only idempotente commit-/rollback-RPC's. `/settings/talent/import` toont CSV-preview, rijvalidatie, expliciete commit en batchrollback. Rollback archiveert nieuwe geïmporteerde records of herstelt updates en laat auditdata staan; er is geen hard delete. De remote migrations `20260802220000_talent_comparison_and_import` en `20260802223000_talent_import_policy_indexes` zijn toegepast. Het remote contract `apps/hr-suite/supabase/tests/talent_comparison_and_import_contract.sql` slaagt; gerichte parser/querytests en strict typecheck slagen. Advisors hebben geen nieuwe securitylint voor deze slice; performance meldt alleen nog ongebruikte importindexen in de kleine demo-dataset.
+
+Functioneel open: de volledige nieuwe drie-fixture-gate en een echte HR-preview → commit → rollback met de lokale fixtures. De huidige Codex-browser-sessie heeft geen gekoppelde klantomgeving; credentials worden niet in chat of repository opgeslagen. De eerdere geauthenticeerde drie-rollen-gate blijft referentiebewijs voor de bestaande route-, scope-, tenant- en self-bound-grenzen. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2.3 assessments en M2.4 Team Talent uitgevoerd
+
+M2.3 en M2.4 zijn volgens `schema → RLS/grants → service/API → UI` uitgevoerd. De remote migration `20260802210000_talent_assessments_and_team_matrix` voegt assessmentcycli, onderdelen, self-/managerresponses, antwoorden en afgeschermde managernotities toe. Statusovergangen, optimistic versioning, cyclusvensters, manager-scope, self-bound writes, HR-finalisatie/heropenen en auditmetadata worden server-side én in databaseguards bewaakt. Managernotities blijven buiten medewerkerselecties; evidence blijft metadata-only.
+
+De nieuwe pagina's zijn `/settings/talent/assessments`, `/workforce/talent/assessments`, `/my-talent/assessments`, `/settings/talent/team` en `/workforce/talent/team`. Team Talent gebruikt batchqueries en toont alleen individuele capabilityregels; aggregaten zijn uitgeschakeld. Canonieke permissions zijn `talent-assessment:*`, `self:talent-assessment:*` en `talent-team:read`; alle vijf nieuwe tabellen hebben RLS, policies en uitsluitend authenticated Data API-grants. Het remote assessment/Team-Matrix-contract en de gerichte schema-tests slagen.
+
+Verificatie: 114 testbestanden/428 tests, strict typecheck, lint, i18n (25 namespaces), productiebuild (136 pagina's), `git diff --check` en remote security/performance-advisors zijn uitgevoerd. Advisors melden bestaande projectbrede waarschuwingen en kleine-dataset `unused_index`-meldingen, geen nieuwe ontbrekende RLS-policy voor deze slice. De interne Codex-browser op `http://localhost:3000` staat open, maar de bestaande sessie heeft geen gekoppelde klantomgeving en eindigt daardoor op `Nog geen toegang`; de drie authenticated rolflows zijn in deze run niet opnieuw geclaimd. Geen commit, push of deployment.
+
+## Update 2026-08-02: bedrijf en locatie per dienstverband lokaal toegevoegd
+
+De dienstverbanddetailpagina heeft een zelfstandige tab **Bedrijf en locatie**. Bij een administratie zonder afzonderlijke locaties toont de tab de echte bedrijfsnaam en het bedrijfsadres als alleen-lezen kaart. Bij meerdere actieve locaties toont de tab per dienstverband een overzicht met huidige/historische perioden, een zoekbare locatiekeuze, wijzigen en een nieuwe opvolgende ingangsdatum; de einddatum wordt automatisch op de vorige dag gezet.
+
+De slice gebruikt de bestaande `employee_organizations.location_id`-koppeling en bevat `apps/hr-suite/supabase/migrations/20260802210500_manage_employment_company_location.sql` met locatie-RLS, een validatietrigger, de RPC `manage_employment_company_location` en behoud van de locatie bij organisatie-opvolgers. API en i18n zijn toegevoegd; `packages/db/types.ts` bevat de nieuwe RPC-signature. De migration new-opdracht kon niet schrijven naar de sandbox-beperkte Supabase-telemetrymap, daarom is het lokaal aangemaakte migrationbestand via patch toegevoegd.
+
+Verificatie: 113 testbestanden/424 tests, strict typecheck, lint, i18n (25 namespaces), productiebuild (128 pagina's) en `git diff --check` zijn groen. De nieuwe schema-unit-test is 3/3 groen. De lokale devserver viel tijdens de browsercontrole weg door bestaande auth/HMR-fouten (`Invalid Refresh Token`, ontbrekende bestaande Talent-bron en Webpack-modulefouten); authenticated UI- en remote RPC-bewijs zijn daarom niet geclaimd. De nieuwe migration is nog niet remote toegepast; er is geen remote write, commit, push of deployment uitgevoerd.
+
+## Meest recente overdracht 2026-08-02: M2.2 HR-kwalificaties uitgevoerd
+
+M2.2 is volgens schema → RLS/grants → service/API → UI bovenop `talent_employee_capability_records` uitgevoerd. HR kan bij certificaten issuing body, certificaatcode, geldigheid in maanden, permanentie, verlenging, evidence-status en verantwoordelijke vastleggen. De database bewaakt certificaatdatumlogica, evidence-status, tenant-/medewerker-/capability-gebonden duplicaten en HR-verantwoordelijkheid binnen dezelfde tenant. De API retourneert alleen een allowlisted verantwoordelijke-aanwezigheid; bewijsinhoud, signed URL's en ruwe gebruikers-ID's blijven buiten de response.
+
+De HR-lijst/modal ondersteunt zoeken op uitgever/code, een filter voor bijna verlopen binnen 30 dagen en expliciet archiveren met impactinformatie. Historie blijft bewaard en wordt geaudit. De remote M2.1/M2.2-contractproeven slagen. Typecheck, lint, i18n (25 namespaces), 112 testbestanden/421 tests en productiebuild (128 statische pagina's) zijn groen. De interne Codex-browser op poort 3000 bevestigt voor alle drie Talent-routes de anonieme loginredirect; de bestaande geauthenticeerde drie-rollen-gate uit M2.1 blijft het referentiebewijs. Nieuwe interactieve M2.2-velden per rol zijn in deze run niet opnieuw geopend omdat fixture-logincredentials niet beschikbaar waren. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2.1 persoonlijke capabilityregistraties uitgevoerd
+
+De eerste uitvoerbare fase-2-slice is volgens het plan doorgetrokken van schema → RLS/grants → service/API → UI. De tenant-owned tabel `talent_employee_capability_records` is remote toegepast met typegebonden databaseguards, geldigheidsinterval, archivering, evidence-reference zonder inhoud, audittrigger, indexes en RLS. De tabel geeft `authenticated` alleen SELECT/INSERT/UPDATE; `anon` en `public` hebben geen grants. Nieuwe canonieke permissions zijn `talent-record:read`, `talent-record:write`, `self:talent-record:read` en `self:talent-record:write`, met veilige roltoewijzing voor HR Admin, manager-lezen en medewerker-self.
+
+De service/API gebruikt allowlisted DTO's, server-side tenant/employee/manager-scope, self-bound medewerkerwrites, optimistic concurrency via `version` en geen `employeeId` uit de self-body. `/settings/talent` biedt HR lijst-eerst beheer, `/workforce/talent` toont manager alleen-lezen records binnen scope en `/my-talent` biedt de medewerker eigen conceptregistraties. Eigen invoer wordt altijd `DRAFT`; HR bepaalt release/archive; evidence-inhoud of downloadreferentie komt niet in deze response.
+
+Verificatie: remote M2.1-contractproef geslaagd; typecheck, lint, i18n, 112 testbestanden/419 tests, productiebuild en `git diff --check` geslaagd. In de interne Codex-browser op `http://localhost:3000` is met de employee-fixture een echte BHV-registratie opgeslagen en opnieuw zichtbaar als `Concept`, bron `Zelf ingevoerd`, zonder evidence-inhoud. De bestaande drie-rollen-gate blijft geldig voor route-/mutatie-/cross-tenant-scope; HR- en managerpagina’s zijn in code en servergrenzen aangesloten. Supabase-advisors tonen voor M2.1 geen nieuwe securitywaarschuwing; de performance-advisor meldt de nieuwe indexes nog als ongebruikt in de kleine demo-dataset. Geen commit, push of deployment.
+
+## Meest recente overdracht 2026-08-02: M2.0 security en rollencontrole uitgevoerd
+
+M2.0 van het fase-2-plan is als contract- en gegevensbeschermingsslice uitgevoerd. De nieuwe artefacts zijn `docs/decisions/ADR-0007-talent-fase-2-eigendom-en-gegevensbescherming.md`, `docs/decisions/FDR-0003-talent-fase-2-assessment-en-evidencebeleid.md`, `docs/requirements/Talent/analysis/talent-phase2-m2.0-contracts-and-data-protection-20260802.md`, `docs/requirements/Talent/analysis/talent-phase2-m2.0-traceability-matrix-20260802.md` en `apps/hr-suite/supabase/tests/talent_phase2_m2_0_contract.sql`. Zij bevatten de rolmatrix, dataclassificatie, canonieke permissionvoorstellen, status-/datum-/provenance-/evidencecontracten, logisch schemaontwerp, RLS/API-grenzen en acceptatie-/traceabilityregels. Daarnaast is alleen de bestaande audit-Data-API-grens aangescherpt; er zijn geen fase-2-tabellen, API-routes, UI-flow, seed of generated types toegevoegd. Geen commit, push of deployment.
+
+Remote op Supabase-project `wnpfloqpjvaacobppbpk`: de migration `20260802131815_harden_audit_log_data_api_grants` is toegepast. De live grants op `public.audit_logs` zijn nu alleen `authenticated: SELECT`; `anon` en `public` hebben geen tabelgrants, en het exacte M2.0-contract retourneert zonder failures. Traceability M20-T09 is daarmee PASS. M2.0 blijft inhoudelijk open voor ADR/FDR-review, audit-correlation/source-channel/denied-action en de exacte fase-2-permission-seed; de vier bestaande fase-1-permissions en het ontbreken van fase-2-tabellen blijven bevestigd.
+
+In de interne Codex-browser op `http://localhost:3000` zijn drie geïsoleerde loginrollen gecontroleerd. HR Admin: `/settings/talent` en `/workforce/talent` toegestaan, `/my-talent` geweigerd. Manager: `/workforce/talent` toegestaan, `/settings/talent` geweigerd, `/my-talent` bleef als lege route renderen zonder Talentinhoud. Employee: `/my-talent` toegestaan, `/settings/talent` en `/workforce/talent` tonen `Nog geen toegang`. De directe employee-route werkt; na login wordt eerst `/departments` geladen en die bestaande pagina geeft onvoldoende-rechten als serverfout. Dit routing/UX-punt is niet in M2.0 geïmplementeerd.
+
+## Meest recente overdracht 2026-08-02: fase 1 gecontroleerd, fase 2 voorbereid
+
+De Talent-stappen 1 t/m 9 zijn functioneel uitgevoerd en de drie-rollen-authenticatie-/autorisatiegate is opnieuw groen: HR Admin, manager en medewerker zijn in geïsoleerde sessies getest op toegestane routes, denies, mutaties, cross-tenant-isolatie, manager-scope en medewerker-self-bound gedrag. De gate rapporteert 0 echte axe-violations. De drie technische `color-contrast`-checks zijn handmatig beoordeeld zonder vastgestelde Talent-contrastfout; twee targets komen uit de gedeelde product-updatebanner. Typecheck, i18n (25 namespaces), lint, 112 testbestanden/418 tests, productiebuild, remote Talent-contractproeven en `git diff --check` zijn geslaagd. De formele productie-release is nog niet vrijgegeven: performance op representatieve grote data en een restore/rollback-oefening moeten nog worden bewezen. Het fase-2-plan staat in `docs/requirements/Talent/analysis/talent-phase2-implementation-plan-20260802.md`; een nieuwe thread start met M2.0 contracten en gegevensbescherming, zonder direct schema/UI te wijzigen. Geen deploy, push of commit.
+
+## Supabase advisor-status 2026-08-02
+
+Security- en performance-advisors zijn opnieuw uitgevoerd. De output bevat projectbrede bestaande `WARN`/`INFO`-meldingen, waaronder bewust aangeroepen authenticated `SECURITY DEFINER`-RPC's, uitgeschakelde gelekte-wachtwoordbescherming en bestaande permissive-policy-/RLS-meldingen. De Talent-contracttest blokkeert `anon` correct; dit is geen volledig lege advisor-output en blijft onderdeel van de formele releasebeoordeling.
+
+## Update 2026-08-02: Talent stap 9 en functie-inventaris
+
+Stap 9 is de laatste milestone in het opgeslagen Talent-implementatieplan. De remote migratie `20260802150000_harden_talent_job_catalog_audit` is toegepast; daarmee hebben ook `jobs`, `job_groups`, `job_revisions` en `job_group_jobs` append-only Talent-functiehuisaudittriggers. De remote stap-9-contractproef bevestigt 13 RLS-tabellen, de self-RPC-grens voor `anon`, de nieuwe audittriggers en de relevante indexen. De Workforce-profielquery is met `EXPLAIN` gecontroleerd en de service gebruikt batchreads voor requirements/capabilities/levels.
+
+Nieuwe lokale artefacts: `apps/hr-suite/scripts/talent-release-gate.mjs`, het script `audit:talent-release` en `docs/requirements/Talent/analysis/talent-phase1-function-inventory-and-m9-gate-20260802.md`. De functie-inventaris onderscheidt fase-1-kern, gedeeltelijke Blueprintdetails en latere uitbreidingen per HR Admin, Manager en Medewerker.
+
+Voor de bestaande drie testfixtures is daarnaast `apps/hr-suite/scripts/set-talent-fixture-passwords.mjs` toegevoegd. Dit gebruikt uitsluitend de server-side Supabase Auth Admin API met lokale environment variables; er worden geen wachtwoorden in repositorybestanden of uitvoer opgeslagen. De helper is uitgevoerd voor HR Admin, manager en medewerker. De remote cross-tenant capability-fixture `CROSS_TENANT_NEGATIVE_TEST` is toegevoegd via `20260802160000_seed_talent_cross_tenant_release_fixture.sql`.
+
+De volledige geauthenticeerde drie-rollen axe/keyboard-gate is uitgevoerd: 3 rollen, 4 toegestane routes, route-/mutatie-/tenant-denies geslaagd, manager-scope geslaagd, medewerker self-bound geslaagd en 0 axe-violations. Drie `color-contrast`-controles blijven `incomplete` voor handmatige beoordeling. Open release-gate: die contrastbeoordeling, representatieve grote-dataset-performancebaseline en restore/rollback-oefening. Geen deploy, push of commit.
+
+## Update 2026-08-02: Talent stappen 7 en 8 geïmplementeerd
+
+De Workforce Talent-readmodel en Mijn Talent zijn nu als read-only verticale slice aanwezig. `/workforce/talent` toont HR Admin tenantbreed actieve, actuele profielen; een direct manager krijgt uitsluitend functies uit de actuele directe scope. `/my-talent` resolveert server-side de eigen actuele primaire plaatsing en actieve profielversie met capabilityvereisten; ontbrekende medewerker- of profielcontext eindigt veilig in een lege toestand. Er zijn geen scores, matches, voortgang, ontwikkeltrajecten of mutatieknoppen toegevoegd.
+
+Remote staat `20260802123000_complete_talent_read_models` op project `wnpfloqpjvaacobppbpk`. De demo-fixtures `DEMO-028`, `DEMO-032` en `DEMO-035` zijn gekoppeld aan `TEST-MANAGER`, `TEST-PLANNER` en `TEST-CUSTOMER`; de laatste twee vallen onder directe manager `DEMO-028`. De twee self-RPC's gebruiken `SECURITY DEFINER` met lege `search_path`, zijn niet uitvoerbaar voor `anon`, en `talent_job_profile_readmodel` gebruikt `security_invoker=true`. De nieuwe SQL-contractproef `apps/hr-suite/supabase/tests/talent_read_models_completion.sql` is remote uitgevoerd en geslaagd.
+
+Verificatie: typecheck, lint, i18n, 112 testbestanden/418 tests, productiebuild en `git diff --check` zijn groen. In de lokale Codex-browser bevestigde de HR-adminsessie `/settings/talent`, tenantbrede Workforce-profielen, capabilityvereisten en exclusieve accordionwerking. De afzonderlijke manager- en medewerker-browserlogin en de volledige geauthenticeerde axe-run met credentials blijven open; de credentials zijn niet in de repository aanwezig en niet geraden. Geen deploy, push of commit.
+
+## Update 2026-08-02: Talent release-gate, stappen 5 en 6 afgerond
+
+De Talent-basis is nu klaar voor de volgende manager- en medewerkerfuncties in de testfase. De demo-administratie `liquid-hr-demo-holding` heeft drie authfixtures: `manager.fixture@liquidhr.test` (`DIRECT_MANAGER`, directe managerscope), `employee.fixture@liquidhr.test` (`EMPLOYEE`, gekoppelde medewerker) en `hradmin.fixture@liquidhr.test` (`TENANT_ADMIN`, tenant-scope). De manager werd browsermatig geweigerd op `/settings/talent`; de HR-admin opende daar het Talentfundament in de juiste demo-administratie.
+
+Stappen 5 en 6 zijn end-to-end uitgevoerd. Remote migration `20260802110000_complete_talent_profiles_and_configuration.sql` bevat version metadata, activatie, requirement-types, één conceptversie per profiel, overlap-/typeguards en geautoriseerde copy-/activation-RPC's. API en UI bieden profieloverzicht, versiehistorie, concepteditor, capabilityvereisten en dashboardtellingen via `/settings/talent`. De demo bevat 6 functies, 34 capabilities, 6 actieve profielen, 1 conceptversie en 7 versies.
+
+Accessibility/auth-verificatie: de axe-runner controleerde zes kernroutes op poort 3000; alle 6 routes waren bereikbaar, met 0 axe-violations en 3 handmatige `incomplete` kleurcontrastcontroles op overlappende/decoratieve elementen. De browser bevestigde ook de idempotente conceptversie-actie en de exclusieve Talentfundament-accordion. Checks: lint, i18n (25 namespaces), strict typecheck, 112 testbestanden/418 tests, productiebuild (126 pagina's) en `git diff --check` zijn groen. Geen deploy, push of commit.
+
+Open voor de volgende slice: manager- en medewerkerfunctionaliteit bovenop deze lees- en beheerbasis (bijvoorbeeld managerfeedback, medewerkerweergave en workflows). Supabase-advisors blijven projectbreed waarschuwen voor bestaande policy/index-issues en voor de bewust aangeroepen SECURITY DEFINER-RPC's; de nieuwe Talent-RLS, overlaptrigger en RPC's zijn gecontroleerd.
+
+## Update 2026-08-02: Job Architecture en release-gate
+
+Talent stap 4 is nu lokaal en remote doorgetrokken volgens schema -> API -> UI: tenant-owned families/groepen/functies, optionele `job_family_id` en `seniority_id`, CRUD/status, impactguards, zoek/sort/familyfilters, explorerweergave en databaseguards voor unieke actieve naam + groep + senioriteit. Bestaande employee-organization-plaatsingen blijven intact. De typecheckfout in `apps/hr-suite/lib/employees/employee-service.ts:316` is opgelost door de RPC-typing voor nullable `requested_valid_until` te corrigeren.
+
+Remote staan de Talent-foundation, demo-seed, hardening, `complete_job_architecture_contract` en `seed_job_architecture_matrix` in de migratiehistorie. `Liquid HR Demo Holding` bevat 6 families, 3 actieve groepen, 7 actieve functies, 1 groep zonder family, 6 functies met senioriteit, 1 functie zonder senioriteit en 68 functieplaatsingen. De Job Architecture-contractproef slaagt inclusief orphan/duplicate checks, duplicate-business-key negative test en cross-tenant foreign-key negative test.
+
+De vorige release-gate-notitie hieronder beschrijft de tussenstand vóór de manager-/medewerkerfixtures en de axe-audit; zie de actuele update hierboven.
+
+## Historische update 2026-08-02: Talentfundament naar HR-inrichting
+
+Het Talentfundament is nu alleen bereikbaar voor HR Admin via de tegel `Instellingen -> HR-inrichting -> Talentfundament`. De losse Talentfundament-ingang in de zijbalk is verwijderd; de bestaande pagina en het bestaande formulier blijven op `/settings/talent` staan.
+
+De configuratiesecties op de pagina gebruiken nu de gedeelde exclusieve `SettingsAccordion`: standaard staat Niveaumodellen open en bij openen van een andere sectie sluiten alle overige secties. De tegel en route gebruiken `talent:manage`; de server-side routegrens blijft daarmee intact.
+
+Authenticated in-app-browsercontrole op 2026-08-02 bevestigde de tegel, de route en het exclusieve gedrag van Senioriteiten en Competentiewoordenboek. Lint en i18n zijn geslaagd. De volledige typecheck blijft geblokkeerd door de bestaande fout in `apps/hr-suite/lib/employees/employee-service.ts:316`. De remote Talent-testmigraties, demo-catalogus en `20260802063946_harden_talent_remote_contracts` zijn toegepast. De demo-set bleef behouden: 7 categorieën, 9 tags, 34 capabilities, 92 levelinhouden, 20 tagrelaties, 24 profieleisen, 6 actieve profielversies en 16 functieplaatsingen. De contractproef slaagt; nieuwe Talent-triggerfuncties zijn niet meer uitvoerbaar voor public/anon/authenticated.
+
+## Update 2026-08-02: EdwinHelp en projectoverzicht
+
+De bestaande project-overview-skill is nu opgenomen in de natuurlijke commandocatalogus van `scripts/edwin-help.ps1`. `EdwinHelp` toont read-only de Git-workflow, `Maak project overview` met `docs/skills/project-overview/SKILL.md` en `Meet Next geheugen`, inclusief bron, veiligheidsniveau en voorbeeld. Nieuwe commando's worden centraal aan deze catalogus toegevoegd.
+
+## Historische tussenstand 2026-08-02: Talent stappen 1, 2 en 3 lokaal doorgetrokken
+
+Deze tussenstand is ingehaald door de actuele update bovenaan: de beschreven migratie is inmiddels remote toegepast, de types zijn opnieuw gegenereerd en de CRUD-/RLS-/advisorcontrole is afgerond.
+
+De lokale code voor de drie afgesproken Talentblokken is nu doorgetrokken volgens schema → API → UI. Ownership, `TALENT`-modulegate, routegrenzen en permissionchecks blijven tenant-owned; Workforce-profielen worden bovendien alleen uit actieve, datumgeldige directe managerscope gelezen. Het levelmodel heeft beheerbare levels, volgorde, status en een databaseguard die het model bij eerste levelinhoud/gebruik vergrendelt. Senioriteiten hebben list/create/update/status/delete met een gebruiksblokkerende impactguard.
+
+De capabilitybibliotheek heeft typebewuste CRUD, genormaliseerde duplicaatpreventie, categorieën met typescope, status/usage guards, server-side zoekfilters en paginering, Language CEFR, Certificate-metadata, dynamische levelinhoud voor Competency/Skill/Knowledge en relaties naar de bestaande `star_performer_tags`-catalogus. De UI is lijst-eerst met filters en modals; er zijn geen demo-capabilities of tweede tagcatalogus toegevoegd.
+
+Lokale bron: `apps/hr-suite/supabase/migrations/20260802052246_talent_management_foundation_completion.sql` en de contractproef `apps/hr-suite/supabase/tests/talent_management_foundation_completion.sql`. De migratie is bewust nog niet remote toegepast: daarvoor is expliciete scope nodig. Daarom gebruikt de readpagina tijdelijk een veilige lege fallback voor de nog niet aanwezige nieuwe tagrelatietabel; mutation-endpoints voor de nieuwe velden zijn pas volledig uitvoerbaar na migratie. `packages/db/types.ts` is lokaal bijgewerkt voor de nieuwe contracten, maar moet na remote toepassing officieel opnieuw worden gegenereerd.
+
+Verificatie lokaal: 112 testbestanden/418 tests, strict typecheck, ESLint zonder fouten, i18n-pariteit (25 namespaces), `git diff --check` en de bestaande productiebuild. De authenticated Codex-browser opent `/settings/talent` en toont de dynamische levels, senioriteiten, categorie-/capabilityfilters, modals en levelinhoud; de CRUD-mutatiematrix en remote RLS/advisorcontrole blijven open tot de migratie is toegepast. Er is niet gedeployed, gepusht of gecommit.
+
+## Update 2026-08-02: Codex Developer Toolkit
+
+De repository bevat nu de lokale Developer Toolkit in `scripts/`: `backup.ps1`, `restore.ps1`, `new-feature.ps1` en `finish-feature.ps1`, met gedeelde Git-validatie in `_git-toolkit-common.ps1`. De vier natuurlijke commando's en de veiligheidsgrenzen staan in `AGENTS.md` en `docs/DEVELOPER_TOOLKIT.md`. Restore vraagt exact `HERSTEL`, weigert standaard dirty tracked wijzigingen en verwijdert standaard geen ongetrackte bestanden. De scripts pushen en mergen nooit automatisch.
+
+De werkboom was bij implementatie al dirty met bestaande product- en documentatiewijzigingen. Er is daarom geen backup-commit, branchwissel, reset, push of merge uitgevoerd. Niet-destructieve PowerShell- en Git-scriptcontroles volgen; Edwin moet vóór de eerste feature zelf `.\scripts\backup.ps1` uitvoeren en de resulterende commit controleren.
+
+## Update 2026-08-01: liquid metallic bannerstijl
+
+De bovenbanner gebruikt nu een koper/oranje/goudgele liquid-glow met overlappende lichtvelden, metallic sweep en een subtiele hover-link. De stijl is toegevoegd met bestaande CSS-thema-variabelen. Lint en strict typecheck zijn geslaagd; de anonieme browsercontrole redirect naar login.
+
+## Update 2026-08-01: verhuizing en verzuimdetail-navigatie
+
+Het hoofdadres toevoegen heet in de medewerkerkaart nu `Verhuizen`. De lopende verzuimkaart op het medewerkerdashboard is een klikbare kaart met hand-icoon naar het bestaande verzuimgeval (`caseId`). Het verzuimgevaldetail heeft één dossierkop met datum; de ziekteperioden staan compact als exclusief uitklapbare details met een samenvattingsregel.
+
+Verificatie: `npm.cmd test -w @liquid-hr/hr-suite -- --run` geeft 112 bestanden/415 tests; strict typecheck en i18n-pariteit (25 namespaces) zijn groen. De authenticated browsercontrole bevestigde de verhuisactie, de `caseId`-link en het uitklappen van een ziekteperiode. Gerichte ESLint blijft geblokkeerd door de bestaande ESLint 10/React-pluginfout `contextOrFilename.getFilename`.
+
+## Update 2026-08-01: eenmalige banner en login-popup
+
+Banner- en login-popupberichten worden per gebruiker, bericht en kanaal eenmalig getoond via `product_update_surface_dismissals`. De banner wordt automatisch als gezien vastgelegd zodra hij wordt geladen; de popup heeft onderaan de knop `Gezien`. Remote migratie `20260801105005_product_update_surface_dismissals` is toegepast, RLS is gecontroleerd en de nieuwe types zijn gegenereerd. Lint, i18n, 112/415 tests, typecheck en build zijn geslaagd; de anonieme browserroute redirect correct naar login.
+
+## Update 2026-08-01: eigenaar- en tenant-scope productupdates
+
+Productupdates hebben nu twee scopes: globale eigenaarberichten zonder `tenant_id` voor alle klanten en tenantberichten met de eigen tenant. De eigenaar beheert globale berichten; HR Admin beheert alleen eigen tenantberichten en krijgt globale berichten alleen-lezen. De remote migratie `20260801143000_product_updates_global_owner_scope` is toegepast, optionele start/einddatums zijn actief en twee `[TEST OWNER]`-berichten zijn aangemaakt. Lint, 112/415 tests, i18n-pariteit, strict typecheck en productiebuild met 122 routes zijn geslaagd. De anonieme browserroute geeft 307 naar login; authenticated browsercontrole blijft open door ontbrekende login-cookie.
+
+## Update 2026-08-01: hoofdadres en tweede tijdelijk adres
+
+De medewerker-adrestab gebruikt nu twee exclusieve harmonica-vensters: Hoofdadres en Tweede tijdelijk adres. Bestaande adressen zijn in de testdatabase behouden en als `PRIMARY` gemarkeerd. Het hoofdadres blijft verplicht; de UI toont daarvoor geen einddatum. Een `SECONDARY`-adres heeft een verplichte omschrijving, een eigen start- en einddatum, mag naast het hoofdadres lopen en heeft geen opvolgerlogica.
+
+De migratie `20260801130000_employee_address_types` is op Supabase-project `wnpfloqpjvaacobppbpk` toegepast. Zij voegt type/omschrijving toe, beperkt overlap per type, beschermt het laatste hoofdadres en breidt de bestaande geautoriseerde adres-RPC uit. `packages/db/types.ts` is bijgewerkt.
+
+Verificatie: remote query toont 3 bestaande open `PRIMARY`-demo-adressen en geen secundaire records; `npm.cmd test -w @liquid-hr/hr-suite -- lib/employees/address-input.test.ts lib/employees/schemas.test.ts --run` slaagt (2 bestanden/12 tests); strict typecheck slaagt. Gerichte ESLint blijft geblokkeerd door de bestaande ESLint 10/React-plugincompatibiliteit (`contextOrFilename.getFilename`). Browsercontrole en i18n-check volgen.
+
+## Update 2026-08-01: productupdates en cadeauvenster
+
+De testdatabase bevat tenant-eigen `product_updates` en `product_update_user_state`. Updates ondersteunen type Nieuwe functionaliteit/Verbetering, optionele einddatum, startdatum met standaard nu, kanaal-multiselect (`GIFT_WINDOW`, `LOGIN_POPUP`, `TOP_BANNER`) en doelgroep-multiselect (`TENANT_ADMIN`, `DIRECT_MANAGER`, `EMPLOYEE`). HR Admin beheert via `/settings/product-updates`; gebruikers lezen via `/product-updates`, de dashboard-banner en login-popup. De zijbalkbadge telt alleen ongeziene actieve cadeauvenster-updates; openen van `/product-updates` schrijft de laatste gezien-status per gebruiker.
+
+Remote migratie: `20260801093124_product_updates`; lokale migratie: `apps/hr-suite/supabase/migrations/20260801093124_product_updates.sql`. Testdata: twee `[TEST]`-updates per actieve tenant, idempotent aangemaakt. `packages/db/types.ts` is opnieuw gegenereerd. Verificatie: remote RLS/policies gecontroleerd, Supabase security/performance advisors uitgevoerd, 112/413 tests, strict typecheck, lint, i18n en build groen. Anonieme routecontrole is groen; authenticated browsercontrole blijft open door ontbrekende login-cookie in de huidige Playwright-context.
+
+## Update 2026-08-01: intelligente adresinvoer bedrijfsgegevens
+
+De bedrijfsadres- en locatieformulieren gebruiken nu dezelfde intelligente adresinvoer als het woonadres van medewerkers: landgebonden suggesties, Nederlandse postcode/huisnummer-aanvulling en handmatige fallback. Voor niet-Nederlandse adressen zijn adresregel 1, de optionele adresregel 2, postcode, plaats en regio beschikbaar. Er is geen nieuwe migratie nodig; `address_line_2` en de bijbehorende validatie/API-koppeling bestonden al.
+
+Verificatie: gerichte schematest (3/3), strict typecheck, productiebuild en i18n-pariteit (25 namespaces) zijn geslaagd; de ingelogde browsercontrole bevestigde Nederlandse suggesties, de internationale adresregel 2 en dezelfde invoer in een nieuwe locatie. Gerichte ESLint blijft geblokkeerd door de bestaande ESLint 10/React-plugincompatibiliteit.
+
+## Update 2026-08-01: verzuimgeval-detail en lopend verzuim
+
+De medewerkerweergave gebruikt nu de bestaande geautoriseerde verzuimprojectie voor een consistente lopend-verzuimervaring. Bij een actieve casus wordt `Ziek melden` niet getoond. Op het medewerkerdashboard opent `(Gedeeltelijk) beter melden` de bestaande verzuimtab met `caseId`; de datum staat niet meer naast die actie. De verzuimtab heeft geen herstelactie boven de lijst. Iedere bestaande casuskaart opent hetzelfde detailpad en toont de beschikbare casus-, ziekteperiode- en capaciteitsgegevens. De herstelactie met datum blijft uitsluitend op de casusdetailweergave beschikbaar.
+
+Er zijn geen tabellen, migraties, RLS-policies of dependencies gewijzigd. `absence_cases`, `absence_spells` en `absence_capacity_changes` zijn alleen uitgebreid gelezen via de bestaande service; geen medische of andere niet-bestaande gegevens zijn toegevoegd.
+
+Verificatie: `npm.cmd run lint --workspace @liquid-hr/hr-suite`, `npm.cmd run check:i18n --workspace @liquid-hr/hr-suite` en `npm.cmd test --workspace @liquid-hr/hr-suite` zijn geslaagd (112 testbestanden/413 tests; 25 NL/EN-namespaces). De actuele volledige typecheck wordt geblokkeerd door de bestaande, losstaande fout in `apps/hr-suite/app/(dashboard)/settings/company-data/page.tsx`: ontbrekende `CompanyDataLabels`-sleutels. De lokale server antwoordt op poort 3000 met HTTP 200. De ingelogde browsercontrole met demo-medewerker Noah bevestigde dashboard, verzuimoverzicht en casusdetail.
+
+## Update 2026-08-01: bedrijf gegevens en locaties
+
+Instellingen → Organisatie & toegang bevat nu de tegel Bedrijfsgegevens en de route `/settings/company-data`. De pagina gebruikt één exclusieve harmonica met Bedrijfsdata en Locaties. Het bedrijfsadres ondersteunt Nederlandse en internationale adressen; één locatie kan als bedrijfsadres worden vastgezet waardoor locatiebeheer wordt uitgeschakeld. Bij meerdere locaties is er lijst-eerst beheer met toevoegen, wijzigen, actief/inactief en verwijderen. Verwijderen wordt zowel in de UI als via de bestaande FK naar `employee_organizations.location_id` geblokkeerd zodra een locatie gebruikt is.
+
+De migraties `20260801090305_add_company_data_and_locations`, `20260801091902_grant_company_data_to_tenant_admin` en `20260801092039_harden_company_data_policies_and_indexes` zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; lokale bronbestanden staan onder `apps/hr-suite/supabase/migrations/`. De rolnaam in de live database is `TENANT_ADMIN` met weergavenaam HR Admin. `packages/db/types.ts` is opnieuw gegenereerd. De startpagina-groet is kleiner gemaakt en het hand-emoji is verwijderd.
+
+Verificatie: schema-invoerunit-tests (3/3), strict typecheck, gerichte ESLint, i18n-pariteit (24 namespaces), productiebuild en ingelogde in-app-browsercontrole van `/settings/company-data` en `/dashboard/start` geslaagd. Supabase security/performance advisors tonen alleen projectbrede bestaande meldingen; de nieuwe tabellen/policies zijn gecontroleerd. Er is niet gecommit, gepusht of gedeployed.
+
+## Update 2026-08-01: enkele scrollbar medewerkerdetail
+
+De gedeelde dashboard-shell is viewport-vast gemaakt (`fixed inset-0`). Daardoor blijft `main` de enige scrollcontainer voor lange medewerkerkaarten; de document-scroll loopt niet meer parallel mee. De medewerkerdetailpagina is op de bestaande ingelogde demo-route gecontroleerd: één zichtbare verticale scrollbar, geen browserwaarschuwingen of fouten.
+
+## Update 2026-08-01: medewerkerprofiel- en reminderfeedback
+
+De medewerkerdetailpagina gebruikt nu een doorzoekbare internationale voorkeurstaalkeuze, plaatst de actieve status naast het personeelsnummer en toont de adreslookup alleen wanneer postcode en huisnummer gevuld zijn en de plaats leeg is. `Geldig tot` blijft optioneel, kan worden ingevuld en expliciet gewist; nieuwe adressen starten zonder einddatum. De reminderdetailmodal zet **Verbergen** naast **Annuleren** in de onderste knopgroep, met dezelfde secundaire knopstijl.
+
+Geslaagde wijzigingen in persoonsgegevens, adressen, bankrekeningen en relaties schrijven naast de bestaande database-audit een gelokaliseerde regel naar de bestaande `employee_activity_entries`-feed. Er is geen schemawijziging, migratie, dependency-installatie of nieuwe demo-data uitgevoerd.
+
+Authenticated browsercontrole op poort 3000 met demo-medewerker Noah bevestigde: status naast personeelsnummer, taalzoekveld met internationale opties, verborgen/zichtbare adreslookup op basis van de invoer, wisbare optionele einddatum, reminderknoppen onderaan en de feedregel `Persoonsgegevens gewijzigd`. De lokale login gaf HTTP 200. Verificatie: 111 testbestanden/410 tests, strict typecheck, ESLint, i18n-pariteit (24 namespaces) en productiebuild (115 statische pagina's) geslaagd.
+
+## Update 2026-07-31: tenant-owned functiehuis en Talent Foundation uitgevoerd
+
+De testfase-regel is toegepast: de demo-database is behouden, maar de oude administrationele compatibilitykolommen en scopefilters voor `jobs`, `job_groups`, `job_revisions` en `job_group_jobs` zijn verwijderd. Bestaande IDs en plaatsingsrelaties zijn hergebruikt; de database dwingt nu één tenant-functiegroep per functie af. Er is één expliciete demo-afdeling `LEGAL-DEMO` op administratie-niveau toegevoegd naast de tenantafdelingen.
+
+De remote migraties zijn geregistreerd als `20260731135658_remove_job_catalog_compatibility_and_seed_admin_department`, `20260731140701_add_talent_foundation`, `20260731141652_add_talent_self_profile_rpc`, `20260731142030_tighten_talent_rls_policies`, `20260731142342_enforce_talent_level_and_profile_invariants`, `20260731143627_seed_talent_profiles_from_existing_jobs`, `20260731144246_enforce_talent_manager_read_scope` en `20260731150748_add_tenant_fk_covering_indexes`. Talent bevat nu tenant-owned level models/levels, senioriteiten, optionele job families, categorieën, capabilities, profile versions, requirements, readmodel en audittriggers. Voor alle zes bestaande demo-functies is het logische profiel als Draft aangemaakt uit de bestaande job revisions; er is geen nieuwe functie of medewerker toegevoegd. De module `TALENT` is enabled voor beide demo-tenants. Self Talent leest via een gecontroleerde RPC; profile activation sluit vorige actieve versies atomair af en het levelmodel lockt bij eerste levelgebruik. Workforce Talent is managergescopeerd op actieve `employee_organizations`; algemene Talent-configuratie vereist `talent:manage`.
+
+Nieuwe routes zijn `/settings/talent`, `/workforce/talent`, `/my-talent` en `/api/talent/*`. De bestaande modulecatalogus, sidebar, i18n, master-data en tests zijn daarop aangesloten. `packages/db/types.ts` is opnieuw gegenereerd vanaf remote. De administratie-afdeling is met SQL en een bestaande authenticated in-app-browser-sessie gecontroleerd: `LEGAL-DEMO` verschijnt in de afdelingskeuze. Dezelfde sessie kan `/workforce/talent` lezen; `/settings/talent` weigert terecht zonder `talent:manage`. Anonieme API's geven 401; `/login` geeft HTTP 200.
+
+Laatste verificatie: 111 testbestanden/410 tests geslaagd, strict typecheck geslaagd, ESLint geslaagd, i18n-pariteit geslaagd (24 namespaces), productiebuild geslaagd (115 routes), en lokale poort-3000 checks voor login, jobs, departments en talent uitgevoerd. Supabase advisors tonen alleen bestaande projectbrede waarschuwingen plus de bewust beveiligde self-profile SECURITY DEFINER RPC.
+
+## Hotfix 2026-07-31: Talent-navigatie en dashboardcontext (gecorrigeerd)
+
+De eerste hotfix-samenvatting beschreef de permissiegrens onjuist. De definitieve regel is: Talentprofielen wordt via de Workforce-tegel aangeboden aan `talent:manager-read`; Talentfundament staat onder `/settings/talent` en vereist `talent:manage`. Er staat geen tweede Talentprofielen-item in de sidebar. De dashboard-layout hergebruikt binnen één render de bestaande Supabase-client en authcontext voor permissions, tenantmodules en reminders.
+
+De authenticated in-app-browser bevestigde daarna dat `/workforce` één Talentprofielen-tegel toont, `/workforce/talent` alleen Workforce als actieve ouder markeert en `/settings/talent` alleen Talentfundament markeert. De tenant-specifieke TENANT_ADMIN-override van Edwin's actieve demo-tenant is hiervoor gericht aangevuld; de andere demo-tenant is niet gewijzigd. De warme metingen en actuele eindverificatie staan in de latere sectie `Update 2026-07-31: Talent-navigatie, tenantrechten en performance`.
+
 ## Release 2026-07-29: versie 1.20260729.7
 
 De volledige release staat op `main` en `origin/main` als commit `3e324e7`. Vercel Production is `READY` op deployment `dpl_6Wwho9qoYsKBK8DZrxrAh6PC5aAU`, met aliases `liquid-hr-hr-suite.vercel.app`, `liquidhr-edwinitsolutions.vercel.app` en `liquidhr-git-main-edwinitsolutions.vercel.app`. De anonieme productiecontrole toont de loginpagina en Vercel meldt geen runtime errors in het afgelopen uur. Een ingelogde productiecontrole blijft handmatig.
@@ -408,7 +662,39 @@ De Tijdhub in de linkerzijbalk toont nu een compacte reminderknop naast de klok.
 
 Verificatie: i18n-pariteit, gerichte reminder-tests, volledige lokale tests, strict typecheck, productiebuild en ESLint zijn uitgevoerd. De ingelogde browsercontrole bevestigde de Tijdhubknop, `+1 meer reminder`, de detailmodal en de filter voor oudere reminders. Er is geen schemawijziging of deployment nodig voor deze UI-slice.
 
+## Update 2026-08-01: Talentfundament- en Tijdhub-UX
+
+- Talentfundament gebruikt nu het bestaande instellingen-accordionpatroon met altijd precies één geopend onderdeel. De overbodige `TALENTFUNDAMENT`-eyebrow en toelichtende subtitel zijn verwijderd. De sidebarlink gebruikt dezelfde uitlijning als de overige hoofdnavigatie.
+- De eerstvolgende reminder gebruikt de bestaande warning-surface als geel-notitiekaartje. Tijdhub-panelen positioneren zich naast de knop of erboven wanneer de onderzijde onvoldoende ruimte heeft en bevatten altijd een zichtbare sluitknop. De demo bevat tijdens deze controle geen verlopen reminderrecord; de gedeelde verlopen-codepad gebruikt dezelfde positionerings- en sluitlogica.
+- Browsercontrole op de ingelogde lokale sessie: `/settings/talent` toont één actieve sidebarlink, geen eyebrow/subtitel en één open paneel; wisselen en opnieuw klikken op het geopende paneel laat één paneel open. Het komende-reminderpaneel had een sluitknop, overlapte de trigger niet en sloot daarna correct. De console bevatte geen errors.
+- Verificatie: 111 testbestanden/410 tests geslaagd, strict typecheck, ESLint, i18n-pariteit (24 namespaces) en productiebuild (115 statische pagina's) geslaagd. Poort 3000 bleef luisteren en `/login` gaf HTTP 200.
+
 ## Hervatten
+
+## Update 2026-08-02: stap 1 alleen-lezen supportmodus
+
+- Vanuit een klantdetail in `apps/liquidhr-control` kunnen actieve `OWNER`/`OPERATOR`-beheerders nu een tijdelijke alleen-lezen supportsessie starten met reden en 15/30/60 minuten geldigheid. De sessie gebruikt een HttpOnly-cookie zonder token in de URL, eindigt expliciet of via vervaldatum en schrijft start/eind naar `platform_audit_logs`.
+- De HR-app heeft daarvoor een aparte route `/support`, buiten de normale klantdashboard-layout. Deze toont uitsluitend een beveiligd read-model: klantmodel, administraties, aantallen actieve dienstverbanden en maximaal de eerste 100 medewerkers. Er zijn geen schrijf-, upload-, verwijder- of normale klantacties beschikbaar. Dit is bewust nog geen volledige navigatie door alle bestaande HR-schermen.
+- Remote migraties `20260802234000_add_platform_support_sessions.sql` en `20260802242000_close_expired_platform_support_sessions.sql` zijn toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De supporttabel heeft RLS zonder directe table grants; publieke RPC's zijn `SECURITY INVOKER`-wrappers en interne functies zijn `SECURITY DEFINER` met operator-, tenant-, duur-, sessie- en vervaldatumcontrole. Remote controle: RLS aan, drie wrappers en drie interne definerfuncties aanwezig, nul supportsessies.
+- Verificatie: control en HR strict typecheck, ESLint, i18n-pariteit, 7 controltests en beide productiebuilds geslaagd. De lokale servers antwoorden op `http://localhost:3000/login` en `http://localhost:3001/login`. De volledige browserflow is nog open: de huidige Codex-browsersessie is geldig maar geen actieve platformbeheerder en is daarom veilig op `/geen-toegang` gebleven; niet uitgelogd en geen Google-account gekozen.
+
+## Update 2026-08-02: afzonderlijk LiquidHR Control Plane en Google-login
+
+- Nieuwe app: `apps/liquidhr-control`, lokaal altijd via `npm.cmd run dev:control` op poort 3001. De devstarter leest alleen de publieke Supabase-waarden uit `apps/hr-suite/.env.local`; er worden geen secrets gekopieerd.
+- Functies: gesloten login zonder registratie, rollen `OWNER/OPERATOR/AUDITOR`, dashboard, zoeken/filteren, klantdetail, onboarding met meerdere administraties, keuze `COMBINED/SEPARATE`, lifecycle, gebruikssnapshot en platformaudit.
+- Schema: lokale migratiebestanden `20260802230000_add_liquidhr_control_plane.sql` en `20260802231000_harden_liquidhr_control_plane_rpcs.sql` plus pgTAP-contract. Remote geregistreerd als `20260802172255_add_liquidhr_control_plane` en `20260802172601_harden_liquidhr_control_plane_rpcs`; niets gedeployed.
+- Verificatie: 7 domeintests, control-i18n (121 sleutels), ESLint, strict TypeScript en Next-productiebuild geslaagd. De control-app is op poort 3001 in de echte Codex-browser gecontroleerd: de eigenaar zag het dashboard met 2 klanten, 72 medewerkers en 91,7 KB opslag. De knoppen en klantenteller gebruiken nu een duidelijk licht/donker contrast. De dashboardcopy maakt expliciet dat klantdetails geen impersonatie zijn, de technische naam is de zoekterm en recente platformactiviteiten worden daar geregistreerd. De login bevat naast wachtwoord ook Google OAuth met een server-side callbackroute.
+- Remote verificatie: vijf control-tabellen en vijf RLS-configuraties aanwezig; beide bestaande tenants bleven `ACTIVE`; anonieme RPC-execute is geblokkeerd; Edwin is actieve `OWNER`; een niet-geregistreerde Auth-identiteit krijgt geen platformtoegang; control-plane security-advisor heeft 0 bevindingen. Gedeelde DB-types zijn opnieuw gegenereerd.
+- Handmatig resterend: voeg in Supabase Auth → URL Configuration de exacte redirect-URL `http://localhost:3001/auth/callback` toe. Google-provider en de bestaande operatorregistratie blijven gedeeld met de HR-app; een wachtwoordreset is niet nodig voor Google-login.
+
+## Update 2026-07-31: Talent-navigatie, tenantrechten en performance
+
+- De dubbele Talent-navigatie is verwijderd. `/settings/talent` is het Talentfundament en verschijnt uitsluitend met `talent:manage`; `/workforce/talent` is niet langer een zijbalkitem. Managers met `talent:manager-read` openen Talentprofielen via de tegel op `/workforce`. De actieve navigatiestatus gebruikt exacte matching voor `/settings` en houdt `/workforce` als enige actieve ouder op Talentprofielen.
+- De tenant-specifieke TENANT_ADMIN-override van Edwin's actieve demo-tenant miste de drie Talentrechten. Het lokale migratiebestand `20260731193000_grant_talent_permissions_to_demo_tenant_admin.sql` is alleen op die demo-tenant toegepast voor `talent:manage`, `talent:manager-read` en `talent:read`; Supabase registreerde de uitvoering als `20260731172748_grant_talent_permissions_to_demo_tenant_admin` door de bestaande remote tijdlijn. De andere demo-tenant is niet aangepast.
+- De dashboard-layout hergebruikt nu de bestaande Supabase-client en auth-/tenantcontext bij gebruikersvoorkeuren en branding. Daarmee vervallen dubbele auth-, administratie- en clientinitialisaties bij iedere dashboardroute.
+- Ingelogde browsercontrole op poort 3000 bevestigde: `/workforce` heeft één actieve navigatielink en de Talentprofielen-tegel; `/workforce/talent` heeft alleen Workforce actief; `/settings/talent` heeft alleen Talentfundament actief. De routes laden met de bestaande demo-data.
+- Performancebewijs: een eerste dev-compile kan door Next.js ongeveer 9--15 seconden duren; warme serverrequests voor de gecontroleerde routes lagen rond 0,8--1,3 seconden. Dit is een lokale dev-observatie, geen productiebenchmark. Een volgende performance-slice moet server-timing per gedeelde dashboardbron vastleggen voordat verdere optimalisatie wordt gekozen.
+- Verificatie: 111 Vitest-bestanden/410 tests geslaagd, strict typecheck, ESLint, i18n-pariteit (24 namespaces) en productiebuild (115 statische pagina's) geslaagd. `curl.exe http://127.0.0.1:3000/login` gaf na iedere hoofdcontrole HTTP 200. Supabase-migratielijst bevat de Talentmigraties en security/performance-advisors zijn opnieuw uitgevoerd; de gemelde waarschuwingen zijn bestaande projectbrede functies/indexen/policies.
 
 ## Update 2026-07-29: instellingenbeheer afgerond
 
@@ -471,3 +757,13 @@ Supabase security- en performance-advisors zijn opnieuw uitgevoerd. De meldingen
 ## Hotfix 2026-07-29: medewerkerfoto wijzigen en compact opslaan
 
 Op de medewerkerdetailpagina kan een gebruiker met `employee:write` de profielfoto wijzigen of verwijderen. De bediening is ook in de compacte detailweergave zichtbaar. Nieuwe uploads worden server-side geroteerd, naar maximaal 512x512 verkleind en als WebP van maximaal 750 KB opgeslagen. De nieuwe migratie `20260729130000_compact_employee_avatars.sql` verlaagt daarnaast de bucketlimiet naar 1 MB; deze moet nog naar Supabase worden uitgerold.
+
+## Requirements-update 2026-07-31: tenant- en administratie-eigendom
+
+De nieuwe leidende matrix staat in `docs/requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`; ADR-0006 legt de beslissing vast. Functies, functiegroepen, functiefamilies, niveaus, senioriteiten, capabilities, Talent-/Performance-templates, Cloud Tags en niet-juridische afdelingen zijn tenant-owned. Employees zijn tenantbrede personen; employments, contracten, payroll, salaris, verlof, verzuim, declaraties, roosters, feestdagen en kosten zijn administration-owned. Een employment/organisatieplaatsing koppelt beide werelden zonder een tweede functiecatalogus.
+
+De ownershipslice is nu uitgevoerd. Remote zijn `20260731130502_align_tenant_owned_job_catalog_and_departments`, `20260731131136_align_star_performer_job_catalog_scope` en `20260731132359_align_tenant_department_consumers` toegepast. De bestaande job-, group-, revision-, junction- en department-ID's zijn behouden; de dubbele demo-ROOT is samengevoegd zodat 17 tenantafdelingen overblijven. Jobcatalogus, Star Performer job/group lookups, afdelingsbeheer en alle gevonden organization/document/reminder/calendar/insights consumers gebruiken tenantcontext; employments, employee placements, salary, payroll, leave, absence, expenses, assessments, reminders en documents houden hun administrationele context. `packages/db/types.ts` is opnieuw gegenereerd.
+
+Verificatie voor deze slice: na iedere hoofdwijziging gaf `curl.exe http://127.0.0.1:3000/login` HTTP 200. Exacte eindresultaten: `npm.cmd test --workspace @liquid-hr/hr-suite` exit 0 (110 testbestanden, 405 tests, 0 failures); `npm.cmd run type-check --workspace @liquid-hr/hr-suite` exit 0; `npm.cmd run lint --workspace @liquid-hr/hr-suite` exit 0; `npm.cmd run check:i18n --workspace @liquid-hr/hr-suite` exit 0 (23 namespaces); `npm.cmd run build --workspace @liquid-hr/hr-suite` exit 0 (Next.js-build, 106 static pages); lokale/remote migration list is voor oudere historie al afwijkend, de drie nieuwe remote migrationnamen zijn gecontroleerd; Supabase security/performance advisors melden alleen bestaande projectbrede waarschuwingen/informatie. Een authenticated browserflow kon in deze run niet worden uitgevoerd omdat geen ingelogde testsessie beschikbaar was; anonieme beschermde API's geven 401 en routes redirecten naar login.
+
+Historische overdrachtstekst; vervangen door de actuele Talent Foundation-update bovenaan dit document. De genoemde Foundation-onderdelen zijn uitgevoerd; resterend zijn alleen de afzonderlijke Blueprint-slices die in `docs/README.md` als toekomstig staan.

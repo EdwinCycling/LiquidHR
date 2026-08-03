@@ -1,4 +1,4 @@
-import { AuthenticationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthenticationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { createClient } from '@/lib/supabase/server'
 import type {
@@ -124,9 +124,14 @@ async function requireReminderContext(): Promise<{
   }
 }
 
-export async function listMyReminders(limit = 100): Promise<ReminderItem[]> {
-  const context = await requireReminderContext()
-  const supabase = await createClient()
+type ReminderReadDependencies = {
+  context: Pick<AuthContext, 'tenantId' | 'administrationId' | 'userId'>
+  supabase: Awaited<ReturnType<typeof createClient>>
+}
+
+export async function listMyReminders(limit = 100, dependencies?: ReminderReadDependencies): Promise<ReminderItem[]> {
+  const context = dependencies?.context ?? await requireReminderContext()
+  const supabase = dependencies?.supabase ?? await createClient()
   let query = supabase
     .from('reminder_recipients')
     .select(`id, status, effective_remind_at, employee_id, employees(id, first_name, birth_name), reminders!inner(
@@ -249,12 +254,11 @@ export async function listManagedReminders(): Promise<ManagedReminder[]> {
 export async function listReminderTargetOptions(): Promise<ReminderTargetOptions> {
   const context = await requirePermission('reminder:write')
   const supabase = await createClient()
-  let departmentsQuery = supabase
+  const departmentsQuery = supabase
     .from('departments')
     .select('id, name')
     .eq('tenant_id', context.tenantId)
     .eq('is_active', true)
-  if (context.administrationId) departmentsQuery = departmentsQuery.eq('administration_id', context.administrationId)
   const [departmentsResult, employeesResult] = await Promise.all([
     departmentsQuery.order('name').limit(200),
     supabase
@@ -316,7 +320,7 @@ export async function updateHrReminder(id: string, input: ReminderUpdateInput): 
 export async function deleteHrReminder(id: string): Promise<void> {
   const context = await requirePermission('reminder:write')
   const supabase = await createClient()
-  const { data, error } = await supabase.from('reminders').update({ status: 'CANCELLED', cancelled_at: new Date().toISOString() }).eq('tenant_id', context.tenantId).eq('id', id).eq('reminder_type', 'HR').neq('status', 'CANCELLED').select('id').maybeSingle()
+  const { data, error } = await supabase.from('reminders').delete().eq('tenant_id', context.tenantId).eq('id', id).eq('reminder_type', 'HR').select('id').maybeSingle()
   if (error) throw reminderDatabaseError(error)
   if (!data) throw new ReminderServiceError('REMINDER_NOT_FOUND', 404)
 }

@@ -26,7 +26,7 @@ export async function getDocumentOptions(employeeId: string) {
   const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId); const supabase = await createClient()
   const [categories, departments, roles, employees, cloudTags, customFieldDefinitions, customFieldOptions] = await Promise.all([
     supabase.from('document_categories').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(200),
-    supabase.from('departments').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(500),
+    supabase.from('departments').select('id, code, name').eq('tenant_id', context.tenantId).eq('is_active', true).order('code').limit(500),
     supabase.from('management_roles').select('id, code, name').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).order('code').limit(200),
     supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(500),
     supabase.from('star_performer_tags').select('id, name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(200),

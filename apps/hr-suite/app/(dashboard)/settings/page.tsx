@@ -10,8 +10,10 @@ import {
   FileSliders,
   FileText,
   LayoutDashboard,
+  MapPinned,
   Palette,
   ShieldCheck,
+  Sparkles,
   Umbrella,
   Users,
   type LucideIcon,
@@ -133,10 +135,12 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('leave:read'),
       allowed('modules:read'),
       allowed('department:write'),
+      allowed('company-data:read'),
       allowed('dashboard-widget:write'),
       allowed('company-document:write'),
       allowed('absence-settings:read'),
       allowed('contract:read'),
+      allowed('talent:manage'),
     ]),
   ])
 
@@ -149,10 +153,12 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     leave,
     modules,
     departments,
+    companyData,
     dashboardWidgets,
     companyDocuments,
     absenceSettings,
     employmentContracts,
+    talentManage,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -182,6 +188,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.organization'),
           description: messages('admin.tiles.organizationDescription'),
           visible: departments,
+        },
+        {
+          kind: 'link',
+          href: '/settings/company-data',
+          icon: MapPinned,
+          title: messages('admin.tiles.companyData'),
+          description: messages('admin.tiles.companyDataDescription'),
+          visible: companyData,
         },
         {
           kind: 'modal',
@@ -219,6 +233,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.jobs'),
           description: messages('admin.tiles.jobsDescription'),
           visible: jobs,
+        },
+        {
+          kind: 'link',
+          href: '/settings/talent',
+          icon: Sparkles,
+          title: messages('admin.tiles.talentFoundation'),
+          description: messages('admin.tiles.talentFoundationDescription'),
+          visible: talentManage,
         },
         {
           kind: 'link',

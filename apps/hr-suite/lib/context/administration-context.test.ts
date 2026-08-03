@@ -117,7 +117,7 @@ describe('buildTenantContextOptions', () => {
 
   it('geeft tenantbrede toegang uitsluitend administraties van die tenant', () => {
     const result = buildTenantContextOptions({
-      accesses: [{ tenant_id: 'tenant-1', scope_type: 'TENANT', administration_id: null }],
+      accesses: [{ tenant_id: 'tenant-1', scope_type: 'TENANT', administration_id: null, management_role_code: 'TENANT_ADMIN' }],
       tenants,
       administrations,
     })
@@ -132,8 +132,26 @@ describe('buildTenantContextOptions', () => {
   it('geeft administratiescope niet stil toegang tot een sibling', () => {
     const result = buildTenantContextOptions({
       accesses: [
-        { tenant_id: 'tenant-1', scope_type: 'ADMINISTRATION', administration_id: 'admin-services' },
+        { tenant_id: 'tenant-1', scope_type: 'ADMINISTRATION', administration_id: 'admin-services', management_role_code: 'TENANT_ADMIN' },
       ],
+      tenants,
+      administrations,
+    })
+
+    expect(result[0].administrations.map((administration) => administration.id)).toEqual(['admin-services'])
+  })
+
+  it('beperkt een medewerker of manager tot administraties uit het eigen dienstverband of de eigen rol', () => {
+    const result = buildTenantContextOptions({
+      accesses: [{
+        tenant_id: 'tenant-1',
+        scope_type: 'TENANT',
+        administration_id: null,
+        management_role_code: 'EMPLOYEE',
+      }],
+      actorAdministrationIdsByTenant: new Map([
+        ['tenant-1', new Set(['admin-services'])],
+      ]),
       tenants,
       administrations,
     })
@@ -147,12 +165,12 @@ describe('getAdministrationSwitcherMode', () => {
     expect(getAdministrationSwitcherMode(selectActiveContext({ tenants: [tenantOne] }))).toBe('SELECT')
   })
 
-  it('toont alleen een label bij één administratie', () => {
+  it('verbergt de kiezer bij één administratie', () => {
     const context = selectActiveContext({
       tenants: [{ ...tenantOne, administrations: [tenantOne.administrations[0]] }],
     })
 
-    expect(getAdministrationSwitcherMode(context)).toBe('LABEL')
+    expect(getAdministrationSwitcherMode(context)).toBe('HIDDEN')
   })
 
   it('verbergt de algemene kiezer in gecombineerde modus', () => {
@@ -162,4 +180,5 @@ describe('getAdministrationSwitcherMode', () => {
 
     expect(getAdministrationSwitcherMode(context)).toBe('HIDDEN')
   })
+
 })

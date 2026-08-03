@@ -76,7 +76,7 @@ describe('confirmActionDraft', () => {
       expectedArguments: [
         '10000000-0000-4000-8000-000000000001',
         '10000000-0000-4000-8000-000000000002',
-        { addressLine1: 'Nieuwstraat 2', street: 'Nieuwstraat', houseNumber: '2', postalCode: '1234AB', city: 'Utrecht', countryCode: 'NL', validFrom: '2026-08-01', source: 'manual', directReminderRecipients: [] },
+        { addressLine1: 'Nieuwstraat 2', addressType: 'PRIMARY', street: 'Nieuwstraat', houseNumber: '2', postalCode: '1234AB', city: 'Utrecht', countryCode: 'NL', validFrom: '2026-08-01', source: 'manual', directReminderRecipients: [] },
         '2026-07-17T08:00:00.000Z',
       ],
     },

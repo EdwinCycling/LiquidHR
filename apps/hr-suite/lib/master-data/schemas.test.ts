@@ -25,14 +25,14 @@ describe('master-data schemas', () => {
     expect(salaryRevisionSchema.parse({ ...revision, steps }).steps).toHaveLength(13)
   })
 
-  it('requires an administration-scoped job group', () => {
+  it('requires at least one tenant-owned job group', () => {
     expect(() => jobCreateSchema.parse({ code: 'HRADV', name: 'HR-adviseur', jobGroupIds: [] })).toThrow()
   })
 
-  it('accepts multiple job groups without exposing validity dates', () => {
-    expect(jobCreateSchema.parse({
+  it('requires exactly one tenant-owned job group', () => {
+    expect(() => jobCreateSchema.parse({
       code: 'HRADV', name: 'HR-adviseur', jobGroupIds: ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'],
-    }).jobGroupIds).toHaveLength(2)
+    })).toThrow()
   })
 
   it('normalizes the country code for a termination reason', () => {

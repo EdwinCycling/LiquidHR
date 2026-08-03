@@ -1,7 +1,9 @@
-import 'server-only'
-
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { LOCALE_COOKIE, type Locale } from '@/lib/i18n/config'
 import { createClient } from '@/lib/supabase/server'
+import employeesEn from '@/messages/en/employees.json'
+import employeesNl from '@/messages/nl/employees.json'
+import { cookies } from 'next/headers'
 import { employeeActivityMessageSchema } from './employee-activity-schemas'
 
 export interface EmployeeActivityItem {
@@ -48,4 +50,30 @@ export async function createEmployeeActivity(employeeId: string, message: string
     })
   if (error) throw new Error('EMPLOYEE_ACTIVITY_WRITE_FAILED')
   return id
+}
+
+export type EmployeeSystemActivity =
+  | 'employeeUpdated'
+  | 'addressCreated'
+  | 'addressUpdated'
+  | 'addressArchived'
+  | 'bankAccountCreated'
+  | 'bankAccountUpdated'
+  | 'bankAccountArchived'
+  | 'relationCreated'
+  | 'relationUpdated'
+  | 'relationArchived'
+
+const SYSTEM_ACTIVITY_MESSAGES: Record<Locale, Record<EmployeeSystemActivity, string>> = {
+  nl: employeesNl.activity,
+  en: employeesEn.activity,
+}
+
+export async function createEmployeeSystemActivity(employeeId: string, activity: EmployeeSystemActivity): Promise<void> {
+  try {
+    const locale: Locale = (await cookies()).get(LOCALE_COOKIE)?.value === 'en' ? 'en' : 'nl'
+    await createEmployeeActivity(employeeId, SYSTEM_ACTIVITY_MESSAGES[locale][activity])
+  } catch {
+    // Een feedregel mag een geslaagde HR-mutatie niet ongedaan maken.
+  }
 }

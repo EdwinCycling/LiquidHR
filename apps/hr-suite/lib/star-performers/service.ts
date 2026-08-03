@@ -155,13 +155,18 @@ export async function listStarPerformerWorkspace(): Promise<StarPerformerWorkspa
           .limit(2000)
       : Promise.resolve({ data: [], error: null }),
     departmentIds.length
-      ? supabase.from('departments').select('id, name').in('id', departmentIds).limit(500)
+      ? supabase
+          .from('departments')
+          .select('id, name')
+          .eq('tenant_id', auth.tenantId)
+          .in('id', departmentIds)
+          .limit(500)
       : Promise.resolve({ data: [], error: null }),
     jobIds.length
       ? supabase
           .from('jobs')
           .select('id, code, job_group_id')
-          .eq('administration_id', auth.administrationId)
+          .eq('tenant_id', auth.tenantId)
           .in('id', jobIds)
           .limit(2000)
       : Promise.resolve({ data: [], error: null }),
@@ -169,7 +174,7 @@ export async function listStarPerformerWorkspace(): Promise<StarPerformerWorkspa
       ? supabase
           .from('job_revisions')
           .select('job_id, name, valid_from, valid_until')
-          .eq('administration_id', auth.administrationId)
+          .eq('tenant_id', auth.tenantId)
           .in('job_id', jobIds)
           .lte('valid_from', today)
           .or(`valid_until.is.null,valid_until.gt.${today}`)
@@ -208,7 +213,7 @@ export async function listStarPerformerWorkspace(): Promise<StarPerformerWorkspa
       ? supabase
           .from('job_groups')
           .select('id, code, name')
-          .eq('administration_id', auth.administrationId)
+          .eq('tenant_id', auth.tenantId)
           .in('id', jobGroupIds)
           .limit(500)
       : Promise.resolve({ data: [], error: null }),

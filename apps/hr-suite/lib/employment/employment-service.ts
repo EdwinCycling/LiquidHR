@@ -121,6 +121,7 @@ export interface EmployeeEmploymentDetail {
   }>
   status: EmploymentStatus
   addresses: Array<{
+    addressType: 'PRIMARY' | 'SECONDARY'; description: string | null
     id: string; addressLine1: string; addressLine2: string | null; street: string | null
     houseNumber: string | null; houseNumberAddition: string | null
     postalCode: string | null; city: string; region: string | null; countryCode: string
@@ -345,10 +346,10 @@ export async function getEmploymentCreationOptions(
     minimumWagesResult, scaleStepsResult,
   ] = await Promise.all([
     supabase.from('departments').select('id, code, name')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('jobs').select('id, code, job_revisions(name)')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('cost_centers').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
@@ -684,6 +685,7 @@ export async function getEmployeeEmploymentDetail(
       new Date().toISOString().slice(0, 10),
     ),
     addresses: (addresses ?? []).map((address) => ({
+      addressType: address.address_type as 'PRIMARY' | 'SECONDARY', description: address.description,
       id: address.id, addressLine1: address.address_line_1, addressLine2: address.address_line_2,
       street: address.street, houseNumber: address.house_number,
       houseNumberAddition: address.house_number_addition, postalCode: address.postal_code, city: address.city,

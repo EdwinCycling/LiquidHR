@@ -40,7 +40,7 @@ export async function loadUnifiedCalendar(month: string) {
   const [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult, hrData] = await Promise.all([
     supabase.from('employees').select('id,employee_number,first_name,birth_name,avatar_url,is_archived').in('id', employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id,job_id,job_title,effective_from').in('employee_id', employeeIds).eq('administration_id', administrationId).lte('effective_from', to).or(`effective_to.is.null,effective_to.gte.${from}`).order('effective_from', { ascending: false }).limit(4000),
-    supabase.from('departments').select('id,code,name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(500),
+    supabase.from('departments').select('id,code,name').eq('tenant_id', auth.tenantId).eq('is_active', true).order('code').limit(500),
     supabase.from('employment_work_patterns').select('id,employee_id,employment_id,name,cycle_weeks,anchor_date,average_minutes_per_week,valid_from,valid_until,employment_work_pattern_days(week_index,iso_weekday,is_working_day,starts_at,ends_at,break_minutes,scheduled_minutes,note)').in('employment_id', employmentIds).lt('valid_from', to).or(`valid_until.is.null,valid_until.gte.${from}`).order('valid_from', { ascending: false }).limit(2000),
     supabase.from('holidays').select('id,holiday_date,display_name,provider_name,source').eq('administration_id', administrationId).eq('is_active', true).gte('holiday_date', from).lt('holiday_date', to).order('holiday_date').limit(400),
     supabase.from('reminder_recipients').select('id,employee_id,effective_remind_at,reminder_id').not('employee_id', 'is', null).gte('effective_remind_at', `${from}T00:00:00Z`).lt('effective_remind_at', `${to}T00:00:00Z`).limit(5000),
@@ -61,16 +61,16 @@ export async function loadUnifiedCalendar(month: string) {
   }
   const jobIds = [...new Set((organizationsResult.data ?? []).flatMap((organization) => organization.job_id ? [organization.job_id] : []))]
   const jobsResult = jobIds.length
-    ? await supabase.from('jobs').select('id,job_group_id,code').eq('administration_id', administrationId).in('id', jobIds).limit(2000)
+    ? await supabase.from('jobs').select('id,job_group_id,code').eq('tenant_id', auth.tenantId).in('id', jobIds).limit(2000)
     : { data: [], error: null }
   if (jobsResult.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
   const jobGroupIds = [...new Set((jobsResult.data ?? []).map((job) => job.job_group_id))]
   const [jobRevisionsResult, jobGroupsResult] = await Promise.all([
     jobIds.length
-      ? supabase.from('job_revisions').select('job_id,name,valid_from,valid_until').eq('administration_id', administrationId).in('job_id', jobIds).lte('valid_from', referenceDate).or(`valid_until.is.null,valid_until.gt.${referenceDate}`).order('valid_from', { ascending: false }).limit(4000)
+      ? supabase.from('job_revisions').select('job_id,name,valid_from,valid_until').eq('tenant_id', auth.tenantId).in('job_id', jobIds).lte('valid_from', referenceDate).or(`valid_until.is.null,valid_until.gt.${referenceDate}`).order('valid_from', { ascending: false }).limit(4000)
       : Promise.resolve({ data: [], error: null }),
     jobGroupIds.length
-      ? supabase.from('job_groups').select('id,code,name').eq('administration_id', administrationId).in('id', jobGroupIds).limit(500)
+      ? supabase.from('job_groups').select('id,code,name').eq('tenant_id', auth.tenantId).in('id', jobGroupIds).limit(500)
       : Promise.resolve({ data: [], error: null }),
   ])
   if (jobRevisionsResult.error || jobGroupsResult.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')

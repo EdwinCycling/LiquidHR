@@ -1,6 +1,6 @@
 'use client'
 
-import { BellRing, CalendarClock, Check, CheckCheck, CircleAlert, Clock3, LoaderCircle, Plus, Search, UserRound, X } from 'lucide-react'
+import { BellRing, CalendarClock, Check, CheckCheck, ChevronDown, CircleAlert, Clock3, Hand, LoaderCircle, Plus, Search, UserRound, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -15,13 +15,17 @@ export interface ReminderCenterLabels {
   newPersonal: string; newHr: string; titleLabel: string; descriptionLabel: string
   dateTimeLabel: string; targetLabel: string; everyone: string; departments: string
   employees: string; create: string; creating: string; publish: string
-  cancelReminder: string; delete: string; complete: string; dismiss: string; snooze: string
+  cancelReminder: string; delete: string; complete: string; saveComplete: string; dismiss: string; snoozeSingular: string; snoozePlural: string
+  saveSnoozeSingular: string; saveSnoozePlural: string; decreaseSnoozeDays: string; increaseSnoozeDays: string
+  save: string; deactivate: string; deleteConfirm: string
   created: string; failed: string; draft: string; publishedStatus: string; cancelled: string
   completed: string; dismissed: string; pending: string; noHrPermission: string
-  filterOpen: string; filterAll: string; filterCompleted: string; filterDismissed: string
+  filterOpen: string; filterAll: string; filterCompleted: string; filterOverdue: string
   sortSoonest: string; sortLatest: string; sortTitle: string; search: string; selectAll: string
-  clearSelection: string; bulkComplete: string; moreInfo: string; employee: string; noResults: string; selectedCount: string; visibleCount: string; close: string
+  clearSelection: string; bulkComplete: string; moreInfo: string; employee: string; noResults: string; selectedCount: string; visibleCount: string; close: string; cancel: string
 }
+
+type ReminderFilter = 'OPEN' | 'ALL' | 'COMPLETED' | 'OVERDUE'
 
 interface ReminderCenterProps {
   canManageHr: boolean
@@ -45,12 +49,14 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [targetType, setTargetType] = useState<'EVERYONE' | 'DEPARTMENTS' | 'EMPLOYEES'>('EVERYONE')
-  const [filter, setFilter] = useState<'OPEN' | 'ALL' | 'COMPLETED' | 'DISMISSED'>('OPEN')
+  const [filter, setFilter] = useState<ReminderFilter>('OPEN')
   const [sort, setSort] = useState<'SOONEST' | 'LATEST' | 'TITLE'>('SOONEST')
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set())
   const [detail, setDetail] = useState<ReminderItem | null>(null)
+  const [managedDetail, setManagedDetail] = useState<ManagedReminder | null>(null)
   const [now, setNow] = useState(() => new Date())
+  const [openSection, setOpenSection] = useState<'personal' | 'hr'>('personal')
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000)
@@ -91,10 +97,10 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
     router.refresh()
   }
 
-  async function recipientAction(item: ReminderItem, action: 'COMPLETE' | 'DISMISS' | 'SNOOZE') {
+  async function recipientAction(item: ReminderItem, action: 'COMPLETE' | 'DISMISS' | 'SNOOZE', snoozeDays = 1) {
     setBusy(item.recipientId)
     const snoozeUntil = new Date()
-    snoozeUntil.setMinutes(snoozeUntil.getMinutes() + 15)
+    snoozeUntil.setDate(snoozeUntil.getDate() + snoozeDays)
     const body = action === 'SNOOZE'
       ? { action, remindAt: snoozeUntil.toISOString() }
       : { action }
@@ -120,6 +126,7 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
   }
 
   async function reminderAction(id: string, action: 'delete' | 'publish' | 'cancel') {
+    if (action === 'delete' && !window.confirm(labels.deleteConfirm)) return
     setBusy(id)
     const response = await fetch(action === 'delete' ? `/api/reminders/${id}` : `/api/reminders/${id}/${action}`, {
       method: action === 'delete' ? 'DELETE' : 'POST',
@@ -137,11 +144,15 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
   })[status]
 
   const visibleReminders = initialReminders
-    .filter((item) => filter === 'ALL' || (filter === 'OPEN' && item.recipientStatus === 'PENDING') || (filter === 'COMPLETED' && item.recipientStatus === 'COMPLETED') || (filter === 'DISMISSED' && item.recipientStatus === 'DISMISSED'))
+    .filter((item) => filter === 'ALL' || (filter === 'OPEN' && item.recipientStatus === 'PENDING') || (filter === 'COMPLETED' && item.recipientStatus === 'COMPLETED') || (filter === 'OVERDUE' && item.recipientStatus === 'PENDING' && new Date(item.remindAt).getTime() < now.getTime()))
     .filter((item) => `${item.title} ${item.description ?? ''} ${item.employeeName ?? ''}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
     .sort((left, right) => sort === 'TITLE' ? left.title.localeCompare(right.title) : sort === 'LATEST' ? new Date(right.remindAt).getTime() - new Date(left.remindAt).getTime() : new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime())
 
   const pendingVisible = visibleReminders.filter((item) => item.recipientStatus === 'PENDING')
+  const visibleManaged = initialManaged
+    .filter((item) => `${item.title} ${item.description ?? ''}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+    .filter((item) => filter === 'ALL' || (filter === 'OPEN' && item.status === 'PUBLISHED' && new Date(item.remindAt).getTime() >= now.getTime()) || (filter === 'OVERDUE' && item.status === 'PUBLISHED' && new Date(item.remindAt).getTime() < now.getTime()) || (filter === 'COMPLETED' && item.status === 'CANCELLED'))
+    .sort((left, right) => sort === 'TITLE' ? left.title.localeCompare(right.title) : sort === 'LATEST' ? new Date(right.remindAt).getTime() - new Date(left.remindAt).getTime() : new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime())
   const tone = (item: ReminderItem) => {
     if (item.recipientStatus !== 'PENDING') return 'border-border/70 bg-muted/50'
     const difference = new Date(item.remindAt).getTime() - now.getTime()
@@ -151,14 +162,16 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
   }
 
   return (
-    <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]">
-      <div className="space-y-6">
+    <div className="mt-7 space-y-3">
+      <section className="rounded-2xl border bg-surface shadow-sm">
+        <button aria-controls="reminder-section-personal" aria-expanded={openSection === 'personal'} className="flex w-full items-center justify-between gap-3 p-5 text-left font-semibold" onClick={() => setOpenSection(openSection === 'personal' ? 'personal' : 'personal')} type="button"><span className="flex items-center gap-2"><BellRing aria-hidden="true" size={18} />{labels.personalList}</span><ChevronDown aria-hidden="true" className={`transition-transform ${openSection === 'personal' ? 'rotate-180' : ''}`} size={18} /></button>
+        {openSection === 'personal' ? <div className="grid gap-6 border-t p-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]" id="reminder-section-personal"><div>
         <section className="overflow-hidden rounded-3xl border bg-surface shadow-sm">
           <header className="border-b bg-gradient-to-br from-primary/10 via-surface to-surface px-5 py-5 sm:px-6">
-            <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow">{labels.personalList}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">{labels.personalList}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.visibleCount.replace('{count}', String(visibleReminders.length))}</p></div><div className="grid size-11 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20"><BellRing aria-hidden="true" size={20} /></div></div>
+            <p className="text-sm text-muted-foreground">{labels.visibleCount.replace('{count}', String(visibleReminders.length))}</p>
             <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
               <label className="relative"><Search aria-hidden="true" className="absolute left-3 top-3.5 text-muted-foreground" size={16} /><span className="sr-only">{labels.search}</span><input className="form-field pl-9" onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} value={search} /></label>
-              <label className="sr-only" htmlFor="reminder-filter">{labels.filterOpen}</label><select className="form-field" id="reminder-filter" onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}><option value="OPEN">{labels.filterOpen}</option><option value="ALL">{labels.filterAll}</option><option value="COMPLETED">{labels.filterCompleted}</option><option value="DISMISSED">{labels.filterDismissed}</option></select>
+              <label className="sr-only" htmlFor="reminder-filter">{labels.filterOpen}</label><select className="form-field" id="reminder-filter" onChange={(event) => setFilter(event.target.value as ReminderFilter)} value={filter}><option value="OPEN">{labels.filterOpen}</option><option value="ALL">{labels.filterAll}</option><option value="COMPLETED">{labels.filterCompleted}</option><option value="OVERDUE">{labels.filterOverdue}</option></select>
               <label className="sr-only" htmlFor="reminder-sort">{labels.sortSoonest}</label><select className="form-field" id="reminder-sort" onChange={(event) => setSort(event.target.value as typeof sort)} value={sort}><option value="SOONEST">{labels.sortSoonest}</option><option value="LATEST">{labels.sortLatest}</option><option value="TITLE">{labels.sortTitle}</option></select>
             </div>
           </header>
@@ -173,31 +186,35 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span className="inline-flex items-center gap-1.5"><CalendarClock aria-hidden="true" size={15} />{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</span><span className="inline-flex items-center gap-1.5"><Clock3 aria-hidden="true" size={15} />{formatReminderCountdown(now, new Date(item.remindAt), locale)}</span>{item.employeeId && item.employeeName ? <span className="inline-flex items-center gap-1.5"><UserRound aria-hidden="true" size={15} />{item.employeeName}</span> : null}</div>
                   </button>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2 pl-7"><button className="button-secondary min-h-9" onClick={() => setDetail(item)} type="button">{labels.moreInfo}</button>{item.employeeId && item.employeeName ? <Link className="text-sm font-semibold text-accent-foreground hover:underline" href={`/employees/${item.employeeId}`}>{item.employeeName}</Link> : null}{item.recipientStatus === 'PENDING' ? <><button className="button-primary min-h-9 gap-2" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'COMPLETE')} type="button"><Check aria-hidden="true" size={15} />{labels.complete}</button><button className="button-secondary min-h-9" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'SNOOZE')} type="button">{labels.snooze}</button><button className="button-secondary min-h-9" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'DISMISS')} type="button">{labels.dismiss}</button></> : null}</div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 pl-7"><button className="button-secondary min-h-9" onClick={() => setDetail(item)} type="button">{labels.moreInfo}</button>{item.employeeId && item.employeeName ? <Link className="text-sm font-semibold text-accent-foreground hover:underline" href={`/employees/${item.employeeId}`}>{item.employeeName}</Link> : null}{item.recipientStatus === 'PENDING' ? <><button className="button-primary min-h-9 gap-2" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'COMPLETE')} type="button"><Check aria-hidden="true" size={15} />{labels.complete}</button><button className="button-secondary min-h-9" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'SNOOZE', 1)} type="button">{labels.snoozeSingular.replace('{days}', '1')}</button><button className="button-secondary min-h-9" disabled={busy === item.recipientId} onClick={() => void recipientAction(item, 'DISMISS')} type="button">{labels.dismiss}</button></> : null}</div>
               </article>
             </li>
           ))}</ul>}
         </section>
 
-        {canManageHr ? <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">{labels.hrList}</h2>
-          {initialManaged.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.empty}</p> : <ul className="mt-4 space-y-3">{initialManaged.map((item) => <li className="flex flex-col gap-3 rounded-xl border bg-surface-raised p-4 sm:flex-row sm:items-center sm:justify-between" key={item.id}>
-            <div><h3 className="font-semibold">{item.title}</h3><p className="mt-1 text-xs text-muted-foreground">{hrStatusLabel(item.status)} · {formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</p></div>
-            <div className="flex gap-2">{item.status === 'DRAFT' ? <button className="button-primary" disabled={busy === item.id} onClick={() => void reminderAction(item.id, 'publish')} type="button">{labels.publish}</button> : null}{item.status !== 'CANCELLED' ? <button className="button-secondary" disabled={busy === item.id} onClick={() => void reminderAction(item.id, 'cancel')} type="button">{labels.cancelReminder}</button> : null}</div>
-          </li>)}</ul>}
-        </section> : null}
       </div>
 
-      {detail ? <ReminderDetailModal busy={busy === detail.recipientId} item={detail} labels={labels} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} onAction={(item, action) => void recipientAction(item, action)} onClose={() => setDetail(null)} /> : null}
+      {detail ? <ReminderDetailModal busy={busy === detail.recipientId} item={detail} labels={labels} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} onAction={(item, action, snoozeDays) => void recipientAction(item, action, snoozeDays)} onClose={() => { setDetail(null); router.refresh() }} /> : null}
+      <ReminderForm busy={busy === 'PERSONAL'} labels={labels} onSubmit={(form) => void submitReminder(form, 'PERSONAL')} title={labels.newPersonal} />
+        </div> : null}
+      </section>
 
-      <div className="space-y-6">
-        <ReminderForm busy={busy === 'PERSONAL'} labels={labels} onSubmit={(form) => void submitReminder(form, 'PERSONAL')} title={labels.newPersonal} />
-        {canManageHr ? <ReminderForm busy={busy === 'HR'} labels={labels} onSubmit={(form) => void submitReminder(form, 'HR')} title={labels.newHr}>
-          <label className="block text-sm font-medium">{labels.targetLabel}<select className="form-field mt-1" name="targetType" onChange={(event) => setTargetType(event.target.value as typeof targetType)} value={targetType}><option value="EVERYONE">{labels.everyone}</option><option value="DEPARTMENTS">{labels.departments}</option><option value="EMPLOYEES">{labels.employees}</option></select></label>
-          {targetType !== 'EVERYONE' ? <label className="block text-sm font-medium">{targetType === 'DEPARTMENTS' ? labels.departments : labels.employees}<select className="form-field mt-1 min-h-36" multiple name="targetIds" required>{(targetType === 'DEPARTMENTS' ? targetOptions.departments : targetOptions.employees).map((option) => <option key={option.id} value={option.id}>{'employeeNumber' in option ? `${option.employeeNumber} · ${option.name}` : option.name}</option>)}</select></label> : null}
-        </ReminderForm> : <p className="rounded-xl border bg-surface p-4 text-sm text-muted-foreground">{labels.noHrPermission}</p>}
-        {feedback ? <p className="rounded-xl border bg-surface px-4 py-3 text-sm" role="status">{feedback}</p> : null}
-      </div>
+      {canManageHr ? <section className="rounded-2xl border bg-surface shadow-sm">
+        <button aria-controls="reminder-section-hr" aria-expanded={openSection === 'hr'} className="flex w-full items-center justify-between gap-3 p-5 text-left font-semibold" onClick={() => setOpenSection(openSection === 'hr' ? 'personal' : 'hr')} type="button"><span className="flex items-center gap-2"><BellRing aria-hidden="true" size={18} />{labels.hrList}</span><span className="flex items-center gap-2 text-sm text-muted-foreground">{labels.visibleCount.replace('{count}', String(visibleManaged.length))}<ChevronDown aria-hidden="true" className={`transition-transform ${openSection === 'hr' ? 'rotate-180' : ''}`} size={18} /></span></button>
+        {openSection === 'hr' ? <div className="grid gap-6 border-t p-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]" id="reminder-section-hr">
+          <section>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><label className="relative"><Search aria-hidden="true" className="absolute left-3 top-3.5 text-muted-foreground" size={16} /><span className="sr-only">{labels.search}</span><input className="form-field pl-9" onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} value={search} /></label><label className="sr-only" htmlFor="hr-reminder-filter">{labels.filterOpen}</label><select className="form-field" id="hr-reminder-filter" onChange={(event) => setFilter(event.target.value as ReminderFilter)} value={filter}><option value="OPEN">{labels.filterOpen}</option><option value="ALL">{labels.filterAll}</option><option value="COMPLETED">{labels.filterCompleted}</option><option value="OVERDUE">{labels.filterOverdue}</option></select><label className="sr-only" htmlFor="hr-reminder-sort">{labels.sortSoonest}</label><select className="form-field" id="hr-reminder-sort" onChange={(event) => setSort(event.target.value as typeof sort)} value={sort}><option value="SOONEST">{labels.sortSoonest}</option><option value="LATEST">{labels.sortLatest}</option><option value="TITLE">{labels.sortTitle}</option></select></div>
+        {visibleManaged.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{labels.noResults}</p> : <ul className="mt-4 space-y-3">{visibleManaged.map((item) => <li key={item.id}><button className="group flex w-full items-center justify-between gap-3 rounded-xl border bg-surface-raised p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30" onClick={() => setManagedDetail(item)} type="button"><div className="min-w-0"><h3 className="truncate font-semibold">{item.title}</h3><p className="mt-1 text-xs text-muted-foreground">{hrStatusLabel(item.status)} · {formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</p>{item.description ? <p className="mt-2 truncate text-sm text-muted-foreground">{item.description}</p> : null}</div><Hand aria-hidden="true" className="shrink-0 text-muted-foreground transition-colors group-hover:text-primary" size={18} /></button></li>
+            )}</ul>}
+          </section>
+          <ReminderForm busy={busy === 'HR'} labels={labels} onSubmit={(form) => void submitReminder(form, 'HR')} title={labels.newHr}>
+            <label className="block text-sm font-medium">{labels.targetLabel}<select className="form-field mt-1" name="targetType" onChange={(event) => setTargetType(event.target.value as typeof targetType)} value={targetType}><option value="EVERYONE">{labels.everyone}</option><option value="DEPARTMENTS">{labels.departments}</option><option value="EMPLOYEES">{labels.employees}</option></select></label>
+            {targetType !== 'EVERYONE' ? <label className="block text-sm font-medium">{targetType === 'DEPARTMENTS' ? labels.departments : labels.employees}<select className="form-field mt-1 min-h-36" multiple name="targetIds" required>{(targetType === 'DEPARTMENTS' ? targetOptions.departments : targetOptions.employees).map((option) => <option key={option.id} value={option.id}>{'employeeNumber' in option ? `${option.employeeNumber} · ${option.name}` : option.name}</option>)}</select></label> : null}
+          </ReminderForm>
+        </div> : null}
+      </section> : null}
+      {managedDetail ? <ManagedReminderDetailModal busy={busy === managedDetail.id} item={managedDetail} labels={labels} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} onClose={() => setManagedDetail(null)} onSave={async (input) => { setBusy(managedDetail.id); const response = await fetch(`/api/reminders/${managedDetail.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) }); setBusy(null); if (!response.ok) { setFeedback(labels.failed); return } setManagedDetail(null); router.refresh() }} onAction={async (action) => { await reminderAction(managedDetail.id, action); setManagedDetail(null) }} /> : null}
+      {feedback ? <p className="rounded-xl border bg-surface px-4 py-3 text-sm" role="status">{feedback}</p> : null}
     </div>
   )
 }
@@ -210,12 +227,77 @@ function ReminderForm({ busy, children, labels, onSubmit, title }: { busy: boole
   </form>
 }
 
-function ReminderDetailModal({ busy, item, labels, locale, dateFormat, timeFormat, onAction, onClose }: { busy: boolean; item: ReminderItem; labels: ReminderCenterLabels; locale: string; dateFormat: DateFormat; timeFormat: TimeFormat; onAction: (item: ReminderItem, action: 'COMPLETE' | 'DISMISS' | 'SNOOZE') => void; onClose: () => void }) {
-  return <div aria-labelledby="reminder-detail-heading" aria-modal="true" className="fixed inset-0 z-[80] grid place-items-center bg-sidebar/70 p-4 backdrop-blur-sm" onClick={onClose} role="dialog">
+function localDateTimeValue(value: string): string {
+  const date = new Date(value)
+  const offset = date.getTimezoneOffset()
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16)
+}
+
+function ManagedReminderDetailModal({ busy, item, labels, locale, dateFormat, timeFormat, onAction, onClose, onSave }: {
+  busy: boolean
+  item: ManagedReminder
+  labels: ReminderCenterLabels
+  locale: string
+  dateFormat: DateFormat
+  timeFormat: TimeFormat
+  onAction: (action: 'delete' | 'publish' | 'cancel') => Promise<void>
+  onClose: () => void
+  onSave: (input: { title: string; description: string; remindAt: string }) => Promise<void>
+}) {
+  const [title, setTitle] = useState(item.title)
+  const [description, setDescription] = useState(item.description ?? '')
+  const [remindAt, setRemindAt] = useState(localDateTimeValue(item.remindAt))
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  async function save() {
+    const parsedDate = new Date(remindAt)
+    if (!title.trim() || Number.isNaN(parsedDate.getTime())) return
+    await onSave({ title: title.trim(), description: description.trim(), remindAt: parsedDate.toISOString() })
+  }
+
+  return <div aria-labelledby="managed-reminder-detail-heading" aria-modal="true" className="fixed inset-0 z-[80] grid place-items-center bg-sidebar/70 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }} role="dialog">
+    <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-3xl border bg-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
+      <header className="flex items-start justify-between gap-4 border-b bg-gradient-to-br from-primary/10 via-surface to-surface p-5 sm:p-6">
+        <div><p className="eyebrow">{labels.hr}</p><h2 className="mt-1 text-xl font-semibold" id="managed-reminder-detail-heading">{item.title}</h2></div>
+        <button aria-label={labels.close} className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground" onClick={onClose} type="button"><X aria-hidden="true" size={18} /></button>
+      </header>
+      <div className="space-y-4 p-5 sm:p-6">
+        <div className="rounded-2xl border bg-muted/40 p-4 text-sm"><p className="font-semibold">{item.status === 'DRAFT' ? labels.draft : item.status === 'PUBLISHED' ? labels.publishedStatus : labels.cancelled}</p><p className="mt-1 text-muted-foreground">{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</p></div>
+        <label className="block text-sm font-medium">{labels.titleLabel}<input className="form-field mt-1" maxLength={160} onChange={(event) => setTitle(event.target.value)} required value={title} /></label>
+        <label className="block text-sm font-medium">{labels.descriptionLabel}<textarea className="form-field mt-1 min-h-24" maxLength={2000} onChange={(event) => setDescription(event.target.value)} value={description} /></label>
+        <label className="block text-sm font-medium">{labels.dateTimeLabel}<input className="form-field mt-1" onChange={(event) => setRemindAt(event.target.value)} required type="datetime-local" value={remindAt} /></label>
+      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/30 p-5 sm:p-6">
+        <div className="flex flex-wrap gap-2"><button className="button-secondary" disabled={busy} onClick={() => void onAction('delete')} type="button">{labels.delete}</button>{item.status === 'PUBLISHED' ? <button className="button-secondary" disabled={busy} onClick={() => void onAction('cancel')} type="button">{labels.deactivate}</button> : null}</div>
+        <div className="flex flex-wrap justify-end gap-2"><button className="button-secondary" disabled={busy} onClick={onClose} type="button">{labels.cancel}</button>{item.status === 'DRAFT' ? <button className="button-secondary" disabled={busy} onClick={() => void onAction('publish')} type="button">{labels.publish}</button> : null}<button className="button-primary" disabled={busy || !title.trim() || !remindAt} onClick={() => void save()} type="button">{labels.save}</button></div>
+      </footer>
+    </section>
+  </div>
+}
+
+function ReminderDetailModal({ busy, item, labels, locale, dateFormat, timeFormat, onAction, onClose }: { busy: boolean; item: ReminderItem; labels: ReminderCenterLabels; locale: string; dateFormat: DateFormat; timeFormat: TimeFormat; onAction: (item: ReminderItem, action: 'COMPLETE' | 'DISMISS' | 'SNOOZE', snoozeDays?: number) => void; onClose: () => void }) {
+  const [snoozeDays, setSnoozeDays] = useState(1)
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  return <div aria-labelledby="reminder-detail-heading" aria-modal="true" className="fixed inset-0 z-[80] grid place-items-center bg-sidebar/70 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }} role="dialog">
     <section className="w-full max-w-lg overflow-hidden rounded-3xl border bg-surface shadow-[0_1.5rem_4.5rem_color-mix(in_srgb,var(--primary)_20%,transparent)]" onClick={(event) => event.stopPropagation()}>
       <header className="flex items-start justify-between gap-4 border-b bg-gradient-to-br from-primary/10 via-surface to-surface p-5 sm:p-6"><div><p className="eyebrow">{labels.moreInfo}</p><h2 className="mt-1 text-xl font-semibold" id="reminder-detail-heading">{item.title}</h2></div><button aria-label={labels.close} className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground" onClick={onClose} type="button"><X aria-hidden="true" size={18} /></button></header>
       <div className="space-y-5 p-5 sm:p-6"><div className="flex flex-wrap gap-2"><span className="status-chip bg-muted"><BellRing aria-hidden="true" size={14} />{item.type === 'HR' ? labels.hr : labels.personal}</span><span className="status-chip bg-muted"><Clock3 aria-hidden="true" size={14} />{formatReminderCountdown(new Date(), new Date(item.remindAt), locale)}</span></div><div className="rounded-2xl border bg-muted/40 p-4"><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{labels.dateTimeLabel}</p><p className="mt-1 font-semibold">{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</p></div>{item.description ? <p className="text-sm leading-6 text-muted-foreground">{item.description}</p> : <p className="flex items-center gap-2 text-sm text-muted-foreground"><CircleAlert aria-hidden="true" size={16} />{labels.noResults}</p>}{item.employeeId && item.employeeName ? <Link className="flex items-center gap-3 rounded-2xl border p-4 font-semibold hover:bg-muted" href={`/employees/${item.employeeId}`} onClick={onClose}><UserRound aria-hidden="true" size={18} />{item.employeeName}<span className="ml-auto text-accent-foreground">→</span></Link> : null}</div>
-      {item.recipientStatus === 'PENDING' ? <footer className="flex flex-wrap gap-2 border-t p-5 sm:p-6"><button className="button-primary min-h-10 gap-2" disabled={busy} onClick={() => onAction(item, 'COMPLETE')} type="button"><Check aria-hidden="true" size={16} />{labels.complete}</button><button className="button-secondary min-h-10" disabled={busy} onClick={() => onAction(item, 'SNOOZE')} type="button">{labels.snooze}</button><button className="button-secondary min-h-10" disabled={busy} onClick={() => onAction(item, 'DISMISS')} type="button">{labels.dismiss}</button></footer> : null}
+      {item.recipientStatus === 'PENDING' ? <><footer className="border-t p-5 sm:p-6"><div className="flex flex-col items-end gap-3"><button className="button-secondary min-h-10" disabled={busy} onClick={() => void onAction(item, 'DISMISS')} type="button">{labels.dismiss}</button><div className="flex gap-2"><button aria-label={labels.decreaseSnoozeDays} className="button-secondary min-h-10 px-3" disabled={busy || snoozeDays <= 1} onClick={() => setSnoozeDays((days) => Math.max(1, days - 1))} type="button">−</button><button className="button-secondary min-h-10" disabled={busy} onClick={() => onAction(item, 'SNOOZE', snoozeDays)} type="button">{(snoozeDays === 1 ? labels.saveSnoozeSingular : labels.saveSnoozePlural).replace('{days}', String(snoozeDays))}</button><button aria-label={labels.increaseSnoozeDays} className="button-secondary min-h-10 px-3" disabled={busy || snoozeDays >= 99} onClick={() => setSnoozeDays((days) => Math.min(99, days + 1))} type="button">+</button></div><button className="button-primary min-h-11 w-full justify-center gap-2" disabled={busy} onClick={() => onAction(item, 'COMPLETE')} type="button"><Check aria-hidden="true" size={16} />{labels.saveComplete}</button></div></footer><div className="flex justify-end border-t bg-muted/30 px-5 py-3 sm:px-6"><button className="min-h-10 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" onClick={onClose} type="button">{labels.cancel}</button></div></> : null}
     </section>
   </div>
 }

@@ -12,9 +12,10 @@ Motto: **It takes a genius to keep it simple.**
 
 1. Lees vóór iedere wijziging deze `AGENTS.md` volledig.
 2. Lees bij de start van een nieuwe taak of chat [`docs/README.md`](docs/README.md) en [`docs/delivery/CURRENT_CONTEXT.md`](docs/delivery/CURRENT_CONTEXT.md).
-3. Lees vóór implementatie alleen de requirements en architectuurdocumenten die `docs/README.md` voor het gewijzigde domein aanwijst.
-4. Lees alle vijf architectuurdocumenten alleen bij cross-cutting wijzigingen aan auth, security, tenancy, datatoegang, projectstructuur, UI-fundering of Liquid Display.
-5. Onderzoek bij een kleine, afgebakende wijziging eerst de direct relevante bestanden; lees niet de hele repository zonder concrete aanleiding.
+3. Gebruik [`CODING_STANDARDS.md`](CODING_STANDARDS.md) als compacte dagelijkse codechecklist.
+4. Lees vóór implementatie alleen de requirements en architectuurdocumenten die `docs/README.md` voor het gewijzigde domein aanwijst.
+5. Lees alle vijf architectuurdocumenten alleen bij cross-cutting wijzigingen aan auth, security, tenancy, datatoegang, projectstructuur, UI-fundering of Liquid Display.
+6. Onderzoek bij een kleine, afgebakende wijziging eerst de direct relevante bestanden; lees niet de hele repository zonder concrete aanleiding.
 
 ## Bronnen en voorrang
 
@@ -77,3 +78,19 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 - Start een nieuwe chat vanuit de repositoryroot. De gebruiker hoeft alleen te zeggen: `Lees AGENTS.md en ga verder vanaf CURRENT_CONTEXT.md`.
 - Verifieer bij hervatten alleen de actuele filesystem-, proces-, database- en deploymentstatus die voor de taak relevant is; neem tijdelijke URL's of draaiende processen nooit blind over.
 - Noteer vóór het afsluiten van een omvangrijke taak in `CURRENT_CONTEXT.md`: wat is afgerond, wat is nog open, welke verificatie is uitgevoerd en welke handmatige acties overblijven.
+
+## Codex Developer Toolkit en EdwinHelp
+
+De repository bevat vaste natuurlijke commando's. Gebruik `EdwinHelp` voor het actuele overzicht; voer bij andere commando's het bijbehorende script of de aangewezen skill uit vanuit de repositoryroot. Gebruik geen alternatieve Git-workflow zonder dat expliciet met Edwin af te stemmen.
+
+| Natuurlijk commando | Script en gedrag |
+| --- | --- |
+| **EdwinHelp** | `.\scripts\edwin-help.ps1`: read-only overzicht van alle afgesproken commando's, bronnen, risico's en voorbeelden. Ondersteunt `-Detailed` en `-Command`. |
+| **Maak Git backup** | `.\scripts\backup.ps1`: legt alle huidige wijzigingen lokaal vast, maakt of verplaatst de tag `last-good` en de branch `backup/last-good`, en pusht niets. |
+| **Zet Git backup terug** | `.\scripts\restore.ps1`: vraagt eerst om exact `HERSTEL`, weigert standaard een dirty werkboom en laat ongetrackte bestanden standaard staan. `-Force` en eventueel `-Clean` zijn alleen voor expliciet bevestigde noodsituaties. |
+| **Nieuwe feature: `<naam>`** | `.\scripts\new-feature.ps1 -Name '<naam>'`: vereist een schone werkboom, normaliseert de naam en maakt lokaal `feature/<slug>` vanaf `last-good`. |
+| **Feature afgerond** | `.\scripts\finish-feature.ps1`: draait de hr-suite-tests, commit alleen bij succes, werkt `last-good` bij en toont een mergevoorstel. Merge en push blijven altijd handmatig. |
+| **Maak project overview** | Gebruik [`docs/skills/project-overview/SKILL.md`](docs/skills/project-overview/SKILL.md): actuele code-, route-, database- en mandageninventaris; live records alleen als Supabase-MCP beschikbaar is. |
+| **Meet Next geheugen** | `.\scripts\measure-next-memory.ps1`: periodieke geheugenmeting van een draaiende Next-server naar het opgegeven CSV-bestand. |
+
+Gebruik voor de volledige uitleg en voorbeelden [`docs/DEVELOPER_TOOLKIT.md`](docs/DEVELOPER_TOOLKIT.md). Deze toolkit commit, pusht of merge't niet automatisch buiten de expliciete lokale actie van het gekozen commando.

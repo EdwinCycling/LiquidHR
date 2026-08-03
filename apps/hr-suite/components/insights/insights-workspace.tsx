@@ -19,6 +19,7 @@ import type { BradfordInsightReport } from '@/lib/insights/bradford-report'
 import { FrequentAbsenceReportView } from '@/components/insights/frequent-absence-report'
 import type { FrequentAbsenceQuery } from '@/lib/insights/frequent-absence-query'
 import type { FrequentAbsenceReport } from '@/lib/insights/frequent-absence-report'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 
 export interface InsightsLabels { [key: string]: string }
 
@@ -61,19 +62,19 @@ function PeriodPicker({ labels, year, month, fullYear, yearSpan, onChange, open,
   const months = [labels.jan, labels.feb, labels.mar, labels.apr, labels.may, labels.jun, labels.jul, labels.aug, labels.sep, labels.oct, labels.nov, labels.dec]
   return <div className="filter-dropdown relative flex min-w-40 flex-1 flex-col gap-1.5 text-sm font-medium">
     <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span>
-    <button aria-expanded={open} className="flex h-11 items-center justify-between rounded-lg border bg-background px-3 font-normal shadow-sm hover:border-primary/45" onClick={() => onOpenChange(!open)} type="button">
+    <button aria-expanded={open} className="dropdown-trigger font-normal" onClick={() => onOpenChange(!open)} type="button">
       <span>{yearSpan > 1 ? `${year - yearSpan + 1} → ${year}` : fullYear ? String(year) : `${months[month - 1]} ${year}`}</span><ChevronDown aria-hidden="true" className={`size-4 text-muted-foreground ${open ? 'rotate-180' : ''}`} />
     </button>
-    {open ? <div className="absolute left-0 top-full z-30 mt-2 w-80 rounded-xl border bg-surface p-3 shadow-lg">
+    {open ? <div className="dropdown-menu absolute left-0 top-full z-30 mt-2 w-80 p-3">
       <div className="flex items-center justify-between border-b pb-3">
-        <button aria-label={labels.previousYear} className="grid size-8 place-items-center rounded-md hover:bg-muted" onClick={() => onChange({ year: Math.max(2000, year - 1) })} type="button">‹</button>
+        <button aria-label={labels.previousYear} className="grid size-8 place-items-center rounded-xl hover:bg-muted" onClick={() => onChange({ year: Math.max(2000, year - 1) })} type="button">‹</button>
         <strong className="text-sm tabular-nums">{year}</strong>
-        <button aria-label={labels.nextYear} className="grid size-8 place-items-center rounded-md hover:bg-muted" onClick={() => onChange({ year: Math.min(currentYear, year + 1) })} type="button">›</button>
+        <button aria-label={labels.nextYear} className="grid size-8 place-items-center rounded-xl hover:bg-muted" onClick={() => onChange({ year: Math.min(currentYear, year + 1) })} type="button">›</button>
         <button className="text-sm font-medium text-primary" onClick={() => { onChange({ year: currentYear, month: new Date().getMonth() + 1, fullYear: false, yearSpan: 1 }); onOpenChange(false) }} type="button">{labels.today}</button>
       </div>
-      <div className="grid grid-cols-4 gap-1.5 py-4">{months.map((name, index) => <button className={`rounded-md px-2 py-2.5 text-sm ${index + 1 === month && !fullYear && yearSpan === 1 ? 'bg-accent font-semibold text-accent-foreground' : 'hover:bg-muted'}`} key={name} onClick={() => { onChange({ month: index + 1, fullYear: false, yearSpan: 1 }); onOpenChange(false) }} type="button">{name}</button>)}</div>
-      <label className="flex items-center gap-2 border-t pt-3 text-sm font-normal"><input checked={fullYear && yearSpan === 1} className="size-4 accent-primary" onChange={(event) => onChange({ fullYear: event.target.checked, yearSpan: 1 })} type="checkbox" />{labels.fullYear}</label>
-      <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3"><button className={`rounded-md px-2 py-2 text-sm ${yearSpan === 3 ? 'bg-accent font-semibold text-accent-foreground' : 'hover:bg-muted'}`} onClick={() => { onChange({ fullYear: true, yearSpan: 3 }); onOpenChange(false) }} type="button">{labels.threeYears}</button><button className={`rounded-md px-2 py-2 text-sm ${yearSpan === 5 ? 'bg-accent font-semibold text-accent-foreground' : 'hover:bg-muted'}`} onClick={() => { onChange({ fullYear: true, yearSpan: 5 }); onOpenChange(false) }} type="button">{labels.fiveYears}</button></div>
+      <div className="grid grid-cols-4 gap-1.5 py-4">{months.map((name, index) => <button className={`dropdown-option justify-center ${index + 1 === month && !fullYear && yearSpan === 1 ? 'bg-accent font-semibold text-accent-foreground' : ''}`} key={name} onClick={() => { onChange({ month: index + 1, fullYear: false, yearSpan: 1 }); onOpenChange(false) }} type="button">{name}</button>)}</div>
+      <label className="dropdown-option border-t pt-3 font-normal"><input checked={fullYear && yearSpan === 1} className="size-4 accent-primary" onChange={(event) => onChange({ fullYear: event.target.checked, yearSpan: 1 })} type="checkbox" />{labels.fullYear}</label>
+      <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3"><button className={`dropdown-option justify-center ${yearSpan === 3 ? 'bg-accent font-semibold text-accent-foreground' : ''}`} onClick={() => { onChange({ fullYear: true, yearSpan: 3 }); onOpenChange(false) }} type="button">{labels.threeYears}</button><button className={`dropdown-option justify-center ${yearSpan === 5 ? 'bg-accent font-semibold text-accent-foreground' : ''}`} onClick={() => { onChange({ fullYear: true, yearSpan: 5 }); onOpenChange(false) }} type="button">{labels.fiveYears}</button></div>
     </div> : null}
   </div>
 }
@@ -87,19 +88,19 @@ function FacetFilter({ label, options, selected, allLabel, labels, onChange, ope
   const allSelected = options.length > 0 && selected.length === options.length
   return <div className="filter-dropdown relative flex min-w-40 flex-1 flex-col gap-1.5 text-sm font-medium">
     <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
-    <button aria-expanded={open} className="flex h-11 items-center justify-between rounded-lg border bg-background px-3 font-normal shadow-sm hover:border-primary/45" onClick={() => onOpenChange(!open)} type="button">
+    <button aria-expanded={open} className="dropdown-trigger font-normal" onClick={() => onOpenChange(!open)} type="button">
       <span>{selectionLabel(selected, allLabel, labels)}</span><ChevronDown aria-hidden="true" className={`size-4 text-muted-foreground ${open ? 'rotate-180' : ''}`} />
     </button>
-    {open ? <div className="absolute left-0 top-full z-30 mt-2 w-72 rounded-xl border bg-surface p-3 shadow-lg">
-      <input aria-label={labels.search} className="mb-2 h-9 w-full rounded-lg border bg-background px-2.5 text-sm font-normal outline-none" onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchOptions} value={search} />
-      <label className="flex items-center gap-2 border-b pb-2 text-sm font-medium"><input checked={allSelected} className="size-4 accent-primary" onChange={() => onChange(allSelected ? [] : options)} type="checkbox" />{labels.selectAll}</label>
-      <div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{visible.map((option) => <label className="flex items-center gap-2 text-sm font-normal" key={option}><input checked={selected.includes(option)} className="size-4 accent-primary" onChange={() => onChange(selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option])} type="checkbox" />{option}</label>)}{visible.length === 0 ? <p className="text-sm font-normal text-muted-foreground">{labels.noOptions}</p> : null}</div>
+    {open ? <div className="dropdown-menu absolute left-0 top-full z-30 mt-2 w-72 p-3">
+      <input aria-label={labels.search} className="form-field mb-2 min-h-10 font-normal" onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchOptions} value={search} />
+      <label className="dropdown-option border-b pb-2 font-medium"><input checked={allSelected} className="size-4 accent-primary" onChange={() => onChange(allSelected ? [] : options)} type="checkbox" />{labels.selectAll}</label>
+      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">{visible.map((option) => <label className="dropdown-option font-normal" key={option}><input checked={selected.includes(option)} className="size-4 accent-primary" onChange={() => onChange(selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option])} type="checkbox" />{option}</label>)}{visible.length === 0 ? <p className="px-3 py-3 text-sm font-normal text-muted-foreground">{labels.noOptions}</p> : null}</div>
     </div> : null}
   </div>
 }
 
 function SelectControl({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: React.ReactNode }) {
-  return <label className="flex min-w-36 flex-1 flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span><select className="h-11 rounded-lg border bg-background px-3 font-normal shadow-sm outline-none hover:border-primary/45" onChange={(event) => onChange(event.target.value)} value={value}>{children}</select></label>
+  return <label className="flex min-w-36 flex-1 flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span><DropdownSelect aria-label={label} onChange={(event) => onChange(event.target.value)} value={value}>{children}</DropdownSelect></label>
 }
 
 function EmployeeReportVisual({ data, labels, display, locale, dateFormat }: { data: EmployeeInsightReport; labels: InsightsLabels; display: 'distribution' | 'trend'; locale: string; dateFormat: DateFormat }) {

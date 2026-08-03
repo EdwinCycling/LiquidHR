@@ -239,6 +239,20 @@ Deze punten zijn bewust niet stil ingevuld:
 - of `postal_code_normalized` als databaseveld nodig is of eerst in de zoekservice kan blijven;
 - welke bestaande `address:read`-/`address:write`-rechten exact op de suggestieroutes en mutaties worden toegepast.
 
+## 13. Amendement 2026-08-01: hoofdadres en tweede tijdelijk adres
+
+Dit amendement vervangt de algemene periodebeschrijving in paragraaf 3.7 en 5.4 voor de medewerkerkaart.
+
+- `employee_addresses.address_type` is `PRIMARY` of `SECONDARY`. Het veld is immutable na aanmaken.
+- Een medewerker heeft altijd minimaal één niet-gearchiveerd `PRIMARY`-adres. Het laatste hoofdadres kan niet worden verwijderd.
+- Een `PRIMARY`-adres heeft in de gebruikersinterface geen veld **Geldig tot**. Bij een nieuw hoofdadres sluit de server het vorige hoofdadres automatisch af op de dag vóór de nieuwe `valid_from`; de adresgeschiedenis blijft behouden.
+- Een `SECONDARY`-adres is een tijdelijk adres naast het hoofdadres, bijvoorbeeld voor tijdelijk elders wonen, een verpleegadres of een andere tijdelijke verblijfplaats. Het heeft een verplichte `description`, `valid_from` en `valid_until`, waarbij de einddatum na de startdatum ligt.
+- Een `SECONDARY`-adres heeft geen opvolgerlogica. Het kan rechtstreeks worden gewijzigd of verwijderd; verwijderen wijzigt het hoofdadres niet.
+- Overlap wordt per `address_type` voorkomen. Een tijdelijk adres mag dus tegelijk lopen met het hoofdadres, maar twee records van hetzelfde type mogen niet overlappen.
+- De adres-tab gebruikt twee exclusieve harmonica-vensters: **Hoofdadres** en **Tweede tijdelijk adres**. Er is altijd maximaal één venster open. Toevoegen en wijzigen gebruiken de bestaande serverroutes, RLS, audit en adreszoekcomponenten.
+
+De migratie `20260801130000_employee_address_types.sql` backfilled bestaande demo-adressen als `PRIMARY`; bestaande employee-, tenant- en auditrelaties zijn hergebruikt.
+
 ## 13. Bronnen
 
 - [PDOK Locatieserver](https://www.pdok.nl/introductie/-/article/pdok-locatieserver-1)

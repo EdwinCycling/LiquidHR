@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -487,6 +487,80 @@ export type Database = {
           },
         ]
       }
+      administration_company_data: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          administration_id: string
+          city: string | null
+          country_code: string
+          created_at: string
+          created_by_user_id: string | null
+          house_number: string | null
+          house_number_addition: string | null
+          id: string
+          postal_code: string | null
+          region: string | null
+          single_location: boolean
+          source: string
+          source_reference: string | null
+          street: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          administration_id: string
+          city?: string | null
+          country_code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          house_number?: string | null
+          house_number_addition?: string | null
+          id?: string
+          postal_code?: string | null
+          region?: string | null
+          single_location?: boolean
+          source?: string
+          source_reference?: string | null
+          street?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          administration_id?: string
+          city?: string | null
+          country_code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          house_number?: string | null
+          house_number_addition?: string | null
+          id?: string
+          postal_code?: string | null
+          region?: string | null
+          single_location?: boolean
+          source?: string
+          source_reference?: string | null
+          street?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administration_company_data_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: true
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       administration_hr_settings: {
         Row: {
           administration_id: string
@@ -526,6 +600,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      administration_locations: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          administration_id: string
+          city: string | null
+          country_code: string
+          created_at: string
+          created_by_user_id: string | null
+          house_number: string | null
+          house_number_addition: string | null
+          id: string
+          is_active: boolean
+          name: string
+          postal_code: string | null
+          region: string | null
+          source: string
+          source_reference: string | null
+          street: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          administration_id: string
+          city?: string | null
+          country_code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          house_number?: string | null
+          house_number_addition?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          postal_code?: string | null
+          region?: string | null
+          source?: string
+          source_reference?: string | null
+          street?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          administration_id?: string
+          city?: string | null
+          country_code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          house_number?: string | null
+          house_number_addition?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          postal_code?: string | null
+          region?: string | null
+          source?: string
+          source_reference?: string | null
+          street?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administration_locations_administration_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -1436,7 +1587,7 @@ export type Database = {
       }
       departments: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           code: string
           created_at: string
           description: string | null
@@ -1444,11 +1595,12 @@ export type Database = {
           is_active: boolean
           name: string
           parent_id: string | null
+          scope_type: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           code: string
           created_at?: string
           description?: string | null
@@ -1456,11 +1608,12 @@ export type Database = {
           is_active?: boolean
           name: string
           parent_id?: string | null
+          scope_type?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           code?: string
           created_at?: string
           description?: string | null
@@ -1468,6 +1621,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           parent_id?: string | null
+          scope_type?: string
           tenant_id?: string
           updated_at?: string
         }
@@ -1480,11 +1634,11 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "departments_parent_same_administration_fkey"
-            columns: ["tenant_id", "administration_id", "parent_id"]
+            foreignKeyName: "departments_parent_same_tenant_fkey"
+            columns: ["tenant_id", "parent_id"]
             isOneToOne: false
             referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "departments_tenant_id_fkey"
@@ -1545,11 +1699,11 @@ export type Database = {
             referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
-            foreignKeyName: "document_audiences_tenant_id_administration_id_target_depa_fkey"
-            columns: ["tenant_id", "administration_id", "target_department_id"]
+            foreignKeyName: "document_audiences_tenant_id_target_department_id_fkey"
+            columns: ["tenant_id", "target_department_id"]
             isOneToOne: false
             referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "document_audiences_tenant_id_target_employee_id_fkey"
@@ -1663,10 +1817,12 @@ export type Database = {
         Row: {
           address_line_1: string
           address_line_2: string | null
+          address_type: string
           city: string
           country_code: string
           created_at: string
           deleted_at: string | null
+          description: string | null
           employee_id: string
           house_number: string | null
           house_number_addition: string | null
@@ -1685,10 +1841,12 @@ export type Database = {
         Insert: {
           address_line_1: string
           address_line_2?: string | null
+          address_type?: string
           city: string
           country_code?: string
           created_at?: string
           deleted_at?: string | null
+          description?: string | null
           employee_id: string
           house_number?: string | null
           house_number_addition?: string | null
@@ -1707,10 +1865,12 @@ export type Database = {
         Update: {
           address_line_1?: string
           address_line_2?: string | null
+          address_type?: string
           city?: string
           country_code?: string
           created_at?: string
           deleted_at?: string | null
+          description?: string | null
           employee_id?: string
           house_number?: string | null
           house_number_addition?: string | null
@@ -2120,6 +2280,7 @@ export type Database = {
           id: string
           job_id: string | null
           job_title: string | null
+          location_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -2137,6 +2298,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           job_title?: string | null
+          location_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -2154,6 +2316,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           job_title?: string | null
+          location_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -2173,11 +2336,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "employee_organizations_department_scope_fkey"
-            columns: ["tenant_id", "administration_id", "department_id"]
+            foreignKeyName: "employee_organizations_department_tenant_fkey"
+            columns: ["tenant_id", "department_id"]
             isOneToOne: false
             referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "employee_organizations_deputy_same_tenant_fkey"
@@ -2225,10 +2388,17 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "employee_organizations_job_fkey"
-            columns: ["tenant_id", "administration_id", "job_id"]
+            foreignKeyName: "employee_organizations_job_tenant_fkey"
+            columns: ["tenant_id", "job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_organizations_location_scope_fkey"
+            columns: ["tenant_id", "administration_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "administration_locations"
             referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
@@ -4312,23 +4482,61 @@ export type Database = {
           },
         ]
       }
+      job_families: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_families_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_group_jobs: {
         Row: {
-          administration_id: string
           created_at: string
           job_group_id: string
           job_id: string
           tenant_id: string
         }
         Insert: {
-          administration_id: string
           created_at?: string
           job_group_id: string
           job_id: string
           tenant_id: string
         }
         Update: {
-          administration_id?: string
           created_at?: string
           job_group_id?: string
           job_id?: string
@@ -4336,18 +4544,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "job_group_jobs_group_scope_fkey"
-            columns: ["tenant_id", "administration_id", "job_group_id"]
+            foreignKeyName: "job_group_jobs_group_tenant_fkey"
+            columns: ["tenant_id", "job_group_id"]
             isOneToOne: false
             referencedRelation: "job_groups"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "job_group_jobs_job_scope_fkey"
-            columns: ["tenant_id", "administration_id", "job_id"]
+            foreignKeyName: "job_group_jobs_job_tenant_fkey"
+            columns: ["tenant_id", "job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "job_group_jobs_tenant_id_fkey"
@@ -4360,51 +4568,257 @@ export type Database = {
       }
       job_groups: {
         Row: {
-          administration_id: string
           code: string
           created_at: string
           description: string | null
           id: string
           is_active: boolean
+          job_family_id: string | null
           name: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
           code: string
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          job_family_id?: string | null
           name: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
           code?: string
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          job_family_id?: string | null
           name?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "job_groups_tenant_id_administration_id_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "job_groups_job_family_tenant_fkey"
+            columns: ["tenant_id", "job_family_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "job_families"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      job_profile_capability_requirements: {
+        Row: {
+          capability_id: string
+          certificate_details: Json | null
+          created_at: string
+          id: string
+          language_level: string | null
+          profile_version_id: string
+          rationale: string | null
+          requirement_type: string
+          sort_order: number
+          target_level_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          capability_id: string
+          certificate_details?: Json | null
+          created_at?: string
+          id?: string
+          language_level?: string | null
+          profile_version_id: string
+          rationale?: string | null
+          requirement_type?: string
+          sort_order?: number
+          target_level_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          capability_id?: string
+          certificate_details?: Json | null
+          created_at?: string
+          id?: string
+          language_level?: string | null
+          profile_version_id?: string
+          rationale?: string | null
+          requirement_type?: string
+          sort_order?: number
+          target_level_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_profile_capability_requir_tenant_id_profile_version_id_fkey"
+            columns: ["tenant_id", "profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "job_profile_versions"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_profile_capability_requireme_tenant_id_target_level_id_fkey"
+            columns: ["tenant_id", "target_level_id"]
+            isOneToOne: false
+            referencedRelation: "talent_levels"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_profile_capability_requirement_tenant_id_capability_id_fkey"
+            columns: ["tenant_id", "capability_id"]
+            isOneToOne: false
+            referencedRelation: "talent_capabilities"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_profile_capability_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_profile_versions: {
+        Row: {
+          activated_at: string | null
+          activated_by_user_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          job_profile_id: string
+          organizational_context: string | null
+          purpose: string | null
+          responsibilities: Json
+          result_areas: Json
+          status: string
+          summary: string | null
+          tasks: Json
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          valid_from: string | null
+          valid_until: string | null
+          version_number: number
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          job_profile_id: string
+          organizational_context?: string | null
+          purpose?: string | null
+          responsibilities?: Json
+          result_areas?: Json
+          status?: string
+          summary?: string | null
+          tasks?: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          version_number: number
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          job_profile_id?: string
+          organizational_context?: string | null
+          purpose?: string | null
+          responsibilities?: Json
+          result_areas?: Json
+          status?: string
+          summary?: string | null
+          tasks?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_profile_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_profile_versions_tenant_id_job_profile_id_fkey"
+            columns: ["tenant_id", "job_profile_id"]
+            isOneToOne: false
+            referencedRelation: "job_profiles"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_profile_versions_tenant_id_job_profile_id_fkey"
+            columns: ["tenant_id", "job_profile_id"]
+            isOneToOne: false
+            referencedRelation: "talent_job_profile_readmodel"
+            referencedColumns: ["tenant_id", "job_profile_id"]
+          },
+        ]
+      }
+      job_profiles: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          job_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          job_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          job_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_profiles_tenant_id_job_id_fkey"
+            columns: ["tenant_id", "job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
       job_revisions: {
         Row: {
-          administration_id: string
           created_at: string
           description: string | null
           id: string
@@ -4416,7 +4830,6 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
-          administration_id: string
           created_at?: string
           description?: string | null
           id?: string
@@ -4428,7 +4841,6 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
-          administration_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -4441,52 +4853,59 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "job_revisions_tenant_id_administration_id_job_id_fkey"
-            columns: ["tenant_id", "administration_id", "job_id"]
+            foreignKeyName: "job_revisions_job_tenant_fkey"
+            columns: ["tenant_id", "job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
       jobs: {
         Row: {
-          administration_id: string
           code: string
           created_at: string
           id: string
           is_active: boolean
           job_group_id: string
+          seniority_id: string | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
           code: string
           created_at?: string
           id?: string
           is_active?: boolean
           job_group_id: string
+          seniority_id?: string | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
           code?: string
           created_at?: string
           id?: string
           is_active?: boolean
           job_group_id?: string
+          seniority_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "jobs_tenant_id_administration_id_job_group_id_fkey"
-            columns: ["tenant_id", "administration_id", "job_group_id"]
+            foreignKeyName: "jobs_job_group_tenant_fkey"
+            columns: ["tenant_id", "job_group_id"]
             isOneToOne: false
             referencedRelation: "job_groups"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "jobs_seniority_tenant_fkey"
+            columns: ["tenant_id", "seniority_id"]
+            isOneToOne: false
+            referencedRelation: "talent_seniorities"
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -6061,6 +6480,276 @@ export type Database = {
           },
         ]
       }
+      platform_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          id: string
+          reason: string | null
+          request_id: string
+          tenant_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          request_id?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          request_id?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_operators: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["platform_operator_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["platform_operator_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["platform_operator_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_support_sessions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          mode: string
+          operator_user_id: string
+          reason: string
+          started_at: string
+          status: Database["public"]["Enums"]["platform_support_session_status"]
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          mode?: string
+          operator_user_id: string
+          reason: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["platform_support_session_status"]
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          mode?: string
+          operator_user_id?: string
+          reason?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["platform_support_session_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_update_surface_dismissals: {
+        Row: {
+          channel: string
+          created_at: string
+          product_update_id: string
+          seen_at: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          product_update_id: string
+          seen_at?: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          product_update_id?: string
+          seen_at?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_update_surface_dismissals_product_update_id_fkey"
+            columns: ["product_update_id"]
+            isOneToOne: false
+            referencedRelation: "product_updates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_update_surface_dismissals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_update_user_state: {
+        Row: {
+          created_at: string
+          last_seen_at: string | null
+          last_seen_update_id: string | null
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_seen_at?: string | null
+          last_seen_update_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_seen_at?: string | null
+          last_seen_update_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_update_user_state_last_seen_update_id_fkey"
+            columns: ["last_seen_update_id"]
+            isOneToOne: false
+            referencedRelation: "product_updates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_update_user_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_updates: {
+        Row: {
+          audience_roles: string[]
+          content: string
+          created_at: string
+          created_by_user_id: string | null
+          display_channels: string[]
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          starts_at: string | null
+          summary: string
+          tenant_id: string | null
+          title: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          audience_roles?: string[]
+          content: string
+          created_at?: string
+          created_by_user_id?: string | null
+          display_channels?: string[]
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          starts_at?: string | null
+          summary: string
+          tenant_id?: string | null
+          title: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          audience_roles?: string[]
+          content?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          display_channels?: string[]
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          starts_at?: string | null
+          summary?: string
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_updates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relation_types: {
         Row: {
           code: string
@@ -6208,17 +6897,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reminder_target_rules_tenant_id_administration_id_target_d_fkey"
-            columns: ["tenant_id", "administration_id", "target_department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
-          },
-          {
             foreignKeyName: "reminder_target_rules_tenant_id_reminder_id_fkey"
             columns: ["tenant_id", "reminder_id"]
             isOneToOne: false
             referencedRelation: "reminders"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "reminder_target_rules_tenant_id_target_department_id_fkey"
+            columns: ["tenant_id", "target_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -6260,11 +6949,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "reminder_targets_department_same_scope_fkey"
-            columns: ["tenant_id", "administration_id", "department_id"]
+            foreignKeyName: "reminder_targets_department_same_tenant_fkey"
+            columns: ["tenant_id", "department_id"]
             isOneToOne: false
             referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "reminder_targets_employee_same_tenant_fkey"
@@ -6687,25 +7376,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "star_performer_assessments_group_tenant_fkey"
+            columns: ["tenant_id", "job_group_id"]
+            isOneToOne: false
+            referencedRelation: "job_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "star_performer_assessments_job_tenant_fkey"
+            columns: ["tenant_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
             foreignKeyName: "star_performer_assessments_tenant_id_administration_id_fkey"
             columns: ["tenant_id", "administration_id"]
             isOneToOne: false
             referencedRelation: "administrations"
             referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "star_performer_assessments_tenant_id_administration_id_jo_fkey1"
-            columns: ["tenant_id", "administration_id", "job_group_id"]
-            isOneToOne: false
-            referencedRelation: "job_groups"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
-          },
-          {
-            foreignKeyName: "star_performer_assessments_tenant_id_administration_id_job_fkey"
-            columns: ["tenant_id", "administration_id", "job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
             foreignKeyName: "star_performer_assessments_tenant_id_employee_id_fkey"
@@ -6847,6 +7536,1147 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_assessment_answers: {
+        Row: {
+          answer_text: string | null
+          created_at: string
+          id: string
+          item_id: string
+          response_id: string
+          score: number | null
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          answer_text?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          response_id: string
+          score?: number | null
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          answer_text?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          response_id?: string
+          score?: number | null
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_assessment_answers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_answers_tenant_id_item_id_fkey"
+            columns: ["tenant_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "talent_assessment_items"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_answers_tenant_id_response_id_fkey"
+            columns: ["tenant_id", "response_id"]
+            isOneToOne: false
+            referencedRelation: "talent_assessment_responses"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_assessment_cycles: {
+        Row: {
+          closes_on: string
+          code: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          name: string
+          opens_on: string
+          result_release_policy: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          closes_on: string
+          code: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          opens_on: string
+          result_release_policy?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          closes_on?: string
+          code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          opens_on?: string
+          result_release_policy?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_assessment_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_assessment_items: {
+        Row: {
+          capability_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          cycle_id: string
+          id: string
+          is_required: boolean
+          max_score: number
+          prompt: string
+          sort_order: number
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          capability_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          cycle_id: string
+          id?: string
+          is_required?: boolean
+          max_score?: number
+          prompt: string
+          sort_order?: number
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          capability_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          cycle_id?: string
+          id?: string
+          is_required?: boolean
+          max_score?: number
+          prompt?: string
+          sort_order?: number
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_assessment_items_tenant_id_capability_id_fkey"
+            columns: ["tenant_id", "capability_id"]
+            isOneToOne: false
+            referencedRelation: "talent_capabilities"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_items_tenant_id_cycle_id_fkey"
+            columns: ["tenant_id", "cycle_id"]
+            isOneToOne: false
+            referencedRelation: "talent_assessment_cycles"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_assessment_private_notes: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          note_text: string
+          response_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          note_text: string
+          response_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          note_text?: string
+          response_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_assessment_private_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_private_notes_tenant_id_response_id_fkey"
+            columns: ["tenant_id", "response_id"]
+            isOneToOne: true
+            referencedRelation: "talent_assessment_responses"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_assessment_responses: {
+        Row: {
+          assessor_employee_id: string
+          created_at: string
+          created_by_user_id: string | null
+          cycle_id: string
+          finalized_at: string | null
+          id: string
+          locked_at: string | null
+          reopened_at: string | null
+          response_type: string
+          status: string
+          subject_employee_id: string
+          submitted_at: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          assessor_employee_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          cycle_id: string
+          finalized_at?: string | null
+          id?: string
+          locked_at?: string | null
+          reopened_at?: string | null
+          response_type: string
+          status?: string
+          subject_employee_id: string
+          submitted_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          assessor_employee_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          cycle_id?: string
+          finalized_at?: string | null
+          id?: string
+          locked_at?: string | null
+          reopened_at?: string | null
+          response_type?: string
+          status?: string
+          subject_employee_id?: string
+          submitted_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_assessment_responses_tenant_id_assessor_employee_id_fkey"
+            columns: ["tenant_id", "assessor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_responses_tenant_id_cycle_id_fkey"
+            columns: ["tenant_id", "cycle_id"]
+            isOneToOne: false
+            referencedRelation: "talent_assessment_cycles"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_responses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_assessment_responses_tenant_id_subject_employee_id_fkey"
+            columns: ["tenant_id", "subject_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_capabilities: {
+        Row: {
+          capability_type: string
+          category_id: string | null
+          certificate_code: string | null
+          certificate_is_permanent: boolean
+          certificate_issuing_body: string | null
+          certificate_renewal_required: boolean
+          certificate_validity_months: number | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          language_cefr: string | null
+          language_code: string | null
+          language_is_native: boolean
+          name: string
+          normalized_name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          capability_type: string
+          category_id?: string | null
+          certificate_code?: string | null
+          certificate_is_permanent?: boolean
+          certificate_issuing_body?: string | null
+          certificate_renewal_required?: boolean
+          certificate_validity_months?: number | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language_cefr?: string | null
+          language_code?: string | null
+          language_is_native?: boolean
+          name: string
+          normalized_name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          capability_type?: string
+          category_id?: string | null
+          certificate_code?: string | null
+          certificate_is_permanent?: boolean
+          certificate_issuing_body?: string | null
+          certificate_renewal_required?: boolean
+          certificate_validity_months?: number | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language_cefr?: string | null
+          language_code?: string | null
+          language_is_native?: boolean
+          name?: string
+          normalized_name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_capabilities_tenant_id_category_id_fkey"
+            columns: ["tenant_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "talent_categories"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_capabilities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_capability_level_content: {
+        Row: {
+          capability_id: string
+          coaching_notes: string | null
+          created_at: string
+          examples: string | null
+          id: string
+          indicator_text: string
+          talent_level_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          capability_id: string
+          coaching_notes?: string | null
+          created_at?: string
+          examples?: string | null
+          id?: string
+          indicator_text: string
+          talent_level_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          capability_id?: string
+          coaching_notes?: string | null
+          created_at?: string
+          examples?: string | null
+          id?: string
+          indicator_text?: string
+          talent_level_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_capability_level_content_tenant_id_capability_id_fkey"
+            columns: ["tenant_id", "capability_id"]
+            isOneToOne: false
+            referencedRelation: "talent_capabilities"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_capability_level_content_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_capability_level_content_tenant_id_talent_level_id_fkey"
+            columns: ["tenant_id", "talent_level_id"]
+            isOneToOne: false
+            referencedRelation: "talent_levels"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_capability_tags: {
+        Row: {
+          capability_id: string
+          created_at: string
+          tag_id: string
+          tenant_id: string
+        }
+        Insert: {
+          capability_id: string
+          created_at?: string
+          tag_id: string
+          tenant_id: string
+        }
+        Update: {
+          capability_id?: string
+          created_at?: string
+          tag_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_capability_tags_tenant_id_capability_id_fkey"
+            columns: ["tenant_id", "capability_id"]
+            isOneToOne: false
+            referencedRelation: "talent_capabilities"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_capability_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_capability_tags_tenant_id_tag_id_fkey"
+            columns: ["tenant_id", "tag_id"]
+            isOneToOne: false
+            referencedRelation: "star_performer_tags"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_categories: {
+        Row: {
+          capability_types: string[]
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          capability_types?: string[]
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          capability_types?: string[]
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_development_goals: {
+        Row: {
+          archived_at: string | null
+          capability_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          employee_id: string
+          id: string
+          period_end: string | null
+          period_start: string
+          progress_percent: number
+          source_type: string
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          archived_at?: string | null
+          capability_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          employee_id: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          progress_percent?: number
+          source_type?: string
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          archived_at?: string | null
+          capability_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          employee_id?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          progress_percent?: number
+          source_type?: string
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_development_goals_tenant_id_capability_id_fkey"
+            columns: ["tenant_id", "capability_id"]
+            isOneToOne: false
+            referencedRelation: "talent_capabilities"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_development_goals_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_development_goals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_goal_check_ins: {
+        Row: {
+          author_employee_id: string | null
+          author_user_id: string
+          body: string
+          completed_at: string | null
+          created_at: string
+          employee_id: string
+          entry_type: string
+          follow_up_due_on: string | null
+          follow_up_title: string | null
+          goal_id: string
+          id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_employee_id?: string | null
+          author_user_id: string
+          body: string
+          completed_at?: string | null
+          created_at?: string
+          employee_id: string
+          entry_type: string
+          follow_up_due_on?: string | null
+          follow_up_title?: string | null
+          goal_id: string
+          id?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_employee_id?: string | null
+          author_user_id?: string
+          body?: string
+          completed_at?: string | null
+          created_at?: string
+          employee_id?: string
+          entry_type?: string
+          follow_up_due_on?: string | null
+          follow_up_title?: string | null
+          goal_id?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      talent_notifications: {
+        Row: {
+          created_at: string
+          event_type: string
+          handled_at: string | null
+          id: string
+          read_at: string | null
+          recipient_employee_id: string
+          recipient_user_id: string
+          source_entity_id: string | null
+          status: string
+          summary: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          handled_at?: string | null
+          id?: string
+          read_at?: string | null
+          recipient_employee_id: string
+          recipient_user_id: string
+          source_entity_id?: string | null
+          status?: string
+          summary: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          handled_at?: string | null
+          id?: string
+          read_at?: string | null
+          recipient_employee_id?: string
+          recipient_user_id?: string
+          source_entity_id?: string | null
+          status?: string
+          summary?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      talent_employee_capability_records: {
+        Row: {
+          archived_at: string | null
+          archived_by_user_id: string | null
+          capability_id: string
+          certificate_code: string | null
+          certificate_is_permanent: boolean
+          certificate_issuing_body: string | null
+          certificate_renewal_required: boolean
+          certificate_status: string | null
+          certificate_validity_months: number | null
+          created_at: string
+          created_by_user_id: string | null
+          employee_id: string
+          evidence_document_id: string | null
+          evidence_status: string | null
+          id: string
+          language_is_native: boolean
+          language_level: string | null
+          qualification_responsible_user_id: string | null
+          source_type: string
+          status: string
+          talent_level_id: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          valid_from: string
+          valid_until: string | null
+          version: number
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by_user_id?: string | null
+          capability_id: string
+          certificate_code?: string | null
+          certificate_is_permanent?: boolean
+          certificate_issuing_body?: string | null
+          certificate_renewal_required?: boolean
+          certificate_status?: string | null
+          certificate_validity_months?: number | null
+          created_at?: string
+          created_by_user_id?: string | null
+          employee_id: string
+          evidence_document_id?: string | null
+          evidence_status?: string | null
+          id?: string
+          language_is_native?: boolean
+          language_level?: string | null
+          qualification_responsible_user_id?: string | null
+          source_type?: string
+          status?: string
+          talent_level_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          valid_from?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by_user_id?: string | null
+          capability_id?: string
+          certificate_code?: string | null
+          certificate_is_permanent?: boolean
+          certificate_issuing_body?: string | null
+          certificate_renewal_required?: boolean
+          certificate_status?: string | null
+          certificate_validity_months?: number | null
+          created_at?: string
+          created_by_user_id?: string | null
+          employee_id?: string
+          evidence_document_id?: string | null
+          evidence_status?: string | null
+          id?: string
+          language_is_native?: boolean
+          language_level?: string | null
+          qualification_responsible_user_id?: string | null
+          source_type?: string
+          status?: string
+          talent_level_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          valid_from?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_employee_capability_recor_tenant_id_talent_level_id_fkey"
+            columns: ["tenant_id", "talent_level_id"]
+            isOneToOne: false
+            referencedRelation: "talent_levels"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_employee_capability_records_evidence_document_id_fkey"
+            columns: ["evidence_document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_employee_capability_records_tenant_id_capability_id_fkey"
+            columns: ["tenant_id", "capability_id"]
+            isOneToOne: false
+            referencedRelation: "talent_capabilities"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_employee_capability_records_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "talent_employee_capability_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_import_batches: {
+        Row: {
+          commit_idempotency_key: string | null
+          committed_at: string | null
+          committed_by_user_id: string | null
+          created_at: string
+          created_by_user_id: string
+          id: string
+          rollback_idempotency_key: string | null
+          rolled_back_at: string | null
+          rolled_back_by_user_id: string | null
+          row_count: number
+          source_filename: string
+          source_hash: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          commit_idempotency_key?: string | null
+          committed_at?: string | null
+          committed_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          rollback_idempotency_key?: string | null
+          rolled_back_at?: string | null
+          rolled_back_by_user_id?: string | null
+          row_count: number
+          source_filename: string
+          source_hash: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          commit_idempotency_key?: string | null
+          committed_at?: string | null
+          committed_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          rollback_idempotency_key?: string | null
+          rolled_back_at?: string | null
+          rolled_back_by_user_id?: string | null
+          row_count?: number
+          source_filename?: string
+          source_hash?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_import_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_import_rows: {
+        Row: {
+          applied_record_id: string | null
+          batch_id: string
+          capability_code: string
+          certificate_code: string | null
+          created_at: string
+          employee_number: string
+          errors: Json
+          evidence_status: string | null
+          id: string
+          language_level: string | null
+          parsed_data: Json
+          previous_record: Json | null
+          row_number: number
+          row_status: string
+          talent_level_code: string | null
+          tenant_id: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applied_record_id?: string | null
+          batch_id: string
+          capability_code: string
+          certificate_code?: string | null
+          created_at?: string
+          employee_number: string
+          errors?: Json
+          evidence_status?: string | null
+          id?: string
+          language_level?: string | null
+          parsed_data?: Json
+          previous_record?: Json | null
+          row_number: number
+          row_status?: string
+          talent_level_code?: string | null
+          tenant_id: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applied_record_id?: string | null
+          batch_id?: string
+          capability_code?: string
+          certificate_code?: string | null
+          created_at?: string
+          employee_number?: string
+          errors?: Json
+          evidence_status?: string | null
+          id?: string
+          language_level?: string | null
+          parsed_data?: Json
+          previous_record?: Json | null
+          row_number?: number
+          row_status?: string
+          talent_level_code?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_import_rows_batch_fkey"
+            columns: ["tenant_id", "batch_id"]
+            isOneToOne: false
+            referencedRelation: "talent_import_batches"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_level_models: {
+        Row: {
+          code: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          locked_at: string | null
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          locked_at?: string | null
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          locked_at?: string | null
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_level_models_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_levels: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          level_model_id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_model_id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_model_id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_levels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_levels_tenant_id_level_model_id_fkey"
+            columns: ["tenant_id", "level_model_id"]
+            isOneToOne: false
+            referencedRelation: "talent_level_models"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      talent_seniorities: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_seniorities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_anniversary_rules: {
         Row: {
           created_at: string
@@ -6877,6 +8707,53 @@ export type Database = {
             foreignKeyName: "tenant_anniversary_rules_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_lifecycle: {
+        Row: {
+          activated_at: string | null
+          changed_by: string | null
+          created_at: string
+          paused_at: string | null
+          status: Database["public"]["Enums"]["tenant_lifecycle_status"]
+          status_reason: string | null
+          tenant_id: string
+          terminated_at: string | null
+          termination_requested_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          changed_by?: string | null
+          created_at?: string
+          paused_at?: string | null
+          status?: Database["public"]["Enums"]["tenant_lifecycle_status"]
+          status_reason?: string | null
+          tenant_id: string
+          terminated_at?: string | null
+          termination_requested_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          changed_by?: string | null
+          created_at?: string
+          paused_at?: string | null
+          status?: Database["public"]["Enums"]["tenant_lifecycle_status"]
+          status_reason?: string | null
+          tenant_id?: string
+          terminated_at?: string | null
+          termination_requested_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_lifecycle_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -6919,6 +8796,85 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_modules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_onboarding_contacts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          primary_contact_email: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          primary_contact_email: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          primary_contact_email?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_onboarding_contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_usage_snapshots: {
+        Row: {
+          active_employment_count: number
+          administration_count: number
+          created_at: string
+          created_by: string | null
+          employee_count: number
+          id: string
+          measured_on: string
+          storage_bytes: number
+          tenant_id: string
+          user_count: number
+        }
+        Insert: {
+          active_employment_count?: number
+          administration_count?: number
+          created_at?: string
+          created_by?: string | null
+          employee_count?: number
+          id?: string
+          measured_on?: string
+          storage_bytes?: number
+          tenant_id: string
+          user_count?: number
+        }
+        Update: {
+          active_employment_count?: number
+          administration_count?: number
+          created_at?: string
+          created_by?: string | null
+          employee_count?: number
+          id?: string
+          measured_on?: string
+          storage_bytes?: number
+          tenant_id?: string
+          user_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_usage_snapshots_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -7235,6 +9191,51 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_job_profile_readmodel: {
+        Row: {
+          job_code: string | null
+          job_family_code: string | null
+          job_family_id: string | null
+          job_family_name: string | null
+          job_group_code: string | null
+          job_group_id: string | null
+          job_group_name: string | null
+          job_id: string | null
+          job_is_active: boolean | null
+          job_profile_id: string | null
+          organizational_context: string | null
+          profile_version_id: string | null
+          purpose: string | null
+          responsibilities: Json | null
+          result_areas: Json | null
+          seniority_code: string | null
+          seniority_id: string | null
+          seniority_name: string | null
+          status: string | null
+          summary: string | null
+          tasks: Json | null
+          tenant_id: string | null
+          valid_from: string | null
+          valid_until: string | null
+          version_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_profiles_tenant_id_job_id_fkey"
+            columns: ["tenant_id", "job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_user_invitation: {
@@ -7247,6 +9248,10 @@ export type Database = {
           employee_id: string
           tenant_id: string
         }[]
+      }
+      activate_job_profile_version: {
+        Args: { requested_tenant_id: string; requested_version_id: string }
+        Returns: string
       }
       apply_combined_employment_timeline_mutation: {
         Args: {
@@ -7296,6 +9301,29 @@ export type Database = {
         }
         Returns: string
       }
+      capture_tenant_usage_snapshot: {
+        Args: { requested_tenant_id: string }
+        Returns: string
+      }
+      change_tenant_lifecycle: {
+        Args: {
+          requested_reason: string
+          requested_status: Database["public"]["Enums"]["tenant_lifecycle_status"]
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_talent_notification: {
+        Args: {
+          requested_event_type: string
+          requested_recipient_employee_id: string
+          requested_source_entity_id?: string
+          requested_summary: string
+          requested_tenant_id: string
+          requested_title: string
+        }
+        Returns: string
+      }
       close_leave_year: {
         Args: {
           requested_administration_id: string
@@ -7303,6 +9331,14 @@ export type Database = {
           requested_year: number
         }
         Returns: string
+      }
+      commit_talent_import_batch: {
+        Args: {
+          requested_batch_id: string
+          requested_idempotency_key: string
+          requested_tenant_id: string
+        }
+        Returns: Json
       }
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
@@ -7326,13 +9362,23 @@ export type Database = {
         }
         Returns: string
       }
+      copy_job_profile_version_to_draft: {
+        Args: {
+          requested_profile_id: string
+          requested_source_version_id?: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       create_employee_address_with_reminders: {
         Args: {
           requested_address_line_1: string
           requested_address_line_2: string
+          requested_address_type?: string
           requested_administration_id: string
           requested_city: string
           requested_country_code: string
+          requested_description?: string
           requested_employee_id: string
           requested_house_number: string
           requested_house_number_addition: string
@@ -7344,7 +9390,7 @@ export type Database = {
           requested_street: string
           requested_tenant_id: string
           requested_valid_from: string
-          requested_valid_until: string
+          requested_valid_until: string | null
         }
         Returns: string
       }
@@ -7369,7 +9415,7 @@ export type Database = {
         Returns: string
       }
       create_job_with_revision: {
-        Args: { requested_administration_id: string; requested_payload: Json }
+        Args: { requested_payload: Json; requested_tenant_id: string }
         Returns: string
       }
       create_leave_accrual_rule: {
@@ -7431,9 +9477,73 @@ export type Database = {
         }
         Returns: string
       }
+      end_platform_support_session: {
+        Args: { requested_session_id: string }
+        Returns: boolean
+      }
       expire_leave_buckets: {
         Args: { requested_as_of_date: string }
         Returns: number
+      }
+      get_my_talent_profile: {
+        Args: { requested_tenant_id: string }
+        Returns: {
+          job_code: string
+          job_family_code: string
+          job_family_id: string
+          job_family_name: string
+          job_group_code: string
+          job_group_id: string
+          job_group_name: string
+          job_id: string
+          job_is_active: boolean
+          job_profile_id: string
+          organizational_context: string
+          profile_version_id: string
+          purpose: string
+          responsibilities: Json
+          result_areas: Json
+          seniority_code: string
+          seniority_id: string
+          seniority_name: string
+          status: string
+          summary: string
+          tasks: Json
+          tenant_id: string
+          valid_from: string
+          valid_until: string
+          version_number: number
+        }[]
+      }
+      get_my_talent_profile_requirements: {
+        Args: {
+          requested_profile_version_id: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          capability_code: string
+          capability_id: string
+          capability_name: string
+          capability_type: string
+          certificate_details: Json
+          id: string
+          language_level: string
+          profile_version_id: string
+          rationale: string
+          requirement_type: string
+          sort_order: number
+          target_level_code: string
+          target_level_id: string
+          target_level_name: string
+        }[]
+      }
+      get_platform_control_snapshot: {
+        Args: { requested_tenant_id?: string }
+        Returns: Json
+      }
+      get_platform_support_read_model: {
+        Args: { requested_session_id: string }
+        Returns: Json
       }
       import_holiday_snapshot: {
         Args: {
@@ -7483,9 +9593,28 @@ export type Database = {
         }
         Returns: string
       }
+      manage_employment_company_location: {
+        Args: {
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_location_id: string
+          requested_placement_id: string
+        }
+        Returns: string
+      }
       next_custom_field_value: {
         Args: { p_definition_id: string }
         Returns: number
+      }
+      onboard_platform_tenant: {
+        Args: {
+          requested_administration_mode: Database["public"]["Enums"]["administration_mode"]
+          requested_administrations: Json
+          requested_name: string
+          requested_primary_contact_email: string
+          requested_slug: string
+        }
+        Returns: string
       }
       publish_complete_employment: {
         Args: {
@@ -7541,6 +9670,22 @@ export type Database = {
           requested_employment_id: string
           requested_reason: string
           requested_timeline: string
+        }
+        Returns: string
+      }
+      rollback_talent_import_batch: {
+        Args: {
+          requested_batch_id: string
+          requested_idempotency_key: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      start_platform_support_session: {
+        Args: {
+          requested_duration_minutes: number
+          requested_reason: string
+          requested_tenant_id: string
         }
         Returns: string
       }
@@ -7677,6 +9822,8 @@ export type Database = {
         | "YEARLY_HOURS"
         | "CONTRACT_HOURS_FACTOR"
       payroll_reporting_status: "DRAFT" | "READY" | "REPORTED" | "CLOSED"
+      platform_operator_role: "OWNER" | "OPERATOR" | "AUDITOR"
+      platform_support_session_status: "ACTIVE" | "ENDED"
       relation_type:
         | "PARTNER"
         | "CHILD"
@@ -7700,6 +9847,12 @@ export type Database = {
         | "HOURS_AND_SPECIFIC_DAYS"
         | "TIMES_PER_DAY"
       sharing_mode: "FULLY_ISOLATED" | "SHARED_COLLEAGUES"
+      tenant_lifecycle_status:
+        | "PROVISIONING"
+        | "ACTIVE"
+        | "PAUSED"
+        | "TERMINATING"
+        | "TERMINATED"
       termination_initiator:
         | "EMPLOYER"
         | "EMPLOYEE"
@@ -7978,6 +10131,8 @@ export const Constants = {
         "CONTRACT_HOURS_FACTOR",
       ],
       payroll_reporting_status: ["DRAFT", "READY", "REPORTED", "CLOSED"],
+      platform_operator_role: ["OWNER", "OPERATOR", "AUDITOR"],
+      platform_support_session_status: ["ACTIVE", "ENDED"],
       relation_type: [
         "PARTNER",
         "CHILD",
@@ -8003,6 +10158,13 @@ export const Constants = {
         "TIMES_PER_DAY",
       ],
       sharing_mode: ["FULLY_ISOLATED", "SHARED_COLLEAGUES"],
+      tenant_lifecycle_status: [
+        "PROVISIONING",
+        "ACTIVE",
+        "PAUSED",
+        "TERMINATING",
+        "TERMINATED",
+      ],
       termination_initiator: [
         "EMPLOYER",
         "EMPLOYEE",

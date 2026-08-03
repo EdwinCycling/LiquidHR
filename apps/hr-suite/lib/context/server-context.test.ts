@@ -20,6 +20,9 @@ function query(result: QueryResult) {
     select: () => builder,
     eq: () => builder,
     in: () => builder,
+    is: () => builder,
+    lte: () => builder,
+    or: () => builder,
     order: () => builder,
     limit: () => Promise.resolve(result),
   }
@@ -37,7 +40,18 @@ function fakeClient(withUser = true) {
     from(table: string) {
       if (table === 'user_access') {
         return query({
-          data: [{ tenant_id: 'tenant-1', scope_type: 'TENANT', administration_id: null }],
+          data: [{
+            tenant_id: 'tenant-1',
+            scope_type: 'TENANT',
+            administration_id: null,
+            management_role_id: 'tenant-admin-role',
+          }],
+          error: null,
+        })
+      }
+      if (table === 'management_roles') {
+        return query({
+          data: [{ id: 'tenant-admin-role', code: 'TENANT_ADMIN' }],
           error: null,
         })
       }

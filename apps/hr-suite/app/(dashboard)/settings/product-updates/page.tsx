@@ -1,0 +1,8 @@
+import { ProductUpdateManager } from '@/components/product-updates/product-update-manager'
+import { getTranslator } from '@/lib/i18n/server'
+import { listManagedProductUpdates } from '@/lib/product-updates/service'
+
+export default async function ProductUpdatesSettingsPage() {
+  const [t, management] = await Promise.all([getTranslator('productUpdates'), listManagedProductUpdates()])
+  return <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10"><p className="eyebrow">{t('adminTitle')}</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">{t('adminTitle')}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t('adminSubtitle')}</p><ProductUpdateManager initial={management.updates} canManageGlobal={management.canManageGlobal} canManageTenant={management.canManageTenant} labels={{ title: t('adminTitle'), subtitle: t('adminSubtitle'), add: t('add'), edit: t('edit'), delete: t('delete'), deleteConfirm: t('deleteConfirm'), titleLabel: t('titleLabel'), summaryLabel: t('summaryLabel'), contentLabel: t('contentLabel'), kindLabel: t('kindLabel'), channelsLabel: t('channelsLabel'), audienceLabel: t('audienceLabel'), activeLabel: t('activeLabel'), hrAdmin: t('hrAdmin'), manager: t('manager'), employee: t('employee'), newFeature: t('newFeature'), improvement: t('improvement'), giftWindow: t('giftWindow'), loginPopup: t('loginPopup'), topBanner: t('topBanner'), dateFrom: t('dateFrom'), dateUntil: t('dateUntil'), save: t('save'), cancel: t('cancel'), saving: t('saving'), failed: t('failed'), invalid: t('invalid'), noResults: t('noResults'), scopeLabel: t('scopeLabel'), globalScope: t('globalScope'), tenantScope: t('tenantScope'), readOnly: t('readOnly'), ownerNotice: t('ownerNotice') }} /></main>
+}

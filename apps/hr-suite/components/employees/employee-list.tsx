@@ -77,7 +77,7 @@ export function EmployeeList({
                     {view === 'detail' ? <p className="mt-1 truncate text-sm text-muted-foreground">
                       <span className="font-medium text-foreground/80">{departmentLabel}:</span>{' '}
                       {employee.departmentName ?? notRecordedLabel}
-                      <span className="px-1.5 text-muted-foreground/70">·</span>
+                      <span aria-hidden="true" className="px-1.5 text-muted-foreground/70">·</span>
                       <span className="font-medium text-foreground/80">{jobTitleLabel}:</span>{' '}
                       {employee.jobTitle ?? notRecordedLabel}
                     </p> : null}
@@ -85,7 +85,7 @@ export function EmployeeList({
                 </div>
                 {view === 'detail' ? <span className="mt-1 flex min-w-0 items-center gap-1.5 pl-[3.875rem] text-sm text-muted-foreground">
                   <Mail aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                  {employee.workEmail ? <EmailLink className="pointer-events-auto relative z-20 truncate hover:underline" email={employee.workEmail} /> : <span className="truncate">{noEmailLabel}</span>}
+                  {employee.workEmail ? <EmailLink className="pointer-events-auto relative z-20 inline-flex min-h-6 items-center truncate hover:underline" email={employee.workEmail} /> : <span className="truncate">{noEmailLabel}</span>}
                 </span> : null}
               </div>
               <div className={`relative z-10 flex items-center justify-between gap-3 pointer-events-none sm:justify-end ${view === 'detail' ? 'pl-[3.4rem] sm:pl-0' : 'pl-0'}`}>

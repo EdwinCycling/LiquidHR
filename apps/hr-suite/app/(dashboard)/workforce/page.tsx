@@ -1,17 +1,20 @@
 import Link from 'next/link'
-import { BriefcaseBusiness, Grid2X2, MessageSquareText, Star, Tags } from 'lucide-react'
+import { BriefcaseBusiness, Grid2X2, MessageSquareText, Sparkles, Star, Tags } from 'lucide-react'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 
 export default async function WorkforcePage() {
   const [t, star] = await Promise.all([getTranslator('workforce'), getTranslator('starPerformers')])
-  let canReadStarPerformers = false
-  try {
-    await requirePermission('star-performer:read')
-    canReadStarPerformers = true
-  } catch (error) {
-    if (!(error instanceof AuthorizationError)) throw error
-  }
+  const [canReadStarPerformers, canReadTalentProfiles] = await Promise.all([
+    requirePermission('star-performer:read').then(() => true).catch((error) => {
+      if (error instanceof AuthorizationError) return false
+      throw error
+    }),
+    requirePermission('talent:manager-read').then(() => true).catch((error) => {
+      if (error instanceof AuthorizationError) return false
+      throw error
+    }),
+  ])
 
   const windows = [
     {
@@ -24,6 +27,9 @@ export default async function WorkforcePage() {
       title: t('performanceTalksTitle'),
       description: t('performanceTalksDescription'),
     },
+    ...(canReadTalentProfiles ? [
+      { icon: Sparkles, title: t('talentProfilesTitle'), description: t('talentProfilesDescription'), href: '/workforce/talent', status: t('available'), footer: t('openWorkspace') },
+    ] : []),
     ...(canReadStarPerformers ? [
       { icon: Star, title: star('title'), description: star('subtitle'), href: '/workforce/star-performers', status: t('available'), footer: t('openWorkspace') },
       { icon: Tags, title: star('tagsTitle'), description: star('tagsSubtitle'), href: '/workforce/star-performer-tags', status: t('available'), footer: t('openWorkspace') },

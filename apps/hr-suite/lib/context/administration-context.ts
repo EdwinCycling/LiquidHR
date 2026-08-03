@@ -32,6 +32,7 @@ export interface ContextAccessRow {
   tenant_id: string
   scope_type: 'TENANT' | 'ADMINISTRATION'
   administration_id: string | null
+  management_role_code: string
 }
 
 export interface ContextTenantRow {
@@ -54,19 +55,22 @@ export interface BuildTenantContextOptionsInput {
   accesses: ContextAccessRow[]
   tenants: ContextTenantRow[]
   administrations: ContextAdministrationRow[]
+  actorAdministrationIdsByTenant?: ReadonlyMap<string, ReadonlySet<string>>
 }
 
 export class ContextAccessError extends Error {
   readonly status = 403
 }
 
-export type AdministrationSwitcherMode = 'HIDDEN' | 'LABEL' | 'SELECT'
+export type AdministrationSwitcherMode = 'HIDDEN' | 'SELECT'
+
+const EMPLOYEE_MANAGER_ROLE_CODES = new Set(['EMPLOYEE', 'DIRECT_MANAGER'])
 
 export const ADMINISTRATION_SWITCH_SUCCESS_PATH = '/dashboard/start'
 
 export function getAdministrationSwitcherMode(context: ActiveContext): AdministrationSwitcherMode {
   if (context.tenant.administrationMode === 'COMBINED') return 'HIDDEN'
-  return context.administrations.length > 1 ? 'SELECT' : 'LABEL'
+  return context.administrations.length > 1 ? 'SELECT' : 'HIDDEN'
 }
 
 export function buildTenantContextOptions(input: BuildTenantContextOptionsInput): TenantContextOption[] {
@@ -77,6 +81,12 @@ export function buildTenantContextOptions(input: BuildTenantContextOptionsInput)
     .map((tenant) => {
       const tenantAccesses = input.accesses.filter((access) => access.tenant_id === tenant.id)
       const hasTenantScope = tenantAccesses.some((access) => access.scope_type === 'TENANT')
+      const isEmployeeManagerOnly =
+        tenantAccesses.length > 0
+        && tenantAccesses.every((access) => EMPLOYEE_MANAGER_ROLE_CODES.has(access.management_role_code))
+      const actorAdministrationIds = isEmployeeManagerOnly
+        ? input.actorAdministrationIdsByTenant?.get(tenant.id) ?? new Set<string>()
+        : null
       const administrationIds = new Set(
         tenantAccesses
           .filter((access) => access.scope_type === 'ADMINISTRATION')
@@ -88,7 +98,8 @@ export function buildTenantContextOptions(input: BuildTenantContextOptionsInput)
           (administration) =>
             administration.tenant_id === tenant.id
             && administration.is_active
-            && (hasTenantScope || administrationIds.has(administration.id)),
+            && (hasTenantScope || administrationIds.has(administration.id))
+            && (actorAdministrationIds === null || actorAdministrationIds.has(administration.id)),
         )
         .map(({ id, code, name }) => ({ id, code, name }))
 

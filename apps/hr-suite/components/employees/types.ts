@@ -53,6 +53,8 @@ export interface EmployeeProfile {
 
 export interface EmployeeAddress {
   id: string
+  addressType: 'PRIMARY' | 'SECONDARY'
+  description: string | null
   addressLine1: string
   addressLine2: string | null
   street: string | null

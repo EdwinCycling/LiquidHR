@@ -11,7 +11,7 @@ export function AdminSettingsPageHeader({
   backHref = '/settings',
 }: {
   backLabel: string
-  eyebrow: string
+  eyebrow?: string
   title: string
   subtitle?: string
   actions?: ReactNode
@@ -26,9 +26,7 @@ export function AdminSettingsPageHeader({
         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
         {backLabel}
       </Link>
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-        {eyebrow}
-      </p>
+      {eyebrow ? <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-primary">{eyebrow}</p> : null}
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h1>
       {subtitle ? (
         <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">

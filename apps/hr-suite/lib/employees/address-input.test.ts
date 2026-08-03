@@ -31,4 +31,30 @@ describe('address input contract', () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it('rejects an end date for the primary address', () => {
+    const result = addressSchema.safeParse({
+      street: 'Kerkstraat', houseNumber: '12', postalCode: '1234 AB', city: 'Utrecht',
+      countryCode: 'NL', validFrom: '2026-07-25', validUntil: '2026-08-01',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('requires a description and end date for a secondary address', () => {
+    const valid = addressSchema.safeParse({
+      addressType: 'SECONDARY', description: 'Verpleegadres', addressLine1: 'Zorglaan 1', city: 'London',
+      countryCode: 'GB', validFrom: '2026-07-25', validUntil: '2026-08-01',
+    })
+    const missingDescription = addressSchema.safeParse({
+      addressType: 'SECONDARY', addressLine1: 'Zorglaan 1', city: 'London',
+      countryCode: 'GB', validFrom: '2026-07-25', validUntil: '2026-08-01',
+    })
+    const missingEnd = addressSchema.safeParse({
+      addressType: 'SECONDARY', description: 'Verpleegadres', addressLine1: 'Zorglaan 1', city: 'London',
+      countryCode: 'GB', validFrom: '2026-07-25',
+    })
+    expect(valid.success).toBe(true)
+    expect(missingDescription.success).toBe(false)
+    expect(missingEnd.success).toBe(false)
+  })
 })

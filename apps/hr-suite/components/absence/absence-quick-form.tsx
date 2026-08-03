@@ -2,6 +2,7 @@
 
 import { createPortal } from 'react-dom'
 import { useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { X } from 'lucide-react'
 import type { AbsenceCaseSummary } from '@/lib/absence/service'
 
@@ -11,6 +12,8 @@ interface AbsenceQuickFormProps {
   employeeId: string
   employmentId?: string
   currentCase?: AbsenceCaseSummary | null
+  recoveryMode?: 'link' | 'form' | 'hidden'
+  showReportAction?: boolean
   labels: {
     report: string
     startDate: string
@@ -30,7 +33,7 @@ interface AbsenceQuickFormProps {
   }
 }
 
-export function AbsenceQuickForm({ employeeId, employmentId, currentCase, labels }: AbsenceQuickFormProps) {
+export function AbsenceQuickForm({ employeeId, employmentId, currentCase, recoveryMode = 'form', showReportAction = true, labels }: AbsenceQuickFormProps) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
@@ -80,8 +83,14 @@ export function AbsenceQuickForm({ employeeId, employmentId, currentCase, labels
     document.body,
   ) : null
 
+  const isOpen = currentCase?.status === 'ACTIVE' || currentCase?.status === 'RECOVERY_WINDOW'
+  const isActive = currentCase?.status === 'ACTIVE'
   return <>
-    <div className="flex flex-wrap items-center gap-3"><button type="button" className="button-primary" onClick={() => { setError(false); setMounted(true); setOpen(true) }}>{labels.report}</button>{currentCase && currentCase.status === 'ACTIVE' ? <form onSubmit={submitRecovery} className="flex flex-wrap items-center gap-2"><label className="sr-only" htmlFor="recovered-on">{labels.recoveredOn}</label><input id="recovered-on" required type="date" value={recoveredOn} onChange={(event) => setRecoveredOn(event.target.value)} className="input h-10" /><button type="submit" disabled={saving} className="button-secondary">{labels.recover}</button></form> : null}</div>
+    <div className="flex flex-wrap items-center gap-3">
+      {showReportAction && !isOpen ? <button type="button" className="button-primary" onClick={() => { setError(false); setMounted(true); setOpen(true) }}>{labels.report}</button> : null}
+      {isOpen && recoveryMode === 'link' ? <Link prefetch={false} href={`/employees/${employeeId}?tab=absence&view=expanded&caseId=${currentCase.id}`} className="button-secondary">{labels.recover}</Link> : null}
+      {isActive && recoveryMode === 'form' ? <form onSubmit={submitRecovery} className="flex flex-wrap items-center gap-2"><label className="sr-only" htmlFor="recovered-on">{labels.recoveredOn}</label><input id="recovered-on" required type="date" value={recoveredOn} onChange={(event) => setRecoveredOn(event.target.value)} className="input h-10" /><button type="submit" disabled={saving} className="button-secondary">{labels.recover}</button></form> : null}
+    </div>
     {error && !open && <p role="alert" className="text-sm font-medium text-destructive">{labels.failed}</p>}
     {modal}
   </>

@@ -353,10 +353,7 @@ async function loadOrganization(
     .lte('effective_from', scope.asOfDate)
     .or(`effective_to.is.null,effective_to.gte.${scope.asOfDate}`)
     .limit(5_000)
-  if (scope.administrationId) {
-    departmentQuery = departmentQuery.eq('administration_id', scope.administrationId)
-    placementQuery = placementQuery.eq('administration_id', scope.administrationId)
-  }
+  if (scope.administrationId) placementQuery = placementQuery.eq('administration_id', scope.administrationId)
   if (scope.departmentId) {
     departmentQuery = departmentQuery.eq('id', scope.departmentId)
     placementQuery = placementQuery.eq('department_id', scope.departmentId)

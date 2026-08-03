@@ -64,7 +64,7 @@ export async function getUpcomingEventsReport(query: UpcomingEventsQuery): Promi
   const supabase = await createClient()
   const [employmentsResult, departmentsResult, anniversaryRulesResult, administrationResult] = await Promise.all([
     supabase.from('employments').select('id,employee_id,starts_on,ends_on,seniority_date,is_primary').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', endDate).or(`ends_on.is.null,ends_on.gte.${startDate}`).limit(2000),
-    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).eq('is_active', true).order('name').limit(500),
+    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
     supabase.from('tenant_anniversary_rules').select('years').eq('tenant_id', context.tenantId).eq('is_active', true).order('years').limit(100),
     supabase.from('administrations').select('code').eq('tenant_id', context.tenantId).eq('id', context.administrationId).single(),
   ])

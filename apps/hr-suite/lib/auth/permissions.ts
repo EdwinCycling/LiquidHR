@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cache } from 'react'
 import { toSelfPermission } from '@/lib/auth/permission-rules'
-import { ContextAccessError } from '@/lib/context/administration-context'
+import { ContextAccessError, type ActiveContext } from '@/lib/context/administration-context'
 import { ContextAuthenticationError, loadActiveContext } from '@/lib/context/server-context'
 import { createClient } from '@/lib/supabase/server'
 
@@ -97,14 +97,14 @@ async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerCl
   return roles.map((role) => role.code)
 }
 
-export async function requireAuthContext(existingClient?: SupabaseServerClient): Promise<AuthContext> {
+export async function requireAuthContext(existingClient?: SupabaseServerClient, existingActiveContext?: ActiveContext): Promise<AuthContext> {
   const supabase = existingClient ?? await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
   const userId = claimsData?.claims?.sub
 
   if (claimsError || !userId) throw new AuthenticationError('Je bent niet ingelogd.')
 
-  const activeContext = await loadActiveContext(userId, supabase)
+  const activeContext = existingActiveContext ?? await loadActiveContext(userId, supabase)
   const tenantId = activeContext.tenant.id
   const administrationId = activeContext.administration?.id ?? null
 

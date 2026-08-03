@@ -9,6 +9,9 @@
     "start": "next start --port 3000",
     "lint": "eslint .",
     "check:i18n": "node scripts/check-i18n.mjs",
+    "audit:axe": "node scripts/axe-audit.mjs",
+    "audit:talent-release": "node scripts/talent-release-gate.mjs",
+    "fixtures:talent-auth": "node scripts/set-talent-fixture-passwords.mjs",
     "test": "vitest run",
     "type-check": "tsc --noEmit",
     "migrate": "supabase db push"
@@ -27,6 +30,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "latest",
     "@types/node": "latest",
     "@types/react": "latest",

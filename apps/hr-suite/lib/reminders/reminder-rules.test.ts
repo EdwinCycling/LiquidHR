@@ -1,32 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { clockHandAngles, formatReminderCountdown, summarizeTarget } from './reminder-rules'
+import { clockHandAngles, formatReminderCountdown, formatReminderDaysUntil, summarizeTarget } from './reminder-rules'
 
 describe('formatReminderCountdown', () => {
   const now = new Date('2026-07-16T10:00:00.000Z')
 
-  it('geeft een compacte label voor een reminder over enkele minuten', () => {
+  it('rondt een reminder op dezelfde dag af en toont de datum', () => {
     expect(formatReminderCountdown(now, new Date('2026-07-16T10:05:00.000Z'), 'nl-NL'))
-      .toBe('over 5 min.')
+      .toBe('16-07-2026 · vandaag')
   })
 
   it('markeert een verlopen reminder', () => {
     expect(formatReminderCountdown(now, new Date('2026-07-16T09:59:00.000Z'), 'nl-NL'))
-      .toBe('1 min. geleden')
+      .toBe('16-07-2026 · 1 dag geleden')
   })
 
   it('gebruikt Engelse labels voor een Engelse locale', () => {
     expect(formatReminderCountdown(now, new Date('2026-07-16T10:05:00.000Z'), 'en-GB'))
-      .toBe('in 5 min')
+      .toBe('16/07/2026 · today')
   })
 
   it('toont morgen voor een reminder op de volgende kalenderdag', () => {
     expect(formatReminderCountdown(now, new Date('2026-07-17T09:00:00.000Z'), 'nl-NL'))
-      .toBe('morgen')
+      .toBe('17-07-2026 · morgen')
   })
 
-  it('toont nu binnen dezelfde afgeronde minuut', () => {
+  it('toont vandaag binnen dezelfde afgeronde minuut', () => {
     expect(formatReminderCountdown(now, new Date('2026-07-16T10:00:20.000Z'), 'nl-NL'))
-      .toBe('nu')
+      .toBe('16-07-2026 · vandaag')
   })
 })
 
@@ -45,6 +45,15 @@ describe('clockHandAngles', () => {
       minute: 180,
       second: 0,
     })
+  })
+})
+
+describe('formatReminderDaysUntil', () => {
+  const now = new Date('2026-07-16T10:00:00.000Z')
+
+  it('toont hoeveel dagen het nog duurt', () => {
+    expect(formatReminderDaysUntil(now, new Date('2026-07-17T09:00:00.000Z'), 'nl-NL')).toBe('nog 1 dag')
+    expect(formatReminderDaysUntil(now, new Date('2026-07-21T10:00:00.000Z'), 'nl-NL')).toBe('nog 5 dagen')
   })
 })
 

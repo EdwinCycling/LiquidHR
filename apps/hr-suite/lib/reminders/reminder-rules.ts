@@ -6,23 +6,29 @@ export type ReminderTargetSummaryInput = {
 export function formatReminderCountdown(now: Date, remindAt: Date, locale: string): string {
   const differenceInMinutes = Math.round((remindAt.getTime() - now.getTime()) / 60_000)
   const isDutch = locale.startsWith('nl')
-  const minuteLabel = isDutch ? 'min.' : 'min'
-  const nextDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
-  const reminderDay = new Date(Date.UTC(remindAt.getUTCFullYear(), remindAt.getUTCMonth(), remindAt.getUTCDate()))
+  const dateLabel = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(remindAt)
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const reminderDay = Date.UTC(remindAt.getUTCFullYear(), remindAt.getUTCMonth(), remindAt.getUTCDate())
+  const dayDifference = Math.round((reminderDay - today) / 86_400_000)
+  const dayLabel = Math.max(1, Math.round(Math.abs(differenceInMinutes) / 1_440))
+  const relativeLabel = differenceInMinutes < 0
+    ? isDutch ? `${dayLabel} ${dayLabel === 1 ? 'dag' : 'dagen'} geleden` : `${dayLabel} ${dayLabel === 1 ? 'day' : 'days'} ago`
+    : dayDifference === 0
+      ? isDutch ? 'vandaag' : 'today'
+      : dayDifference === 1
+        ? isDutch ? 'morgen' : 'tomorrow'
+        : isDutch ? `over ${dayDifference} dagen` : `in ${dayDifference} days`
 
-  if (differenceInMinutes < 0) {
-    return isDutch
-      ? `${Math.abs(differenceInMinutes)} ${minuteLabel} geleden`
-      : `${Math.abs(differenceInMinutes)} ${minuteLabel} ago`
-  }
-  if (differenceInMinutes === 0) return isDutch ? 'nu' : 'now'
-  if (reminderDay.getTime() === nextDay.getTime()) return isDutch ? 'morgen' : 'tomorrow'
-  if (differenceInMinutes < 60) return `${isDutch ? 'over' : 'in'} ${differenceInMinutes} ${minuteLabel}`
+  return `${dateLabel} · ${relativeLabel}`
+}
 
-  const differenceInHours = Math.floor(differenceInMinutes / 60)
-  return isDutch
-    ? `over ${differenceInHours} uur`
-    : `in ${differenceInHours} ${differenceInHours === 1 ? 'hour' : 'hours'}`
+export function formatReminderDaysUntil(now: Date, remindAt: Date, locale: string): string {
+  const differenceInMilliseconds = remindAt.getTime() - now.getTime()
+  const isDutch = locale.startsWith('nl')
+  if (differenceInMilliseconds <= 0) return isDutch ? 'nu actief' : 'active now'
+  const days = Math.max(1, Math.ceil(differenceInMilliseconds / 86_400_000))
+  if (isDutch) return `nog ${days} ${days === 1 ? 'dag' : 'dagen'}`
+  return `in ${days} ${days === 1 ? 'day' : 'days'}`
 }
 
 export function clockHandAngles(date: Date): { hour: number; minute: number; second: number } {

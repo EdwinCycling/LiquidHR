@@ -7,6 +7,10 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @liquid-hr/hr-suite",
+    "dev:control": "npm run dev -w @liquid-hr/control",
+    "build:control": "npm run build -w @liquid-hr/control",
+    "test:control": "npm run test -w @liquid-hr/control",
+    "type-check:control": "npm run type-check -w @liquid-hr/control",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

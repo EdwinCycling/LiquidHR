@@ -58,7 +58,7 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
   const [settingsResult, employmentResult, departmentsResult, organizationResult, caseResult] = await Promise.all([
     supabase.from('absence_settings').select('frequent_absence_threshold').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle(),
     supabase.from('employments').select('id,employee_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate).or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000),
-    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('is_active', true).order('name').limit(500),
+    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
     supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(10000),
     supabase.from('absence_cases').select('id,employee_id,employment_id,first_absence_on').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).is('archived_at', null).gte('first_absence_on', query.startDate).lte('first_absence_on', query.endDate).limit(10000),
   ])

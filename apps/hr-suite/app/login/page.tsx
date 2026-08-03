@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     getTranslator('auth'),
     getTranslator('common'),
   ])
-  const nextPath = typeof params.next === 'string' ? params.next : '/departments'
+  const nextPath = typeof params.next === 'string' ? params.next : '/dashboard/start'
   const labels: LoginFormLabels = {
     email: auth('email'),
     password: auth('password'),

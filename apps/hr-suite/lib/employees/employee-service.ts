@@ -5,6 +5,7 @@ import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { decryptPii, encryptPii } from '@/lib/security/pii-crypto'
 import { EmployeeServiceError } from './errors'
 import { compactEmployeeAvatar } from './avatar-image'
+import { createEmployeeSystemActivity } from './employee-activity-service'
 import {
   isPostgresConflict,
   toEmployeeInsert,
@@ -32,6 +33,8 @@ function toAddressLine1(input: AddressInput): string {
 }
 
 function toAddressRow(input: AddressInput): {
+  address_type: AddressInput['addressType']
+  description: string | null
   address_line_1: string
   address_line_2: string | null
   street: string | null
@@ -49,6 +52,8 @@ function toAddressRow(input: AddressInput): {
 } {
   const postalCode = input.postalCode?.trim() ?? null
   return {
+    address_type: input.addressType,
+    description: input.addressType === 'SECONDARY' ? input.description?.trim() ?? null : null,
     address_line_1: toAddressLine1(input),
     address_line_2: input.addressLine2 ?? null,
     street: input.street ?? null,
@@ -62,7 +67,7 @@ function toAddressRow(input: AddressInput): {
     source: input.source,
     source_reference: input.sourceReference ?? null,
     valid_from: input.validFrom,
-    valid_until: input.validUntil ?? null,
+    valid_until: input.addressType === 'SECONDARY' ? input.validUntil ?? null : null,
   }
 }
 
@@ -72,6 +77,12 @@ function addressDatabaseError(error: { code?: string; message?: string }, fallba
   }
   const message = error.message ?? ''
   if (message.includes('ADDRESS_LAST_CANNOT_ARCHIVE')) return new EmployeeServiceError('ADDRESS_LAST_CANNOT_ARCHIVE', 409)
+  if (message.includes('ADDRESS_PRIMARY_REQUIRED')) return new EmployeeServiceError('ADDRESS_PRIMARY_REQUIRED', 409)
+  if (message.includes('ADDRESS_PRIMARY_START_INVALID')) return new EmployeeServiceError('ADDRESS_PRIMARY_START_INVALID', 409)
+  if (message.includes('ADDRESS_PRIMARY_END_NOT_ALLOWED')) return new EmployeeServiceError('ADDRESS_PRIMARY_END_NOT_ALLOWED', 400)
+  if (message.includes('ADDRESS_SECONDARY_FIELDS_REQUIRED')) return new EmployeeServiceError('ADDRESS_SECONDARY_FIELDS_REQUIRED', 400)
+  if (message.includes('ADDRESS_TYPE_INVALID')) return new EmployeeServiceError('ADDRESS_TYPE_INVALID', 400)
+  if (message.includes('ADDRESS_TYPE_IMMUTABLE')) return new EmployeeServiceError('ADDRESS_TYPE_IMMUTABLE', 409)
   if (message.includes('ADDRESS_REMINDER_MODULE_DISABLED')) return new EmployeeServiceError('ADDRESS_REMINDER_MODULE_DISABLED', 409)
   if (message.includes('ADDRESS_REMINDER_ROLE_INVALID')) return new EmployeeServiceError('ADDRESS_REMINDER_ROLE_INVALID', 400)
   if (message.includes('ADDRESS_FORBIDDEN')) return new EmployeeServiceError('ADDRESS_FORBIDDEN', 403)
@@ -150,7 +161,9 @@ export async function updateEmployee(employeeId: string, input: EmployeeUpdateIn
   if (isPostgresConflict(error)) throw new EmployeeServiceError('EMPLOYEE_NUMBER_CONFLICT', 409)
   if (error) throw new EmployeeServiceError('EMPLOYEE_UPDATE_FAILED', 500)
   if (!data) throw new EmployeeServiceError('EMPLOYEE_CONCURRENCY_CONFLICT', 409)
-  return toPublicEmployee(data)
+  const result = toPublicEmployee(data)
+  await createEmployeeSystemActivity(employeeId, 'employeeUpdated')
+  return result
 }
 
 export async function archiveEmployee(employeeId: string, updatedAt: string): Promise<void> {
@@ -300,11 +313,14 @@ export async function createEmployeeAddress(employeeId: string, input: AddressIn
     requested_source: address.source,
     requested_source_reference: address.source_reference ?? '',
     requested_valid_from: address.valid_from,
-    requested_valid_until: address.valid_until ?? '',
+    requested_valid_until: address.valid_until,
+    requested_address_type: address.address_type,
+    requested_description: address.description ?? '',
     requested_reminder_roles: input.directReminderRecipients,
   })
   if (error) throw addressDatabaseError(error, 'ADDRESS_CREATE_FAILED')
   if (!data) throw new EmployeeServiceError('ADDRESS_CREATE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'addressCreated')
   return data
 }
 
@@ -318,13 +334,18 @@ export async function updateEmployeeAddress(
   if (context.employeeId === employeeId) await requirePermission('address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  let query = supabase.from('employee_addresses').update(toAddressRow(input)).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
+  const { data: existing, error: existingError } = await supabase.from('employee_addresses').select('address_type,valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId).is('deleted_at', null).maybeSingle()
+  if (existingError) throw new EmployeeServiceError('ADDRESS_UPDATE_FAILED', 500)
+  if (!existing) throw new EmployeeServiceError('ADDRESS_NOT_FOUND', 404)
+  const address = toAddressRow({ ...input, addressType: existing.address_type as AddressInput['addressType'] })
+  const updateRow = { ...address, address_type: existing.address_type, valid_until: existing.address_type === 'PRIMARY' ? existing.valid_until : address.valid_until }
+  let query = supabase.from('employee_addresses').update(updateRow).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
     .is('deleted_at', null)
   if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
   const { data, error } = await query.select('id').maybeSingle()
-  if (isPostgresConflict(error)) throw new EmployeeServiceError('ADDRESS_PERIOD_CONFLICT', 409)
-  if (error) throw new EmployeeServiceError('ADDRESS_UPDATE_FAILED', 500)
+  if (error) throw addressDatabaseError(error, 'ADDRESS_UPDATE_FAILED')
   if (!data) throw new EmployeeServiceError(expectedUpdatedAt ? 'ADDRESS_STALE_WRITE' : 'ADDRESS_NOT_FOUND', 409)
+  await createEmployeeSystemActivity(employeeId, 'addressUpdated')
 }
 
 export async function archiveEmployeeAddress(employeeId: string, addressId: string): Promise<void> {
@@ -337,6 +358,7 @@ export async function archiveEmployeeAddress(employeeId: string, addressId: stri
     .is('deleted_at', null).select('id').maybeSingle()
   if (error) throw addressDatabaseError(error, 'ADDRESS_ARCHIVE_FAILED')
   if (!data) throw new EmployeeServiceError('ADDRESS_NOT_FOUND', 404)
+  await createEmployeeSystemActivity(employeeId, 'addressArchived')
 }
 
 export async function createEmployeeRelation(employeeId: string, input: RelationInput): Promise<string> {
@@ -361,6 +383,7 @@ export async function createEmployeeRelation(employeeId: string, input: Relation
     notes: input.notes ?? null,
   }).select('id').single()
   if (error || !data) throw new EmployeeServiceError('RELATION_CREATE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'relationCreated')
   return data.id
 }
 
@@ -378,6 +401,7 @@ export async function updateEmployeeRelation(employeeId: string, relationId: str
   }).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', relationId)
     .is('deleted_at', null)
   if (error) throw new EmployeeServiceError('RELATION_UPDATE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'relationUpdated')
 }
 
 export async function archiveEmployeeRelation(employeeId: string, relationId: string): Promise<void> {
@@ -388,6 +412,7 @@ export async function archiveEmployeeRelation(employeeId: string, relationId: st
   const { error } = await supabase.from('employee_relations').update({ deleted_at: new Date().toISOString() })
     .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', relationId)
   if (error) throw new EmployeeServiceError('RELATION_ARCHIVE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'relationArchived')
 }
 
 export async function createEmployeeBankAccount(employeeId: string, input: BankAccountInput): Promise<string> {
@@ -405,6 +430,7 @@ export async function createEmployeeBankAccount(employeeId: string, input: BankA
   }).select('id').single()
   if (isPostgresConflict(error)) throw new EmployeeServiceError('PRIMARY_BANK_ACCOUNT_CONFLICT', 409)
   if (error || !data) throw new EmployeeServiceError('BANK_ACCOUNT_CREATE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'bankAccountCreated')
   return data.id
 }
 
@@ -423,6 +449,7 @@ export async function updateEmployeeBankAccount(
     .is('deleted_at', null)
   if (isPostgresConflict(error)) throw new EmployeeServiceError('PRIMARY_BANK_ACCOUNT_CONFLICT', 409)
   if (error) throw new EmployeeServiceError('BANK_ACCOUNT_UPDATE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'bankAccountUpdated')
 }
 
 export async function archiveEmployeeBankAccount(employeeId: string, bankAccountId: string): Promise<void> {
@@ -431,4 +458,5 @@ export async function archiveEmployeeBankAccount(employeeId: string, bankAccount
   const { error } = await supabase.from('employee_bank_accounts').update({ deleted_at: new Date().toISOString() })
     .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', bankAccountId)
   if (error) throw new EmployeeServiceError('BANK_ACCOUNT_ARCHIVE_FAILED', 500)
+  await createEmployeeSystemActivity(employeeId, 'bankAccountArchived')
 }

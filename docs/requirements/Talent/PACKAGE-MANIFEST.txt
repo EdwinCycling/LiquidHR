@@ -1,0 +1,53 @@
+LiquidHR Workforce & Talent Management — Product Package v2
+Author: Edwin Dingjan <edwin@editsolutions.nl>
+Created: 2026-07-31
+
+Files:
+00-README.md
+01-LiquidHR-Workforce-Talent-Product-Blueprint-v2.0.md
+02-LiquidHR-AI-Architecture-Instructions.md
+03-LiquidHR-Codex-Implementation-Plan.md
+04-LiquidHR-Codex-Prompt-Library.md
+05-LiquidHR-Acceptance-Test-Pack.md
+06-LiquidHR-Decision-Register-Glossary.md
+07-LiquidHR-UI-Reference-Library.md
+08-LiquidHR-Requirement-Traceability-Matrix.md
+ui-references/ALT-UI-002A-Talent-Dashboard-Concept.png
+ui-references/UI-001-Workforce.png
+ui-references/UI-002-Talent-Dashboard.png
+ui-references/UI-003-Talent-Configuratie.png
+ui-references/UI-004-Competentie-Detail.png
+ui-references/UI-005-Functiehuis-Explorer.png
+ui-references/UI-006-Functieprofiel.png
+ui-references/UI-007-Mijn-Talent.png
+ui-references/UI-008-Team-Talent.png
+ui-references/UI-009-Niveaumodel.png
+ui-references/UI-010-Senioriteit.png
+ui-references/UI-011-Competentie-Toevoegen.png
+ui-references/UI-012-Functiefamilies.png
+ui-references/UI-013-Functieprofiel-Detail.png
+
+SHA-256:
+e38794e0534d867ac6dde1b958be86def25015ba667e52ac8013533d880017f3  ./00-README.md
+e3fdd51f45f8cd1c38e12df489917657cca4c56fef1e007b8e535bb16a2cb9d6  ./01-LiquidHR-Workforce-Talent-Product-Blueprint-v2.0.md
+9470b5ff7e855c09b83624e751d499a89489e868cbef7da3c6023f9976bf0cc2  ./02-LiquidHR-AI-Architecture-Instructions.md
+ee151ae4a09b16c395e3cf9c7b63c40b425f265712ef69f4630a1c35e4f839e0  ./03-LiquidHR-Codex-Implementation-Plan.md
+b7561f1c4f6cae1e5a37b59085ab89af166e8d03f04122ce6390fdfd2ccefff2  ./04-LiquidHR-Codex-Prompt-Library.md
+aa3456c4634ea05262411953a62c5e6ac27797575b4ab2e20190e507de35f68d  ./05-LiquidHR-Acceptance-Test-Pack.md
+b01f663cad90299218206dcdd21413634e46954b08b4d111afd61133d9f8d666  ./06-LiquidHR-Decision-Register-Glossary.md
+f1ba596289f2209443471face31157ec3fab1bfd573d0c38d68738e282987fa3  ./07-LiquidHR-UI-Reference-Library.md
+da6378cd9c0f026b13507f444b2b5475afeb052f0aa3dca5a03fc1771553f5f5  ./08-LiquidHR-Requirement-Traceability-Matrix.md
+926cfdc6f06cbf415d6037f4dfce9b06f4e1b2640033f3fe969fe48d3c610980  ./ui-references/ALT-UI-002A-Talent-Dashboard-Concept.png
+b6be8704b808a537df149f56fb93841170fb4a25556e14a200c4d6f32595ae5b  ./ui-references/UI-001-Workforce.png
+2ff119726eadf54f842f1dac2ecb22a668b063e500f0bad60fdf054acaf46240  ./ui-references/UI-002-Talent-Dashboard.png
+c0491b42616459187e2e3b815339d2ce8627a0c4e55ee22f93f3b0958e082eb1  ./ui-references/UI-003-Talent-Configuratie.png
+26230bf91cd308a45bfd95ffe97f8bf4a4079ddce189bc4ccaa3ccef8fac641e  ./ui-references/UI-004-Competentie-Detail.png
+f94ccc8df7e3e39ca116cbe9a17dc677295086b5fb61abee909613f606de7a1f  ./ui-references/UI-005-Functiehuis-Explorer.png
+1e0ccf835b9ea365498ccea254e7633171350c135147253f38e36ff9dcceab29  ./ui-references/UI-006-Functieprofiel.png
+3af6b240153c16763b531a375a53789c15a80d80730658cb7b71cae3010c52f2  ./ui-references/UI-007-Mijn-Talent.png
+aa14352c5d61c5251d82cd00f6f808d91c5a4199946eeecd239e1e362e010256  ./ui-references/UI-008-Team-Talent.png
+5c43f4060a69a0699e4280425d5ce7077e47ab6ca44ec1e16dc60d79e866c7b7  ./ui-references/UI-009-Niveaumodel.png
+1e2f74bee58596d942a327fde9748e8ed35cc001905a4fd82fcbfb5f2610997b  ./ui-references/UI-010-Senioriteit.png
+752d414a1aa5bca7c0f4250a1925bec935f2631cd8b8b9b14123f72e4f4111ca  ./ui-references/UI-011-Competentie-Toevoegen.png
+968c1d8556a54dbcff3b0a590231284dd8033bc99fe00095b7cba84959f00d6e  ./ui-references/UI-012-Functiefamilies.png
+d3964cee4ea3bd0dafa0ff13c34c83bd563d9bb75730bef511905d333cac79f2  ./ui-references/UI-013-Functieprofiel-Detail.png

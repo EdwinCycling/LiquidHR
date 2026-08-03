@@ -3,6 +3,7 @@
 import { ChevronDown, Download, Plus, Search, Trash2, X } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 
 export interface RoleAssignmentManagerLabels {
   title: string; subtitle: string; employee: string; role: string; department: string; effectiveFrom: string; effectiveTo: string
@@ -172,11 +173,11 @@ function AssignmentCard({ title, openLabel, children }: { title: string; openLab
 }
 
 function EmployeeSelect({ employees, label, labelFor }: { employees: Employee[]; label: string; labelFor: (employee: Employee) => string }) {
-  return <label className="grid gap-1.5 text-sm font-medium">{label}<select className="form-field" name="employeeId" required><option value="" />{employees.map((employee) => <option key={employee.id} value={employee.id}>{labelFor(employee)}</option>)}</select></label>
+  return <label className="grid gap-1.5 text-sm font-medium">{label}<DropdownSelect aria-label={label} name="employeeId" required><option value="">{label}</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{labelFor(employee)}</option>)}</DropdownSelect></label>
 }
 
 function DepartmentSelect({ departments, label }: { departments: Department[]; label: string }) {
-  return <label className="grid gap-1.5 text-sm font-medium">{label}<select className="form-field" name="departmentId" required><option value="" />{departments.map((department) => <option key={department.id} value={department.id}>{department.code} · {department.name}</option>)}</select></label>
+  return <label className="grid gap-1.5 text-sm font-medium">{label}<DropdownSelect aria-label={label} name="departmentId" required><option value="">{label}</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.code} · {department.name}</option>)}</DropdownSelect></label>
 }
 
 function DateFields({ labels }: { labels: RoleAssignmentManagerLabels }) {

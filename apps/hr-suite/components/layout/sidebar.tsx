@@ -5,6 +5,8 @@ import Link from 'next/link'
 import {
   CalendarRange,
   ChartColumn,
+  ChevronDown,
+  ChevronUp,
   House,
   LayoutDashboard,
   LogOut,
@@ -14,15 +16,16 @@ import {
   PanelLeftOpen,
   Settings,
   BriefcaseBusiness,
+  UserRound,
   Users,
   X,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
-import { EmailLink } from '@/components/shared/email-link'
 import { Clock } from '@/components/layout/clock'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
+import { ProductUpdateSidebarLink } from '@/components/product-updates/product-update-surfaces'
 import type {
   AdministrationContextOption,
   AdministrationSwitcherMode,
@@ -53,48 +56,53 @@ interface SidebarLabels {
   switchingAdministration: string
   switchAdministrationFailed: string
   timeHub: string
+  productUpdates: string
   signOut: string
 }
 
 interface SidebarProps {
-  email: string
   canReadEmployees: boolean
   canReadSettings: boolean
   canReadHrCalendar: boolean
   canReadInsights: boolean
-  tenantName: string
   activeAdministrationId: string | null
   administrations: AdministrationContextOption[]
   administrationSwitcherMode: AdministrationSwitcherMode
   labels: SidebarLabels
   preferences: UserPreferences
+  profileFirstName: string
+  profileAvatarUrl: string | null
   enabledModules: ToggleableModuleCode[]
   reminderLabels: TimeHubLabels
   reminders: ReminderItem[]
   locale: Locale
+  productUpdateUnreadCount: number
 }
 
 export function Sidebar({
-  email,
   canReadEmployees,
   canReadSettings,
   canReadHrCalendar,
   canReadInsights,
-  tenantName,
   activeAdministrationId,
   administrations,
   administrationSwitcherMode,
   labels,
   preferences,
+  profileFirstName,
+  profileAvatarUrl,
   enabledModules,
   reminderLabels,
   reminders,
   locale,
+  productUpdateUnreadCount,
 }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuOrder, setMenuOrder] = useState<string[]>([])
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [currentProductUpdateUnreadCount, setCurrentProductUpdateUnreadCount] = useState(productUpdateUnreadCount)
   const links = [
     { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true, nested: false },
     { href: '/dashboard/start', label: labels.startPage, icon: House, visible: true, nested: false },
@@ -103,7 +111,7 @@ export function Sidebar({
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
     { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: true, nested: false },
-    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false },
+    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false, exact: true },
   ]
   useEffect(() => {
     const load = () => {
@@ -124,7 +132,8 @@ export function Sidebar({
       } catch { setMenuOrder([]) }
     }
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
-    load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); return () => window.removeEventListener('liquidhr-menu-order-changed', handleChange)
+    const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
+    load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
   }, [])
   const orderedLinks = [...links].sort((left, right) => {
     const leftIndex = menuOrder.indexOf(left.href)
@@ -148,13 +157,13 @@ export function Sidebar({
       ) : null}
 
       <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-200 md:sticky md:top-0 md:z-20 md:min-h-0 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'md:w-20' : 'md:w-72'}`}>
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className={`flex h-16 items-center border-b border-sidebar-border px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
           {!collapsed ? (
             <div className="flex min-w-0 items-center gap-3">
               {preferences.companyBranding?.logoUrl ? <img alt="" className="max-h-9 max-w-32 shrink-0 object-contain" src={preferences.companyBranding.logoUrl} /> : <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>}
               <span className="truncate text-sm font-semibold tracking-tight">{labels.appName}</span>
             </div>
-          ) : preferences.companyBranding?.logoUrl ? <img alt="" className="mx-auto max-h-9 max-w-12 object-contain" src={preferences.companyBranding.logoUrl} /> : <span aria-hidden="true" className="mx-auto grid size-9 place-items-center rounded-lg border border-sidebar-border bg-sidebar-accent text-xs font-semibold">LH</span>}
+          ) : null}
           <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
             <X aria-hidden="true" size={19} />
           </button>
@@ -163,7 +172,7 @@ export function Sidebar({
           </button>
         </div>
 
-        {!collapsed ? (
+        {!collapsed && administrationSwitcherMode === 'SELECT' ? (
           <div className="px-3 pb-5 pt-4">
             <AdministrationSwitcher
               activeAdministrationId={activeAdministrationId}
@@ -174,14 +183,13 @@ export function Sidebar({
                 switchFailed: labels.switchAdministrationFailed,
               }}
               mode={administrationSwitcherMode}
-              tenantName={tenantName}
             />
           </div>
         ) : null}
 
         <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
           {orderedLinks.filter((link) => link.visible).map((link) => {
-            const active = link.href === '/dashboard' ? pathname === '/dashboard' : pathname === link.href || pathname.startsWith(`${link.href}/`)
+            const active = link.href === '/dashboard' || link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`)
             const Icon = link.icon
             return (
               <Link key={link.href} aria-current={active ? 'page' : undefined}
@@ -193,27 +201,43 @@ export function Sidebar({
               </Link>
             )
           })}
+          <ProductUpdateSidebarLink collapsed={collapsed} labels={{ title: labels.productUpdates }} unreadCount={currentProductUpdateUnreadCount} />
         </nav>
 
         <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
           <div className={collapsed ? 'grid place-items-center gap-2' : 'flex items-center justify-between gap-3'} title={collapsed ? labels.timeHub : undefined}>
-            <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} />
+            {!collapsed ? <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} /> : null}
             {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} /> : null}
           </div>
         </div>
 
         <div className="shrink-0 border-t border-sidebar-border p-3">
-          <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => setMobileOpen(false)} title={collapsed ? labels.personalSettings : undefined}><Settings aria-hidden="true" className="shrink-0" size={18} />{!collapsed ? <span>{labels.personalSettings}</span> : null}</Link>
-          <div className={`mt-2 border-t border-sidebar-border pt-3 ${collapsed ? 'flex justify-center' : ''}`}>
-            {!collapsed ? <EmailLink className="block truncate px-3 text-xs text-sidebar-muted hover:text-sidebar-foreground hover:underline" email={email} /> : null}
-            <form action="/auth/signout" method="post">
-              <button aria-label={labels.signOut} className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground ${collapsed ? 'justify-center' : 'w-full'}`} title={collapsed ? labels.signOut : undefined} type="submit">
-                <LogOut aria-hidden="true" className="shrink-0" size={18} />
-                {!collapsed ? <span>{labels.signOut}</span> : null}
+          {collapsed ? (
+            <>
+              <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => setMobileOpen(false)} title={labels.personalSettings}><Settings aria-hidden="true" className="shrink-0" size={18} /></Link>
+              <div className="mt-2 flex justify-center border-t border-sidebar-border pt-3">
+                <form action="/auth/signout" method="post">
+                  <button aria-label={labels.signOut} className="flex items-center justify-center rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" title={labels.signOut} type="submit"><LogOut aria-hidden="true" className="shrink-0" size={18} /></button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <div className="relative">
+              {accountMenuOpen ? <div aria-label={profileFirstName} className="absolute bottom-[calc(100%+0.75rem)] left-0 right-0 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-[0_1rem_2.5rem_color-mix(in_srgb,var(--sidebar)_45%,transparent)]" role="menu">
+                <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => { setAccountMenuOpen(false); setMobileOpen(false) }} role="menuitem"><Settings aria-hidden="true" className="shrink-0" size={18} /><span>{labels.personalSettings}</span></Link>
+                <form action="/auth/signout" method="post">
+                  <button aria-label={labels.signOut} className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" role="menuitem" type="submit"><LogOut aria-hidden="true" className="shrink-0" size={18} /><span>{labels.signOut}</span></button>
+                </form>
+              </div> : null}
+              <button aria-expanded={accountMenuOpen} aria-haspopup="menu" aria-label={profileFirstName} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={() => setAccountMenuOpen((value) => !value)} type="button">
+                <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-sidebar-accent text-sidebar-foreground">
+                  {profileAvatarUrl ? <img alt="" className="size-full object-cover" src={profileAvatarUrl} /> : <UserRound aria-hidden="true" size={17} />}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{profileFirstName}</span>
+                {accountMenuOpen ? <ChevronDown aria-hidden="true" className="shrink-0" size={17} /> : <ChevronUp aria-hidden="true" className="shrink-0" size={17} />}
               </button>
-            </form>
-            {!collapsed ? <p className="mt-3 px-3 text-[10px] tabular-nums text-sidebar-muted">{labels.version}</p> : null}
-          </div>
+            </div>
+          )}
         </div>
       </aside>
     </>

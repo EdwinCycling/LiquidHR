@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { permissionErrorResponse, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { permissionErrorResponse, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { getModuleCatalog, type ToggleableModuleCode } from './module-catalog'
 import type { ModuleSelectionInput } from './schemas'
@@ -11,9 +11,14 @@ export class ModuleError extends Error {
   }
 }
 
-export async function getEnabledTenantModules(): Promise<ToggleableModuleCode[]> {
-  const auth = await requireAuthContext()
-  const supabase = await createClient()
+type ModuleReadDependencies = {
+  auth: AuthContext
+  supabase: Awaited<ReturnType<typeof createClient>>
+}
+
+export async function getEnabledTenantModules(dependencies?: ModuleReadDependencies): Promise<ToggleableModuleCode[]> {
+  const auth = dependencies?.auth ?? await requireAuthContext()
+  const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.from('tenant_modules').select('module_code')
     .eq('tenant_id', auth.tenantId).eq('is_enabled', true)
   if (error) throw new ModuleError('MODULES_READ_FAILED', 500)
@@ -36,7 +41,7 @@ export async function saveTenantModules(input: ModuleSelectionInput): Promise<vo
   const enabled = new Set(input.enabled)
   const now = new Date().toISOString()
   const supabase = await createClient()
-  const rows = (['HERA', 'DOCUMENTS', 'REMINDERS'] as const).map((moduleCode) => ({
+  const rows = (['HERA', 'DOCUMENTS', 'REMINDERS', 'TALENT'] as const).map((moduleCode) => ({
     tenant_id: auth.tenantId,
     module_code: moduleCode,
     is_enabled: enabled.has(moduleCode),

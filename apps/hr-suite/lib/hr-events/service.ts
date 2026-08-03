@@ -26,7 +26,7 @@ export async function listCalendarHrEvents(month: string) {
   const today=new Date().toISOString().slice(0,10); const [employees,organizations,departments]=await Promise.all([
     supabase.from('employees').select('id, employee_number, first_name, birth_name').in('id',employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id').in('employee_id',employeeIds).lte('effective_from',today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(3000),
-    supabase.from('departments').select('id,code,name').eq('administration_id',context.administrationId).eq('is_active',true).order('code').limit(500),
+    supabase.from('departments').select('id,code,name').eq('tenant_id',context.tenantId).eq('is_active',true).order('code').limit(500),
   ])
   if(employees.error||organizations.error||departments.error)throw new Error('HR_CALENDAR_CONTEXT_FAILED')
   const departmentByEmployee=new Map((organizations.data??[]).map((item)=>[item.employee_id,item.department_id]))
