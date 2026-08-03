@@ -1,5 +1,27 @@
 # Implementatiestatus Liquid HR
 
+## Uitgebreide Talent Management-testhandleiding 2026-08-03
+
+Een afzonderlijk Markdown-testdocument is toegevoegd: `docs/delivery/TALENT_MANAGEMENT_FUNCTIONAL_TEST_GUIDE_20260803.md`. Dit document is de praktische testbasis voor de drie fixtureaccounts en beschrijft wat HR Admin, manager en medewerker mogen openen, zien, instellen en niet mogen zien, inclusief de verwachte demo-seeddata, dashboards, periodefilters, check-ins, Role Explorer, negatieve autorisatiechecks en performancecontrole. Wachtwoorden en tokens zijn bewust uitgesloten. Geen databasewijziging, deployment of seedreset uitgevoerd.
+
+## Performance- en Talent Management-update 2026-08-03
+
+De HR-adminpagina `/settings/talent` is start-first gemaakt: de eerste load haalt geen Talent-fundament, functieprofielen of persoonlijke capabilityregistraties meer op. Elke sectie wordt exclusief geopend via één accordion, laadt op dat moment via de bestaande geautoriseerde API's en hergebruikt geladen data bij opnieuw openen. De losse Talent-navigatie staat nu binnen Start. De naamgeving onderscheidt `Talent Management`, `Functieprofielen - gekoppeld aan het functiehuis` en `Bestaande functie` van het bestaande beheer van `Functies en functiegroepen`; beheeracties in het fundament staan binnen de accordion.
+
+De capability-record read gebruikt alleen benodigde kolommen en tenantfilters voor referentiequeries. Geen schemawijziging, remote write, commit of deployment. Checks: 447 hr-suite-tests + 7 control-tests, lint, i18n en productiebuild (156 pagina's) geslaagd. Productie-smoke: `/login` 200; beveiligde representatieve hoofd-routes 307 naar login met circa 5-28 ms guardtijd. Geauthenticeerde accordion-/rolcontrole blijft open wegens ontbrekende lokale fixturecredentials. Losse `type-check` blijft falen op bestaande `apps/hr-suite/lib/weather/open-meteo.ts:102`; de productiebuild heeft de nieuwe code wel succesvol gecompileerd en door TypeScript verwerkt.
+
+## UI-update 2026-08-03: werkweer op landing-header
+
+De startpagina koppelt de actuele werkcontext aan een server-side Open-Meteo-forecast. Een toegewezen actieve bedrijfslocatie gaat voor het bedrijfsadres; thuisgegevens worden niet gelezen. Zonder vindbare locatie gebruikt de kaart Amsterdam als vaste fallback. De rechterkaart volgt de referentie-indeling met circa 25% kleinere temperatuur- en luchtvochtigheidscijfers, luchtdrukbalk en trendpijl, plus een windrichtingcirkel met Nederlandse kompasrichtingen; onderaan staat uitsluitend de volledige stadnaam. De begroeting is eveneens verkleind. Onder de begroeting verschijnen server-side conditioneel de dagen tot het volgende goedgekeurde persoonlijke verlof en de eerstvolgende actieve feestdag; ontbrekende verlofdata wordt niet getoond. Onder de headerdrempel wordt de kaart verborgen in plaats van onder de begroeting te stapelen. Geen commit, push of deployment.
+
+## UI-update 2026-08-03: accountmenu typografie en versieregel
+
+Het ingelogde accountmenu in de sidebar heeft gelijke standaardtypografie voor persoonlijke instellingen en uitloggen. De actieve appversie staat daaronder als gewone, niet-klikbare informatieregel. Gerichte browsercontrole bevestigt `Versie 1.20260803.2`; geen schema/API-wijziging.
+
+## UI-update 2026-08-03: ingeklapte sidebar-controls uitgelijnd
+
+De ingeklapte desktop-sidebar gebruikt voor alle icon-controls dezelfde 44px hit-area en centrering: collapse, navigatie, productupdates, reminders, persoonlijke instellingen en uitloggen. Browsercontrole op 80px sidebarbreedte bevestigt dezelfde x-positie, breedte en hoogte voor de controls. Geen schema/API-wijziging.
+
 ## Besluitupdate 2026-08-03
 
 Provider snapshot/restore is op verzoek uitgesloten en is geen actief releasepunt. LMS/P3.6 wordt niet gebouwd zonder nieuw productbesluit; P3.3 en P3.5 blijven `GEPARKEERD`; P4-P6 zijn niet uitgevoerd. De gerichte Supabase-timeout is aangepakt met nieuwe Talent-scope-indexen, RLS-short-circuiting en lazy rapportopties. `TALENT-NEXT-01` is gebouwd met drie rolroutes, spiderweb plus toegankelijke tabel en browserbewijs voor medewerker, manager en HR-admin op poort 3000. Oudere historische regels hieronder kunnen nog eerdere openpunten noemen; deze update is leidend.

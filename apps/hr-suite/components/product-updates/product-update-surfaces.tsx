@@ -76,7 +76,7 @@ export function ProductUpdateLoginPopup({ updates, labels, locale }: { updates: 
 }
 
 export function ProductUpdateSidebarLink({ unreadCount, labels, collapsed }: { unreadCount: number; labels: Pick<ProductUpdateSurfaceLabels, 'title'>; collapsed?: boolean }) {
-  return <Link aria-label={labels.title} className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/product-updates" title={collapsed ? labels.title : undefined}><Gift aria-hidden="true" className="shrink-0" size={18} />{!collapsed ? <span>{labels.title}</span> : null}{unreadCount > 0 ? <span className={`${collapsed ? 'absolute right-1 top-1' : 'ml-auto'} grid min-w-5 place-items-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white`}>{unreadCount > 99 ? '99+' : unreadCount}</span> : null}</Link>
+  return <Link aria-label={labels.title} className={`relative rounded-lg text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground ${collapsed ? 'mx-auto grid size-11 place-items-center' : 'flex items-center gap-3 px-3 py-2.5'}`} href="/product-updates" title={collapsed ? labels.title : undefined}><Gift aria-hidden="true" size={18} />{!collapsed ? <span>{labels.title}</span> : null}{unreadCount > 0 ? <span className={`${collapsed ? 'absolute right-1 top-1' : 'ml-auto'} grid min-w-5 place-items-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white`}>{unreadCount > 99 ? '99+' : unreadCount}</span> : null}</Link>
 }
 
 export const PRODUCT_UPDATE_CHANNELS: ProductUpdateChannel[] = ['GIFT_WINDOW', 'LOGIN_POPUP', 'TOP_BANNER']

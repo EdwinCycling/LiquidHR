@@ -1,5 +1,6 @@
 import { AuthShell } from '@/components/auth/auth-shell'
 import { LoginForm, type LoginFormLabels } from '@/components/auth/login-form'
+import { safeNextPath } from '@/lib/auth/login-rules'
 import { getTranslator } from '@/lib/i18n/server'
 
 interface LoginPageProps {
@@ -15,7 +16,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     getTranslator('auth'),
     getTranslator('common'),
   ])
-  const nextPath = typeof params.next === 'string' ? params.next : '/dashboard/start'
+  const nextPath = safeNextPath(typeof params.next === 'string' ? params.next : undefined)
   const labels: LoginFormLabels = {
     email: auth('email'),
     password: auth('password'),

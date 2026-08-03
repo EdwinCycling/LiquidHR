@@ -1,6 +1,7 @@
 node_modules/
 .npm-cache/
 .playwright-cli/
+.playwright-state/
 .agents/
 .next/
 .eslintcache

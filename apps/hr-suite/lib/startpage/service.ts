@@ -4,6 +4,7 @@ import { requireAuthContext, type AuthContext } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { listMyReminders, type ReminderItem } from '@/lib/reminders/reminder-service'
 import { createClient } from '@/lib/supabase/server'
+import { FALLBACK_WEATHER_LOCATION, getWorkWeather, type WorkWeather } from '@/lib/weather/open-meteo'
 
 export interface StartPageData {
   employeeId: string | null
@@ -20,6 +21,9 @@ export interface StartPageData {
   employeeCount: number | null
   recurringAbsenceCount: number | null
   longTermSickCount: number | null
+  workWeather: WorkWeather | null
+  nextLeaveInDays: number | null
+  nextHolidayInDays: number | null
 }
 
 export interface StartPageLeavePerson {
@@ -50,6 +54,42 @@ export interface StartPageEvent {
   employeeId: string
   employeeName: string
   years: number | null
+}
+
+interface StartPageCountdowns {
+  nextLeaveInDays: number | null
+  nextHolidayInDays: number | null
+}
+
+function daysUntilDate(targetDate: string, baseDate: string): number | null {
+  const [targetYear, targetMonth, targetDay] = targetDate.split('-').map(Number)
+  const [baseYear, baseMonth, baseDay] = baseDate.split('-').map(Number)
+  if (![targetYear, targetMonth, targetDay, baseYear, baseMonth, baseDay].every(Number.isFinite)) return null
+  const target = Date.UTC(targetYear, targetMonth - 1, targetDay)
+  const base = Date.UTC(baseYear, baseMonth - 1, baseDay)
+  if (!Number.isFinite(target) || !Number.isFinite(base)) return null
+  return Math.max(0, Math.round((target - base) / 86_400_000))
+}
+
+async function getStartPageCountdowns(auth: AuthContext): Promise<StartPageCountdowns> {
+  const empty: StartPageCountdowns = { nextLeaveInDays: null, nextHolidayInDays: null }
+  if (!auth.administrationId) return empty
+
+  const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+  const [leaveResult, holidayResult] = await Promise.all([
+    auth.employeeId && auth.permissions.includes('leave:read')
+      ? supabase.from('leave_requests').select('start_date').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('employee_id', auth.employeeId).eq('status', 'APPROVED').gte('start_date', today).order('start_date', { ascending: true }).limit(1).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    auth.permissions.includes('holidays:read')
+      ? supabase.from('holidays').select('holiday_date').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('is_active', true).gte('holiday_date', today).order('holiday_date', { ascending: true }).limit(1).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  return {
+    nextLeaveInDays: leaveResult.error || !leaveResult.data ? null : daysUntilDate(leaveResult.data.start_date, today),
+    nextHolidayInDays: holidayResult.error || !holidayResult.data ? null : daysUntilDate(holidayResult.data.holiday_date, today),
+  }
 }
 
 async function listLeaveAbsences(auth: AuthContext): Promise<StartPageLeaveAbsences> {
@@ -245,6 +285,39 @@ async function countLongTermSick(auth: AuthContext): Promise<number | null> {
   return error ? null : count ?? 0
 }
 
+async function getStartPageWorkWeather(auth: AuthContext): Promise<WorkWeather | null> {
+  const fallbackWeather = () => getWorkWeather(FALLBACK_WEATHER_LOCATION)
+  if (!auth.administrationId) return fallbackWeather()
+  const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+  const [companyResult, assignmentResult] = await Promise.all([
+    supabase.from('administration_company_data').select('city, country_code').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).maybeSingle(),
+    auth.employeeId
+      ? supabase.from('employee_organizations').select('location_id').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('employee_id', auth.employeeId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(25)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (companyResult.error || assignmentResult.error) return fallbackWeather()
+
+  const currentAssignment = assignmentResult.data?.[0]
+  const locationId = currentAssignment?.location_id ?? null
+  const locationResult = locationId
+    ? await supabase.from('administration_locations').select('id, name, city, country_code').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('id', locationId).eq('is_active', true).maybeSingle()
+    : { data: null, error: null }
+  if (locationResult.error) return fallbackWeather()
+
+  const location = locationResult.data
+  const city = location?.city ?? companyResult.data?.city ?? null
+  const countryCode = location?.country_code ?? companyResult.data?.country_code ?? 'NL'
+  if (!city) return fallbackWeather()
+  return getWorkWeather({
+    name: location?.name ?? city,
+    city,
+    countryCode,
+    latitude: 0,
+    longitude: 0,
+  })
+}
+
 export async function getStartPageData(): Promise<StartPageData> {
   const supabase = await createClient()
   const auth = await requireAuthContext(supabase)
@@ -252,7 +325,7 @@ export async function getStartPageData(): Promise<StartPageData> {
   const managementRoles = new Set(['TENANT_ADMIN', 'HR_ADMIN', 'HR_ADVISOR', 'DIRECT_MANAGER', 'TEAM_LEAD'])
   const isEmployeeOnly = auth.activeRoles.every((role) => !managementRoles.has(role))
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount] = await Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, countdowns] = await Promise.all([
     auth.employeeId
       ? supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -264,6 +337,8 @@ export async function getStartPageData(): Promise<StartPageData> {
     countEmployees(auth),
     countRecurringAbsence(auth),
     countLongTermSick(auth),
+    getStartPageWorkWeather(auth),
+    getStartPageCountdowns(auth),
   ])
 
   return {
@@ -281,5 +356,8 @@ export async function getStartPageData(): Promise<StartPageData> {
     employeeCount,
     recurringAbsenceCount,
     longTermSickCount,
+    workWeather,
+    nextLeaveInDays: countdowns.nextLeaveInDays,
+    nextHolidayInDays: countdowns.nextHolidayInDays,
   }
 }

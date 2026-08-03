@@ -15,6 +15,7 @@ type RecordRow = Database['public']['Tables']['talent_employee_capability_record
 type CapabilityRow = Database['public']['Tables']['talent_capabilities']['Row']
 type LevelRow = Database['public']['Tables']['talent_levels']['Row']
 type EmployeeRow = Database['public']['Tables']['employees']['Row']
+type RecordReadRow = Pick<RecordRow, 'id' | 'employee_id' | 'capability_id' | 'talent_level_id' | 'language_level' | 'language_is_native' | 'certificate_status' | 'certificate_issuing_body' | 'certificate_code' | 'certificate_validity_months' | 'certificate_is_permanent' | 'certificate_renewal_required' | 'evidence_status' | 'qualification_responsible_user_id' | 'source_type' | 'status' | 'valid_from' | 'valid_until' | 'evidence_document_id' | 'version' | 'updated_at'>
 
 export type TalentEmployeeCapabilityRecord = {
   id: string
@@ -53,7 +54,7 @@ export type TalentEmployeeCapabilityOptions = {
   levels: Array<Pick<LevelRow, 'id' | 'code' | 'name'>>
 }
 
-function effectiveStatus(row: RecordRow, today: string): string {
+function effectiveStatus(row: Pick<RecordRow, 'status' | 'valid_until'>, today: string): string {
   if (row.status !== 'ARCHIVED' && row.valid_until && row.valid_until <= today) return 'EXPIRED'
   return row.status
 }
@@ -119,7 +120,7 @@ function recordWriteError(error: { code?: string; message?: string }, fallback: 
 }
 
 function toRecord(
-  row: RecordRow,
+  row: RecordReadRow,
   capability: Pick<CapabilityRow, 'id' | 'code' | 'name' | 'capability_type'> | undefined,
   level: Pick<LevelRow, 'id' | 'code' | 'name'> | undefined,
   employee: Pick<EmployeeRow, 'first_name' | 'birth_name' | 'employee_number'> | undefined,
@@ -168,7 +169,7 @@ async function readRecordRows(query: TalentEmployeeCapabilityListQuery, selfBoun
 
   let recordsQuery = supabase
     .from('talent_employee_capability_records')
-    .select('*')
+    .select('id,employee_id,capability_id,talent_level_id,language_level,language_is_native,certificate_status,certificate_issuing_body,certificate_code,certificate_validity_months,certificate_is_permanent,certificate_renewal_required,evidence_status,qualification_responsible_user_id,source_type,status,valid_from,valid_until,evidence_document_id,version,updated_at')
     .eq('tenant_id', context.tenantId)
     .order('valid_from', { ascending: false })
     .order('updated_at', { ascending: false })
@@ -184,13 +185,13 @@ async function readRecordRows(query: TalentEmployeeCapabilityListQuery, selfBoun
   const employeeIds = [...new Set(rows.map((row) => row.employee_id))]
   const [capabilitiesResult, levelsResult, employeesResult] = await Promise.all([
     capabilityIds.length > 0
-      ? supabase.from('talent_capabilities').select('id,code,name,capability_type').in('id', capabilityIds)
+      ? supabase.from('talent_capabilities').select('id,code,name,capability_type').eq('tenant_id', context.tenantId).in('id', capabilityIds)
       : Promise.resolve({ data: [], error: null }),
     levelIds.length > 0
-      ? supabase.from('talent_levels').select('id,code,name').in('id', levelIds)
+      ? supabase.from('talent_levels').select('id,code,name').eq('tenant_id', context.tenantId).in('id', levelIds)
       : Promise.resolve({ data: [], error: null }),
     employeeIds.length > 0
-      ? supabase.from('employees').select('id,first_name,birth_name,employee_number').in('id', employeeIds)
+      ? supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).in('id', employeeIds)
       : Promise.resolve({ data: [], error: null }),
   ])
   if (capabilitiesResult.error || levelsResult.error || employeesResult.error) throw new TalentServiceError('TALENT_EMPLOYEE_CAPABILITY_READ_FAILED')

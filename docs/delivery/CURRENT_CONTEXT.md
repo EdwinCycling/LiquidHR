@@ -1,5 +1,33 @@
 # Actuele overdracht Liquid HR
 
+## Uitgebreide Talent Management-testhandleiding 2026-08-03
+
+De herhaalbare handleiding voor Talent Management staat in `docs/delivery/TALENT_MANAGEMENT_FUNCTIONAL_TEST_GUIDE_20260803.md`. Het document bevat de drie fixtureaccounts zonder wachtwoorden, rol- en routegrenzen, verwachte capability-/doel-/check-indata, HR-, manager- en medewerkerflows, negatieve autorisatietests, performancecontrole, veilige mutatietests en een bevindingentabel. Gebruik dit document als handmatige testbasis; ontbrekende seeddata moet als omgevingsbevinding worden gemeld en niet worden verzonnen. Geen databasewijziging, deployment of seedreset uitgevoerd.
+
+## Security-hardening update 2026-08-03
+
+Login gebruikt nu ook vóór het renderen `safeNextPath`, zodat een externe of protocol-relative `next`-waarde niet in het formulier wordt teruggekaatst. `apps/hr-suite/next.config.ts` levert HSTS, `nosniff`, frame-denial, een strikte referrer policy en een beperkte Permissions Policy; bewust is geen CSP toegevoegd omdat OAuth, Supabase en adresproviders eerst volledig moeten worden geïnventariseerd. Het Talent-recordpaneel laadt opties en records sequentieel om gelijktijdige RLS-belasting op `talent_capabilities` en `talent_levels` te beperken.
+
+Verificatie na deze hardening: 448 hr-suite-tests en 7 control-tests groen, lint, beide strict typechecks, i18n-pariteit en beide productiebuilds groen (156 HR-pagina's, 12 control-pagina's). De lokale security-smokecheck bevestigde alle vijf headers, normalisatie van externe/protocol-relative/XSS-achtige login-`next`-waarden naar `/dashboard/start` en HTTP 401 op een onbevoegde employee-API. Er is geen remote Supabase-migratie toegepast en Vercel Production staat nog op commit `4f00eeca4f2a79172d72964eb4fe234843a958c1`; publicatie blijft wachten op herstel van write-authenticatie. De audit heeft nog drie high-meldingen die via de geneste, door Next `16.2.12` vastgepinde `postcss@8.4.31` en optionele `sharp@0.34.5` komen; een override die dit niet betrouwbaar in de lockfile oplost is bewust niet behouden.
+
+## Performance- en Talent Management-update 2026-08-03
+
+`/settings/talent` laadt bij de eerste paginaweergave alleen autorisatie, vertalingen en de Start-sectie. Talentfunctieprofielen, persoonlijke capabilityregistraties en het Talentfundament worden pas geladen wanneer de betreffende accordion-sectie wordt geopend en blijven daarna in de clientcache. De initiële losse Talent-knoppen zijn naar Start verplaatst; het fundament heeft geen beheerknoppen meer buiten de accordion. De naamgeving is verduidelijkt naar `Talent Management`, `Functieprofielen - gekoppeld aan het functiehuis` en `Bestaande functie`, zodat dit niet concurreert met `Functies en functiegroepen` in HR-inrichting.
+
+De capability-recordquery gebruikt een allowlisted select en tenantfilters op de drie referentielezingen. Er is in deze wijziging geen remote databasewijziging of deployment uitgevoerd. Verificatie: 447 hr-suite-tests en 7 control-tests groen, volledige lint groen, i18n-pariteit groen en productiebuild met 156 pagina's groen. Een lokale productie-smokecheck gaf voor `/login` HTTP 200 en voor de representatieve beveiligde hoofd-routes HTTP 307 naar login binnen circa 5-28 ms; dit is guard-performance, geen geauthenticeerde UI-meting. De drie-rollen Talent-releasegate kon niet opnieuw draaien omdat de lokale fixturecredentials ontbreken. De losse `type-check` blijft geblokkeerd door de bestaande fout `apps/hr-suite/lib/weather/open-meteo.ts:102`.
+
+## UI-update 2026-08-03: werkweer op landing-header
+
+De landing-header toont server-side een compact barometerachtig werkweerinstrument via Open-Meteo. De actieve `employee_organizations`-werklocatie heeft voorrang; zonder bruikbare locatie valt de kaart terug op Amsterdam (52.3676, 4.9041). De kaart toont temperatuur boven, luchtdruk met kleurenschaal en stijg/daal/stabiel-indicator in het midden, luchtvochtigheid onder en windrichting als roterende pijl in een cirkel. De zichtbare windrichting gebruikt Nederlandse kompasrichtingen (`N`, `NO`, `O`, `ZO`, `Z`, `ZW`, `W`, `NW`); alleen de volledige stadnaam staat onderaan. De temperatuur, luchtvochtigheid en totale kaart/hero zijn opnieuw circa 25% compacter gemaakt; de begroeting volgt dezelfde kleinere typografische schaal. Onder de begroeting verschijnen alleen wanneer de brondata bestaat de resterende dagen tot persoonlijk goedgekeurd verlof en de eerstvolgende actieve feestdag. Bij een te kleine header wordt het weerinstrument volledig verborgen. Strict typecheck, gerichte ESLint en i18n-pariteit zijn geslaagd; browsercontrole bevestigde de echte feestdagenregel, het weglaten van ontbrekend persoonlijk verlof en geen overflow.
+
+## UI-update 2026-08-03: accountmenu typografie en versieregel
+
+Het uitklapmenu van de ingelogde gebruiker in de sidebar gebruikt voor `Persoonlijke instellingen` en `Uitloggen` nu dezelfde expliciete 14px-standaardtypografie. De appversie wordt onder een scheidingslijn als niet-klikbare informatieregel getoond (`Versie 1.20260803.2`). Geen schema-, API- of autorisatiewijziging.
+
+## UI-update 2026-08-03: ingeklapte sidebar-controls uitgelijnd
+
+In de ingeklapte desktop-sidebar gebruiken de collapseknop, navigatie-items, productupdates, reminderknop, persoonlijke instellingen en uitloggen nu dezelfde 44px vierkante hit-area met gecentreerd icoon. Daardoor vallen de horizontale centra en hover-oppervlakken gelijk; de actieve navigatie behoudt zijn accent. Geen schema-, API- of autorisatiewijziging.
+
 ## Releaseupdate 2026-08-03: main en Vercel Production bijgewerkt
 
 De volledige huidige werkboom is gepubliceerd naar `main` in commit `de92728` (`feat: complete current LiquidHR release slices`); `.playwright-state/` is bewust lokaal gebleven en niet gecommit. Een productie-authfout rond stale Supabase-refreshcookies is daarna opgelost in commit `08cfbc0` (`fix: recover stale auth refresh sessions`) met een middleware-regressietest. `origin/main` en de lokale `main` wijzen nu naar `08cfbc0`.

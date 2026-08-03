@@ -167,7 +167,7 @@ export function Sidebar({
           <button aria-label={labels.closeMenu} className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden" onClick={() => setMobileOpen(false)} type="button">
             <X aria-hidden="true" size={19} />
           </button>
-          <button aria-label={collapsed ? labels.expand : labels.collapse} className="hidden size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:grid" onClick={() => setCollapsed((value) => !value)} type="button">
+          <button aria-label={collapsed ? labels.expand : labels.collapse} className="hidden size-11 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground md:grid" onClick={() => setCollapsed((value) => !value)} type="button">
             {collapsed ? <PanelLeftOpen aria-hidden="true" size={19} /> : <PanelLeftClose aria-hidden="true" size={19} />}
           </button>
         </div>
@@ -193,7 +193,7 @@ export function Sidebar({
             const Icon = link.icon
             return (
               <Link key={link.href} aria-current={active ? 'page' : undefined}
-                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${link.nested ? 'ml-3 border-l border-sidebar-border pl-4' : ''} ${active ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
+                className={`group flex items-center gap-3 rounded-lg text-sm transition-colors ${collapsed ? 'mx-auto size-11 justify-center p-0' : 'px-3 py-2.5'} ${!collapsed && link.nested ? 'ml-3 border-l border-sidebar-border pl-4' : ''} ${active ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
                 href={link.href} onClick={() => setMobileOpen(false)} title={collapsed ? link.label : undefined}>
                 <Icon aria-hidden="true" className="shrink-0" size={18} />
                 {!collapsed ? <span>{link.label}</span> : null}
@@ -214,20 +214,21 @@ export function Sidebar({
         <div className="shrink-0 border-t border-sidebar-border p-3">
           {collapsed ? (
             <>
-              <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => setMobileOpen(false)} title={labels.personalSettings}><Settings aria-hidden="true" className="shrink-0" size={18} /></Link>
+              <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="mx-auto grid size-11 place-items-center rounded-lg text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => setMobileOpen(false)} title={labels.personalSettings}><Settings aria-hidden="true" size={18} /></Link>
               <div className="mt-2 flex justify-center border-t border-sidebar-border pt-3">
                 <form action="/auth/signout" method="post">
-                  <button aria-label={labels.signOut} className="flex items-center justify-center rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" title={labels.signOut} type="submit"><LogOut aria-hidden="true" className="shrink-0" size={18} /></button>
+                  <button aria-label={labels.signOut} className="grid size-11 place-items-center rounded-lg text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" title={labels.signOut} type="submit"><LogOut aria-hidden="true" size={18} /></button>
                 </form>
               </div>
             </>
           ) : (
             <div className="relative">
               {accountMenuOpen ? <div aria-label={profileFirstName} className="absolute bottom-[calc(100%+0.75rem)] left-0 right-0 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-[0_1rem_2.5rem_color-mix(in_srgb,var(--sidebar)_45%,transparent)]" role="menu">
-                <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => { setAccountMenuOpen(false); setMobileOpen(false) }} role="menuitem"><Settings aria-hidden="true" className="shrink-0" size={18} /><span>{labels.personalSettings}</span></Link>
+                <Link aria-current={pathname === '/personal-settings' ? 'page' : undefined} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 !text-sm font-normal leading-5 text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" href="/personal-settings" onClick={() => { setAccountMenuOpen(false); setMobileOpen(false) }} role="menuitem"><Settings aria-hidden="true" className="shrink-0" size={18} /><span>{labels.personalSettings}</span></Link>
                 <form action="/auth/signout" method="post">
-                  <button aria-label={labels.signOut} className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" role="menuitem" type="submit"><LogOut aria-hidden="true" className="shrink-0" size={18} /><span>{labels.signOut}</span></button>
+                  <button aria-label={labels.signOut} className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 !text-sm font-normal leading-5 text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" role="menuitem" type="submit"><LogOut aria-hidden="true" className="shrink-0" size={18} /><span>{labels.signOut}</span></button>
                 </form>
+                <p className="mt-2 border-t border-sidebar-border px-3 pt-2 text-xs font-normal leading-5 text-sidebar-muted/75">{labels.version}</p>
               </div> : null}
               <button aria-expanded={accountMenuOpen} aria-haspopup="menu" aria-label={profileFirstName} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" onClick={() => setAccountMenuOpen((value) => !value)} type="button">
                 <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-sidebar-accent text-sidebar-foreground">
