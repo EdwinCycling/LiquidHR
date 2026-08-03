@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Releaseupdate 2026-08-03: main en Vercel Production bijgewerkt
+
+De volledige huidige werkboom is gepubliceerd naar `main` in commit `de92728` (`feat: complete current LiquidHR release slices`); `.playwright-state/` is bewust lokaal gebleven en niet gecommit. Een productie-authfout rond stale Supabase-refreshcookies is daarna opgelost in commit `08cfbc0` (`fix: recover stale auth refresh sessions`) met een middleware-regressietest. `origin/main` en de lokale `main` wijzen nu naar `08cfbc0`.
+
+Lokale verificatie na de authfix: 121 testbestanden/447 tests, strict typecheck, lint, i18n (26 namespaces), `git diff --check` en productiebuild met 156 pagina's zijn geslaagd. Vercel Production is voor `08cfbc0` als `READY` gemarkeerd; de build compileerde, doorliep TypeScript, genereerde 156 pagina's en voltooide deployment. `/login` gaf HTTP 200. Een synthetische stale-cookie-aanvraag op `/departments` gaf `307 /login?next=%2Fdepartments` zonder 500; voor de nieuwe deployment zijn geen error/fatal runtime-logs gevonden. De historische `Invalid Refresh Token`-groep hoort bij de vorige deployment en is niet opnieuw gezien op de authfix-deployment.
+
+Vercel meldt tijdens `npm install` nog 4 high-severity dependency-auditmeldingen. Die zijn in deze release niet automatisch aangepast omdat `npm audit fix --force` breaking changes kan veroorzaken; dit blijft een afzonderlijk security-opvolgpunt.
+
 ## Besluitupdate 2026-08-03
 
 Snapshot/restore via providerbranch is bewust uitgesloten en is geen open releaseactie. LMS/P3.6 wordt niet gebouwd zonder nieuw productbesluit; P3.3 en P3.5 blijven `GEPARKEERD`; P4-P6 worden niet gestart. De gerichte Supabase-timeout in Talent is aangepakt met scope-indexen, RLS-short-circuiting en lazy rapportopties. `TALENT-NEXT-01` is als eerste read-only spiderwebslice gebouwd en met medewerker, manager en HR-admin op poort 3000 getest. Onderstaande oudere overdrachtsteksten zijn historische context; deze besluitupdate is leidend.
