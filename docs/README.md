@@ -2,7 +2,7 @@
 
 ## Actuele update 2026-08-03: productiehotfix testrolwisselaar
 
-De productieflag `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` werd wel door Vercel aangeboden, maar de serverhelper las deze runtimevariabele niet uit wanneer de layout zonder override werd aangeroepen. Dat is hersteld; de waarde wordt nu server-side gelezen en genormaliseerd. Versie `1.20260803.4` bevat daarnaast een regressietest voor de runtimeflag en hoofdletters/spaties. Lokale releasechecks zijn geslaagd; GitHub/Vercel-publicatie volgt als onderdeel van deze hotfix.
+De productieflag `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` werd wel door Vercel aangeboden, maar de serverhelper las deze runtimevariabele niet uit wanneer de layout zonder override werd aangeroepen. Dat is hersteld; de waarde wordt nu server-side gelezen en genormaliseerd. Versie `1.20260803.4` bevat daarnaast een regressietest voor de runtimeflag en hoofdletters/spaties. Lokale releasechecks zijn geslaagd. De hotfix staat in GitHub `e8a008c` en Vercel Production `dpl_Fu1T5z3F9P21JdnsMcynaEgfi556` staat op `READY`.
 
 ## Actuele update 2026-08-03: doorlopende beoordeling remote en testklaar
 
