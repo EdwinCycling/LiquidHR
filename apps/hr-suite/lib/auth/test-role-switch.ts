@@ -27,5 +27,6 @@ export function isTestRoleSwitchEnabled(environment: {
   nodeEnv?: string
   explicitFlag?: string
 } = {}): boolean {
-  return environment.explicitFlag === 'true' || (environment.nodeEnv ?? process.env.NODE_ENV) !== 'production'
+  const explicitFlag = environment.explicitFlag ?? process.env.LIQUIDHR_TEST_ROLE_SWITCH_ENABLED
+  return explicitFlag?.trim().toLowerCase() === 'true' || (environment.nodeEnv ?? process.env.NODE_ENV) !== 'production'
 }

@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Actuele update 2026-08-03: productiehotfix testrolwisselaar
+
+De Vercel-flag `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` werd niet uit `process.env` gelezen door de dashboardlayout; daardoor bleef de testrolwisselaar in Production verborgen ondanks een correcte Vercel-variabele en redeploy. De helper leest de runtimeflag nu server-side uit en normaliseert de waarde. Versie `1.20260803.4` bevat een regressietest voor de runtimeflag en voor hoofdletters/spaties. Lokaal geslaagd: 125 testbestanden/459 tests, strict typecheck, ESLint, i18n-pariteit en productiebuild met 163 pagina's. GitHub/Vercel-publicatie volgt.
+
 ## Actuele update 2026-08-03: doorlopende beoordeling remote en testklaar
 
 De Continuous Appraisal-slice is remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`: tenant-owned timeline, RLS/permissions, audit, FK-indexen en private screenshot-/bijlagenopslag. De services/API ondersteunen upload, metadata-RLS en signed downloads; de UI toont bijlagen op de timeline en biedt upload voor toekomstige items. De routes zijn `/my-appraisal`, `/workforce/continuous-appraisal` en de startpagina-samenvatting/link.

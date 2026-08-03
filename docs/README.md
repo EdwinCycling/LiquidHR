@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Actuele update 2026-08-03: productiehotfix testrolwisselaar
+
+De productieflag `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` werd wel door Vercel aangeboden, maar de serverhelper las deze runtimevariabele niet uit wanneer de layout zonder override werd aangeroepen. Dat is hersteld; de waarde wordt nu server-side gelezen en genormaliseerd. Versie `1.20260803.4` bevat daarnaast een regressietest voor de runtimeflag en hoofdletters/spaties. Lokale releasechecks zijn geslaagd; GitHub/Vercel-publicatie volgt als onderdeel van deze hotfix.
+
 ## Actuele update 2026-08-03: doorlopende beoordeling remote en testklaar
 
 De nieuwe requirements [`requirements/Talent/10-LiquidHR-Continuous-Appraisal-Requirements.md`](requirements/Talent/10-LiquidHR-Continuous-Appraisal-Requirements.md) en het functionele besluit [`decisions/FDR-0005-continuous-appraisal-gedeelde-timeline-en-handover.md`](decisions/FDR-0005-continuous-appraisal-gedeelde-timeline-en-handover.md) beschrijven de medewerker-manager-tijdlijn voor notities, acties, afspraken, feedback, doelen/ontwikkelpunten en gesprekssamenvattingen. De remote migrations/RLS/grants, services/API, private Storage voor screenshots/bijlagen, `/my-appraisal`, `/workforce/continuous-appraisal`, startpagina-samenvatting en i18n zijn actief. De remote testtenant bevat 9 items, 3 reacties en 1 veilige voorbeeldbijlage; contract, advisors en authenticated browsercontrole zijn uitgevoerd. Historische items zijn onveranderlijk, verwijderen bestaat niet en reacties zijn maximaal 100 tekens. Deze slice is gepubliceerd in GitHub-commit `d91c554` als versie `1.20260803.3`; Vercel Production staat op `READY`.

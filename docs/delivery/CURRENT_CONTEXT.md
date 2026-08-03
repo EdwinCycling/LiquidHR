@@ -1,5 +1,9 @@
 # Actuele overdracht Liquid HR
 
+## Nieuwe hotfix 2026-08-03: productieflag testrolwisselaar
+
+Bevinding: `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` stond correct in Vercel, maar `isTestRoleSwitchEnabled()` las zonder override alleen `NODE_ENV` en niet de runtimeflag. Daardoor bleef de sidebarwisselaar in Production verborgen. Dit is hersteld in versie `1.20260803.4`; de helper leest de servervariabele direct uit en normaliseert `true`/hoofdletters/spaties. Regressietest, volledige tests (125/459), strict typecheck, lint, i18n-pariteit en productiebuild (163 pagina's) zijn geslaagd. GitHub/Vercel-publicatie en productie-browsercontrole zijn nog open.
+
 ## Nieuwe slice 2026-08-03: doorlopende beoordeling remote en testklaar
 
 De doorlopende beoordeling is end-to-end op de remote Supabase-tenant toegepast. Naast de timeline-migratie zijn FK-indexen en tenant-private Storage voor screenshots/bijlagen toegevoegd. De tabel `continuous_appraisal_attachments` heeft RLS, authenticated-only grants, audit, MIME-/groottechecks en een private bucket; uploads gaan server-side via de admin client nadat de sessie door de gewone tenant-/managerrechten is gevalideerd. Historische timeline-items blijven immutable, inclusief bijlagen toevoegen aan items uit het verleden.

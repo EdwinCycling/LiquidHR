@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   getTestRoleSwitchTarget,
   isTestRoleSwitchAccount,
@@ -21,5 +21,12 @@ describe('test role switch', () => {
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'development' })).toBe(true)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production' })).toBe(false)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', explicitFlag: 'true' })).toBe(true)
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', explicitFlag: ' TRUE ' })).toBe(true)
+  })
+
+  it('leest de productieflag uit de runtimeomgeving wanneer geen override wordt meegegeven', () => {
+    vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production' })).toBe(true)
+    vi.unstubAllEnvs()
   })
 })
