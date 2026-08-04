@@ -1,28 +1,27 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { BriefcaseBusiness, Grid2X2, MessageSquareText, Sparkles, Star, Tags } from 'lucide-react'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 
 export default async function WorkforcePage() {
+  const authContext = await requireAuthContext()
+  const canReadManagementWorkspace = authContext.permissions.includes('workforce:read')
+  const canReadPersonalWorkspace = authContext.employeeId !== null && (
+    authContext.permissions.includes('self:continuous-appraisal:read') || authContext.permissions.includes('self:talent:read')
+  )
+  if (!canReadManagementWorkspace && !canReadPersonalWorkspace) redirect('/geen-toegang')
+  const personalOnly = !canReadManagementWorkspace
+
   const [t, star] = await Promise.all([getTranslator('workforce'), getTranslator('starPerformers')])
-  const [canReadStarPerformers, canReadTalentProfiles, canReadTalentReview, canReadContinuousAppraisal] = await Promise.all([
-    requirePermission('star-performer:read').then(() => true).catch((error) => {
-      if (error instanceof AuthorizationError) return false
-      throw error
-    }),
-    requirePermission('talent:manager-read').then(() => true).catch((error) => {
-      if (error instanceof AuthorizationError) return false
-      throw error
-    }),
-    requirePermission('talent-review:read').then(() => true).catch((error) => {
-      if (error instanceof AuthorizationError) return false
-      throw error
-    }),
-    requirePermission('continuous-appraisal:read').then(() => true).catch((error) => {
-      if (error instanceof AuthorizationError) return false
-      throw error
-    }),
-  ])
+  const canReadStarPerformers = !personalOnly && authContext.permissions.includes('star-performer:read')
+  const canReadTalentProfiles = personalOnly
+    ? authContext.permissions.includes('self:talent:read')
+    : authContext.permissions.includes('talent:manager-read')
+  const canReadTalentReview = !personalOnly && authContext.permissions.includes('talent-review:read')
+  const canReadContinuousAppraisal = personalOnly
+    ? authContext.permissions.includes('self:continuous-appraisal:read')
+    : authContext.permissions.includes('continuous-appraisal:read')
 
   const windows = [
     ...(canReadTalentReview ? [
@@ -32,10 +31,10 @@ export default async function WorkforcePage() {
       icon: MessageSquareText,
       title: t('performanceTalksTitle'),
       description: t('performanceTalksDescription'),
-      href: '/workforce/continuous-appraisal', status: t('available'), footer: t('openWorkspace'),
+      href: personalOnly ? '/my-appraisal' : '/workforce/continuous-appraisal', status: t('available'), footer: t('openWorkspace'),
     }] : []),
     ...(canReadTalentProfiles ? [
-      { icon: Sparkles, title: t('talentProfilesTitle'), description: t('talentProfilesDescription'), href: '/workforce/talent', status: t('available'), footer: t('openWorkspace') },
+      { icon: Sparkles, title: t('talentProfilesTitle'), description: t('talentProfilesDescription'), href: personalOnly ? '/my-talent' : '/workforce/talent', status: t('available'), footer: t('openWorkspace') },
     ] : []),
     ...(canReadStarPerformers ? [
       { icon: Star, title: star('title'), description: star('subtitle'), href: '/workforce/star-performers', status: t('available'), footer: t('openWorkspace') },
@@ -52,9 +51,9 @@ export default async function WorkforcePage() {
             <BriefcaseBusiness aria-hidden="true" size={23} />
           </span>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground/65">{t('eyebrow')}</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">{t('title')}</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-primary-foreground/75 sm:text-base">{t('subtitle')}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground/65">{personalOnly ? t('employeeEyebrow') : t('eyebrow')}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">{personalOnly ? t('employeeTitle') : t('title')}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-primary-foreground/75 sm:text-base">{personalOnly ? t('employeeSubtitle') : t('subtitle')}</p>
           </div>
         </div>
       </header>

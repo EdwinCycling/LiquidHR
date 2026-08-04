@@ -34,7 +34,15 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   }
 
   const authContext = await requireAuthContext(supabase, context)
-  const canReadEmployees = authContext.permissions.includes('employee:read')
+  const canReadEmployees = authContext.permissions.includes('employee:read') || authContext.permissions.includes('employee-directory:read')
+  const canReadDashboard = authContext.permissions.includes('dashboard:read')
+  const canReadStartPage = authContext.permissions.includes('start-page:read')
+  const canReadWorkforce = authContext.permissions.includes('workforce:read') || (
+    authContext.employeeId !== null
+    && (authContext.permissions.includes('self:continuous-appraisal:read') || authContext.permissions.includes('self:talent:read'))
+  )
+  const canReadOrganizationChart = authContext.permissions.includes('organization-chart:read')
+    || (authContext.employeeId !== null && authContext.permissions.includes('self:employee:read'))
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
   const canReadSettings = authContext.permissions.includes('settings:read')
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
@@ -85,6 +93,10 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         administrations={context.administrations}
         administrationSwitcherMode={getAdministrationSwitcherMode(context)}
         canReadEmployees={canReadEmployees}
+        canReadDashboard={canReadDashboard}
+        canReadStartPage={canReadStartPage}
+        canReadWorkforce={canReadWorkforce}
+        canReadOrganizationChart={canReadOrganizationChart}
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
         canReadInsights={insightPermissions.some(Boolean)}

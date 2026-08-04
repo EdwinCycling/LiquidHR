@@ -359,6 +359,7 @@ export async function sendTalentReviewReminder(campaignId: string, input: Talent
   const { data: manager, error: managerError } = await supabase.from('employees').select('auth_user_id').eq('tenant_id', context.tenantId).eq('id', assignment.manager_employee_id).is('deleted_at', null).maybeSingle()
   if (managerError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
   if (!manager?.auth_user_id) throw new TalentReviewError('TALENT_REVIEW_REMINDER_TARGET_INVALID', 400)
+  if (!context.administrationId) throw new TalentReviewError('TALENT_REVIEW_ADMINISTRATION_REQUIRED', 400)
   const { data: reminderId, error: reminderError } = await supabase.rpc('create_hr_reminder', {
     requested_tenant_id: context.tenantId,
     requested_administration_id: context.administrationId,

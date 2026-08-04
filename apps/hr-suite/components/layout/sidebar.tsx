@@ -63,6 +63,10 @@ interface SidebarLabels {
 
 interface SidebarProps {
   canReadEmployees: boolean
+  canReadDashboard: boolean
+  canReadStartPage: boolean
+  canReadWorkforce: boolean
+  canReadOrganizationChart: boolean
   canReadSettings: boolean
   canReadHrCalendar: boolean
   canReadInsights: boolean
@@ -91,6 +95,10 @@ interface SidebarProps {
 
 export function Sidebar({
   canReadEmployees,
+  canReadDashboard,
+  canReadStartPage,
+  canReadWorkforce,
+  canReadOrganizationChart,
   canReadSettings,
   canReadHrCalendar,
   canReadInsights,
@@ -115,13 +123,13 @@ export function Sidebar({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [currentProductUpdateUnreadCount, setCurrentProductUpdateUnreadCount] = useState(productUpdateUnreadCount)
   const links = [
-    { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: true, nested: false },
-    { href: '/dashboard/start', label: labels.startPage, icon: House, visible: true, nested: false },
+    { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: canReadDashboard, nested: false },
+    { href: '/dashboard/start', label: labels.startPage, icon: House, visible: canReadStartPage, nested: false },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees, nested: false },
-    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: true, nested: false },
+    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart, nested: false },
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
-    { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: true, nested: false },
+    { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce, nested: false },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false, exact: true },
   ]
   useEffect(() => {
@@ -131,11 +139,11 @@ export function Sidebar({
         if (!Array.isArray(saved)) return
         const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/settings'])
         const normalized = saved.filter((value): value is string => typeof value === 'string' && allowedMenuHrefs.has(value))
-        if (!normalized.includes('/dashboard/start')) {
+        if (canReadStartPage && !normalized.includes('/dashboard/start')) {
           const dashboardIndex = normalized.indexOf('/dashboard')
           normalized.splice(dashboardIndex < 0 ? 0 : dashboardIndex + 1, 0, '/dashboard/start')
         }
-        if (!normalized.includes('/workforce')) {
+        if (canReadWorkforce && !normalized.includes('/workforce')) {
           const settingsIndex = normalized.indexOf('/settings')
           normalized.splice(settingsIndex < 0 ? normalized.length : settingsIndex, 0, '/workforce')
         }
@@ -145,7 +153,7 @@ export function Sidebar({
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
-  }, [])
+  }, [canReadStartPage, canReadWorkforce])
   const orderedLinks = [...links].sort((left, right) => {
     const leftIndex = menuOrder.indexOf(left.href)
     const rightIndex = menuOrder.indexOf(right.href)

@@ -6,6 +6,7 @@ describe('absenceSettingsSchema', () => {
     expect(absenceSettingsSchema.parse({ frequentAbsenceThreshold: '4', defaultCaseManagerEmployeeId: '11111111-1111-4111-8111-111111111111' })).toEqual({
       frequentAbsenceThreshold: 4,
       defaultCaseManagerEmployeeId: '11111111-1111-4111-8111-111111111111',
+      employeeSelfReportEnabled: false,
     })
   })
 

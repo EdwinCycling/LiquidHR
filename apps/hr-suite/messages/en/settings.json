@@ -66,6 +66,7 @@
     },
     "menuOrderTitle": "Menu order", "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.", "menuOrderSave": "Save order", "menuOrderSaved": "Menu order saved.", "menuOrderMoveUp": "up", "menuOrderMoveDown": "down"
   },
+  "employeeDirectory": { "title": "Employee directory", "subtitle": "Choose which colleague information employees may see in a safe popup.", "enabled": "Employees may open the employee directory", "enabledDescription": "When disabled, the list remains available only to HR and managers.", "fieldsTitle": "Details in the colleague popup", "fieldsDescription": "All options are enabled by default. Disable individual details when employees should not see them.", "name": "Name", "nameAlwaysOn": "always visible", "jobDepartment": "Job and department", "workEmail": "Business email", "workPhone": "Business phone", "presence": "Presence this week", "schedule": "Schedule", "save": "Save settings", "saving": "Saving…", "saved": "Settings saved.", "failed": "The settings could not be saved." },
   "modules": {
     "title": "Active modules", "subtitle": "Choose which extra modules are available across the customer environment. Core functionality always remains active.",
     "saved": "Modules saved.", "failed": "Could not save modules.", "comingSoon": "Coming soon",

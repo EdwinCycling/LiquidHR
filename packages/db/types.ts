@@ -251,6 +251,7 @@ export type Database = {
           administration_id: string
           created_at: string
           default_case_manager_employee_id: string | null
+          employee_self_report_enabled: boolean
           frequent_absence_threshold: number
           id: string
           tenant_id: string
@@ -260,6 +261,7 @@ export type Database = {
           administration_id: string
           created_at?: string
           default_case_manager_employee_id?: string | null
+          employee_self_report_enabled?: boolean
           frequent_absence_threshold?: number
           id?: string
           tenant_id: string
@@ -269,6 +271,7 @@ export type Database = {
           administration_id?: string
           created_at?: string
           default_case_manager_employee_id?: string | null
+          employee_self_report_enabled?: boolean
           frequent_absence_threshold?: number
           id?: string
           tenant_id?: string
@@ -566,6 +569,13 @@ export type Database = {
           administration_id: string
           created_at: string
           default_employment_country_code: string
+          employee_directory_enabled: boolean
+          employee_directory_show_job_department: boolean
+          employee_directory_show_name: boolean
+          employee_directory_show_presence: boolean
+          employee_directory_show_schedule: boolean
+          employee_directory_show_work_email: boolean
+          employee_directory_show_work_phone: boolean
           id: string
           tenant_id: string
           updated_at: string
@@ -574,6 +584,13 @@ export type Database = {
           administration_id: string
           created_at?: string
           default_employment_country_code?: string
+          employee_directory_enabled?: boolean
+          employee_directory_show_job_department?: boolean
+          employee_directory_show_name?: boolean
+          employee_directory_show_presence?: boolean
+          employee_directory_show_schedule?: boolean
+          employee_directory_show_work_email?: boolean
+          employee_directory_show_work_phone?: boolean
           id?: string
           tenant_id: string
           updated_at?: string
@@ -582,6 +599,13 @@ export type Database = {
           administration_id?: string
           created_at?: string
           default_employment_country_code?: string
+          employee_directory_enabled?: boolean
+          employee_directory_show_job_department?: boolean
+          employee_directory_show_name?: boolean
+          employee_directory_show_presence?: boolean
+          employee_directory_show_schedule?: boolean
+          employee_directory_show_work_email?: boolean
+          employee_directory_show_work_phone?: boolean
           id?: string
           tenant_id?: string
           updated_at?: string
@@ -1131,6 +1155,242 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      continuous_appraisal_attachments: {
+        Row: {
+          checksum_sha256: string
+          content_type: string
+          created_at: string
+          file_size: number
+          id: string
+          item_id: string
+          original_filename: string
+          storage_key: string
+          tenant_id: string
+          uploaded_by_employee_id: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          checksum_sha256: string
+          content_type: string
+          created_at?: string
+          file_size: number
+          id?: string
+          item_id: string
+          original_filename: string
+          storage_key: string
+          tenant_id: string
+          uploaded_by_employee_id: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          checksum_sha256?: string
+          content_type?: string
+          created_at?: string
+          file_size?: number
+          id?: string
+          item_id?: string
+          original_filename?: string
+          storage_key?: string
+          tenant_id?: string
+          uploaded_by_employee_id?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuous_appraisal_attachme_tenant_id_uploaded_by_employ_fkey"
+            columns: ["tenant_id", "uploaded_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_attachments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_attachments_tenant_id_item_id_fkey"
+            columns: ["tenant_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "continuous_appraisal_items"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      continuous_appraisal_item_comments: {
+        Row: {
+          author_avatar_url: string | null
+          author_employee_id: string
+          author_label: string
+          author_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          item_id: string
+          tenant_id: string
+        }
+        Insert: {
+          author_avatar_url?: string | null
+          author_employee_id: string
+          author_label: string
+          author_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          item_id: string
+          tenant_id: string
+        }
+        Update: {
+          author_avatar_url?: string | null
+          author_employee_id?: string
+          author_label?: string
+          author_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuous_appraisal_item_com_tenant_id_author_employee_id_fkey"
+            columns: ["tenant_id", "author_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_item_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_item_comments_tenant_id_item_id_fkey"
+            columns: ["tenant_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "continuous_appraisal_items"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      continuous_appraisal_items: {
+        Row: {
+          body: string
+          created_at: string
+          created_by_avatar_url: string | null
+          created_by_employee_id: string
+          created_by_label: string
+          created_by_user_id: string | null
+          due_on: string | null
+          employee_id: string
+          feedback_direction: string | null
+          goal_kind: string | null
+          id: string
+          item_status: string
+          item_type: string
+          manager_employee_id: string | null
+          next_meeting_on: string | null
+          occurred_on: string
+          owner_employee_id: string | null
+          owner_label: string | null
+          priority: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by_avatar_url?: string | null
+          created_by_employee_id: string
+          created_by_label: string
+          created_by_user_id?: string | null
+          due_on?: string | null
+          employee_id: string
+          feedback_direction?: string | null
+          goal_kind?: string | null
+          id?: string
+          item_status?: string
+          item_type: string
+          manager_employee_id?: string | null
+          next_meeting_on?: string | null
+          occurred_on: string
+          owner_employee_id?: string | null
+          owner_label?: string | null
+          priority?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by_avatar_url?: string | null
+          created_by_employee_id?: string
+          created_by_label?: string
+          created_by_user_id?: string | null
+          due_on?: string | null
+          employee_id?: string
+          feedback_direction?: string | null
+          goal_kind?: string | null
+          id?: string
+          item_status?: string
+          item_type?: string
+          manager_employee_id?: string | null
+          next_meeting_on?: string | null
+          occurred_on?: string
+          owner_employee_id?: string | null
+          owner_label?: string | null
+          priority?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuous_appraisal_items_tenant_id_created_by_employee_i_fkey"
+            columns: ["tenant_id", "created_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_items_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_items_tenant_id_manager_employee_id_fkey"
+            columns: ["tenant_id", "manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "continuous_appraisal_items_tenant_id_owner_employee_id_fkey"
+            columns: ["tenant_id", "owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -8819,242 +9079,6 @@ export type Database = {
           },
         ]
       }
-      continuous_appraisal_items: {
-        Row: {
-          body: string
-          created_at: string
-          created_by_avatar_url: string | null
-          created_by_employee_id: string
-          created_by_label: string
-          created_by_user_id: string | null
-          due_on: string | null
-          employee_id: string
-          feedback_direction: string | null
-          goal_kind: string | null
-          id: string
-          item_status: string
-          item_type: string
-          manager_employee_id: string | null
-          next_meeting_on: string | null
-          occurred_on: string
-          owner_employee_id: string | null
-          owner_label: string | null
-          priority: string | null
-          tenant_id: string
-          title: string
-          updated_at: string
-          version: number
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          created_by_avatar_url?: string | null
-          created_by_employee_id: string
-          created_by_label: string
-          created_by_user_id?: string | null
-          due_on?: string | null
-          employee_id: string
-          feedback_direction?: string | null
-          goal_kind?: string | null
-          id?: string
-          item_status?: string
-          item_type: string
-          manager_employee_id?: string | null
-          next_meeting_on?: string | null
-          occurred_on: string
-          owner_employee_id?: string | null
-          owner_label?: string | null
-          priority?: string | null
-          tenant_id: string
-          title: string
-          updated_at?: string
-          version?: number
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          created_by_avatar_url?: string | null
-          created_by_employee_id?: string
-          created_by_label?: string
-          created_by_user_id?: string | null
-          due_on?: string | null
-          employee_id?: string
-          feedback_direction?: string | null
-          goal_kind?: string | null
-          id?: string
-          item_status?: string
-          item_type?: string
-          manager_employee_id?: string | null
-          next_meeting_on?: string | null
-          occurred_on?: string
-          owner_employee_id?: string | null
-          owner_label?: string | null
-          priority?: string | null
-          tenant_id?: string
-          title?: string
-          updated_at?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "continuous_appraisal_items_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_items_tenant_id_employee_id_fkey"
-            columns: ["tenant_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_items_tenant_id_manager_employee_id_fkey"
-            columns: ["tenant_id", "manager_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_items_tenant_id_created_by_employee_id_fkey"
-            columns: ["tenant_id", "created_by_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_items_tenant_id_owner_employee_id_fkey"
-            columns: ["tenant_id", "owner_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      continuous_appraisal_item_comments: {
-        Row: {
-          author_avatar_url: string | null
-          author_employee_id: string
-          author_label: string
-          author_user_id: string | null
-          body: string
-          created_at: string
-          id: string
-          item_id: string
-          tenant_id: string
-        }
-        Insert: {
-          author_avatar_url?: string | null
-          author_employee_id: string
-          author_label: string
-          author_user_id?: string | null
-          body: string
-          created_at?: string
-          id?: string
-          item_id: string
-          tenant_id: string
-        }
-        Update: {
-          author_avatar_url?: string | null
-          author_employee_id?: string
-          author_label?: string
-          author_user_id?: string | null
-          body?: string
-          created_at?: string
-          id?: string
-          item_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "continuous_appraisal_item_comments_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_item_comments_tenant_id_item_id_fkey"
-            columns: ["tenant_id", "item_id"]
-            isOneToOne: false
-            referencedRelation: "continuous_appraisal_items"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_item_comments_tenant_id_author_employee_id_fkey"
-            columns: ["tenant_id", "author_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      continuous_appraisal_attachments: {
-        Row: {
-          checksum_sha256: string
-          content_type: string
-          created_at: string
-          file_size: number
-          id: string
-          item_id: string
-          original_filename: string
-          storage_key: string
-          tenant_id: string
-          uploaded_by_employee_id: string
-          uploaded_by_user_id: string | null
-        }
-        Insert: {
-          checksum_sha256: string
-          content_type: string
-          created_at?: string
-          file_size: number
-          id?: string
-          item_id: string
-          original_filename: string
-          storage_key: string
-          tenant_id: string
-          uploaded_by_employee_id: string
-          uploaded_by_user_id?: string | null
-        }
-        Update: {
-          checksum_sha256?: string
-          content_type?: string
-          created_at?: string
-          file_size?: number
-          id?: string
-          item_id?: string
-          original_filename?: string
-          storage_key?: string
-          tenant_id?: string
-          uploaded_by_employee_id?: string
-          uploaded_by_user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "continuous_appraisal_attachme_tenant_id_uploaded_by_employ_fkey"
-            columns: ["tenant_id", "uploaded_by_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_attachments_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "continuous_appraisal_attachments_tenant_id_item_id_fkey"
-            columns: ["tenant_id", "item_id"]
-            isOneToOne: false
-            referencedRelation: "continuous_appraisal_items"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
       talent_review_campaigns: {
         Row: {
           administration_id: string | null
@@ -9970,6 +9994,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_employee_address_change_reminders: {
+        Args: {
+          requested_action: string
+          requested_administration_id: string
+          requested_after: Json
+          requested_before: Json
+          requested_employee_id: string
+          requested_tenant_id: string
+        }
+        Returns: number
+      }
       create_employee_address_with_reminders: {
         Args: {
           requested_address_line_1: string
@@ -9990,7 +10025,7 @@ export type Database = {
           requested_street: string
           requested_tenant_id: string
           requested_valid_from: string
-          requested_valid_until: string | null
+          requested_valid_until: string
         }
         Returns: string
       }
@@ -10004,7 +10039,7 @@ export type Database = {
       }
       create_hr_reminder: {
         Args: {
-          requested_administration_id: string | null
+          requested_administration_id: string
           requested_description: string
           requested_remind_at: string
           requested_target_ids?: string[]
@@ -10096,6 +10131,29 @@ export type Database = {
         Args: { requested_as_of_date: string }
         Returns: number
       }
+      get_employee_directory_access: {
+        Args: {
+          requested_administration_id: string
+          requested_tenant_id: string
+        }
+        Returns: boolean
+      }
+      get_employee_directory_visibility: {
+        Args: {
+          requested_administration_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_employee_directory_detail: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_tenant_id: string
+          requested_week_start?: string
+        }
+        Returns: Json
+      }
       get_my_talent_profile: {
         Args: { requested_tenant_id: string }
         Returns: {
@@ -10186,20 +10244,20 @@ export type Database = {
           work_email: string
         }[]
       }
-      manage_employment_contract: {
-        Args: {
-          requested_contract_id: string
-          requested_employment_id: string
-          requested_payload: Json
-        }
-        Returns: string
-      }
       manage_employment_company_location: {
         Args: {
           requested_effective_on: string
           requested_employment_id: string
           requested_location_id: string
           requested_placement_id: string
+        }
+        Returns: string
+      }
+      manage_employment_contract: {
+        Args: {
+          requested_contract_id: string
+          requested_employment_id: string
+          requested_payload: Json
         }
         Returns: string
       }

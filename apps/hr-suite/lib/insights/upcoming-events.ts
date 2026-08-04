@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/auth/permissions'
+import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 
 export type UpcomingEventType = 'BIRTHDAY' | 'ANNIVERSARY' | 'STARTER'
@@ -62,8 +63,12 @@ export async function getUpcomingEventsReport(query: UpcomingEventsQuery): Promi
   end.setUTCDate(end.getUTCDate() + query.periodDays)
   const endDate = dateOnly(end)
   const supabase = await createClient()
+  const employeeScope = context.activeRoles.includes('DIRECT_MANAGER') ? await listDirectTeamEmployeeIds(context) : null
+  if (employeeScope !== null && employeeScope.length === 0) return { startDate, endDate, rows: [], departments: [] }
+  let employmentsQuery = supabase.from('employments').select('id,employee_id,starts_on,ends_on,seniority_date,is_primary').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', endDate).or(`ends_on.is.null,ends_on.gte.${startDate}`).limit(2000)
+  if (employeeScope !== null) employmentsQuery = employmentsQuery.in('employee_id', employeeScope)
   const [employmentsResult, departmentsResult, anniversaryRulesResult, administrationResult] = await Promise.all([
-    supabase.from('employments').select('id,employee_id,starts_on,ends_on,seniority_date,is_primary').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', endDate).or(`ends_on.is.null,ends_on.gte.${startDate}`).limit(2000),
+    employmentsQuery,
     supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
     supabase.from('tenant_anniversary_rules').select('years').eq('tenant_id', context.tenantId).eq('is_active', true).order('years').limit(100),
     supabase.from('administrations').select('code').eq('tenant_id', context.tenantId).eq('id', context.administrationId).single(),

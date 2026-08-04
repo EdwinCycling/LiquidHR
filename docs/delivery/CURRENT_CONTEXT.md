@@ -1,5 +1,127 @@
 # Actuele overdracht Liquid HR
 
+## Nieuwe hardening 2026-08-04: Supabase security en performance
+
+Remote toegepast: `consolidate_star_performer_select_policies` en `harden_security_definer_search_paths`. De drie dubbele permissieve SELECT-policy-waarschuwingen zijn verdwenen door de bestaande `FOR ALL`-writepolicies op `star_performer_assessment_tags`, `star_performer_assessments` en `star_performer_tags` op te splitsen in INSERT/UPDATE/DELETE; de bestaande read- en write-expressies zijn behouden. Voor de relevante `SECURITY DEFINER`-RPC's is `pg_temp` uit `search_path` verwijderd om tijdelijke-object-shadowing te voorkomen. Authenticated execute, tenantchecks, permissionchecks en RPC-signatures zijn niet aangepast.
+
+Live advisors na de migraties: performance 258 INFO en 0 WARN; security 2 INFO en 15 WARN. De security-WARNs zijn de bewust via `authenticated` aangeroepen permission-checked RPC's. `absence_mutations` en `platform_support_sessions` blijven bewust RLS-only zonder directe policy. Leaked-password protection blijft een handmatige Supabase Auth-instelling. Gegenereerde database-types zijn opnieuw opgehaald; de wijzigingen veranderden geen tabel- of RPC-signature en daarom was er geen types-diff. Tests (480), strict typecheck, lint en productiebuild zijn geslaagd.
+
+## Nieuwe slice 2026-08-04: fotoweergave medewerkerslijst
+
+Aanvulling: naast de bestaande fotoformaten ondersteunt de lijst nu ook **Foto collage**: een strak vierkant raster met foto’s of initialen zonder namen.
+
+De medewerkerslijst heeft naast Detail, Compact en Kaarten nu vier fotovarianten: **Foto's groot**, **Foto's standaard**, **Foto's klein** en **Alleen foto (vierkant)**. De eerste drie tonen alleen de foto of initialen en de voornaam; de vierkante variant toont alleen de foto/initialen met een dunne rand en zonder naam. Er verschijnen geen status, functie, afdeling, e-mail, personeelsnummer of actie-tekst. De responsive grid gebruikt per variant een passende minimumtegel; de standaardvariant kan op de gecontroleerde desktopbreedte acht kolommen vullen. Als een avatarroute voor de huidige rol niet toegankelijk is, valt de tegel veilig terug op initialen zonder de autorisatie te verruimen. De bestaande rolbewuste overlay blijft actief voor volledige profielroutes en collega-popups.
+
+Er is geen Supabase-schemawijziging nodig: `photo` is toegevoegd aan de bestaande gevalideerde `employeesList`-voorkeur. Tests, strict typecheck, gerichte ESLint en i18n-controle volgen na de browsercontrole.
+
+## Nieuwe slice 2026-08-04: kaartweergave medewerkerslijst
+
+De medewerkerslijst ondersteunt nu **Detail**, **Compact** en **Kaarten**. De keuze staat in het bestaande filterpaneel en wordt via `/api/preferences/employees` opgeslagen in `user_preferences.ui_state.employeesList`; er is geen schemawijziging nodig. De kaartweergave is responsive met `auto-fit`, toont alleen velden die volgens de bestaande rol- en HR-directoryinstellingen zijn toegestaan en gebruikt voor medewerkerscollega's dezelfde popup als de lijstweergave. Daardoor verschijnen personeelsnummers niet in employee-directorykaarten, terwijl directe teamleden en bevoegde HR-weergaven hun bestaande profielroute behouden.
+
+Verificatie: employee-list-state-tests (9/9), strict typecheck, gerichte ESLint, i18n-pariteit, Supabase SQL-controle (`saved_card_preferences = 1`) en authenticated browsercontrole op poort 3000. De browser toonde 20 medewerkerkaarten zonder personeelsnummer, met 19 veilige collega-popups en uitsluitend de eigen profiel-link; de Lina-popup bevatte functie, afdeling, zakelijk e-mailadres, telefoon, weekaanwezigheid zonder reden en rooster. De interne browser staat op de medewerkerkaartlijst klaar voor handoff.
+
+## Nieuwe slice 2026-08-04: managerbeschikbaarheid op de startpagina
+
+Managers zien op de startpagina als eerste brede venster **Beschikbaarheid team**. Het venster toont vandaag tot en met zes dagen vooruit, met teamleden verticaal en dagen horizontaal. De weergave kan wisselen tussen **Aanwezig** (beschikbaar, niet ingepland, verlof of verzuim) en **Uren aanwezig** (geplande uren; verlof en verzuim tonen nul). De data wordt server-side beperkt tot de directe managerstam en gebruikt bestaande werkpatronen met legacy-roosterfallback, goedgekeurde verlofaanvragen en actieve verzuimspells. Niet-managers krijgen geen teamdata. Er is geen schemawijziging of remote write uitgevoerd.
+
+De widget staat als nieuw breed venster vooraan in de bestaande persoonlijke startpaginalayout; een opgeslagen layout krijgt dit nieuwe venster eenmalig vooraan en kan daarna in Full met de bestaande drag-and-drop/pijlen worden verplaatst. i18n-pariteit, strict typecheck, ESLint, de nieuwe layouttests en `git diff --check` zijn lokaal geslaagd. Authenticated browsercontrole op poort 3000 bevestigde de managerkop, de 7 dagen, de links naar teamleden, de aanwezigheidstekens, de urenweergave en de brede linkerkolom. Dezelfde controle bevestigde dat HR Admin geen teamwidget krijgt.
+
+## Nieuwe controle 2026-08-04: medewerkersdirectory alleen actieve medewerkers
+
+Voor `employee-directory:read` forceert de server `archive=active` en filtert de geladen overviewdataset na statusbepaling op `ACTIVE_EMPLOYEE`. De medewerkerpagina biedt alleen de arbeidsstatus **Actief** en archiefstatus **Niet-gearchiveerd**; URL- of opgeslagen voorkeuren voor toekomstige, uit-dienst-, externe of gearchiveerde records kunnen de directoryscope niet uitbreiden. Managers gebruiken de bestaande volledige status- en archiefopties.
+
+Browsercontrole op poort 3000: `Test Medewerker` zag alleen de actieve directoryweergave en miste de filters Toekomstig, Uit dienst, Externe persoon, Gearchiveerd en Alle medewerkers. `Test Manager` op `scope=all` behield de filters Toekomstig, Uit dienst, Externe persoon, Gearchiveerd en Alle medewerkers. Remote SQL telde in de huidige tenant 0 toekomstige en 0 gearchiveerde records; daarom is de managerbehoudcontrole via filters en serverlogica bevestigd. Typecheck, gerichte ESLint en `git diff --check` zijn uitgevoerd. Geen Supabase-schemawijziging nodig.
+
+## Nieuwe controle 2026-08-04: personeelsnummer niet zichtbaar in medewerker-directory
+
+De medewerkerdirectory toont het personeelsnummer niet meer in de medewerkerslijst en gebruikt het ook niet voor zoeken. De veilige popup projecteert het nummer al niet; de remote SQL-controle bevestigde dat `get_employee_directory_detail` geen `employeeNumber` of `employee_number` teruggeeft. Dezelfde lijstbeperking geldt voor managerrecords buiten het directe team, die als medewerker-collega worden behandeld.
+
+Interne browsercontrole op poort 3000 met `Test Medewerker`: 20 records zichtbaar, namen/functie/afdeling/e-mail aanwezig volgens de vrijgave-instellingen, geen `Personeelsnummer:` in de lijst; Lina Bakker-popup geopend zonder personeelsnummer. Typecheck en gerichte ESLint zijn geslaagd. Geen Supabase-schemawijziging nodig.
+
+## Nieuwe slice 2026-08-04: directoryzichtbaarheid geldt ook voor de lijst
+
+Naam is server-side verplicht zichtbaar en de HR-checkbox is aangevinkt maar disabled. De overige vijf HR-instellingen worden zowel in de collega-popup als in de medewerkerslijst toegepast; verborgen functie/afdeling en zakelijk e-mailadres worden bovendien niet opgenomen in de lijstzoektekst.
+
+Remote migration `employee_directory_visibility` is toegepast. De visibility-RPC geeft `showName: true` terug en behoudt tenant-, administratie- en permissionchecks. In de interne Codex-browser op poort 3000 bevestigde HR de disabled Naam-checkbox. Met functie/afdeling en zakelijk e-mailadres tijdelijk uit zag `Test Medewerker` de namen nog wel, zonder die velden in de lijst of popup; telefoon, aanwezigheid en rooster bleven zichtbaar. Alle drie demo-administraties staan na de test terug op alle defaults `true`. Typecheck, gerichte ESLint, i18n-check, Supabase advisors en `git diff --check` zijn uitgevoerd; de projectbrede advisors blijven bestaande security/performance-meldingen tonen, inclusief de bewust authenticated SECURITY DEFINER visibility-RPC.
+
+## Nieuwe slice 2026-08-04: manager buiten team krijgt collega-popup
+
+De medewerkerslijst begrenst nu ook managers: directe teamleden blijven links naar de volledige detailpagina; records buiten het directe team worden knoppen die de bestaande beperkte collega-popup openen. `TENANT_ADMIN` behoudt zijn volledige administratie-scope. Dezelfde grens staat in de detailroute: een manager kan een niet-teamlid niet via een handmatige URL openen. De directory-detail-RPC accepteert naast `employee-directory:read` ook `employee:read`, maar blijft server-side beperkt tot de HR-vrijgegeven directoryvelden.
+
+Browsercontrole met `Test Manager` op poort 3000: `scope=all` toonde 20 medewerkers, Bas de Jong buiten het team opende als popup met telefoon/aanwezigheid/rooster en zonder manager-tabs, Lina Bakker als teamlid opende de volledige detailpagina. Een directe URL naar Bas werd naar `/employees` teruggestuurd. Remote migration `manager_non_team_directory_privacy` is toegepast; advisors opnieuw uitgevoerd.
+
+## Nieuwe slice 2026-08-04: medewerkersdirectory voor medewerkers
+
+De medewerkerslijst is beschikbaar voor `EMPLOYEE` via `employee-directory:read`, met de nieuwe HR-inrichting **Medewerkers mogen de medewerkerslijst openen** (default `true`). Collega's openen voor medewerkers een veilige popup; de volledige collega-detailroute blijft server-side geblokkeerd. HR kan naam, functie/afdeling, zakelijk e-mailadres, zakelijk telefoonnummer, weekaanwezigheid zonder reden en rooster afzonderlijk vrijgeven; alle velden starten aan. De Supabase-RPC gebruikt alleen deze veilige projectie, controleert tenant/administratie/permission en exposeert geen absence-reden of HR-detaildata.
+
+Remote toegepast: `employee_directory_settings_v5`, `employee_directory_access`, `employee_directory_schedule_fallback`, `employee_directory_schedule_fallback_v2`, `employee_directory_presence_date_v2` en `employee_directory_presence_date_v3`. DB-types zijn opnieuw gegenereerd. In de interne Codex-browser op poort 3000 zag de medewerker 20 collega-records, opende Lina Bakker in een popup met telefoon, aanwezigheid en rooster, en zag na het uitzetten van zakelijk e-mailadres dat veld niet meer. De instelling is daarna op de geteste administraties teruggezet naar alle defaults `true`. Typecheck, i18n, gerichte ESLint, Supabase security/performance advisors en `git diff --check` zijn uitgevoerd; advisors tonen bestaande projectbrede definer-/indexmeldingen, waaronder de twee nieuwe bewust server-side permission-checked RPC's.
+
+## Nieuwe slice 2026-08-04: medewerkerslijst opent gesloten met Mijn team-preset
+
+De medewerkerslijst opent altijd met het filterpaneel gesloten. De eerdere `filterPanelOpen`-waarde uit `user_preferences.ui_state.employeesList` wordt niet meer gelezen of opgeslagen; tijdens een volgende opslag wordt de oude sleutel uit die JSON-scope verwijderd. Status, archief, sortering en weergave blijven wel persoonlijke lijstvoorkeuren.
+
+De herbruikbare `employeeListMyTeamHref()` forceert `status=active-future-external`, `archive=active` en `scope=team`. De preset omvat `ACTIVE_EMPLOYEE`, `FUTURE_EMPLOYEE` en `NEVER_EMPLOYED` (de UI-tekst **Actief + toekomstig + externe personen**) en sluit voormalige medewerkers uit. De startpagina gebruikt deze helper voor beide Mijn team-doorklikken.
+
+Authenticated browsercontrole op poort 3000 bevestigde de manager-startpaginadoorklik met exact deze URL, 17 teamrecords met externe personen, een gesloten filterpaneel bij openen en een expliciete `status=ACTIVE_EMPLOYEE`-variant met 13 actieve teamrecords. HR Admin opent de lijst eveneens gesloten.
+
+## Nieuwe slice 2026-08-04: rolgebonden startpagina- en medewerkerslijstscope
+
+De startpagina gebruikt voor `DIRECT_MANAGER` de kop **Wat speelt er nu in mijn team** en voor `TENANT_ADMIN` **Wat speelt er nu in ons bedrijf**. Bij beide actieve rollen staat een teamscope/bedrijfsscope-switch. De managerlink achter de kop opent `/employees?status=active-future-external&scope=team`, zodat andere schermen deze scope en filterpreset geforceerd kunnen doorgeven.
+
+De medewerkerslijst bepaalt zonder `scope` voor een manager standaard `team`; het filterpaneel toont daarna de actieve keuzes **Mijn team** en **Alle medewerkers**. `scope=team` wordt in de service alleen voor `DIRECT_MANAGER` geaccepteerd. De startpagina filtert teamgerichte medewerkers-, verzuim-, verlof- en gebeurtenisdata op dezelfde directe teamscope; een gecombineerde manager/HR-admin kan bewust naar bedrijfsscope schakelen.
+
+De bestaande Werk-in-uitvoering-placeholder **Taken & Poortwachter** is alleen zichtbaar voor manager/HR Admin; medewerkers krijgen deze managementactie niet. Er is geen taakinstantiebron in de huidige Workforce-code, dus er wordt geen fictieve taakcount getoond.
+
+Verificatie in deze beurt: i18n-pariteit, strict TypeScript, ESLint, gerichte employee-list-state-tests, `git diff --check` en authenticated browsercontrole op poort 3000 zijn geslaagd. Er is geen schemawijziging, remote write, commit, push of deployment uitgevoerd.
+
+## Nieuwe slice 2026-08-04: volledig organogram voor medewerkers
+
+De medewerker mag het volledige organogram van de actieve administratie lezen. De route gebruikt hiervoor de bestaande canonieke `organization-chart:read`-permission als zelfstandige leespermission; medewerkers krijgen geen managementrechten, HR-schrijfopties of star-performerbeoordelingen. De migration `20260804170000_employee_full_organization_chart_read.sql` is remote toegepast en de relevante RLS-policies, employee-role permission en veilige projectie zijn gecontroleerd. Security- en performance-advisors tonen alleen bestaande projectwaarschuwingen. Strict TypeScript, gerichte ESLint en DB-typegeneratie zijn geslaagd. Authenticated browsercontrole blijft open.
+
+## Nieuwe slice 2026-08-04: Ontwikkeling voor medewerkers
+
+De sidebarlabel `Workforce` heet nu `Ontwikkeling`. De route `/workforce` is voor medewerkers een self-service landingspagina: alleen `Doorlopende beoordeling` naar `/my-appraisal` en `Talentprofielen` naar `/my-talent` worden getoond wanneer de medewerker daarvoor de bestaande self-permissions heeft. Managers en HR Admins behouden hun bestaande Workforce-tegels en routes. Dezelfde persoonlijke filtering is doorgetrokken naar de Workforce-strip op de Startpagina. Lokaal zijn i18n, strict TypeScript en gerichte ESLint geslaagd; er is geen schemawijziging of remote write uitgevoerd.
+
+## Nieuwe slice 2026-08-03: Full/Compact en persoonlijke startpagina-layout
+
+De Startpagina-header heeft een persoonlijke Full/Compact-schakelaar. Full toont weer, komende dagen en de reorder-controls; Compact maakt de header korter en toont alleen de begroeting/naam. De brede vensters (documenten, beoordeling, afwezigheden, verzuimgevallen, gebeurtenissen en KPI's) en smalle vensters (reminders en werk in uitvoering) kunnen in Full per kolom met pijlen of drag-and-drop worden geordend. De directe PATCH-opslag hergebruikt `user_preferences.ui_state` onder `startPage`, met behoud van bestaande voorkeuren en zonder schemawijziging, remote write, commit, push of deployment.
+
+Verificatie in deze run: i18n, strict TypeScript, ESLint en `git diff --check` zijn geslaagd. De geauthenticeerde browsercontrole bevestigde HR Admin Compact na herladen, Full met zichtbare weer/komende-dagen en controls, een opgeslagen herordening na herladen, en de managerstartpagina met eigen Full-voorkeur, Mijn gegevens, Mijn team, Nieuw ziektegeval en 13 actieve medewerkers in scope.
+
+## Nieuwe slice 2026-08-03: Workforce-links op de startpagina
+
+De zin **Je vrije dashboardwerkplek blijft beschikbaar via Dashboard.** is verwijderd. De onderste Snel naar-sectie bevat nu een uitbreidbare Workforce-strip met de bestaande functies 9-grid, Doorlopende beoordeling, Talentprofielen, Star Performers en Cloud tags. De Startpagina bouwt deze links vanuit de actieve permissions; managers en HR Admins krijgen daarmee alleen routes die zij al mogen openen. Geen schemawijziging, remote write, commit, push of deployment.
+
+Verificatie in deze run: i18n, strict TypeScript en ESLint zijn geslaagd. De geauthenticeerde browsercontrole bevestigde voor manager en HR Admin de correcte rolgebonden Workforce-links en de bestaande `/workforce`-bestemming.
+
+## Nieuwe slice 2026-08-03: bestaande gebeurtenissenbron op startpagina hersteld
+
+De startpagina bevatte al het echte venster **Gebeurtenissen** met een link naar `/insights/upcoming-events`, maar toonde daarnaast nog een verouderde Werk-in-uitvoering-placeholder met dezelfde naam. Die dubbele placeholder is verwijderd. De service filtert gebeurtenissen voor `DIRECT_MANAGER` op actieve directe teamleden; HR Admin blijft binnen de actieve administratie-scope. De managerdoorklik naar het bestaande gebeurtenissenrapport gebruikt de remote toegepaste migratie `20260803200000_allow_manager_upcoming_events_report` en dezelfde teamscope. Geen commit, push of deployment.
+
+Verificatie in deze run: i18n-pariteit, strict TypeScript, ESLint, `git diff --check` en 3 gerichte testbestanden/11 tests zijn geslaagd. De geauthenticeerde browsercontrole bevestigde de managerstartpagina (13 actieve teamleden, teamlinks en echte gebeurtenissenkaart), de HR Admin-startpagina (8 actieve medewerkers binnen de administratie) en het HR Admin-gebeurtenissenrapport. De managerdoorklik wacht nog op remote toepassen van de nieuwe rolpermission-migratie.
+
+## Nieuwe slice 2026-08-03: persoonlijke medewerkerdashboard-samenvatting
+
+De overview van een medewerker gebruikt nu de aparte component `EmployeeDashboardSummary`. Deze component bevat uitsluitend persoonlijke gegevens: naam, leeftijd/verjaardag, zakelijke en privécontactgegevens, woonadres, primaire bankrekening en noodcontacten. De component gebruikt dezelfde server-side geladen `EmployeeDetailViewModel`; er is geen nieuwe autorisatie- of database-entiteit toegevoegd.
+
+Managementinformatie blijft op de Startpagina: de Startpagina bevat de tenant-/teamscope-KPI's en operationele managementblokken. De medewerkerlanding blijft door de rolrechten rechtstreeks naar de eigen medewerkerpagina sturen. Lokale controle van deze UI-slice: strict typecheck, gerichte ESLint, `git diff --check` en de bestaande dashboardlayouttest (2/2) zijn geslaagd. Geen commit, push of deployment.
+
+## Nieuwe slice 2026-08-03: managerstartacties en teamscope
+
+De startpagina voor managers en HR Admin heeft bovenaan een uitbreidbare rij snelacties: Mijn gegevens opent het eigen medewerkerdashboard, Mijn team opent de medewerkerslijst op de directe teamscope en Nieuw ziektegeval opent de bestaande ziekmeldingsflow. Op kleine schermen blijven de iconen zichtbaar. Alleen gebruikers met de `DIRECT_MANAGER`-rol krijgen de teamscope-optie in de medewerkerslijst.
+
+De teamscope wordt server-side bepaald uit actieve `employee_organizations`-regels met `direct_manager_id`; de manager krijgt zichzelf niet terug als teamlid. De startpagina filtert teamgerichte aantallen, afwezigheden, verlof en gebeurtenissen op deze scope. HR Admin werkt binnen de actieve administratie-scope. Er is voor deze slice geen nieuwe migratie of remote write uitgevoerd.
+
+Lokale verificatie: strict typecheck, ESLint, i18n-pariteit, gerichte tests (3 bestanden, 10 tests), productiebuild en `git diff --check` zijn geslaagd. De geauthenticeerde manager-browsercontrole op poort 3000 bevestigde de drie links, 13 actieve medewerkers binnen de 22 directe teamtoewijzingen, de startpaginacijfers op teamscope en de icon-only weergave op 390px. `/absence/new` opende met de geautoriseerde medewerkerkeuze.
+
+## Nieuwe slice 2026-08-03: rolgebonden werkruimtes en medewerkerlanding
+
+Afgerond in code en remote testtenant: de rolcatalogus heeft nu `employee-directory:read`, `start-page:read`, `dashboard:read` en `workforce:read`. De globale `EMPLOYEE`-default krijgt alleen het directoryrecht; `DIRECT_MANAGER` en `TENANT_ADMIN` krijgen de drie werkruimte-rechten. De bestaande tenantoverride `HR Admin` in `liquid-hr-demo-holding` is hiermee bijgewerkt. De medewerkerlijst gebruikt een authenticated-only, permission-checked directory-RPC en staat daarmee open voor medewerkers zonder algemene `employee:read`-beheertoegang.
+
+De dashboardlayout en routes zijn server-side op deze rechten aangesloten. Medewerkers zien de medewerkerslijst, niet Dashboard, Start of Workforce; `/dashboard/start` stuurt een medewerker na login direct naar `/employees/{eigen employeeId}`. Manager en HR Admin behouden Start als landing; Dashboard en Workforce zijn voor deze rollen eveneens beschikbaar. Organisatiekaart is bovendien niet meer zichtbaar zonder `organization-chart:read`.
+
+Remote migraties `20260803192309_role_based_workspace_permissions` en `20260803192414_restrict_employee_overview_rpc` zijn toegepast op project `wnpfloqpjvaacobppbpk`; anonieme uitvoering van de directory-RPC is ingetrokken. De security-advisor toont hiervoor alleen de bewuste bestaande waarschuwing dat deze geautoriseerde directory-RPC een SECURITY DEFINER is; de performance-advisor heeft geen nieuwe slice-specifieke fout opgeleverd. De drie fixtureaccounts zijn remote gecontroleerd op de effectieve workspace-rechten. Lokale verificatie: strict typecheck, gerichte lint en 2 bestanden/10 tests geslaagd; de authenticated drie-rollen-browsercheck kon in deze run niet worden uitgevoerd omdat de beschikbare browser-sessie geen gekoppelde klantomgeving had en fixturewachtwoorden niet lokaal beschikbaar waren. Geen commit, push of deployment.
+
 ## Nieuwe hotfix 2026-08-03: productieflag testrolwisselaar
 
 Bevinding: `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` stond correct in Vercel, maar `isTestRoleSwitchEnabled()` las zonder override alleen `NODE_ENV` en niet de runtimeflag. Daardoor bleef de sidebarwisselaar in Production verborgen. Dit is hersteld in versie `1.20260803.4`; de helper leest de servervariabele direct uit en normaliseert `true`/hoofdletters/spaties. Regressietest, volledige tests (125/459), strict typecheck, lint, i18n-pariteit en productiebuild (163 pagina's) zijn geslaagd. GitHub `e8a008c` en Vercel Production `dpl_Fu1T5z3F9P21JdnsMcynaEgfi556` staan op `READY`; een geauthenticeerde productie-browsercontrole blijft als handmatige laatste controle over.
@@ -835,3 +957,8 @@ De ownershipslice is nu uitgevoerd. Remote zijn `20260731130502_align_tenant_own
 Verificatie voor deze slice: na iedere hoofdwijziging gaf `curl.exe http://127.0.0.1:3000/login` HTTP 200. Exacte eindresultaten: `npm.cmd test --workspace @liquid-hr/hr-suite` exit 0 (110 testbestanden, 405 tests, 0 failures); `npm.cmd run type-check --workspace @liquid-hr/hr-suite` exit 0; `npm.cmd run lint --workspace @liquid-hr/hr-suite` exit 0; `npm.cmd run check:i18n --workspace @liquid-hr/hr-suite` exit 0 (23 namespaces); `npm.cmd run build --workspace @liquid-hr/hr-suite` exit 0 (Next.js-build, 106 static pages); lokale/remote migration list is voor oudere historie al afwijkend, de drie nieuwe remote migrationnamen zijn gecontroleerd; Supabase security/performance advisors melden alleen bestaande projectbrede waarschuwingen/informatie. Een authenticated browserflow kon in deze run niet worden uitgevoerd omdat geen ingelogde testsessie beschikbaar was; anonieme beschermde API's geven 401 en routes redirecten naar login.
 
 Historische overdrachtstekst; vervangen door de actuele Talent Foundation-update bovenaan dit document. De genoemde Foundation-onderdelen zijn uitgevoerd; resterend zijn alleen de afzonderlijke Blueprint-slices die in `docs/README.md` als toekomstig staan.
+## Update 2026-08-04: medewerker-selfservice voor ziekmelden lokaal voorbereid
+
+De lokale migration `20260804153000_employee_self_service_absence_reporting.sql` voegt per administratie `employee_self_report_enabled` toe, standaard `false`. De beveiligde verzuim-RPC accepteert bij ingeschakelde self-service alleen de eerste ziektedag voor de ingelogde medewerker; herstel, wijzigen en aanvullende verzuimgegevens blijven server-side geblokkeerd. De medewerkerpopup toont alleen deze datum en de afgesproken uitlegtekst. Na een self-service-melding worden direct gepubliceerde reminders aangemaakt voor de directe manager en actieve HR Admin/TENANT_ADMIN-accounts, met de eerste ziektedag in de omschrijving.
+
+Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migration, Supabase-advisors, officiële DB-types en authenticated browsercontrole moeten nog worden uitgevoerd.

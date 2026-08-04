@@ -102,10 +102,10 @@ De server rendert de selectie op basis van deze parameters. Tijdelijke canvaspos
 ## 8. Autorisatie en privacy
 
 - Nieuwe canonieke permission: `organization-chart:read`.
-- De migratie kent dit recht standaard toe aan `TENANT_ADMIN`, `HR_ADVISOR` en `TEAM_LEAD`; tenantadmins kunnen het daarna via de bestaande rechtenmatrix intrekken of aan andere tenantrollen toekennen.
-- De service vereist daarnaast `department:read`, `organization-placement:read` en `management-assignment:read`; medewerkerdata blijft per rij begrensd door `employee:read`/selfscope en RLS.
+- De migratie kent dit recht standaard toe aan `TENANT_ADMIN`, `HR_ADVISOR`, `TEAM_LEAD` en `EMPLOYEE`; tenantadmins kunnen het daarna via de bestaande rechtenmatrix intrekken of aan andere tenantrollen toekennen.
+- De service vereist voor de managementweergave daarnaast `department:read`, `organization-placement:read`, `management-assignment:read` en `employee:read`. Een medewerker met `organization-chart:read` mag het volledige actieve organogram van de eigen administratie lezen; daarvoor zijn deze managementrechten niet nodig.
 - Alle queries gebruiken de ingelogde Supabase-client en respecteren RLS.
-- De graph bevat uitsluitend medewerkers die de actor via `employee:read` of toepasselijke self-/managementscope mag zien.
+- De graph bevat uitsluitend medewerkers uit de actieve eigen administratie. Voor medewerkers blijft de projectie beperkt tot niet-gevoelige organogramvelden; BSN, bankgegevens, salaris en sterbeoordelingen worden nooit opgenomen.
 - De response bevat alleen expliciet geselecteerde velden en nooit volledige database-rijen.
 - Tenant- en administratiegrenzen worden server-side en database-side afgedwongen.
 

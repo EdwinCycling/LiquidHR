@@ -16,18 +16,15 @@ import {
   Package,
   Pencil,
   Plus,
-  ShieldAlert,
   Sparkles,
-  UserRound,
-  WalletCards,
   Workflow,
 } from 'lucide-react'
 import type { Json } from '@scope/db'
 import { EmployeeActivityFeed } from '@/components/employees/employee-activity-feed'
+import { EmployeeDashboardSummary, type EmployeeDashboardSummaryLabels } from '@/components/employees/employee-dashboard-summary'
 import { ProfileLinkForm } from '@/components/employment/profile-link-form'
 import { EmployeeDashboardLayout } from '@/components/employees/employee-dashboard-layout'
 import { EmploymentDashboardSummary } from '@/components/employees/employment-dashboard-summary'
-import { EmailLink } from '@/components/shared/email-link'
 import type { EmployeeActivityItem } from '@/lib/employees/employee-activity-service'
 import type { EmployeeDashboardLayout as DashboardLayout } from '@/lib/preferences/employee-dashboard'
 import { formatDate, formatDateTime } from '@/lib/preferences/formatters'
@@ -41,8 +38,8 @@ import type { EmployeeDetailViewModel } from './types'
 
 export interface EmployeeDashboardDocument { id: string; title: string; expiresOn: string | null; createdAt: string }
 
-export interface EmployeeDashboardLabels {
-  title: string; subtitle: string; openDetails: string; edit: string; personal: string; name: string; age: string; daysUntilBirthday: string; workEmail: string; privateEmail: string; workPhone: string; privatePhone: string; contact: string; workContact: string; privateContact: string; noContact: string; address: string; noAddress: string; birthDate: string; nationality: string; birthPlace: string; gender: string; notRecorded: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; employmentNumber: string; employmentPeriod: string; employmentActive: string; employmentFuture: string; employmentEnded: string; employmentNoActive: string; employmentAdd: string; laborConditions: string; workerType: string; workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceHasSafetyNet: string; absenceWorkAccident: string; absenceThirdPartyAccident: string; absenceUnknown: string; absenceYes: string; absenceNo: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string; absenceNowSick: string; absenceNowNotSick: string; absenceLastReport: string; absenceNoHistory: string; absenceActiveSince: string; absenceRecoveryWindow: string; absenceClose: string
+export interface EmployeeDashboardLabels extends EmployeeDashboardSummaryLabels {
+  title: string; subtitle: string; openDetails: string; workContact: string; privateContact: string; birthDate: string; nationality: string; birthPlace: string; gender: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; employmentNumber: string; employmentPeriod: string; employmentActive: string; employmentFuture: string; employmentEnded: string; employmentNoActive: string; employmentAdd: string; laborConditions: string; workerType: string; workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceHasSafetyNet: string; absenceWorkAccident: string; absenceThirdPartyAccident: string; absenceUnknown: string; absenceYes: string; absenceNo: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string; absenceNowSick: string; absenceNowNotSick: string; absenceLastReport: string; absenceNoHistory: string; absenceActiveSince: string; absenceRecoveryWindow: string; absenceClose: string
   absenceOpenCase: string
 }
 
@@ -60,20 +57,18 @@ interface EmployeeDashboardProps {
   labels: EmployeeDashboardLabels
   canManageEmployments: boolean
   absence?: AbsenceCaseSummary | null
+  selfReportAbsence?: boolean
 }
 
-export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, selfReportAbsence = false }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
-  const currentAddress = (detail.addresses ?? []).find((address) => !address.validUntil) ?? detail.addresses?.[0]
-  const primaryBank = (detail.bankAccounts ?? []).find((account) => account.isPrimary) ?? detail.bankAccounts?.[0]
-  const emergencyContacts = (detail.relations ?? []).filter((relation) => relation.isEmergencyContact)
   const visibleFields = customFields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
   const wide = [
-    { id: 'personal' as const, node: <DashboardCard icon={<UserRound className="h-4 w-4" />} title={labels.personal} actionHref="?tab=personal" actionLabel={labels.edit}><dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3"><DataPoint label={labels.name} value={`${employee.firstName} ${employee.birthName}`} /><DataPoint label={labels.age} value={getAgeLabel(employee.birthDate, labels.notRecorded)} /><DataPoint label={labels.daysUntilBirthday} value={getDaysUntilBirthdayLabel(employee.birthDate, labels.notRecorded)} /><DataPoint label={labels.workEmail} value={employee.workEmail ?? labels.noContact} isEmail={Boolean(employee.workEmail)} /><DataPoint label={labels.privateEmail} value={employee.privateEmail ?? labels.noContact} isEmail={Boolean(employee.privateEmail)} /><DataPoint label={labels.workPhone} value={employee.workPhone ?? employee.workMobile ?? labels.noContact} /><DataPoint label={labels.privatePhone} value={employee.privatePhone ?? employee.privateMobile ?? labels.noContact} /><DataPoint label={labels.address} value={currentAddress ? `${currentAddress.addressLine1}, ${currentAddress.postalCode ?? ''} ${currentAddress.city}` : labels.noAddress} /></dl>{primaryBank || emergencyContacts.length > 0 ? <div className="mt-6 grid gap-3 border-t border-border/70 pt-5 sm:grid-cols-2">{primaryBank ? <SmallFact icon={<WalletCards className="h-4 w-4" />} label={labels.contact} value={`${primaryBank.maskedIban} · ${primaryBank.accountHolder}`} /> : null}{emergencyContacts.length > 0 ? <SmallFact icon={<ShieldAlert className="h-4 w-4" />} label={labels.privateContact} value={emergencyContacts.slice(0, 2).map((contact) => `${contact.firstName ?? ''} ${contact.lastName}`).join(', ')} /> : null}</div> : null}</DashboardCard> },
+    { id: 'personal' as const, node: <EmployeeDashboardSummary detail={detail} labels={labels} /> },
     { id: 'customFields' as const, node: <DashboardCard icon={<Sparkles className="h-4 w-4" />} title={labels.customFields} actionHref="?tab=personal" actionLabel={labels.edit}>{visibleFields.length > 0 ? <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">{visibleFields.slice(0, 9).map((field) => <DataPoint key={field.id} label={locale === 'en' ? field.labelEn : field.labelNl} value={formatCustomValue(field.value, labels.notRecorded)} />)}</dl> : <EmptyInline>{labels.customFieldsEmpty}</EmptyInline>}</DashboardCard> },
     { id: 'leave' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.leave}><EmptyModule title={labels.leaveDescription} labels={labels} /></DashboardCard> },
-    { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence}><div className="space-y-4">{absence ? <AbsenceStatusCard employeeId={employee.id} absence={absence} labels={labels} /> : <div className="rounded-xl border border-success/25 bg-success-surface/60 p-4 text-sm text-success"><div className="flex items-center gap-2 font-semibold"><CheckCircle2 aria-hidden="true" className="h-5 w-5" />{labels.absenceNowNotSick}</div><p className="mt-1 text-sm text-success/80">{labels.absenceNoHistory}</p></div>}<AbsenceQuickForm employeeId={employee.id} employmentId={detail.employments[0]?.id} currentCase={absence} recoveryMode="link" labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, hasSafetyNet: labels.absenceHasSafetyNet, workAccident: labels.absenceWorkAccident, thirdPartyAccident: labels.absenceThirdPartyAccident, unknown: labels.absenceUnknown, yes: labels.absenceYes, no: labels.absenceNo, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, failed: labels.absenceSaveFailed, close: labels.absenceClose }} /></div></DashboardCard> },
+    { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence}><div className="space-y-4">{absence ? <AbsenceStatusCard employeeId={employee.id} absence={absence} labels={labels} /> : <div className="rounded-xl border border-success/25 bg-success-surface/60 p-4 text-sm text-success"><div className="flex items-center gap-2 font-semibold"><CheckCircle2 aria-hidden="true" className="h-5 w-5" />{labels.absenceNowNotSick}</div><p className="mt-1 text-sm text-success/80">{labels.absenceNoHistory}</p></div>}<AbsenceQuickForm employeeId={employee.id} employmentId={detail.employments[0]?.id} currentCase={absence} selfService={selfReportAbsence} recoveryMode="link" labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, hasSafetyNet: labels.absenceHasSafetyNet, workAccident: labels.absenceWorkAccident, thirdPartyAccident: labels.absenceThirdPartyAccident, unknown: labels.absenceUnknown, yes: labels.absenceYes, no: labels.absenceNo, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, failed: labels.absenceSaveFailed, close: labels.absenceClose, selfServiceIntro: 'Wat vervelend dat je je niet goed voelt. Vul hieronder je gegevens in om je ziekmelding door te geven. Wij zorgen ervoor dat je leidinggevende automatisch op de hoogte wordt gesteld.' }} /></div></DashboardCard> },
     { id: 'budgets' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.budgets}><EmptyModule title={labels.budgetsDescription} labels={labels} /></DashboardCard> },
     { id: 'contracts' as const, node: <DashboardCard icon={<BriefcaseBusiness className="h-4 w-4" />} title={labels.contracts} actionHref="?tab=employments" actionLabel={labels.viewContracts}><EmploymentSummaryList employeeId={employee.id} employments={detail.employments} summaries={detail.employmentCards} locale={locale} dateFormat={dateFormat} labels={labels} canManageEmployments={canManageEmployments} /></DashboardCard> },
     { id: 'activity' as const, node: <DashboardCard icon={<ClipboardList className="h-4 w-4" />} title={labels.activity}><EmployeeActivityFeed employeeId={employee.id} items={activity} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} canWrite={canWriteActivity} labels={{ placeholder: labels.activityPlaceholder, add: labels.activityAdd, save: labels.activitySave, saving: labels.activitySaving, empty: labels.activityEmpty, failed: labels.activityFailed }} /></DashboardCard> },
@@ -171,8 +166,7 @@ function PlaceholderCard({ icon, title, description, labels }: { icon: React.Rea
 
 function EmptyModule({ title, labels }: { title: string; labels: EmployeeDashboardLabels }) { return <div className="rounded-xl border border-dashed border-primary/25 bg-accent/20 p-4"><p className="text-sm leading-6 text-muted-foreground">{title}</p><p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-primary">{labels.futureModule}</p><p className="mt-1 text-xs text-muted-foreground">{labels.futureModuleDescription}</p></div> }
 function EmptyInline({ children }: { children: React.ReactNode }) { return <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">{children}</p> }
-function DataPoint({ label, value, isEmail }: { label: string; value: string; isEmail?: boolean }) { return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 truncate text-sm font-semibold">{isEmail ? <EmailLink email={value} /> : value}</dd></div> }
-function SmallFact({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) { return <div className="flex min-w-0 items-start gap-2.5"><span className="mt-0.5 text-primary">{icon}</span><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</p><p className="mt-1 truncate text-sm font-medium">{value}</p></div></div> }
+function DataPoint({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 truncate text-sm font-semibold">{value}</dd></div> }
 function formatCustomValue(value: Json | undefined, fallback: string): string { if (value === undefined || value === null) return fallback; if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value); if (Array.isArray(value)) return value.map((item) => formatCustomValue(item, fallback)).join(', '); return Object.entries(value).map(([key, item]) => `${key}: ${formatCustomValue(item, fallback)}`).join(', ') }
 
 function AbsenceStatusCard({ employeeId, absence, labels }: { employeeId: string; absence: AbsenceCaseSummary; labels: EmployeeDashboardLabels }) {
@@ -184,28 +178,4 @@ function AbsenceStatusCard({ employeeId, absence, labels }: { employeeId: string
     {spell?.absencePercentage !== null && spell?.absencePercentage !== undefined ? <p className="mt-1 text-xs opacity-80">{spell.absencePercentage}%</p> : null}
     {!isCurrentlySick && absence.status === 'RECOVERY_WINDOW' && absence.recoveryWindowEndsOn ? <p className="mt-1 text-xs opacity-80">{labels.absenceRecoveryWindow.replace('{date}', absence.recoveryWindowEndsOn)}</p> : null}
   </Link>
-}
-
-function getAgeLabel(birthDate: string | null | undefined, fallback: string): string {
-  if (!birthDate) return fallback
-  const birth = new Date(`${birthDate}T00:00:00`)
-  const today = new Date()
-  let age = today.getFullYear() - birth.getFullYear()
-  const birthdayThisYear = new Date(today.getFullYear(), birth.getMonth(), Math.min(birth.getDate(), new Date(today.getFullYear(), birth.getMonth() + 1, 0).getDate()))
-  if (today < birthdayThisYear) age -= 1
-  return `${age}`
-}
-
-function getDaysUntilBirthdayLabel(birthDate: string | null | undefined, fallback: string): string {
-  if (!birthDate) return fallback
-  const birth = new Date(`${birthDate}T00:00:00`)
-  const today = new Date()
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const daysInMonth = new Date(today.getFullYear(), birth.getMonth() + 1, 0).getDate()
-  let birthday = new Date(today.getFullYear(), birth.getMonth(), Math.min(birth.getDate(), daysInMonth))
-  if (birthday < startOfToday) {
-    const nextYearDays = new Date(today.getFullYear() + 1, birth.getMonth() + 1, 0).getDate()
-    birthday = new Date(today.getFullYear() + 1, birth.getMonth(), Math.min(birth.getDate(), nextYearDays))
-  }
-  return `${Math.ceil((birthday.getTime() - startOfToday.getTime()) / 86400000)}`
 }

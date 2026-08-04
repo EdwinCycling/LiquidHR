@@ -3,9 +3,12 @@ import 'server-only'
 import { requireAuthContext, type AuthContext } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { listMyReminders, type ReminderItem } from '@/lib/reminders/reminder-service'
+import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 import { FALLBACK_WEATHER_LOCATION, getWorkWeather, type WorkWeather } from '@/lib/weather/open-meteo'
 import { getContinuousAppraisalSummary, type ContinuousAppraisalSummary } from '@/lib/continuous-appraisal/service'
+import { mapEmployeeOverviewRpcRow } from '@/lib/employment/employee-overview'
+import { loadTeamAvailability, type StartPageTeamAvailability } from './team-availability-service'
 
 export interface StartPageData {
   employeeId: string | null
@@ -27,6 +30,23 @@ export interface StartPageData {
   nextLeaveInDays: number | null
   nextHolidayInDays: number | null
   continuousAppraisal: ContinuousAppraisalSummary | null
+  teamAvailability: StartPageTeamAvailability | null
+  canReadWorkforce: boolean
+  workforceLinks: StartPageWorkforceLink[]
+  isManager: boolean
+  isHrAdmin: boolean
+  canSwitchScope: boolean
+  scope: StartPageScope
+  canReportAbsence: boolean
+}
+
+export type StartPageScope = 'team' | 'company'
+
+export type StartPageWorkforceLinkId = 'nineGrid' | 'continuousAppraisal' | 'talentProfiles' | 'starPerformers' | 'starPerformerTags'
+
+export interface StartPageWorkforceLink {
+  id: StartPageWorkforceLinkId
+  href: string
 }
 
 export interface StartPageLeavePerson {
@@ -64,6 +84,25 @@ interface StartPageCountdowns {
   nextHolidayInDays: number | null
 }
 
+type StartPageEmployeeScope = string[] | null
+
+function listStartPageWorkforceLinks(permissions: string[], personalOnly: boolean): StartPageWorkforceLink[] {
+  const links: StartPageWorkforceLink[] = []
+  if (personalOnly) {
+    if (permissions.includes('self:continuous-appraisal:read')) links.push({ id: 'continuousAppraisal', href: '/my-appraisal' })
+    if (permissions.includes('self:talent:read')) links.push({ id: 'talentProfiles', href: '/my-talent' })
+    return links
+  }
+  if (permissions.includes('talent-review:read')) links.push({ id: 'nineGrid', href: '/workforce/9-grid' })
+  if (permissions.includes('continuous-appraisal:read')) links.push({ id: 'continuousAppraisal', href: '/workforce/continuous-appraisal' })
+  if (permissions.includes('talent:manager-read')) links.push({ id: 'talentProfiles', href: '/workforce/talent' })
+  if (permissions.includes('star-performer:read')) {
+    links.push({ id: 'starPerformers', href: '/workforce/star-performers' })
+    links.push({ id: 'starPerformerTags', href: '/workforce/star-performer-tags' })
+  }
+  return links
+}
+
 function daysUntilDate(targetDate: string, baseDate: string): number | null {
   const [targetYear, targetMonth, targetDay] = targetDate.split('-').map(Number)
   const [baseYear, baseMonth, baseDay] = baseDate.split('-').map(Number)
@@ -95,7 +134,7 @@ async function getStartPageCountdowns(auth: AuthContext): Promise<StartPageCount
   }
 }
 
-async function listLeaveAbsences(auth: AuthContext): Promise<StartPageLeaveAbsences> {
+async function listLeaveAbsences(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<StartPageLeaveAbsences> {
   const empty: StartPageLeaveAbsences = { today: [], tomorrow: [] }
   if (!auth.permissions.includes('leave:read')) return empty
   const supabase = await createClient()
@@ -109,6 +148,10 @@ async function listLeaveAbsences(auth: AuthContext): Promise<StartPageLeaveAbsen
   async function queryDay(dateStr: string): Promise<StartPageLeavePerson[]> {
     let query = supabase.from('leave_requests').select('employee_id').eq('tenant_id', auth.tenantId).eq('status', 'APPROVED').lte('start_date', dateStr).gte('end_date', dateStr)
     if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
+    if (employeeScope !== null) {
+      if (employeeScope.length === 0) return []
+      query = query.in('employee_id', employeeScope)
+    }
     const { data, error } = await query.limit(200)
     if (error || !data?.length) return []
     const employeeIds = [...new Set(data.map((row) => row.employee_id))]
@@ -121,12 +164,16 @@ async function listLeaveAbsences(auth: AuthContext): Promise<StartPageLeaveAbsen
   return { today: todayResult, tomorrow: tomorrowResult }
 }
 
-async function listActiveAbsences(auth: AuthContext): Promise<{ items: StartPageAbsenceItem[]; total: number }> {
+async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<{ items: StartPageAbsenceItem[]; total: number }> {
   if (!auth.permissions.includes('absence:read')) return { items: [], total: 0 }
   const supabase = await createClient()
   let countQuery = supabase.from('absence_cases').select('id', { count: 'exact', head: true })
     .eq('tenant_id', auth.tenantId).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null)
   if (auth.administrationId) countQuery = countQuery.eq('administration_id', auth.administrationId)
+  if (employeeScope !== null) {
+    if (employeeScope.length === 0) return { items: [], total: 0 }
+    countQuery = countQuery.in('employee_id', employeeScope)
+  }
   const { count: total } = await countQuery
 
   let query = supabase.from('absence_cases')
@@ -137,6 +184,7 @@ async function listActiveAbsences(auth: AuthContext): Promise<{ items: StartPage
     .order('first_absence_on', { ascending: false })
     .limit(5)
   if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
+  if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { data: cases, error } = await query
   if (error || !cases?.length) return { items: [], total: total ?? 0 }
   const employeeIds = [...new Set(cases.map((item) => item.employee_id))]
@@ -181,8 +229,9 @@ function nextAnnualDate(source: string, startDate: string, endDate: string): str
   return null
 }
 
-async function listUpcomingEvents(auth: AuthContext): Promise<StartPageEvent[]> {
+async function listUpcomingEvents(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<StartPageEvent[]> {
   if (!auth.permissions.includes('employee:read') || !auth.administrationId) return []
+  if (employeeScope !== null && employeeScope.length === 0) return []
   const supabase = await createClient()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -195,11 +244,13 @@ async function listUpcomingEvents(auth: AuthContext): Promise<StartPageEvent[]> 
   const startDate = today.toISOString().slice(0, 10)
   const endDate = endDay.toISOString().slice(0, 10)
 
-  const { data: employments, error: empError } = await supabase.from('employments')
+  let employmentsQuery = supabase.from('employments')
     .select('id, employee_id, starts_on, seniority_date, is_primary')
     .eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId)
     .eq('record_status', 'CONFIRMED').is('deleted_at', null)
-    .lte('starts_on', endDate).or(`ends_on.is.null,ends_on.gte.${startDate}`).limit(2000)
+    .lte('starts_on', endDate).or(`ends_on.is.null,ends_on.gte.${startDate}`)
+  if (employeeScope !== null) employmentsQuery = employmentsQuery.in('employee_id', employeeScope)
+  const { data: employments, error: empError } = await employmentsQuery.limit(2000)
   if (empError || !employments?.length) return []
 
   const employeeIds = [...new Set(employments.map((e) => e.employee_id))]
@@ -242,31 +293,35 @@ async function listUpcomingEvents(auth: AuthContext): Promise<StartPageEvent[]> 
   return events.sort((a, b) => a.date.localeCompare(b.date) || a.employeeName.localeCompare(b.employeeName, 'nl'))
 }
 
-async function countEmployees(auth: AuthContext): Promise<number | null> {
+async function countEmployees(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<number | null> {
   if (!auth.permissions.includes('employee:read')) return null
+  if (employeeScope !== null && employeeScope.length === 0) return 0
+  if (!auth.administrationId) return 0
   const supabase = await createClient()
-  let query = supabase.from('employees').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', auth.tenantId).eq('is_active', true).eq('is_archived', false).is('deleted_at', null)
-  if (auth.administrationId) {
-    const today = new Date().toISOString().slice(0, 10)
-    const { data: assignments } = await supabase.from('employee_administration_assignments').select('employee_id')
-      .eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId)
-      .lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(10000)
-    const employeeIds = [...new Set((assignments ?? []).map((a) => a.employee_id))]
-    if (employeeIds.length === 0) return 0
-    query = query.in('id', employeeIds)
-  }
-  const { count, error } = await query
-  return error ? null : count ?? 0
+  const today = new Date().toISOString().slice(0, 10)
+  const { data, error } = await supabase.rpc('list_employee_overviews', {
+    requested_tenant_id: auth.tenantId,
+    requested_administration_id: auth.administrationId,
+    requested_as_of: today,
+    requested_archive_filter: 'active',
+  })
+  if (error) return null
+  const scope = employeeScope === null ? null : new Set(employeeScope)
+  return data
+    .filter((employee) => scope === null || scope.has(employee.id))
+    .map((employee) => mapEmployeeOverviewRpcRow(employee, today))
+    .filter((employee) => employee.status === 'ACTIVE_EMPLOYEE').length
 }
 
-async function countRecurringAbsence(auth: AuthContext): Promise<number | null> {
+async function countRecurringAbsence(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<number | null> {
   if (!auth.permissions.includes('absence:read')) return null
+  if (employeeScope !== null && employeeScope.length === 0) return 0
   const supabase = await createClient()
   // Medewerkers met meer dan 1 verzuimcasus (recurring)
   let query = supabase.from('absence_cases').select('employee_id')
     .eq('tenant_id', auth.tenantId).is('archived_at', null)
   if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
+  if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { data, error } = await query.limit(10000)
   if (error || !data) return null
   const counts = new Map<string, number>()
@@ -274,8 +329,9 @@ async function countRecurringAbsence(auth: AuthContext): Promise<number | null> 
   return [...counts.values()].filter((count) => count > 1).length
 }
 
-async function countLongTermSick(auth: AuthContext): Promise<number | null> {
+async function countLongTermSick(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<number | null> {
   if (!auth.permissions.includes('absence:read')) return null
+  if (employeeScope !== null && employeeScope.length === 0) return 0
   const supabase = await createClient()
   const twoWeeksAgo = new Date()
   twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
@@ -284,6 +340,7 @@ async function countLongTermSick(auth: AuthContext): Promise<number | null> {
     .eq('tenant_id', auth.tenantId).eq('status', 'ACTIVE').is('archived_at', null)
     .lte('first_absence_on', cutoff)
   if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
+  if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { count, error } = await query
   return error ? null : count ?? 0
 }
@@ -355,29 +412,37 @@ async function getStartPageContinuousAppraisal(): Promise<ContinuousAppraisalSum
   }
 }
 
-export async function getStartPageData(): Promise<StartPageData> {
+export async function getStartPageData(requestedScope?: StartPageScope): Promise<StartPageData> {
   const supabase = await createClient()
   const auth = await requireAuthContext(supabase)
   const context = await loadActiveContext(auth.userId, supabase)
-  const managementRoles = new Set(['TENANT_ADMIN', 'HR_ADMIN', 'HR_ADVISOR', 'DIRECT_MANAGER', 'TEAM_LEAD'])
-  const isEmployeeOnly = auth.activeRoles.every((role) => !managementRoles.has(role))
+  const isEmployeeOnly = !auth.permissions.includes('start-page:read')
+  const personalOnly = auth.employeeId !== null && !auth.permissions.includes('workforce:read')
+  const isManager = auth.activeRoles.includes('DIRECT_MANAGER')
+  const isHrAdmin = auth.activeRoles.includes('TENANT_ADMIN')
+  const canSwitchScope = isManager && isHrAdmin
+  const scope: StartPageScope = isManager ? (isHrAdmin && requestedScope === 'company' ? 'company' : 'team') : 'company'
+  const employeeScope = scope === 'team' ? await listDirectTeamEmployeeIds(auth) : null
+  const managerTeamEmployeeIds = isManager && scope === 'team' ? (employeeScope ?? await listDirectTeamEmployeeIds(auth)) : []
+  const workforceLinks = listStartPageWorkforceLinks(auth.permissions, personalOnly)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal] = await Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal, teamAvailability] = await Promise.all([
     auth.employeeId
       ? supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
-    listLeaveAbsences(auth),
-    listActiveAbsences(auth),
+    listLeaveAbsences(auth, employeeScope),
+    listActiveAbsences(auth, employeeScope),
     countCompanyDocuments(auth),
     listMyReminders(8).catch(() => []),
-    listUpcomingEvents(auth),
-    countEmployees(auth),
-    countRecurringAbsence(auth),
-    countLongTermSick(auth),
+    listUpcomingEvents(auth, employeeScope),
+    countEmployees(auth, employeeScope),
+    countRecurringAbsence(auth, employeeScope),
+    countLongTermSick(auth, employeeScope),
     getStartPageWorkWeather(auth),
     getStartPageHomeWeather(auth),
     getStartPageCountdowns(auth),
     getStartPageContinuousAppraisal(),
+    isManager && scope === 'team' ? loadTeamAvailability(auth, managerTeamEmployeeIds) : Promise.resolve(null),
   ])
 
   return {
@@ -400,5 +465,13 @@ export async function getStartPageData(): Promise<StartPageData> {
     nextLeaveInDays: countdowns.nextLeaveInDays,
     nextHolidayInDays: countdowns.nextHolidayInDays,
     continuousAppraisal,
+    teamAvailability,
+    canReadWorkforce: auth.permissions.includes('workforce:read') || workforceLinks.length > 0,
+    workforceLinks,
+    isManager,
+    isHrAdmin,
+    canSwitchScope,
+    scope,
+    canReportAbsence: auth.permissions.includes('absence:write'),
   }
 }

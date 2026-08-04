@@ -1,13 +1,14 @@
 import 'server-only'
 
 import type { Database, Json } from '@scope/db'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
 import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './employee-summary'
+import { listDirectTeamEmployeeIds, type EmployeeScope } from '@/lib/organization/team-scope'
 import { mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
 import type {
   CompleteEmploymentCreateInput,
@@ -465,20 +466,52 @@ export async function listEmployeeEmployments(employeeId: string): Promise<Emplo
   return data
 }
 
-export async function listEmployeesOverview(archiveFilter: EmployeeArchiveFilter = 'active'): Promise<EmployeeOverview[]> {
-  const context = await requirePermission('employee:read')
-  const administrationId = requireAdministrationId(context.administrationId)
+async function listDirectTeamEmployeeOverviews(
+  context: Awaited<ReturnType<typeof requireAnyPermission>>,
+  archiveFilter: EmployeeArchiveFilter,
+  today: string,
+): Promise<EmployeeOverview[]> {
+  const teamEmployeeIds = await listDirectTeamEmployeeIds(context)
+  if (teamEmployeeIds.length === 0) return []
+
   const supabase = await createClient()
-  const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase.rpc('list_employee_overviews', {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: administrationId,
+    requested_administration_id: requireAdministrationId(context.administrationId),
     requested_as_of: today,
     requested_archive_filter: archiveFilter,
   })
   if (error) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
 
-  return data.map((employee) => mapEmployeeOverviewRpcRow(employee, today))
+  const teamEmployeeIdSet = new Set(teamEmployeeIds)
+  return data
+    .filter((employee) => teamEmployeeIdSet.has(employee.id))
+    .map((employee) => mapEmployeeOverviewRpcRow(employee, today))
+}
+
+export async function listEmployeesOverview(
+  archiveFilter: EmployeeArchiveFilter = 'active',
+  scope: EmployeeScope = 'all',
+  options: { activeDirectoryOnly?: boolean } = {},
+): Promise<EmployeeOverview[]> {
+  const context = await requireAnyPermission(['employee:read', 'employee-directory:read'])
+  const administrationId = requireAdministrationId(context.administrationId)
+  const today = new Date().toISOString().slice(0, 10)
+  const effectiveArchiveFilter = options.activeDirectoryOnly ? 'active' : archiveFilter
+  if (scope === 'team' && !context.activeRoles.includes('DIRECT_MANAGER')) throw new AuthorizationError('Je hebt geen toegang tot de teamscope.')
+  if (scope === 'team') return listDirectTeamEmployeeOverviews(context, effectiveArchiveFilter, today)
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('list_employee_overviews', {
+    requested_tenant_id: context.tenantId,
+    requested_administration_id: administrationId,
+    requested_as_of: today,
+    requested_archive_filter: effectiveArchiveFilter,
+  })
+  if (error) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
+
+  const employees = data.map((employee) => mapEmployeeOverviewRpcRow(employee, today))
+  return options.activeDirectoryOnly ? employees.filter((employee) => employee.status === 'ACTIVE_EMPLOYEE') : employees
 }
 
 export async function getEmployeeEmploymentDetail(
@@ -561,12 +594,13 @@ export async function getEmployeeEmploymentDetail(
   const settingsQuery = context.administrationId
     ? supabase.from('administration_hr_settings').select('default_employment_country_code').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).maybeSingle()
     : Promise.resolve({ data: null, error: null })
+  const isSelf = context.employeeId === employeeId
   const capabilityValuesPromise = Promise.all([
-    permissionAllowed('employee:write', employeeId),
-    includePersonalData ? permissionAllowed('employee-bsn:read', employeeId) : Promise.resolve(false),
+    permissionAllowed(isSelf ? 'self:employee:write' : 'employee:write', employeeId),
+    includePersonalData ? permissionAllowed(isSelf ? 'self:employee-bsn:read' : 'employee-bsn:read', employeeId) : Promise.resolve(false),
     includePersonalData ? permissionAllowed('employee-bsn:write', employeeId) : Promise.resolve(false),
-    includePersonalData ? permissionAllowed(context.employeeId === employeeId ? 'address:write' : 'employee:write', employeeId) : Promise.resolve(false),
-    includePersonalData ? permissionAllowed(context.employeeId === employeeId ? 'relation:write' : 'employee:write', employeeId) : Promise.resolve(false),
+    includePersonalData ? permissionAllowed(context.employeeId === employeeId ? 'self:address:write' : 'employee:write', employeeId) : Promise.resolve(false),
+    includePersonalData ? permissionAllowed(context.employeeId === employeeId ? 'self:relation:write' : 'employee:write', employeeId) : Promise.resolve(false),
     includePersonalData ? permissionAllowed('bank-account:write', employeeId) : Promise.resolve(false),
   ])
   const [

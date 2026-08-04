@@ -66,6 +66,7 @@
     },
     "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag"
   },
+  "employeeDirectory": { "title": "Medewerkersdirectory", "subtitle": "Bepaal welke collega-informatie medewerkers in een veilige popup mogen zien.", "enabled": "Medewerkers mogen de medewerkerslijst openen", "enabledDescription": "Wanneer dit uitstaat, blijft de lijst alleen beschikbaar voor HR en leidinggevenden.", "fieldsTitle": "Gegevens in de collega-popup", "fieldsDescription": "Alle opties staan standaard aan. Schakel afzonderlijke gegevens uit wanneer medewerkers die niet mogen zien.", "name": "Naam", "nameAlwaysOn": "altijd zichtbaar", "jobDepartment": "Functie en afdeling", "workEmail": "Zakelijk e-mailadres", "workPhone": "Zakelijk telefoonnummer", "presence": "Aanwezigheid deze week", "schedule": "Rooster", "save": "Instellingen opslaan", "saving": "Opslaan…", "saved": "Instellingen opgeslagen.", "failed": "De instellingen konden niet worden opgeslagen." },
   "modules": {
     "title": "Actieve modules", "subtitle": "Kies welke extra modules in de hele klantomgeving beschikbaar zijn. Kernfunctionaliteit blijft altijd actief.",
     "saved": "Modules opgeslagen.", "failed": "Opslaan is niet gelukt.", "comingSoon": "Komt later",

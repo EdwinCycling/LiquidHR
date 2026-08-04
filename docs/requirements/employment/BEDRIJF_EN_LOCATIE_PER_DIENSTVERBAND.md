@@ -18,4 +18,4 @@ LEIDEND voor de bedrijf-en-locatiepagina binnen een dienstverband. De bestaande 
 - De bestaande administratiegebonden `administration_company_data` en `administration_locations` blijven leidend.
 - De bestaande `employee_organizations.location_id` draagt de locatie mee per effectieve organisatieperiode; de nieuwe RPC beheert de locatie-mutatie atomair en bewaart locatie bij een organisatie-opvolger.
 - Lezen en wijzigen vallen onder `organization-placement:read` en `organization-placement:write`; RLS blijft de administratie- en tenantscope afdwingen.
-- De lokale migratie `20260802210500_manage_employment_company_location.sql` moet nog expliciet naar Supabase worden uitgerold voordat de mutatieroute live kan worden gebruikt.
+- De migratie `20260802210500_manage_employment_company_location.sql` is naar Supabase uitgerold; de mutatieroute moet nog met een geauthenticeerde browsercontrole worden bevestigd.

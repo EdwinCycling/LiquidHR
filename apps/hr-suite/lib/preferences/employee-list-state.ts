@@ -1,12 +1,13 @@
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 
-export type EmployeeStatusFilter = EmploymentStatus | 'all'
+export const ACTIVE_FUTURE_EXTERNAL_STATUS = 'ACTIVE_FUTURE_EXTERNAL' as const
+export type EmployeeStatusFilter = EmploymentStatus | 'all' | typeof ACTIVE_FUTURE_EXTERNAL_STATUS
 export type EmployeeArchiveFilter = 'active' | 'archived' | 'all'
 export type EmployeeListSort = 'first-name' | 'last-name'
-export type EmployeeListView = 'compact' | 'detail'
+export type EmployeeListView = 'compact' | 'detail' | 'card' | 'photo-large' | 'photo' | 'photo-small' | 'photo-only' | 'photo-collage'
+export type EmployeeListScope = 'all' | 'team'
 
 export interface EmployeeListPreferences {
-  filterPanelOpen: boolean
   status: EmployeeStatusFilter
   archive: EmployeeArchiveFilter
   sort: EmployeeListSort
@@ -16,7 +17,6 @@ export interface EmployeeListPreferences {
 export type EmployeeListPreferencesPatch = Partial<EmployeeListPreferences>
 
 export const DEFAULT_EMPLOYEE_LIST_PREFERENCES: EmployeeListPreferences = {
-  filterPanelOpen: true,
   status: 'ACTIVE_EMPLOYEE',
   archive: 'active',
   sort: 'last-name',
@@ -41,28 +41,23 @@ function isEmployeeStatus(value: unknown): value is EmploymentStatus {
 export function parseEmployeeListPreferences(value: unknown): EmployeeListPreferences {
   if (!isRecord(value)) return DEFAULT_EMPLOYEE_LIST_PREFERENCES
   return {
-    filterPanelOpen: typeof value.filterPanelOpen === 'boolean' ? value.filterPanelOpen : true,
-    status: value.status === 'all' || isEmployeeStatus(value.status) ? value.status : DEFAULT_EMPLOYEE_LIST_PREFERENCES.status,
+    status: value.status === 'all' || value.status === ACTIVE_FUTURE_EXTERNAL_STATUS || isEmployeeStatus(value.status) ? value.status : DEFAULT_EMPLOYEE_LIST_PREFERENCES.status,
     archive: value.archive === 'active' || value.archive === 'archived' || value.archive === 'all' ? value.archive : DEFAULT_EMPLOYEE_LIST_PREFERENCES.archive,
     sort: value.sort === 'first-name' || value.sort === 'last-name' ? value.sort : DEFAULT_EMPLOYEE_LIST_PREFERENCES.sort,
-    view: value.view === 'compact' || value.view === 'detail' ? value.view : DEFAULT_EMPLOYEE_LIST_PREFERENCES.view,
+    view: value.view === 'compact' || value.view === 'detail' || value.view === 'card' || value.view === 'photo-large' || value.view === 'photo' || value.view === 'photo-small' || value.view === 'photo-only' || value.view === 'photo-collage' ? value.view : DEFAULT_EMPLOYEE_LIST_PREFERENCES.view,
   }
 }
 
 export function parseEmployeeListPreferencesPatch(value: unknown): EmployeeListPreferencesPatch | null {
   if (!isRecord(value)) return null
   const keys = Object.keys(value)
-  const allowedKeys = new Set(['filterPanelOpen', 'status', 'archive', 'sort', 'view'])
+  const allowedKeys = new Set(['status', 'archive', 'sort', 'view'])
   if (keys.length === 0 || keys.some((key) => !allowedKeys.has(key))) return null
   const patch: EmployeeListPreferencesPatch = {}
   for (const key of keys) {
     const item = value[key]
-    if (key === 'filterPanelOpen') {
-      if (typeof item !== 'boolean') return null
-      patch.filterPanelOpen = item
-    }
     if (key === 'status') {
-      if (item !== 'all' && !isEmployeeStatus(item)) return null
+      if (item !== 'all' && item !== ACTIVE_FUTURE_EXTERNAL_STATUS && !isEmployeeStatus(item)) return null
       patch.status = item
     }
     if (key === 'archive') {
@@ -74,7 +69,7 @@ export function parseEmployeeListPreferencesPatch(value: unknown): EmployeeListP
       patch.sort = item
     }
     if (key === 'view') {
-      if (item !== 'compact' && item !== 'detail') return null
+      if (item !== 'compact' && item !== 'detail' && item !== 'card' && item !== 'photo-large' && item !== 'photo' && item !== 'photo-small' && item !== 'photo-only' && item !== 'photo-collage') return null
       patch.view = item
     }
   }
@@ -87,15 +82,37 @@ export function employeeListHref(filters: {
   archive: EmployeeArchiveFilter
   sort: EmployeeListSort
   view: EmployeeListView
+  scope?: EmployeeListScope
 }): string {
   const params = new URLSearchParams()
   const search = filters.search.trim()
   if (search) params.set('search', search)
   if (filters.status === 'all') params.set('status', 'all')
-  else if (filters.status !== 'ACTIVE_EMPLOYEE') params.set('status', filters.status)
+  else if (filters.status === ACTIVE_FUTURE_EXTERNAL_STATUS) params.set('status', 'active-future-external')
+  else if (filters.status !== 'ACTIVE_EMPLOYEE' || filters.scope === 'team') params.set('status', filters.status)
   if (filters.archive !== 'active') params.set('archive', filters.archive)
   if (filters.sort !== 'last-name') params.set('sort', filters.sort)
   if (filters.view !== 'detail') params.set('view', filters.view)
+  if (filters.scope === 'team' || filters.scope === 'all') params.set('scope', filters.scope)
   const query = params.toString()
   return query ? `/employees?${query}` : '/employees'
+}
+
+export function employeeListMyTeamHref(): string {
+  return employeeListHref({
+    search: '',
+    status: ACTIVE_FUTURE_EXTERNAL_STATUS,
+    archive: 'active',
+    sort: 'last-name',
+    view: 'detail',
+    scope: 'team',
+  })
+}
+
+export function matchesEmployeeStatus(status: EmploymentStatus, filter: EmployeeStatusFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === ACTIVE_FUTURE_EXTERNAL_STATUS) {
+    return status === 'ACTIVE_EMPLOYEE' || status === 'FUTURE_EMPLOYEE' || status === 'NEVER_EMPLOYED'
+  }
+  return status === filter
 }

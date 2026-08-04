@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { absenceSettingsSchema, type AbsenceSettingsInput } from './settings-schemas'
 
@@ -13,6 +14,7 @@ export interface AbsenceCaseManagerOption {
 export interface AbsenceSettingsPageData {
   frequentAbsenceThreshold: number
   defaultCaseManagerEmployeeId: string | null
+  employeeSelfReportEnabled: boolean
   caseManagers: AbsenceCaseManagerOption[]
 }
 
@@ -64,7 +66,7 @@ export async function getAbsenceSettingsPageData(): Promise<AbsenceSettingsPageD
     context.administrationId
       ? supabase
         .from('absence_settings')
-        .select('frequent_absence_threshold,default_case_manager_employee_id')
+        .select('*')
         .eq('tenant_id', context.tenantId)
         .eq('administration_id', context.administrationId)
         .maybeSingle()
@@ -72,9 +74,11 @@ export async function getAbsenceSettingsPageData(): Promise<AbsenceSettingsPageD
     listCaseManagers(context),
   ])
   if (settings.error) throw new Error('ABSENCE_SETTINGS_READ_FAILED')
+  const settingsRow = settings.data as { frequent_absence_threshold?: number; default_case_manager_employee_id?: string | null; employee_self_report_enabled?: boolean } | null
   return {
-    frequentAbsenceThreshold: settings.data?.frequent_absence_threshold ?? 3,
-    defaultCaseManagerEmployeeId: settings.data?.default_case_manager_employee_id ?? null,
+    frequentAbsenceThreshold: settingsRow?.frequent_absence_threshold ?? 3,
+    defaultCaseManagerEmployeeId: settingsRow?.default_case_manager_employee_id ?? null,
+    employeeSelfReportEnabled: settingsRow?.employee_self_report_enabled ?? false,
     caseManagers,
   }
 }
@@ -94,6 +98,15 @@ export async function updateAbsenceSettings(rawInput: unknown): Promise<void> {
     administration_id: context.administrationId,
     frequent_absence_threshold: input.frequentAbsenceThreshold,
     default_case_manager_employee_id: input.defaultCaseManagerEmployeeId ?? null,
-  }, { onConflict: 'tenant_id,administration_id' })
+    employee_self_report_enabled: input.employeeSelfReportEnabled,
+  } as never, { onConflict: 'tenant_id,administration_id' })
   if (error) throw new Error('ABSENCE_SETTINGS_WRITE_FAILED')
+}
+
+export async function canEmployeeSelfReportAbsence(employeeId: string): Promise<boolean> {
+  const context = await requireAuthContext()
+  if (context.employeeId !== employeeId || !context.administrationId) return false
+  const supabase = await createClient()
+  const { data } = await supabase.from('absence_settings').select('*').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).maybeSingle()
+  return (data as { employee_self_report_enabled?: boolean } | null)?.employee_self_report_enabled ?? false
 }

@@ -12,6 +12,14 @@ function isRecord(value: Json | null | undefined): value is { [key: string]: Jso
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function withoutFilterPanelOpen(value: { [key: string]: Json | undefined }): { [key: string]: Json | undefined } {
+  const cleaned: { [key: string]: Json | undefined } = {}
+  for (const [key, item] of Object.entries(value)) {
+    if (key !== 'filterPanelOpen') cleaned[key] = item
+  }
+  return cleaned
+}
+
 export async function getStoredEmployeesListPreferences(): Promise<EmployeeListPreferences> {
   const supabase = await createClient()
   const { data: claims } = await supabase.auth.getClaims()
@@ -29,7 +37,7 @@ export async function saveEmployeesListPreferences(patch: EmployeeListPreference
   if (!userId) return false
   const current = await supabase.from('user_preferences').select('ui_state').eq('auth_user_id', userId).maybeSingle()
   const currentState = isRecord(current.data?.ui_state) ? current.data.ui_state : {}
-  const currentEmployeesList = isRecord(currentState.employeesList) ? currentState.employeesList : {}
+  const currentEmployeesList = isRecord(currentState.employeesList) ? withoutFilterPanelOpen(currentState.employeesList) : {}
   const { error } = await supabase.from('user_preferences').upsert({
     auth_user_id: userId,
     ui_state: {
@@ -42,8 +50,4 @@ export async function saveEmployeesListPreferences(patch: EmployeeListPreference
   }, { onConflict: 'auth_user_id' })
   if (error) return false
   return true
-}
-
-export async function saveEmployeesFilterPanelOpen(filterPanelOpen: boolean): Promise<boolean> {
-  return saveEmployeesListPreferences({ filterPanelOpen })
 }

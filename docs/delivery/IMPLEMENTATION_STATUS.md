@@ -1,5 +1,113 @@
 # Implementatiestatus Liquid HR
 
+## Actuele update 2026-08-04: Supabase security- en performance-hardening
+
+De Star Performer-RLS policies zijn performance-neutraal geconsolideerd: `read` blijft de enige SELECT-policy en de bestaande `write`-policy is per tabel vervangen door afzonderlijke INSERT-, UPDATE- en DELETE-policies met dezelfde permissionchecks. Daarnaast bevatten de relevante `SECURITY DEFINER`-RPC's geen `pg_temp` meer in hun search path. Beide migrations zijn remote toegepast en de officiële types zijn opnieuw opgevraagd; er wijzigde geen databasecontract.
+
+Advisorresultaat: performance 0 WARN en 258 INFO; security 15 bestaande authenticated SECURITY DEFINER-WARNs en 2 bewuste RLS-zonder-policy INFO's. De Auth-melding voor gelekte wachtwoorden blijft afhankelijk van Supabase Auth-inrichting. Tests, strict typecheck, ESLint en productiebuild zijn groen.
+
+## Actuele update 2026-08-04: compactere fotoweergave medewerkerslijst
+
+Aanvulling: **Foto collage** is toegevoegd als extra view-keuze met vierkante foto’s of initialen, zonder namen, in een strak responsive raster.
+
+De medewerkerslijst ondersteunt nu zeven view-keuzes: Detail, Compact, Kaarten, Foto's groot, Foto's standaard, Foto's klein en Alleen foto (vierkant). De drie benoemde fotoweergaven renderen uitsluitend foto/initialen en voornaam; de vierkante variant rendert alleen foto/initialen met een dunne rand. Voor medewerkercollega's en managerrecords buiten het directe team blijft de veilige popupkliklaag actief; directe teamleden, eigen records en HR-bevoegde records behouden hun normale detailroute. Geen personeelsnummer of andere verborgen directoryvelden worden in de fototegel toegevoegd.
+
+`photo` is opgenomen in de voorkeur-parser, PATCH-validatie, URL-state en i18n. Er is geen schemawijziging of migration nodig.
+
+## Actuele update 2026-08-04: kaartweergave medewerkerslijst
+
+De lijstweergave is uitgebreid met **Kaarten** naast Detail en Compact. Het filter gebruikt de bestaande voorkeursschrijfroute; de parser, URL-helper en `user_preferences.ui_state.employeesList` accepteren de nieuwe waarde `card`. De kaart gebruikt een responsive `auto-fit`-grid, avatar/initialen, status, functie, afdeling en zakelijk e-mailadres wanneer die velden voor de kijker zichtbaar zijn. De kliklaag blijft rolbewust: medewerkercollega's en managerrecords buiten het directe team openen de beperkte directory-popup; eigen/directe bevoegde records openen de bestaande detailroute. Personeelsnummers worden niet in de beperkte kaarten gerenderd.
+
+Lokaal geslaagd: 9/9 voorkeurentests, strict typecheck, gerichte ESLint, i18n-pariteit en `git diff --check`. Remote geslaagd: één opgeslagen `card`-voorkeur in de Supabase `user_preferences`-JSON-scope. Browsercontrole op poort 3000 geslaagd voor manager- en medewerkerrol, inclusief herladen, 3-kaarten-per-rij op desktop, 20 medewerkerskaarten, 19 collega-popupknoppen, één eigen profiel-link en een popup met de vrijgegeven directoryvelden. Geen migratie, commit, push of deployment uitgevoerd.
+
+## Actuele update 2026-08-04: managerbeschikbaarheid op de startpagina
+
+De startpagina heeft voor managers een breed venster **Beschikbaarheid team** met een horizon van zeven dagen inclusief vandaag. Teamleden staan verticaal; de dagen staan horizontaal. De manager kan wisselen tussen **Aanwezig** en **Uren aanwezig**. Beschikbaarheid is server-side opgebouwd uit het bestaande werkpatroon/legacy-rooster, goedgekeurd verlof en actieve verzuimspells, met alleen de directe managerstam als bron. HR Admins zonder managerrol en medewerkers krijgen dit venster niet. De widget staat standaard links in de brede kolom en blijft onderdeel van de persoonlijke vensterordening. Geen schemawijziging of remote write.
+
+Lokale verificatie: i18n-pariteit, strict TypeScript, ESLint, de layouttests en `git diff --check` zijn geslaagd. De authenticated browsercontrole op poort 3000 bevestigde beide weergaves, de 7 dagkolommen en dat de HR Admin-startpagina de managerwidget niet toont.
+
+## Actuele update 2026-08-04: medewerkerdirectory beperkt tot actieve niet-gearchiveerde records
+
+De directoryservice forceert voor medewerkers `activeDirectoryOnly`: alleen `ACTIVE_EMPLOYEE` en niet-gearchiveerde records gaan naar de lijstweergave. De filter-UI toont voor medewerkers alleen Actief en Niet-gearchiveerd; managers behouden hun bestaande status- en archiefkeuzes. De huidige tenant heeft geen toekomstige of gearchiveerde testrecords, maar de servergrens en rolafhankelijke filters zijn browsermatig gecontroleerd. Geen migration nodig.
+
+## Actuele update 2026-08-04: personeelsnummer uitgesloten van medewerker-collegaweergave
+
+Het personeelsnummer wordt niet gerenderd en niet doorzocht wanneer een medewerker de directory bekijkt. Voor een manager buiten het directe team geldt dezelfde beperking. De directory-popup bevat het nummer server-side al niet; de remote SQL-check op `get_employee_directory_detail` bevestigde beide mogelijke sleutelvormen als afwezig. Typecheck en gerichte ESLint zijn geslaagd; er is geen nieuwe migration nodig.
+
+## Actuele update 2026-08-04: directoryvelden worden ook uit de medewerkerslijst verwijderd
+
+Naam is niet uit te schakelen: de HR-instelling blijft aangevinkt en disabled, en de server forceert `showName: true` bij lezen en schrijven. De andere vijf velden zijn afzonderlijk instelbaar. De zichtbaarheid geldt nu voor popup én lijst; functie/afdeling en zakelijk e-mailadres worden bij uitschakelen niet gerenderd en niet meegenomen in de lijstzoektekst.
+
+Migration `20260804190000_employee_directory_visibility.sql` is remote toegepast. De browsercontrole bevestigde de disabled Naam-checkbox en een medewerkerslijst zonder functie/afdeling of e-maillinks bij tijdelijk uitgeschakelde instellingen; de testpopup had dezelfde beperking. De testadministraties zijn teruggezet naar alle defaults `true`. Typecheck, i18n, gerichte ESLint en Supabase advisors zijn uitgevoerd. Advisors zijn projectbreed 17 security- en 261 performance-meldingen; de extra securitymelding betreft de nieuwe authenticated SECURITY DEFINER visibility-RPC met interne permissioncheck.
+
+## Actuele update 2026-08-04: manager-buiten-team als collega-popup
+
+Managers krijgen in `scope=all` alleen voor directe teamleden de volledige medewerkerdetailroute. Niet-teamleden worden via dezelfde beperkte directory-popup behandeld als medewerkers. Dit wordt zowel in de lijst als in de server-side detailroute afgedwongen; handmatige detail-URL's voor niet-teamleden redirecten terug naar `/employees`. `TENANT_ADMIN` blijft volledig bevoegd. De directory-RPC accepteert voor deze veilige lezing ook `employee:read`, zonder uitbreiding van de detailprojectie.
+
+De remote migration `manager_non_team_directory_privacy` is toegepast en de functie is met een remote SQL-check gecontroleerd op beide permissionpaden. De interne browsercontrole bevestigde popup voor Bas de Jong buiten het team, volledige detailpagina voor teamlid Lina Bakker en redirect bij directe URL. Typecheck, gerichte ESLint en Supabase advisors zijn uitgevoerd. Advisors blijven projectbreed op 16 security- en 261 performance-meldingen staan; de directory SECURITY DEFINER-waarschuwing is bestaand patroon en de functie voert interne permissionchecks uit.
+
+## Actuele update 2026-08-04: medewerkersdirectory voor medewerkers
+
+De medewerker krijgt `employee-directory:read` en kan daardoor de medewerkerslijst van de actieve administratie openen zolang de HR-instelling **Medewerkers mogen de medewerkerslijst openen** aan staat. Nieuwe administratievelden voor directorytoegang en zes afzonderlijke popupvelden hebben default `true`. Collega's zijn voor medewerkers geen links naar manager-/HR-detailpagina's maar knoppen met een veilige popup. De server-RPC geeft alleen vrijgegeven naam, functie/afdeling, zakelijk e-mailadres, zakelijk telefoonnummer, weekstatus (`WORKING`/`OFF`/`ABSENT`) en rooster terug; absence-redenen en overige HR-data worden niet geprojecteerd.
+
+De migrations `20260804180000_employee_directory_settings.sql` en `20260804180500_employee_directory_access.sql` zijn remote toegepast, inclusief RLS/permissionchecks, schedule-fallback en datumserialisatie. TypeScript-types zijn opnieuw gegenereerd. De browsercontrole met de medewerkerfixture bevestigde 20 records en de popup. Een HR-toggletest op zakelijk e-mailadres bevestigde dat dit veld verdwijnt terwijl telefoon, aanwezigheid en rooster zichtbaar blijven; de defaults zijn na de test hersteld. `type-check`, `check:i18n`, gerichte ESLint en `git diff --check` zijn uitgevoerd. Supabase-advisors bevatten 16 security- en 261 performance-meldingen, projectbreed; de enige nieuwe securitymeldingen zijn de twee SECURITY DEFINER directory-RPC's, die server-side permissionchecks uitvoeren en via de bestaande authenticated-RPC-patroon worden aangeroepen.
+
+## Actuele update 2026-08-04: gesloten medewerkerslijst en expliciete teamscopefilters
+
+De medewerkerslijst start altijd gesloten; de open/dicht-state wordt niet meer via `/api/preferences/employees` naar `user_preferences` opgeslagen. Oude `filterPanelOpen`-waarden worden genegeerd en bij een volgende opslag opgeschoond. De bestaande persoonlijke voorkeuren voor status, archief, sortering en weergave blijven behouden.
+
+Een geforceerde Mijn team-link gebruikt nu de expliciete preset **Actief + toekomstig + externe personen**, `archive=active` en `scope=team`. De service filtert deze preset als actieve, toekomstige en externe personen en sluit voormalige medewerkers uit. De Startpagina gebruikt de herbruikbare URL-helper.
+
+Authenticated browsercontrole op poort 3000 bevestigde dat de managerlink exact `status=active-future-external&scope=team` gebruikt, 17 teamrecords toont, het filterpaneel gesloten opent en na expliciete actieve filtering 13 actieve teamrecords toont. HR Admin opent de medewerkerslijst eveneens gesloten.
+
+## Actuele update 2026-08-04: rolgebonden startpagina- en medewerkerslijstscope
+
+Lokaal geïmplementeerd: de startpagina toont voor managers **Wat speelt er nu in mijn team** en voor HR Admins **Wat speelt er nu in ons bedrijf**. De combinatie `DIRECT_MANAGER` + `TENANT_ADMIN` krijgt een server-gedreven switch tussen beide scopes. De knop achter de teamkop opent de medewerkerslijst geforceerd met `scope=team`.
+
+De medewerkerslijst gebruikt voor managers standaard de teamscope en biedt in het filterpaneel **Mijn team** en **Alle medewerkers**. De scope wordt door de route en `listEmployeesOverview` server-side bepaald; alleen een manager kan `scope=team` aanvragen. Teamgerichte startpaginacijfers en operationele lijsten gebruiken dezelfde directe teamscope. De Startpagina geeft voor de geforceerde teamlijst ook `status=active-future-external` mee.
+
+De bestaande placeholder **Taken & Poortwachter** blijft een managementplaceholder en wordt niet aan medewerkers getoond. De huidige codebase bevat wel taaktemplates voor verzuiminstellingen, maar geen taakinstantiebron voor een betrouwbare startpaginacount; er is daarom niets verzonnen.
+
+Checks: `check:i18n`, strict `type-check`, `lint`, de gerichte `employee-list-state`-tests, `git diff --check` en authenticated browsercontrole op poort 3000 zijn geslaagd. Geen schemawijziging, remote write, commit, push of deployment.
+
+## Actuele update 2026-08-04: volledig organogram voor medewerkers
+
+De medewerker krijgt volledige organogramleesrechten binnen de actieve administratie via `organization-chart:read`; managementrechten blijven ongewijzigd. De service slaat star-performerbeoordelingen over voor medewerkers. De migration `20260804170000_employee_full_organization_chart_read.sql` herziet de RLS-policies voor de organogrambrondata en is remote toegepast. Advisors en DB-typegeneratie zijn uitgevoerd; bestaande security/performance-waarschuwingen zijn niet slice-specifiek opgelost. Authenticated browsercontrole volgt.
+
+## Actuele update 2026-08-04: Ontwikkeling voor medewerkers
+
+De navigatie toont `Ontwikkeling` in plaats van `Workforce`. Medewerkers openen dezelfde route met een beperkte self-serviceweergave: alleen bestaande, toegestane routes voor Doorlopende beoordeling (`/my-appraisal`) en Talentprofielen (`/my-talent`) verschijnen. Managementrollen behouden de bestaande 9-grid-, doorlopende-beoordeling-, talentprofiel-, Star Performer- en Cloud-tags-tegels. De Startpagina gebruikt dezelfde rolgebonden filtering. Geen schemawijziging of remote write; i18n, strict TypeScript en gerichte ESLint zijn geslaagd.
+
+## Actuele update 2026-08-03: Full/Compact en persoonlijke startpagina-layout
+
+Lokaal geïmplementeerd: de startpagina-header ondersteunt Full en Compact. Compact verbergt weer, komende dagen en reorder-controls; Full behoudt de bestaande header en maakt de brede/smalle vensters ordelijk verplaatsbaar met drag-and-drop en pijlen. De voorkeuren worden direct per user bewaard in `user_preferences.ui_state.startPage` via `/api/preferences/start-page`, analoog aan het medewerkerdashboard. Geen schemawijziging of remote write. i18n, strict typecheck, ESLint, gerichte browsercontrole en `git diff --check` zijn geslaagd.
+
+## Actuele update 2026-08-03: Workforce-links op de startpagina
+
+De verouderde Dashboard-werkplekzin is vervangen door een permission-gestuurde Workforce-strip. De Startpagina linkt naar de bestaande 9-grid-, continuous-appraisal-, talentprofielen-, Star Performers- en Cloud-tags-routes wanneer de gebruiker daarvoor de bijbehorende permission heeft. Geen schemawijziging of remote write.
+
+## Actuele update 2026-08-03: gebeurtenissen op de startpagina
+
+Het bestaande live venster **Gebeurtenissen** op `/dashboard/start` blijft gekoppeld aan de bestaande gebeurtenisservice en `/insights/upcoming-events`. De verouderde dubbele placeholder **Gebeurtenissen — Bron wordt later aangesloten** is verwijderd. `DIRECT_MANAGER` krijgt alleen gebeurtenissen van actieve directe teamleden; HR Admin krijgt de actieve administratie-scope. De lokale migratie `20260803200000_allow_manager_upcoming_events_report` geeft managers toegang tot de bestaande rapportdoorklik; remote toepassen is nog open. Geen schemawijziging of remote write.
+
+## Actuele update 2026-08-03: persoonlijke medewerkerdashboard-samenvatting
+
+De medewerker-overview gebruikt de nieuwe `EmployeeDashboardSummary` als zelfstandige persoonlijke samenvatting. De kaart toont alleen persoonsgegevens en persoonlijke contactcontext: naam, leeftijd/verjaardag, werk- en privécontact, adres, primaire bankrekening en noodcontacten. Het algemene dashboard behoudt de overige eigen-medewerkermodules; management-KPI's en teamscope-informatie blijven uitsluitend in de Startpagina.
+
+Er is geen schema-, API- of RLS-wijziging nodig geweest. De bestaande server-side detailservice en route blijven de gegevensgrenzen bepalen. Strict typecheck, gerichte ESLint, `git diff --check` en de bestaande dashboardlayouttest (2/2) zijn geslaagd; geen commit, push of deployment.
+
+## Actuele update 2026-08-03: managerstartacties en teamscope
+
+Lokaal geïmplementeerd: de manager-/HR-startpagina toont een uitbreidbare quick-action-rij voor Mijn gegevens, Mijn team en Nieuw ziektegeval; op kleine schermen worden alleen iconen getoond. De managerteamscope is beschikbaar via `scope=team`, wordt uitsluitend voor `DIRECT_MANAGER` aangeboden en gebruikt actieve directe rapportagelijnen. De startpaginafilters voor teamcijfers, afwezigheden, verlof en gebeurtenissen en de medewerkerslijst gebruiken dezelfde server-side scope. De ziekmeldingsroute hergebruikt `AbsenceQuickForm` en autoriseert de medewerkerkeuze via de bestaande service.
+
+Geen nieuwe schemawijziging of remote write voor deze slice. Lokaal geslaagd: strict typecheck, ESLint, i18n-pariteit, gerichte tests (3 bestanden, 10 tests), productiebuild en `git diff --check`. De geauthenticeerde manager-browsercontrole bevestigde de drie snelacties, de teamscope (13 actieve medewerkers binnen 22 directe teamtoewijzingen), de teamgerichte startpagina en de mobiele icon-only weergave op 390px.
+
+## Actuele update 2026-08-03: rolgebonden werkruimtes en medewerkerlanding
+
+De autorisatie-defaults zijn dynamisch aan canonieke rechten gekoppeld. `EMPLOYEE` krijgt `employee-directory:read` en geen `start-page:read`, `dashboard:read` of `workforce:read`; `DIRECT_MANAGER` en `TENANT_ADMIN` krijgen deze drie werkruimterechten. De bestaande HR Admin-override in de demo-tenant is bijgewerkt. De medewerkerlijst accepteert nu ook het directoryrecht via een authenticated-only, permission-checked RPC. De dashboardlayout, Start-, Dashboard- en Workforce-routes volgen dezelfde server-side rechten; medewerkers landen vanuit `/dashboard/start` op hun eigen medewerkerpagina, managers en HR Admin op Start.
+
+Remote bewijs: migraties `20260803192309_role_based_workspace_permissions` en `20260803192414_restrict_employee_overview_rpc` zijn toegepast op `wnpfloqpjvaacobppbpk`; de effectieve rechten van de drie demo-fixtureaccounts zijn gecontroleerd. Lokale verificatie: strict typecheck, gerichte ESLint en 10/10 gerichte tests geslaagd. De security-advisorwaarschuwing voor de directory-SECURITY-DEFINER is bewust en wordt door de functie zelf tenant- en permission-checked. Authenticated browserbewijs voor deze nieuwe landing/menucombinatie blijft open door het ontbreken van beschikbare fixturecredentials in deze runtime.
+
 ## Actuele update 2026-08-03: productiehotfix testrolwisselaar
 
 De Vercel-flag `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED` werd niet uit `process.env` gelezen door de dashboardlayout; daardoor bleef de testrolwisselaar in Production verborgen ondanks een correcte Vercel-variabele en redeploy. De helper leest de runtimeflag nu server-side uit en normaliseert de waarde. Versie `1.20260803.4` bevat een regressietest voor de runtimeflag en voor hoofdletters/spaties. Lokaal geslaagd: 125 testbestanden/459 tests, strict typecheck, ESLint, i18n-pariteit en productiebuild met 163 pagina's. GitHub `e8a008c` en Vercel Production `dpl_Fu1T5z3F9P21JdnsMcynaEgfi556` staan op `READY`.
@@ -494,7 +602,7 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
-| Gebruiker Startpagina | GEDEELTELIJK | `/dashboard/start` gebruikt echte medewerkers-, organisatie-, verzuim-, bedrijfsdocumenten- en reminderbronnen binnen de actieve administratie en rol/RLS-scope. Lopende verzuimgevallen bevatten nu medewerker, startdatum, duur en een link naar het verzuimdossier. Declaraties, contractsignering, assets, taken/Poortwachter en gebeurtenissen volgen later. Een ingelogde desktop/390px-browsercontrole en echte rolmatrix blijven open. |
+| Gebruiker Startpagina | GEDEELTELIJK | `/dashboard/start` gebruikt echte medewerkers-, organisatie-, verzuim-, gebeurtenissen-, bedrijfsdocumenten- en reminderbronnen binnen de actieve administratie en rol/RLS-scope. Lopende verzuimgevallen bevatten nu medewerker, startdatum, duur en een link naar het verzuimdossier. Declaraties, contractsignering, assets en taken/Poortwachter volgen later. Een volledige rolmatrix blijft open. |
 
 ## Security en handmatige productieconfiguratie
 

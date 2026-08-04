@@ -21,22 +21,27 @@ interface AbsenceSettingsLabels {
   saved: string
   failed: string
   invalid: string
+  employeeSelfReport: string
+  employeeSelfReportHelp: string
 }
 
 export function AbsenceSettingsForm({
   frequentAbsenceThreshold,
   defaultCaseManagerEmployeeId,
+  employeeSelfReportEnabled,
   caseManagers,
   labels,
 }: {
   frequentAbsenceThreshold: number
   defaultCaseManagerEmployeeId: string | null
+  employeeSelfReportEnabled: boolean
   caseManagers: CaseManagerOption[]
   labels: AbsenceSettingsLabels
 }) {
   const router = useRouter()
   const [threshold, setThreshold] = useState(String(frequentAbsenceThreshold))
   const [caseManager, setCaseManager] = useState(defaultCaseManagerEmployeeId ?? '')
+  const [selfReport, setSelfReport] = useState(employeeSelfReportEnabled)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed' | 'invalid'>('idle')
 
   async function save() {
@@ -47,6 +52,7 @@ export function AbsenceSettingsForm({
       body: JSON.stringify({
         frequentAbsenceThreshold: Number(threshold),
         defaultCaseManagerEmployeeId: caseManager || null,
+        employeeSelfReportEnabled: selfReport,
       }),
     })
     if (response.ok) {
@@ -94,6 +100,13 @@ export function AbsenceSettingsForm({
             </option>
           ))}
         </select>
+      </section>
+
+      <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+        <label className="flex items-start gap-3 text-sm font-semibold" htmlFor="employee-self-report">
+          <input checked={selfReport} className="mt-1" id="employee-self-report" onChange={(event) => setSelfReport(event.target.checked)} type="checkbox" />
+          <span>{labels.employeeSelfReport}<span className="mt-1 block font-normal leading-6 text-muted-foreground">{labels.employeeSelfReportHelp}</span></span>
+        </label>
       </section>
 
       <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-5">

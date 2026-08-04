@@ -1,5 +1,5 @@
 import type { Json } from '@scope/db'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { projectOrganizationChart } from './projector'
@@ -23,7 +23,9 @@ function displayValue(value: Json): string {
 async function listStarPerformerAssessmentsSafe(
   supabase: Awaited<ReturnType<typeof createClient>>,
   administrationId: string,
+  canReadStarPerformers: boolean,
 ): Promise<Array<{ employee_id: string; job_id: string | null; job_group_id: string | null; criticality_level: number }>> {
+  if (!canReadStarPerformers) return []
   const result = await supabase
     .from('star_performer_assessments')
     .select('employee_id, job_id, job_group_id, criticality_level')
@@ -38,8 +40,11 @@ async function listStarPerformerAssessmentsSafe(
 }
 
 export async function getOrganizationChart(query: OrganizationChartQuery): Promise<OrganizationChartGraph> {
+  const authContext = await requireAuthContext()
   const context = await requirePermission('organization-chart:read')
-  await Promise.all([
+  const canReadManagementGraph = ['department:read', 'organization-placement:read', 'management-assignment:read', 'employee:read']
+    .every((permission) => authContext.permissions.includes(permission))
+  if (canReadManagementGraph) await Promise.all([
     requirePermission('department:read'), requirePermission('organization-placement:read'),
     requirePermission('management-assignment:read'), requirePermission('employee:read'),
   ])
@@ -75,7 +80,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
     jobIds.length > 0
       ? supabase.from('job_revisions').select('job_id, name, valid_from, valid_until').eq('tenant_id', scope.tenantId).in('job_id', jobIds).lte('valid_from', query.date).or(`valid_until.is.null,valid_until.gt.${query.date}`).order('valid_from', { ascending: false }).limit(4000)
       : Promise.resolve({ data: [], error: null }),
-    listStarPerformerAssessmentsSafe(supabase, scope.administrationId),
+    listStarPerformerAssessmentsSafe(supabase, scope.administrationId, authContext.permissions.includes('star-performer:read')),
   ])
   if (jobsResult.error || jobRevisionsResult.error) throw new OrganizationChartError('ORGANIZATION_CHART_READ_FAILED', 500)
 

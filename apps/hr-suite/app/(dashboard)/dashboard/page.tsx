@@ -1,15 +1,24 @@
 import { DashboardWidgetRenderer } from '@/components/dashboard/widget-renderer'
 import { DashboardWorkspace, type DashboardWorkspaceLabels } from '@/components/dashboard/dashboard-workspace'
+import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getDashboardBootstrap } from '@/lib/dashboard/service'
 import { loadDashboardWidgetData } from '@/lib/dashboard/widget-loaders'
 import { DASHBOARD_WIDGET_CATALOG } from '@/lib/dashboard/widget-catalog'
 import { buildWidgetPresentationMap } from '@/lib/dashboard/widget-presentation'
 import { getLocale } from '@/lib/i18n/server'
 import { createTranslator } from '@/lib/i18n/translator'
+import { redirect } from 'next/navigation'
 import messagesEn from '@/messages/en/dashboard.json'
 import messagesNl from '@/messages/nl/dashboard.json'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ id?: string; refresh?: string }> }) {
+  try {
+    await requirePermission('dashboard:read')
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+
   const [{ id }, locale] = await Promise.all([searchParams, getLocale()])
   const translate = createTranslator(locale === 'en' ? messagesEn : messagesNl)
   const bootstrap = await getDashboardBootstrap(id)

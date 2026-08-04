@@ -16,6 +16,7 @@ import {
   Sparkles,
   Umbrella,
   Users,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -225,6 +226,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.employmentContracts'),
           description: messages('admin.tiles.employmentContractsDescription'),
           visible: employmentContracts,
+        },
+        {
+          kind: 'link',
+          href: '/settings/employee-directory',
+          icon: UsersRound,
+          title: messages('admin.tiles.employeeDirectory'),
+          description: messages('admin.tiles.employeeDirectoryDescription'),
+          visible: true,
         },
         {
           kind: 'link',

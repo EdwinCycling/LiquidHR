@@ -89,6 +89,58 @@ function addressDatabaseError(error: { code?: string; message?: string }, fallba
   return new EmployeeServiceError(fallback, 500)
 }
 
+async function createAddressChangeReminders(
+  context: AuthContext,
+  employeeId: string,
+  action: string,
+  before: Json,
+  after: Json,
+): Promise<void> {
+  if (!context.administrationId) throw new EmployeeServiceError('ADDRESS_ADMINISTRATION_REQUIRED', 400)
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('create_employee_address_change_reminders', {
+    requested_tenant_id: context.tenantId,
+    requested_administration_id: context.administrationId,
+    requested_employee_id: employeeId,
+    requested_action: action,
+    requested_before: before,
+    requested_after: after,
+  })
+  if (error) throw addressDatabaseError(error, 'ADDRESS_REMINDER_CREATE_FAILED')
+}
+
+function addressSnapshot(address: {
+  address_line_1: string
+  address_line_2: string | null
+  street: string | null
+  house_number: string | null
+  house_number_addition: string | null
+  postal_code: string | null
+  city: string
+  region: string | null
+  country_code: string
+  valid_from: string
+  valid_until: string | null
+  address_type: string
+  description?: string | null
+}): Json {
+  return {
+    type: address.address_type,
+    description: address.description ?? null,
+    addressLine1: address.address_line_1,
+    addressLine2: address.address_line_2,
+    street: address.street,
+    houseNumber: address.house_number,
+    addition: address.house_number_addition,
+    postalCode: address.postal_code,
+    city: address.city,
+    region: address.region,
+    countryCode: address.country_code,
+    validFrom: address.valid_from,
+    validUntil: address.valid_until,
+  }
+}
+
 async function reserveEmployeeNumber(context: AuthContext): Promise<string> {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('reserve_employee_number', { p_tenant_id: context.tenantId })
@@ -292,11 +344,13 @@ export async function setEmployeeBsn(employeeId: string, bsn: string): Promise<v
 
 export async function createEmployeeAddress(employeeId: string, input: AddressInput): Promise<string> {
   const readContext = await requirePermission('employee:read', employeeId)
-  if (readContext.employeeId === employeeId) await requirePermission('address:write', employeeId)
+  if (readContext.employeeId === employeeId) await requirePermission('self:address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
   if (!readContext.administrationId) throw new EmployeeServiceError('ADMINISTRATION_REQUIRED', 400)
   const address = toAddressRow(input)
+  const validFrom = address.valid_from
+  if (!validFrom) throw new EmployeeServiceError('ADDRESS_VALID_FROM_REQUIRED', 400)
   const { data, error } = await supabase.rpc('create_employee_address_with_reminders', {
     requested_tenant_id: readContext.tenantId,
     requested_administration_id: readContext.administrationId,
@@ -312,11 +366,11 @@ export async function createEmployeeAddress(employeeId: string, input: AddressIn
     requested_country_code: address.country_code,
     requested_source: address.source,
     requested_source_reference: address.source_reference ?? '',
-    requested_valid_from: address.valid_from,
-    requested_valid_until: address.valid_until,
+    requested_valid_from: validFrom,
+    requested_valid_until: address.valid_until as string,
     requested_address_type: address.address_type,
     requested_description: address.description ?? '',
-    requested_reminder_roles: input.directReminderRecipients,
+    requested_reminder_roles: readContext.employeeId === employeeId ? ['HR_ADMIN', 'MANAGER'] : input.directReminderRecipients,
   })
   if (error) throw addressDatabaseError(error, 'ADDRESS_CREATE_FAILED')
   if (!data) throw new EmployeeServiceError('ADDRESS_CREATE_FAILED', 500)
@@ -331,10 +385,10 @@ export async function updateEmployeeAddress(
   expectedUpdatedAt?: string,
 ): Promise<void> {
   const context = await requirePermission('employee:read', employeeId)
-  if (context.employeeId === employeeId) await requirePermission('address:write', employeeId)
+  if (context.employeeId === employeeId) await requirePermission('self:address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  const { data: existing, error: existingError } = await supabase.from('employee_addresses').select('address_type,valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId).is('deleted_at', null).maybeSingle()
+  const { data: existing, error: existingError } = await supabase.from('employee_addresses').select('address_type,description,address_line_1,address_line_2,street,house_number,house_number_addition,postal_code,city,region,country_code,valid_from,valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId).is('deleted_at', null).maybeSingle()
   if (existingError) throw new EmployeeServiceError('ADDRESS_UPDATE_FAILED', 500)
   if (!existing) throw new EmployeeServiceError('ADDRESS_NOT_FOUND', 404)
   const address = toAddressRow({ ...input, addressType: existing.address_type as AddressInput['addressType'] })
@@ -345,25 +399,34 @@ export async function updateEmployeeAddress(
   const { data, error } = await query.select('id').maybeSingle()
   if (error) throw addressDatabaseError(error, 'ADDRESS_UPDATE_FAILED')
   if (!data) throw new EmployeeServiceError(expectedUpdatedAt ? 'ADDRESS_STALE_WRITE' : 'ADDRESS_NOT_FOUND', 409)
+  if (context.employeeId === employeeId) {
+    await createAddressChangeReminders(context, employeeId, 'UPDATE', addressSnapshot(existing), addressSnapshot({ ...address, address_type: existing.address_type }))
+  }
   await createEmployeeSystemActivity(employeeId, 'addressUpdated')
 }
 
 export async function archiveEmployeeAddress(employeeId: string, addressId: string): Promise<void> {
   const context = await requirePermission('employee:read', employeeId)
-  if (context.employeeId === employeeId) await requirePermission('address:write', employeeId)
+  if (context.employeeId === employeeId) await requirePermission('self:address:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
+  const { data: existing, error: existingError } = await supabase.from('employee_addresses').select('address_type,description,address_line_1,address_line_2,street,house_number,house_number_addition,postal_code,city,region,country_code,valid_from,valid_until').eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId).is('deleted_at', null).maybeSingle()
+  if (existingError) throw addressDatabaseError(existingError, 'ADDRESS_ARCHIVE_FAILED')
+  if (!existing) throw new EmployeeServiceError('ADDRESS_NOT_FOUND', 404)
   const { data, error } = await supabase.from('employee_addresses').update({ deleted_at: new Date().toISOString() })
     .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', addressId)
     .is('deleted_at', null).select('id').maybeSingle()
   if (error) throw addressDatabaseError(error, 'ADDRESS_ARCHIVE_FAILED')
   if (!data) throw new EmployeeServiceError('ADDRESS_NOT_FOUND', 404)
+  if (context.employeeId === employeeId) {
+    await createAddressChangeReminders(context, employeeId, 'ARCHIVE', addressSnapshot(existing), { status: 'ARCHIVED', type: existing.address_type } satisfies Json)
+  }
   await createEmployeeSystemActivity(employeeId, 'addressArchived')
 }
 
 export async function createEmployeeRelation(employeeId: string, input: RelationInput): Promise<string> {
   const readContext = await requirePermission('employee:read', employeeId)
-  if (readContext.employeeId === employeeId) await requirePermission('relation:write', employeeId)
+  if (readContext.employeeId === employeeId) await requirePermission('self:relation:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
   const { data, error } = await supabase.from('employee_relations').insert({
@@ -389,7 +452,7 @@ export async function createEmployeeRelation(employeeId: string, input: Relation
 
 export async function updateEmployeeRelation(employeeId: string, relationId: string, input: RelationInput): Promise<void> {
   const context = await requirePermission('employee:read', employeeId)
-  if (context.employeeId === employeeId) await requirePermission('relation:write', employeeId)
+  if (context.employeeId === employeeId) await requirePermission('self:relation:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
   const { error } = await supabase.from('employee_relations').update({
@@ -406,7 +469,7 @@ export async function updateEmployeeRelation(employeeId: string, relationId: str
 
 export async function archiveEmployeeRelation(employeeId: string, relationId: string): Promise<void> {
   const context = await requirePermission('employee:read', employeeId)
-  if (context.employeeId === employeeId) await requirePermission('relation:write', employeeId)
+  if (context.employeeId === employeeId) await requirePermission('self:relation:write', employeeId)
   else await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
   const { error } = await supabase.from('employee_relations').update({ deleted_at: new Date().toISOString() })

@@ -1,6 +1,6 @@
 {
   "name": "@liquid-hr/control",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -15,7 +15,7 @@
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "lucide-react": "^1.24.0",
-    "next": "16.2.12",
+    "next": "16.3.0",
     "react": "latest",
     "react-dom": "latest",
     "zod": "^4.4.3"
@@ -26,7 +26,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.0",
     "tailwindcss": "latest",
     "typescript": "latest",
     "vitest": "^4.1.10"

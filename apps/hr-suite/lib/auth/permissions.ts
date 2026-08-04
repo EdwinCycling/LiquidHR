@@ -186,6 +186,18 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
   return context
 }
 
+export async function requireAnyPermission(permissionCodes: readonly string[], targetEmployeeId?: string): Promise<AuthContext> {
+  const { supabase, context } = await getRequestAuthorizationContext()
+  const isSelf = context.employeeId !== null && targetEmployeeId === context.employeeId
+  const availablePermissions = isSelf
+    ? await getSelfPermissions(supabase, context.tenantId)
+    : context.permissions
+  const allowed = permissionCodes.some((permissionCode) => availablePermissions.includes(isSelf ? toSelfPermission(permissionCode) : permissionCode))
+
+  if (!allowed) throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  return context
+}
+
 export function permissionErrorResponse(error: unknown): NextResponse | null {
   if (
     error instanceof AuthenticationError

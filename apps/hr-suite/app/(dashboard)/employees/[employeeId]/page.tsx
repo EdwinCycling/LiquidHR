@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowLeft, BriefcaseBusiness, Mail, Phone } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
 import { EmployeeDashboard, type EmployeeDashboardDocument } from '@/components/employees/employee-dashboard'
 import { EmailLink } from '@/components/shared/email-link'
@@ -9,7 +10,7 @@ import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-ma
 import { EmploymentCreateModal } from '@/components/employment/employment-create-modal'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
 import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import {
   EmploymentServiceError,
   getEmployeeEmploymentDetail,
@@ -26,11 +27,13 @@ import { EmployeePayslips } from '@/components/documents/employee-payslips'
 import { listEmployeeReminders } from '@/lib/reminders/reminder-service'
 import { EmployeeReminders } from '@/components/employees/employee-reminders'
 import { listEmployeeRoleAssignments } from '@/lib/organization/management-service'
+import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { employeeNotesPermissionAllowed, listEmployeeNotes } from '@/lib/employees/employee-notes-service'
 import { EmployeeNotes } from '@/components/employees/employee-notes'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { AbsenceCaseDetail } from '@/components/absence/absence-case-detail'
 import { listEmployeeAbsence } from '@/lib/absence/service'
+import { canEmployeeSelfReportAbsence } from '@/lib/absence/settings-service'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -76,7 +79,8 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       ? (await listEmployeeDocuments(employeeId)).filter((document) => document.deleted_at === null).slice(0, 3).map((document) => ({ id: document.id, title: document.title, expiresOn: document.expires_on, createdAt: document.created_at }))
       : []
     const absenceCases = tab === 'overview' || tab === 'absence' ? await listEmployeeAbsence(employeeId).catch(() => []) : []
-    const base = [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases] as const
+    const selfReport = tab === 'overview' ? await canEmployeeSelfReportAbsence(employeeId).catch(() => false) : false
+    const base = [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport] as const
     const canReadNotes = await employeeNotesPermissionAllowed(employeeId)
     const [canWriteNotes, canDeleteNotes] = canReadNotes ? await Promise.all([permissionAllowed('employee-note:write', employeeId), permissionAllowed('employee-note:delete', employeeId)]) : [false, false]
     const notes = tab === 'notes' && canReadNotes ? await listEmployeeNotes(employeeId) : []
@@ -99,9 +103,15 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
+  const authContext = await requireAuthContext()
+  if (authContext.employeeId !== employeeId && !authContext.permissions.includes('employee:read')) redirect('/employees')
+  if (authContext.employeeId !== employeeId && authContext.activeRoles.includes('DIRECT_MANAGER') && !authContext.activeRoles.includes('TENANT_ADMIN')) {
+    const directTeamEmployeeIds = await listDirectTeamEmployeeIds(authContext)
+    if (!directTeamEmployeeIds.includes(employeeId)) redirect('/employees')
+  }
   const { tab: requestedTab, create, view, caseId } = await searchParams
   const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' ? requestedTab : 'overview'
-  const [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await loadPageData(employeeId, tab)
+  const [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await loadPageData(employeeId, tab)
   const compact = view === 'compact'
   const absenceOverview = absenceCases.find((item) => item.status === 'ACTIVE') ?? absenceCases.find((item) => item.status !== 'CLOSED') ?? absenceCases[0] ?? null
   const selectedAbsenceCase = tab === 'absence' && caseId ? absenceCases.find((item) => item.id === caseId) ?? null : null
@@ -147,7 +157,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           })}
         </nav>
 
-        {tab === 'overview' && <EmployeeDashboard canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{
+        {tab === 'overview' && <EmployeeDashboard selfReportAbsence={selfReport} canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{
           title: tEmployees('dashboardTitle'), subtitle: tEmployees('dashboardSubtitle'), openDetails: tEmployees('dashboardOpenDetails'), edit: tEmployees('editPersonal'), personal: tEmployees('dashboardPersonal'), contact: tEmployees('contactTitle'),
           workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'), noContact: tEmployees('noContact'), address: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), birthDate: tEmployees('birthDate'),
           nationality: tEmployees('nationality'), birthPlace: tEmployees('birthPlace'), gender: tEmployees('gender'), notRecorded: tEmployees('notRecorded'), customFields: tCustomFields('employeeTitle'), customFieldsEmpty: tEmployees('dashboardCustomFieldsEmpty'),
@@ -210,7 +220,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'payslips' && canReadPayslips && <EmployeePayslips employeeId={employeeId} payslips={payslips} labels={{ title: tDocuments('payslipsTitle'), subtitle: tDocuments('payslipsSubtitle'), empty: tDocuments('payslipsEmpty'), view: tDocuments('view'), download: tDocuments('download'), close: tDocuments('viewerClose'), unsupported: tDocuments('viewerUnsupported'), source: tDocuments('payslipSource'), imported: tDocuments('payslipImported') }} />}
 
-        {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} reminders={reminders} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), edit: tEmployees('editReminder'), remove: tEmployees('deleteReminder'), titleLabel: tEmployees('reminderTitle'), descriptionLabel: tEmployees('reminderDescription'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic'), cancel: tEmployees('cancel'), shiftDayBack: tEmployees('reminderDayBack'), shiftDayForward: tEmployees('reminderDayForward'), shiftWeekForward: tEmployees('reminderWeekForward'), shiftMonthForward: tEmployees('reminderMonthForward'), confirmDelete: tEmployees('confirmDelete') }} />}
+        {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} mode={authContext.employeeId === employeeId ? 'PERSONAL' : 'HR'} canManageHr={authContext.permissions.includes('reminder:write')} reminders={reminders} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), edit: tEmployees('editReminder'), remove: tEmployees('deleteReminder'), titleLabel: tEmployees('reminderTitle'), descriptionLabel: tEmployees('reminderDescription'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic'), cancel: tEmployees('cancel'), shiftDayBack: tEmployees('reminderDayBack'), shiftDayForward: tEmployees('reminderDayForward'), shiftWeekForward: tEmployees('reminderWeekForward'), shiftMonthForward: tEmployees('reminderMonthForward'), confirmDelete: tEmployees('confirmDelete') }} />}
 
         {tab === 'notes' && canReadNotes && <EmployeeNotes employeeId={employeeId} notes={notes} canWrite={canWriteNotes} canDelete={canDeleteNotes} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('notesTitle'), accessNotice: tEmployees('notesAccessNotice'), empty: tEmployees('notesEmpty'), add: tEmployees('addNote'), edit: tEmployees('editNote'), remove: tEmployees('deleteNote'), noteTitle: tEmployees('noteTitle'), description: tEmployees('description'), author: tEmployees('noteAuthor'), createdAt: tEmployees('noteCreatedAt'), save: tEmployees('saveNote'), cancel: tEmployees('cancel'), saving: tEmployees('saving'), failed: tErrors('generic'), saved: tEmployees('noteSaved'), confirmDelete: tEmployees('confirmDelete') }} />}
 
