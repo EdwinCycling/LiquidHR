@@ -1,8 +1,10 @@
 # Verzuim en herstel
 
+> **Actuele scope vanaf 2026-08-05:** verzuiminstellingen zijn HR-groepgebonden; een verzuimcasus en ziekteperiode zijn altijd aan één dienstverband gekoppeld. Overlap wordt alleen binnen hetzelfde dienstverband geblokkeerd. Overlap over verschillende dienstverbanden of HR-groepen heen is toegestaan. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) en [FDR-0006](../../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md).
+
 Status: **LEIDEND**  
 Implementatie: **IN UITVOERING — schema, API, UI en browsercontrole volgen**  
-Scope: administratiegebonden verzuimregistratie per dienstverband.
+Scope: HR-groepgebonden verzuiminstellingen en employmentgebonden verzuimregistratie.
 
 ## 1. Doel
 
@@ -36,9 +38,10 @@ De formulieren bevatten geen diagnose, symptomen, medicatie, behandeling, medisc
 
 - Zoek bevestigde employments die op de eerste ziektedag geldig zijn.
 - Bij exact één geldig dienstverband kiest de server dit automatisch.
-- Bij meerdere parallelle dienstverbanden kiest de gebruiker exact één dienstverband.
+- Bij meerdere parallelle dienstverbanden kiest de gebruiker exact één dienstverband, tenzij de afdeling/functiecontext van een leidinggevende exact één geldig dienstverband bepaalt.
 - Bij geen geldig dienstverband wordt de mutatie geblokkeerd met een typed fout.
-- Verzuimdata worden nooit over employments heen geboekt.
+- Verzuimdata worden nooit op meerdere employments tegelijk in één casus geboekt. Afzonderlijke verzuimcasussen op verschillende employments mogen wel gelijktijdig bestaan, ook over HR-groepen heen.
+- Herstel op het ene dienstverband wijzigt geen verzuimcasus op een ander dienstverband.
 
 ## 5. Vierwekenketen
 
@@ -60,11 +63,11 @@ De implementatietest legt de grens vast als:
 
 ## 7. Frequent verzuim
 
-De drempel staat per administratie. De telling telt casuswortels, niet losse spells in dezelfde keten. De nieuwe casus wordt gemarkeerd wanneer `eerdere_casussen + 1 >= drempel`. De count en drempel worden als snapshot opgeslagen; de resulterende taak is idempotent.
+De drempel staat per HR-groep. De telling blijft per dienstverband/casuscontext herleidbaar en telt casuswortels, niet losse spells in dezelfde keten. De nieuwe casus wordt gemarkeerd wanneer `eerdere_casussen + 1 >= drempel`. De count en drempel worden als snapshot opgeslagen; de resulterende taak is idempotent.
 
 ## 8. Toegang
 
-De kernpermissions zijn `absence:read`, `absence:write` en `absence:recover`. De eerste release bevat geen medewerker-selfservice. RLS en `requirePermission()` bepalen samen de tenant-, administratie-, employment- en casusscope.
+De kernpermissions zijn `absence:read`, `absence:write` en `absence:recover`. De eerste release bevat geen medewerker-selfservice. RLS en `requirePermission()` bepalen samen de tenant-, HR-groep-, employment- en casusscope.
 
 ## 9. Ingangen
 

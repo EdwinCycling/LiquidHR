@@ -50,7 +50,7 @@
     "tiles": {
       "authorization": "Rollen en autorisaties", "authorizationDescription": "Beheer rollen, rechten, scopes en het grafische autorisatieoverzicht.", "roleAssignments": "Roltoewijzingen", "roleAssignmentsDescription": "Wijs leidinggevende en aanvullende rollen toe en controleer afdelingsscope.",
       "organization": "Afdelingen", "organizationDescription": "Richt afdelingen, hiërarchie en managers in.", "companyData": "Bedrijfsgegevens", "companyDataDescription": "Beheer het bedrijfsadres en de locaties van deze administratie.",
-      "employees": "Medewerkers", "employeesDescription": "Open het medewerkersbeheer en de personeelskaarten.",
+      "employees": "Medewerkers", "employeesDescription": "Open het medewerkersbeheer en de personeelskaarten.", "employeeDirectory": "Medewerkersdirectory", "employeeDirectoryDescription": "Beheer welke informatie medewerkers in de veilige collega-popup kunnen zien.",
       "customFields": "Vrije velden", "customFieldsDescription": "Beheer aanvullende velden voor medewerkers en dienstverbanden.",
       "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Beheer tenantbrede cloud tags die in meerdere modules hergebruikt kunnen worden.",
       "jobs": "Functies en functiegroepen", "jobsDescription": "Onderhoud functies en functiegroepen per administratie en door de tijd.",

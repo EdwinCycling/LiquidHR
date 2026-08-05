@@ -75,7 +75,10 @@
   "roleAssignmentsEmpty": "No role assignments found.",
   "roleAssignmentsSaved": "Role assignment saved.",
   "roleAssignmentsFailed": "The role assignment could not be saved.",
-  "roleAssignmentsNeedsReview": "Review needed"
+  "roleAssignmentsWriteRequired": "You do not have permission to change role assignments.",
+  "roleAssignmentsAssignmentType": "Type",
+  "roleAssignmentsDepartmentManager": "LG-Afd",
+  "roleAssignmentsDepartmentManagerPlus": "LG-Afd-Plus"
   ,"roleAssignmentsSearchDepartments": "Search department"
   ,"roleAssignmentsFromEmployee": "Assign from employee"
   ,"roleAssignmentsFromDepartment": "Assign from department"

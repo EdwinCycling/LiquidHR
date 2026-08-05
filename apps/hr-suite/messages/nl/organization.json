@@ -75,7 +75,10 @@
   "roleAssignmentsEmpty": "Geen roltoewijzingen gevonden.",
   "roleAssignmentsSaved": "Roltoewijzing opgeslagen.",
   "roleAssignmentsFailed": "De roltoewijzing kon niet worden opgeslagen.",
-  "roleAssignmentsNeedsReview": "Controle nodig"
+  "roleAssignmentsWriteRequired": "Je hebt geen recht om roltoewijzingen te wijzigen.",
+  "roleAssignmentsAssignmentType": "Type",
+  "roleAssignmentsDepartmentManager": "LG-Afd",
+  "roleAssignmentsDepartmentManagerPlus": "LG-Afd-Plus"
   ,"roleAssignmentsSearchDepartments": "Zoek afdeling"
   ,"roleAssignmentsFromEmployee": "Toewijzen vanuit medewerker"
   ,"roleAssignmentsFromDepartment": "Toewijzen vanuit afdeling"

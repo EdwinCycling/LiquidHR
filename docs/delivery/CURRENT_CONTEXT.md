@@ -1,5 +1,66 @@
 # Actuele overdracht Liquid HR
 
+## Domeinbaseline 2026-08-05: HR-groepen, verlof en parallel verzuim
+
+De komende grote slice gebruikt [HR-groepen: scope, inrichting en domeingrenzen](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) als actuele bron. De bijbehorende besluiten staan in [ADR-0009](../decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md) en [FDR-0006](../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md); het uitvoeringsplan voor Luna staat in [LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md](LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md).
+
+Vastgelegd:
+
+- HR-groep is de primaire switch en harde zichtbaarheidgrens binnen een holding/tenant.
+- Een HR-admin switcht expliciet tussen HR-groepen; binnen de gekozen groep is administratiecontext optioneel.
+- Edwin maakt HR-groepen aan via de Control Plane. Een HR-admin kan vanuit een geselecteerde HR-groep administraties aanmaken.
+- Een bestaande administratie kan nooit naar een andere HR-groep worden verplaatst. Naam en nummer van een administratie zijn beheerbaar; het interne ID blijft stabiel.
+- Bedrijf, locaties, afdelingen, functies, rollen, verlofregels en verzuiminstellingen zijn HR-groepbreed.
+- Een persoon bestaat één keer binnen een HR-groep en kan nul of meerdere dienstverbanden hebben. Hetzelfde natuurlijke persoon kan in meerdere HR-groepen voorkomen met groepsspecifieke gegevens en eventueel zakelijke e-mailadressen.
+- Salaris, payroll, CAO, verlofsaldo en verzuimcasus blijven dienstverband-/administratiegebonden.
+- Een CAO is vast op een dienstverband. Overstappen betekent oud dienstverband afsluiten en nieuw dienstverband aanmaken.
+- Verzuim is altijd per dienstverband. Overlap tussen verschillende dienstverbanden of HR-groepen is toegestaan; alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd.
+- Bij meerdere actieve dienstverbanden kiest de gebruiker eerst het dienstverband, tenzij de afdeling/functiecontext van de leidinggevende exact één geldig dienstverband bepaalt. Dit geldt voor verlof en verzuim.
+
+Documentatie is in deze beurt aangepast; code, schema, testdata en remote database zijn nog niet gewijzigd. Bestaande dirty wijzigingen van Edwin blijven onaangeroerd.
+
+### Testdatabesluit
+
+De huidige database bevat uitsluitend synthetische testdata. Voor de komende HR-groep-slice mag bestaande testdata worden aangepast, opnieuw gekoppeld, vervangen of opnieuw geseed. Zij mag geen belemmering vormen voor het nieuwe model. Er wordt geen fallback, dual-read, dual-write of compatibiliteitslaag voor het oude tenant-/administratiemodel gebouwd. Oude scopekolommen, filters, RPC-parameters en constraints mogen in een gecontroleerde, reproduceerbare testmigratie worden vervangen of verwijderd.
+
+## Bugfix 2026-08-05: roltoewijzingen tonen alleen afdelingen uit actieve administratie
+
+De afdelingskeuzes op `/role-assignments` waren tenantbreed, terwijl `department_management` per administratie wordt gelezen en opgeslagen. De service scoped de keuzelijst nu tot actieve afdelingen uit organisatieplaatsingen en bestaande roltoewijzingen binnen de actieve administratie. Daardoor verdwijnen afdelingen uit andere administraties uit de formulieren en blijft een bestaande historische/lege roltoewijzing zichtbaar in de juiste administratie.
+
+Verificatie: 2 gerichte scope-tests plus de bestaande manager-resolvertests (7 tests), strict TypeScript en ESLint geslaagd. Een read-only query op de testtenant bevestigde dat de afdelingssets per administratie verschillen. Geen schemawijziging of remote datamutatie.
+
+## Bugfix 2026-08-05: company-data PATCH payload
+
+De bedrijfsgegevenspagina stuurde bij opslaan het volledige leesmodel mee, inclusief `id`. De strikte PATCH-validator accepteert alleen de wijzigbare bedrijfs- en adresvelden en gaf daardoor HTTP 400. De client maakt nu een expliciete updatepayload zonder `id`; een regressietest controleert dat deze payload door dezelfde schema-validator wordt geaccepteerd.
+
+Verificatie: gerichte company-data-tests (4 tests), strict TypeScript, gerichte ESLint en `git diff --check` zijn geslaagd. Een directe schema-reproductie accepteert de nieuwe payload zonder `id`.
+
+## Test Medewerker in Yara-team 2026-08-04
+
+Remote toegepast via migration `20260804193021_move_test_employee_to_yara_team`. De bestaande fixture-account **Test Medewerker** is Noah Hendriks (`DEMO-035`). Zijn actuele organisatieplaatsing staat nu in `RICH-02` / **Test Operations**, met functie **Operations specialist** en Yara (`DEMO-028`) als directe leidinggevende. De medewerker valt daarmee binnen Yara's directe teamscope; Yara's team telt nu vijf medewerkers inclusief Noah.
+
+## Testdata en statuslabels 2026-08-04: Yara-team voor rolcontrole
+
+Remote toegepast via migration `20260804191903_manager_assignment_status_and_yara_team`. De eerdere brede synthetische directe-managerkoppelingen naar Yara (`DEMO-028`) zijn verwijderd. Yara staat nu in `RICH-02` / **Test Operations**, haar actieve `DIRECT_MANAGER`-toewijzing wijst naar dezelfde afdeling en haar actuele directe team bestaat uit `DEMO-032` Maya Bos, `DEMO-037` Omar Kaya, `DEMO-042` Sophie De Vries en `DEMO-047` Milan Visser.
+
+De kolom **Controle nodig** is vervangen door **Type**. Voor een actuele afdelingstoewijzing van de systeemrol `DIRECT_MANAGER` toont de UI `LG-Afd` wanneer de leidinggevende zelf in dezelfde afdeling zit en `LG-Afd-Plus` wanneer de toegewezen afdeling afwijkt. Andere rollen of ontbrekende actuele plaatsingen tonen een liggend streepje. Daarmee hoort Yara nu `LG-Afd` te tonen.
+
+## Bugfix 2026-08-04: roltoewijzingen volgen actieve administratie
+
+De pagina Roltoewijzingen bood eerder alle tenant-medewerkers aan, ook wanneer zij geen actueel primair dienstverband in de actieve administratie hadden. Daardoor kon bijvoorbeeld Yara (`DEMO-028`, actief in Operations) vanuit de Holding worden geselecteerd en eindigde opslaan alleen met een generieke foutmelding. De lijst filtert medewerkers nu op een actueel bevestigd primair dienstverband in de actieve administratie; de server controleert dezelfde scope vóór insert. Gebruikers zonder `management-assignment:write` zien een duidelijke read-only melding en kunnen geen opslag starten.
+
+Verificatie: strict TypeScript, i18n-pariteit en gerichte ESLint zijn geslaagd. Er is geen schemawijziging of remote datamutatie uitgevoerd.
+
+## Nieuwe datafixture 2026-08-04: rijke synthetische medewerkerdataset
+
+Remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk` via migration `20260804180940_seed_rich_employee_dataset`. De fixture is idempotent en gebruikt uitsluitend bestaande testrecords; auth-koppelingen en bestaande e-mailadressen zijn behouden. Er zijn geen echte personen, BSN's, IBAN's, foto's of storage-bytes gebruikt: bankvelden bevatten herkenbare fixture-ciphertext/laatste vier cijfers en avatars zijn ingebedde synthetische SVG-data.
+
+De 72 medewerkers hebben nu telefoons, ingebedde avatars of bestaande avatars, primaire en secundaire adressen, primaire testbankrekening, partnerrelatie en waar van toepassing een kindrelatie. De 68 actieve medewerkers hebben allemaal een actueel bevestigd primair dienstverband, salaris, rooster en organisatieplaatsing met afdeling, functie, locatie en waar mogelijk een testmanager. Aanvullend zijn tenant-functiegroepen/functies, afdelingen, administratie-locaties, kostenplaatsen/kostendragers, 15 gesloten verzuimcasussen, 36 notities en 23 activiteiten toegevoegd. De bestaande testdata is niet opgeschoond of verwijderd.
+
+Remote controle: alle genoemde actieve records missen geen dienstverband, salaris, rooster, organisatie, primair adres, primaire bankrekening of relatie. De transactionele dry-run vóór uitvoering was groen. Database-types zijn opnieuw opgevraagd; deze fixture wijzigde geen typecontract. Advisors na uitvoering: security 2 INFO en 15 WARN (bestaande authenticated SECURITY DEFINER/RLS-meldingen), performance 255 INFO en 0 WARN (bestaande index/FK-meldingen). Een echte productiebenchmark moet nog apart worden uitgevoerd; deze datafixture maakt de dataset daarvoor representatiever.
+
+De migration herstelt ook de bestaande locatie-guardfunctie zodat een insert in `administration_locations` niet langer een kolom van een andere tabel probeert te lezen. Dit was nodig om de synthetische locaties veilig te vullen; er is geen gebruikersdata verwijderd.
+
 ## Nieuwe hardening 2026-08-04: Supabase security en performance
 
 Remote toegepast: `consolidate_star_performer_select_policies` en `harden_security_definer_search_paths`. De drie dubbele permissieve SELECT-policy-waarschuwingen zijn verdwenen door de bestaande `FOR ALL`-writepolicies op `star_performer_assessment_tags`, `star_performer_assessments` en `star_performer_tags` op te splitsen in INSERT/UPDATE/DELETE; de bestaande read- en write-expressies zijn behouden. Voor de relevante `SECURITY DEFINER`-RPC's is `pg_temp` uit `search_path` verwijderd om tijdelijke-object-shadowing te voorkomen. Authenticated execute, tenantchecks, permissionchecks en RPC-signatures zijn niet aangepast.

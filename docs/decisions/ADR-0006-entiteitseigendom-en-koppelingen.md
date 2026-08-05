@@ -1,5 +1,7 @@
 # ADR-0006: Entiteitseigendom en koppelingen tussen tenant en administratie
 
+> **Actuele scope vanaf 2026-08-05:** de ownershipmatrix in dit ADR is vervangen voor het nieuwe doelmodel door [ADR-0009 — HR-groepen als zichtbaarheids- en inrichtingsgrens](ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md) en [HR-groepen: scope, inrichting en domeingrenzen](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md). De historische migratiebesluiten hieronder worden niet stil verwijderd.
+
 **Status:** Geaccepteerd  
 **Datum:** 2026-07-31  
 **Vervangt:** uitsluitend de algemene default uit ADR-0001, punt 4; de tenantgrens, expliciete access-scope en overige ADR-0001-besluiten blijven geldig.

@@ -1,5 +1,22 @@
 # Liquid HR documentatie-index
 
+## Actueel domeinbesluit 2026-08-05: HR-groepen en employmentgebonden verlof/verzuim
+
+De actuele basis voor de komende LiquidHR-slice staat in:
+
+- [HR-groepen: scope, inrichting en domeingrenzen](requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md)
+- [ADR-0009 — HR-groepen als zichtbaarheids- en inrichtingsgrens](decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md)
+- [FDR-0006 — Parallel verzuim per dienstverband](decisions/FDR-0006-parallel-verzuim-per-dienstverband.md)
+- [Uitvoeringsplan voor Luna](delivery/LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md)
+
+Deze besluiten vervangen voor het doelmodel de eerdere tenantbrede `SEPARATE`/`COMBINED`-keuze. Een HR-groep is de primaire switch en zichtbaarheidgrens. Bedrijf, locaties, afdelingen, functies, rollen, verlofregels en verzuiminstellingen zijn HR-groepgebonden. Salaris, payroll, administratiegegevens, verlofsaldo en verzuimcasussen blijven gekoppeld aan administratie of dienstverband volgens de nieuwe ownershipmatrix.
+
+Verzuim mag gelijktijdig bestaan op verschillende dienstverbanden en HR-groepen. Alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd. Een herstelmelding op het ene dienstverband wijzigt geen verzuim op een ander dienstverband.
+
+De documentatie-update is voorbereid; de schema-, API-, UI- en remote databasewijzigingen zijn nog niet uitgevoerd.
+
+De huidige database bevat uitsluitend synthetische testdata. De komende implementatie hoeft geen oud gedrag of bestaande productiegegevens te blijven ondersteunen. Er komt geen fallback, dual-read, dual-write of compatibiliteitslaag voor de oude tenant-/administratiescope.
+
 ## Actuele update 2026-08-04: Supabase security- en performance-hardening
 
 De drie dubbele permissieve SELECT-policy-waarschuwingen op de Star Performer-tabellen zijn opgelost in migration `consolidate_star_performer_select_policies`: de bestaande leespolicy blijft staan en de brede schrijfpolicy is opgesplitst in INSERT, UPDATE en DELETE met dezelfde permissionchecks. Daarnaast zijn de `SECURITY DEFINER`-search paths aangescherpt door `pg_temp` te verwijderen; RPC-signatures, tenantchecks en grants zijn niet gewijzigd. Remote zijn beide migrations toegepast. De performance-advisor heeft geen WARN-meldingen meer. De resterende 15 security-WARNs zijn bewust authenticated RPC's met server-side permissionchecks; de twee RLS-zonder-policy INFO's zijn interne afschermde tabellen en leaked-password protection vereist een Auth-dashboardinstelling.

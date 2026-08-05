@@ -1,5 +1,7 @@
 # Entiteiteigendom en koppeling tussen tenant en administratie
 
+> **Actuele scope vanaf 2026-08-05:** de nieuwe ownershipmatrix staat in [HR-groepen: scope, inrichting en domeingrenzen](HR_GROEP_SCOPE_EN_INRICHTING.md) en vervangt de tenant-/administratieverdeling in dit document als doelmodel. Dit document blijft behouden als historische analyse van de vorige migratieslice. Gebruik voor nieuwe code de HR-groepmatrix, met name voor persoon, bedrijf, locatie, verlof en verzuim.
+
 **Status:** LEIDEND voor nieuwe en gewijzigde modules  
 **Datum:** 31 juli 2026  
 **Reikwijdte:** alle LiquidHR-domeinen, inclusief Talent

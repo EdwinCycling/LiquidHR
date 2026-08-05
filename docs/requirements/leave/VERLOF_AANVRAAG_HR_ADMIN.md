@@ -1,5 +1,7 @@
 # Verlof aanvragen door HR-admin vanuit de medewerkerskalender
 
+> **Actuele scope vanaf 2026-08-05:** de aanvraag wordt binnen de geselecteerde HR-groep uitgevoerd. Verlofregels zijn groepsbreed, maar iedere aanvraag en ieder saldo horen bij exact één dienstverband. Bij meerdere actieve dienstverbanden is eerst een keuze nodig, behalve wanneer de afdeling/functiecontext van de leidinggevende exact één geldig dienstverband bepaalt. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md).
+
 Status: **LEIDEND** voor de HR-admin-aanvraagflow
 Implementatiestatus: **GEDEELTELIJK GEREALISEERD** — de HR-admin/managerflow, directe goedkeuring, FIFO-boekingen, saldo-preview en kalenderprojectie zijn aanwezig; ESS, notificaties en volledige toekomstige-opbouwprojectie volgen later.
 Scope: één HR-admin-aanvraagflow vanuit `/hr-calendar`; ESS/selfservice en de medewerkersaanvraag volgen later.
@@ -32,7 +34,8 @@ Voeg de afzonderlijke permission `leave:request` toe. Deze permission staat los 
 - actor heeft `hr-calendar:read` om de kalendercontext te gebruiken;
 - actor heeft `leave:request` voor de aanvraagactie;
 - actor heeft effectieve scope op de doelmedewerker en diens dienstverband;
-- de actuele administratiecontext komt server-side uit de sessie.
+- de actuele HR-groepcontext komt server-side uit de sessie;
+- een administratiecontext is alleen nodig voor administratiegebonden onderdelen en moet binnen de HR-groep vallen.
 
 De huidige systeemrol `TENANT_ADMIN` (in de HR-admin-UI aangeduid als **HR-admin/Hoofdbeheerder**) krijgt `leave:request` standaard. De HR-admin configureert in de autorisatie-instellingen tenantbreed welke managementrollen dit recht krijgen. Een manager mag dus aanvragen wanneer zijn rol het recht heeft én zijn bestaande medewerkersscope de medewerker toestaat. Een rolselectie verandert geen organisatiescope en verleent geen toegang tot een andere tenant of administratie.
 
@@ -60,7 +63,7 @@ Bij één actief geldig dienstverband wordt dit automatisch gebruikt. Bij twee o
 
 ### 4.1 Regelbundel kiezen
 
-De engine zoekt voor het gekozen dienstverband, de actuele administratie en de gekozen datum de actieve priority-rulebundels die bij het effectieve verlofprofiel passen.
+De engine zoekt voor het gekozen dienstverband, de geselecteerde HR-groep en de gekozen datum de actieve priority-rulebundels die bij het effectieve verlofprofiel passen.
 
 - **Geen bundel:** de actie toont een duidelijke blokkade en verwijst naar HR-adminconfiguratie; er wordt niets geboekt.
 - **Eén bundel:** de naam van die bundel wordt direct getoond en automatisch gekozen.
@@ -81,7 +84,7 @@ De totalen zijn een server-side projectie; de browser telt geen losse buckets op
 
 ## 5. Aanvraag zonder voorrangsregels
 
-Deze route toont alle actieve verloftypen uit de actuele administratie/catalogus. De actor kiest rechtstreeks één type; er is geen automatische doorschuiving naar een ander type. Per type toont de preview:
+Deze route toont alle actieve verloftypen uit de actuele HR-groepcatalogus. De actor kiest rechtstreeks één type; er is geen automatische doorschuiving naar een ander type. Per type toont de preview:
 
 - saldo nu;
 - saldo einde kalenderjaar inclusief toekomstige opbouw;
@@ -101,7 +104,7 @@ Voor de vooraf geselecteerde dag kiest de actor één van deze opties:
 - **Namiddag:** dezelfde geconfigureerde halve-dagduur;
 - **Specifieke uren:** een start- en eindtijd binnen de effectieve planning.
 
-De halve-dagduur is per administratie instelbaar en heeft standaard 240 minuten (4 uur). Bij een administratie met een negenurige volledige werkdag kan HR-admin dit bijvoorbeeld op 270 minuten (4,5 uur) instellen. De labels voormiddag en namiddag zijn functionele keuzes; de exacte kloktijden bepalen de duur niet. De configuratie mag nooit boven de netto geplande volledige dag uitkomen.
+De halve-dagduur is binnen de HR-groep instelbaar en heeft standaard 240 minuten (4 uur). Bij een groep met een negenurige volledige werkdag kan HR-admin dit bijvoorbeeld op 270 minuten (4,5 uur) instellen. De labels voormiddag en namiddag zijn functionele keuzes; de exacte kloktijden bepalen de duur niet. De configuratie mag nooit boven de netto geplande volledige dag uitkomen.
 
 De totale tijd is berekend en zichtbaar in uren en minuten. De actor kan het resultaat niet als een los saldo- of grootboekveld manipuleren. Specifieke uren moeten met een gepland werksegment overlappen; een periode buiten het rooster, een negatieve duur of een nulduur wordt geweigerd.
 
@@ -181,7 +184,7 @@ Voor de implementatie zijn daarnaast nog nuttig: een screenshot van het harmonic
 - Eén actief dienstverband geeft geen extra keuze; parallelle dienstverbanden geven een expliciete keuze en nooit een samengevoegd saldo.
 - Geen, één en meerdere actieve priority-bundels geven respectievelijk blokkade, automatische keuze en expliciete keuze.
 - Eén dag ondersteunt volledige dag, voormiddag, namiddag en specifieke uren; een reeks ondersteunt alleen volledige geplande dagen.
-- Voormiddag en namiddag gebruiken dezelfde per administratie ingestelde halve-dagduur, standaard 4 uur.
+- Voormiddag en namiddag gebruiken dezelfde per HR-groep ingestelde halve-dagduur, standaard 4 uur.
 - De tijd komt server-side uit effectieve roostering, werkpatroon, pauzes en kalenderdagen.
 - Bundeltotaal en detail per verloftype tonen zowel saldo nu als saldo einde kalenderjaar en worden vóór bevestiging gecontroleerd.
 - Onvoldoende saldo, limiet, verlopen bucket, ontbrekende planning of ongeldige employment blokkeert de hele boeking.

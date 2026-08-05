@@ -7,6 +7,7 @@ import { CountryPicker } from '@/components/ui/country-picker'
 import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
 import type { CompanyAddress, CompanyData, CompanyDataSettings, CompanyLocation } from '@/lib/company-data/service'
+import { toCompanyDataUpdatePayload } from '@/lib/company-data/payloads'
 
 interface CompanyDataLabels {
   companySection: string
@@ -168,7 +169,7 @@ export function CompanyDataManager({ initial, labels }: { initial: CompanyDataSe
 
   async function saveCompany(): Promise<void> {
     setCompanyState('saving'); setMessage('')
-    const response = await fetch('/api/settings/company-data', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(company) })
+    const response = await fetch('/api/settings/company-data', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toCompanyDataUpdatePayload(company)) })
     const result = await response.json() as { data?: CompanyData; error?: string }
     if (!response.ok || !result.data) { setCompanyState('failed'); setMessage(apiMessage(result.error, labels)); return }
     setCompany(result.data); setCompanyState('saved')

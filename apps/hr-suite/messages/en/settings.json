@@ -50,7 +50,7 @@
     "tiles": {
       "authorization": "Roles and authorization", "authorizationDescription": "Manage roles, permissions, scopes and the graphical authorization overview.", "roleAssignments": "Role assignments", "roleAssignmentsDescription": "Assign manager and additional roles and review department scope.",
       "organization": "Departments", "organizationDescription": "Configure departments, hierarchy and managers.", "companyData": "Company data", "companyDataDescription": "Manage the company address and locations for this administration.",
-      "employees": "Employees", "employeesDescription": "Open employee management and employee cards.",
+      "employees": "Employees", "employeesDescription": "Open employee management and employee cards.", "employeeDirectory": "Employee directory", "employeeDirectoryDescription": "Manage which information employees can see in the safe colleague popup.",
       "customFields": "Custom fields", "customFieldsDescription": "Manage additional fields for employees and employments.",
       "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Manage tenant-wide cloud tags that can be reused across multiple modules.",
       "jobs": "Jobs and job groups", "jobsDescription": "Maintain jobs and job groups per administration over time.",

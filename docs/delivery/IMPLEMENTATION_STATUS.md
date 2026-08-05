@@ -1,5 +1,55 @@
 # Implementatiestatus Liquid HR
 
+## Documentatiebaseline 2026-08-05: HR-groepen en parallel verzuim
+
+De leidende scope voor de volgende implementatieslice staat in [HR_GROEP_SCOPE_EN_INRICHTING.md](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md), [ADR-0009](../decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md), [FDR-0006](../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md) en het [Luna-uitvoeringsplan](LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md).
+
+Status: **documentatie bijgewerkt; implementatie nog niet gestart**.
+
+De nieuwe scope maakt HR-groep de primaire context en zichtbaarheidgrens. Bedrijf, locaties, afdelingen, functies, rollen, verlofregels en verzuiminstellingen zijn HR-groepgebonden. Administratiegegevens, salaris, payroll en CAO blijven administratiegebonden. Verlofsaldo en verzuimcasus blijven dienstverbandgebonden.
+
+De verzuimregel is expliciet gecorrigeerd: overlap tussen verschillende dienstverbanden of HR-groepen is toegestaan. Alleen overlap binnen hetzelfde dienstverband wordt geweigerd. Dit ondersteunt bijvoorbeeld een medewerker die voor het dienstverband als portier hersteld is gemeld en voor het dienstverband als badmeester gelijktijdig ziek is.
+
+In deze documentatieslice zijn geen code-, schema-, remote database-, testdata-, commit- of deploymentwijzigingen uitgevoerd.
+
+De huidige database bevat uitsluitend synthetische testdata. De eerstvolgende implementatie mag bestaande records zonder productie-compatibiliteitsdoel opnieuw koppelen, aanpassen, vervangen of opnieuw seeden. Luna mag geen fallback, dual-read, dual-write of verborgen legacy-ondersteuning voor het oude tenant-/administratiemodel bouwen. De nieuwe HR-groepimplementatie wordt het enige uitvoermodel.
+
+## Actuele update 2026-08-05: afdelingsdropdown roltoewijzingen administratiegebonden
+
+De pagina `/role-assignments` toonde eerder alle actieve tenantafdelingen, terwijl roltoewijzingen per administratie worden opgeslagen. De service filtert de afdelingen nu op actuele organisatieplaatsingen en bestaande roltoewijzingen binnen de actieve administratie. Een afdeling zonder actuele plaatsing blijft daardoor alleen zichtbaar wanneer er in die administratie al een roltoewijzing voor bestaat; afdelingen uit andere administraties vervuilen de dropdowns en de lijst **Afdelingen zonder leidinggevende** niet meer.
+
+Lokaal geslaagd: de scope-regressietests, bestaande manager-resolvertests, strict TypeScript en ESLint. Remote read-only geslaagd: de testtenant levert verschillende afdelingssets per administratie op. Geen migration, remote write, commit of deployment.
+
+## Actuele update 2026-08-05: company-data PATCH 400 opgelost
+
+De bedrijfsgegevensmanager stuurde het read-only veld `id` mee naar `PATCH /api/settings/company-data`. Omdat de updatevalidator strict is, werd elke opslag met HTTP 400 afgewezen. De client gebruikt nu een expliciete payload met uitsluitend wijzigbare velden en heeft een regressietest die de payload tegen de echte schema-validator controleert.
+
+Verificatie: gerichte company-data-tests (4 tests), strict TypeScript, gerichte ESLint en `git diff --check` zijn geslaagd. Een directe schema-reproductie accepteert de nieuwe payload zonder `id`.
+
+## Actuele update 2026-08-04: Test Medewerker toegevoegd aan Yara-team
+
+Migration `20260804193021_move_test_employee_to_yara_team.sql` is remote toegepast. De gekoppelde fixture-account **Test Medewerker** is Noah Hendriks (`DEMO-035`). Hij staat nu in **Test Operations** (`RICH-02`) met functie **Operations specialist** en rapporteert direct aan Yara (`DEMO-028`). Yara's actuele directe team bevat hierdoor vijf medewerkers.
+
+## Actuele update 2026-08-04: Yara-testteam en herkenbare leidinggevende-status
+
+Migration `20260804191903_manager_assignment_status_and_yara_team.sql` is remote toegepast op het gekoppelde Supabase-testproject. De bestaande brede synthetische directe-managerrelaties naar Yara (`DEMO-028`) zijn leeggemaakt. Yara staat nu in **Test Operations** (`RICH-02`) met vier expliciete directe teamleden: Maya Bos (`DEMO-032`), Omar Kaya (`DEMO-037`), Sophie De Vries (`DEMO-042`) en Milan Visser (`DEMO-047`). Haar `DIRECT_MANAGER`-roltoewijzing gebruikt dezelfde afdeling.
+
+De roltoewijzingenlijst gebruikt niet langer **Controle nodig**. De statuskolom heet **Type** en toont `LG-Afd` bij dezelfde afdeling en `LG-Afd-Plus` bij een andere toegewezen afdeling. Yara hoort hierdoor `LG-Afd` te zien; haar managerteamscope hoort vier medewerkers te tonen.
+
+## Actuele update 2026-08-04: administratiegebonden roltoewijzingen
+
+Roltoewijzingen tonen en accepteren alleen medewerkers met een actueel bevestigd primair dienstverband in de actieve administratie. De server voert dezelfde controle uit vóór een nieuwe `department_management`-regel. De pagina toont bovendien wanneer de gebruiker alleen leesrechten heeft en schakelt de schrijfknoppen dan uit. Hiermee voorkomt de UI dat een medewerker uit een andere administratie, zoals Yara/`DEMO-028` uit Operations vanuit de Holding, als geldige rolhouder wordt aangeboden.
+
+Strict TypeScript, i18n-pariteit en gerichte ESLint zijn geslaagd. Geen migration of remote datamutatie nodig.
+
+## Actuele update 2026-08-04: rijke synthetische medewerkerdataset
+
+Migration `20260804180940_seed_rich_employee_dataset.sql` is remote toegepast op het gekoppelde Supabase-testproject. De idempotente fixture verrijkt 72 bestaande testmedewerkers met telefoons, avatars, adressen, testbankgegevens, relaties, actuele dienstverbanden, salarissen, roosters, organisatieplaatsingen, afdelingen, functies, locaties, kostenstructuur en beperkte dossier-/verzuimactiviteit. Er zijn geen auth-users of echte persoonsgegevens aangemaakt; avatars zijn ingebedde synthetische SVG-data en IBAN-velden gebruiken alleen fixture-ciphertext.
+
+Eindcontrole: 68 actieve medewerkers hebben allemaal een actueel bevestigd primair dienstverband, salaris, rooster, organisatie, primair adres, primaire bankrekening en relatie. De transactionele dry-run en remote uitvoering zijn geslaagd. Database-types zijn opnieuw opgehaald; er was geen typecontractwijziging. Advisors zijn opnieuw uitgevoerd: security 2 INFO/15 WARN en performance 255 INFO/0 WARN; dit zijn projectbrede bestaande meldingen en geen fixture-specifieke fout.
+
+De migration herstelt daarnaast de bestaande locatie-guardfunctie die bij een locatie-insert naar een niet-bestaande `single_location`-kolom verwees. Deze gerichte functiecorrectie was nodig voor de locatie-fixture; er is geen bestaande gebruikersdata verwijderd.
+
 ## Actuele update 2026-08-04: Supabase security- en performance-hardening
 
 De Star Performer-RLS policies zijn performance-neutraal geconsolideerd: `read` blijft de enige SELECT-policy en de bestaande `write`-policy is per tabel vervangen door afzonderlijke INSERT-, UPDATE- en DELETE-policies met dezelfde permissionchecks. Daarnaast bevatten de relevante `SECURITY DEFINER`-RPC's geen `pg_temp` meer in hun search path. Beide migrations zijn remote toegepast en de officiële types zijn opnieuw opgevraagd; er wijzigde geen databasecontract.

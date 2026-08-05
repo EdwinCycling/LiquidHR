@@ -1,10 +1,12 @@
 # Verzuiminstellingen
 
+> **Actuele scope vanaf 2026-08-05:** deze instellingen worden op HR-groepniveau beheerd. De verzuimcasus zelf blijft aan één dienstverband gekoppeld. Parallel verzuim op verschillende dienstverbanden of HR-groepen is toegestaan; alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md).
+
 Status: **LEIDEND — slice A in uitvoering**.
 
 ## 1. Context
 
-Alle instellingen zijn gekoppeld aan de actieve `administration_id`. Een tenantwissel of administratiecontext wordt uitsluitend uit de sessie afgeleid.
+Alle instellingen zijn gekoppeld aan de actieve `hr_group_id`. Een HR-groepwissel en een eventuele administratiecontext worden uitsluitend uit de sessie afgeleid.
 
 ## 2. Slice A
 

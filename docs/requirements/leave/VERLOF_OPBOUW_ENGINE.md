@@ -1,5 +1,7 @@
 # Verlof: opbouw-, saldo- en configuratie-engine
 
+> **Actuele scope vanaf 2026-08-05:** verlofregels, profielen, medewerker sets en groepsbrede instellingen worden op HR-groepniveau ingericht. Opbouw, saldo, buckets, grootboek en aanvragen blijven per dienstverband. Bij meerdere actieve dienstverbanden kiest de gebruiker eerst het dienstverband, tenzij de afdeling/functiecontext exact één geldig dienstverband bepaalt. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md).
+
 Status: **LEIDEND voor de vastgelegde basisregels**
 
 Implementatie: **GEDEELTELIJK — engine, catalogus/API en een eerste HR-adminbeheerflow staan; volledige projectie- en bonusmutaties volgen**
@@ -22,7 +24,7 @@ Een `Employee` mag nul, één of meerdere gelijktijdige `Employment`s hebben. Ie
 - Het grootboek is append-only. Opbouw, correctie, verval en toekomstige opname zijn nieuwe transacties; historische transacties worden niet gewijzigd of verwijderd.
 - Saldi bestaan uit jaar- en verloftypegebonden buckets. Opbouwjaren worden nooit samengevoegd omdat het verval per bucket wordt afgedwongen.
 - Regels, profieltoewijzingen, rooster en dienstverband zijn effective-dated. De bestaande halfopen intervallen `[valid_from, valid_until)` zijn leidend.
-- Elke nieuwe tabel bevat tenant- en administratiegrens, RLS, passende indexen, grants en een audittrigger. De server leidt context uit de sessie af.
+- Elke nieuwe groepscatalogus bevat tenant- en HR-groepgrens; employmenttransacties bevatten tenant-, HR-groep- en dienstverbandgrens. Iedere tabel heeft RLS, passende indexen, grants en een audittrigger. De server leidt context uit de sessie af.
 - De engine is de enige schrijfweg naar buckets en grootboektransacties. UI, import, cron en een latere aanvraagflow gebruiken diezelfde geteste service.
 - `employment_schedules` is de bron voor roosteruren en `part_time_factor`, op de dag waarop de berekening plaatsvindt.
 - Alleen een goedgekeurde werkurenboeking op een op die dag geldig dienstverband kan `WORKED_HOURS`-opbouw voeden. Planning-, thuiswerk-, locatie-, opleiding- en beursregistraties zijn nooit impliciet gewerkte uren.
@@ -47,11 +49,11 @@ Een `Employee` mag nul, één of meerdere gelijktijdige `Employment`s hebben. Ie
 
 ### 4.1 Jaarsturing en verloftypen
 
-`leave_year_controls` bevat per administratie en kalenderjaar een unieke `year` en verplichte `status`. `LOCKED` blokkeert automatische opbouw, handmatige mutaties met een transactiedatum in dat jaar en bevriest iedere opbouwregelversie die in dat jaar geldig was. Een latere opname mag nog steeds een in dat jaar opgebouwd, overgedragen bucket afboeken: de transactiedatum en aanvraagdatum horen dan bij het nieuwe jaar. Alleen `ACTIVE` en `OPEN_FOR_FUTURE_REQUESTS` staan later aanvragen voor dat jaar toe.
+`leave_year_controls` bevat per HR-groep en kalenderjaar een unieke `year` en verplichte `status`. `LOCKED` blokkeert automatische opbouw, handmatige mutaties met een transactiedatum in dat jaar en bevriest iedere opbouwregelversie die in dat jaar geldig was. Een latere opname mag nog steeds een in dat jaar opgebouwd, overgedragen bucket afboeken: de transactiedatum en aanvraagdatum horen dan bij het nieuwe jaar. Alleen `ACTIVE` en `OPEN_FOR_FUTURE_REQUESTS` staan later aanvragen voor dat jaar toe.
 
 `leave_year_rollovers` en `leave_year_rollover_items` leggen de jaarafsluiting immutable vast. Bij afsluiting van jaar `N` maakt de engine per positief resterend bucket een carry-forward-item voor jaar `N + 1`, met minimaal `employment_id`, `leave_type_id`, `source_bucket_id`, `carried_hours` en de oorspronkelijke `expiration_date`. Het item kopieert geen financieel saldo: het originele bucket en grootboek blijven de enige financiële waarheid. Zo toont het volgende jaar bijvoorbeeld een overgedragen saldo van `100h30m` met dezelfde vervaldatum, zonder dubbeltelling in de saldoformule.
 
-`leave_types` definieert een administratiegebonden type met `name`, `color_code`, verplichte `scope`, `is_system`, `is_active`, `is_self_service` en verplichte `entitlement_mode`. De algemene instellingen omvatten daarnaast limietoverschrijding door de werknemer, vastpinnen in de kalender, managergoedkeuring bij aanvragen, manager informeren bij aanvragen en managergoedkeuring bij annuleren. Systeemtypen kunnen niet worden verwijderd; een inactief type is niet nieuw te configureren of te kiezen.
+`leave_types` definieert een HR-groepgebonden type met `name`, `color_code`, verplichte `scope`, `is_system`, `is_active`, `is_self_service` en verplichte `entitlement_mode`. De algemene instellingen omvatten daarnaast limietoverschrijding door de werknemer, vastpinnen in de kalender, managergoedkeuring bij aanvragen, manager informeren bij aanvragen en managergoedkeuring bij annuleren. Systeemtypen kunnen niet worden verwijderd; een inactief type is niet nieuw te configureren of te kiezen.
 
 Een verloftype heeft precies één rechtvorm:
 
@@ -64,7 +66,7 @@ Voorbeeld van niet-opbouwsoorten zijn later ziekenhuisbezoek of tandartsbezoek. 
 
 #### Werkurentypen
 
-`work_hour_types` is een administratiegebonden, beheersbare catalogus met `name`, `category` en `is_active`. Er zijn drie functionele categorieën:
+`work_hour_types` is een HR-groepgebonden, beheersbare catalogus met `name`, `category` en `is_active`. Er zijn drie functionele categorieën:
 
 - `REGULAR_WORK`: gewone gewerkte uren waarop nulurenmedewerkers kunnen boeken; één of meer van deze typen kunnen aan een verlofopbouwregel worden gekoppeld.
 - `OVERTIME`: overwerkuren; deze kunnen onafhankelijk van gewone werkuren eveneens aan een verlofopbouwregel worden gekoppeld.
@@ -74,7 +76,7 @@ Voorbeeld van niet-opbouwsoorten zijn later ziekenhuisbezoek of tandartsbezoek. 
 
 ### 4.2 Profielen, regels en uitzonderingen
 
-`leave_profiles` is de administratiegebonden groep, bijvoorbeeld `Vast contract` of `Oproepkrachten`, met een unieke `name`. Het profiel bevat geen medewerker- of saldo-informatie.
+`leave_profiles` is de HR-groepgebonden groep, bijvoorbeeld `Vast contract` of `Oproepkrachten`, met een unieke `name`. Het profiel bevat geen medewerker- of saldo-informatie.
 
 `employment_leave_profiles` koppelt een profiel effective-dated aan één `employment_id`, nooit rechtstreeks aan `employees`. De tabel bevat `leave_profile_id`, `valid_from` en optioneel `valid_until`. Overlap voor één dienstverband is database-side verboden. Een profielwissel op 15 mei rekent dus 1–14 mei met het eerdere en vanaf 15 mei met het nieuwe profiel.
 
@@ -217,21 +219,21 @@ De actuele beheerflow toont in het verloftype de algemene instellingen zonder af
 
 De tab Beperkingen toont per verloftype de effective-dated opbouwregels als een opvolgerketen. Een nieuwe regel krijgt een startdatum, sluit de geselecteerde voorganger op die datum en kan niet als historische versie worden overschreven. De beheerder ziet basis, periode, moment, hoeveelheid, werkurentypen, pauzes en vervaltermijn in een samenvatting onderaan. Contracturen ondersteunen uren/minuten per jaar of gekozen loonperiode; werkuren ondersteunen uren/minuten/seconden per gewerkt uur en één of meer werkurentypen, inclusief overuren. Leeftijd en anciënniteit staan als afzonderlijke bonusregeltegels met traptreden, timing, FTE-basis en samenvatting. Pauzes kunnen nul of meer andere verloftypen bevatten en verval is uitsluitend een aantal maanden na het einde van de opbouwperiode.
 
-Uitzonderingen volgen dezelfde administratiegebonden selectie als werkuren: één of meerdere medewerkers, een effective-dated beperking, selfservice ja/nee en optioneel geen opbouw of een aangepaste hoeveelheid. De lijst gebruikt paginering van tien regels, toont naam en samenvatting/beperkingstype en ververst na bewaren of annuleren.
+Uitzonderingen volgen dezelfde HR-groepgebonden selectie als werkuren: één of meerdere medewerkers of dienstverbanden binnen de geselecteerde groep, een effective-dated beperking, selfservice ja/nee en optioneel geen opbouw of een aangepaste hoeveelheid. De lijst gebruikt paginering van tien regels, toont naam en samenvatting/beperkingstype en ververst na bewaren of annuleren.
 
-Alle zichtbare teksten en fouten staan in paritaire `messages/nl/leave.json` en `messages/en/leave.json`. De route beschermt lezen en muteren server-side. De slice voegt definitieve canonieke verlofrechten via migratie en rolseeds toe; tot dat moment geldt de bestaande HR-admingrens `settings:read`. RLS blijft onafhankelijk tenant-, administratie- en dienstverbandscope afdwingen.
+Alle zichtbare teksten en fouten staan in paritaire `messages/nl/leave.json` en `messages/en/leave.json`. De route beschermt lezen en muteren server-side. De slice voegt definitieve canonieke verlofrechten via migratie en rolseeds toe; tot dat moment geldt de bestaande HR-admingrens `settings:read`. RLS blijft onafhankelijk tenant-, HR-groep- en dienstverbandscope afdwingen.
 
 ### 6.1 Kleuren en kalenderprojectie
 
 Iedereen van de drie typen die in de verlofengine uren kan leveren of opnemen heeft een eigen beheerbare kleurcode: verloftype, gewoon/informatief werkurentype en overurentype. De kleurcode is geen autorisatie- of saldo-informatie; de kalender gebruikt daarnaast altijd een typegebonden icoon/patroon zodat kleur nooit het enige onderscheid is.
 
-De kalender projecteert per administratie en dienstverband alleen opgenomen verloftransacties (`TAKEN`) en goedgekeurde werkurenentries. Een medewerker met parallelle dienstverbanden wordt niet opgeteld in de engine; de kalender mag de items in één medewerkerregel combineren, maar behoudt per item het `employmentId` voor detail en latere aanvraagacties. Meerdere items op dezelfde dag worden als afzonderlijke gekleurde markers getoond, met een `+n`-samenvatting en een toegankelijk detailpaneel met type, naam en uren.
+De kalender projecteert binnen de geselecteerde HR-groep per dienstverband alleen opgenomen verloftransacties (`TAKEN`) en goedgekeurde werkurenentries. Een medewerker met parallelle dienstverbanden wordt niet opgeteld in de engine; de kalender mag de items in één medewerkerregel combineren, maar behoudt per item het `employmentId` voor detail en latere aanvraagacties. Meerdere items op dezelfde dag worden als afzonderlijke gekleurde markers getoond, met een `+n`-samenvatting en een toegankelijk detailpaneel met type, naam en uren.
 
 ### 6.2 Overwerkbeheer en beperkingen
 
 Een bestaand verloftype, werkurentype of een bestaande opbouwregelversie wordt niet overschreven. Een opbouwregel krijgt uitsluitend een aansluitende opvolger; een catalogusitem kan alleen worden gearchiveerd. De beheerpagina toont het bestaande kleurgebruik zodat een beheerder een nog niet gebruikte kleur kan kiezen.
 
-Een overurentype heeft naast de immutable catalogusidentiteit een administratiegebonden configuratie met:
+Een overurentype heeft naast de immutable catalogusidentiteit een HR-groepgebonden configuratie met:
 
 - manager inlichten over een nieuwe overwerkinvoer;
 - wel of niet beheerbaar via selfservice;

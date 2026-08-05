@@ -6,6 +6,7 @@ import type {
   ManagementAssignmentUpdateInput, PlacementCreateInput, PlacementUpdateInput,
   RoleCreateInput, RoleUpdateInput,
 } from './schemas'
+import { scopeRoleAssignmentDepartments } from './role-assignment-scope'
 
 export class OrganizationServiceError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code) }
@@ -186,20 +187,24 @@ export async function listRoleAssignments(): Promise<{
   employees: Array<{ id: string; name: string; employeeNumber: string; jobTitle: string | null; departmentName: string | null }>
   departments: Array<{ id: string; name: string; code: string }>
   placementDepartments: Array<{ employeeId: string; departmentId: string }>
+  canWrite: boolean
 }> {
   const context = await requirePermission('management-assignment:read')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
-  const [roles, assignments, employees, departments, placements] = await Promise.all([
+  const [roles, assignments, employees, departments, placements, employments] = await Promise.all([
     supabase.from('management_roles').select('*').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).eq('is_active', true).is('deleted_at', null).order('name').limit(250),
     supabase.from('department_management').select('*').eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('effective_from', { ascending: false }).limit(1000),
     supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(1000),
     supabase.from('departments').select('id,name,code').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
     supabase.from('employee_organizations').select('employee_id,department_id,job_title,effective_from').eq('tenant_id', context.tenantId).eq('administration_id', adminId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(2000),
+    supabase.from('employments').select('employee_id').eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('record_status', 'CONFIRMED').eq('is_primary', true).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).is('deleted_at', null).limit(2000),
   ])
-  if (roles.error || assignments.error || employees.error || departments.error || placements.error) throw new OrganizationServiceError('ROLE_ASSIGNMENTS_READ_FAILED', 500)
-  const departmentById = new Map(departments.data.map((department) => [department.id, department.name]))
+  if (roles.error || assignments.error || employees.error || departments.error || placements.error || employments.error) throw new OrganizationServiceError('ROLE_ASSIGNMENTS_READ_FAILED', 500)
+  const employeeIdsInAdministration = new Set(employments.data.map((employment) => employment.employee_id))
+  const administrationDepartments = scopeRoleAssignmentDepartments(departments.data, placements.data, assignments.data)
+  const departmentById = new Map(administrationDepartments.map((department) => [department.id, department.name]))
   const placementByEmployee = new Map<string, (typeof placements.data)[number]>()
   for (const placement of placements.data) {
     if (!placementByEmployee.has(placement.employee_id)) placementByEmployee.set(placement.employee_id, placement)
@@ -207,12 +212,13 @@ export async function listRoleAssignments(): Promise<{
   return {
     roles: roles.data.filter((role) => !(role.tenant_id === context.tenantId && ['TENANT_ADMIN', 'DIRECT_MANAGER', 'EMPLOYEE'].includes(role.code))),
     assignments: assignments.data,
-    employees: employees.data.map((employee) => {
+    employees: employees.data.filter((employee) => employeeIdsInAdministration.has(employee.id)).map((employee) => {
       const placement = placementByEmployee.get(employee.id)
       return { id: employee.id, employeeNumber: employee.employee_number, name: `${employee.first_name} ${employee.birth_name}`, jobTitle: placement?.job_title ?? null, departmentName: placement ? departmentById.get(placement.department_id) ?? null : null }
     }),
-    departments: departments.data,
+    departments: administrationDepartments,
     placementDepartments: placements.data.map((placement) => ({ employeeId: placement.employee_id, departmentId: placement.department_id })),
+    canWrite: context.permissions.includes('management-assignment:write'),
   }
 }
 
@@ -295,6 +301,9 @@ export async function createManagementAssignment(input: ManagementAssignmentCrea
   const context = await requirePermission('management-assignment:write')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
+  const { data: employment, error: employmentError } = await supabase.from('employments').select('id').eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('employee_id', input.employeeId).eq('record_status', 'CONFIRMED').eq('is_primary', true).lte('starts_on', input.effectiveFrom).or(`ends_on.is.null,ends_on.gte.${input.effectiveFrom}`).is('deleted_at', null).limit(1).maybeSingle()
+  if (employmentError) throw new OrganizationServiceError('MANAGEMENT_ASSIGNMENT_EMPLOYEE_SCOPE_CHECK_FAILED', 500)
+  if (!employment) throw new OrganizationServiceError('MANAGEMENT_ASSIGNMENT_EMPLOYEE_ADMINISTRATION_REQUIRED', 409)
   const { data, error } = await supabase.from('department_management').insert({
     tenant_id: context.tenantId, administration_id: adminId, department_id: input.departmentId ?? null,
     management_role_id: input.managementRoleId, employee_id: input.employeeId,

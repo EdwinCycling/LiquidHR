@@ -1,5 +1,7 @@
 # Datamodel & beveiliging: multitenancy en multi-administratie
 
+> **Actuele scope vanaf 2026-08-05:** dit document bevat de historische tenant-/administratiebasis. Het actuele doelmodel staat in [HR-groepen: scope, inrichting en domeingrenzen](HR_GROEP_SCOPE_EN_INRICHTING.md). Waar dit document `SEPARATE`/`COMBINED`, tenantbrede personen, administratiegebonden bedrijf/locaties of administratiegebonden verlof/verzuim als doelmodel beschrijft, geldt het nieuwe HR-groepdocument. De historische implementatienotities hieronder worden niet stil verwijderd.
+
 ## 1. Status en doel
 
 **Status:** LEIDEND.

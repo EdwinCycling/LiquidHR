@@ -1,5 +1,7 @@
 # ADR-0003 — Employee, Employment, IKV en herintreding
 
+> **Actuele aanvulling 2026-08-05:** de persoonskaart is binnen één HR-groep uniek, niet als gebruikersscope tenantbreed. Het doelmodel voor meerdere HR-groepen, vaste CAO per dienstverband en de UX-keuze bij meerdere actieve dienstverbanden staat in [HR-groepen: scope, inrichting en domeingrenzen](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md). De historische tenantbrede formulering hieronder blijft behouden voor de eerdere implementatie.
+
 Datum: 15 juli 2026  
 Status: Goedgekeurd
 
@@ -9,7 +11,7 @@ Een persoon kan zonder dienstverband in een administratie voorkomen, meerdere ge
 
 ## Besluit
 
-- Employee is een blijvende identiteit binnen precies één tenant en heeft nul tot meerdere Employments.
+- Employee is een blijvende identiteit binnen precies één HR-groep en heeft nul tot meerdere Employments. Een technische accountkoppeling kan dezelfde natuurlijke persoon aan een andere HR-groep verbinden zonder HR-gegevens te delen.
 - Employment is administratiegebonden; overlap is toegestaan, ook binnen dezelfde administratie.
 - IKV staat in `income_relationships` en is via een effectieve koppeltabel historisch aan Employment gekoppeld.
 - Arbeidsvoorwaarden, rooster, salaris en kostenverdeling gebruiken niet-overlappende halfopen perioden `[valid_from, valid_until)`.

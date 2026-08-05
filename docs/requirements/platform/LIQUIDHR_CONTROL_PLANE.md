@@ -1,5 +1,7 @@
 # LiquidHR Control Plane
 
+> **Actuele scope vanaf 2026-08-05:** Control Plane beheert de HR-groepstructuur. Edwin maakt HR-groepen aan en kan initiële/lege administraties aanmaken. Een HR-admin kan later vanuit een geselecteerde HR-groep administraties toevoegen. De oude `SEPARATE`/`COMBINED`-keuze hieronder is historische implementatiecontext; zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) en [ADR-0009](../../decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md).
+
 Status: **LEIDEND**  
 Datum: 2026-08-02
 
@@ -30,9 +32,9 @@ Lifecycle en administratiemodel zijn onafhankelijke assen:
 | As | Waarden |
 |---|---|
 | Lifecycle | `PROVISIONING`, `ACTIVE`, `PAUSED`, `TERMINATING`, `TERMINATED` |
-| Administratiemodel | `SEPARATE`, `COMBINED` |
+| Inrichtingsmodel | Eén of meer HR-groepen met één of meer administraties per groep |
 
-`COMBINED` betekent één functionele organisatie en medewerkerslijst, terwijl ieder dienstverband aan een administratie gekoppeld blijft. `SEPARATE` betekent dat gebruikers alleen toegestane administraties kunnen kiezen en zien.
+Een HR-groep is een afzonderlijke functionele HR-omgeving binnen de holding. De HR-admin switcht expliciet tussen HR-groepen en ziet binnen de gekozen groep de toegestane administraties. Een bestaande administratie kan niet naar een andere groep worden verplaatst. Een nieuwe administratie kan via Control Plane of door een HR-admin vanuit de geselecteerde HR-groep worden aangemaakt.
 
 ## Lifecycle
 
@@ -48,7 +50,7 @@ Lifecycle en administratiemodel zijn onafhankelijke assen:
 - Dashboard met aantallen tenants, actief/gepauzeerd, medewerkers, gebruikers en opslag.
 - Klantenlijst met zoeken en statusfilter.
 - Klantdetail met administratiemodel, actuele omvang en auditgeschiedenis.
-- Onboarding van tenant, primair contact en één of meer administraties.
+- Onboarding van tenant, primair contact, één of meer HR-groepen en optioneel initiële/lege administraties.
 - Activeren, pauzeren, hervatten, beëindiging starten en definitief beëindigen.
 - Dagelijkse/on-demand gebruikssnapshots als basis voor latere historie en facturatie.
 

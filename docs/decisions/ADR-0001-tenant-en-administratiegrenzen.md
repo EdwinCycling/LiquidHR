@@ -1,5 +1,7 @@
 # ADR-0001: Tenant- en administratiegrenzen
 
+> **Historische basis:** de actuele inrichting met HR-groepen staat in [ADR-0009 — HR-groepen als zichtbaarheids- en inrichtingsgrens](ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md). De eerdere `SEPARATE`/`COMBINED`-besluiten hieronder zijn niet langer het doelmodel voor nieuwe implementatie.
+
 **Status:** Geaccepteerd  
 **Datum:** 2026-07-14
 
@@ -25,4 +27,3 @@ Liquid HR moet meerdere klanten in één Supabase-project ondersteunen. Klanten 
 - Administratiegebruikers zien geen siblings zonder aanvullende accessregel.
 - Gecombineerde klanten houden juridische entiteiten voor stamdata, contracten, payroll en rapportages.
 - Een toekomstige splitsing vereist export en migratie naar nieuwe tenantgrenzen en is geen eenvoudige instelling.
-

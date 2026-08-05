@@ -1,15 +1,17 @@
 # Datamodel: Contract & Dienstverband (Module 2 - Effective Dating)
 
+> **Actuele scope vanaf 2026-08-05:** een persoon bestaat één keer binnen een HR-groep en kan nul of meerdere dienstverbanden hebben. Meerdere actieve dienstverbanden zijn toegestaan. Het hoofddienstverband is uitsluitend een UX-keuze. Een dienstverband heeft één vaste CAO; een CAO-wijziging vereist het afsluiten van het oude dienstverband en het aanmaken van een nieuw dienstverband. De oudere tenantbrede persoons- en effective-dated CAO-beschrijvingen hieronder blijven als historische implementatienotities staan, maar zijn niet het doelmodel. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md).
+
 > **Implementatiebesluit 2026-07-15 — leidend bij afwijkingen hieronder.** De oorspronkelijke naam `EmploymentContract` vermengde het HR-dienstverband met de fiscale inkomstenverhouding (IKV). De actuele implementatie volgt ADR-0003 en normaliseert dit naar `Employee → Employment ↔ IncomeRelationship`. De gedetailleerde tijdlijnvelden in dit document blijven functionele requirements, maar hun foreign key heet in de implementatie `employmentId`, niet `contractId`.
 
-> **Aanvulling 2026-07-18.** De aanmaakflow publiceert een dienstverband atomair met IKV-koppeling, organisatieplaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en een kostenverdeling van exact 100%. Functies, functiegroepen en salarisschaalrevisies zijn administratiegebonden en effective-dated. Gepubliceerde revisies zijn onveranderlijk; correcties krijgen een nieuwe geldigheidsperiode.
+> **Aanvulling 2026-07-18.** De aanmaakflow publiceert een dienstverband atomair met IKV-koppeling, organisatieplaatsing, arbeidsvoorwaarden, rooster, optioneel salaris en een kostenverdeling van exact 100%. Functies en functiegroepen zijn HR-groepgebonden; salarisschalen en salarisrevisies blijven administratiegebonden en effective-dated. Gepubliceerde revisies zijn onveranderlijk; correcties krijgen een nieuwe geldigheidsperiode.
 
 > **Aanvulling 2026-07-29 — actuele contractstructuur.** Een `Employment` is het dienstverband en bevat land, IKV-nummer, primaire status, begin-/anciënniteitsdatum en de uitdienstgegevens. Eén dienstverband heeft één of meer direct aansluitende `employment_contracts`. Een contract bevat medewerkerstype, arbeidsvoorwaardenregeling, bepaalde/onbepaalde duur en proeftijd. Rooster, salaris, organisatieplaatsing en kostenverdeling blijven afzonderlijke, aansluitende tijdlijnen onder het dienstverband.
 
 ### Goedgekeurde aanmaakflow 2026-07-29
 
 1. Controleer vóór de wizard personeelsnummer, nationaliteit, geboortedatum, geslacht en voor Nederland het BSN. Ontbrekende gegevens worden eerst in een verplicht tussenscherm aangevuld.
-2. Maak het dienstverband aan met primair ja/nee, IKV 1–99, begin- en anciënniteitsdatum en contractland. De begindatum staat standaard op de eerste dag van de volgende maand; het land komt uit de administratie-inrichting.
+2. Maak het dienstverband aan met een optionele UX-voorkeursaanduiding, IKV 1–99, begin- en anciënniteitsdatum en contractland. De begindatum staat standaard op de eerste dag van de volgende maand; het land komt uit de administratie-inrichting.
 3. Leg het eerste contract vast met medewerkerstype, eventuele flexfase, arbeidsvoorwaardenregeling, looptijd en proeftijd. De contractstart is in deze flow gelijk aan de dienstverbandstart en alleen-lezen.
 4. Leg rooster en weekuren vast. Oproepstatus, oproepverplichting en voltijd/deeltijd zijn conditioneel; het gemiddelde rooster moet exact gelijk zijn aan de contracturen per week.
 5. Leg salaris vast via handmatig, wettelijk minimumuurloon of salaristabel. Frequenties zijn administratiegebonden stamdata; voltijd- en deeltijdbedrag worden met de deeltijdfactor aan elkaar gerelateerd.
@@ -21,18 +23,18 @@
 - De oude tabs **Basis/IKV** en **Arbeidsvoorwaarden** vervallen; hun gegevens staan op Overzicht en per contract.
 - **Rooster**, **Salaris**, **Organisatie** en **Kostenverdeling** gebruiken dezelfde selecteerbare tijdlijnopzet met detaildialoog, wijzigen en een aansluitende nieuwe periode.
 - Het dienstverband blijft alleen-lezen wanneer een nieuw contract aan een bestaand dienstverband wordt toegevoegd.
-- Er kan maximaal één primair actief dienstverband per medewerker bestaan, terwijl parallelle niet-primaire dienstverbanden en sequentiële herintredingen geldig blijven.
+- Er kunnen meerdere actieve dienstverbanden per persoon bestaan. Een eventuele technische voorkeurs- of primaire aanduiding is uitsluitend UX-context en geen blokkade op een tweede actief dienstverband.
 
 ## 0. Goedgekeurde domeingrenzen
 
-- Een `Employee` is de permanente persoonskaart binnen precies één tenant en heeft **nul, één of meerdere** dienstverbanden. Een bezoeker, beveiliger of andere externe relatie mag dus zonder dienstverband bestaan.
-- Een `Employment` is één arbeidsrechtelijke relatie binnen één administratie. Gelijktijdige dienstverbanden zijn toegestaan, ook tweemaal binnen dezelfde administratie.
+- Een `Employee` is de persoonskaart binnen precies één HR-groep en heeft **nul, één of meerdere** dienstverbanden. Een bezoeker, beveiliger of andere externe relatie mag dus zonder dienstverband bestaan.
+- Een `Employment` is één arbeidsrechtelijke relatie binnen één administratie en HR-groep. Gelijktijdige dienstverbanden zijn toegestaan, ook tweemaal binnen dezelfde administratie.
 - Een `IncomeRelationship` is de afzonderlijke fiscale IKV. De tijdsgebonden koppeltabel `EmploymentIncomeRelationship` voorkomt dat IKV-identiteit en arbeidsrechtelijke identiteit worden samengevoegd.
 - Arbeidsvoorwaarden, rooster, salaris, organisatieplaatsing en kostenverdeling hebben onafhankelijke halfopen geldigheidsperioden `[startDate, endDate)`. Overlap binnen dezelfde tijdlijn wordt database-side geweigerd.
 - Uitdienst gaan is een expliciete workflow met datum, wettelijke Belastingdienstreden en bevestiging. Alleen een verstreken dienstverband met een bevestigde uitdienstmelding bepaalt de status **uit dienst**.
-- Een herintreder krijgt nooit een tweede Employee. Eerst wordt binnen dezelfde tenant exact op een BSN-HMAC gezocht; zonder BSN volgt een gewogen vergelijking op geboortedatum, naam, e-mail, telefoon en postcode. Bij twijfel beslist de invoerder expliciet en dit besluit wordt geaudit.
+- Een herintreder krijgt nooit een tweede Employee binnen dezelfde HR-groep. Eerst wordt binnen die groep exact op een BSN-HMAC gezocht; zonder BSN volgt een gewogen vergelijking op geboortedatum, naam, e-mail, telefoon en postcode. Bij twijfel beslist de invoerder expliciet en dit besluit wordt geaudit. Een eventuele koppeling met een persoon in een andere HR-groep is een afzonderlijke technische identity-link en geeft geen groepsleesrecht.
 - Exacte BSN-matching gebruikt geen leesbaar BSN en geen ongesalte hash. De server berekent een tenantgebonden HMAC met `BSN_HASH_KEY`; deze sleutel is server-only.
-- Alle tabellen dragen expliciete tenant- en waar nodig administratiegrenzen. Cross-tenant foreign keys, services en RLS blokkeren gegevenslekken ook wanneer een client-ID wordt gemanipuleerd.
+- Alle tabellen dragen expliciete tenant-, HR-groep- en waar nodig administratiegrenzen. Cross-tenant- en cross-group foreign keys, services en RLS blokkeren gegevenslekken ook wanneer een client-ID wordt gemanipuleerd.
 
 ### Actuele fysieke tabellen
 
@@ -130,6 +132,8 @@ Sub-tabel van `EmployeeOrganization` om kosten procentueel te verdelen over kost
 | `percentage` | Decimal | Required | Percentage (bijv. 60.00). Som van alle records onder 1 orgId moet 100% zijn. |
 
 ### 4.4 EmployeeLaborCondition (Tijdlijn 2: CAO)
+
+> **Actuele doelregel vanaf 2026-08-05:** een dienstverband heeft één vaste CAO. De oudere effective-dated `EmployeeLaborCondition`-beschrijving hieronder is historische implementatiecontext. Een CAO-wijziging binnen het doelmodel sluit het bestaande dienstverband en maakt een nieuw dienstverband aan; de API en database mogen de CAO op een bestaand dienstverband niet wijzigen.
 Tijdsgebonden opslag van de toepasselijke CAO of bedrijfsregeling.
 **Relatie:** `EmploymentContract` (1) -> `EmployeeLaborCondition` (1..*)
 

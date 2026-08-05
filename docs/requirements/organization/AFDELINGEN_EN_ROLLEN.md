@@ -1,5 +1,7 @@
 # Datamodel: organisatie, rollen en hiërarchie
 
+> **Actuele scope vanaf 2026-08-05:** afdelingen, functies, locaties en leidinggevende-toewijzingen worden binnen een HR-groep beheerd. Een leidinggevende kan meerdere afdelingen over meerdere administraties binnen dezelfde HR-groep bedienen. Dezelfde persoon kan in meerdere HR-groepen leidinggevende zijn, maar met afzonderlijke groepsautorisatie en context. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md).
+
 ## 1. Status en doel
 
 **Status:** LEIDEND.
@@ -9,7 +11,7 @@ Dit document beschrijft de tijdsgebonden afdelingenboom, managementrollen en toe
 ## 2. Vastgestelde besluiten
 
 - Database-identifiers zijn Engels en gebruiken `snake_case`.
-- Iedere organisatie-entiteit is tenant-scoped, behalve globale systeemrollen en globale permissiondefinities.
+- Iedere operationele organisatie-entiteit is HR-groep-scoped, behalve globale systeemrollen en globale permissiondefinities.
 - `DIRECT_MANAGER` en `EMPLOYEE` zijn vaste systeemrollen.
 - Een managementrol kan via `deputy_role_id` verwijzen naar een zelfstandige deputyrol met eigen permissions.
 - `DepartmentManagement` is effective-dated.
@@ -122,4 +124,3 @@ Zodra `employment_contracts` is geïmplementeerd, wordt bepaald of `employee_id`
 ## 9. Nog niet activeerbaar
 
 Automatische deputyselectie op basis van verlof of afwezigheid blijft uitgeschakeld totdat een leidend afwezigheidsmodel bestaat. De kolommen en resolverinterfaces mogen dit nu al ondersteunen; toegang wordt niet op vermoedelijke afwezigheid verleend.
-
