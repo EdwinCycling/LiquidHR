@@ -51,4 +51,4 @@ Docker Desktop, `supabase login/link`, `vercel login` en opnieuw importeren zijn
 
 Voer eenmalig `gh auth login` en `gh auth status` uit en deel alleen de accountnaam.
 
-Het centrale versienummer staat in `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. Huidige versie: `1.20260716.3`.
+Het centrale versienummer staat in `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. Huidige versie: `1.20260805.1`.

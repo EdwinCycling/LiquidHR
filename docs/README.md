@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Actuele update 2026-08-05: productversie volgens centrale releaseconventie
+
+De zichtbare productversie komt uitsluitend uit `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. De huidige productversie is `1.20260805.1`; de npm-versie in `package.json` is technische package-metadata en bepaalt de zichtbare appversie niet.
+
 ## Actueel domeinbesluit 2026-08-05: HR-groepen en employmentgebonden verlof/verzuim
 
 De actuele basis voor de komende LiquidHR-slice staat in:

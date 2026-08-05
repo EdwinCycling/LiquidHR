@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Actuele update 2026-08-05: productversie gecorrigeerd
+
+De zichtbare productversie volgt de gedocumenteerde bron `apps/hr-suite/lib/app-version.ts` en de conventie `X.datum.volgnummer`. De correcte volgende versie is `1.20260805.1`. De npm-packageversie is teruggezet naar `0.1.2`, omdat die niet de zichtbare productrelease bepaalt.
+
 ## Documentatiebaseline 2026-08-05: HR-groepen en parallel verzuim
 
 De leidende scope voor de volgende implementatieslice staat in [HR_GROEP_SCOPE_EN_INRICHTING.md](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md), [ADR-0009](../decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md), [FDR-0006](../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md) en het [Luna-uitvoeringsplan](LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md).

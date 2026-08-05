@@ -1,5 +1,9 @@
 # Actuele overdracht Liquid HR
 
+## Correctie 2026-08-05: productversie volgens documentatie
+
+De zichtbare appversie wordt bepaald door `apps/hr-suite/lib/app-version.ts`, niet door de npm-versie in `package.json`. Volgens de vastgelegde conventie `X.datum.volgnummer` is de nieuwe productversie `1.20260805.1`. De eerdere technische packageverhoging naar `0.1.3` is teruggedraaid naar de bestaande packageversie `0.1.2`; de versiecheck bewaakt nu de productversie.
+
 ## Domeinbaseline 2026-08-05: HR-groepen, verlof en parallel verzuim
 
 De komende grote slice gebruikt [HR-groepen: scope, inrichting en domeingrenzen](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) als actuele bron. De bijbehorende besluiten staan in [ADR-0009](../decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md) en [FDR-0006](../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md); het uitvoeringsplan voor Luna staat in [LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md](LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md).
