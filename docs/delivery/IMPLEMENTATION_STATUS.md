@@ -1,12 +1,24 @@
 # Implementatiestatus Liquid HR
 
-## Actuele update 2026-08-05: productversie gecorrigeerd
+## Historische update 2026-08-05: productversie gecorrigeerd
 
-De zichtbare productversie volgt de gedocumenteerde bron `apps/hr-suite/lib/app-version.ts` en de conventie `X.datum.volgnummer`. De correcte volgende versie is `1.20260805.1`. De npm-packageversie is teruggezet naar `0.1.2`, omdat die niet de zichtbare productrelease bepaalt.
+De zichtbare productversie volgt de gedocumenteerde bron `apps/hr-suite/lib/app-version.ts` en de conventie `X.datum.volgnummer`. De vorige productversie was `1.20260805.1`. De npm-packageversie blijft `0.1.2`, omdat die niet de zichtbare productrelease bepaalt.
+
+## Actuele release 2026-08-06: versie 1.20260806.2 en remote scopecorrectie
+
+De productversie is verhoogd naar `1.20260806.2`. Remote zijn de groepsbrede configuratiemigraties `20260806174202_hr_group_wide_configuration_scope`, `20260806174221_grant_hr_group_permissions_to_hr_admin` en `20260806174857_harden_hr_group_configuration_policies` toegepast. De remote data- en RLS-controle is groen; alle betrokken configuratieregels hebben een HR-groep, de nieuwe group-scoped functies bestaan en er zijn geen groepsbrede duplicaten.
+
+De officiële Supabase-types zijn opnieuw gegenereerd. Advisors: security `1 INFO / 19 WARN` als bestaande projectbaseline; performance `348 INFO / 0 WARN` na het splitsen van permissive write-policies en toevoegen van FK-indexes. Lokale releasegate: 130/130 testbestanden, 481/481 tests, strict TypeScript, lint, 28 gelijke NL/EN-namespaces, productiebuild met 173 pagina's en `git diff --check`. Authenticated browsercontrole is groen met `Planeten`, administratiekaarten Mars/Jupiter/Mercurius, geen administratie-dropdown in de sidebar, zichtbare versie `1.20260806.2` en 0 console errors/warnings. GitHub en Vercel volgen na publicatie.
 
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
 Een Luna-stap is pas afgerond na de volledige verticale slice: schema/Supabase (migratie, RLS, grants, audit en gecontroleerde testdata), API, UI, tests, documentatie en relevante lokale, remote en geauthentiseerde browserverificatie. Open onderdelen of blokkades blokkeren de status **afgerond**; de volgende stap start pas na een expliciete per-spec controle.
+
+## Actuele update 2026-08-06: vijf configuratie-entiteiten naar HR-groep-scope
+
+Bedrijfsinstellingen met kleuren/logo, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten zijn in de lokale vertical slice gecorrigeerd van administratie- naar HR-groep-eigendom. `20260806160000_hr_group_wide_configuration_scope.sql` backfillt en verplicht `hr_group_id`, dedupliceert bestaande configuratierecords per groep, vervangt administratiegebonden foreign keys/unieke sleutels en vernieuwt de RLS/policies. De administratiekolom blijft alleen nullable historische provenance. `20260806161000_grant_hr_group_permissions_to_hr_admin.sql` vult HR-adminrechten voor de groepskeuze aan.
+
+Services, routes en de vijf dedicated schermen gebruiken de actieve HR-groep zonder administratiekeuze. De gecombineerde `/master-data`-pagina blijft gemengd: documentcategorieën zijn nog administratiegebonden, terwijl de aparte eindredenenpagina groepsbreed is. Remote toepassen, officiële typegeneratie, advisors en browsercontrole na deze nog niet toegepaste migrations staan open; er is geen remote write, commit, push, merge of deployment uitgevoerd.
 
 ## Step-9-verificatie afgerond 2026-08-06
 
@@ -661,8 +673,8 @@ De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken 
 |---|---|---|
 | Absolute tenantgrens | GEÏMPLEMENTEERD | Expliciete toegang, samengestelde tenant-FK's, RLS en negatieve isolatietests zijn live |
 | Hiërarchische administraties | GEÏMPLEMENTEERD | Parentconstraint, tenantgelijkheid, cyclusbeveiliging en drie demo-administraties zijn live |
-| Administratiecontext en switcher | GEÏMPLEMENTEERD | Resolver, context-API, HTTP-only cookie en responsive switcher; PostgreSQL-UUID-notatie wordt correct geaccepteerd en gecontroleerd tegen de toegestane administratieopties |
-| Stamtabellenscope | GEÏMPLEMENTEERD | Afdelingen, functies, functiegroepen, loonschalen/revisies, kostenplaatsen en uitdienstredenen zijn tenant-/administratiegebonden. Redenen uitdienst zijn bovendien per land ingericht, met `Einde contract` als fallback wanneer een land geen eigen redenen heeft. |
+| Administratiecontext en switcher | GEÏMPLEMENTEERD | Resolver, context-API en HTTP-only cookie blijven server-side gecontroleerd. De sidebar toont alleen de HR-groep; administratiegebonden instellingen gebruiken `/settings/administration` met kaartkeuze, laatst gekozen administratie en een vaste contextbalk. |
+| Stamtabellenscope | GEÏMPLEMENTEERD | Afdelingen, functies, functiegroepen, uitdienstredenen per land en vrije velden zijn HR-groepgebonden. Loonschalen/revisies, kostenplaatsen, contractcatalogi en documentcategorieën blijven administratiegebonden. |
 | Onomkeerbaar combineren | GEÏMPLEMENTEERD | Alleen `SEPARATE → COMBINED`; database blokkeert terugkeer |
 | Demo-omgevingen | GEÏMPLEMENTEERD | Hoofdtenant: 3 administraties/50 medewerkers; tweede tenant: 1 administratie/10 medewerkers |
 
@@ -692,7 +704,7 @@ De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken 
 | Vervaldatum en reminders | GEÏMPLEMENTEERD | Persoon, rol en organogramdoelgroepen worden gecombineerd en naar gededupliceerde ontvangers gepubliceerd. |
 | Globale documenten en AI-compliance | NIET GESTART | Bulk-loonstroken, globaal beleid, OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
-| Bedrijfsdocumenten | GEIMPLEMENTEERD | Platte tenantbrede lijst, private opslag, HR-admin upload/delete, signed downloads, viewer en dashboardwidget. |
+| Bedrijfsdocumenten | GEIMPLEMENTEERD | Lijst per actieve HR-groep, private opslag, HR-admin upload/delete, signed downloads, viewer en dashboardwidget. |
 | Loonstroken | GEDEELTELIJK | Eigen medewerkerkaart-tab, employment-koppeling, bronvelden, private opslag en permission/RLS-readpad zijn aanwezig; Nmbrs/Loket- en bulkimport volgen later. |
 | Globale documenten en AI-compliance | GEDEELTELIJK | Bedrijfsdocumenten zijn gerealiseerd; OCR/RAG en compliance-audits blijven een afzonderlijke slice. |
 
@@ -709,16 +721,16 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 |---|---|---|
 | Rapportagecatalogus | GEDEELTELIJK | `/insights` staat onder Kalender in de navigatie met rapport-specifieke filteropzet, sortering en URL-selectie. Medewerkerprojecties, Aankomende gebeurtenissen, het Verzuimrapport en de Bradford-factor gebruiken geautoriseerde productiedata; verlof, voorziening en WvP blijven open. |
 | Medewerkerbestandrapporten | GEDEELTELIJK | Personeel per afdeling, geslacht, leeftijd en reden uit dienst lezen via `employee:read` en bestaande RLS-scoped medewerkers-, dienstverband-, organisatie- en terminationdata. Visualisaties en detailtabellen zijn live; `insights:read`, privacydrempel en exports volgen. |
-| Verzuim, voorziening en WvP | GEDEELTELIJK | De kernverzuimslice is remote toegepast. `/settings/absence` beheert nu drempel, geldige standaardcasemanager en administratiegebonden eigen WvP-taaktemplates via `absence_task_templates` met RLS/audit, activatie/deactivatie en servervalidatie. Startpagina en `/insights?report=absence` tonen actieve dossiers, roostergewogen maand/jaar-rapportage, afdelingsfilter en Excel-export; `/insights?report=absence-bradford` voegt Bradford-factoranalyse toe voor laatste 52 weken, dit jaar en vorig jaar met team/afdelingsfilter, risicobanden, uitlegmodal en Excel-export. Wettelijke milestones/casustaken/dossier, voorziening, bewaarmatrix, payroll/13-wekenmodel en externe integraties blijven open. |
+| Verzuim, voorziening en WvP | GEDEELTELIJK | De kernverzuimslice is remote toegepast. `/settings/absence` beheert een HR-groepbrede drempel en standaardcasemanager plus administratiegebonden eigen WvP-taaktemplates via `absence_task_templates` met RLS/audit, activatie/deactivatie en servervalidatie. Startpagina en `/insights?report=absence` tonen actieve dossiers, roostergewogen maand/jaar-rapportage, afdelingsfilter en Excel-export; `/insights?report=absence-bradford` voegt Bradford-factoranalyse toe voor laatste 52 weken, dit jaar en vorig jaar met team/afdelingsfilter, risicobanden, uitlegmodal en Excel-export. Wettelijke milestones/casustaken/dossier, voorziening, bewaarmatrix, payroll/13-wekenmodel en externe integraties blijven open. |
 | Rapportexport | GEDEELTELIJK | Medewerkerprojecties en Aankomende gebeurtenissen leveren Excel-compatibele CSV op. Excel/PDF en immutable exportaudit volgen later. |
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
 | Verlofopbouw-engine | GEDEELTELIJK | Schema/RLS, pure engine/report, catalogus/opvolgers/voorrangsregels, kleuren, HR-admin-aanvragen, FIFO-booking, feestdaguitsluiting en de centrale ledger-operaties staan in de migraties `20260722142551_add_leave_engine_foundation.sql`, `20260722151920_add_leave_configuration_mutation_functions.sql`, `20260722173000_add_work_hour_type_colors.sql`, `20260722190000_add_leave_request_booking_engine.sql`, `20260722192000_add_leave_ledger_operations.sql`, `20260722192100_seed_leave_demo_year_controls.sql` en `20260722192500_skip_holidays_in_leave_requests.sql`, met routes onder `/api/leave` en UI onder `/settings/leave-accrual` en `/hr-calendar`. Toekomstige opbouwprojectie en volledige saldo-auditformulieren blijven open. |
 | Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema, Tijdhubklok, datumformaat (DMY/MDY/YMD) en tijdformaat (24H/12H) voor iedere ingelogde gebruiker; voorkeuren worden centraal toegepast op relevante datum- en tijdweergaven. Gedeelde knoppen gebruiken een iOS-geïnspireerde glasstijl; medewerker-tabs verbergen de native scrollbar met behoud van horizontale bediening. |
-| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten onderdelen. `/master-data` beheert Redenen uitdienst per land, documentcategorieën en tenant-relatietypen; functies en salarisschalen staan uitsluitend in hun eigen instellingenschermen. |
+| HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten onderdelen. `/settings/administration` kiest administratiegebonden instellingen via kaartknoppen en onthoudt de laatste keuze. `/master-data` beheert Redenen uitdienst per land, documentcategorieën en tenant-relatietypen; functies en salarisschalen staan uitsluitend in hun eigen instellingenschermen. |
 | Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
-| Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per administratie, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
+| Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per actieve HR-groep, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
 
 ## Dashboard startpagina
 

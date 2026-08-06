@@ -115,16 +115,16 @@ function daysUntilDate(targetDate: string, baseDate: string): number | null {
 
 async function getStartPageCountdowns(auth: AuthContext): Promise<StartPageCountdowns> {
   const empty: StartPageCountdowns = { nextLeaveInDays: null, nextHolidayInDays: null }
-  if (!auth.administrationId) return empty
+  if (!auth.administrationId && !auth.hrGroupId) return empty
 
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const [leaveResult, holidayResult] = await Promise.all([
-    auth.employeeId && auth.permissions.includes('leave:read')
+    auth.employeeId && auth.administrationId && auth.permissions.includes('leave:read')
       ? supabase.from('leave_requests').select('start_date').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('employee_id', auth.employeeId).eq('status', 'APPROVED').gte('start_date', today).order('start_date', { ascending: true }).limit(1).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
-    auth.permissions.includes('holidays:read')
-      ? supabase.from('holidays').select('holiday_date').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('is_active', true).gte('holiday_date', today).order('holiday_date', { ascending: true }).limit(1).maybeSingle()
+    auth.permissions.includes('holidays:read') && auth.hrGroupId
+      ? supabase.from('holidays').select('holiday_date').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).eq('is_active', true).gte('holiday_date', today).order('holiday_date', { ascending: true }).limit(1).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ])
 
@@ -210,9 +210,8 @@ async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmp
 
 async function countCompanyDocuments(auth: AuthContext): Promise<number | null> {
   const supabase = await createClient()
-  let query = supabase.from('company_documents').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', auth.tenantId).is('deleted_at', null)
-  if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
+  const query = supabase.from('company_documents').select('id', { count: 'exact', head: true })
+    .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId ?? '').is('deleted_at', null)
   const { count, error } = await query
   return error ? null : count ?? 0
 }

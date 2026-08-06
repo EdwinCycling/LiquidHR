@@ -1,6 +1,6 @@
 # Entiteiteigendom en koppeling tussen tenant en administratie
 
-> **Actuele scope vanaf 2026-08-05:** de nieuwe ownershipmatrix staat in [HR-groepen: scope, inrichting en domeingrenzen](HR_GROEP_SCOPE_EN_INRICHTING.md) en vervangt de tenant-/administratieverdeling in dit document als doelmodel. Dit document blijft behouden als historische analyse van de vorige migratieslice. Gebruik voor nieuwe code de HR-groepmatrix, met name voor persoon, bedrijf, locatie, verlof en verzuim.
+> **Actuele scope vanaf 2026-08-06:** de nieuwe ownershipmatrix staat in [HR-groepen: scope, inrichting en domeingrenzen](HR_GROEP_SCOPE_EN_INRICHTING.md) en vervangt de tenant-/administratieverdeling in dit document als doelmodel. Dit document blijft behouden als historische analyse van de vorige migratieslice. Gebruik voor nieuwe code de HR-groepmatrix, met name voor persoon, bedrijf, locatie, verlof, verzuim, feestdagen, branding, eindredenen, vrije velden en bedrijfsdocumenten.
 
 **Status:** LEIDEND voor nieuwe en gewijzigde modules  
 **Datum:** 31 juli 2026  
@@ -131,7 +131,7 @@ De huidige code volgt voor de volgende domeinen al grotendeels de gewenste admin
 - salaristijdlijnen, loonrelaties, roosters, kosten en CAO/arbeidsvoorwaarden in dezelfde employmentmigraties;
 - `public.absence_settings`, `absence_cases` en `absence_spells` in `20260726150000_add_absence_core.sql`;
 - verlof- en werkurenconfiguratie in `20260722142551_add_leave_engine_foundation.sql` en `20260718121308_add_settings_modules_work_patterns_holidays.sql`;
-- administratiegebonden modules, feestdagen en werkpatronen in `apps/hr-suite/lib/modules/`, `lib/leave/` en `lib/absence/`.
+- administratiegebonden modules en werkpatronen in `apps/hr-suite/lib/modules/`, `lib/leave/` en `lib/absence/`; feestdagen vallen volgens de actuele HR-groepmatrix onder de HR-groep.
 
 De codechecks moeten voortaan aantonen dat tenant-owned catalogi niet onbedoeld door de administratiecookie worden weggefilterd, en dat administratie-owned transacties nooit door tenantbrede catalogustoegang worden opengezet.
 

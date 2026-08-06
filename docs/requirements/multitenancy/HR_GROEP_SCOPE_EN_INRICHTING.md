@@ -71,10 +71,15 @@ HR-groep → eventueel administratie → onderdeel
 | Onderdeel | Eigendom/scope | Belangrijkste regel |
 |---|---|---|
 | Bedrijf | HR-groep | Eén bedrijfsprofiel per HR-groep. |
+| Bedrijfsinstellingen, kleuren en logo | HR-groep | Eén brandingprofiel per HR-groep; het logo en de kleuren gelden voor alle administraties in de groep. |
 | Locaties | HR-groep | Alle administraties binnen de groep kunnen groepslocaties gebruiken. |
 | Afdelingen en functies | HR-groep | Operationele organisatie is niet per administratie dubbel ingericht. |
 | Rollen en leidinggevenden | HR-groep | Eén afdeling mag meerdere leidinggevenden hebben. |
 | Persoon | HR-groep | Eén groepspersoon, nul of meerdere dienstverbanden. |
+| Feestdagen | HR-groep | Eén kalender per groep, jaar en land; lokale uitzonderingen gelden voor de hele groep. |
+| Eindredenen per land | HR-groep | Eén catalogus per groep en land; de gekozen reden blijft onderdeel van het administratiegebonden dienstverband-/uitdienstproces. |
+| Vrije velden | HR-groep | Definities, opties, tellers en waarden delen één groepscatalogus; waarden blijven per medewerker afgeschermd. |
+| Bedrijfsdocumenten | HR-groep | De bedrijfsdocumentencatalogus is voor alle administraties binnen de groep beschikbaar. |
 | Administratienaam en -nummer | Administratie | Nummer is externe referentie voor onder andere salarisintegraties. HR-admin mag wijzigen. |
 | Dienstverband | Administratie | Eén administratie, afdeling, functie en vaste CAO. |
 | Salaris en payroll | Administratie | Nooit groepsbreed samenvoegen. |
@@ -84,6 +89,10 @@ HR-groep → eventueel administratie → onderdeel
 | Verzuimcasus en ziekteperiode | Dienstverband | Eén casus hoort bij één dienstverband. Parallelle casussen over dienstverbanden zijn toegestaan. |
 | CAO-catalogus | Administratie | Maximaal drie actieve CAO's per administratie. |
 | CAO op dienstverband | Dienstverband | Vast; overstap vereist afsluiten en nieuw dienstverband. |
+
+### Keuze in de instellingen-UI
+
+De vijf groepsbrede onderdelen hierboven vragen op hun eigen scherm geen administratiekeuze: de actieve HR-groep is de zichtbare en server-side gevalideerde context. Alleen instellingen die werkelijk per administratie worden ingericht tonen vooraf een verplichte administratiekeuze. De gecombineerde pagina `/master-data` blijft een gemengde uitzondering zolang documentcategorieën administratiegebonden zijn; de aparte pagina voor eindredenen is groepsbreed.
 
 ## 5. Persoon, login en zakelijke e-mail
 

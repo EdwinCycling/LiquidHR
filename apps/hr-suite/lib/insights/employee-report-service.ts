@@ -114,7 +114,7 @@ export async function getEmployeeInsightReport(query: EmployeeInsightQuery): Pro
     employeeIds.length ? supabase.from('employee_organizations').select('employee_id, employment_id, department_id, cost_bearer, effective_from, effective_to').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(5000) : Promise.resolve({ data: [], error: null }),
     supabase.from('departments').select('id, name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
     query.report === 'terminations' ? supabase.from('employment_terminations').select('employee_id, employment_id, last_working_day, internal_reason_id, statutory_reason_id').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).in('workflow_status', ['CONFIRMED', 'PAYROLL_READY', 'REPORTED']).gte('last_working_day', query.startDate).lte('last_working_day', query.endDate).limit(2000) : Promise.resolve({ data: [], error: null }),
-    supabase.from('employment_end_reasons').select('id, name_nl').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('is_active', true).order('name_nl').limit(500),
+    supabase.from('employment_end_reasons').select('id, name_nl').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId ?? '').eq('is_active', true).order('name_nl').limit(500),
     supabase.from('administrations').select('code').eq('tenant_id', context.tenantId).eq('id', administrationId).single(),
   ])
   if (employeesResult.error) fail(employeesResult.error)

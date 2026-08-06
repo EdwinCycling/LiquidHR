@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { AuthorizationError, permissionErrorResponse } from '@/lib/auth/permissions'
-import { saveAdministrationBranding } from '@/lib/settings/branding-service'
+import { saveHrGroupBranding } from '@/lib/settings/branding-service'
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
     const logoValue = formData.get('logo')
     const logo = logoValue instanceof File && logoValue.size > 0 ? logoValue : null
-    const branding = await saveAdministrationBranding({
+    const branding = await saveHrGroupBranding({
       primaryColor: String(formData.get('primaryColor') ?? ''),
       accentColor: String(formData.get('accentColor') ?? ''),
       sidebarColor: String(formData.get('sidebarColor') ?? ''),

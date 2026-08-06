@@ -552,8 +552,9 @@ export type Database = {
       administration_branding: {
         Row: {
           accent_color: string
-          administration_id: string
+          administration_id: string | null
           created_at: string
+          hr_group_id: string
           logo_storage_path: string | null
           primary_color: string
           sidebar_color: string
@@ -563,8 +564,9 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id: string
           logo_storage_path?: string | null
           primary_color?: string
           sidebar_color?: string
@@ -574,8 +576,9 @@ export type Database = {
         }
         Update: {
           accent_color?: string
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id?: string
           logo_storage_path?: string | null
           primary_color?: string
           sidebar_color?: string
@@ -585,10 +588,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "administration_branding_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "administration_branding_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: true
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -1213,12 +1216,13 @@ export type Database = {
       }
       company_documents: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           checksum_sha256: string
           content_type: string
           created_at: string
           deleted_at: string | null
           file_size: number
+          hr_group_id: string
           id: string
           original_filename: string
           storage_key: string
@@ -1228,12 +1232,13 @@ export type Database = {
           uploaded_by_user_id: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           checksum_sha256: string
           content_type: string
           created_at?: string
           deleted_at?: string | null
           file_size: number
+          hr_group_id: string
           id?: string
           original_filename: string
           storage_key: string
@@ -1243,12 +1248,13 @@ export type Database = {
           uploaded_by_user_id: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           checksum_sha256?: string
           content_type?: string
           created_at?: string
           deleted_at?: string | null
           file_size?: number
+          hr_group_id?: string
           id?: string
           original_filename?: string
           storage_key?: string
@@ -1259,10 +1265,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "company_documents_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "company_documents_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -1608,40 +1614,43 @@ export type Database = {
       }
       custom_field_counters: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           definition_id: string
+          hr_group_id: string
           next_value: number
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           definition_id: string
+          hr_group_id: string
           next_value?: number
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           definition_id?: string
+          hr_group_id?: string
           next_value?: number
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "custom_field_counters_definition_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "definition_id"]
+            isOneToOne: false
+            referencedRelation: "custom_field_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "custom_field_counters_definition_id_fkey"
             columns: ["definition_id"]
             isOneToOne: true
             referencedRelation: "custom_field_definitions"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custom_field_counters_definition_scope_fkey"
-            columns: ["tenant_id", "administration_id", "definition_id"]
-            isOneToOne: false
-            referencedRelation: "custom_field_definitions"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
             foreignKeyName: "custom_field_counters_tenant_id_fkey"
@@ -1654,7 +1663,7 @@ export type Database = {
       }
       custom_field_definitions: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           country_code: string
           created_at: string
           deleted_at: string | null
@@ -1664,6 +1673,7 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["custom_field_entity_type"]
           field_type: Database["public"]["Enums"]["custom_field_type"]
           hr_access: Database["public"]["Enums"]["custom_field_audience_access"]
+          hr_group_id: string
           id: string
           is_active: boolean
           is_required: boolean
@@ -1678,7 +1688,7 @@ export type Database = {
           validation_rules: Json
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           country_code?: string
           created_at?: string
           deleted_at?: string | null
@@ -1688,6 +1698,7 @@ export type Database = {
           entity_type?: Database["public"]["Enums"]["custom_field_entity_type"]
           field_type: Database["public"]["Enums"]["custom_field_type"]
           hr_access?: Database["public"]["Enums"]["custom_field_audience_access"]
+          hr_group_id: string
           id?: string
           is_active?: boolean
           is_required?: boolean
@@ -1702,7 +1713,7 @@ export type Database = {
           validation_rules?: Json
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           country_code?: string
           created_at?: string
           deleted_at?: string | null
@@ -1712,6 +1723,7 @@ export type Database = {
           entity_type?: Database["public"]["Enums"]["custom_field_entity_type"]
           field_type?: Database["public"]["Enums"]["custom_field_type"]
           hr_access?: Database["public"]["Enums"]["custom_field_audience_access"]
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           is_required?: boolean
@@ -1727,10 +1739,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "custom_field_definitions_administration_scope_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "custom_field_definitions_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -1744,9 +1756,10 @@ export type Database = {
       }
       custom_field_select_options: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           definition_id: string
+          hr_group_id: string
           id: string
           is_active: boolean
           label_en: string
@@ -1757,9 +1770,10 @@ export type Database = {
           value: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           definition_id: string
+          hr_group_id: string
           id?: string
           is_active?: boolean
           label_en: string
@@ -1770,9 +1784,10 @@ export type Database = {
           value: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           definition_id?: string
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           label_en?: string
@@ -1784,11 +1799,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "custom_field_select_options_definition_scope_fkey"
-            columns: ["tenant_id", "administration_id", "definition_id"]
+            foreignKeyName: "custom_field_select_options_definition_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "definition_id"]
             isOneToOne: false
             referencedRelation: "custom_field_definitions"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "custom_field_select_options_tenant_id_fkey"
@@ -2410,33 +2425,36 @@ export type Database = {
       }
       employee_custom_field_values: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           definition_id: string
           employee_id: string
           field_key: string
+          hr_group_id: string
           id: string
           tenant_id: string
           updated_at: string
           value: Json
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           definition_id: string
           employee_id: string
           field_key: string
+          hr_group_id: string
           id?: string
           tenant_id: string
           updated_at?: string
           value: Json
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           definition_id?: string
           employee_id?: string
           field_key?: string
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           updated_at?: string
@@ -2444,16 +2462,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "employee_custom_field_values_definition_scope_fkey"
-            columns: [
-              "tenant_id",
-              "administration_id",
-              "definition_id",
-              "field_key",
-            ]
+            foreignKeyName: "employee_custom_field_values_definition_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "definition_id", "field_key"]
             isOneToOne: false
             referencedRelation: "custom_field_definitions"
-            referencedColumns: ["tenant_id", "administration_id", "id", "key"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id", "key"]
+          },
+          {
+            foreignKeyName: "employee_custom_field_values_employee_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employee_custom_field_values_employee_scope_fkey"
@@ -3886,10 +3906,11 @@ export type Database = {
       }
       employment_end_reasons: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           code: string
           country_code: string
           created_at: string
+          hr_group_id: string
           id: string
           is_active: boolean
           name_en: string
@@ -3898,10 +3919,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           code: string
           country_code?: string
           created_at?: string
+          hr_group_id: string
           id?: string
           is_active?: boolean
           name_en: string
@@ -3910,10 +3932,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           code?: string
           country_code?: string
           created_at?: string
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           name_en?: string
@@ -3923,10 +3946,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "employment_end_reasons_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "employment_end_reasons_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -4460,6 +4483,7 @@ export type Database = {
           employment_id: string
           explanation: string | null
           final_settlement_status: Database["public"]["Enums"]["final_settlement_status"]
+          hr_group_id: string
           id: string
           initiator: Database["public"]["Enums"]["termination_initiator"]
           internal_reason_id: string | null
@@ -4480,6 +4504,7 @@ export type Database = {
           employment_id: string
           explanation?: string | null
           final_settlement_status?: Database["public"]["Enums"]["final_settlement_status"]
+          hr_group_id: string
           id?: string
           initiator: Database["public"]["Enums"]["termination_initiator"]
           internal_reason_id?: string | null
@@ -4500,6 +4525,7 @@ export type Database = {
           employment_id?: string
           explanation?: string | null
           final_settlement_status?: Database["public"]["Enums"]["final_settlement_status"]
+          hr_group_id?: string
           id?: string
           initiator?: Database["public"]["Enums"]["termination_initiator"]
           internal_reason_id?: string | null
@@ -4529,11 +4555,18 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "employment_terminations_internal_reason_fkey"
-            columns: ["tenant_id", "administration_id", "internal_reason_id"]
+            foreignKeyName: "employment_terminations_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_terminations_internal_reason_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "internal_reason_id"]
             isOneToOne: false
             referencedRelation: "employment_end_reasons"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employment_terminations_statutory_reason_id_fkey"
@@ -4952,10 +4985,11 @@ export type Database = {
       }
       holiday_calendars: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           calendar_year: number
           country_code: string
           created_at: string
+          hr_group_id: string
           id: string
           imported_at: string | null
           imported_by: string | null
@@ -4964,10 +4998,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           calendar_year: number
           country_code: string
           created_at?: string
+          hr_group_id: string
           id?: string
           imported_at?: string | null
           imported_by?: string | null
@@ -4976,10 +5011,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           calendar_year?: number
           country_code?: string
           created_at?: string
+          hr_group_id?: string
           id?: string
           imported_at?: string | null
           imported_by?: string | null
@@ -4989,17 +5025,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "holiday_calendars_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "holiday_calendars_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
       holidays: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           created_by: string | null
           display_name: string | null
@@ -5007,6 +5043,7 @@ export type Database = {
           holiday_calendar_id: string
           holiday_date: string
           holiday_types: string[]
+          hr_group_id: string
           id: string
           is_active: boolean
           provider_name: string
@@ -5017,7 +5054,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
           display_name?: string | null
@@ -5025,6 +5062,7 @@ export type Database = {
           holiday_calendar_id: string
           holiday_date: string
           holiday_types?: string[]
+          hr_group_id: string
           id?: string
           is_active?: boolean
           provider_name: string
@@ -5035,7 +5073,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
           display_name?: string | null
@@ -5043,6 +5081,7 @@ export type Database = {
           holiday_calendar_id?: string
           holiday_date?: string
           holiday_types?: string[]
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           provider_name?: string
@@ -5054,11 +5093,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "holidays_calendar_fkey"
-            columns: ["tenant_id", "administration_id", "holiday_calendar_id"]
+            foreignKeyName: "holidays_calendar_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "holiday_calendar_id"]
             isOneToOne: false
             referencedRelation: "holiday_calendars"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "holidays_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -11175,10 +11221,10 @@ export type Database = {
       }
       import_holiday_snapshot: {
         Args: {
-          requested_administration_id: string
           requested_calendar_year: number
           requested_country_code: string
           requested_holidays: Json
+          requested_hr_group_id: string
         }
         Returns: string
       }

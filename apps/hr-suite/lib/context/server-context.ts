@@ -127,7 +127,7 @@ export async function loadActiveContext(userId?: string, existingClient?: Awaite
         .limit(500),
       supabase
         .from('administrations')
-        .select('id, tenant_id, hr_group_id, code, name, administration_number, is_active')
+        .select('id, tenant_id, hr_group_id, code, name, administration_number, coc_number, vat_number, parent_id, is_active')
         .in('tenant_id', tenantIds)
         .eq('is_active', true)
         .order('name')

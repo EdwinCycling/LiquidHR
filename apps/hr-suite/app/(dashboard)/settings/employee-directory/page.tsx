@@ -1,12 +1,16 @@
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { AdministrationSettingsContextBar } from '@/components/settings/administration-settings-context-bar'
 import { EmployeeDirectorySettingsForm } from '@/components/settings/employee-directory-settings-form'
 import { getEmployeeDirectorySettings } from '@/lib/employee-directory/service'
 import { getTranslator } from '@/lib/i18n/server'
+import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
 
 export default async function EmployeeDirectorySettingsPage() {
+  const context = await requireAdministrationSettingsContext('/settings/employee-directory')
   const [settings, messages] = await Promise.all([getEmployeeDirectorySettings(), getTranslator('settings')])
   return <main className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-10">
     <AdminSettingsPageHeader backLabel={messages('admin.backToOverview')} eyebrow={messages('admin.eyebrow')} title={messages('employeeDirectory.title')} subtitle={messages('employeeDirectory.subtitle')} />
+    <AdministrationSettingsContextBar context={context} returnTo="/settings/employee-directory" />
     <EmployeeDirectorySettingsForm initial={settings} labels={{
       enabled: messages('employeeDirectory.enabled'),
       enabledDescription: messages('employeeDirectory.enabledDescription'),

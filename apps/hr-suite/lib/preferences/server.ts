@@ -3,14 +3,14 @@ import 'server-only'
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { LOCALE_COOKIE } from '@/lib/i18n/config'
-import { ACTIVE_ADMINISTRATION_COOKIE } from '@/lib/context/server-context'
+import { ACTIVE_HR_GROUP_COOKIE } from '@/lib/context/server-context'
 import { createClient } from '@/lib/supabase/server'
 import {
   resolveUserPreferences,
   THEME_COOKIE,
   type UserPreferences,
 } from './user-preferences'
-import { getBrandingForAdministration } from '@/lib/settings/branding-service'
+import { getBrandingForHrGroup } from '@/lib/settings/branding-service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -18,7 +18,7 @@ type UserPreferencesDependencies = {
   supabase: SupabaseServerClient
   userId: string
   tenantId?: string
-  administrationId?: string | null
+  hrGroupId?: string | null
 }
 
 export const getUserPreferences = cache(async (dependencies?: UserPreferencesDependencies): Promise<UserPreferences> => {
@@ -54,10 +54,10 @@ export const getUserPreferences = cache(async (dependencies?: UserPreferencesDep
     timeFormat: data.time_format,
     weekNumberingSystem: data.week_numbering_system,
   } : null, cookiePreferences)
-  const administrationId = dependencies?.administrationId ?? cookieStore.get(ACTIVE_ADMINISTRATION_COOKIE)?.value
-  if (!administrationId) return preferences
-  const tenantId = dependencies?.tenantId ?? (await supabase.from('administrations').select('tenant_id').eq('id', administrationId).maybeSingle()).data?.tenant_id
+  const hrGroupId = dependencies?.hrGroupId ?? cookieStore.get(ACTIVE_HR_GROUP_COOKIE)?.value
+  if (!hrGroupId) return preferences
+  const tenantId = dependencies?.tenantId ?? (await supabase.from('hr_groups').select('tenant_id').eq('id', hrGroupId).maybeSingle()).data?.tenant_id
   if (!tenantId) return preferences
-  const branding = await getBrandingForAdministration(tenantId, administrationId, supabase)
+  const branding = await getBrandingForHrGroup(tenantId, hrGroupId, supabase)
   return { ...preferences, companyBranding: branding }
 })

@@ -1,7 +1,7 @@
 import type { Database } from '@scope/db'
 import { z } from 'zod'
 import { loadActiveContext } from '@/lib/context/server-context'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { CompanyBranding } from '@/lib/preferences/user-preferences'
 
@@ -23,25 +23,24 @@ function brandingFromRow(row: Pick<BrandingRow, 'primary_color' | 'accent_color'
   }
 }
 
-export async function getBrandingForAdministration(tenantId: string, administrationId: string, existingClient?: SupabaseServerClient): Promise<CompanyBranding | null> {
+export async function getBrandingForHrGroup(tenantId: string, hrGroupId: string, existingClient?: SupabaseServerClient): Promise<CompanyBranding | null> {
   const supabase = existingClient ?? await createClient()
   const { data, error } = await supabase
     .from('administration_branding')
     .select('primary_color, accent_color, sidebar_color, logo_storage_path')
     .eq('tenant_id', tenantId)
-    .eq('administration_id', administrationId)
+    .eq('hr_group_id', hrGroupId)
     .maybeSingle()
   if (error || !data) return null
   return brandingFromRow(data)
 }
 
-export async function getAdministrationBrandingForSettings(): Promise<CompanyBranding | null> {
+export async function getHrGroupBrandingForSettings(): Promise<CompanyBranding | null> {
   const context = await requirePermission('settings:read')
-  if (!context.administrationId) return null
-  return getBrandingForAdministration(context.tenantId, context.administrationId)
+  return getBrandingForHrGroup(context.tenantId, requireHrGroupId(context))
 }
 
-export async function saveAdministrationBranding(input: {
+export async function saveHrGroupBranding(input: {
   primaryColor: string
   accentColor: string
   sidebarColor: string
@@ -56,7 +55,7 @@ export async function saveAdministrationBranding(input: {
   if (!parsedColors.success) throw new Error('BRANDING_COLORS_INVALID')
   const values = parsedColors.data
   const context = await requirePermission('settings:write')
-  if (!context.administrationId) throw new Error('BRANDING_ADMINISTRATION_REQUIRED')
+  const hrGroupId = requireHrGroupId(context)
   if (input.logo && (!['image/png', 'image/jpeg', 'image/webp'].includes(input.logo.type) || input.logo.size > 2 * 1024 * 1024)) {
     throw new Error('BRANDING_LOGO_INVALID')
   }
@@ -66,7 +65,7 @@ export async function saveAdministrationBranding(input: {
     .from('administration_branding')
     .select('primary_color, accent_color, sidebar_color, logo_storage_path')
     .eq('tenant_id', context.tenantId)
-    .eq('administration_id', context.administrationId)
+    .eq('hr_group_id', hrGroupId)
     .maybeSingle()
   if (currentError) throw new Error('BRANDING_READ_FAILED')
 
@@ -74,20 +73,21 @@ export async function saveAdministrationBranding(input: {
   if (input.removeLogo) logoStoragePath = null
   if (input.logo) {
     const extension = input.logo.type === 'image/png' ? 'png' : input.logo.type === 'image/webp' ? 'webp' : 'jpg'
-    logoStoragePath = `${context.tenantId}/${context.administrationId}/${crypto.randomUUID()}.${extension}`
+    logoStoragePath = `${context.tenantId}/${hrGroupId}/${crypto.randomUUID()}.${extension}`
     const upload = await supabase.storage.from('administration-branding').upload(logoStoragePath, input.logo, { contentType: input.logo.type, upsert: false })
     if (upload.error) throw new Error('BRANDING_LOGO_UPLOAD_FAILED')
   }
 
   const { error: saveError } = await supabase.from('administration_branding').upsert({
     tenant_id: context.tenantId,
-    administration_id: context.administrationId,
+    hr_group_id: hrGroupId,
+    administration_id: null,
     primary_color: values.primaryColor,
     accent_color: values.accentColor,
     sidebar_color: values.sidebarColor,
     logo_storage_path: logoStoragePath,
     updated_by: context.userId,
-  }, { onConflict: 'tenant_id,administration_id' })
+  }, { onConflict: 'tenant_id,hr_group_id' })
   if (saveError) {
     if (input.logo && logoStoragePath) await supabase.storage.from('administration-branding').remove([logoStoragePath])
     throw new Error('BRANDING_SAVE_FAILED')
@@ -103,19 +103,19 @@ export async function saveAdministrationBranding(input: {
   }
 }
 
-export async function getActiveAdministrationBrandingLogo(): Promise<{ body: ArrayBuffer; contentType: string } | null> {
+export async function getActiveHrGroupBrandingLogo(): Promise<{ body: ArrayBuffer; contentType: string } | null> {
   const supabase = await createClient()
   const { data: claimsData } = await supabase.auth.getClaims()
   const userId = claimsData?.claims?.sub
   if (!userId) return null
   const context = await loadActiveContext(userId, supabase)
-  const administrationId = context.activeAdministration?.id
-  if (!administrationId) return null
+  const hrGroupId = context.activeHrGroup?.id
+  if (!hrGroupId) return null
   const { data, error } = await supabase
     .from('administration_branding')
     .select('logo_storage_path')
     .eq('tenant_id', context.tenant.id)
-    .eq('administration_id', administrationId)
+    .eq('hr_group_id', hrGroupId)
     .maybeSingle()
   if (error || !data?.logo_storage_path) return null
   const signed = await supabase.storage.from('administration-branding').createSignedUrl(data.logo_storage_path, 300)

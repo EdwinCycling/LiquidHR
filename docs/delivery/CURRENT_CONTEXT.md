@@ -1,12 +1,42 @@
 # Actuele overdracht Liquid HR
 
-## Correctie 2026-08-05: productversie volgens documentatie
+## Historische correctie 2026-08-05: productversie volgens documentatie
 
-De zichtbare appversie wordt bepaald door `apps/hr-suite/lib/app-version.ts`, niet door de npm-versie in `package.json`. Volgens de vastgelegde conventie `X.datum.volgnummer` is de nieuwe productversie `1.20260805.1`. De eerdere technische packageverhoging naar `0.1.3` is teruggedraaid naar de bestaande packageversie `0.1.2`; de versiecheck bewaakt nu de productversie.
+De zichtbare appversie wordt bepaald door `apps/hr-suite/lib/app-version.ts`, niet door de npm-versie in `package.json`. Volgens de vastgelegde conventie `X.datum.volgnummer` was de vorige productversie `1.20260805.1`. De technische packageversie blijft `0.1.2`; de versiecheck bewaakt de productversie.
+
+## Release 2026-08-06: HR-groepconfiguratie en versie 1.20260806.2
+
+De zichtbare productversie is verhoogd naar `1.20260806.2`. De remote migrations `20260806174202_hr_group_wide_configuration_scope`, `20260806174221_grant_hr_group_permissions_to_hr_admin` en `20260806174857_harden_hr_group_configuration_policies` zijn toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. Branding, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten zijn daarmee HR-groepgescopeerd; `administration_id` blijft uitsluitend nullable historische provenance. Demo-namen zijn remote aanwezig via `20260806143509_rename_demo_scope_display_names`.
+
+Remote bewijs: alle tien betrokken tabellen hebben geen lege `hr_group_id`, RLS is actief, de nieuwe holiday-RPC en custom-field securityfuncties bestaan en de groepsbrede unieke sleutels bevatten geen duplicaten. De officiële `packages/db/types.ts` is opnieuw gegenereerd. Advisors zijn security `1 INFO / 19 WARN` (projectbaseline) en performance `348 INFO / 0 WARN`.
+
+Lokale releasegate: 130/130 testbestanden, 481/481 tests, strict TypeScript, lint, i18n-pariteit met 28 namespaces, productiebuild met 173 pagina's en `git diff --check` zijn groen. Geauthentiseerde browsercontrole: HR Admin ziet alleen HR-groep `Planeten`, de administratiekeuze ontbreekt in de sidebar, administratiegebonden contracten tonen `Jupiter BV` met wisselknop, de keuze-pagina toont Mars/Jupiter/Mercurius als kaarten en de accountweergave toont `Versie 1.20260806.2`; console 0 errors/0 warnings. GitHub en Vercel worden hierna gecontroleerd.
 
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
 Een Luna-stap is pas afgerond wanneer de volledige verticale slice is uitgevoerd: schema/Supabase (migratie, RLS, grants, audit en gecontroleerde testdata), API, UI, tests, documentatie en de relevante lokale, remote en geauthenticeerde browserverificatie. Open onderdelen of blokkades worden expliciet gemeld en blokkeren de status **afgerond**. Ga pas door naar de volgende stap nadat de huidige stap per alle eigen specs is beoordeeld.
+
+## Demo-scope namen bijgewerkt 2026-08-06
+
+De zichtbare namen van de synthetische `liquid-hr-demo-holding`-testdata zijn aangepast in de lokale migration `20260806150000_rename_demo_scope_display_names.sql` en remote toegepast als `rename_demo_scope_display_names`. De klant heet **De Sterren holding**; HR-groep `DEFAULT` heet **Planeten** en bevat **Mars BV**, **Jupiter BV** en **Mercurius BV**. HR-groep `TEST-BOUNDARY` heet **TEST (leeg)** en bevat **Test BV** zonder medewerkers. De bestaande `TEST-MULTIGROUP`-groep bevat **DGA administratie** met één medewerker. Technische codes, ids, relaties, medewerkers en autorisaties zijn niet gewijzigd.
+
+## Administratiekeuze voor HR-admininstellingen 2026-08-06
+
+De administratie-dropdown is uit de HR-suite-sidebar verwijderd. De sidebar toont voor HR-admins nu alleen de HR-groepcontext; de administratie blijft wel server-side als actieve cookie/context beschikbaar voor schermen die die scope nodig hebben. De eerder bestaande administratie-switch API blijft de gecontroleerde cookie-wissel uitvoeren.
+
+Voor administratiegebonden inrichting is `/settings/administration` toegevoegd. De route toont alle toegankelijke administraties binnen de actieve HR-groep als duidelijke kaartknoppen, markeert de laatst gekozen administratie en keert na keuze terug naar het oorspronkelijke scherm. Op het instellingen-scherm staat dezelfde vaste contextbalk met administratie, code/nummer, HR-groep en knop **Administratie wijzigen**. De route valideert de administratie tegen de servercontext en accepteert alleen interne instellingenbestemmingen als terugkeerpad.
+
+De keuze-flow is aangesloten op: dienstverband-/contractcatalogi, medewerkerdirectory, eigen verzuimtaaktemplates, salarisstructuren en administratiegebonden stamdata (documentcategorieën). `/master-data` is gemengd en gebruikt daarom dezelfde keuze voor documentcategorieën; HR-groep-/tenantbrede schermen zoals bedrijf/locaties, afdelingen, functies, verlofcatalogus, algemene verzuiminstellingen, feestdagen, bedrijfsbranding, eindredenen, vrije velden, bedrijfsdocumenten, modules en jubileumregels krijgen geen administratiekeuze. De misleidende administratiekaart bij Afdelingen is verwijderd.
+
+Verificatie: i18n-pariteit (28 namespaces), strict TypeScript, gerichte ESLint en nieuwe selectie-helpertests zijn groen. De volledige Vitest-run heeft 129 geslaagde testbestanden/480 geslaagde tests; één bestaande `lib/app-version.test.ts` faalt omdat de test `1.20260805.1` verwacht terwijl de bron al `1.20260806.1` bevat. Browsercontrole op poort 3000 bevestigde geen administratie-dropdown in de sidebar, keuze vóór `/settings/holidays`, zichtbare kaarten voor Jupiter/Mars/Mercurius, herinnering van Mars als laatst gekozen en wisselen naar Jupiter met zichtbare contextbalk. Geen schemawijziging, commit, push, merge of deployment voor deze UI-slice.
+
+## Scopecorrectie groepsbrede HR-admininstellingen 2026-08-06
+
+Bedrijfsinstellingen met kleuren/logo, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten zijn gecorrigeerd naar HR-groep-eigendom. De lokale migration `20260806160000_hr_group_wide_configuration_scope.sql` backfillt `hr_group_id`, dedupliceert bestaande synthetische records binnen een groep, vervangt de administratiegebonden foreign keys/unieke sleutels en policies, en laat `administration_id` alleen als nullable historische provenance staan. `20260806161000_grant_hr_group_permissions_to_hr_admin.sql` vult de noodzakelijke HR-adminrechten aan.
+
+De services, routes en dedicated UI-schermen gebruiken nu de actieve HR-groep en tonen daar geen administratiekeuze meer. De branding- en bedrijfsdocumentopslag gebruikt voor nieuwe bestanden een groepspad; bestaande paden blijven via het gekoppelde groepsrecord leesbaar. De gecombineerde Stamdata-overview blijft bewust administratiegekozen voor documentcategorieën; de aparte eindredenenpagina is groepsbreed.
+
+Lokaal gecontroleerd: strict TypeScript is groen. Remote toepassen van de nieuwe migrations, officiële DB-typegeneratie, Supabase-advisors en geauthentiseerde browsercontrole na de schemawijziging zijn nog open; er is geen remote write, commit, push, merge of deployment uitgevoerd.
 
 ## Step-9-verificatie afgerond 2026-08-06
 

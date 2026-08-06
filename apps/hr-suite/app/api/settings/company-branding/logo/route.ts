@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getActiveAdministrationBrandingLogo } from '@/lib/settings/branding-service'
+import { getActiveHrGroupBrandingLogo } from '@/lib/settings/branding-service'
 
 export async function GET() {
-  const logo = await getActiveAdministrationBrandingLogo()
+    const logo = await getActiveHrGroupBrandingLogo()
   if (!logo) return new NextResponse(null, { status: 404 })
   return new NextResponse(logo.body, {
     headers: {

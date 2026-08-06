@@ -1,8 +1,16 @@
 # Liquid HR documentatie-index
 
-## Actuele update 2026-08-05: productversie volgens centrale releaseconventie
+## Historische update 2026-08-05: productversie volgens centrale releaseconventie
 
-De zichtbare productversie komt uitsluitend uit `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. De huidige productversie is `1.20260805.1`; de npm-versie in `package.json` is technische package-metadata en bepaalt de zichtbare appversie niet.
+De zichtbare productversie kwam uitsluitend uit `apps/hr-suite/lib/app-version.ts` en volgde `X.datum.volgnummer`. De toenmalige productversie was `1.20260805.1`; de npm-versie in `package.json` is technische package-metadata en bepaalt de zichtbare appversie niet.
+
+## Actuele release 2026-08-06: HR-groepinrichting en productversie 1.20260806.2
+
+De zichtbare appversie is verhoogd naar `1.20260806.2`. De vijf configuratie-entiteiten bedrijfskleuren/logo, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten zijn remote omgezet naar HR-groep-eigendom. De remote migraties zijn `20260806174202_hr_group_wide_configuration_scope`, `20260806174221_grant_hr_group_permissions_to_hr_admin` en `20260806174857_harden_hr_group_configuration_policies`; de eerder aangebrachte demo-namen staan remote als `20260806143509_rename_demo_scope_display_names`.
+
+De remote controle bevestigt gevulde `hr_group_id`-koppelingen voor alle tien betrokken tabellen, actieve RLS en geen resterende groepsbrede duplicaten. De officiële Supabase-types zijn opnieuw gegenereerd. Advisors: security `1 INFO / 19 WARN` (bestaande projectbaseline) en performance `348 INFO / 0 WARN`.
+
+De lokale releasegate is groen: 130 testbestanden/481 tests, strict TypeScript, lint, i18n-pariteit met 28 namespaces, productiebuild met 173 gegenereerde pagina's en `git diff --check`. De geauthentiseerde browsercontrole bevestigt de HR-groepcontext `Planeten`, geen administratie-dropdown in de sidebar, alle drie administratiekaarten en zichtbare versie `1.20260806.2`; de console eindigt op 0 errors/0 warnings. GitHub- en Vercel-publicatie worden na deze documentatie-update gecontroleerd.
 
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
@@ -24,7 +32,7 @@ De actuele basis voor de komende LiquidHR-slice staat in:
 - [Uitvoeringsplan voor Luna](delivery/LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md)
 - [Instructie voor de volgende Luna-thread](delivery/LUNA_NEXT_THREAD_INSTRUCTIE_2026-08-06.md)
 
-Deze besluiten vervangen voor het doelmodel de eerdere tenantbrede `SEPARATE`/`COMBINED`-keuze. Een HR-groep is de primaire switch en zichtbaarheidgrens. Bedrijf, locaties, afdelingen, functies, rollen, verlofregels en verzuiminstellingen zijn HR-groepgebonden. Salaris, payroll, administratiegegevens, verlofsaldo en verzuimcasussen blijven gekoppeld aan administratie of dienstverband volgens de nieuwe ownershipmatrix.
+Deze besluiten vervangen voor het doelmodel de eerdere tenantbrede `SEPARATE`/`COMBINED`-keuze. Een HR-groep is de primaire switch en zichtbaarheidgrens. Bedrijf, bedrijfsinstellingen met kleuren/logo, locaties, afdelingen, functies, rollen, verlofregels, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten zijn HR-groepgebonden. Salaris, payroll, administratiegegevens, verlofsaldo en verzuimcasussen blijven gekoppeld aan administratie of dienstverband volgens de nieuwe ownershipmatrix.
 
 Verzuim mag gelijktijdig bestaan op verschillende dienstverbanden en HR-groepen. Alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd. Een herstelmelding op het ene dienstverband wijzigt geen verzuim op een ander dienstverband.
 
@@ -41,6 +49,10 @@ De huidige database bevat uitsluitend synthetische testdata. De komende implemen
 Stap 8 is functioneel uitgevoerd via migration `20260806120000_hr_group_absence_per_employment.sql`. Verzuiminstellingen zijn uniek per HR-groep; casussen en ziekteperioden dragen een verplicht `employment_id`. Een exclusion constraint blokkeert overlap alleen binnen dezelfde tenant, HR-groep en employment. Composite foreign keys, RLS/policies, grants, auditmutaties, indexes en de capacity-mutatie zijn in dezelfde slice opgenomen. De historische administratieverwijzing in instellingen is nullable metadata en geen scopegrens meer.
 
 De report-, recovery- en partial-capacity-RPC's valideren tenant, HR-groep, medewerker, employment, datum, permission en idempotency server-side. De service gebruikt de gedeelde employment resolver: exact één geldige employment wordt automatisch gekozen, exact één manager-match ook, en nul/meerdere matches blijven een expliciete keuze. De UI ondersteunt ziekmelding, gedeeltelijk herstel, volledig herstel en employmentkeuze vanuit `/absence/new`, het medewerkerdashboard en het verzuimtabblad; alle nieuwe tekst staat in NL/EN-berichten.
+
+## Actuele update 2026-08-06: groepsbrede configuratie-entiteiten
+
+De scope is aanvullend gecorrigeerd voor bedrijfsbranding, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten. De lokale migrations `20260806160000_hr_group_wide_configuration_scope` en `20260806161000_grant_hr_group_permissions_to_hr_admin` leggen `hr_group_id`, groeps-RLS en groepsbrede services/UI vast. Dedicated schermen vragen geen administratiekeuze meer. Alleen de gemengde `/master-data`-overview houdt een administratiekeuze voor documentcategorieën; de aparte eindredenenpagina gebruikt uitsluitend de actieve HR-groep. Remote toepassen, officiële typegeneratie, advisors en browsercontrole na deze migrations staan nog open.
 
 Remote is de migration toegepast, `packages/db/types.ts` opnieuw gegenereerd, advisors uitgevoerd en `apps/hr-suite/supabase/tests/hr_group_absence_step8_contract.sql` transactioneel geslaagd. Die contracttest controleert overlap op hetzelfde employment, parallelle employments, parallelle HR-groepen, herstelisolatie, partial capacity, RLS, grants, RPC-signatures en afwezigheid van medische kolommen. Lokaal zijn 129 testbestanden/478 tests, strict typecheck, lint, i18n (28 namespaces), productiebuild (171 pagina's) en `git diff --check` groen.
 
@@ -258,9 +270,9 @@ Talentfundament is bereikbaar voor HR Admin via `Instellingen -> HR-inrichting` 
 | Multitenancy & administraties | [`requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md`](requirements/multitenancy/MULTITENANCY_EN_MULTI_ADMINISTRATIE.md) | LEIDEND | GEDEELTELIJK |
 | LiquidHR Control Plane | [`requirements/platform/LIQUIDHR_CONTROL_PLANE.md`](requirements/platform/LIQUIDHR_CONTROL_PLANE.md) | LEIDEND | LOKALE BASIS GEIMPLEMENTEERD — aparte app op poort 3001; migratie en eerste operator moeten nog handmatig worden toegepast |
 | Entiteiteigendom en koppelingen | [`requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`](requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md) | LEIDEND | INSTRUCTIE VOOR NIEUWE MODULES |
-| Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE, inclusief beheer-CRUD, actieve status, landcode en preview |
+| Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE, HR-groepbreed inclusief beheer-CRUD, actieve status, landcode en preview |
 | Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
-| Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — bedrijf gegevens, intelligente bedrijfs-/locatieadresinvoer, medewerker-pop-up en dashboardwidgetbeheer toegevoegd |
+| Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — groepsbrede bedrijfsgegevens, branding, feestdagen, medewerker-pop-up en dashboardwidgetbeheer toegevoegd |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEÏMPLEMENTEERD EN PRODUCTIE-GEVERIFIEERD |
 | Historische HR-chatbotblauwdruk | [`requirements/chatbot/HR_CHATBOT_AGENT.md`](requirements/chatbot/HR_CHATBOT_AGENT.md) | VERVANGEN | NIET GESTART |
@@ -309,4 +321,4 @@ De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport
 
 De medewerkerlijst/persoonskaart-UX-slice van 2026-07-19 is geïmplementeerd: gebruikersgebonden lijstvoorkeuren zonder zoekterm, Enter-zoeken met afzonderlijk wissen, volledige klikrij, hoofdtab Overzicht vóór Persoonsgegevens en een effective-dated samenvatting van het huidige dienstverband met beschermd salaris-hover.
 
-De HR-admin-stamtabellen staan op `/master-data`: Redenen uitdienst, documentcategorieën en tenant-relatietypen zijn afzonderlijke onderdelen. Redenen uitdienst zijn landgebonden; Nederland gebruikt de actuele codes 01-99 en andere landen krijgen bij ontbrekende inrichting de veilige standaardreden `Einde contract`.
+De HR-admin-stamtabellen staan op `/master-data`: Redenen uitdienst, documentcategorieën en tenant-relatietypen zijn afzonderlijke onderdelen. Redenen uitdienst zijn landgebonden en HR-groepbreed; documentcategorieën blijven administratiegebonden. Nederland gebruikt de actuele codes 01-99 en andere landen krijgen bij ontbrekende inrichting de veilige standaardreden `Einde contract`.

@@ -115,7 +115,7 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
       .from('holidays')
       .select('holiday_date')
       .eq('tenant_id', context.tenantId)
-      .eq('administration_id', employment.administration_id)
+      .eq('hr_group_id', employment.hr_group_id)
       .eq('is_active', true)
       .in('holiday_date', dates),
   ])

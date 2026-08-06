@@ -58,7 +58,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
     supabase.from('employee_organizations').select('id, employee_id, employment_id, department_id, direct_manager_id, job_id, job_title, effective_from, effective_to').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('administration_id', scope.administrationId).lte('effective_from', query.date).or(`effective_to.is.null,effective_to.gte.${query.date}`).limit(5000),
     supabase.from('department_management').select('id, department_id, employee_id, management_role_id, effective_from, effective_to').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).lte('effective_from', query.date).or(`effective_to.is.null,effective_to.gte.${query.date}`).limit(5000),
     supabase.from('management_roles').select('id, code, name, is_organization_scoped').or(`tenant_id.is.null,tenant_id.eq.${scope.tenantId}`).eq('is_active', true).is('deleted_at', null).limit(500),
-    supabase.from('custom_field_definitions').select('id, key, label_nl, field_type').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).eq('entity_type', 'EMPLOYEE').eq('is_active', true).is('deleted_at', null).eq('show_in_organization_chart_filter', true).order('sort_order').limit(500),
+    supabase.from('custom_field_definitions').select('id, key, label_nl, field_type').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('entity_type', 'EMPLOYEE').eq('is_active', true).is('deleted_at', null).eq('show_in_organization_chart_filter', true).order('sort_order').limit(500),
     supabase.from('employees').select('id, first_name, birth_name, avatar_url, is_archived').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).limit(5000),
   ])
 
@@ -69,7 +69,7 @@ export async function getOrganizationChart(query: OrganizationChartQuery): Promi
   const definitionIds = (definitionsResult.data ?? []).map((definition) => definition.id)
   const jobIds = [...new Set((placementsResult.data ?? []).flatMap((placement) => placement.job_id ? [placement.job_id] : []))]
   const valuesResult = definitionIds.length > 0
-    ? await supabase.from('employee_custom_field_values').select('employee_id, definition_id, value').eq('tenant_id', scope.tenantId).eq('administration_id', scope.administrationId).in('definition_id', definitionIds).limit(5000)
+    ? await supabase.from('employee_custom_field_values').select('employee_id, definition_id, value').eq('tenant_id', scope.tenantId).eq('hr_group_id', scope.hrGroupId).in('definition_id', definitionIds).limit(5000)
     : { data: [], error: null }
   if (valuesResult.error) throw new OrganizationChartError('ORGANIZATION_CHART_READ_FAILED', 500)
 

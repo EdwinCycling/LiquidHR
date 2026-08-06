@@ -1,4 +1,5 @@
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { AdministrationSettingsContextBar } from '@/components/settings/administration-settings-context-bar'
 import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import {
   EmploymentCatalogManager,
@@ -6,8 +7,10 @@ import {
 } from '@/components/settings/employment-contract-settings'
 import { getEmploymentSettings } from '@/lib/employment/employment-settings'
 import { getTranslator } from '@/lib/i18n/server'
+import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
 
 export default async function EmploymentContractSettingsPage() {
+  const context = await requireAdministrationSettingsContext('/settings/employment-contracts')
   const [settings, t, settingsT] = await Promise.all([
     getEmploymentSettings(),
     getTranslator('employment'),
@@ -26,6 +29,7 @@ export default async function EmploymentContractSettingsPage() {
       title={t('employmentSettingsTitle')}
       subtitle={t('employmentSettingsSubtitle')}
     />
+    <AdministrationSettingsContextBar context={context} returnTo="/settings/employment-contracts" />
     <SettingsAccordion sections={[
       {
         id: 'general',

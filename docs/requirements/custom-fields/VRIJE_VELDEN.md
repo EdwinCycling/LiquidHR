@@ -7,15 +7,15 @@ Om de code-complexiteit laag te houden en de prestaties te maximaliseren, gebrui
 1. We definiëren de velden in een centrale metadata-tabel (`CustomFieldDefinition`).
 2. De daadwerkelijke waarden worden per entiteit opgeslagen in een `customFields` JSONB-kolom op de doeltabel zelf (bijv. in de `Employee` of `Asset` tabel).
 
-**Implementatiestatus 2026-07-26:** de volledige verticale slice voor `EMPLOYEE` is gerealiseerd. Definities, selectopties en tellers zijn administratiegebonden. HR Admin kan definities beheren, activeren/deactiveren en alleen ongebruikte definities verwijderen; technische sleutel en veldtype blijven onveranderlijk. De beheer-UI ondersteunt landcode, sortering en een live preview. Waarden worden via een afzonderlijke RLS-tabel per definitie afgeschermd en door een interne trigger gespiegeld naar `employees.custom_fields[administrationId]`. Hierdoor kan een gebruiker nooit via de algemene medewerkerquery verborgen vrije velden uitlezen.
+**Implementatiestatus 2026-08-06:** de volledige verticale slice voor `EMPLOYEE` is gerealiseerd en de scope is gecorrigeerd naar HR-groepniveau. Definities, selectopties en tellers zijn groepsbreed; waarden worden per medewerker binnen de actieve HR-groep afgeschermd. HR Admin kan definities beheren, activeren/deactiveren en alleen ongebruikte definities verwijderen; technische sleutel en veldtype blijven onveranderlijk. De beheer-UI ondersteunt landcode, sortering en een live preview. Waarden worden via een afzonderlijke RLS-tabel per definitie afgeschermd en door een interne trigger gespiegeld naar `employees.custom_fields[hrGroupId]`. Hierdoor kan een gebruiker nooit via de algemene medewerkerquery verborgen vrije velden uitlezen.
 
 ### Vastgestelde beveiligingsuitbreidingen
 
 - Iedere definitie heeft afzonderlijke `HIDDEN`, `READ` of `WRITE` toegang voor HR, manager en medewerker-selfservice.
-- Een veldsleutel en de tenant-/administratie-identiteit zijn na aanmaak onveranderlijk.
-- Selectopties hebben een samengestelde foreign key naar dezelfde tenant en administratie.
+- Een veldsleutel en de tenant-/HR-groep-identiteit zijn na aanmaak onveranderlijk.
+- Selectopties hebben een samengestelde foreign key naar dezelfde tenant en HR-groep.
 - `AUTO_INCREMENT` gebruikt een atomaire tellertabel; `MAX(JSONB) + 1` is wegens race conditions niet toegestaan.
-- Waarden van verschillende administraties delen nooit dezelfde JSON-keyspace.
+- Waarden van verschillende HR-groepen delen nooit dezelfde JSON-keyspace.
 - Alle mutaties worden geaudit; technische BSN-, fingerprint- en ciphertextwaarden worden nooit in auditpayloads opgenomen.
 
 ---
@@ -94,7 +94,7 @@ Hieronder staat beschreven hoe de AI elk veldtype moet renderen, valideren en op
 - **JSONB Opslag:** Opgeslagen als een `Number` (Integer).
 - **Systeemlogica (Berekening):**
   Bij het aanmaken van een nieuw record (bijv. een nieuwe `Asset`):
-  1. Zoek de actieve `CustomFieldDefinition` binnen exact dezelfde tenant en administratie.
+  1. Zoek de actieve `CustomFieldDefinition` binnen exact dezelfde tenant en HR-groep.
   2. Reserveer atomair het volgende nummer in `custom_field_counters` met `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`.
   3. Sla de gereserveerde waarde op via de enige toegestane schrijfservice.
 

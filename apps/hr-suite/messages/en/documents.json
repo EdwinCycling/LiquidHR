@@ -51,7 +51,7 @@
   "viewerUnsupported": "No inline preview is available for this file type. Download the file to open it.",
   "backToDashboard": "Back to dashboard",
   "companyTitle": "Company documents",
-  "companySubtitle": "A flat, company-wide list of documents available to every signed-in user.",
+  "companySubtitle": "A list of documents for the active HR group, available to every signed-in user.",
   "companySave": "Upload document",
   "companyEmpty": "No company documents are available yet.",
   "companyInvalid": "Choose a valid file up to 25 MB and enter a title.",

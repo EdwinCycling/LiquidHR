@@ -15,10 +15,11 @@ De eerdere tenantbrede `SEPARATE`/`COMBINED`-keuze is niet het doelmodel. De HR-
 
 ## Scopebesluiten
 
-- Bedrijf, locaties, afdelingen, functies, rollen, leidinggevende-toewijzingen, verlofregels en verzuiminstellingen zijn HR-groepgebonden.
+- Bedrijf, bedrijfsinstellingen met kleuren/logo, locaties, afdelingen, functies, rollen, leidinggevende-toewijzingen, verlofregels, feestdagen, eindredenen per land, vrije velden en bedrijfsdocumenten zijn HR-groepgebonden.
 - Een persoon bestaat één keer binnen een HR-groep en kan nul of meerdere dienstverbanden hebben.
 - Een dienstverband hoort bij precies één administratie, afdeling, functie en vaste CAO.
 - Salaris, payroll en administratiegegevens blijven administratiegebonden.
+- Documentcategorieën blijven voorlopig administratiegebonden; de gecombineerde Stamdata-overview is daardoor een gemengd scherm. De aparte eindredenenpagina is wel groepsbreed.
 - Verlofsaldo, verlofboekingen en verlofgrootboek blijven dienstverbandgebonden; de regels worden groepsbreed ingericht.
 - Een verzuimcasus en ziekteperiode zijn dienstverbandgebonden.
 - Verzuim mag gelijktijdig bestaan op verschillende dienstverbanden, ook in verschillende HR-groepen. Alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd.
@@ -34,7 +35,7 @@ De dienstverbandgrens blijft noodzakelijk voor salaris, CAO, verlofsaldo en verz
 
 - Het contextmodel krijgt een HR-groepniveau naast een optionele administratiecontext.
 - RLS en foreign keys moeten groepgrenzen afdwingen.
-- Het bestaande administratiegebonden bedrijf-/locatiemodel moet worden gemigreerd naar HR-groep-scope.
+- Bestaande administratiegebonden configuratie-entiteiten die in de ownershipmatrix als groepsbreed zijn aangewezen, moeten via migratie, RLS, API en UI naar HR-groep-scope worden gebracht.
 - Verlofconfiguratie en verzuiminstellingen moeten naar HR-groep-scope.
 - Employment-specifieke saldo-, casus- en transactiedata blijft gescheiden.
 - De roltoewijzing en afdelingsdropdown moeten groepsgebonden worden.

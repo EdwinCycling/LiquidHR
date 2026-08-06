@@ -4,7 +4,6 @@ import { DepartmentCreateForm } from '@/components/organization/department-creat
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
-import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 import type { Translator } from '@/lib/i18n/translator'
 import { createClient } from '@/lib/supabase/server'
@@ -75,7 +74,7 @@ export default async function DepartmentsPage() {
     if (error instanceof AuthorizationError) redirect('/geen-toegang')
     throw error
   }
-  const [{ roots, administrationName, count }, translate, organizationTranslate, settingsTranslate] = await Promise.all([
+  const [{ roots, count }, translate, organizationTranslate, settingsTranslate] = await Promise.all([
     departmentData,
     getTranslator('departments'),
     getTranslator('organization'),
@@ -89,14 +88,6 @@ export default async function DepartmentsPage() {
   return (
     <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
       <AdminSettingsPageHeader
-        actions={administrationName ? (
-          <div className="min-w-0 rounded-xl border bg-surface px-4 py-3 sm:max-w-xs">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {translate('administration')}
-            </p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">{administrationName}</p>
-          </div>
-        ) : null}
         backLabel={settingsTranslate('admin.backToOverview')}
         eyebrow={translate('eyebrow')}
         subtitle={translate('subtitle')}
@@ -143,12 +134,10 @@ function flattenDepartmentTree(nodes: DepartmentNode[]): DepartmentNode[] {
 
 async function loadDepartmentTree(): Promise<{
   roots: DepartmentNode[]
-  administrationName: string | null
   count: number
 }> {
   const context = await requirePermission('department:read')
   const groupId = requireHrGroupId(context)
-  const activeContext = await loadActiveContext(context.userId)
   const supabase = await createClient()
   const query = supabase
     .from('departments')
@@ -176,7 +165,6 @@ async function loadDepartmentTree(): Promise<{
 
   return {
     roots,
-    administrationName: activeContext.activeAdministration?.name ?? null,
     count: departments.length,
   }
 }

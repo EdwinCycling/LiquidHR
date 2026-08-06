@@ -1,17 +1,21 @@
 import { redirect } from 'next/navigation'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { AdministrationSettingsContextBar } from '@/components/settings/administration-settings-context-bar'
 import { AbsenceSettingsForm } from '@/components/settings/absence-settings-form'
 import { AbsenceTaskTemplateManager } from '@/components/settings/absence-task-template-manager'
 import { getAbsenceSettingsPageData } from '@/lib/absence/settings-service'
 import { listAbsenceTaskTemplates } from '@/lib/absence/task-service'
 import { getTranslator } from '@/lib/i18n/server'
+import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
 
 export default async function AbsenceSettingsPage() {
+  let context: Awaited<ReturnType<typeof requireAdministrationSettingsContext>>
   let data: Awaited<ReturnType<typeof getAbsenceSettingsPageData>>
   let t: Awaited<ReturnType<typeof getTranslator>>
   let taskTemplates: Awaited<ReturnType<typeof listAbsenceTaskTemplates>>
   try {
+    context = await requireAdministrationSettingsContext('/settings/absence')
     ;[data, t] = await Promise.all([getAbsenceSettingsPageData(), getTranslator('settings')])
     taskTemplates = await listAbsenceTaskTemplates()
   } catch (error) {
@@ -26,6 +30,7 @@ export default async function AbsenceSettingsPage() {
         subtitle={t('absenceSettings.subtitle')}
         title={t('absenceSettings.title')}
       />
+      <AdministrationSettingsContextBar context={context} returnTo="/settings/absence" />
       <AbsenceSettingsForm
         caseManagers={data.caseManagers}
         defaultCaseManagerEmployeeId={data.defaultCaseManagerEmployeeId}

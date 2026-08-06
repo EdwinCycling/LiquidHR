@@ -187,14 +187,6 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
         },
         {
           kind: 'link',
-          href: '/settings/hr-groups',
-          icon: Layers3,
-          title: messages('admin.tiles.hrGroups'),
-          description: messages('admin.tiles.hrGroupsDescription'),
-          visible: hrGroups,
-        },
-        {
-          kind: 'link',
           href: '/departments',
           icon: Building2,
           title: messages('admin.tiles.organization'),
@@ -323,6 +315,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     {
       title: messages('admin.sections.platform'),
       items: [
+        {
+          kind: 'link',
+          href: '/settings/business-structure',
+          icon: Layers3,
+          title: messages('admin.tiles.administration'),
+          description: messages('admin.tiles.administrationDescription'),
+          visible: hrGroups,
+        },
         {
           kind: 'link',
           href: '/settings/modules',

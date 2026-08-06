@@ -6,6 +6,10 @@ export interface AdministrationContextOption {
   code: string
   name: string
   administrationNumber?: string
+  cocNumber?: string | null
+  vatNumber?: string | null
+  parentId?: string | null
+  isActive?: boolean
 }
 
 export interface HrGroupContextOption {
@@ -78,6 +82,9 @@ export interface ContextAdministrationRow {
   code: string
   name: string
   administration_number?: string
+  coc_number?: string | null
+  vat_number?: string | null
+  parent_id?: string | null
   is_active: boolean
 }
 
@@ -143,7 +150,7 @@ export function buildTenantContextOptions(input: BuildTenantContextOptionsInput)
                 && (hasTenantScope || explicitlyAllowedAdministrationIds.has(administration.id))
                 && (actorAdministrationIds === null || actorAdministrationIds.has(administration.id)),
             )
-            .map(({ id, code, name, administration_number }) => ({ id, code, name, administrationNumber: administration_number ?? code }))
+            .map(({ id, code, name, administration_number, coc_number, vat_number, parent_id, is_active }) => ({ id, code, name, administrationNumber: administration_number ?? code, cocNumber: coc_number, vatNumber: vat_number, parentId: parent_id, isActive: is_active }))
 
           return {
             id: group.id,

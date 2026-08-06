@@ -782,7 +782,7 @@ export async function getTerminationOptions(): Promise<{
   statutoryReasons: Array<{ id: string; code: string; label: string }>
 }> {
   const context = await requirePermission('contract:write')
-  const administrationId = requireAdministrationId(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const [internalResult, statutoryResult] = await Promise.all([
@@ -790,7 +790,7 @@ export async function getTerminationOptions(): Promise<{
       .from('employment_end_reasons')
       .select('id, name_nl')
       .eq('tenant_id', context.tenantId)
-      .eq('administration_id', administrationId)
+      .eq('hr_group_id', hrGroupId)
       .eq('is_active', true)
       .order('name_nl'),
     supabase
@@ -820,7 +820,7 @@ export async function terminateEmployment(
   const supabase = await createClient()
   const { data: employment, error: readError } = await supabase
     .from('employments')
-    .select('tenant_id, administration_id, employee_id, starts_on')
+    .select('tenant_id, hr_group_id, administration_id, employee_id, starts_on')
     .eq('id', employmentId)
     .maybeSingle()
   if (readError || !employment) throw new EmploymentServiceError('EMPLOYMENT_NOT_FOUND', 404)
@@ -840,6 +840,7 @@ export async function terminateEmployment(
     .from('employment_terminations')
     .insert({
       tenant_id: context.tenantId,
+      hr_group_id: employment.hr_group_id,
       administration_id: employment.administration_id,
       employee_id: employment.employee_id,
       employment_id: employmentId,

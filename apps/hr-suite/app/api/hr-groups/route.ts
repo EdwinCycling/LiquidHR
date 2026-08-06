@@ -7,6 +7,10 @@ const administrationInputSchema = z.object({
   code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]+$/).max(80),
   name: z.string().trim().min(1).max(160),
   administrationNumber: z.string().trim().min(1).max(80),
+  cocNumber: z.string().trim().max(40).optional().nullable(),
+  vatNumber: z.string().trim().max(40).optional().nullable(),
+  parentId: z.string().uuid().optional().nullable(),
+  isActive: z.boolean().optional(),
 }).strict()
 
 const groupPatchSchema = z.object({
@@ -31,6 +35,10 @@ export async function POST(request: Request) {
       code: parsed.data.code,
       name: parsed.data.name,
       administration_number: parsed.data.administrationNumber,
+      coc_number: parsed.data.cocNumber || null,
+      vat_number: parsed.data.vatNumber || null,
+      parent_id: parsed.data.parentId ?? null,
+      is_active: parsed.data.isActive ?? true,
     })
     if (error) {
       if (error.code === '23505') return NextResponse.json({ error: 'ADMINISTRATION_ALREADY_EXISTS' }, { status: 409 })

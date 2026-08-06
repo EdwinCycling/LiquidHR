@@ -10,5 +10,5 @@ export function CountryPicker({ value, onChange, locale = 'nl', searchLabel, emp
     const displayNames = new Intl.DisplayNames([locale], { type: 'region' })
     return COUNTRY_CODES.map((code) => ({ code, label: displayNames.of(code) ?? code })).sort((left, right) => left.code === 'NL' ? -1 : right.code === 'NL' ? 1 : left.label.localeCompare(right.label))
   }, [locale])
-  return <DropdownSelect aria-label={searchLabel} emptyLabel={emptyLabel} onChange={(event) => onChange(event.target.value)} searchable searchPlaceholder={searchLabel} value={value}>{countries.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}</DropdownSelect>
+  return <DropdownSelect aria-label={searchLabel} emptyLabel={emptyLabel} onChange={(event) => onChange(event.target.value)} searchable searchPlaceholder={searchLabel} suppressHydrationWarning value={value}>{countries.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}</DropdownSelect>
 }

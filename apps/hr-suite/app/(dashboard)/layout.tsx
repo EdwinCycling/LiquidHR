@@ -3,7 +3,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ContextAccessError } from '@/lib/context/administration-context'
-import { getAdministrationSwitcherMode, getHrGroupSwitcherMode } from '@/lib/context/administration-context'
+import { getHrGroupSwitcherMode } from '@/lib/context/administration-context'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { APP_VERSION } from '@/lib/app-version'
@@ -48,7 +48,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, reminders, enabledModules, productUpdates, profile] = await Promise.all([
-    getUserPreferences({ supabase, userId: data.claims.sub, tenantId: context.tenant.id, administrationId: context.activeAdministration?.id ?? null }),
+    getUserPreferences({ supabase, userId: data.claims.sub, tenantId: context.tenant.id, hrGroupId: context.activeHrGroup?.id ?? null }),
     getTranslator('common'),
     getTranslator('navigation'),
     getTranslator('auth'),
@@ -92,9 +92,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         activeHrGroupId={context.activeHrGroup.id}
         hrGroups={context.hrGroups}
         hrGroupSwitcherMode={getHrGroupSwitcherMode(context)}
-        activeAdministrationId={context.activeAdministration?.id ?? null}
-        administrations={context.administrationsInActiveHrGroup}
-        administrationSwitcherMode={getAdministrationSwitcherMode(context)}
         canReadEmployees={canReadEmployees}
         canReadDashboard={canReadDashboard}
         canReadStartPage={canReadStartPage}
@@ -120,12 +117,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           closeMenu: navigation('closeMenu'),
           collapse: navigation('collapse'),
           expand: navigation('expand'),
-          administration: navigation('administration'),
           hrGroup: navigation('hrGroup'),
           switchingHrGroup: navigation('switchingHrGroup'),
           switchHrGroupFailed: navigation('switchHrGroupFailed'),
-          switchingAdministration: navigation('switchingAdministration'),
-          switchAdministrationFailed: navigation('switchAdministrationFailed'),
           timeHub: navigation('timeHub'),
           productUpdates: navigation('productUpdates'),
           signOut: auth('signOut'),

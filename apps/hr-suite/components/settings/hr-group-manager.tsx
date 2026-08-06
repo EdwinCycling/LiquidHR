@@ -19,6 +19,10 @@ interface HrGroupManagerLabels {
   administrationCode: string
   administrationName: string
   administrationNumber: string
+  administrationCocNumber: string
+  administrationVatNumber: string
+  administrationParent: string
+  administrationActive: string
   saveAdministration: string
   cancel: string
   close: string
@@ -45,7 +49,7 @@ export function HrGroupManager({
   const [query, setQuery] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAdministrationId, setEditingAdministrationId] = useState<string | null>(null)
-  const [form, setForm] = useState({ code: '', name: '', administrationNumber: '' })
+  const [form, setForm] = useState({ code: '', name: '', administrationNumber: '', cocNumber: '', vatNumber: '', parentId: '', isActive: true })
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -87,7 +91,7 @@ export function HrGroupManager({
         method: editingAdministrationId ? 'PATCH' : 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(editingAdministrationId
-          ? { name: form.name, administrationNumber: form.administrationNumber }
+          ? { name: form.name, administrationNumber: form.administrationNumber, cocNumber: form.cocNumber || null, vatNumber: form.vatNumber || null, parentId: form.parentId || null, isActive: form.isActive }
           : form),
       })
       if (!response.ok) {
@@ -97,7 +101,7 @@ export function HrGroupManager({
       }
       setModalOpen(false)
       setEditingAdministrationId(null)
-      setForm({ code: '', name: '', administrationNumber: '' })
+      setForm({ code: '', name: '', administrationNumber: '', cocNumber: '', vatNumber: '', parentId: '', isActive: true })
       router.refresh()
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : labels.failed)
@@ -128,16 +132,16 @@ export function HrGroupManager({
       <section className="mt-7 rounded-2xl border bg-surface p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div><h2 className="text-xl font-semibold">{labels.administrations}</h2><p className="mt-1 text-sm text-muted-foreground">{activeGroup.administrations.length}</p></div>
-          {canWrite ? <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground" onClick={() => { setError(null); setEditingAdministrationId(null); setForm({ code: '', name: '', administrationNumber: '' }); setModalOpen(true) }} type="button"><Plus size={16} />{labels.addAdministration}</button> : null}
+          {canWrite ? <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground" onClick={() => { setError(null); setEditingAdministrationId(null); setForm({ code: '', name: '', administrationNumber: '', cocNumber: '', vatNumber: '', parentId: '', isActive: true }); setModalOpen(true) }} type="button"><Plus size={16} />{labels.addAdministration}</button> : null}
         </div>
         <label className="relative mt-5 block"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><span className="sr-only">{labels.search}</span><input className="h-11 w-full rounded-xl border border-border bg-surface-raised pl-9 pr-3 text-sm" onChange={(event) => setQuery(event.target.value)} placeholder={labels.searchPlaceholder} value={query} /></label>
-        <div className="mt-4 divide-y divide-border">{administrations.length === 0 ? <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">{labels.empty}</p> : administrations.map((administration) => <AdministrationRow administration={administration} canWrite={canWrite} editLabel={labels.editAdministration} onEdit={() => { setError(null); setEditingAdministrationId(administration.id); setForm({ code: administration.code, name: administration.name, administrationNumber: administration.administrationNumber ?? administration.code }); setModalOpen(true) }} key={administration.id} />)}</div>
+        <div className="mt-4 divide-y divide-border">{administrations.length === 0 ? <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">{labels.empty}</p> : administrations.map((administration) => <AdministrationRow administration={administration} canWrite={canWrite} editLabel={labels.editAdministration} onEdit={() => { setError(null); setEditingAdministrationId(administration.id); setForm({ code: administration.code, name: administration.name, administrationNumber: administration.administrationNumber ?? administration.code, cocNumber: administration.cocNumber ?? '', vatNumber: administration.vatNumber ?? '', parentId: administration.parentId ?? '', isActive: administration.isActive ?? true }); setModalOpen(true) }} key={administration.id} />)}</div>
       </section>
 
       {modalOpen ? <div aria-hidden="true" className="fixed inset-0 z-[70] bg-foreground/40" onClick={() => setModalOpen(false)} /> : null}
       {modalOpen ? <div aria-labelledby="new-administration-title" aria-modal="true" className="fixed inset-x-4 top-1/2 z-[80] mx-auto max-w-lg -translate-y-1/2 rounded-2xl border bg-surface p-6 shadow-2xl" role="dialog">
         <div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold" id="new-administration-title">{editingAdministrationId ? labels.editAdministration : labels.addAdministration}</h2><p className="mt-1 text-sm text-muted-foreground">{activeGroup.name}</p></div><button aria-label={labels.close} className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted" onClick={() => { setModalOpen(false); setEditingAdministrationId(null) }} type="button"><X size={18} /></button></div>
-        <form className="mt-5 space-y-4" onSubmit={(event) => void saveAdministration(event)}><label className="block text-sm font-medium">{labels.administrationCode}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" disabled={editingAdministrationId !== null} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required value={form.code} /></label><label className="block text-sm font-medium">{labels.administrationName}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required value={form.name} /></label><label className="block text-sm font-medium">{labels.administrationNumber}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, administrationNumber: event.target.value }))} required value={form.administrationNumber} /></label>{error ? <p className="text-sm text-destructive" role="alert">{error}</p> : null}<div className="flex justify-end gap-3 pt-2"><button className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold" onClick={() => { setModalOpen(false); setEditingAdministrationId(null) }} type="button">{labels.cancel}</button><button className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60" disabled={isSaving} type="submit">{labels.saveAdministration}</button></div></form>
+        <form className="mt-5 space-y-4" onSubmit={(event) => void saveAdministration(event)}><label className="block text-sm font-medium">{labels.administrationCode}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" disabled={editingAdministrationId !== null} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required value={form.code} /></label><label className="block text-sm font-medium">{labels.administrationName}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required value={form.name} /></label><label className="block text-sm font-medium">{labels.administrationNumber}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, administrationNumber: event.target.value }))} required value={form.administrationNumber} /></label><label className="block text-sm font-medium">{labels.administrationCocNumber}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, cocNumber: event.target.value }))} value={form.cocNumber} /></label><label className="block text-sm font-medium">{labels.administrationVatNumber}<input className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, vatNumber: event.target.value }))} value={form.vatNumber} /></label><label className="block text-sm font-medium">{labels.administrationParent}<select className="mt-2 h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm" onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value }))} value={form.parentId}><option value="">-</option>{administrations.filter((item) => item.id !== editingAdministrationId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="flex items-center gap-3 text-sm font-medium"><input checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} type="checkbox" />{labels.administrationActive}</label>{error ? <p className="text-sm text-destructive" role="alert">{error}</p> : null}<div className="flex justify-end gap-3 pt-2"><button className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold" onClick={() => { setModalOpen(false); setEditingAdministrationId(null) }} type="button">{labels.cancel}</button><button className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60" disabled={isSaving} type="submit">{labels.saveAdministration}</button></div></form>
       </div> : null}
     </section>
   )

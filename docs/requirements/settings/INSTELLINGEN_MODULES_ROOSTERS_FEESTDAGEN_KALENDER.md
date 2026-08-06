@@ -31,10 +31,12 @@ Versie: `1.20260718.5`
 
 ## Feestdagen
 
-- Een HR-beheerder importeert per administratie, kalenderjaar en ISO-landcode via de server-side Nager.Date-provider.
+- Feestdagen zijn HR-groepbreed: een HR-beheerder importeert per actieve HR-groep, kalenderjaar en ISO-landcode via de server-side Nager.Date-provider.
 - Voor import is een preview beschikbaar; de provider krijgt nooit tenant- of persoonsgegevens.
 - De database bewaart een snapshot. Herimport behoudt lokale feestdagen en de actieve status van eerder uitgesloten providerdagen.
 - Lokale feestdagen kunnen afzonderlijk worden toegevoegd en iedere dag kan in de kalender worden opgenomen of uitgesloten.
+
+De pagina voor feestdagen vraagt daarom geen administratiekeuze. Hetzelfde geldt voor bedrijfsinstellingen met kleuren/logo, eindredenen per land, vrije velden en bedrijfsdocumenten: deze configuratie is gekoppeld aan de actieve HR-groep. Een administratiekeuze blijft alleen zichtbaar op schermen die werkelijk administratiegebonden zijn; de gemengde Stamdata-overview behoudt die keuze voor documentcategorieën.
 
 ## Medewerkerskalender
 
@@ -49,4 +51,4 @@ Versie: `1.20260718.5`
 
 - Canonieke rechten: `settings:read`, `modules:read`, `modules:write`, `work-schedule:read`, `work-schedule:write`, `holidays:read`, `holidays:write`.
 - Iedere nieuwe tabel heeft RLS, expliciete grants, passende indexen en audittriggers.
-- Serverroutes leiden tenant, administratie en gebruiker uitsluitend af uit de sessiecontext.
+- Serverroutes leiden tenant, HR-groep, een eventuele administratie en gebruiker uitsluitend af uit de sessiecontext.

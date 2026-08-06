@@ -1,5 +1,5 @@
 import type { Database, Json } from '@scope/db'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type {
   CustomFieldDefinitionInput,
@@ -50,11 +50,6 @@ export interface EmployeeCustomField extends CustomFieldDefinition {
   value: Json | undefined
 }
 
-function requireAdministration(administrationId: string | null): string {
-  if (!administrationId) throw new CustomFieldServiceError('ADMINISTRATION_REQUIRED', 400)
-  return administrationId
-}
-
 function toDefinition(row: DefinitionRow, options: OptionRow[]): CustomFieldDefinition {
   return {
     id: row.id,
@@ -87,14 +82,14 @@ function toDefinition(row: DefinitionRow, options: OptionRow[]): CustomFieldDefi
 
 export async function listCustomFieldDefinitions(entityType: DefinitionRow['entity_type'] = 'EMPLOYEE'): Promise<CustomFieldDefinition[]> {
   const context = await requirePermission('custom-field-values:read')
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const [{ data: definitions, error }, { data: options, error: optionsError }] = await Promise.all([
     supabase.from('custom_field_definitions').select('*')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('entity_type', entityType)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('entity_type', entityType)
       .is('deleted_at', null).order('label_nl').order('key'),
     supabase.from('custom_field_select_options').select('*')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .order('sort_order').order('value'),
   ])
   if (error || optionsError) throw new CustomFieldServiceError('CUSTOM_FIELDS_READ_FAILED', 500)
@@ -105,11 +100,12 @@ export async function createCustomFieldDefinition(
   input: CustomFieldDefinitionInput,
 ): Promise<CustomFieldDefinition> {
   const context = await requirePermission('custom-fields:write')
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const { data, error } = await supabase.from('custom_field_definitions').insert({
     tenant_id: context.tenantId,
-    administration_id: administrationId,
+    hr_group_id: hrGroupId,
+    administration_id: null,
     entity_type: input.entityType,
     key: input.key,
     label_nl: input.labelNl,
@@ -134,7 +130,8 @@ export async function createCustomFieldDefinition(
       .from('custom_field_select_options')
       .insert(input.options.map((option) => ({
         tenant_id: context.tenantId,
-        administration_id: administrationId,
+        hr_group_id: hrGroupId,
+        administration_id: null,
         definition_id: data.id,
         value: option.value,
         label_nl: option.labelNl,
@@ -157,7 +154,7 @@ export async function updateCustomFieldDefinition(
   input: CustomFieldDefinitionUpdateInput,
 ): Promise<CustomFieldDefinition> {
   const context = await requirePermission('custom-fields:write')
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const updatePayload: Database['public']['Tables']['custom_field_definitions']['Update'] = {}
   if (input.labelNl !== undefined) updatePayload.label_nl = input.labelNl
@@ -172,7 +169,7 @@ export async function updateCustomFieldDefinition(
   if (input.employeeSelfAccess !== undefined) updatePayload.employee_self_access = input.employeeSelfAccess
   if (input.sortOrder !== undefined) updatePayload.sort_order = input.sortOrder
   if (input.isActive !== undefined) updatePayload.is_active = input.isActive
-  const { data, error } = await supabase.from('custom_field_definitions').update(updatePayload).eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+  const { data, error } = await supabase.from('custom_field_definitions').update(updatePayload).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
     .eq('id', definitionId).is('deleted_at', null).select('*').maybeSingle()
   if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_UPDATE_FAILED', 500)
   if (!data) throw new CustomFieldServiceError('CUSTOM_FIELD_NOT_FOUND', 404)
@@ -183,15 +180,15 @@ export async function updateCustomFieldDefinition(
 
 export async function deleteCustomFieldDefinition(definitionId: string): Promise<void> {
   const context = await requirePermission('custom-fields:write')
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const { count, error: valuesError } = await supabase.from('employee_custom_field_values')
     .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('definition_id', definitionId)
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('definition_id', definitionId)
   if (valuesError) throw new CustomFieldServiceError('CUSTOM_FIELD_USAGE_CHECK_FAILED', 500)
   if ((count ?? 0) > 0) throw new CustomFieldServiceError('CUSTOM_FIELD_IN_USE', 409)
   const { data, error } = await supabase.from('custom_field_definitions')
-    .delete().eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('id', definitionId)
+    .delete().eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('id', definitionId)
     .select('id').maybeSingle()
   if (error?.code === '23503') throw new CustomFieldServiceError('CUSTOM_FIELD_IN_USE', 409)
   if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_DELETE_FAILED', 500)
@@ -200,12 +197,12 @@ export async function deleteCustomFieldDefinition(definitionId: string): Promise
 
 export async function getEmployeeCustomFieldValues(employeeId: string): Promise<Json> {
   const context = await requirePermission('employee:read', employeeId)
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const { data, error } = await supabase.from('employee_custom_field_values')
     .select('field_key, value')
     .eq('tenant_id', context.tenantId)
-    .eq('administration_id', administrationId)
+    .eq('hr_group_id', hrGroupId)
     .eq('employee_id', employeeId)
   if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_VALUES_READ_FAILED', 500)
   return Object.fromEntries((data ?? []).map((row) => [row.field_key, row.value]))
@@ -213,17 +210,17 @@ export async function getEmployeeCustomFieldValues(employeeId: string): Promise<
 
 export async function getEmployeeCustomFields(employeeId: string): Promise<EmployeeCustomField[]> {
   const context = await requirePermission('employee:read', employeeId)
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const [{ data: definitions, error }, { data: options, error: optionsError }, { data: values, error: valuesError }] = await Promise.all([
     supabase.from('custom_field_definitions').select('*')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .eq('is_active', true).is('deleted_at', null).order('sort_order').order('key').limit(250),
     supabase.from('custom_field_select_options').select('*')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .eq('is_active', true).order('sort_order').limit(1000),
     supabase.from('employee_custom_field_values').select('field_key, value')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .eq('employee_id', employeeId).limit(250),
   ])
   if (error || optionsError || valuesError) throw new CustomFieldServiceError('CUSTOM_FIELD_VALUES_READ_FAILED', 500)
@@ -245,7 +242,7 @@ export async function setEmployeeCustomFieldValues(
   values: CustomFieldValuesInput,
 ): Promise<Json> {
   const context = await requirePermission('employee:read', employeeId)
-  const administrationId = requireAdministration(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const keys = Object.keys(values)
   if (keys.length === 0) return getEmployeeCustomFieldValues(employeeId)
@@ -254,7 +251,7 @@ export async function setEmployeeCustomFieldValues(
     .from('custom_field_definitions')
     .select('id, key, field_type, is_required')
     .eq('tenant_id', context.tenantId)
-    .eq('administration_id', administrationId)
+    .eq('hr_group_id', hrGroupId)
     .in('key', keys)
     .eq('is_active', true)
     .is('deleted_at', null)
@@ -278,7 +275,8 @@ export async function setEmployeeCustomFieldValues(
     }
     const row = {
       tenant_id: context.tenantId,
-      administration_id: administrationId,
+      hr_group_id: hrGroupId,
+      administration_id: null,
       employee_id: employeeId,
       definition_id: definition.id,
       field_key: key,
@@ -290,20 +288,20 @@ export async function setEmployeeCustomFieldValues(
 
   if (deleteIds.length > 0) {
     const { error } = await supabase.from('employee_custom_field_values').delete()
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .eq('employee_id', employeeId).in('definition_id', deleteIds)
     if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_VALUES_WRITE_FAILED', 500)
   }
   if (regularRows.length > 0) {
     const { error } = await supabase.from('employee_custom_field_values')
-      .upsert(regularRows, { onConflict: 'tenant_id,administration_id,employee_id,definition_id' })
+      .upsert(regularRows, { onConflict: 'tenant_id,hr_group_id,employee_id,definition_id' })
     if (error?.code === '42501') throw new CustomFieldServiceError('CUSTOM_FIELD_VALUE_FORBIDDEN', 403)
     if (error) throw new CustomFieldServiceError('CUSTOM_FIELD_VALUE_INVALID', 400)
   }
   if (automaticRows.length > 0) {
     const { error } = await supabase.from('employee_custom_field_values')
       .upsert(automaticRows, {
-        onConflict: 'tenant_id,administration_id,employee_id,definition_id',
+        onConflict: 'tenant_id,hr_group_id,employee_id,definition_id',
         ignoreDuplicates: true,
       })
     if (error?.code === '42501') throw new CustomFieldServiceError('CUSTOM_FIELD_VALUE_FORBIDDEN', 403)

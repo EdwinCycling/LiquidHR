@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
-import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
 import type { CompanyDocumentMetadataInput } from './company-schemas'
@@ -27,12 +27,13 @@ function contentType(file: File): string {
 
 export async function listCompanyDocuments() {
   const context = await requireAuthContext()
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
-  let query = supabase.from('company_documents')
+  const query = supabase.from('company_documents')
     .select('id, title, original_filename, content_type, file_size, created_at')
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
     .is('deleted_at', null)
-  if (context.administrationId) query = query.eq('administration_id', context.administrationId)
   const { data, error } = await query.order('created_at', { ascending: false }).limit(200)
   if (error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_READ_FAILED', 500)
   return data
@@ -40,20 +41,21 @@ export async function listCompanyDocuments() {
 
 export async function uploadCompanyDocument(file: File, metadata: CompanyDocumentMetadataInput): Promise<string> {
   const context = await requirePermission('company-document:write')
-  if (!context.administrationId) throw new CompanyDocumentServiceError('ADMINISTRATION_REQUIRED', 400)
+  const hrGroupId = requireHrGroupId(context)
   if (!isAllowedDocumentFile(file)) throw new CompanyDocumentServiceError('DOCUMENT_TYPE_INVALID', 400)
   if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) throw new CompanyDocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
 
   const bytes = new Uint8Array(await file.arrayBuffer())
   const checksum = createHash('sha256').update(bytes).digest('hex')
-  const storageKey = `${context.tenantId}/${context.administrationId}/${randomUUID()}/${cleanFilename(file.name)}`
+  const storageKey = `${context.tenantId}/${hrGroupId}/${randomUUID()}/${cleanFilename(file.name)}`
   const supabase = await createClient()
   const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType: contentType(file), upsert: false })
   if (upload.error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_UPLOAD_FAILED', 500)
 
   const { data, error } = await supabase.from('company_documents').insert({
     tenant_id: context.tenantId,
-    administration_id: context.administrationId,
+    hr_group_id: hrGroupId,
+    administration_id: null,
     title: metadata.title,
     original_filename: file.name,
     storage_key: storageKey,
@@ -71,9 +73,9 @@ export async function uploadCompanyDocument(file: File, metadata: CompanyDocumen
 
 export async function createCompanyDocumentDownload(documentId: string): Promise<string> {
   const context = await requireAuthContext()
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
-  let query = supabase.from('company_documents').select('storage_key').eq('id', documentId).eq('tenant_id', context.tenantId).is('deleted_at', null)
-  if (context.administrationId) query = query.eq('administration_id', context.administrationId)
+  const query = supabase.from('company_documents').select('storage_key').eq('id', documentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null)
   const { data, error } = await query.maybeSingle()
   if (error || !data) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_NOT_FOUND', 404)
   const signed = await supabase.storage.from(BUCKET).createSignedUrl(data.storage_key, 60)
@@ -83,9 +85,9 @@ export async function createCompanyDocumentDownload(documentId: string): Promise
 
 export async function deleteCompanyDocument(documentId: string): Promise<void> {
   const context = await requirePermission('company-document:delete')
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
-  let query = supabase.from('company_documents').update({ deleted_at: new Date().toISOString() }).eq('id', documentId).eq('tenant_id', context.tenantId).is('deleted_at', null)
-  if (context.administrationId) query = query.eq('administration_id', context.administrationId)
+  const query = supabase.from('company_documents').update({ deleted_at: new Date().toISOString() }).eq('id', documentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null)
   const { data, error } = await query.select('id').maybeSingle()
   if (error || !data) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_NOT_FOUND', 404)
 }

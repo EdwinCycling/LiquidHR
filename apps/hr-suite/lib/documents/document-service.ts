@@ -2,7 +2,7 @@ import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
 import type { Json } from '@scope/db'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
 import type { DocumentDeleteInput, DocumentMetadataInput } from './schemas'
@@ -23,15 +23,15 @@ export async function listEmployeeDocuments(employeeId: string) {
 }
 
 export async function getDocumentOptions(employeeId: string) {
-  const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId); const supabase = await createClient()
+  const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId); const hrGroupId = requireHrGroupId(context); const supabase = await createClient()
   const [categories, departments, roles, employees, cloudTags, customFieldDefinitions, customFieldOptions] = await Promise.all([
     supabase.from('document_categories').select('id, code, name').eq('administration_id', administrationId).eq('is_active', true).order('code').limit(200),
     supabase.from('departments').select('id, code, name').eq('tenant_id', context.tenantId).eq('is_active', true).order('code').limit(500),
     supabase.from('management_roles').select('id, code, name').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).order('code').limit(200),
     supabase.from('employees').select('id, employee_number, first_name, birth_name').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(500),
     supabase.from('star_performer_tags').select('id, name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(200),
-    supabase.from('custom_field_definitions').select('id,key,label_nl,label_en,field_type,is_required,sort_order').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('entity_type', 'DOCUMENT').eq('is_active', true).is('deleted_at', null).order('sort_order').order('label_nl').limit(200),
-    supabase.from('custom_field_select_options').select('definition_id,value,label_nl,label_en,sort_order').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('is_active', true).order('sort_order').limit(1000),
+    supabase.from('custom_field_definitions').select('id,key,label_nl,label_en,field_type,is_required,sort_order').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('entity_type', 'DOCUMENT').eq('is_active', true).is('deleted_at', null).order('sort_order').order('label_nl').limit(200),
+    supabase.from('custom_field_select_options').select('definition_id,value,label_nl,label_en,sort_order').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('sort_order').limit(1000),
   ])
   if (categories.error || departments.error || roles.error || employees.error || cloudTags.error || customFieldDefinitions.error || customFieldOptions.error) throw new DocumentServiceError('DOCUMENT_OPTIONS_FAILED', 500)
   return {
@@ -49,8 +49,8 @@ export async function uploadEmployeeDocument(employeeId: string, file: File, met
   if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) throw new DocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
   const supabase = await createClient()
   const [{ data: definitions, error: definitionError }, { data: fieldOptions, error: optionError }] = await Promise.all([
-    supabase.from('custom_field_definitions').select('id,key,field_type,is_required').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('entity_type', 'DOCUMENT').eq('is_active', true).is('deleted_at', null),
-    supabase.from('custom_field_select_options').select('definition_id,value').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('is_active', true),
+    supabase.from('custom_field_definitions').select('id,key,field_type,is_required').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('entity_type', 'DOCUMENT').eq('is_active', true).is('deleted_at', null),
+    supabase.from('custom_field_select_options').select('definition_id,value').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('is_active', true),
   ])
   if (definitionError || optionError) throw new DocumentServiceError('DOCUMENT_CUSTOM_FIELDS_FAILED', 500)
   const definitionByKey = new Map(definitions.map((definition) => [definition.key, definition]))

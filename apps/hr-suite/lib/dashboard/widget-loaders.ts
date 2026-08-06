@@ -67,8 +67,7 @@ export async function loadDashboardWidgetData(
       return { status: 'ready', kind: 'metric', value: result.count ?? 0, href: '/organization' }
     }
     if (widget.type === 'COMPANY_DOCUMENTS') {
-      let query = scope.supabase.from('company_documents').select('id', { count: 'exact', head: true }).eq('tenant_id', scope.context.tenantId).is('deleted_at', null)
-      if (scope.context.administrationId) query = query.eq('administration_id', scope.context.administrationId)
+      const query = scope.supabase.from('company_documents').select('id', { count: 'exact', head: true }).eq('tenant_id', scope.context.tenantId).eq('hr_group_id', scope.context.hrGroupId ?? '').is('deleted_at', null)
       const result = await query
       if (result.error) throw result.error
       return { status: 'ready', kind: 'metric', value: result.count ?? 0, href: '/company-documents' }
