@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { reportEmployeeAbsence } from '@/lib/absence/service'
+import { AbsenceEmploymentRequiredError, AbsenceServiceError, reportEmployeeAbsence } from '@/lib/absence/service'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -16,6 +16,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     const denied = permissionErrorResponse(error)
     if (denied) return denied
     if (error instanceof ZodError) return NextResponse.json({ error: 'ABSENCE_INPUT_INVALID' }, { status: 400 })
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'ABSENCE_REPORT_FAILED' }, { status: 500 })
+    if (error instanceof AbsenceEmploymentRequiredError) return NextResponse.json({ error: error.code, options: error.options }, { status: error.status })
+    if (error instanceof AbsenceServiceError) return NextResponse.json({ error: error.code }, { status: error.status })
+    return NextResponse.json({ error: 'ABSENCE_REPORT_FAILED' }, { status: 500 })
   }
 }

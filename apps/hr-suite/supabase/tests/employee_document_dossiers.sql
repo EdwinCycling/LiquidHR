@@ -5,7 +5,14 @@ begin
   select id into actor from auth.users where lower(email)='edwin@editsolutions.nl' limit 1;
   select assignment.administration_id, assignment.employee_id into administration, employee from public.employee_administration_assignments assignment where assignment.tenant_id=tenant order by assignment.effective_from limit 1;
   select id into category from public.document_categories where tenant_id=tenant and administration_id=administration and code='GENERAL';
-  select id into department from public.departments where tenant_id=tenant and administration_id=administration order by code limit 1;
+  select department.id into department
+  from public.departments department
+  join public.administrations administration_row
+    on administration_row.tenant_id=department.tenant_id
+   and administration_row.hr_group_id=department.hr_group_id
+  where department.tenant_id=tenant
+    and administration_row.id=administration
+  order by department.code limit 1;
   select id into role_id from public.management_roles where code='TENANT_ADMIN' order by tenant_id nulls first limit 1;
   if actor is null or employee is null or category is null or department is null or role_id is null then raise exception 'Testbasis voor documentendossier ontbreekt.'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub',actor,'role','authenticated')::text, true);

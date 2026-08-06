@@ -64,7 +64,7 @@ describe('leave api schemas', () => {
   it('accepteert een verlofuitzondering voor meerdere medewerkers', () => {
     const result = leaveConfigurationMutationSchema.safeParse({
       action: 'ACCRUAL_EXCEPTION',
-      employeeIds: ['employee-1', 'employee-2'],
+      employmentSelections: [{ employeeId: 'employee-1', employmentId: 'employment-1' }, { employeeId: 'employee-2', employmentId: 'employment-2' }],
       leaveTypeId: 'leave-1',
       validFrom: '2026-01-01',
       noAccrual: false,
@@ -73,6 +73,21 @@ describe('leave api schemas', () => {
       reason: 'Collectieve afspraak',
     })
     expect(result.success).toBe(true)
+  })
+
+  it('accepteert groepsbrede medewerkersets en arbeidsverbandleden', () => {
+    expect(leaveConfigurationMutationSchema.safeParse({
+      action: 'EMPLOYEE_SET',
+      name: 'Parttimers',
+      leaveProfileId: 'profile-1',
+      priority: 10,
+    }).success).toBe(true)
+    expect(leaveConfigurationMutationSchema.safeParse({
+      action: 'EMPLOYEE_SET_MEMBER',
+      employeeSetId: 'set-1',
+      employeeId: 'employee-1',
+      validFrom: '2026-01-01',
+    }).success).toBe(true)
   })
 
   it('valideert de vier overwerklimieten en de invoerblokkade voor uitzonderingen', () => {

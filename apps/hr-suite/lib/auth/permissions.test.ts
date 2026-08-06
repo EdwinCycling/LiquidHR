@@ -29,7 +29,7 @@ function createFakeClient(options: FakeClientOptions = {}) {
     },
     rpc,
     from(table: string) {
-      if (table === 'user_access') {
+      if (table === 'user_access' || table === 'user_hr_group_access') {
         const builder = {
           select: () => builder,
           eq: () => builder,
@@ -139,8 +139,24 @@ describe('requirePermission', () => {
         administrationMode: 'SEPARATE',
         sharingMode: 'FULLY_ISOLATED',
       },
-      administration: { id: 'admin-1', code: 'HOLDING', name: 'Holding' },
-      administrations: [{ id: 'admin-1', code: 'HOLDING', name: 'Holding' }],
+      hrGroups: [{
+        id: 'group-1',
+        tenantId: 'tenant-1',
+        code: 'HOLDING',
+        name: 'Holding',
+        description: null,
+        administrations: [{ id: 'admin-1', code: 'HOLDING', name: 'Holding' }],
+      }],
+      activeHrGroup: {
+        id: 'group-1',
+        tenantId: 'tenant-1',
+        code: 'HOLDING',
+        name: 'Holding',
+        description: null,
+        administrations: [{ id: 'admin-1', code: 'HOLDING', name: 'Holding' }],
+      },
+      administrationsInActiveHrGroup: [{ id: 'admin-1', code: 'HOLDING', name: 'Holding' }],
+      activeAdministration: { id: 'admin-1', code: 'HOLDING', name: 'Holding' },
     })
   })
 

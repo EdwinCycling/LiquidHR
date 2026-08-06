@@ -20,6 +20,12 @@ Dit document beschrijft de tijdsgebonden afdelingenboom, managementrollen en toe
 - Een directe deputy wordt alleen gebruikt wanneer een externe afwezigheidsbeslissing dit activeert.
 - Afdelings- en deputyrelaties mogen geen cycli vormen.
 
+### Implementatiestatus HR-groep-scope — 2026-08-05
+
+Stap 6 is end-to-end doorgevoerd. Afdelingen, functies, organisatieplaatsingen en `DepartmentManagement` gebruiken `hr_group_id`; een employment koppelt de gekozen afdeling en functie alleen binnen dezelfde tenant en HR-groep. De roltoewijzingslijsten, organogramfilters, managerteamscope en de functiescatalogus gebruiken dezelfde actieve groepscontext. De testfixture bevat twee actieve leidinggevenden op `RICH-02` over twee administraties en een afzonderlijke `DIRECT_MANAGER`-autorisatie voor dezelfde login in `TEST-MULTIGROUP`.
+
+De remote groeps-RLS-/contracttests en de geauthentiseerde browsercontrole voor `DEFAULT`, `TEST-MULTIGROUP` en `TEST-BOUNDARY` zijn geslaagd. Cross-group afdelingen en roltoewijzingen verschijnen niet in de actieve groep.
+
 ## 3. ManagementRole
 
 | Kolom | Type | Regels |

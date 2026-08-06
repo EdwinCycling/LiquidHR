@@ -1,7 +1,7 @@
 import 'server-only'
 
 import type { Database } from '@scope/db'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { absenceTaskTemplateCreateSchema, absenceTaskTemplateUpdateSchema, type AbsenceTaskTemplateCreateInput, type AbsenceTaskTemplateUpdateInput } from './task-schemas'
 
@@ -24,10 +24,12 @@ export async function listAbsenceTaskTemplates(): Promise<AbsenceTaskTemplate[]>
 export async function createAbsenceTaskTemplate(rawInput: unknown): Promise<string> {
   const context = await requirePermission('absence-settings:write')
   if (!context.administrationId) throw new AbsenceTaskTemplateError('ABSENCE_TASK_ADMINISTRATION_REQUIRED', 400)
+  const hrGroupId = requireHrGroupId(context)
   const input: AbsenceTaskTemplateCreateInput = absenceTaskTemplateCreateSchema.parse(rawInput)
   const supabase = await createClient()
   const { data, error } = await supabase.from('absence_task_templates').insert({
     tenant_id: context.tenantId,
+    hr_group_id: hrGroupId,
     administration_id: context.administrationId,
     code: input.code,
     title: input.title,

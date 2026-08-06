@@ -10,9 +10,11 @@ Deze toolkit geeft LiquidHR vaste, natuurlijke werkcommando's. `EdwinHelp` is he
 | `Maak Git backup` | Stage alle lokale wijzigingen, maak zo nodig een backup-commit en verplaats `last-good` en `backup/last-good` naar de actuele commit. |
 | `Zet Git backup terug` | Vraag een expliciete bevestiging en zet tracked bestanden terug naar `last-good`; nieuwe ongetrackte bestanden blijven standaard behouden. |
 | `Nieuwe feature: <naam>` | Weigert een dirty werkboom, normaliseert `<naam>` naar `feature/<slug>` en maakt die branch vanaf `last-good`. |
-| `Feature afgerond` | Draait de hr-suite-tests, maakt een lokale commit, werkt `last-good` bij en toont een mergevoorstel. |
+| `Feature afgerond` | Controleert diff en kwaliteit, commit op de featurebranch en synchroniseert veilig met de nieuwste `main`. |
+| `Feature samenvoegen` | Merge't en pusht `main`, controleert commit/deployment en ruimt worktree en branches pas daarna op. |
 | `Maak project overview` | Gebruikt de project-overview-skill voor actuele lokale KPI's en optioneel geaggregeerde live Supabase-cijfers. |
 | `Meet Next geheugen` | Meet een draaiende Next-server en schrijft de opgegeven CSV-meting. |
+| `Schrijf blog` | Schrijft of redigeert Nederlandse blogs en professionele teksten in Edwin-stijl, vanuit chat of bestanden in `work`. |
 
 De natuurlijke commando's zijn vastgelegd in [`AGENTS.md`](../AGENTS.md). Codex vertaalt ze naar de scripts in [`scripts/`](../scripts/).
 
@@ -25,6 +27,16 @@ De natuurlijke commando's zijn vastgelegd in [`AGENTS.md`](../AGENTS.md). Codex 
 ```
 
 In Codex is `EdwinHelp` voldoende. De catalogus staat centraal in [`scripts/edwin-help.ps1`](../scripts/edwin-help.ps1), zodat een nieuw commando op één plek kan worden toegevoegd met naam, aliassen, beschrijving, bron, veiligheidsniveau en voorbeeld.
+
+## Schrijven vanuit chat, work en Codex
+
+De schrijfmodus staat in [`docs/skills/edwinhelp-writing/SKILL.md`](skills/edwinhelp-writing/SKILL.md). Gebruik hem met één van deze ingangen:
+
+- **Chat:** zeg `Gebruik EdwinHelp. Schrijf een blog over ...` en plak observaties, bronnen of een concept in de chat.
+- **work:** zet bronbestanden in de actuele `work`-map en zeg `Gebruik EdwinHelp. Lees de bestanden in work en schrijf een blog. Sla het resultaat op in outputs.`
+- **Codex vanuit de repository:** zeg `Lees AGENTS.md en ga verder vanaf CURRENT_CONTEXT.md. Gebruik EdwinHelp en schrijf ...`.
+
+De schrijfmodus mag tekstbestanden lezen en nieuwe tekstbestanden maken, maar voert geen code-, Git-, database-, merge-, push- of deploymentactie uit. Voor projectstatus, branches en Git blijft het bestaande EdwinHelp-commando leidend.
 
 ## Veiligheidsregels
 

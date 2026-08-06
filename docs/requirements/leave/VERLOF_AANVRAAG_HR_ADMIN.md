@@ -3,7 +3,7 @@
 > **Actuele scope vanaf 2026-08-05:** de aanvraag wordt binnen de geselecteerde HR-groep uitgevoerd. Verlofregels zijn groepsbreed, maar iedere aanvraag en ieder saldo horen bij exact één dienstverband. Bij meerdere actieve dienstverbanden is eerst een keuze nodig, behalve wanneer de afdeling/functiecontext van de leidinggevende exact één geldig dienstverband bepaalt. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md).
 
 Status: **LEIDEND** voor de HR-admin-aanvraagflow
-Implementatiestatus: **GEDEELTELIJK GEREALISEERD** — de HR-admin/managerflow, directe goedkeuring, FIFO-boekingen, saldo-preview en kalenderprojectie zijn aanwezig; ESS, notificaties en volledige toekomstige-opbouwprojectie volgen later.
+Implementatiestatus: **VOLLEDIG voor de Step-7 HR-groep/employment-scope** — de aanvraagfundering, group-RPC, permissionchecks, idempotency, employmentkeuze en employmentgebonden boeking zijn gerealiseerd en remote getest; ESS, notificaties en volledige toekomstige-opbouwprojectie volgen later.
 Scope: één HR-admin-aanvraagflow vanuit `/hr-calendar`; ESS/selfservice en de medewerkersaanvraag volgen later.
 
 ## 1. Doel en grenzen

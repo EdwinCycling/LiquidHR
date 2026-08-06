@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { DepartmentCreateForm } from '@/components/organization/department-create-form'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { AuthorizationError } from '@/lib/auth/permissions'
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 import type { Translator } from '@/lib/i18n/translator'
@@ -147,12 +147,14 @@ async function loadDepartmentTree(): Promise<{
   count: number
 }> {
   const context = await requirePermission('department:read')
+  const groupId = requireHrGroupId(context)
   const activeContext = await loadActiveContext(context.userId)
   const supabase = await createClient()
   const query = supabase
     .from('departments')
     .select('id, code, name, parent_id')
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', groupId)
     .eq('is_active', true)
 
   const { data: departments, error } = await query
@@ -174,7 +176,7 @@ async function loadDepartmentTree(): Promise<{
 
   return {
     roots,
-    administrationName: activeContext.administration?.name ?? null,
+    administrationName: activeContext.activeAdministration?.name ?? null,
     count: departments.length,
   }
 }

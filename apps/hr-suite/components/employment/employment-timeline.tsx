@@ -10,7 +10,7 @@ type Employment = Database['public']['Tables']['employments']['Row']
 
 interface EmploymentTimelineProps {
   employments: Employment[]
-  summaries: Array<{ employmentId: string; departmentName: string | null; jobTitle: string | null; hoursPerWeek: number | null; laborConditionName: string | null; workerType: 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL' | null }>
+  summaries: Array<{ employmentId: string; administrationName: string | null; departmentName: string | null; jobTitle: string | null; hoursPerWeek: number | null; laborConditionName: string | null; workerType: 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL' | null }>
   locale: string
   dateFormat: DateFormat
   labels: {
@@ -26,6 +26,7 @@ interface EmploymentTimelineProps {
     definite: string
     seniority: string
     seniorityDuration: string
+    administration: string
     department: string
     jobTitle: string
     hoursPerWeek: string
@@ -74,7 +75,8 @@ export function EmploymentTimeline({ employments, summaries, locale, dateFormat,
               <dl className="mt-5 grid gap-x-5 gap-y-3 border-t pt-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
                 <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.seniority}</dt><dd className="mt-1 font-medium">{duration ? labels.seniorityDuration.replace('{years}', String(duration.years)).replace('{months}', String(duration.months)) : labels.notRecorded}</dd></div>
                 {status === 'active' && <>
-                  <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.department}</dt><dd className="mt-1 font-medium">{summary?.departmentName ?? labels.notRecorded}</dd></div>
+                   <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.administration}</dt><dd className="mt-1 font-medium">{summary?.administrationName ?? labels.notRecorded}</dd></div>
+                   <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.department}</dt><dd className="mt-1 font-medium">{summary?.departmentName ?? labels.notRecorded}</dd></div>
                   <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.jobTitle}</dt><dd className="mt-1 font-medium">{summary?.jobTitle ?? labels.notRecorded}</dd></div>
                   <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.hoursPerWeek}</dt><dd className="mt-1 font-medium">{summary?.hoursPerWeek === null || summary?.hoursPerWeek === undefined ? labels.notRecorded : `${summary.hoursPerWeek}`}</dd></div>
                   <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.laborConditions}</dt><dd className="mt-1 font-medium">{summary?.laborConditionName ?? labels.notRecorded}</dd></div>

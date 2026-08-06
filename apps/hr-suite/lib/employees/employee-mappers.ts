@@ -23,9 +23,9 @@ function optionalText(value: string | null | undefined): string | null {
   return value?.trim() || null
 }
 
-export function toEmployeeInsert(tenantId: string, employeeNumber: string, input: EmployeeCreateInput): EmployeeInsert {
+export function toEmployeeInsert(tenantId: string, hrGroupId: string, employeeNumber: string, input: EmployeeCreateInput): EmployeeInsert {
   return {
-    tenant_id: tenantId, employee_number: employeeNumber.trim(), title: optionalText(input.title),
+    tenant_id: tenantId, hr_group_id: hrGroupId, employee_number: employeeNumber.trim(), title: optionalText(input.title),
     initials: optionalText(input.initials), first_name: input.firstName.trim(),
     birth_name_prefix: optionalText(input.birthNamePrefix), birth_name: input.birthName.trim(),
     partner_name_prefix: optionalText(input.partnerNamePrefix), partner_name: optionalText(input.partnerName),

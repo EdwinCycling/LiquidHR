@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, ClipboardPlus } from 'lucide-react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { resolveEmployeeAbsenceEmployment } from '@/lib/absence/service'
 import { requireAnyPermission } from '@/lib/auth/permissions'
 import { getEmployeeEmploymentDetail, listEmployeesOverview } from '@/lib/employment/employment-service'
 import { getTranslator } from '@/lib/i18n/server'
@@ -18,7 +19,7 @@ export default async function NewAbsencePage({ searchParams }: NewAbsencePagePro
   const selectedEmployee = employees.find((employee) => employee.id === employeeId) ?? null
   const detail = selectedEmployee ? await getEmployeeEmploymentDetail(selectedEmployee.id, 'employments') : null
   const today = new Date().toISOString().slice(0, 10)
-  const currentEmployment = detail?.employments.find((employment) => employment.record_status === 'CONFIRMED' && employment.starts_on <= today && (!employment.ends_on || employment.ends_on >= today)) ?? detail?.employments.find((employment) => employment.record_status === 'CONFIRMED')
+  const employmentSelection = selectedEmployee ? await resolveEmployeeAbsenceEmployment(selectedEmployee.id, undefined, today) : null
 
   return <main className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
     <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href="/dashboard/start"><ArrowLeft aria-hidden="true" className="size-4" />{t('absenceCreateBack')}</Link>
@@ -43,7 +44,7 @@ export default async function NewAbsencePage({ searchParams }: NewAbsencePagePro
 
     {selectedEmployee && detail ? <section className="mt-6 rounded-3xl border bg-surface p-5 shadow-sm sm:p-6">
       <div className="mb-5 border-b pb-5"><p className="eyebrow text-primary">{t('absenceCreateSelected')}</p><h2 className="mt-1 text-xl font-semibold">{[selectedEmployee.firstName, selectedEmployee.birthNamePrefix, selectedEmployee.birthName].filter(Boolean).join(' ')}</h2><p className="mt-1 text-sm text-muted-foreground">{selectedEmployee.departmentName ?? t('notRecorded')}</p></div>
-      <AbsenceQuickForm employeeId={selectedEmployee.id} employmentId={currentEmployment?.id} recoveryMode="hidden" labels={{ report: t('absenceReport'), startDate: t('absenceStartDate'), percentage: t('absencePercentage'), expectedRecovery: t('absenceExpectedRecovery'), hasSafetyNet: t('absenceHasSafetyNet'), workAccident: t('absenceWorkAccident'), thirdPartyAccident: t('absenceThirdPartyAccident'), unknown: t('absenceUnknown'), yes: t('absenceYes'), no: t('absenceNo'), submit: t('absenceSubmit'), recover: t('absenceRecover'), recoveredOn: t('absenceRecoveredOn'), failed: t('absenceSaveFailed'), close: t('absenceClose') }} />
+      <AbsenceQuickForm employeeId={selectedEmployee.id} employmentId={employmentSelection?.employment?.id} employmentOptions={employmentSelection?.options} recoveryMode="hidden" labels={{ report: t('absenceReport'), startDate: t('absenceStartDate'), percentage: t('absencePercentage'), expectedRecovery: t('absenceExpectedRecovery'), hasSafetyNet: t('absenceHasSafetyNet'), workAccident: t('absenceWorkAccident'), thirdPartyAccident: t('absenceThirdPartyAccident'), unknown: t('absenceUnknown'), yes: t('absenceYes'), no: t('absenceNo'), submit: t('absenceSubmit'), recover: t('absenceRecover'), partialRecover: t('absencePartialRecover'), recoveredOn: t('absenceRecoveredOn'), capacityEffectiveOn: t('absenceCaseCapacityEffectiveOn'), failed: t('absenceSaveFailed'), close: t('absenceClose'), employment: t('absenceEmployment'), employmentPlaceholder: t('absenceEmploymentPlaceholder'), employmentSearch: t('absenceEmploymentSearch'), saving: t('saving') }} />
     </section> : <p className="mt-6 rounded-2xl border border-dashed bg-surface/70 px-5 py-8 text-center text-sm text-muted-foreground">{t('absenceCreateEmployeePlaceholder')}</p>}
   </main>
 }

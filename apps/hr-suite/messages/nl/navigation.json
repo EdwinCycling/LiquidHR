@@ -11,6 +11,7 @@
   "settings": "Instellingen",
   "personalSettings": "Persoonlijke instellingen",
   "administration": "Administratie",
+  "hrGroup": "HR-groep",
   "navigation": "Navigatie",
   "openMenu": "Open navigatie",
   "closeMenu": "Sluit navigatie",
@@ -18,6 +19,8 @@
   "expand": "Klap navigatie uit",
   "switchingAdministration": "Administratie wisselen…",
   "switchAdministrationFailed": "Wisselen van administratie is mislukt.",
+  "switchingHrGroup": "HR-groep wisselen…",
+  "switchHrGroupFailed": "Wisselen van HR-groep is mislukt.",
   "customerEnvironment": "Klantomgeving"
   ,"timeHub": "Tijdhub",
   "masterData": "Stamtabellen",

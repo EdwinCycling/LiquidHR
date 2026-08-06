@@ -5,6 +5,16 @@ export interface AdministrationContextOption {
   id: string
   code: string
   name: string
+  administrationNumber?: string
+}
+
+export interface HrGroupContextOption {
+  id: string
+  tenantId: string
+  code: string
+  name: string
+  description: string | null
+  administrations: AdministrationContextOption[]
 }
 
 export interface TenantContextOption {
@@ -13,26 +23,35 @@ export interface TenantContextOption {
   slug: string
   administrationMode: AdministrationMode
   sharingMode: SharingMode
-  administrations: AdministrationContextOption[]
+  hrGroups: HrGroupContextOption[]
 }
 
 export interface ActiveContext {
-  tenant: Omit<TenantContextOption, 'administrations'>
-  administration: AdministrationContextOption | null
-  administrations: AdministrationContextOption[]
+  tenant: Omit<TenantContextOption, 'hrGroups'>
+  hrGroups: HrGroupContextOption[]
+  activeHrGroup: HrGroupContextOption
+  administrationsInActiveHrGroup: AdministrationContextOption[]
+  activeAdministration: AdministrationContextOption | null
 }
 
 export interface SelectActiveContextInput {
   tenants: TenantContextOption[]
   requestedTenantId?: string
+  requestedHrGroupId?: string
   requestedAdministrationId?: string
 }
 
-export interface ContextAccessRow {
+export interface ContextGroupAccessRow {
+  tenant_id: string
+  hr_group_id: string
+  management_role_code: string
+}
+
+export interface ContextAdministrationAccessRow {
   tenant_id: string
   scope_type: 'TENANT' | 'ADMINISTRATION'
   administration_id: string | null
-  management_role_code: string
+  hr_group_id: string | null
 }
 
 export interface ContextTenantRow {
@@ -43,65 +62,99 @@ export interface ContextTenantRow {
   sharing_mode: SharingMode
 }
 
-export interface ContextAdministrationRow {
+export interface ContextHrGroupRow {
   id: string
   tenant_id: string
   code: string
   name: string
+  description: string | null
+  is_active: boolean
+}
+
+export interface ContextAdministrationRow {
+  id: string
+  tenant_id: string
+  hr_group_id: string
+  code: string
+  name: string
+  administration_number?: string
   is_active: boolean
 }
 
 export interface BuildTenantContextOptionsInput {
-  accesses: ContextAccessRow[]
+  groupAccesses: ContextGroupAccessRow[]
+  administrationAccesses: ContextAdministrationAccessRow[]
   tenants: ContextTenantRow[]
+  hrGroups: ContextHrGroupRow[]
   administrations: ContextAdministrationRow[]
-  actorAdministrationIdsByTenant?: ReadonlyMap<string, ReadonlySet<string>>
+  actorAdministrationIdsByHrGroup?: ReadonlyMap<string, ReadonlySet<string>>
 }
 
 export class ContextAccessError extends Error {
   readonly status = 403
 }
 
+export type HrGroupSwitcherMode = 'HIDDEN' | 'SELECT'
 export type AdministrationSwitcherMode = 'HIDDEN' | 'SELECT'
 
 const EMPLOYEE_MANAGER_ROLE_CODES = new Set(['EMPLOYEE', 'DIRECT_MANAGER'])
 
+export const HR_GROUP_SWITCH_SUCCESS_PATH = '/dashboard/start'
 export const ADMINISTRATION_SWITCH_SUCCESS_PATH = '/dashboard/start'
 
+export function getHrGroupSwitcherMode(context: ActiveContext): HrGroupSwitcherMode {
+  return context.hrGroups.length > 1 ? 'SELECT' : 'HIDDEN'
+}
+
 export function getAdministrationSwitcherMode(context: ActiveContext): AdministrationSwitcherMode {
-  if (context.tenant.administrationMode === 'COMBINED') return 'HIDDEN'
-  return context.administrations.length > 1 ? 'SELECT' : 'HIDDEN'
+  return context.administrationsInActiveHrGroup.length > 1 ? 'SELECT' : 'HIDDEN'
 }
 
 export function buildTenantContextOptions(input: BuildTenantContextOptionsInput): TenantContextOption[] {
-  const tenantIds = new Set(input.accesses.map((access) => access.tenant_id))
+  const tenantIds = new Set(input.groupAccesses.map((access) => access.tenant_id))
 
   return input.tenants
     .filter((tenant) => tenantIds.has(tenant.id))
     .map((tenant) => {
-      const tenantAccesses = input.accesses.filter((access) => access.tenant_id === tenant.id)
-      const hasTenantScope = tenantAccesses.some((access) => access.scope_type === 'TENANT')
-      const isEmployeeManagerOnly =
-        tenantAccesses.length > 0
-        && tenantAccesses.every((access) => EMPLOYEE_MANAGER_ROLE_CODES.has(access.management_role_code))
-      const actorAdministrationIds = isEmployeeManagerOnly
-        ? input.actorAdministrationIdsByTenant?.get(tenant.id) ?? new Set<string>()
-        : null
-      const administrationIds = new Set(
-        tenantAccesses
-          .filter((access) => access.scope_type === 'ADMINISTRATION')
-          .map((access) => access.administration_id)
-          .filter((administrationId): administrationId is string => administrationId !== null),
-      )
-      const administrations = input.administrations
-        .filter(
-          (administration) =>
-            administration.tenant_id === tenant.id
-            && administration.is_active
-            && (hasTenantScope || administrationIds.has(administration.id))
-            && (actorAdministrationIds === null || actorAdministrationIds.has(administration.id)),
-        )
-        .map(({ id, code, name }) => ({ id, code, name }))
+      const tenantGroupAccesses = input.groupAccesses.filter((access) => access.tenant_id === tenant.id)
+      const tenantAdministrationAccesses = input.administrationAccesses.filter((access) => access.tenant_id === tenant.id)
+      const tenantGroups = input.hrGroups
+        .filter((group) => group.tenant_id === tenant.id && group.is_active)
+        .map((group) => {
+          const groupAccesses = tenantGroupAccesses.filter((access) => access.hr_group_id === group.id)
+          const hasTenantScope = tenantAdministrationAccesses.some((access) => access.scope_type === 'TENANT')
+          const explicitlyAllowedAdministrationIds = new Set(
+            tenantAdministrationAccesses
+              .filter((access) => access.scope_type === 'ADMINISTRATION' && access.hr_group_id === group.id)
+              .map((access) => access.administration_id)
+              .filter((administrationId): administrationId is string => administrationId !== null),
+          )
+          const isEmployeeManagerOnly = groupAccesses.length > 0
+            && groupAccesses.every((access) => EMPLOYEE_MANAGER_ROLE_CODES.has(access.management_role_code))
+          const actorAdministrationIds = isEmployeeManagerOnly
+            ? input.actorAdministrationIdsByHrGroup?.get(group.id) ?? new Set<string>()
+            : null
+          const administrations = input.administrations
+            .filter(
+              (administration) =>
+                administration.tenant_id === tenant.id
+                && administration.hr_group_id === group.id
+                && administration.is_active
+                && (hasTenantScope || explicitlyAllowedAdministrationIds.has(administration.id))
+                && (actorAdministrationIds === null || actorAdministrationIds.has(administration.id)),
+            )
+            .map(({ id, code, name, administration_number }) => ({ id, code, name, administrationNumber: administration_number ?? code }))
+
+          return {
+            id: group.id,
+            tenantId: group.tenant_id,
+            code: group.code,
+            name: group.name,
+            description: group.description,
+            administrations,
+          }
+        })
+        .filter((group) => groupAccessesForGroup(tenantGroupAccesses, group.id).length > 0)
 
       return {
         id: tenant.id,
@@ -109,9 +162,14 @@ export function buildTenantContextOptions(input: BuildTenantContextOptionsInput)
         slug: tenant.slug,
         administrationMode: tenant.administration_mode,
         sharingMode: tenant.sharing_mode,
-        administrations,
+        hrGroups: tenantGroups,
       }
     })
+    .filter((tenant) => tenant.hrGroups.length > 0)
+}
+
+function groupAccessesForGroup(accesses: ContextGroupAccessRow[], groupId: string): ContextGroupAccessRow[] {
+  return accesses.filter((access) => access.hr_group_id === groupId)
 }
 
 export function selectActiveContext(input: SelectActiveContextInput): ActiveContext {
@@ -120,17 +178,23 @@ export function selectActiveContext(input: SelectActiveContextInput): ActiveCont
 
   if (!tenant) throw new ContextAccessError('Je hebt geen toegang tot een actieve klantomgeving.')
 
-  const { administrations, ...tenantContext } = tenant
-  if (tenant.administrationMode === 'COMBINED') {
-    return { tenant: tenantContext, administration: null, administrations }
+  const activeHrGroup =
+    tenant.hrGroups.find((group) => group.id === input.requestedHrGroupId) ?? tenant.hrGroups[0]
+
+  if (!activeHrGroup) throw new ContextAccessError('Je hebt geen toegang tot een actieve HR-groep.')
+
+  const { hrGroups, ...tenantContext } = tenant
+  const administrationsInActiveHrGroup = activeHrGroup.administrations
+  const activeAdministration =
+    administrationsInActiveHrGroup.find((option) => option.id === input.requestedAdministrationId)
+    ?? administrationsInActiveHrGroup[0]
+    ?? null
+
+  return {
+    tenant: tenantContext,
+    hrGroups,
+    activeHrGroup,
+    administrationsInActiveHrGroup,
+    activeAdministration,
   }
-
-  const administration =
-    administrations.find((option) => option.id === input.requestedAdministrationId) ?? administrations[0]
-
-  if (!administration) {
-    throw new ContextAccessError('Je hebt geen toegang tot een actieve administratie.')
-  }
-
-  return { tenant: tenantContext, administration, administrations }
 }

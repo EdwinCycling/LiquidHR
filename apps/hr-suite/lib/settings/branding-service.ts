@@ -109,7 +109,7 @@ export async function getActiveAdministrationBrandingLogo(): Promise<{ body: Arr
   const userId = claimsData?.claims?.sub
   if (!userId) return null
   const context = await loadActiveContext(userId, supabase)
-  const administrationId = context.administration?.id
+  const administrationId = context.activeAdministration?.id
   if (!administrationId) return null
   const { data, error } = await supabase
     .from('administration_branding')

@@ -105,7 +105,7 @@ export async function getEmploymentDetail(
     ? permissionAllowed('organization-placement:write', employeeId)
     : Promise.resolve(false)
   const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_phone, work_mobile, avatar_url')
-    .eq('id', employeeId).maybeSingle()
+    .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).eq('id', employeeId).maybeSingle()
   const administrationQuery = supabase.from('administrations').select('id, code, name')
     .eq('id', employment.administration_id).maybeSingle()
   const incomeLinksQuery = includeBasics
@@ -118,7 +118,7 @@ export async function getEmploymentDetail(
     : Promise.resolve({ data: [], error: null })
   const contractsQuery = includeOverview
     ? supabase.from('employment_contracts')
-      .select('*, flex_phases(code, name), labor_condition_sets(code, name, standard_hours_per_week)')
+      .select('*, flex_phases(code, name), labor_condition_sets!employment_contracts_labor_condition_set_fkey(code, name, standard_hours_per_week)')
       .eq('employment_id', employmentId).order('starts_on', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
   const scheduleQuery = includeSchedule
@@ -134,16 +134,16 @@ export async function getEmploymentDetail(
       .order('valid_from', { ascending: false }).limit(500)
     : Promise.resolve({ data: [], error: null })
   const organizationQuery = includeOrganization
-    ? supabase.from('employee_organizations').select('*, departments!employee_organizations_department_id_fkey(code, name), jobs(code)').eq('employment_id', employmentId)
+    ? supabase.from('employee_organizations').select('*, departments!employee_organizations_department_hr_group_fkey(code, name), jobs!employee_organizations_job_hr_group_fkey(code)').eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).eq('employment_id', employmentId)
       .order('effective_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
   const companyDataQuery = includeCompanyLocation
     ? supabase.from('administration_company_data').select('*')
-      .eq('tenant_id', employment.tenant_id).eq('administration_id', employment.administration_id).maybeSingle()
+      .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).maybeSingle()
     : Promise.resolve({ data: null, error: null })
   const companyLocationsQuery = includeCompanyLocation
     ? supabase.from('administration_locations').select('id, name, is_active')
-      .eq('tenant_id', employment.tenant_id).eq('administration_id', employment.administration_id)
+      .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id)
       .order('is_active', { ascending: false }).order('name').limit(250)
     : Promise.resolve({ data: [], error: null })
   const companyLocationAssignmentsQuery = includeCompanyLocation
@@ -183,9 +183,9 @@ export async function getEmploymentDetail(
   const organizationOptionsQuery = includeOrganization
     ? Promise.all([
       supabase.from('departments').select('id, code, name')
-        .eq('tenant_id', employment.tenant_id).eq('is_active', true).order('code').limit(500),
-      supabase.from('jobs').select('id, code, job_revisions(name)')
-        .eq('tenant_id', employment.tenant_id).eq('is_active', true).order('code').limit(500),
+        .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).order('code').limit(500),
+      supabase.from('jobs').select('id, code, job_revisions!job_revisions_job_hr_group_fkey(name)')
+        .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).order('code').limit(500),
     ])
     : Promise.resolve([
       { data: [], error: null },
@@ -402,7 +402,7 @@ export async function createProfileLink(employmentId: string, input: ProfileLink
 export async function deleteEmployment(employmentId: string): Promise<void> {
   const employment = await loadEmploymentForAction(employmentId, 'contract:write')
   const supabase = await createClient()
-  const { error } = await supabase.from('employments').update({ deleted_at: new Date().toISOString() }).eq('id', employment.id).eq('tenant_id', employment.tenant_id)
+  const { error } = await supabase.from('employments').update({ deleted_at: new Date().toISOString() }).eq('id', employment.id).eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id)
   if (error) throwDatabaseError(error.message)
 }
 
@@ -410,13 +410,13 @@ export async function assessProposedEmploymentChain(employeeId: string, input: C
   const context = await requirePermission('contract:write', employeeId)
   const supabase = await createClient()
   const [{ data: employee, error: employeeError }, { data: employments, error: employmentError }, { data: externalHistory, error: historyError }] = await Promise.all([
-    supabase.from('employees').select('id, tenant_id').eq('id', employeeId).maybeSingle(),
-    supabase.from('employments').select('starts_on, ends_on, contract_type').eq('employee_id', employeeId)
+    supabase.from('employees').select('id, tenant_id, hr_group_id').eq('id', employeeId).eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId ?? '').maybeSingle(),
+    supabase.from('employments').select('starts_on, ends_on, contract_type').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId ?? '').eq('employee_id', employeeId)
       .is('deleted_at', null).order('starts_on').limit(100),
     supabase.from('employment_chain_history').select('starts_on, ends_on').eq('employee_id', employeeId)
       .order('starts_on').limit(100),
   ])
-  if (employeeError || !employee || employee.tenant_id !== context.tenantId) {
+  if (employeeError || !employee || employee.tenant_id !== context.tenantId || employee.hr_group_id !== context.hrGroupId) {
     throw new EmploymentDetailError('EMPLOYEE_NOT_FOUND', 404)
   }
   if (employmentError || historyError) throw new EmploymentDetailError('CHAIN_ASSESSMENT_FAILED', 500)

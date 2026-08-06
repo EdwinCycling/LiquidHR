@@ -38,14 +38,18 @@ function fakeClient(withUser = true) {
       }),
     },
     from(table: string) {
+      if (table === 'user_hr_group_access') {
+        return query({
+          data: [
+            { tenant_id: 'tenant-1', hr_group_id: 'group-a', management_role_id: 'tenant-admin-role' },
+            { tenant_id: 'tenant-1', hr_group_id: 'group-b', management_role_id: 'tenant-admin-role' },
+          ],
+          error: null,
+        })
+      }
       if (table === 'user_access') {
         return query({
-          data: [{
-            tenant_id: 'tenant-1',
-            scope_type: 'TENANT',
-            administration_id: null,
-            management_role_id: 'tenant-admin-role',
-          }],
+          data: [{ tenant_id: 'tenant-1', scope_type: 'TENANT', administration_id: null, hr_group_id: null }],
           error: null,
         })
       }
@@ -67,11 +71,20 @@ function fakeClient(withUser = true) {
           error: null,
         })
       }
+      if (table === 'hr_groups') {
+        return query({
+          data: [
+            { id: 'group-a', tenant_id: 'tenant-1', code: 'A', name: 'Groep A', description: null, is_active: true },
+            { id: 'group-b', tenant_id: 'tenant-1', code: 'B', name: 'Groep B', description: 'Tweede groep', is_active: true },
+          ],
+          error: null,
+        })
+      }
       if (table === 'administrations') {
         return query({
           data: [
-            { id: 'admin-holding', tenant_id: 'tenant-1', code: 'HOLDING', name: 'Holding', is_active: true },
-            { id: 'admin-services', tenant_id: 'tenant-1', code: 'SERVICES', name: 'Services', is_active: true },
+            { id: 'admin-a1', tenant_id: 'tenant-1', hr_group_id: 'group-a', code: 'A1', name: 'A1', is_active: true },
+            { id: 'admin-b1', tenant_id: 'tenant-1', hr_group_id: 'group-b', code: 'B1', name: 'B1', is_active: true },
           ],
           error: null,
         })
@@ -87,19 +100,20 @@ describe('loadActiveContext', () => {
     cookies.mockReset()
     cookies.mockResolvedValue({
       get: (name: string) => ({
-        value: name === 'liquid-hr-administration' ? 'admin-services' : 'tenant-1',
+        value: name === 'liquid-hr-hr-group' ? 'group-b' : name === 'liquid-hr-administration' ? 'admin-b1' : 'tenant-1',
       }),
     })
   })
 
-  it('bouwt de actieve context uit eigen toegang en gevalideerde cookieopties', async () => {
+  it('bouwt de actieve context uit groepsaccess en gevalideerde cookies', async () => {
     createClient.mockResolvedValue(fakeClient())
 
     const result = await loadActiveContext()
 
     expect(result.tenant.id).toBe('tenant-1')
-    expect(result.administration?.id).toBe('admin-services')
-    expect(result.administrations).toHaveLength(2)
+    expect(result.activeHrGroup.id).toBe('group-b')
+    expect(result.activeAdministration?.id).toBe('admin-b1')
+    expect(result.hrGroups).toHaveLength(2)
   })
 
   it('weigert een aanvraag zonder geverifieerde authclaim', async () => {

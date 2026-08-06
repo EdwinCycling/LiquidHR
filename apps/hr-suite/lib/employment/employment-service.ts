@@ -1,7 +1,7 @@
 import 'server-only'
 
 import type { Database, Json } from '@scope/db'
-import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
@@ -114,6 +114,7 @@ export interface EmployeeEmploymentDetail {
   defaultCountryCode: string
   employmentCards: Array<{
     employmentId: string
+    administrationName: string | null
     departmentName: string | null
     jobTitle: string | null
     hoursPerWeek: number | null
@@ -243,11 +244,13 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
 }> {
   const context = await requirePermission('contract:write', input.employeeId)
   const administrationId = requireAdministrationId(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const { data: assignment, error: assignmentError } = await supabase
     .from('employee_administration_assignments')
     .select('id')
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
     .eq('administration_id', administrationId)
     .eq('employee_id', input.employeeId)
     .lte('effective_from', input.startsOn)
@@ -262,6 +265,7 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
     .from('employments')
     .select('starts_on, ends_on, record_status')
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
     .eq('employee_id', input.employeeId)
     .is('deleted_at', null)
   if (historyError) throw new EmploymentServiceError('EMPLOYMENT_HISTORY_FAILED', 500)
@@ -270,6 +274,7 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
     .from('employments')
     .insert({
       tenant_id: context.tenantId,
+      hr_group_id: hrGroupId,
       administration_id: administrationId,
       employee_id: input.employeeId,
       employment_number: input.employmentNumber,
@@ -348,9 +353,11 @@ export async function getEmploymentCreationOptions(
   ] = await Promise.all([
     supabase.from('departments').select('id, code, name')
       .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', requireHrGroupId(context))
       .eq('is_active', true).order('code').limit(500),
-    supabase.from('jobs').select('id, code, job_revisions(name)')
+    supabase.from('jobs').select('id, code, job_revisions!job_revisions_job_hr_group_fkey(name)')
       .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', requireHrGroupId(context))
       .eq('is_active', true).order('code').limit(500),
     supabase.from('cost_centers').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
@@ -452,11 +459,13 @@ export async function getEmploymentCreationOptions(
 
 export async function listEmployeeEmployments(employeeId: string): Promise<EmploymentRow[]> {
   const context = await requirePermission('contract:read', employeeId)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('employments')
     .select('*')
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
     .eq('employee_id', employeeId)
     .is('deleted_at', null)
     .order('starts_on', { ascending: false })
@@ -477,7 +486,7 @@ async function listDirectTeamEmployeeOverviews(
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('list_employee_overviews', {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: requireAdministrationId(context.administrationId),
+    requested_hr_group_id: requireHrGroupId(context),
     requested_as_of: today,
     requested_archive_filter: archiveFilter,
   })
@@ -495,7 +504,7 @@ export async function listEmployeesOverview(
   options: { activeDirectoryOnly?: boolean } = {},
 ): Promise<EmployeeOverview[]> {
   const context = await requireAnyPermission(['employee:read', 'employee-directory:read'])
-  const administrationId = requireAdministrationId(context.administrationId)
+  const hrGroupId = requireHrGroupId(context)
   const today = new Date().toISOString().slice(0, 10)
   const effectiveArchiveFilter = options.activeDirectoryOnly ? 'active' : archiveFilter
   if (scope === 'team' && !context.activeRoles.includes('DIRECT_MANAGER')) throw new AuthorizationError('Je hebt geen toegang tot de teamscope.')
@@ -504,7 +513,7 @@ export async function listEmployeesOverview(
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('list_employee_overviews', {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: administrationId,
+    requested_hr_group_id: hrGroupId,
     requested_as_of: today,
     requested_archive_filter: effectiveArchiveFilter,
   })
@@ -537,9 +546,9 @@ export async function getEmployeeEmploymentDetail(
         marital_status_date, education_level, preferred_language, private_email,
         private_phone, private_mobile, work_email, work_phone, work_phone_ext,
         work_mobile, avatar_url, original_hire_date, is_active, is_archived, updated_at`)
-    .eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
-  const employmentsQuery = supabase.from('employments').select('*')
-    .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).is('deleted_at', null)
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  const employmentsQuery = supabase.from('employments').select('*, administrations!employments_administration_hr_group_fkey(code, name)')
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('employee_id', employeeId).is('deleted_at', null)
     .order('starts_on', { ascending: false }).order('is_primary', { ascending: false }).limit(100)
   const addressesQuery = includePersonalData
     ? supabase.from('employee_addresses').select('*').eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
@@ -576,15 +585,14 @@ export async function getEmployeeEmploymentDetail(
   const organizationQuery = includeOverviewData
     ? (() => {
       const query = supabase.from('employee_organizations')
-        .select('employment_id, job_title, direct_manager_id, effective_from, effective_to, departments!employee_organizations_department_id_fkey(name)')
-        .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('effective_from', today)
+        .select('employment_id, job_title, direct_manager_id, effective_from, effective_to, departments!employee_organizations_department_hr_group_fkey(name)')
+        .eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('employee_id', employeeId).lte('effective_from', today)
         .or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(100)
-      if (context.administrationId) query.eq('administration_id', context.administrationId)
       return query
     })()
     : Promise.resolve({ data: [], error: null })
   const contractsQuery = includeOverviewData
-    ? supabase.from('employment_contracts').select('employment_id, worker_type, starts_on, ends_on, labor_condition_sets(name)')
+    ? supabase.from('employment_contracts').select('employment_id, worker_type, starts_on, ends_on, labor_condition_sets!employment_contracts_labor_condition_set_fkey(name)')
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('starts_on', today)
       .or(`ends_on.is.null,ends_on.gte.${today}`).order('starts_on', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
@@ -656,7 +664,7 @@ export async function getEmployeeEmploymentDetail(
   })
   const currentOrganization = (organizations ?? []).find((item) => item.employment_id === currentEmploymentSummary.employmentId)
   if (currentOrganization?.direct_manager_id) {
-    const { data: manager } = await supabase.from('employees').select('first_name, birth_name').eq('tenant_id', context.tenantId).eq('id', currentOrganization.direct_manager_id).is('deleted_at', null).maybeSingle()
+    const { data: manager } = await supabase.from('employees').select('first_name, birth_name').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', currentOrganization.direct_manager_id).is('deleted_at', null).maybeSingle()
     currentEmploymentSummary.managerName = manager ? `${manager.first_name} ${manager.birth_name}` : null
   }
 
@@ -703,6 +711,7 @@ export async function getEmployeeEmploymentDetail(
       const contract = (contracts ?? []).find((item) => item.employment_id === employment.id)
       return {
         employmentId: employment.id,
+        administrationName: employment.administrations?.name ?? null,
         departmentName: organization?.departments?.name ?? null,
         jobTitle: organization?.job_title ?? null,
         hoursPerWeek: schedule?.average_hours_per_week ?? null,

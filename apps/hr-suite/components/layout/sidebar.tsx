@@ -23,6 +23,7 @@ import {
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AdministrationSwitcher } from '@/components/layout/administration-switcher'
+import { HrGroupSwitcher } from '@/components/layout/hr-group-switcher'
 import { Clock } from '@/components/layout/clock'
 import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
@@ -30,6 +31,8 @@ import { ProductUpdateSidebarLink } from '@/components/product-updates/product-u
 import type {
   AdministrationContextOption,
   AdministrationSwitcherMode,
+  HrGroupContextOption,
+  HrGroupSwitcherMode,
 } from '@/lib/context/administration-context'
 import type { UserPreferences } from '@/lib/preferences/user-preferences'
 import type { Locale } from '@/lib/i18n/config'
@@ -54,6 +57,9 @@ interface SidebarLabels {
   collapse: string
   expand: string
   administration: string
+  hrGroup: string
+  switchingHrGroup: string
+  switchHrGroupFailed: string
   switchingAdministration: string
   switchAdministrationFailed: string
   timeHub: string
@@ -82,6 +88,9 @@ interface SidebarProps {
   reminders: ReminderItem[]
   locale: Locale
   productUpdateUnreadCount: number
+  activeHrGroupId: string
+  hrGroups: HrGroupContextOption[]
+  hrGroupSwitcherMode: HrGroupSwitcherMode
   testRoleSwitch: {
     enabled: boolean
     currentEmail: string | null
@@ -114,6 +123,9 @@ export function Sidebar({
   reminders,
   locale,
   productUpdateUnreadCount,
+  activeHrGroupId,
+  hrGroups,
+  hrGroupSwitcherMode,
   testRoleSwitch,
 }: SidebarProps) {
   const pathname = usePathname()
@@ -191,9 +203,19 @@ export function Sidebar({
           </button>
         </div>
 
-        {!collapsed && administrationSwitcherMode === 'SELECT' ? (
+        {!collapsed && (hrGroupSwitcherMode === 'SELECT' || administrationSwitcherMode === 'SELECT') ? (
           <div className="px-3 pb-5 pt-4">
-            <AdministrationSwitcher
+            {hrGroupSwitcherMode === 'SELECT' ? <HrGroupSwitcher
+              activeHrGroupId={activeHrGroupId}
+              hrGroups={hrGroups}
+              labels={{
+                hrGroup: labels.hrGroup,
+                switching: labels.switchingHrGroup,
+                switchFailed: labels.switchHrGroupFailed,
+              }}
+              mode={hrGroupSwitcherMode}
+            /> : null}
+            {administrationSwitcherMode === 'SELECT' ? <div className={hrGroupSwitcherMode === 'SELECT' ? 'mt-3' : undefined}><AdministrationSwitcher
               activeAdministrationId={activeAdministrationId}
               administrations={administrations}
               labels={{
@@ -202,7 +224,7 @@ export function Sidebar({
                 switchFailed: labels.switchAdministrationFailed,
               }}
               mode={administrationSwitcherMode}
-            />
+            /></div> : null}
           </div>
         ) : null}
 

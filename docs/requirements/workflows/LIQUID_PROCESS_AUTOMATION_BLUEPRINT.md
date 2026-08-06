@@ -92,6 +92,31 @@ De ambitie "ieder proces automatiseren" betekent niet dat iedere tabel door een 
 
 Dat onderscheid is essentieel. De procesmotor bepaalt **wanneer, door wie en onder welke voorwaarden** iets gebeurt. Een domeinmodule bepaalt **of en hoe** een contract, plaatsing, adres, verlofboeking of dossierdocument geldig wordt gewijzigd.
 
+### 2.1 Zo geef je Luna een faseopdracht
+
+Start Luna vanuit de repositoryroot `C:\Users\Edwin\Documents\Apps\LiquidHR`. Een web- of bestandslink is dan niet nodig: het repositorypad naar dit Markdown-document is voldoende.
+
+Gebruik voor P1 de volgende opdracht:
+
+```text
+Lees eerst volledig:
+
+- AGENTS.md
+- CODING_STANDARDS.md
+- docs/README.md
+- docs/delivery/CURRENT_CONTEXT.md
+- docs/delivery/IMPLEMENTATION_STATUS.md
+- docs/requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md
+
+Voer daarna uitsluitend P1 uit volgens de vaste startinstructie in hoofdstuk 20.7 en de Luna-opdracht voor P1 in hoofdstuk 20.8.
+
+Stop wanneer de P1-gate is bereikt. Begin niet aan P2. Voer geen databasewijzigingen, remote writes, product-AI, commit, push of deployment uit.
+
+Rapporteer de verificatie en eventuele blockers volgens hoofdstuk 20.10.
+```
+
+Voor een volgende fase wordt alleen `P1` vervangen door de expliciet vrijgegeven fase. De stopregel blijft altijd gelden: Luna begint nooit automatisch aan de daaropvolgende fase. Als de gekozen fase database- of remote werk vereist, is deze korte opdracht bovendien geen automatische toestemming daarvoor; de fasevoorwaarden en repository-instructies blijven leidend.
+
 ---
 
 ## 3. Canonieke begrippen

@@ -3,12 +3,13 @@ import { requirePermission, requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { LeaveServiceError } from './leave-service'
 import type { LeaveRequestConfirmInput, LeaveRequestPreviewQuery } from './schemas'
+import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOption } from './employment-resolver'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
-type EmploymentRow = Pick<Tables<'employments'>, 'id' | 'employee_id' | 'tenant_id' | 'administration_id' | 'starts_on' | 'ends_on' | 'record_status'>
+type EmploymentRow = LeaveEmployment
 type ScheduleRow = Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>
 type ConfirmLeaveRequestArgs = Omit<
-  Database['public']['Functions']['confirm_leave_request']['Args'],
+  Database['public']['Functions']['confirm_group_leave_request']['Args'],
   'requested_priority_rule_id' | 'requested_leave_type_id' | 'requested_specific_start' | 'requested_specific_end'
 > & {
   requested_priority_rule_id: string | null
@@ -35,6 +36,11 @@ export type LeaveRequestPreview = {
     status: 'AVAILABLE' | 'UNLIMITED' | 'NO_BALANCE'
   }>
   priorityRules: Array<{ id: string; name: string; itemCount: number }>
+  employmentSelection: {
+    required: boolean
+    selectedEmploymentId: string
+    options: LeaveEmploymentOption[]
+  }
 }
 
 function databaseError(error: { message?: string } | null): never {
@@ -51,28 +57,13 @@ async function loadEmployment(
   supabase: SupabaseServerClient,
   context: Awaited<ReturnType<typeof requireAuthContext>>,
   input: LeaveRequestPreviewQuery | LeaveRequestConfirmInput,
-): Promise<EmploymentRow> {
-  const administrationId = context.administrationId
-  if (!administrationId) throw new LeaveServiceError('LEAVE_ADMINISTRATION_REQUIRED', 400)
-  const date = input.startDate
-  let query = supabase
-    .from('employments')
-    .select('id, employee_id, tenant_id, administration_id, starts_on, ends_on, record_status')
-    .eq('tenant_id', context.tenantId)
-    .eq('administration_id', administrationId)
-    .eq('employee_id', input.employeeId)
-    .eq('record_status', 'CONFIRMED')
-  if (input.employmentId) query = query.eq('id', input.employmentId)
-  const result = await query.order('starts_on', { ascending: false }).limit(100)
-  if (result.error) databaseError(result.error)
-  const options = result.data.filter((row) => isActiveOn(row, date))
-  if (options.length === 0) throw new LeaveServiceError('LEAVE_EMPLOYMENT_REQUIRED', 400)
-  if (options.length > 1 && !input.employmentId) {
-    throw new LeaveServiceError('LEAVE_EMPLOYMENT_SELECTION_REQUIRED', 409, {
-      options: options.map((row) => ({ id: row.id, startsOn: row.starts_on, endsOn: row.ends_on })),
-    })
+): Promise<{ employment: EmploymentRow; options: LeaveEmploymentOption[] }> {
+  const selection = await resolveLeaveEmployment(supabase, context, input.employeeId, input.employmentId, input.startDate)
+  if (!selection.employment) {
+    if (selection.options.length > 1) throw new LeaveServiceError('LEAVE_EMPLOYMENT_SELECTION_REQUIRED', 409, { options: selection.options })
+    throw new LeaveServiceError(input.employmentId ? 'LEAVE_EMPLOYMENT_NOT_FOUND' : 'LEAVE_EMPLOYMENT_REQUIRED', input.employmentId ? 404 : 400)
   }
-  return options[0]
+  return { employment: selection.employment, options: selection.options }
 }
 
 function hoursForDay(schedule: ScheduleRow | null, date: string): number {
@@ -113,7 +104,8 @@ async function effectiveSchedule(supabase: SupabaseServerClient, employment: Emp
 export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): Promise<LeaveRequestPreview> {
   const supabase = await createClient()
   const context = await requirePermission('leave:request', input.employeeId)
-  const employment = await loadEmployment(supabase, context, input)
+  const selection = await loadEmployment(supabase, context, input)
+  const employment = selection.employment
   const endDate = input.endDate ?? input.startDate
   if (!isActiveOn(employment, endDate)) throw new LeaveServiceError('LEAVE_EMPLOYMENT_DATE_INVALID', 400)
   const dates = dateRange(input.startDate, endDate)
@@ -130,15 +122,15 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
   if (holidays.error) databaseError(holidays.error)
   const holidayDates = new Set(holidays.data.map((holiday) => holiday.holiday_date))
   const fullDayMinutes = scheduleRows.reduce((sum, schedule, index) => sum + (holidayDates.has(dates[index]) ? 0 : Math.round(hoursForDay(schedule, dates[index]) * 60)), 0)
-  const settings = await supabase.from('leave_settings').select('half_day_minutes').eq('tenant_id', context.tenantId).eq('administration_id', employment.administration_id).maybeSingle()
+  const settings = await supabase.from('leave_settings').select('half_day_minutes').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).maybeSingle()
   if (settings.error) databaseError(settings.error)
   const halfDayMinutes = settings.data?.half_day_minutes ?? 240
   const [types, buckets, transactions, priorityRules, priorityItems] = await Promise.all([
-    supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor').eq('tenant_id', context.tenantId).eq('administration_id', employment.administration_id).eq('is_active', true).order('name').limit(500),
-    supabase.from('leave_balance_buckets').select('id, leave_type_id, total_accrued, total_taken, total_expired, expiration_date').eq('tenant_id', context.tenantId).eq('administration_id', employment.administration_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).limit(2000),
-    supabase.from('leave_accrual_transactions').select('leave_type_id, amount, transaction_type, transaction_date').eq('tenant_id', context.tenantId).eq('administration_id', employment.administration_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).lte('transaction_date', '2100-12-31').limit(5000),
-    supabase.from('leave_priority_rules').select('id, name, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('administration_id', employment.administration_id).eq('is_active', true).lte('valid_from', input.startDate).or(`valid_until.is.null,valid_until.gte.${input.startDate}`).order('name').limit(100),
-    supabase.from('leave_priority_rule_items').select('priority_rule_id').eq('tenant_id', context.tenantId).eq('administration_id', employment.administration_id).limit(1000),
+    supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).order('name').limit(500),
+    supabase.from('leave_balance_buckets').select('id, leave_type_id, total_accrued, total_taken, total_expired, expiration_date').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).limit(2000),
+    supabase.from('leave_accrual_transactions').select('leave_type_id, amount, transaction_type, transaction_date').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).lte('transaction_date', '2100-12-31').limit(5000),
+    supabase.from('leave_priority_rules').select('id, name, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).lte('valid_from', input.startDate).or(`valid_until.is.null,valid_until.gte.${input.startDate}`).order('name').limit(100),
+    supabase.from('leave_priority_rule_items').select('priority_rule_id').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).limit(1000),
   ])
   if (types.error) databaseError(types.error)
   if (buckets.error) databaseError(buckets.error)
@@ -171,16 +163,22 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
       }
     }),
     priorityRules: priorityRules.data.map((rule) => ({ id: rule.id, name: rule.name, itemCount: priorityItems.data.filter((item) => item.priority_rule_id === rule.id).length })),
+    employmentSelection: {
+      required: selection.options.length > 1,
+      selectedEmploymentId: employment.id,
+      options: selection.options,
+    },
   }
 }
 
 export async function confirmLeaveRequest(input: LeaveRequestConfirmInput): Promise<{ requestId: string; employmentId: string }> {
   const supabase = await createClient()
   const context = await requirePermission('leave:request', input.employeeId)
-  const employment = await loadEmployment(supabase, context, input)
+  const selection = await loadEmployment(supabase, context, input)
+  const employment = selection.employment
   const args: ConfirmLeaveRequestArgs = {
     requested_tenant_id: context.tenantId,
-    requested_administration_id: employment.administration_id,
+    requested_hr_group_id: employment.hr_group_id,
     requested_employee_id: employment.employee_id,
     requested_employment_id: employment.id,
     requested_mode: input.mode,
@@ -195,8 +193,8 @@ export async function confirmLeaveRequest(input: LeaveRequestConfirmInput): Prom
   }
   // Postgres-functieargumenten mogen null zijn, maar de generator neemt die nullability niet op.
   const result = await supabase.rpc(
-    'confirm_leave_request',
-    args as unknown as Database['public']['Functions']['confirm_leave_request']['Args'],
+    'confirm_group_leave_request',
+    args as unknown as Database['public']['Functions']['confirm_group_leave_request']['Args'],
   )
   if (result.error || !result.data) databaseError(result.error)
   return { requestId: result.data, employmentId: employment.id }

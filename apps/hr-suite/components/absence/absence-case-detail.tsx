@@ -48,8 +48,12 @@ interface AbsenceCaseDetailProps {
     expectedRecoveryInput: string
     submit: string
     better: string
+    partialRecover?: string
     saveFailed: string
     close: string
+    employment?: string
+    employmentPlaceholder?: string
+    employmentSearch?: string
   }
 }
 
@@ -60,6 +64,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
       ? labels.recoveryWindow.replace('{date}', formatDate(absenceCase.recoveryWindowEndsOn, { locale, dateFormat }))
       : labels.nowNotSick
   const backHref = `/employees/${employeeId}?tab=absence&view=${compact ? 'compact' : 'expanded'}`
+  const resolvedEmploymentId = absenceCase.employmentId ?? employmentId
 
   return <div className="space-y-5">
     <Link prefetch={false} href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
@@ -117,7 +122,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
       </div>
     </section>
 
-    <AbsenceQuickForm employeeId={employeeId} employmentId={employmentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, recoveredOn: labels.recoveredOn, failed: labels.saveFailed, close: labels.close }} />
+    <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch }} />
   </div>
 }
 

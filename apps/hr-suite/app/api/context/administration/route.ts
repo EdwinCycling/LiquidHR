@@ -8,6 +8,7 @@ import {
 } from '@/lib/context/context-response'
 import {
   ACTIVE_ADMINISTRATION_COOKIE,
+  ACTIVE_HR_GROUP_COOKIE,
   ACTIVE_TENANT_COOKIE,
   loadActiveContext,
 } from '@/lib/context/server-context'
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
     }
 
     cookieStore.set(ACTIVE_TENANT_COOKIE, context.tenant.id, cookieOptions)
+    cookieStore.set(ACTIVE_HR_GROUP_COOKIE, context.activeHrGroup.id, cookieOptions)
     cookieStore.set(ACTIVE_ADMINISTRATION_COOKIE, administration.id, cookieOptions)
 
     return NextResponse.json({ data: { administration } })

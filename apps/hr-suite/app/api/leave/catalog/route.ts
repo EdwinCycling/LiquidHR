@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { assignLeaveProfile, createLeaveAccrualRule, createLeaveBonusRule, createLeaveCatalogItem, createLeaveException, createLeavePriorityRule, leaveErrorResponse, listLeaveCatalog, updateLeaveCatalogItem, updateLeavePriorityRule } from '@/lib/leave/leave-service'
+import { addEmployeeSetMember, assignLeaveProfile, createEmployeeSet, createLeaveAccrualRule, createLeaveBonusRule, createLeaveCatalogItem, createLeaveException, createLeavePriorityRule, leaveErrorResponse, listLeaveCatalog, updateLeaveCatalogItem, updateLeavePriorityRule } from '@/lib/leave/leave-service'
 import { leaveCatalogMutationSchema, leaveConfigurationMutationSchema } from '@/lib/leave/schemas'
 
 export async function GET() {
@@ -27,6 +27,8 @@ export async function POST(request: Request) {
     if (input.action === 'PRIORITY_RULE') return NextResponse.json({ data: await createLeavePriorityRule(input) }, { status: 201 })
     if (input.action === 'UPDATE_PRIORITY_RULE') return NextResponse.json({ data: await updateLeavePriorityRule(input) })
     if (input.action === 'PROFILE_ASSIGNMENT') return NextResponse.json({ data: await assignLeaveProfile(input) }, { status: 201 })
+    if (input.action === 'EMPLOYEE_SET') return NextResponse.json({ data: await createEmployeeSet(input) }, { status: 201 })
+    if (input.action === 'EMPLOYEE_SET_MEMBER') return NextResponse.json({ data: await addEmployeeSetMember(input) }, { status: 201 })
     return NextResponse.json({ error: 'LEAVE_CONFIGURATION_ACTION_NOT_AVAILABLE' }, { status: 501 })
   } catch (error) {
     return leaveErrorResponse(error)

@@ -13,6 +13,7 @@ import {
   MapPinned,
   Palette,
   ShieldCheck,
+  Layers3,
   Sparkles,
   Umbrella,
   Users,
@@ -142,6 +143,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('absence-settings:read'),
       allowed('contract:read'),
       allowed('talent:manage'),
+      allowed('hr-group:read'),
     ]),
   ])
 
@@ -160,6 +162,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     absenceSettings,
     employmentContracts,
     talentManage,
+    hrGroups,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -181,6 +184,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.roleAssignments'),
           description: messages('admin.tiles.roleAssignmentsDescription'),
           visible: authorization,
+        },
+        {
+          kind: 'link',
+          href: '/settings/hr-groups',
+          icon: Layers3,
+          title: messages('admin.tiles.hrGroups'),
+          description: messages('admin.tiles.hrGroupsDescription'),
+          visible: hrGroups,
         },
         {
           kind: 'link',

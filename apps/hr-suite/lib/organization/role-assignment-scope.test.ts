@@ -8,23 +8,15 @@ const departments = [
 ]
 
 describe('roltoewijzing-afdelingsscope', () => {
-  it('toont alleen afdelingen die in de actieve administratie voorkomen', () => {
-    const result = scopeRoleAssignmentDepartments(
-      departments,
-      [{ department_id: 'operations' }],
-      [{ department_id: 'services' }, { department_id: null }],
-    )
+  it('toont alle actieve afdelingen van de HR-groep', () => {
+    const result = scopeRoleAssignmentDepartments(departments)
 
-    expect(result).toEqual([departments[0], departments[1]])
+    expect(result).toEqual(departments)
   })
 
-  it('behoudt een bestaande toewijzing zonder actuele plaatsing', () => {
-    const result = scopeRoleAssignmentDepartments(
-      departments,
-      [],
-      [{ department_id: 'services' }],
-    )
+  it('verliest een afdeling zonder actuele plaatsing niet uit de groepsscope', () => {
+    const result = scopeRoleAssignmentDepartments(departments)
 
-    expect(result).toEqual([departments[1]])
+    expect(result).toContainEqual(departments[2])
   })
 })

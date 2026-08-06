@@ -1,5 +1,5 @@
 import type { Database, Json } from '@scope/db'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { JobCreateInput, JobGroupCreateInput, JobGroupUpdateInput, JobUpdateInput, SalaryRevisionInput, SalaryScaleCreateInput } from './schemas'
 
@@ -28,12 +28,13 @@ function databaseError(message: string): never {
 
 export async function listJobCatalog() {
   const auth = await tenantContext('job-catalog:read')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
   const canReadTalentArchitecture = await allowed('talent:read')
   const [groups, jobs, relations, families, seniorities] = await Promise.all([
-    supabase.from('job_groups').select('id, code, name, description, is_active, job_family_id').eq('tenant_id', auth.tenantId).order('code').limit(500),
-    supabase.from('jobs').select('id, code, job_group_id, seniority_id, is_active, job_revisions(id, name, description, valid_from, valid_until)').eq('tenant_id', auth.tenantId).order('code').limit(500),
-    supabase.from('job_group_jobs').select('job_id, job_group_id').eq('tenant_id', auth.tenantId).limit(5000),
+    supabase.from('job_groups').select('id, code, name, description, is_active, job_family_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).order('code').limit(500),
+    supabase.from('jobs').select('id, code, job_group_id, seniority_id, is_active, job_revisions!job_revisions_job_hr_group_fkey(id, name, description, valid_from, valid_until)').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).order('code').limit(500),
+    supabase.from('job_group_jobs').select('job_id, job_group_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).limit(5000),
     canReadTalentArchitecture ? supabase.from('job_families').select('id, code, name, description, status').eq('tenant_id', auth.tenantId).order('code').limit(500) : Promise.resolve({ data: [], error: null }),
     canReadTalentArchitecture ? supabase.from('talent_seniorities').select('id, code, name, description, sort_order, status').eq('tenant_id', auth.tenantId).order('sort_order').order('code').limit(500) : Promise.resolve({ data: [], error: null }),
   ])
@@ -59,10 +60,11 @@ async function assertActiveSeniority(supabase: Awaited<ReturnType<typeof createC
 
 export async function createJobGroup(input: JobGroupCreateInput) {
   const auth = await tenantContext('job-catalog:write')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
   await assertActiveJobFamily(supabase, auth.tenantId, input.jobFamilyId)
   const { data, error } = await supabase.from('job_groups').insert({
-    tenant_id: auth.tenantId, code: input.code.toUpperCase(),
+    tenant_id: auth.tenantId, hr_group_id: hrGroupId, code: input.code.toUpperCase(),
     name: input.name, description: input.description ?? null,
     job_family_id: input.jobFamilyId ?? null,
   }).select('id').single()
@@ -72,22 +74,24 @@ export async function createJobGroup(input: JobGroupCreateInput) {
 
 export async function createJob(input: JobCreateInput) {
   const auth = await tenantContext('job-catalog:write')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('create_job_with_revision', {
-    requested_tenant_id: auth.tenantId, requested_payload: input as Json,
+    requested_tenant_id: auth.tenantId, requested_hr_group_id: hrGroupId, requested_payload: input as Json,
   })
   if (error || !data) databaseError(error?.message ?? 'JOB_CREATE_FAILED')
   return data
 }
 
-async function assertActiveJobGroups(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string, groupIds: string[]): Promise<void> {
-  const { data, error } = await supabase.from('job_groups').select('id').eq('tenant_id', tenantId).eq('is_active', true).in('id', groupIds)
+async function assertActiveJobGroups(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string, hrGroupId: string, groupIds: string[]): Promise<void> {
+  const { data, error } = await supabase.from('job_groups').select('id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).in('id', groupIds)
   if (error) databaseError(error.message)
   if ((data ?? []).length !== new Set(groupIds).size) databaseError('JOB_GROUP_NOT_ACTIVE')
 }
 
 export async function updateJobGroup(groupId: string, input: JobGroupUpdateInput): Promise<void> {
   const auth = await tenantContext('job-catalog:write')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
   const payload: Database['public']['Tables']['job_groups']['Update'] = {}
   if (input.code !== undefined) payload.code = input.code.toUpperCase()
@@ -98,57 +102,60 @@ export async function updateJobGroup(groupId: string, input: JobGroupUpdateInput
     payload.job_family_id = input.jobFamilyId
   }
   if (input.isActive !== undefined) payload.is_active = input.isActive
-  const { data, error } = await supabase.from('job_groups').update(payload).eq('tenant_id', auth.tenantId).eq('id', groupId).select('id').maybeSingle()
+  const { data, error } = await supabase.from('job_groups').update(payload).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', groupId).select('id').maybeSingle()
   if (error) databaseError(error.message)
   if (!data) databaseError('JOB_GROUP_NOT_FOUND')
 }
 
 export async function deleteJobGroup(groupId: string): Promise<void> {
   const auth = await tenantContext('job-catalog:write')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
-  const { count, error: relationError } = await supabase.from('job_group_jobs').select('job_id', { count: 'exact', head: true }).eq('tenant_id', auth.tenantId).eq('job_group_id', groupId)
+  const { count, error: relationError } = await supabase.from('job_group_jobs').select('job_id', { count: 'exact', head: true }).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('job_group_id', groupId)
   if (relationError) databaseError(relationError.message)
   if ((count ?? 0) > 0) databaseError('JOB_GROUP_IN_USE')
-  const { data, error } = await supabase.from('job_groups').delete().eq('tenant_id', auth.tenantId).eq('id', groupId).select('id').maybeSingle()
+  const { data, error } = await supabase.from('job_groups').delete().eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', groupId).select('id').maybeSingle()
   if (error) databaseError(error.message)
   if (!data) databaseError('JOB_GROUP_NOT_FOUND')
 }
 
 export async function updateJob(jobId: string, input: JobUpdateInput): Promise<void> {
   const auth = await tenantContext('job-catalog:write')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
-  if (input.jobGroupIds) await assertActiveJobGroups(supabase, auth.tenantId, input.jobGroupIds)
+  if (input.jobGroupIds) await assertActiveJobGroups(supabase, auth.tenantId, hrGroupId, input.jobGroupIds)
   await assertActiveSeniority(supabase, auth.tenantId, input.seniorityId)
   const jobPayload: Database['public']['Tables']['jobs']['Update'] = {}
   if (input.code !== undefined) jobPayload.code = input.code.toUpperCase()
   if (input.isActive !== undefined) jobPayload.is_active = input.isActive
   if (input.jobGroupIds) jobPayload.job_group_id = input.jobGroupIds[0]
   if (input.seniorityId !== undefined) jobPayload.seniority_id = input.seniorityId
-  const { data: job, error: jobError } = await supabase.from('jobs').update(jobPayload).eq('tenant_id', auth.tenantId).eq('id', jobId).select('id').maybeSingle()
+  const { data: job, error: jobError } = await supabase.from('jobs').update(jobPayload).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', jobId).select('id').maybeSingle()
   if (jobError) databaseError(jobError.message)
   if (!job) databaseError('JOB_NOT_FOUND')
   if (input.jobGroupIds) {
-    const { error: deleteRelationsError } = await supabase.from('job_group_jobs').delete().eq('tenant_id', auth.tenantId).eq('job_id', jobId)
+    const { error: deleteRelationsError } = await supabase.from('job_group_jobs').delete().eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('job_id', jobId)
     if (deleteRelationsError) databaseError(deleteRelationsError.message)
-    const { error: relationError } = await supabase.from('job_group_jobs').insert(input.jobGroupIds.map((jobGroupId) => ({ tenant_id: auth.tenantId, job_group_id: jobGroupId, job_id: jobId })))
+    const { error: relationError } = await supabase.from('job_group_jobs').insert(input.jobGroupIds.map((jobGroupId) => ({ tenant_id: auth.tenantId, hr_group_id: hrGroupId, job_group_id: jobGroupId, job_id: jobId })))
     if (relationError) databaseError(relationError.message)
   }
   if (input.name !== undefined || input.description !== undefined) {
-    const { data: revision, error: revisionError } = await supabase.from('job_revisions').select('id, name, description').eq('tenant_id', auth.tenantId).eq('job_id', jobId).order('valid_from', { ascending: false }).limit(1).maybeSingle()
+    const { data: revision, error: revisionError } = await supabase.from('job_revisions').select('id, name, description').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('job_id', jobId).order('valid_from', { ascending: false }).limit(1).maybeSingle()
     if (revisionError) databaseError(revisionError.message)
     if (!revision) databaseError('JOB_REVISION_NOT_FOUND')
-    const { error } = await supabase.from('job_revisions').update({ name: input.name ?? revision.name, description: input.description === undefined ? revision.description : input.description }).eq('tenant_id', auth.tenantId).eq('id', revision.id)
+    const { error } = await supabase.from('job_revisions').update({ name: input.name ?? revision.name, description: input.description === undefined ? revision.description : input.description }).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', revision.id)
     if (error) databaseError(error.message)
   }
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
   const auth = await tenantContext('job-catalog:write')
+  const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
-  const { count, error: usageError } = await supabase.from('employee_organizations').select('id', { count: 'exact', head: true }).eq('tenant_id', auth.tenantId).eq('job_id', jobId)
+  const { count, error: usageError } = await supabase.from('employee_organizations').select('id', { count: 'exact', head: true }).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('job_id', jobId)
   if (usageError) databaseError(usageError.message)
   if ((count ?? 0) > 0) databaseError('JOB_IN_USE')
-  const { data, error } = await supabase.from('jobs').delete().eq('tenant_id', auth.tenantId).eq('id', jobId).select('id').maybeSingle()
+  const { data, error } = await supabase.from('jobs').delete().eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', jobId).select('id').maybeSingle()
   if (error) databaseError(error.message)
   if (!data) databaseError('JOB_NOT_FOUND')
 }

@@ -1,4 +1,4 @@
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { FrequentAbsenceQuery } from './frequent-absence-query'
 
@@ -52,15 +52,16 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
   const context = await requirePermission('report-absence:read')
   await requirePermission('employee:read')
   if (!context.administrationId) throw new Error('INSIGHTS_ADMINISTRATION_REQUIRED')
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const administrationId = context.administrationId
 
   const [settingsResult, employmentResult, departmentsResult, organizationResult, caseResult] = await Promise.all([
-    supabase.from('absence_settings').select('frequent_absence_threshold').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle(),
-    supabase.from('employments').select('id,employee_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate).or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000),
-    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
-    supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(10000),
-    supabase.from('absence_cases').select('id,employee_id,employment_id,first_absence_on').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).is('archived_at', null).gte('first_absence_on', query.startDate).lte('first_absence_on', query.endDate).limit(10000),
+    supabase.from('absence_settings').select('frequent_absence_threshold').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle(),
+    supabase.from('employments').select('id,employee_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate).or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000),
+    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('name').limit(500),
+    supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(10000),
+    supabase.from('absence_cases').select('id,employee_id,employment_id,first_absence_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('archived_at', null).gte('first_absence_on', query.startDate).lte('first_absence_on', query.endDate).limit(10000),
   ])
   if (settingsResult.error) throw new Error('INSIGHTS_FREQUENT_SETTINGS_FAILED')
   if (employmentResult.error) throw new Error('INSIGHTS_FREQUENT_REPORT_FAILED')
@@ -78,8 +79,8 @@ export async function getFrequentAbsenceReport(query: FrequentAbsenceQuery): Pro
   const caseIds = cases.map((item) => item.id)
 
   const [employeesResult, spellsResult] = await Promise.all([
-    employeeIds.length ? supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null).limit(10000) : Promise.resolve({ data: [], error: null }),
-    caseIds.length ? supabase.from('absence_spells').select('id,case_id,started_on,recovered_on').eq('tenant_id', context.tenantId).in('case_id', caseIds).limit(10000) : Promise.resolve({ data: [], error: null }),
+    employeeIds.length ? supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', employeeIds).is('deleted_at', null).limit(10000) : Promise.resolve({ data: [], error: null }),
+    caseIds.length ? supabase.from('absence_spells').select('id,case_id,started_on,recovered_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('case_id', caseIds).limit(10000) : Promise.resolve({ data: [], error: null }),
   ])
   if (employeesResult.error) throw new Error('INSIGHTS_FREQUENT_REPORT_FAILED')
   if (spellsResult.error) throw new Error('INSIGHTS_FREQUENT_REPORT_FAILED')

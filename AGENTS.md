@@ -93,4 +93,10 @@ De repository bevat vaste natuurlijke commando's. Gebruik `EdwinHelp` voor het a
 | **Maak project overview** | Gebruik [`docs/skills/project-overview/SKILL.md`](docs/skills/project-overview/SKILL.md): actuele code-, route-, database- en mandageninventaris; live records alleen als Supabase-MCP beschikbaar is. |
 | **Meet Next geheugen** | `.\scripts\measure-next-memory.ps1`: periodieke geheugenmeting van een draaiende Next-server naar het opgegeven CSV-bestand. |
 
-Gebruik voor de volledige uitleg en voorbeelden [`docs/DEVELOPER_TOOLKIT.md`](docs/DEVELOPER_TOOLKIT.md). Deze toolkit commit, pusht of merge't niet automatisch buiten de expliciete lokale actie van het gekozen commando.
+ Gebruik voor de volledige uitleg en voorbeelden [`docs/DEVELOPER_TOOLKIT.md`](docs/DEVELOPER_TOOLKIT.md). Deze toolkit commit, pusht of merge't niet automatisch buiten de expliciete lokale actie van het gekozen commando.
+
+### Feature worktree workflow in Codex-chat
+
+Werk tijdens een feature uitsluitend in de aparte worktree; wijzig de hoofdworkspace of `main` niet rechtstreeks. Stop bij een dirty worktree, mislukte merge, ontbrekende featurecommits in `main`, mislukte tests of mislukte deployment. Verwijder dan geen worktree of branch.
+
+Gebruik nooit `git reset --hard`, `git clean -fd`, force-push of geforceerde branchverwijdering zonder expliciete toestemming. `Feature samenvoegen` is de expliciete toestemming voor de beschreven merge/push-workflow.

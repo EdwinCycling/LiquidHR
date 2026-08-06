@@ -22,6 +22,7 @@ export type Database = {
           created_by_user_id: string | null
           effective_on: string
           expected_next_review_on: string | null
+          hr_group_id: string
           id: string
           spell_id: string
           tenant_id: string
@@ -33,6 +34,7 @@ export type Database = {
           created_by_user_id?: string | null
           effective_on: string
           expected_next_review_on?: string | null
+          hr_group_id: string
           id?: string
           spell_id: string
           tenant_id: string
@@ -44,11 +46,26 @@ export type Database = {
           created_by_user_id?: string | null
           effective_on?: string
           expected_next_review_on?: string | null
+          hr_group_id?: string
           id?: string
           spell_id?: string
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "absence_capacity_case_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_capacity_case_spell_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id", "spell_id"]
+            isOneToOne: false
+            referencedRelation: "absence_spells"
+            referencedColumns: ["tenant_id", "hr_group_id", "case_id", "id"]
+          },
           {
             foreignKeyName: "absence_capacity_changes_case_id_fkey"
             columns: ["case_id"]
@@ -61,6 +78,13 @@ export type Database = {
             columns: ["tenant_id", "case_id"]
             isOneToOne: false
             referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_capacity_changes_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -84,6 +108,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "absence_capacity_spell_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "spell_id"]
+            isOneToOne: false
+            referencedRelation: "absence_spells"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
         ]
       }
       absence_cases: {
@@ -100,6 +131,7 @@ export type Database = {
           first_absence_on: string
           frequent_absence_threshold: number
           has_sickness_benefit_safety_net: boolean | null
+          hr_group_id: string
           id: string
           is_frequent_absence: boolean
           is_third_party_traffic_accident: boolean | null
@@ -123,6 +155,7 @@ export type Database = {
           first_absence_on: string
           frequent_absence_threshold?: number
           has_sickness_benefit_safety_net?: boolean | null
+          hr_group_id: string
           id?: string
           is_frequent_absence?: boolean
           is_third_party_traffic_accident?: boolean | null
@@ -146,6 +179,7 @@ export type Database = {
           first_absence_on?: string
           frequent_absence_threshold?: number
           has_sickness_benefit_safety_net?: boolean | null
+          hr_group_id?: string
           id?: string
           is_frequent_absence?: boolean
           is_third_party_traffic_accident?: boolean | null
@@ -172,6 +206,13 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
+            foreignKeyName: "absence_cases_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "absence_cases_employment_scope_fkey"
             columns: [
               "tenant_id",
@@ -187,6 +228,13 @@ export type Database = {
               "employee_id",
               "id",
             ]
+          },
+          {
+            foreignKeyName: "absence_cases_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "absence_cases_manager_scope_fkey"
@@ -207,6 +255,7 @@ export type Database = {
       absence_mutations: {
         Row: {
           created_at: string
+          hr_group_id: string
           id: string
           operation_key: string
           operation_type: string
@@ -215,6 +264,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hr_group_id: string
           id?: string
           operation_key: string
           operation_type: string
@@ -223,6 +273,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hr_group_id?: string
           id?: string
           operation_key?: string
           operation_type?: string
@@ -230,6 +281,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "absence_mutations_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
           {
             foreignKeyName: "absence_mutations_result_case_id_fkey"
             columns: ["result_case_id"]
@@ -248,48 +306,51 @@ export type Database = {
       }
       absence_settings: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           default_case_manager_employee_id: string | null
           employee_self_report_enabled: boolean
           frequent_absence_threshold: number
+          hr_group_id: string
           id: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           default_case_manager_employee_id?: string | null
           employee_self_report_enabled?: boolean
           frequent_absence_threshold?: number
+          hr_group_id: string
           id?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           default_case_manager_employee_id?: string | null
           employee_self_report_enabled?: boolean
           frequent_absence_threshold?: number
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "absence_settings_administration_scope_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: true
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
             foreignKeyName: "absence_settings_default_manager_fkey"
             columns: ["tenant_id", "default_case_manager_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_settings_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -305,7 +366,9 @@ export type Database = {
         Row: {
           case_id: string
           created_at: string
+          employment_id: string
           expected_recovery_on: string | null
+          hr_group_id: string
           id: string
           recovered_at: string | null
           recovered_by_user_id: string | null
@@ -319,7 +382,9 @@ export type Database = {
         Insert: {
           case_id: string
           created_at?: string
+          employment_id: string
           expected_recovery_on?: string | null
+          hr_group_id: string
           id?: string
           recovered_at?: string | null
           recovered_by_user_id?: string | null
@@ -333,7 +398,9 @@ export type Database = {
         Update: {
           case_id?: string
           created_at?: string
+          employment_id?: string
           expected_recovery_on?: string | null
+          hr_group_id?: string
           id?: string
           recovered_at?: string | null
           recovered_by_user_id?: string | null
@@ -346,6 +413,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "absence_spells_case_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "id",
+              "employment_id",
+            ]
+          },
+          {
+            foreignKeyName: "absence_spells_case_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id"]
+            isOneToOne: false
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "absence_spells_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
@@ -357,6 +443,13 @@ export type Database = {
             columns: ["tenant_id", "case_id"]
             isOneToOne: false
             referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_spells_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -378,6 +471,7 @@ export type Database = {
           due_after_effective_days: number
           evidence_category: string | null
           evidence_required: boolean
+          hr_group_id: string
           id: string
           is_active: boolean
           is_system: boolean
@@ -398,6 +492,7 @@ export type Database = {
           due_after_effective_days: number
           evidence_category?: string | null
           evidence_required?: boolean
+          hr_group_id: string
           id?: string
           is_active?: boolean
           is_system?: boolean
@@ -418,6 +513,7 @@ export type Database = {
           due_after_effective_days?: number
           evidence_category?: string | null
           evidence_required?: boolean
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           is_system?: boolean
@@ -436,6 +532,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "administrations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_task_templates_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
             foreignKeyName: "absence_task_templates_tenant_id_fkey"
@@ -494,13 +597,13 @@ export type Database = {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
-          administration_id: string
           city: string | null
           country_code: string
           created_at: string
           created_by_user_id: string | null
           house_number: string | null
           house_number_addition: string | null
+          hr_group_id: string
           id: string
           postal_code: string | null
           region: string | null
@@ -515,13 +618,13 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
-          administration_id: string
           city?: string | null
           country_code?: string
           created_at?: string
           created_by_user_id?: string | null
           house_number?: string | null
           house_number_addition?: string | null
+          hr_group_id: string
           id?: string
           postal_code?: string | null
           region?: string | null
@@ -536,13 +639,13 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
-          administration_id?: string
           city?: string | null
           country_code?: string
           created_at?: string
           created_by_user_id?: string | null
           house_number?: string | null
           house_number_addition?: string | null
+          hr_group_id?: string
           id?: string
           postal_code?: string | null
           region?: string | null
@@ -556,10 +659,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "administration_company_data_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "administration_company_data_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: true
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -631,13 +734,13 @@ export type Database = {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
-          administration_id: string
           city: string | null
           country_code: string
           created_at: string
           created_by_user_id: string | null
           house_number: string | null
           house_number_addition: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           name: string
@@ -653,13 +756,13 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
-          administration_id: string
           city?: string | null
           country_code?: string
           created_at?: string
           created_by_user_id?: string | null
           house_number?: string | null
           house_number_addition?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           name: string
@@ -675,13 +778,13 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
-          administration_id?: string
           city?: string | null
           country_code?: string
           created_at?: string
           created_by_user_id?: string | null
           house_number?: string | null
           house_number_addition?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           name?: string
@@ -696,19 +799,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "administration_locations_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "administration_locations_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
       administrations: {
         Row: {
+          administration_number: string
           coc_number: string | null
           code: string
           created_at: string
+          hr_group_id: string
           id: string
           is_active: boolean
           name: string
@@ -718,9 +823,11 @@ export type Database = {
           vat_number: string | null
         }
         Insert: {
+          administration_number: string
           coc_number?: string | null
           code: string
           created_at?: string
+          hr_group_id: string
           id?: string
           is_active?: boolean
           name: string
@@ -730,9 +837,11 @@ export type Database = {
           vat_number?: string | null
         }
         Update: {
+          administration_number?: string
           coc_number?: string | null
           code?: string
           created_at?: string
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           name?: string
@@ -742,6 +851,13 @@ export type Database = {
           vat_number?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "administrations_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
           {
             foreignKeyName: "administrations_parent_same_tenant_fkey"
             columns: ["tenant_id", "parent_id"]
@@ -1765,36 +1881,36 @@ export type Database = {
       }
       department_management: {
         Row: {
-          administration_id: string
           created_at: string
           department_id: string | null
           effective_from: string
           effective_to: string | null
           employee_id: string
+          hr_group_id: string
           id: string
           management_role_id: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
           created_at?: string
           department_id?: string | null
           effective_from?: string
           effective_to?: string | null
           employee_id: string
+          hr_group_id: string
           id?: string
           management_role_id: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
           created_at?: string
           department_id?: string | null
           effective_from?: string
           effective_to?: string | null
           employee_id?: string
+          hr_group_id?: string
           id?: string
           management_role_id?: string
           tenant_id?: string
@@ -1802,11 +1918,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "department_management_administration_same_tenant_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "department_management_department_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "department_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "department_management_department_id_fkey"
@@ -1814,6 +1930,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_management_employee_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "department_management_employee_id_fkey"
@@ -1827,6 +1950,13 @@ export type Database = {
             columns: ["tenant_id", "employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "department_management_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -1847,58 +1977,55 @@ export type Database = {
       }
       departments: {
         Row: {
-          administration_id: string | null
           code: string
           created_at: string
           description: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           name: string
           parent_id: string | null
-          scope_type: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id?: string | null
           code: string
           created_at?: string
           description?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           name: string
           parent_id?: string | null
-          scope_type?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string | null
           code?: string
           created_at?: string
           description?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           name?: string
           parent_id?: string | null
-          scope_type?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "departments_administration_same_tenant_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "departments_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "departments_parent_same_tenant_fkey"
-            columns: ["tenant_id", "parent_id"]
+            foreignKeyName: "departments_parent_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "parent_id"]
             isOneToOne: false
             referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "departments_tenant_id_fkey"
@@ -2170,6 +2297,7 @@ export type Database = {
           effective_from: string
           effective_to: string | null
           employee_id: string
+          hr_group_id: string
           id: string
           tenant_id: string
           updated_at: string
@@ -2180,6 +2308,7 @@ export type Database = {
           effective_from?: string
           effective_to?: string | null
           employee_id: string
+          hr_group_id: string
           id?: string
           tenant_id: string
           updated_at?: string
@@ -2190,6 +2319,7 @@ export type Database = {
           effective_from?: string
           effective_to?: string | null
           employee_id?: string
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           updated_at?: string
@@ -2207,6 +2337,13 @@ export type Database = {
             columns: ["tenant_id", "employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_administration_assignments_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -2537,6 +2674,7 @@ export type Database = {
           effective_to: string | null
           employee_id: string
           employment_id: string | null
+          hr_group_id: string
           id: string
           job_id: string | null
           job_title: string | null
@@ -2555,6 +2693,7 @@ export type Database = {
           effective_to?: string | null
           employee_id: string
           employment_id?: string | null
+          hr_group_id: string
           id?: string
           job_id?: string | null
           job_title?: string | null
@@ -2573,6 +2712,7 @@ export type Database = {
           effective_to?: string | null
           employee_id?: string
           employment_id?: string | null
+          hr_group_id?: string
           id?: string
           job_id?: string | null
           job_title?: string | null
@@ -2589,6 +2729,13 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
+            foreignKeyName: "employee_organizations_department_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employee_organizations_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
@@ -2601,6 +2748,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_organizations_deputy_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "direct_manager_deputy_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employee_organizations_deputy_same_tenant_fkey"
@@ -2617,6 +2771,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employee_organizations_employee_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employee_organizations_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -2629,6 +2790,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_organizations_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employee_organizations_employment_scope_fkey"
@@ -2648,6 +2816,20 @@ export type Database = {
             ]
           },
           {
+            foreignKeyName: "employee_organizations_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_organizations_job_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employee_organizations_job_tenant_fkey"
             columns: ["tenant_id", "job_id"]
             isOneToOne: false
@@ -2655,11 +2837,11 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "employee_organizations_location_scope_fkey"
-            columns: ["tenant_id", "administration_id", "location_id"]
+            foreignKeyName: "employee_organizations_location_hr_group_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "location_id"]
             isOneToOne: false
             referencedRelation: "administration_locations"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employee_organizations_manager_employee_id_fkey"
@@ -2667,6 +2849,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_organizations_manager_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "direct_manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employee_organizations_manager_same_tenant_fkey"
@@ -2868,6 +3057,138 @@ export type Database = {
           },
         ]
       }
+      employee_set_members: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          employee_set_id: string
+          hr_group_id: string
+          id: string
+          tenant_id: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          employee_set_id: string
+          hr_group_id: string
+          id?: string
+          tenant_id: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          employee_set_id?: string
+          hr_group_id?: string
+          id?: string
+          tenant_id?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_set_members_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_set_members_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_set_members_set_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_set_id"]
+            isOneToOne: false
+            referencedRelation: "employee_sets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_set_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_sets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          leave_profile_id: string
+          name: string
+          priority: number
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          leave_profile_id: string
+          name: string
+          priority?: number
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          leave_profile_id?: string
+          name?: string
+          priority?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_sets_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_sets_profile_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_profile_id"]
+            isOneToOne: false
+            referencedRelation: "leave_profiles"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           auth_user_id: string | null
@@ -2884,6 +3205,7 @@ export type Database = {
           employee_number: string
           first_name: string
           gender: Database["public"]["Enums"]["gender"]
+          hr_group_id: string
           id: string
           initials: string | null
           is_active: boolean
@@ -2925,6 +3247,7 @@ export type Database = {
           employee_number: string
           first_name: string
           gender: Database["public"]["Enums"]["gender"]
+          hr_group_id: string
           id?: string
           initials?: string | null
           is_active?: boolean
@@ -2966,6 +3289,7 @@ export type Database = {
           employee_number?: string
           first_name?: string
           gender?: Database["public"]["Enums"]["gender"]
+          hr_group_id?: string
           id?: string
           initials?: string | null
           is_active?: boolean
@@ -2991,6 +3315,13 @@ export type Database = {
           work_phone_ext?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employees_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
           {
             foreignKeyName: "employees_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -3351,6 +3682,7 @@ export type Database = {
           employment_id: string
           ends_on: string | null
           flex_phase_id: string | null
+          hr_group_id: string
           id: string
           labor_condition_set_id: string
           probation_applies: boolean
@@ -3369,6 +3701,7 @@ export type Database = {
           employment_id: string
           ends_on?: string | null
           flex_phase_id?: string | null
+          hr_group_id: string
           id?: string
           labor_condition_set_id: string
           probation_applies?: boolean
@@ -3387,6 +3720,7 @@ export type Database = {
           employment_id?: string
           ends_on?: string | null
           flex_phase_id?: string | null
+          hr_group_id?: string
           id?: string
           labor_condition_set_id?: string
           probation_applies?: boolean
@@ -3398,6 +3732,13 @@ export type Database = {
           worker_type?: Database["public"]["Enums"]["employment_worker_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "employment_contracts_administration_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
           {
             foreignKeyName: "employment_contracts_employment_fkey"
             columns: [
@@ -3416,11 +3757,32 @@ export type Database = {
             ]
           },
           {
+            foreignKeyName: "employment_contracts_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employment_contracts_flex_phase_fkey"
             columns: ["tenant_id", "administration_id", "flex_phase_id"]
             isOneToOne: false
             referencedRelation: "flex_phases"
             referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_labor_condition_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "labor_condition_set_id"]
+            isOneToOne: false
+            referencedRelation: "labor_condition_sets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "employment_contracts_labor_condition_set_fkey"
@@ -3666,6 +4028,7 @@ export type Database = {
           employee_id: string
           employment_contract_id: string
           employment_id: string
+          hr_group_id: string
           id: string
           tenant_id: string
           updated_at: string
@@ -3680,6 +4043,7 @@ export type Database = {
           employee_id: string
           employment_contract_id: string
           employment_id: string
+          hr_group_id: string
           id?: string
           tenant_id: string
           updated_at?: string
@@ -3694,6 +4058,7 @@ export type Database = {
           employee_id?: string
           employment_contract_id?: string
           employment_id?: string
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           updated_at?: string
@@ -3728,6 +4093,23 @@ export type Database = {
             ]
           },
           {
+            foreignKeyName: "employment_labor_conditions_contract_hr_group_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "employment_id",
+              "employment_contract_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "employment_id",
+              "id",
+            ]
+          },
+          {
             foreignKeyName: "employment_labor_conditions_employment_fkey"
             columns: [
               "tenant_id",
@@ -3744,6 +4126,20 @@ export type Database = {
               "id",
             ]
           },
+          {
+            foreignKeyName: "employment_labor_conditions_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_labor_conditions_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
         ]
       }
       employment_leave_profiles: {
@@ -3753,6 +4149,7 @@ export type Database = {
           created_by: string | null
           employee_id: string
           employment_id: string
+          hr_group_id: string
           id: string
           leave_profile_id: string
           tenant_id: string
@@ -3766,6 +4163,7 @@ export type Database = {
           created_by?: string | null
           employee_id: string
           employment_id: string
+          hr_group_id: string
           id?: string
           leave_profile_id: string
           tenant_id: string
@@ -3779,6 +4177,7 @@ export type Database = {
           created_by?: string | null
           employee_id?: string
           employment_id?: string
+          hr_group_id?: string
           id?: string
           leave_profile_id?: string
           tenant_id?: string
@@ -3805,11 +4204,25 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "employment_leave_profiles_profile_fkey"
-            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            foreignKeyName: "employment_leave_profiles_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_leave_profiles_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_leave_profiles_profile_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_profile_id"]
             isOneToOne: false
             referencedRelation: "leave_profiles"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -4141,6 +4554,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           hours: number
+          hr_group_id: string
           id: string
           note: string | null
           source_key: string | null
@@ -4160,6 +4574,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           hours: number
+          hr_group_id: string
           id?: string
           note?: string | null
           source_key?: string | null
@@ -4179,6 +4594,7 @@ export type Database = {
           employee_id?: string
           employment_id?: string
           hours?: number
+          hr_group_id?: string
           id?: string
           note?: string | null
           source_key?: string | null
@@ -4208,11 +4624,25 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "employment_work_hour_entries_type_fkey"
-            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            foreignKeyName: "employment_work_hour_entries_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_work_hour_entries_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_work_hour_entries_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_hour_type_id"]
             isOneToOne: false
             referencedRelation: "work_hour_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -4366,6 +4796,7 @@ export type Database = {
           employment_number: string
           employment_type: Database["public"]["Enums"]["employment_type"]
           ends_on: string | null
+          hr_group_id: string
           id: string
           is_primary: boolean
           original_hire_date: string
@@ -4388,6 +4819,7 @@ export type Database = {
           employment_number: string
           employment_type?: Database["public"]["Enums"]["employment_type"]
           ends_on?: string | null
+          hr_group_id: string
           id?: string
           is_primary?: boolean
           original_hire_date: string
@@ -4410,6 +4842,7 @@ export type Database = {
           employment_number?: string
           employment_type?: Database["public"]["Enums"]["employment_type"]
           ends_on?: string | null
+          hr_group_id?: string
           id?: string
           is_primary?: boolean
           original_hire_date?: string
@@ -4423,6 +4856,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "employments_administration_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employments_administration_same_tenant_fkey"
             columns: ["tenant_id", "administration_id"]
             isOneToOne: false
@@ -4430,10 +4870,24 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
+            foreignKeyName: "employments_employee_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employments_employee_same_tenant_fkey"
             columns: ["tenant_id", "employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employments_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -4605,6 +5059,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "holiday_calendars"
             referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+        ]
+      }
+      hr_groups: {
+        Row: {
+          code: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4786,29 +5287,53 @@ export type Database = {
       job_group_jobs: {
         Row: {
           created_at: string
+          hr_group_id: string
           job_group_id: string
           job_id: string
           tenant_id: string
         }
         Insert: {
           created_at?: string
+          hr_group_id: string
           job_group_id: string
           job_id: string
           tenant_id: string
         }
         Update: {
           created_at?: string
+          hr_group_id?: string
           job_group_id?: string
           job_id?: string
           tenant_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "job_group_jobs_group_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "job_group_id"]
+            isOneToOne: false
+            referencedRelation: "job_groups"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "job_group_jobs_group_tenant_fkey"
             columns: ["tenant_id", "job_group_id"]
             isOneToOne: false
             referencedRelation: "job_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_group_jobs_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_group_jobs_job_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "job_group_jobs_job_tenant_fkey"
@@ -4831,6 +5356,7 @@ export type Database = {
           code: string
           created_at: string
           description: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           job_family_id: string | null
@@ -4842,6 +5368,7 @@ export type Database = {
           code: string
           created_at?: string
           description?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           job_family_id?: string | null
@@ -4853,6 +5380,7 @@ export type Database = {
           code?: string
           created_at?: string
           description?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           job_family_id?: string | null
@@ -4861,6 +5389,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "job_groups_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
           {
             foreignKeyName: "job_groups_job_family_tenant_fkey"
             columns: ["tenant_id", "job_family_id"]
@@ -5081,6 +5616,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          hr_group_id: string
           id: string
           job_id: string
           name: string
@@ -5092,6 +5628,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          hr_group_id: string
           id?: string
           job_id: string
           name: string
@@ -5103,6 +5640,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          hr_group_id?: string
           id?: string
           job_id?: string
           name?: string
@@ -5112,6 +5650,20 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "job_revisions_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "job_revisions_job_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
           {
             foreignKeyName: "job_revisions_job_tenant_fkey"
             columns: ["tenant_id", "job_id"]
@@ -5125,6 +5677,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          hr_group_id: string
           id: string
           is_active: boolean
           job_group_id: string
@@ -5135,6 +5688,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
+          hr_group_id: string
           id?: string
           is_active?: boolean
           job_group_id: string
@@ -5145,6 +5699,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           job_group_id?: string
@@ -5153,6 +5708,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "jobs_job_group_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "job_group_id"]
+            isOneToOne: false
+            referencedRelation: "job_groups"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
           {
             foreignKeyName: "jobs_job_group_tenant_fkey"
             columns: ["tenant_id", "job_group_id"]
@@ -5174,6 +5743,7 @@ export type Database = {
           administration_id: string
           code: string
           created_at: string
+          hr_group_id: string
           id: string
           is_active: boolean
           name: string
@@ -5185,6 +5755,7 @@ export type Database = {
           administration_id: string
           code: string
           created_at?: string
+          hr_group_id: string
           id?: string
           is_active?: boolean
           name: string
@@ -5196,6 +5767,7 @@ export type Database = {
           administration_id?: string
           code?: string
           created_at?: string
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           name?: string
@@ -5209,6 +5781,20 @@ export type Database = {
             columns: ["tenant_id", "administration_id"]
             isOneToOne: false
             referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "labor_condition_sets_administration_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "labor_condition_sets_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -5229,6 +5815,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           expiration_months: number | null
+          hr_group_id: string
           id: string
           leave_type_id: string
           no_accrual: boolean
@@ -5246,6 +5833,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           expiration_months?: number | null
+          hr_group_id: string
           id?: string
           leave_type_id: string
           no_accrual?: boolean
@@ -5263,6 +5851,7 @@ export type Database = {
           employee_id?: string
           employment_id?: string
           expiration_months?: number | null
+          hr_group_id?: string
           id?: string
           leave_type_id?: string
           no_accrual?: boolean
@@ -5291,89 +5880,123 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "leave_accrual_exceptions_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_accrual_exceptions_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_exceptions_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_exceptions_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_accrual_rule_pause_types: {
         Row: {
           accrual_rule_id: string
-          administration_id: string
+          administration_id: string | null
           created_at: string
+          hr_group_id: string
           pause_leave_type_id: string
           tenant_id: string
         }
         Insert: {
           accrual_rule_id: string
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id: string
           pause_leave_type_id: string
           tenant_id: string
         }
         Update: {
           accrual_rule_id?: string
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id?: string
           pause_leave_type_id?: string
           tenant_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "leave_accrual_rule_pause_types_rule_fkey"
-            columns: ["tenant_id", "administration_id", "accrual_rule_id"]
+            foreignKeyName: "leave_accrual_rule_pause_types_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "leave_accrual_rules"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "leave_accrual_rule_pause_types_type_fkey"
-            columns: ["tenant_id", "administration_id", "pause_leave_type_id"]
+            foreignKeyName: "leave_accrual_rule_pause_types_rule_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "accrual_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_accrual_rules"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rule_pause_types_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "pause_leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_accrual_rule_work_hour_types: {
         Row: {
           accrual_rule_id: string
-          administration_id: string
+          administration_id: string | null
           created_at: string
+          hr_group_id: string
           tenant_id: string
           work_hour_type_id: string
         }
         Insert: {
           accrual_rule_id: string
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id: string
           tenant_id: string
           work_hour_type_id: string
         }
         Update: {
           accrual_rule_id?: string
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id?: string
           tenant_id?: string
           work_hour_type_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "leave_accrual_rule_work_hour_types_rule_fkey"
-            columns: ["tenant_id", "administration_id", "accrual_rule_id"]
+            foreignKeyName: "leave_accrual_rule_work_hour_types_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "leave_accrual_rules"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "leave_accrual_rule_work_hour_types_type_fkey"
-            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            foreignKeyName: "leave_accrual_rule_work_hour_types_rule_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "accrual_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_accrual_rules"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rule_work_hour_types_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_hour_type_id"]
             isOneToOne: false
             referencedRelation: "work_hour_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -5384,10 +6007,11 @@ export type Database = {
           accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
           accrual_rate: number | null
           accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
-          administration_id: string
+          administration_id: string | null
           created_at: string
           created_by: string | null
           expiration_months: number
+          hr_group_id: string
           id: string
           leave_profile_id: string
           leave_type_id: string
@@ -5403,10 +6027,11 @@ export type Database = {
           accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
           accrual_rate?: number | null
           accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
           expiration_months: number
+          hr_group_id: string
           id?: string
           leave_profile_id: string
           leave_type_id: string
@@ -5422,10 +6047,11 @@ export type Database = {
           accrual_frequency?: Database["public"]["Enums"]["leave_accrual_frequency"]
           accrual_rate?: number | null
           accrual_timing?: Database["public"]["Enums"]["leave_accrual_timing"]
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
           expiration_months?: number
+          hr_group_id?: string
           id?: string
           leave_profile_id?: string
           leave_type_id?: string
@@ -5437,6 +6063,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "leave_accrual_rules_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
             foreignKeyName: "leave_accrual_rules_predecessor_rule_id_fkey"
             columns: ["predecessor_rule_id"]
             isOneToOne: false
@@ -5444,18 +6077,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "leave_accrual_rules_profile_fkey"
-            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            foreignKeyName: "leave_accrual_rules_profile_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_profile_id"]
             isOneToOne: false
             referencedRelation: "leave_profiles"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
-            foreignKeyName: "leave_accrual_rules_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_accrual_rules_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -5468,6 +6101,7 @@ export type Database = {
           created_at: string
           employee_id: string
           employment_id: string
+          hr_group_id: string
           id: string
           leave_type_id: string
           reason: string | null
@@ -5486,6 +6120,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           employment_id: string
+          hr_group_id: string
           id?: string
           leave_type_id: string
           reason?: string | null
@@ -5504,6 +6139,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           employment_id?: string
+          hr_group_id?: string
           id?: string
           leave_type_id?: string
           reason?: string | null
@@ -5536,6 +6172,20 @@ export type Database = {
               "id",
             ]
           },
+          {
+            foreignKeyName: "leave_accrual_transactions_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_transactions_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
         ]
       }
       leave_balance_buckets: {
@@ -5547,6 +6197,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           expiration_date: string
+          hr_group_id: string
           id: string
           leave_type_id: string
           tenant_id: string
@@ -5563,6 +6214,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           expiration_date: string
+          hr_group_id: string
           id?: string
           leave_type_id: string
           tenant_id: string
@@ -5579,6 +6231,7 @@ export type Database = {
           employee_id?: string
           employment_id?: string
           expiration_date?: string
+          hr_group_id?: string
           id?: string
           leave_type_id?: string
           tenant_id?: string
@@ -5606,20 +6259,35 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "leave_balance_buckets_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_balance_buckets_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_balance_buckets_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_balance_buckets_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_bonus_rules: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           award_timing: Database["public"]["Enums"]["leave_bonus_award_timing"]
           created_at: string
           created_by: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           leave_profile_id: string
@@ -5631,10 +6299,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           award_timing: Database["public"]["Enums"]["leave_bonus_award_timing"]
           created_at?: string
           created_by?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           leave_profile_id: string
@@ -5646,10 +6315,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           award_timing?: Database["public"]["Enums"]["leave_bonus_award_timing"]
           created_at?: string
           created_by?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           leave_profile_id?: string
@@ -5662,47 +6332,57 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_bonus_rules_profile_fkey"
-            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            foreignKeyName: "leave_bonus_rules_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "leave_profiles"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "leave_bonus_rules_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_bonus_rules_profile_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_profile_id"]
+            isOneToOne: false
+            referencedRelation: "leave_profiles"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_bonus_rules_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_bonus_tiers: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           bonus_amount: number
           bonus_rule_id: string
           created_at: string
+          hr_group_id: string
           id: string
           tenant_id: string
           threshold_years: number
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           bonus_amount: number
           bonus_rule_id: string
           created_at?: string
+          hr_group_id: string
           id?: string
           tenant_id: string
           threshold_years: number
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           bonus_amount?: number
           bonus_rule_id?: string
           created_at?: string
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           threshold_years?: number
@@ -5710,34 +6390,44 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_bonus_tiers_rule_fkey"
-            columns: ["tenant_id", "administration_id", "bonus_rule_id"]
+            foreignKeyName: "leave_bonus_tiers_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_bonus_tiers_rule_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "bonus_rule_id"]
             isOneToOne: false
             referencedRelation: "leave_bonus_rules"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_priority_rule_items: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
+          hr_group_id: string
           leave_type_id: string
           priority_rule_id: string
           sort_order: number
           tenant_id: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id: string
           leave_type_id: string
           priority_rule_id: string
           sort_order: number
           tenant_id: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id?: string
           leave_type_id?: string
           priority_rule_id?: string
           sort_order?: number
@@ -5745,26 +6435,34 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_priority_rule_items_rule_fkey"
-            columns: ["tenant_id", "administration_id", "priority_rule_id"]
+            foreignKeyName: "leave_priority_rule_items_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "leave_priority_rules"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "leave_priority_rule_items_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_priority_rule_items_rule_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "priority_rule_id"]
+            isOneToOne: false
+            referencedRelation: "leave_priority_rules"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_priority_rule_items_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_priority_rules: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           created_by: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           leave_profile_id: string
@@ -5775,9 +6473,10 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           leave_profile_id: string
@@ -5788,9 +6487,10 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           leave_profile_id?: string
@@ -5802,46 +6502,59 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_priority_rules_profile_fkey"
-            columns: ["tenant_id", "administration_id", "leave_profile_id"]
+            foreignKeyName: "leave_priority_rules_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_priority_rules_profile_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_profile_id"]
             isOneToOne: false
             referencedRelation: "leave_profiles"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_profiles: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
+          is_group_default: boolean
           name: string
           tenant_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
+          is_group_default?: boolean
           name: string
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
+          is_group_default?: boolean
           name?: string
           tenant_id?: string
           updated_at?: string
@@ -5849,10 +6562,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_profiles_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "leave_profiles_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -5872,6 +6585,7 @@ export type Database = {
           created_at: string
           employee_id: string
           employment_id: string
+          hr_group_id: string
           id: string
           leave_type_id: string
           request_id: string
@@ -5885,6 +6599,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           employment_id: string
+          hr_group_id: string
           id?: string
           leave_type_id: string
           request_id: string
@@ -5898,6 +6613,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           employment_id?: string
+          hr_group_id?: string
           id?: string
           leave_type_id?: string
           request_id?: string
@@ -5906,10 +6622,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_request_allocations_bucket_fkey"
+            foreignKeyName: "leave_request_allocations_bucket_group_fkey"
             columns: [
               "tenant_id",
-              "administration_id",
+              "hr_group_id",
               "employment_id",
               "leave_type_id",
               "bucket_id",
@@ -5918,7 +6634,7 @@ export type Database = {
             referencedRelation: "leave_balance_buckets"
             referencedColumns: [
               "tenant_id",
-              "administration_id",
+              "hr_group_id",
               "employment_id",
               "leave_type_id",
               "id",
@@ -5942,18 +6658,32 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "leave_request_allocations_request_fkey"
-            columns: ["tenant_id", "administration_id", "request_id"]
+            foreignKeyName: "leave_request_allocations_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
             isOneToOne: false
-            referencedRelation: "leave_requests"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
-            foreignKeyName: "leave_request_allocations_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_request_allocations_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_request_allocations_request_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "leave_requests"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_request_allocations_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -5965,6 +6695,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           end_date: string
+          hr_group_id: string
           id: string
           idempotency_key: string
           leave_type_id: string | null
@@ -5987,6 +6718,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           end_date: string
+          hr_group_id: string
           id?: string
           idempotency_key: string
           leave_type_id?: string | null
@@ -6009,6 +6741,7 @@ export type Database = {
           employee_id?: string
           employment_id?: string
           end_date?: string
+          hr_group_id?: string
           id?: string
           idempotency_key?: string
           leave_type_id?: string | null
@@ -6043,52 +6776,69 @@ export type Database = {
             ]
           },
           {
-            foreignKeyName: "leave_requests_leave_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_requests_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
             isOneToOne: false
-            referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
-            foreignKeyName: "leave_requests_priority_rule_fkey"
-            columns: ["tenant_id", "administration_id", "priority_rule_id"]
+            foreignKeyName: "leave_requests_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_requests_priority_rule_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "priority_rule_id"]
             isOneToOne: false
             referencedRelation: "leave_priority_rules"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_settings: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
           half_day_minutes: number
+          hr_group_id: string
           id: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
           half_day_minutes?: number
+          hr_group_id: string
           id?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
           half_day_minutes?: number
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "leave_settings_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: true
-            referencedRelation: "administrations"
+            foreignKeyName: "leave_settings_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -6102,13 +6852,14 @@ export type Database = {
       }
       leave_types: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           allow_limit_overrun: boolean
           annual_hours_cap: number | null
           color_code: string
           created_at: string
           created_by: string | null
           entitlement_mode: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          hr_group_id: string
           id: string
           is_active: boolean
           is_self_service: boolean
@@ -6125,13 +6876,14 @@ export type Database = {
           weekly_hours_cap_factor: number | null
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           allow_limit_overrun?: boolean
           annual_hours_cap?: number | null
           color_code?: string
           created_at?: string
           created_by?: string | null
           entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          hr_group_id: string
           id?: string
           is_active?: boolean
           is_self_service?: boolean
@@ -6148,13 +6900,14 @@ export type Database = {
           weekly_hours_cap_factor?: number | null
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           allow_limit_overrun?: boolean
           annual_hours_cap?: number | null
           color_code?: string
           created_at?: string
           created_by?: string | null
           entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           is_self_service?: boolean
@@ -6172,10 +6925,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_types_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "leave_types_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -6189,8 +6942,9 @@ export type Database = {
       }
       leave_year_controls: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           created_at: string
+          hr_group_id: string
           id: string
           locked_at: string | null
           locked_by: string | null
@@ -6200,8 +6954,9 @@ export type Database = {
           year: number
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id: string
           id?: string
           locked_at?: string | null
           locked_by?: string | null
@@ -6211,8 +6966,9 @@ export type Database = {
           year: number
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           created_at?: string
+          hr_group_id?: string
           id?: string
           locked_at?: string | null
           locked_by?: string | null
@@ -6223,10 +6979,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_year_controls_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "leave_year_controls_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -6240,10 +6996,11 @@ export type Database = {
       }
       leave_year_rollover_items: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           carried_hours: number
           created_at: string
           employment_id: string
+          hr_group_id: string
           id: string
           leave_type_id: string
           original_expiration_date: string
@@ -6252,10 +7009,11 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           carried_hours: number
           created_at?: string
           employment_id: string
+          hr_group_id: string
           id?: string
           leave_type_id: string
           original_expiration_date: string
@@ -6264,10 +7022,11 @@ export type Database = {
           tenant_id: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           carried_hours?: number
           created_at?: string
           employment_id?: string
+          hr_group_id?: string
           id?: string
           leave_type_id?: string
           original_expiration_date?: string
@@ -6277,10 +7036,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leave_year_rollover_items_bucket_fkey"
+            foreignKeyName: "leave_year_rollover_items_bucket_group_fkey"
             columns: [
               "tenant_id",
-              "administration_id",
+              "hr_group_id",
               "employment_id",
               "leave_type_id",
               "source_bucket_id",
@@ -6289,72 +7048,89 @@ export type Database = {
             referencedRelation: "leave_balance_buckets"
             referencedColumns: [
               "tenant_id",
-              "administration_id",
+              "hr_group_id",
               "employment_id",
               "leave_type_id",
               "id",
             ]
           },
           {
-            foreignKeyName: "leave_year_rollover_items_employment_fkey"
-            columns: ["tenant_id", "administration_id", "employment_id"]
+            foreignKeyName: "leave_year_rollover_items_employment_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
             isOneToOne: false
             referencedRelation: "employments"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
-            foreignKeyName: "leave_year_rollover_items_rollover_fkey"
-            columns: ["tenant_id", "administration_id", "rollover_id"]
+            foreignKeyName: "leave_year_rollover_items_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_year_rollover_items_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_year_rollover_items_rollover_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "rollover_id"]
             isOneToOne: false
             referencedRelation: "leave_year_rollovers"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
-            foreignKeyName: "leave_year_rollover_items_type_fkey"
-            columns: ["tenant_id", "administration_id", "leave_type_id"]
+            foreignKeyName: "leave_year_rollover_items_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       leave_year_rollovers: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           completed_at: string
           completed_by: string | null
           created_at: string
           from_year: number
+          hr_group_id: string
           id: string
           tenant_id: string
           to_year: number
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           completed_at?: string
           completed_by?: string | null
           created_at?: string
           from_year: number
+          hr_group_id: string
           id?: string
           tenant_id: string
           to_year: number
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           completed_at?: string
           completed_by?: string | null
           created_at?: string
           from_year?: number
+          hr_group_id?: string
           id?: string
           tenant_id?: string
           to_year?: number
         }
         Relationships: [
           {
-            foreignKeyName: "leave_year_rollovers_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "leave_year_rollovers_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -6421,12 +7197,13 @@ export type Database = {
       }
       overtime_type_exceptions: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           allow_overtime_entry: boolean
           contract_hours_factor: number | null
           created_at: string
           created_by: string | null
           employee_id: string
+          hr_group_id: string
           id: string
           is_self_service: boolean
           limit_hours: number | null
@@ -6437,12 +7214,13 @@ export type Database = {
           work_hour_type_id: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           allow_overtime_entry?: boolean
           contract_hours_factor?: number | null
           created_at?: string
           created_by?: string | null
           employee_id: string
+          hr_group_id: string
           id?: string
           is_self_service?: boolean
           limit_hours?: number | null
@@ -6453,12 +7231,13 @@ export type Database = {
           work_hour_type_id: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           allow_overtime_entry?: boolean
           contract_hours_factor?: number | null
           created_at?: string
           created_by?: string | null
           employee_id?: string
+          hr_group_id?: string
           id?: string
           is_self_service?: boolean
           limit_hours?: number | null
@@ -6477,20 +7256,21 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
-            foreignKeyName: "overtime_type_exceptions_scope_fkey"
-            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
+            foreignKeyName: "overtime_type_exceptions_scope_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_hour_type_id"]
             isOneToOne: false
             referencedRelation: "work_hour_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       overtime_type_settings: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           contract_hours_factor: number | null
           created_at: string
           created_by: string | null
+          hr_group_id: string
           id: string
           is_self_service: boolean
           limit_hours: number | null
@@ -6502,10 +7282,11 @@ export type Database = {
           work_hour_type_id: string
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           contract_hours_factor?: number | null
           created_at?: string
           created_by?: string | null
+          hr_group_id: string
           id?: string
           is_self_service?: boolean
           limit_hours?: number | null
@@ -6517,10 +7298,11 @@ export type Database = {
           work_hour_type_id: string
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           contract_hours_factor?: number | null
           created_at?: string
           created_by?: string | null
+          hr_group_id?: string
           id?: string
           is_self_service?: boolean
           limit_hours?: number | null
@@ -6533,11 +7315,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "overtime_type_settings_scope_fkey"
-            columns: ["tenant_id", "administration_id", "work_hour_type_id"]
-            isOneToOne: true
+            foreignKeyName: "overtime_type_settings_scope_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_hour_type_id"]
+            isOneToOne: false
             referencedRelation: "work_hour_types"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -9549,6 +10331,7 @@ export type Database = {
         Row: {
           administration_id: string | null
           created_at: string
+          hr_group_id: string | null
           id: string
           is_active: boolean
           management_role_id: string
@@ -9560,6 +10343,7 @@ export type Database = {
         Insert: {
           administration_id?: string | null
           created_at?: string
+          hr_group_id?: string | null
           id?: string
           is_active?: boolean
           management_role_id: string
@@ -9571,6 +10355,7 @@ export type Database = {
         Update: {
           administration_id?: string | null
           created_at?: string
+          hr_group_id?: string | null
           id?: string
           is_active?: boolean
           management_role_id?: string
@@ -9588,6 +10373,13 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
+            foreignKeyName: "user_access_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
             foreignKeyName: "user_access_management_role_id_fkey"
             columns: ["management_role_id"]
             isOneToOne: false
@@ -9599,6 +10391,54 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_hr_group_access: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          management_role_id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          management_role_id: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          management_role_id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_hr_group_access_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "user_hr_group_access_management_role_id_fkey"
+            columns: ["management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -9739,11 +10579,12 @@ export type Database = {
       }
       work_hour_types: {
         Row: {
-          administration_id: string
+          administration_id: string | null
           category: Database["public"]["Enums"]["work_hour_type_category"]
           color_code: string
           created_at: string
           created_by: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           is_self_service: boolean
@@ -9754,11 +10595,12 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          administration_id: string
+          administration_id?: string | null
           category: Database["public"]["Enums"]["work_hour_type_category"]
           color_code?: string
           created_at?: string
           created_by?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           is_self_service?: boolean
@@ -9769,11 +10611,12 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          administration_id?: string
+          administration_id?: string | null
           category?: Database["public"]["Enums"]["work_hour_type_category"]
           color_code?: string
           created_at?: string
           created_by?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           is_self_service?: boolean
@@ -9785,10 +10628,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "work_hour_types_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "work_hour_types_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -9918,6 +10761,20 @@ export type Database = {
         }
         Returns: string
       }
+      apply_group_leave_manual_adjustment: {
+        Args: {
+          requested_accrual_year: number
+          requested_amount: number
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_reason: string
+          requested_source_key: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       apply_leave_manual_adjustment: {
         Args: {
           requested_accrual_year: number
@@ -9936,6 +10793,16 @@ export type Database = {
         Args: { requested_tenant_id: string }
         Returns: string
       }
+      change_absence_capacity: {
+        Args: {
+          requested_absence_percentage: number
+          requested_case_id: string
+          requested_effective_on: string
+          requested_expected_next_review_on?: string
+          requested_idempotency_key?: string
+        }
+        Returns: string
+      }
       change_tenant_lifecycle: {
         Args: {
           requested_reason: string
@@ -9943,6 +10810,14 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: Json
+      }
+      close_group_leave_year: {
+        Args: {
+          requested_hr_group_id: string
+          requested_tenant_id: string
+          requested_year: number
+        }
+        Returns: string
       }
       close_leave_year: {
         Args: {
@@ -9967,6 +10842,24 @@ export type Database = {
       confirm_employment_termination: {
         Args: { requested_termination_id: string }
         Returns: undefined
+      }
+      confirm_group_leave_request: {
+        Args: {
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_end_date: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_leave_type_id: string
+          requested_mode: Database["public"]["Enums"]["leave_request_mode"]
+          requested_priority_rule_id: string
+          requested_specific_end: string
+          requested_specific_start: string
+          requested_start_date: string
+          requested_tenant_id: string
+          requested_time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
+        }
+        Returns: string
       }
       confirm_leave_request: {
         Args: {
@@ -10037,6 +10930,55 @@ export type Database = {
         }
         Returns: string
       }
+      create_group_leave_accrual_rule: {
+        Args: {
+          requested_accrual_amount: number
+          requested_accrual_basis: Database["public"]["Enums"]["leave_accrual_basis"]
+          requested_accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
+          requested_accrual_rate: number
+          requested_accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
+          requested_expiration_months: number
+          requested_hr_group_id: string
+          requested_leave_profile_id: string
+          requested_leave_type_id: string
+          requested_pause_leave_type_ids: string[]
+          requested_predecessor_rule_id: string
+          requested_tenant_id: string
+          requested_valid_from: string
+          requested_valid_until: string
+          requested_work_hour_type_ids: string[]
+        }
+        Returns: string
+      }
+      create_group_leave_bonus_rule: {
+        Args: {
+          requested_award_timing: Database["public"]["Enums"]["leave_bonus_award_timing"]
+          requested_hr_group_id: string
+          requested_is_active: boolean
+          requested_leave_profile_id: string
+          requested_leave_type_id: string
+          requested_name: string
+          requested_pro_rate_first_year: boolean
+          requested_tenant_id: string
+          requested_tiers: Json
+          requested_trigger_type: Database["public"]["Enums"]["leave_bonus_trigger_type"]
+        }
+        Returns: string
+      }
+      create_group_leave_opening_balance: {
+        Args: {
+          requested_amount: number
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_reason: string
+          requested_source_key: string
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       create_hr_reminder: {
         Args: {
           requested_administration_id: string
@@ -10050,7 +10992,11 @@ export type Database = {
         Returns: string
       }
       create_job_with_revision: {
-        Args: { requested_payload: Json; requested_tenant_id: string }
+        Args: {
+          requested_hr_group_id: string
+          requested_payload: Json
+          requested_tenant_id: string
+        }
         Returns: string
       }
       create_leave_accrual_rule: {
@@ -10112,6 +11058,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_platform_hr_group: {
+        Args: {
+          requested_code: string
+          requested_description?: string
+          requested_name: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       create_talent_notification: {
         Args: {
           requested_event_type: string
@@ -10138,19 +11093,19 @@ export type Database = {
         }
         Returns: boolean
       }
-      get_employee_directory_visibility: {
-        Args: {
-          requested_administration_id: string
-          requested_tenant_id: string
-        }
-        Returns: Json
-      }
       get_employee_directory_detail: {
         Args: {
           requested_administration_id: string
           requested_employee_id: string
           requested_tenant_id: string
           requested_week_start?: string
+        }
+        Returns: Json
+      }
+      get_employee_directory_visibility: {
+        Args: {
+          requested_administration_id: string
+          requested_tenant_id: string
         }
         Returns: Json
       }
@@ -10210,6 +11165,10 @@ export type Database = {
         Args: { requested_tenant_id?: string }
         Returns: Json
       }
+      get_platform_hr_groups: {
+        Args: { requested_tenant_id: string }
+        Returns: Json
+      }
       get_platform_support_read_model: {
         Args: { requested_session_id: string }
         Returns: Json
@@ -10225,9 +11184,9 @@ export type Database = {
       }
       list_employee_overviews: {
         Args: {
-          requested_administration_id: string
           requested_archive_filter?: string
           requested_as_of?: string
+          requested_hr_group_id: string
           requested_tenant_id: string
         }
         Returns: {
@@ -10320,11 +11279,11 @@ export type Database = {
       report_absence: {
         Args: {
           requested_absence_percentage: number
-          requested_administration_id: string
           requested_employee_id: string
           requested_employment_id: string
           requested_expected_recovery_on?: string
           requested_has_sickness_benefit_safety_net?: boolean
+          requested_hr_group_id: string
           requested_idempotency_key?: string
           requested_is_third_party_traffic_accident?: boolean
           requested_is_work_accident?: boolean
@@ -10335,6 +11294,34 @@ export type Database = {
       }
       reserve_employee_number: {
         Args: { p_tenant_id: string }
+        Returns: string
+      }
+      resolve_leave_accrual_rule_for_employment: {
+        Args: {
+          requested_as_of_date: string
+          requested_employment_id: string
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          accrual_amount: number
+          accrual_rate: number
+          expiration_months: number
+          leave_profile_id: string
+          leave_type_id: string
+          no_accrual: boolean
+          resolution_source: string
+          rule_id: string
+        }[]
+      }
+      resolve_leave_profile_for_employment: {
+        Args: {
+          requested_as_of_date: string
+          requested_employment_id: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
         Returns: string
       }
       rollback_latest_employment_timeline: {

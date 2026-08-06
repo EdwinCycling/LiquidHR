@@ -43,9 +43,9 @@ export class CompanyDataServiceError extends Error {
   }
 }
 
-function requireAdministration(administrationId: string | null): string {
-  if (!administrationId) throw new CompanyDataServiceError('ADMINISTRATION_REQUIRED', 400)
-  return administrationId
+function requireHrGroup(hrGroupId: string | undefined): string {
+  if (!hrGroupId) throw new CompanyDataServiceError('HR_GROUP_REQUIRED', 400)
+  return hrGroupId
 }
 
 function addressFromRow(row: CompanyDataRow | LocationRow): CompanyAddress {
@@ -97,23 +97,23 @@ function addressPayload(input: Pick<CompanyAddress, 'countryCode'> & Partial<Omi
   }
 }
 
-async function getScope(): Promise<{ tenantId: string; administrationId: string }> {
+async function getScope(): Promise<{ tenantId: string; hrGroupId: string }> {
   const context = await requirePermission('company-data:read')
-  return { tenantId: context.tenantId, administrationId: requireAdministration(context.administrationId) }
+  return { tenantId: context.tenantId, hrGroupId: requireHrGroup(context.hrGroupId) }
 }
 
-async function getWriteScope(): Promise<{ tenantId: string; administrationId: string; userId: string }> {
+async function getWriteScope(): Promise<{ tenantId: string; hrGroupId: string; userId: string }> {
   const context = await requirePermission('company-data:write')
-  return { tenantId: context.tenantId, administrationId: requireAdministration(context.administrationId), userId: context.userId }
+  return { tenantId: context.tenantId, hrGroupId: requireHrGroup(context.hrGroupId), userId: context.userId }
 }
 
 export async function getCompanyDataSettings(existingClient?: SupabaseServerClient): Promise<CompanyDataSettings> {
-  const { tenantId, administrationId } = await getScope()
+  const { tenantId, hrGroupId } = await getScope()
   const supabase = existingClient ?? await createClient()
   const [{ data: company, error: companyError }, { data: locations, error: locationsError }, { data: usedRows, error: usedError }] = await Promise.all([
-    supabase.from('administration_company_data').select('*').eq('tenant_id', tenantId).eq('administration_id', administrationId).maybeSingle(),
-    supabase.from('administration_locations').select('*').eq('tenant_id', tenantId).eq('administration_id', administrationId).order('is_active', { ascending: false }).order('name').limit(250),
-    supabase.from('employee_organizations').select('location_id').eq('tenant_id', tenantId).eq('administration_id', administrationId).not('location_id', 'is', null).limit(5_000),
+    supabase.from('administration_company_data').select('*').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).maybeSingle(),
+    supabase.from('administration_locations').select('*').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).order('is_active', { ascending: false }).order('name').limit(250),
+    supabase.from('employee_organizations').select('location_id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).not('location_id', 'is', null).limit(5_000),
   ])
   if (companyError || locationsError || usedError) throw new CompanyDataServiceError('COMPANY_DATA_READ_FAILED', 500)
   if (!company) throw new CompanyDataServiceError('COMPANY_DATA_NOT_FOUND', 404)
@@ -122,50 +122,50 @@ export async function getCompanyDataSettings(existingClient?: SupabaseServerClie
 }
 
 export async function updateCompanyData(input: CompanyDataUpdateInput): Promise<CompanyData> {
-  const { tenantId, administrationId, userId } = await getWriteScope()
+  const { tenantId, hrGroupId, userId } = await getWriteScope()
   const supabase = await createClient()
   if (input.singleLocation) {
-    const { count, error } = await supabase.from('administration_locations').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('administration_id', administrationId)
+    const { count, error } = await supabase.from('administration_locations').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId)
     if (error) throw new CompanyDataServiceError('COMPANY_DATA_READ_FAILED', 500)
     if ((count ?? 0) > 0) throw new CompanyDataServiceError('COMPANY_HAS_LOCATIONS', 409)
   }
   const payload = { single_location: input.singleLocation, ...addressPayload(input), updated_by_user_id: userId }
-  const { data: existing, error: existingError } = await supabase.from('administration_company_data').select('id').eq('tenant_id', tenantId).eq('administration_id', administrationId).maybeSingle()
+  const { data: existing, error: existingError } = await supabase.from('administration_company_data').select('id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
   if (existingError) throw new CompanyDataServiceError('COMPANY_DATA_READ_FAILED', 500)
   const query = existing
-    ? supabase.from('administration_company_data').update(payload).eq('id', existing.id).eq('tenant_id', tenantId).eq('administration_id', administrationId).select('*').single()
-    : supabase.from('administration_company_data').insert({ tenant_id: tenantId, administration_id: administrationId, created_by_user_id: userId, ...payload }).select('*').single()
+    ? supabase.from('administration_company_data').update(payload).eq('id', existing.id).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).select('*').single()
+    : supabase.from('administration_company_data').insert({ tenant_id: tenantId, hr_group_id: hrGroupId, created_by_user_id: userId, ...payload }).select('*').single()
   const { data, error } = await query
   if (error || !data) throw new CompanyDataServiceError(error?.code === 'P0001' ? error.message : 'COMPANY_DATA_SAVE_FAILED', error?.code === 'P0001' ? 409 : 500)
   return toCompany(data)
 }
 
 export async function createLocation(input: LocationCreateInput): Promise<CompanyLocation> {
-  const { tenantId, administrationId, userId } = await getWriteScope()
+  const { tenantId, hrGroupId, userId } = await getWriteScope()
   const supabase = await createClient()
-  const { data: company, error: companyError } = await supabase.from('administration_company_data').select('single_location').eq('tenant_id', tenantId).eq('administration_id', administrationId).single()
+  const { data: company, error: companyError } = await supabase.from('administration_company_data').select('single_location').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).single()
   if (companyError || !company) throw new CompanyDataServiceError('COMPANY_DATA_NOT_FOUND', 404)
   if (company.single_location) throw new CompanyDataServiceError('SINGLE_LOCATION_MODE', 409)
-  const { data, error } = await supabase.from('administration_locations').insert({ tenant_id: tenantId, administration_id: administrationId, name: input.name, is_active: input.isActive, created_by_user_id: userId, updated_by_user_id: userId, ...addressPayload(input) }).select('*').single()
+  const { data, error } = await supabase.from('administration_locations').insert({ tenant_id: tenantId, hr_group_id: hrGroupId, name: input.name, is_active: input.isActive, created_by_user_id: userId, updated_by_user_id: userId, ...addressPayload(input) }).select('*').single()
   if (error || !data) throw new CompanyDataServiceError(error?.code === 'P0001' ? error.message : 'LOCATION_CREATE_FAILED', error?.code === 'P0001' ? 409 : 500)
   return toLocation(data, false)
 }
 
 export async function updateLocation(locationId: string, input: LocationUpdateInput): Promise<CompanyLocation> {
-  const { tenantId, administrationId, userId } = await getWriteScope()
+  const { tenantId, hrGroupId, userId } = await getWriteScope()
   const supabase = await createClient()
-  const { data, error } = await supabase.from('administration_locations').update({ name: input.name, is_active: input.isActive, updated_by_user_id: userId, ...addressPayload(input) }).eq('id', locationId).eq('tenant_id', tenantId).eq('administration_id', administrationId).select('*').maybeSingle()
+  const { data, error } = await supabase.from('administration_locations').update({ name: input.name, is_active: input.isActive, updated_by_user_id: userId, ...addressPayload(input) }).eq('id', locationId).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).select('*').maybeSingle()
   if (error) throw new CompanyDataServiceError('LOCATION_UPDATE_FAILED', 500)
   if (!data) throw new CompanyDataServiceError('LOCATION_NOT_FOUND', 404)
-  const { count, error: usageError } = await supabase.from('employee_organizations').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('administration_id', administrationId).eq('location_id', locationId)
+  const { count, error: usageError } = await supabase.from('employee_organizations').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('location_id', locationId)
   if (usageError) throw new CompanyDataServiceError('LOCATION_USAGE_CHECK_FAILED', 500)
   return toLocation(data, (count ?? 0) > 0)
 }
 
 export async function deleteLocation(locationId: string): Promise<void> {
-  const { tenantId, administrationId } = await getWriteScope()
+  const { tenantId, hrGroupId } = await getWriteScope()
   const supabase = await createClient()
-  const { data, error } = await supabase.from('administration_locations').delete().eq('id', locationId).eq('tenant_id', tenantId).eq('administration_id', administrationId).select('id').maybeSingle()
+  const { data, error } = await supabase.from('administration_locations').delete().eq('id', locationId).eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).select('id').maybeSingle()
   if (error?.code === '23503') throw new CompanyDataServiceError('LOCATION_IN_USE', 409)
   if (error) throw new CompanyDataServiceError('LOCATION_DELETE_FAILED', 500)
   if (!data) throw new CompanyDataServiceError('LOCATION_NOT_FOUND', 404)

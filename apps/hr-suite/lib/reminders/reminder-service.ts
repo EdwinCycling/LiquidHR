@@ -119,7 +119,7 @@ async function requireReminderContext(): Promise<{
   const context = await loadActiveContext(userId)
   return {
     tenantId: context.tenant.id,
-    administrationId: context.administration?.id ?? null,
+    administrationId: context.activeAdministration?.id ?? null,
     userId,
   }
 }

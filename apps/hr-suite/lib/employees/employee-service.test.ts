@@ -8,7 +8,7 @@ import {
 
 describe('employee service mappers', () => {
   it('maakt uitsluitend toegestane insertkolommen en normaliseert lege waarden', () => {
-    const row = toEmployeeInsert('tenant-een', '100001', {
+    const row = toEmployeeInsert('tenant-een', 'group-een', '100001', {
       firstName: '  Sanne ',
       birthName: 'Jansen',
       nameUsage: 'BIRTH_NAME',

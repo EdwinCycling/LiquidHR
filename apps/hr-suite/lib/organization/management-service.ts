@@ -16,13 +16,18 @@ function administrationId(value: string | null): string {
   if (!value) throw new OrganizationServiceError('ADMINISTRATION_REQUIRED', 400)
   return value
 }
+function hrGroupId(value: string | undefined): string {
+  if (!value) throw new OrganizationServiceError('HR_GROUP_REQUIRED', 400)
+  return value
+}
 function conflict(error: { code?: string } | null): boolean { return error?.code === '23505' || error?.code === '23P01' }
 
 export async function createDepartment(input: DepartmentCreateInput): Promise<string> {
   const context = await requirePermission('department:write')
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   const { data, error } = await supabase.from('departments').insert({
-    tenant_id: context.tenantId, administration_id: null, scope_type: 'TENANT', code: input.code.toUpperCase(),
+    tenant_id: context.tenantId, hr_group_id: groupId, code: input.code.toUpperCase(),
     name: input.name, description: input.description ?? null, parent_id: input.parentId ?? null,
   }).select('id').single()
   if (conflict(error)) throw new OrganizationServiceError('DEPARTMENT_CONFLICT', 409)
@@ -32,10 +37,11 @@ export async function createDepartment(input: DepartmentCreateInput): Promise<st
 
 export async function updateDepartment(id: string, input: DepartmentUpdateInput): Promise<void> {
   const context = await requirePermission('department:write')
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   const { error } = await supabase.from('departments').update({
     name: input.name, description: input.description, parent_id: input.parentId, is_active: input.isActive,
-  }).eq('tenant_id', context.tenantId).eq('id', id)
+  }).eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('id', id)
   if (error) throw new OrganizationServiceError('DEPARTMENT_UPDATE_FAILED', 500)
 }
 
@@ -171,11 +177,12 @@ export async function listOrganizationAssignments(): Promise<{
 }> {
   const context = await requirePermission('organization-placement:read')
   const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   await requirePermission('management-assignment:read')
   const supabase = await createClient()
   const [placements, assignments] = await Promise.all([
-    supabase.from('employee_organizations').select('*').eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('effective_from', { ascending: false }).limit(1000),
-    supabase.from('department_management').select('*').eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('effective_from', { ascending: false }).limit(1000),
+    supabase.from('employee_organizations').select('*').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('administration_id', adminId).order('effective_from', { ascending: false }).limit(1000),
+    supabase.from('department_management').select('*').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).order('effective_from', { ascending: false }).limit(1000),
   ])
   if (placements.error || assignments.error) throw new OrganizationServiceError('ORGANIZATION_ASSIGNMENTS_READ_FAILED', 500)
   return { placements: placements.data, managementAssignments: assignments.data }
@@ -190,21 +197,21 @@ export async function listRoleAssignments(): Promise<{
   canWrite: boolean
 }> {
   const context = await requirePermission('management-assignment:read')
-  const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const [roles, assignments, employees, departments, placements, employments] = await Promise.all([
     supabase.from('management_roles').select('*').or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).eq('is_active', true).is('deleted_at', null).order('name').limit(250),
-    supabase.from('department_management').select('*').eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('effective_from', { ascending: false }).limit(1000),
-    supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(1000),
-    supabase.from('departments').select('id,name,code').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
-    supabase.from('employee_organizations').select('employee_id,department_id,job_title,effective_from').eq('tenant_id', context.tenantId).eq('administration_id', adminId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(2000),
-    supabase.from('employments').select('employee_id').eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('record_status', 'CONFIRMED').eq('is_primary', true).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).is('deleted_at', null).limit(2000),
+    supabase.from('department_management').select('*').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).order('effective_from', { ascending: false }).limit(1000),
+    supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('is_archived', false).is('deleted_at', null).order('birth_name').limit(1000),
+    supabase.from('departments').select('id,name,code').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('is_active', true).order('name').limit(500),
+    supabase.from('employee_organizations').select('employee_id,department_id,job_title,effective_from').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(2000),
+    supabase.from('employments').select('employee_id').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('record_status', 'CONFIRMED').lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).is('deleted_at', null).limit(2000),
   ])
   if (roles.error || assignments.error || employees.error || departments.error || placements.error || employments.error) throw new OrganizationServiceError('ROLE_ASSIGNMENTS_READ_FAILED', 500)
-  const employeeIdsInAdministration = new Set(employments.data.map((employment) => employment.employee_id))
-  const administrationDepartments = scopeRoleAssignmentDepartments(departments.data, placements.data, assignments.data)
-  const departmentById = new Map(administrationDepartments.map((department) => [department.id, department.name]))
+  const employeeIdsInGroup = new Set(employments.data.map((employment) => employment.employee_id))
+  const groupDepartments = scopeRoleAssignmentDepartments(departments.data)
+  const departmentById = new Map(groupDepartments.map((department) => [department.id, department.name]))
   const placementByEmployee = new Map<string, (typeof placements.data)[number]>()
   for (const placement of placements.data) {
     if (!placementByEmployee.has(placement.employee_id)) placementByEmployee.set(placement.employee_id, placement)
@@ -212,11 +219,11 @@ export async function listRoleAssignments(): Promise<{
   return {
     roles: roles.data.filter((role) => !(role.tenant_id === context.tenantId && ['TENANT_ADMIN', 'DIRECT_MANAGER', 'EMPLOYEE'].includes(role.code))),
     assignments: assignments.data,
-    employees: employees.data.filter((employee) => employeeIdsInAdministration.has(employee.id)).map((employee) => {
+    employees: employees.data.filter((employee) => employeeIdsInGroup.has(employee.id)).map((employee) => {
       const placement = placementByEmployee.get(employee.id)
       return { id: employee.id, employeeNumber: employee.employee_number, name: `${employee.first_name} ${employee.birth_name}`, jobTitle: placement?.job_title ?? null, departmentName: placement ? departmentById.get(placement.department_id) ?? null : null }
     }),
-    departments: administrationDepartments,
+    departments: groupDepartments,
     placementDepartments: placements.data.map((placement) => ({ employeeId: placement.employee_id, departmentId: placement.department_id })),
     canWrite: context.permissions.includes('management-assignment:write'),
   }
@@ -234,13 +241,13 @@ export async function listEmployeeRoleAssignments(employeeId: string): Promise<A
   const supabase = await createClient()
   const { data: assignments, error: assignmentError } = await supabase.from('department_management')
     .select('id,management_role_id,department_id,effective_from,effective_to')
-    .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).order('effective_from', { ascending: false }).limit(100)
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId(context.hrGroupId)).eq('employee_id', employeeId).order('effective_from', { ascending: false }).limit(100)
   if (assignmentError) throw new OrganizationServiceError('EMPLOYEE_ROLE_ASSIGNMENTS_READ_FAILED', 500)
   const roleIds = [...new Set((assignments ?? []).map((assignment) => assignment.management_role_id))]
   const departmentIds = [...new Set((assignments ?? []).flatMap((assignment) => assignment.department_id ? [assignment.department_id] : []))]
   const [{ data: roles, error: roleError }, { data: departments, error: departmentError }] = await Promise.all([
     roleIds.length ? supabase.from('management_roles').select('id,name,code').in('id', roleIds) : Promise.resolve({ data: [], error: null }),
-    departmentIds.length ? supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).in('id', departmentIds) : Promise.resolve({ data: [], error: null }),
+    departmentIds.length ? supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId(context.hrGroupId)).in('id', departmentIds) : Promise.resolve({ data: [], error: null }),
   ])
   if (roleError || departmentError) throw new OrganizationServiceError('EMPLOYEE_ROLE_ASSIGNMENTS_READ_FAILED', 500)
   const roleById = new Map((roles ?? []).map((role) => [role.id, role]))
@@ -253,19 +260,20 @@ export async function listEmployeeRoleAssignments(employeeId: string): Promise<A
 
 export async function deleteManagementAssignment(id: string): Promise<void> {
   const context = await requirePermission('management-assignment:write')
-  const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   const { error } = await supabase.from('department_management').delete()
-    .eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+    .eq('id', id).eq('tenant_id', context.tenantId).eq('hr_group_id', groupId)
   if (error) throw new OrganizationServiceError('ROLE_ASSIGNMENT_DELETE_FAILED', 500)
 }
 
 export async function createPlacement(input: PlacementCreateInput): Promise<string> {
   const context = await requirePermission('organization-placement:write')
   const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   const { data, error } = await supabase.from('employee_organizations').insert({
-    tenant_id: context.tenantId, administration_id: adminId, employee_id: input.employeeId,
+    tenant_id: context.tenantId, hr_group_id: groupId, administration_id: adminId, employee_id: input.employeeId,
     employment_id: input.employmentId ?? null, department_id: input.departmentId,
     direct_manager_id: input.directManagerId ?? null, direct_manager_deputy_id: input.directManagerDeputyId ?? null,
     job_title: input.jobTitle ?? null, cost_bearer: input.costBearer ?? null,
@@ -283,13 +291,14 @@ export async function updatePlacement(
 ): Promise<void> {
   const context = await requirePermission('organization-placement:write')
   const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   let query = supabase.from('employee_organizations').update({
     employment_id: input.employmentId, department_id: input.departmentId,
     direct_manager_id: input.directManagerId, direct_manager_deputy_id: input.directManagerDeputyId,
     job_title: input.jobTitle, cost_bearer: input.costBearer,
     effective_from: input.effectiveFrom, effective_to: input.effectiveTo,
-  }).eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('id', id)
+  }).eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('administration_id', adminId).eq('id', id)
   if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt)
   const { data, error } = await query.select('id').maybeSingle()
   if (conflict(error)) throw new OrganizationServiceError('PLACEMENT_PERIOD_CONFLICT', 409)
@@ -299,13 +308,13 @@ export async function updatePlacement(
 
 export async function createManagementAssignment(input: ManagementAssignmentCreateInput): Promise<string> {
   const context = await requirePermission('management-assignment:write')
-  const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
-  const { data: employment, error: employmentError } = await supabase.from('employments').select('id').eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('employee_id', input.employeeId).eq('record_status', 'CONFIRMED').eq('is_primary', true).lte('starts_on', input.effectiveFrom).or(`ends_on.is.null,ends_on.gte.${input.effectiveFrom}`).is('deleted_at', null).limit(1).maybeSingle()
+  const { data: employment, error: employmentError } = await supabase.from('employments').select('id').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('employee_id', input.employeeId).eq('record_status', 'CONFIRMED').lte('starts_on', input.effectiveFrom).or(`ends_on.is.null,ends_on.gte.${input.effectiveFrom}`).is('deleted_at', null).limit(1).maybeSingle()
   if (employmentError) throw new OrganizationServiceError('MANAGEMENT_ASSIGNMENT_EMPLOYEE_SCOPE_CHECK_FAILED', 500)
   if (!employment) throw new OrganizationServiceError('MANAGEMENT_ASSIGNMENT_EMPLOYEE_ADMINISTRATION_REQUIRED', 409)
   const { data, error } = await supabase.from('department_management').insert({
-    tenant_id: context.tenantId, administration_id: adminId, department_id: input.departmentId ?? null,
+    tenant_id: context.tenantId, hr_group_id: groupId, department_id: input.departmentId ?? null,
     management_role_id: input.managementRoleId, employee_id: input.employeeId,
     effective_from: input.effectiveFrom, effective_to: input.effectiveTo ?? null,
   }).select('id').single()
@@ -316,11 +325,11 @@ export async function createManagementAssignment(input: ManagementAssignmentCrea
 
 export async function updateManagementAssignment(id: string, input: ManagementAssignmentUpdateInput): Promise<void> {
   const context = await requirePermission('management-assignment:write')
-  const adminId = administrationId(context.administrationId)
+  const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
   const { error } = await supabase.from('department_management').update({
     effective_from: input.effectiveFrom, effective_to: input.effectiveTo,
-  }).eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('id', id)
+  }).eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('id', id)
   if (conflict(error)) throw new OrganizationServiceError('MANAGEMENT_ASSIGNMENT_PERIOD_CONFLICT', 409)
   if (error) throw new OrganizationServiceError('MANAGEMENT_ASSIGNMENT_UPDATE_FAILED', 500)
 }

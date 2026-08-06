@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { absenceSettingsSchema, type AbsenceSettingsInput } from './settings-schemas'
@@ -20,27 +20,13 @@ export interface AbsenceSettingsPageData {
 
 async function listCaseManagers(context: Awaited<ReturnType<typeof requirePermission>>): Promise<AbsenceCaseManagerOption[]> {
   const supabase = await createClient()
-  let employeeIds: string[] | null = null
+  const hrGroupId = requireHrGroupId(context)
 
-  if (context.administrationId) {
-    const today = new Date().toISOString().slice(0, 10)
-    const { data, error } = await supabase
-      .from('employee_administration_assignments')
-      .select('employee_id')
-      .eq('tenant_id', context.tenantId)
-      .eq('administration_id', context.administrationId)
-      .lte('effective_from', today)
-      .or(`effective_to.is.null,effective_to.gte.${today}`)
-      .limit(5000)
-    if (error) throw new Error('ABSENCE_SETTINGS_MANAGERS_READ_FAILED')
-    employeeIds = [...new Set(data.map((row) => row.employee_id))]
-    if (employeeIds.length === 0) return []
-  }
-
-  let query = supabase
+  const query = supabase
     .from('employees')
     .select('id,employee_number,first_name,birth_name')
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
     .eq('is_active', true)
     .eq('is_archived', false)
     .is('deleted_at', null)
@@ -48,7 +34,6 @@ async function listCaseManagers(context: Awaited<ReturnType<typeof requirePermis
     .order('birth_name')
     .order('first_name')
     .limit(500)
-  if (employeeIds) query = query.in('id', employeeIds)
 
   const { data, error } = await query
   if (error) throw new Error('ABSENCE_SETTINGS_MANAGERS_READ_FAILED')
@@ -61,20 +46,19 @@ async function listCaseManagers(context: Awaited<ReturnType<typeof requirePermis
 
 export async function getAbsenceSettingsPageData(): Promise<AbsenceSettingsPageData> {
   const context = await requirePermission('absence-settings:read')
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const [settings, caseManagers] = await Promise.all([
-    context.administrationId
-      ? supabase
-        .from('absence_settings')
-        .select('*')
-        .eq('tenant_id', context.tenantId)
-        .eq('administration_id', context.administrationId)
-        .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('absence_settings')
+      .select('*')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .maybeSingle(),
     listCaseManagers(context),
   ])
   if (settings.error) throw new Error('ABSENCE_SETTINGS_READ_FAILED')
-  const settingsRow = settings.data as { frequent_absence_threshold?: number; default_case_manager_employee_id?: string | null; employee_self_report_enabled?: boolean } | null
+  const settingsRow = settings.data
   return {
     frequentAbsenceThreshold: settingsRow?.frequent_absence_threshold ?? 3,
     defaultCaseManagerEmployeeId: settingsRow?.default_case_manager_employee_id ?? null,
@@ -85,7 +69,7 @@ export async function getAbsenceSettingsPageData(): Promise<AbsenceSettingsPageD
 
 export async function updateAbsenceSettings(rawInput: unknown): Promise<void> {
   const context = await requirePermission('absence-settings:write')
-  if (!context.administrationId) throw new Error('ABSENCE_SETTINGS_ADMINISTRATION_REQUIRED')
+  const hrGroupId = requireHrGroupId(context)
   const input: AbsenceSettingsInput = absenceSettingsSchema.parse(rawInput)
   const caseManagers = await listCaseManagers(context)
   if (input.defaultCaseManagerEmployeeId && !caseManagers.some((manager) => manager.id === input.defaultCaseManagerEmployeeId)) {
@@ -95,18 +79,19 @@ export async function updateAbsenceSettings(rawInput: unknown): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('absence_settings').upsert({
     tenant_id: context.tenantId,
-    administration_id: context.administrationId,
+    hr_group_id: hrGroupId,
+    administration_id: null,
     frequent_absence_threshold: input.frequentAbsenceThreshold,
     default_case_manager_employee_id: input.defaultCaseManagerEmployeeId ?? null,
     employee_self_report_enabled: input.employeeSelfReportEnabled,
-  } as never, { onConflict: 'tenant_id,administration_id' })
+  }, { onConflict: 'tenant_id,hr_group_id' })
   if (error) throw new Error('ABSENCE_SETTINGS_WRITE_FAILED')
 }
 
 export async function canEmployeeSelfReportAbsence(employeeId: string): Promise<boolean> {
   const context = await requireAuthContext()
-  if (context.employeeId !== employeeId || !context.administrationId) return false
+  if (context.employeeId !== employeeId || !context.hrGroupId) return false
   const supabase = await createClient()
-  const { data } = await supabase.from('absence_settings').select('*').eq('tenant_id', context.tenantId).eq('administration_id', context.administrationId).maybeSingle()
-  return (data as { employee_self_report_enabled?: boolean } | null)?.employee_self_report_enabled ?? false
+  const { data } = await supabase.from('absence_settings').select('employee_self_report_enabled').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).maybeSingle()
+  return data?.employee_self_report_enabled ?? false
 }

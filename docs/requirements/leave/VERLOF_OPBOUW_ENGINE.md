@@ -4,11 +4,19 @@
 
 Status: **LEIDEND voor de vastgelegde basisregels**
 
-Implementatie: **GEDEELTELIJK — engine, catalogus/API en een eerste HR-adminbeheerflow staan; volledige projectie- en bonusmutaties volgen**
+Implementatie: **VOLLEDIG voor de HR-groep/employment-scope-slice — schema, RLS, API/RPC, UI, testdata en verificatie zijn uitgevoerd; ESS en volledige toekomstige projectie blijven buiten deze fase**
 
-Fase: **alleen opbouw en beheer; geen verlofaanvragen**
+Fase: **opbouw, beheer en de group/employment-aanvraagfundering; geen volledige ESS/selfservice-projectie**
 
 Vastgelegd: 2026-07-21
+
+## 1.1 Uitgevoerde HR-groep/employment-scope-slice (2026-08-05)
+
+De Step-7-slice is end-to-end gerealiseerd. De groepscatalogi voor verloftypen, profielen, opbouwregels, bonusregels, voorrang, jaarsturing, employee sets en overwerk zijn gekoppeld aan de actieve HR-groep. `employment_leave_profiles`, uitzonderingen, buckets, transacties, rollovers, allocaties en aanvragen blijven gekoppeld aan exact één employment; er is geen persoonsbreed saldo.
+
+De resolver gebruikt de volgorde `employment exception -> employee set -> HR-group default`. De server valideert tenant, HR-groep, medewerker, employment, geldigheidsdatums en dubbele keuzes opnieuw. De group-RPC's voor opbouwregel, bonusregel, opening balance, handmatige correctie, jaarafsluiting en aanvraag zijn permission-checked, atomair en waar relevant idempotent. Remote zijn de RLS-, pgTAP-, contract- en functionele tests groen; de gecontroleerde fixture bevat een multigroup-employee set, een boundary zonder Step-7-catalogus en twee 2026-employment-buckets voor `DEMO-028`.
+
+Deze status betekent niet dat iedere toekomstige verlooffunctionaliteit klaar is. ESS/selfservice, notificaties, volledige toekomstige opbouwprojectie en de latere brede UI-projectie blijven expliciet buiten de afgeronde Step-7-scope en horen bij volgende stappen.
 
 ## 1. Doel, bron en scope
 

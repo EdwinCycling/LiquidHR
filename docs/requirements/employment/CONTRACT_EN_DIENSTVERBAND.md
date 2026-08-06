@@ -25,6 +25,12 @@
 - Het dienstverband blijft alleen-lezen wanneer een nieuw contract aan een bestaand dienstverband wordt toegevoegd.
 - Er kunnen meerdere actieve dienstverbanden per persoon bestaan. Een eventuele technische voorkeurs- of primaire aanduiding is uitsluitend UX-context en geen blokkade op een tweede actief dienstverband.
 
+### Implementatiestatus HR-groepen — 2026-08-05
+
+Stap 6 gebruikt `Employee` als persoonskaart binnen één HR-groep en `Employment` als administratiegebonden relatie binnen diezelfde groep. De organisatieplaatsing, arbeidsvoorwaarden, contracten, rooster- en kostenverdelingstijdlijnen dragen de groepssleutel; cross-group combinaties worden door composite foreign keys, servervalidatie en RLS geweigerd. De complete-employment-RPC publiceert een geldig dienstverband atomair en rolt een ongeldige 90%-kostenverdeling volledig terug.
+
+De browserfixture `DEMO-028` toont twee actieve employmentkaarten met de administraties `Liquid HR Operations B.V.` en `Liquid HR Services B.V.`. De administratie staat per kaart zichtbaar naast afdeling en functie. De remote complete-flow-, directory-, RLS- en Step-6-contracttests zijn geslaagd.
+
 ## 0. Goedgekeurde domeingrenzen
 
 - Een `Employee` is de persoonskaart binnen precies één HR-groep en heeft **nul, één of meerdere** dienstverbanden. Een bezoeker, beveiliger of andere externe relatie mag dus zonder dienstverband bestaan.

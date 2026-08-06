@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 
 export interface AuthContext {
   tenantId: string
+  /** Wordt door requireAuthContext altijd gevuld; leesgereedschap hoeft geen groepsmutatie te kennen. */
+  hrGroupId?: string
   administrationId: string | null
   userId: string
   employeeId: string | null
@@ -20,6 +22,11 @@ export class AuthenticationError extends Error {
 
 export class AuthorizationError extends Error {
   readonly status = 403
+}
+
+export function requireHrGroupId(context: Pick<AuthContext, 'hrGroupId'>): string {
+  if (!context.hrGroupId) throw new AuthorizationError('HR-groepcontext ontbreekt.')
+  return context.hrGroupId
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -106,13 +113,15 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
 
   const activeContext = existingActiveContext ?? await loadActiveContext(userId, supabase)
   const tenantId = activeContext.tenant.id
-  const administrationId = activeContext.administration?.id ?? null
+  const hrGroupId = activeContext.activeHrGroup.id
+  const administrationId = activeContext.activeAdministration?.id ?? null
 
   const { data: accessRows, error: accessError } = await supabase
-    .from('user_access')
+    .from('user_hr_group_access')
     .select('management_role_id')
     .eq('user_id', userId)
     .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
     .eq('is_active', true)
     .limit(100)
 
@@ -123,6 +132,7 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
     .select('id, tenant_id')
     .eq('auth_user_id', userId)
     .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
     .is('deleted_at', null)
     .maybeSingle()
 
@@ -132,15 +142,12 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
   const today = new Date().toISOString().slice(0, 10)
   let assignments: Array<{ management_role_id: string }> = []
   if (actor) {
-    let assignmentsQuery = supabase
+    const assignmentsQuery = supabase
       .from('department_management')
       .select('management_role_id')
       .eq('employee_id', actor.id)
       .eq('tenant_id', tenantId)
-
-    if (administrationId) {
-      assignmentsQuery = assignmentsQuery.eq('administration_id', administrationId)
-    }
+      .eq('hr_group_id', hrGroupId)
 
     const { data, error } = await assignmentsQuery
       .lte('effective_from', today)
@@ -163,6 +170,7 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
 
   return {
     tenantId,
+    hrGroupId,
     administrationId,
     userId,
     employeeId: actor?.id ?? null,

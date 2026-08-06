@@ -4,6 +4,22 @@
 
 De zichtbare appversie wordt bepaald door `apps/hr-suite/lib/app-version.ts`, niet door de npm-versie in `package.json`. Volgens de vastgelegde conventie `X.datum.volgnummer` is de nieuwe productversie `1.20260805.1`. De eerdere technische packageverhoging naar `0.1.3` is teruggedraaid naar de bestaande packageversie `0.1.2`; de versiecheck bewaakt nu de productversie.
 
+## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
+
+Een Luna-stap is pas afgerond wanneer de volledige verticale slice is uitgevoerd: schema/Supabase (migratie, RLS, grants, audit en gecontroleerde testdata), API, UI, tests, documentatie en de relevante lokale, remote en geauthenticeerde browserverificatie. Open onderdelen of blokkades worden expliciet gemeld en blokkeren de status **afgerond**. Ga pas door naar de volgende stap nadat de huidige stap per alle eigen specs is beoordeeld.
+
+## Step-9-verificatie afgerond 2026-08-06
+
+Step 9 is **afgerond**. De gecontroleerde fixturemigration `20260806101419_hr_group_step9_manager_multiple_employment_fixture.sql` staat één keer remote toegepast als `20260806130420_hr_group_step9_manager_multiple_employment_fixture`. De minimaal gescopeerde RLS-correctie staat lokaal in `20260806133314_hr_group_absence_employment_read_scope.sql` en `20260806133600_consolidate_employments_absence_read_policy.sql`; remote zijn deze geregistreerd als `20260806133414_hr_group_absence_employment_read_scope` en `20260806133633_consolidate_employments_absence_read_policy`.
+
+De policy voegt geen brede `contract:read` toe. Zij laat een manager met `absence:write` uitsluitend bevestigde, niet-verwijderde employments lezen voor een medewerker die server-side binnen de managerrelatie valt. De dubbele permissieve policy-waarschuwing van de eerste correctie is met de tweede migratie geconsolideerd.
+
+Remote bewijs: Omar (`DEMO-037`) heeft exact twee bevestigde actieve employments (`EMP-DEMO-037-A` en `RICH-TEST-0037`), exact twee actuele plaatsingen onder Yara (`DEMO-028`) en 0 absence-cases/0 absence-spells. De Step-8-contractproef is transactioneel groen; de finale remote policy-/invariantcontrole is groen. DB-types zijn opnieuw gegenereerd; advisors tonen de bestaande projectbrede baseline: security 1 INFO/19 WARN en performance 342 INFO/0 WARN.
+
+De herhaalde lokale gate is groen: 129 testbestanden/478 tests, strict TypeScript, lint, i18n met 28 gelijke NL/EN-namespaces, productiebuild met 171 routes en `git diff --check`. Authenticated browserbewijs op poort 3000: HR Admin ziet Omar tweemaal; Test Manager ziet Omar in het eigen team, opent `/absence/new?employeeId=237affe2-7f4c-3c7f-b9bf-a37b2365eb6d`, ziet beide employmentopties, selecteert expliciet `RICH-TEST-0037` en slaat niets op. De finale browserconsole eindigt op 0 errors/0 warnings.
+
+De Luna-controle bevestigt hiermee dat stap 1 t/m 9 volgens de werkafspraak zijn doorlopen. Alleen latere deactivatie-, verwijder-, merge- en splitfunctionaliteit blijft buiten deze slice. Geen commit, push, merge of deployment uitgevoerd.
+
 ## Domeinbaseline 2026-08-05: HR-groepen, verlof en parallel verzuim
 
 De komende grote slice gebruikt [HR-groepen: scope, inrichting en domeingrenzen](../requirements/multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) als actuele bron. De bijbehorende besluiten staan in [ADR-0009](../decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md) en [FDR-0006](../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md); het uitvoeringsplan voor Luna staat in [LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md](LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md).
@@ -21,11 +37,81 @@ Vastgelegd:
 - Verzuim is altijd per dienstverband. Overlap tussen verschillende dienstverbanden of HR-groepen is toegestaan; alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd.
 - Bij meerdere actieve dienstverbanden kiest de gebruiker eerst het dienstverband, tenzij de afdeling/functiecontext van de leidinggevende exact één geldig dienstverband bepaalt. Dit geldt voor verlof en verzuim.
 
-Documentatie is in deze beurt aangepast; code, schema, testdata en remote database zijn nog niet gewijzigd. Bestaande dirty wijzigingen van Edwin blijven onaangeroerd.
+Documentatie, schema, context/API/UI en de gecontroleerde remote testdata zijn in deze beurt aangepast; bestaande dirty wijzigingen van Edwin blijven onaangeroerd. De remote wijzigingen staan uitsluitend op het gekoppelde Supabase-testproject.
 
 ### Testdatabesluit
 
 De huidige database bevat uitsluitend synthetische testdata. Voor de komende HR-groep-slice mag bestaande testdata worden aangepast, opnieuw gekoppeld, vervangen of opnieuw geseed. Zij mag geen belemmering vormen voor het nieuwe model. Er wordt geen fallback, dual-read, dual-write of compatibiliteitslaag voor het oude tenant-/administratiemodel gebouwd. Oude scopekolommen, filters, RPC-parameters en constraints mogen in een gecontroleerde, reproduceerbare testmigratie worden vervangen of verwijderd.
+
+## Stap 3–5 uitgevoerd 2026-08-05: HR-groep-schema, context en bedrijf/locaties
+
+De lokale migration `apps/hr-suite/supabase/migrations/20260805144951_hr_group_schema_and_test_data.sql` legt de eerste databasefundering vast: `hr_groups`, administratie- en domeinkoppelingen, groepsgebonden personen/catalogi/configuratie, employment-scoped verlof-, CAO- en verzuimrecords, composite foreign keys, immutable bestaande administratie-/groepskoppelingen, maximaal drie actieve CAO-sets per administratie, een vaste CAO per dienstverband, groepsgerichte toegang en restrictive HR-groep-policies bovenop de bestaande RLS-policies. De twee bestaande synthetische tenants krijgen ieder idempotent één `DEFAULT`-groep; er zijn geen extra productieachtige groepen of personen verzonnen.
+
+De negatieve en structurele contractproef staat in `apps/hr-suite/supabase/tests/hr_group_schema.sql`. Die controleert onder meer RLS, volledige backfill, dezelfde groep voor administratie/dienstverband/verzuim, composite foreign keys, privileges, restrictive policies en de weigering van een cross-group verplaatsing van een bestaande administratie.
+
+Verificatie: de remote migrations voor stap 3, 4 en 5 zijn toegepast, de officiële `packages/db/types.ts` is opnieuw gegenereerd, structurele en transactionele RLS-controles zijn geslaagd en de advisors zijn na de DDL opnieuw uitgevoerd. De lokale pgTAP-runner kan niet starten zolang Docker Desktop Linux Engine niet actief is; de equivalente remote contract- en transactietests zijn wel uitgevoerd. `TEST-BOUNDARY` is een idempotente grensfixture met één bedrijf, één administratie, één locatie en nul medewerkers.
+
+## Stap 8 uitgevoerd 2026-08-06: verzuim per HR-groep en employment
+
+De lokale migration `apps/hr-suite/supabase/migrations/20260806120000_hr_group_absence_per_employment.sql` is rechtstreeks op het gekoppelde Supabase-testproject toegepast onder de naam `hr_group_absence_per_employment`, omdat de lokale Supabase CLI op Windows door een EPERM/npm-cacheblokkade niet kon worden gestart. De migration maakt `absence_settings` uniek per `tenant_id, hr_group_id`, maakt casussen en ziekteperioden verplicht employmentgebonden, backfillt `absence_spells.employment_id`, legt composite casus/spell/capacity-FK's vast en blokkeert overlap alleen binnen dezelfde tenant, HR-groep en employment. De oude administratiegebonden settings policies en report/recovery-RPC's zijn vervangen door groepsgescopeerde varianten; `change_absence_capacity` is toegevoegd.
+
+De report-, recovery- en capacity-services gebruiken de actieve HR-groep, server-side permissionchecks, veilige typed fouten en de gedeelde employment resolver. Exact één geldige employment wordt automatisch gekozen; exact één manager-match ook; nul of meerdere matches leveren een expliciete keuze op. `/absence/new`, het medewerkerdashboard en het verzuimdetail ondersteunen ziekmelding, gedeeltelijk herstel, volledig herstel en zoekbare employmentkeuze. De HR-groep-switcher ververst na een wissel de server-layout, zodat selector en inhoud dezelfde groep tonen. Nieuwe NL/EN-sleutels staan in de employees-namespace.
+
+Remote controle: officiële `packages/db/types.ts` is opnieuw gegenereerd; advisors na de DDL tonen alleen de bestaande projectbrede/inherente baseline; de runner-onafhankelijke `apps/hr-suite/supabase/tests/hr_group_absence_step8_contract.sql` is transactioneel groen. De test controleert de vijf absence-tabellen met RLS/policies, groepssettings, employment-FK's, overlapconstraint, capacity-FK, grants/RPC-signatures, geen medische kolommen, parallelle employments/groepen, 50% capacity en herstelisolatie. De typed resolver-regressietest is 3/3 groen.
+
+Lokale eindgate na deze slice: 129 testbestanden/478 tests, strict TypeScript, volledige lint, i18n-pariteit met 28 namespaces, productiebuild met 171 pagina's en `git diff --check` zijn groen. Op `http://localhost:3000` bevestigde de geauthentiseerde browser HR Admin groep A/B-inhoudswissel, twee zichtbare employments met expliciete keuze, volledig herstel op het synthetische Fin-dossier, partial capacity HTTP 200 op het synthetische Noah-dossier, manager één-match en medewerker-self-service op 390x844 met URL-state en 0 console-errors. De Step-9-fixture bevat nu een teamlid met meerdere geldige employments; die browservariant is in Stap 9 geauthentiseerd uitgevoerd. De twee herstelacties hebben uitsluitend bestaande synthetische testdossiers gebruikt.
+
+**Status:** Stap 8 is functioneel uitgevoerd; de integrale Definition of Done en het toevoegen/herhalen van een browserfixture voor manager-meerdere-matches horen bij Stap 9. Geen commit, push, merge of deployment uitgevoerd.
+
+## Stap 4 uitgevoerd 2026-08-05: context, autorisatie en Control Plane
+
+De primaire HR-groepcontext staat lokaal in `apps/hr-suite/lib/context/administration-context.ts` en `apps/hr-suite/lib/context/server-context.ts`. De server leest toegestane groepsrelaties, valideert tenant → HR-groep → administratie en gebruikt de actieve groepsrelatie voor `AuthContext`, rollen en managementscope. De administratiecookie wordt bij een groepswissel gewist en een administratie uit een andere groep wordt niet geaccepteerd.
+
+De HR-suite bevat lokaal de HR-groep-switcher, `/api/context/hr-group`, `/settings/hr-groups`, `/api/hr-groups` en de lijst-eerst groepsbeheer-UI. HR-admins kunnen binnen de actieve groep een administratie toevoegen en groepsnaam/omschrijving wijzigen. Bestaande administratie-groepkoppelingen zijn database-side immutable en HR-groepverwijdering is geblokkeerd. De aparte `apps/liquidhr-control` toont groepen per tenant en maakt groepen aan via de platformoperator-RPC.
+
+Lokale verificatie: HR-suite 128 testbestanden/474 tests, strict typecheck, volledige lint, i18n-check en productiebuild geslaagd; Control Plane strict typecheck, volledige lint, i18n-check en productiebuild geslaagd. Remote verificatie bevestigde tenant → groep → administratie-scope, RLS, permissions, stabiele administratie-identiteit en de negatieve groep-A/B-controle. De geauthenticeerde browsercontrole bevestigde de primaire HR-groepswitch en de groepsbeheerflow.
+
+Stap 4 is voor de eigen specs 100% vastgesteld. De volgende afgeronde slice is Stap 5 — bedrijf, administraties en locaties.
+
+## Stap 5 uitgevoerd 2026-08-05: bedrijf, administraties en locaties
+
+De tabellen `administration_company_data` en `administration_locations` zijn groepsbreed gemaakt met `hr_group_id`; de legacy administratie-eigenaarskolom is verwijderd. Bedrijven en locaties worden in de service/API/UI uitsluitend via de actieve HR-groep beheerd en de pagina `/settings/company-data` vraagt geen administratiekeuze. `employee_organizations` gebruikt een composite locatie-FK met tenant en HR-groep, en de locatie-RPC weigert een locatie uit een andere groep.
+
+Administratienaam en `administration_number` zijn HR-admin-beheerbaar, auditbaar en wijzigen het stabiele interne ID niet. De remote `TEST-BOUNDARY`-fixture bevat één bedrijf, `TEST-BOUNDARY-ADMIN`, `Testgroep B locatie` en nul medewerkers. De gecontroleerde nummerwijziging en browserflow zijn na verificatie teruggezet naar `TEST-BOUNDARY-001`; het interne ID bleef `0ad929be-8dbf-4b8f-884e-46852f182512`.
+
+Remote resultaat: standaardgroep 1 bedrijf/4 locaties zichtbaar, boundary-groep 0 bedrijf/0 locaties zichtbaar onder de tijdelijk beperkte fixturetoegang; anon heeft geen directe leesrechten. De cross-group locatie-RPC is transactioneel geweigerd. Lokale tests, i18n, strict typecheck, lint, productiebuild en Control-Plane-build zijn groen. Supabase-advisors tonen geen nieuwe security- of HR-groep-FK-waarschuwing; bestaande projectbrede baseline-meldingen zijn apart geregistreerd.
+
+Stap 5 is voor alle eigen specs 100% vastgesteld. Stap 6 is daarna volledig uitgevoerd en per alle eigen specs gecontroleerd.
+
+## Stap 6 uitgevoerd 2026-08-05: personen, dienstverbanden, organisatie en rollen
+
+De Step-6-migrations `20260805200000_hr_group_people_organization_roles.sql`, `20260805203000_hr_group_people_rpc_alignment.sql`, `20260805203100_hr_group_complete_employment.sql` en `20260805203200_hr_group_step6_cross_admin_fixture.sql` maken personen, afdelingen, functies, roltoewijzingen en organisatieplaatsingen HR-groepgebonden. Employments blijven administratiegebonden maar dragen dezelfde `hr_group_id`; `DEMO-028` heeft twee actieve employments over `OPERATIONS` en `SERVICES`. Oude administratie-/tenantpolicies op deze domeintabellen zijn vervangen door groepspolicies met composite foreign keys, scopeguards, grants en audit.
+
+De bijgewerkte services en UI gebruiken één groepscontext voor medewerkers, employmentoverzichten, organisatie, managementrollen, functies, organogram en startpagina. `list_employee_overviews` is group-aware. De employee-directorypagina weigert nu expliciet een medewerker zonder geldige administratiecontext met `/geen-toegang`, zodat een groep zonder eigen employment geen runtime-500 veroorzaakt; de geldige medewerkercontext blijft beschikbaar.
+
+Remote gecontroleerd: `hr_group_people_organization_roles.sql`, `employee_overview.sql`, `employee_document_dossiers.sql`, `employment_complete_flow.sql` en `hr_group_step6_contract.sql` zijn geslaagd. De fixtures zijn `TEST-BOUNDARY` (0 personen), `TEST-MULTIGROUP` (1 groepspersoon), dezelfde managerlogin in twee groepen, `DEMO-028` met twee employments en minimaal twee managers over twee administraties in `RICH-02`. De officiële `packages/db/types.ts` is opnieuw gegenereerd.
+
+Browserbewijs op localhost:3000: HR Admin zag `DEFAULT` met 58, `TEST-MULTIGROUP` met 1 en `TEST-BOUNDARY` met 0 medewerkers; organogram en roltoewijzingen wisselden mee met de groep. Manager zag 5 teammedewerkers in `DEFAULT` en geen medewerkers in `TEST-MULTIGROUP` zonder eigen teammatch. De employee-fixture is in een geldige administratiecontext gecontroleerd; zonder eigen administratiecontext volgt een normale server-side toegangweigering.
+
+Lokale eindgate na Step 7: 128 testbestanden/475 tests, strict typecheck, volledige lint, i18n (28 namespaces), productiebuild (170 pagina's) en `git diff --check` zijn groen. Advisors na Step-7-DDL: security 1 INFO/19 WARN en performance 340 INFO/0 WARN; projectbrede/inherente meldingen zijn apart gehouden van Step-7-RLS. Remote is pgtap versioneerbaar geïnstalleerd; de drie relevante pgTAP-contracttests zijn rechtstreeks groen met 37/37, 23/23 en 35/35 assertions. De runner-onafhankelijke Step-6/7-contracttests en functionele remote tests zijn eveneens groen.
+
+**Status:** Step 6 t/m Step 9 zijn voor alle eigen specs 100% vastgesteld. De integrale eindverificatie en handoff zijn afgerond. Geen commit, push, merge of deployment uitgevoerd.
+
+## Step 7 uitgevoerd 2026-08-05: verlof per HR-groep en employment
+
+De Step-7-migrations `20260805210000_hr_group_leave_scope.sql` t/m `20260805210800_hr_group_anon_privilege_hardening.sql` zijn lokaal aanwezig en remote toegepast. De groepscatalogi voor verloftypen, profielen, opbouwregels, bonusregels, voorrang, jaarsturing, employee sets en overwerk zijn HR-groepgebonden. Profielkeuzes, uitzonderingen, buckets, transacties, rollovers, allocaties en aanvragen blijven employmentgebonden; een persoonsbreed saldo bestaat niet.
+
+De resolver volgt `employment exception -> employee set -> HR-group default`. API en service valideren tenant, groep, medewerker, employment, datums en dubbele keuzes server-side. De group-RPC's voor opbouwregel, bonusregel, opening balance, handmatige correctie, jaarafsluiting en aanvraag zijn permission-checked, atomair en waar nodig idempotent. Oude administration-RPC's zijn niet meer uitvoerbaar voor `authenticated`. `packages/db/types.ts` is officieel opnieuw gegenereerd.
+
+De fixture bevat in `TEST-MULTIGROUP` `Stap 7 testverlof`, groepsstandaard 1.5 uur, employee-setprofiel 2.5 uur en één setlid. `TEST-BOUNDARY` heeft geen Step-7-catalogusrecords; `DEMO-028` heeft twee 2026-employment-buckets. Remote RLS gaf multigroup 1 verloftype/1 set, boundary 0, twee DEMO-028-balances en resolverbron `EMPLOYEE_SET`. De drie pgTAP-contracttests, Step-6-contracttests en relevante leave/overtime/employmenttests zijn groen.
+
+Browserbewijs op localhost:3000: HR Admin zag de multigroup-catalogus, employee set, het setlid en beide profielversies; de uitzonderingsmodal toonde beide DEMO-028-employments en accepteerde een expliciete selectie zonder opslaan. Manager werd buiten HR-verlofbeheer naar de startpagina gestuurd; medewerker kreeg de verwachte `Nog geen toegang`. De cross-group grens is rechtstreeks met remote RLS en contracttests vastgesteld.
+
+## Overdracht naar de volgende Luna-thread 2026-08-06
+
+De volledige handoff staat in [LUNA_NEXT_THREAD_INSTRUCTIE_2026-08-06.md](LUNA_NEXT_THREAD_INSTRUCTIE_2026-08-06.md). Stap 6 en 7 zijn end-to-end uitgevoerd en per alle eigen specs 100% vastgesteld. Stap 8 is op 2026-08-06 functioneel uitgevoerd: verzuiminstellingen per HR-groep, verzuimcasus en ziekteperiode per employment, parallel verzuim over employments/groepen toegestaan en overlap alleen binnen hetzelfde employment blokkeren. De volgende thread gaat verder met Stap 9; de manager-multiple-match browserfixture blijft daar een expliciet open punt.
+
+Lees vóór uitvoering de handoff, het Luna-plan, ADR-0009, FDR-0006, `VERZUIM_EN_HERSTEL.md` en `VERZUIM_INSTELLINGEN.md`. Houd de volledige verticale volgorde aan: schema/Supabase/RLS/grants/audit/testdata → API/service → UI/i18n → lokale en remote tests → geauthentiseerde browserflows → documentatie. Open punten, Docker-beperkingen, advisor-baseline en de dirty worktree staan in de handoff. Geen commit, push, merge of deployment zonder expliciete opdracht.
 
 ## Bugfix 2026-08-05: roltoewijzingen tonen alleen afdelingen uit actieve administratie
 

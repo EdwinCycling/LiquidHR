@@ -1,6 +1,6 @@
 import 'server-only'
 
-import type { AuthContext } from '@/lib/auth/permissions'
+import { requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { getEmployeeDirectoryDetail, type EmployeeDirectoryDetail } from '@/lib/employee-directory/service'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
@@ -73,6 +73,7 @@ export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmplo
 
   try {
     const supabase = await createClient()
+    const hrGroupId = requireHrGroupId(auth)
     const [employeesResult, employmentsResult] = await Promise.all([
       supabase.from('employees').select('id,first_name,birth_name,avatar_url').eq('tenant_id', auth.tenantId).in('id', teamEmployeeIds).eq('is_archived', false).is('deleted_at', null).limit(500),
       supabase.from('employments').select('id,employee_id,starts_on,ends_on,is_primary').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).in('employee_id', teamEmployeeIds).lte('starts_on', range.endDate).or(`ends_on.is.null,ends_on.gte.${range.startDate}`).order('starts_on', { ascending: false }).limit(1000),
@@ -89,13 +90,13 @@ export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmplo
         ? supabase.from('employment_schedules').select('employment_id,valid_from,valid_until,sunday_hours,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours').in('employment_id', employmentIds).lte('valid_from', range.endDate).or(`valid_until.is.null,valid_until.gte.${range.startDate}`).order('valid_from', { ascending: false }).limit(2000)
         : Promise.resolve({ data: [], error: null }),
       supabase.from('leave_requests').select('employee_id,start_date,end_date').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('status', 'APPROVED').in('employee_id', teamEmployeeIds).lte('start_date', range.endDate).gte('end_date', range.startDate).limit(5000),
-      supabase.from('absence_cases').select('id,employee_id').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).in('employee_id', teamEmployeeIds).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null).lte('first_absence_on', range.endDate).limit(2000),
+      supabase.from('absence_cases').select('id,employee_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('employee_id', teamEmployeeIds).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null).lte('first_absence_on', range.endDate).limit(2000),
     ])
     if (patternsResult.error || schedulesResult.error || leaveResult.error || absenceCasesResult.error) return empty
 
     const absenceCases = absenceCasesResult.data ?? []
     const absenceSpellsResult = absenceCases.length
-      ? await supabase.from('absence_spells').select('case_id,started_on,recovered_on').eq('tenant_id', auth.tenantId).in('case_id', absenceCases.map((item) => item.id)).is('recovered_on', null).lte('started_on', range.endDate).limit(3000)
+      ? await supabase.from('absence_spells').select('case_id,started_on,recovered_on').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('case_id', absenceCases.map((item) => item.id)).is('recovered_on', null).lte('started_on', range.endDate).limit(3000)
       : { data: [], error: null }
     if (absenceSpellsResult.error) return empty
 

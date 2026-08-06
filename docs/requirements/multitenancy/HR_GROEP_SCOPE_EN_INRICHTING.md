@@ -143,6 +143,8 @@ De toepassingsvolgorde is:
 
 Een medewerker met meerdere actieve dienstverbanden heeft per dienstverband een afzonderlijk verlofsaldo. Bij iedere verlofweergave of verlofactie wordt eerst het dienstverband gekozen, tenzij de afdeling/functiecontext exact één geldig dienstverband bepaalt.
 
+De Step-7-implementatie van deze scope is op 2026-08-05 end-to-end vastgesteld. De groepscatalogi, employee sets en regels zijn via schema, RLS, API/RPC en UI aan de HR-groep gekoppeld; uitzonderingen, saldo, buckets, grootboek, rollovers, allocaties en aanvragen blijven employmentgebonden. De resolver volgt `employment exception -> employee set -> HR-group default`. Remote contract-, pgTAP-, RLS- en functionele tests plus de relevante geauthentiseerde browserflows zijn groen of conform de autorisatiescope.
+
 ## 10. Verzuim
 
 Verzuim volgt voor context en selectie dezelfde logica als verlof, maar de verzuimcasus blijft altijd dienstverbandgebonden.
@@ -177,7 +179,17 @@ Deze combinatie is geldig en moet door de applicatie worden ondersteund.
 
 Bedrijfsgegevens en locaties zijn groepsbreed. Een dienstverband kan een locatie uit de eigen HR-groep gebruiken. Een andere HR-groep kan deze locatie niet zien of selecteren.
 
-Dit betekent dat het huidige administratiegebonden model van `administration_company_data` en `administration_locations` moet worden vervangen of gemigreerd naar HR-groep-scope. De relatie van een employment/organisatieplaatsing naar een locatie blijft wel dienstverbandgebonden als effectieve plaatsing.
+De testimplementatie heeft het model gemigreerd in `20260805180000_hr_group_company_administration_locations.sql`: `administration_company_data` en `administration_locations` dragen `hr_group_id` en hebben geen legacy `administration_id`-eigenaarskolom meer. Per HR-groep bestaat precies één bedrijfsprofiel; locaties zijn een groepsbrede catalogus. De relatie van een employment/organisatieplaatsing naar een locatie blijft wel dienstverbandgebonden als effectieve plaatsing en gebruikt een composite foreign key met tenant en HR-groep.
+
+De bedrijf-/locatie-service, `/api/settings/company-data` en de locatie-RPC filteren op de actieve HR-groep. De groepsbrede beheerpagina vraagt daarom geen administratiekeuze. De administratiebeheerroute `/api/hr-groups/administrations/[administrationId]` wijzigt alleen naam en administratienummer; het interne ID, de tenant en de HR-groep zijn immutable. Nummerwijzigingen worden geaudit en verbreken geen historische foreign keys.
+
+De gecontroleerde `TEST-BOUNDARY`-fixture bevat één bedrijf, één administratie, één locatie en bewust nul medewerkers. Een cross-group locatie-RPC-aanroep wordt geweigerd; dit is naast RLS en de composite foreign key een expliciete server-side grenscontrole.
+
+### Implementatiestatus personen en organisatie — 2026-08-05
+
+Stap 6 is uitgevoerd volgens deze ownershipmatrix. `employees`, `departments`, `department_management`, `employee_organizations`, `jobs`, `job_groups`, `job_revisions` en `job_group_jobs` zijn HR-groepgebonden; `employments` en de onderliggende contract-/arbeidsvoorwaardentijdlijnen blijven administratie- en employmentgebonden met dezelfde `hr_group_id`. De complete-employment-RPC publiceert de eerste geldige employment atomair en weigert ongeldige kostenverdelingen zonder gedeeltelijke writes. `list_employee_overviews`, organogram, roltoewijzingen en medewerkerdetail gebruiken de actieve groep als primaire grens.
+
+De reproduceerbare Step-6-fixtures zijn `TEST-BOUNDARY` met nul personen, `TEST-MULTIGROUP` met één groepspersoon, dezelfde managerlogin in twee groepen, `DEMO-028` met twee actieve employments in twee administraties en twee leidinggevenden op `RICH-02` over twee administraties. Remote RLS-, contract- en transactietests zijn geslaagd. De medewerkerdirectory blijft administratiegebonden voor een medewerkercontext; wanneer zo'n context ontbreekt, weigert de server de route expliciet in plaats van groepsgegevens zonder administratiekeuze te projecteren.
 
 ## 12. Niet in deze eerste fase
 

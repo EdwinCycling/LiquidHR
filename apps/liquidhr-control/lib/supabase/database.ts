@@ -9,6 +9,19 @@ export type ControlDatabase = {
         Args: { requested_tenant_id?: string | null }
         Returns: Json
       }
+      get_platform_hr_groups: {
+        Args: { requested_tenant_id: string }
+        Returns: Json
+      }
+      create_platform_hr_group: {
+        Args: {
+          requested_tenant_id: string
+          requested_code: string
+          requested_name: string
+          requested_description?: string | null
+        }
+        Returns: string
+      }
       onboard_platform_tenant: {
         Args: {
           requested_name: string

@@ -115,6 +115,7 @@ export interface EmployeeDetailViewModel {
   employments: Employment[]
   employmentCards: Array<{
     employmentId: string
+    administrationName: string | null
     departmentName: string | null
     jobTitle: string | null
     hoursPerWeek: number | null

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { requireAuthContext, type AuthContext } from '@/lib/auth/permissions'
+import { requireAuthContext, requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { listMyReminders, type ReminderItem } from '@/lib/reminders/reminder-service'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
@@ -167,9 +167,9 @@ async function listLeaveAbsences(auth: AuthContext, employeeScope: StartPageEmpl
 async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<{ items: StartPageAbsenceItem[]; total: number }> {
   if (!auth.permissions.includes('absence:read')) return { items: [], total: 0 }
   const supabase = await createClient()
+  const hrGroupId = requireHrGroupId(auth)
   let countQuery = supabase.from('absence_cases').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', auth.tenantId).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null)
-  if (auth.administrationId) countQuery = countQuery.eq('administration_id', auth.administrationId)
+    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null)
   if (employeeScope !== null) {
     if (employeeScope.length === 0) return { items: [], total: 0 }
     countQuery = countQuery.in('employee_id', employeeScope)
@@ -179,11 +179,11 @@ async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmp
   let query = supabase.from('absence_cases')
     .select('id, employee_id, first_absence_on, status')
     .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', hrGroupId)
     .in('status', ['ACTIVE', 'RECOVERY_WINDOW'])
     .is('archived_at', null)
     .order('first_absence_on', { ascending: false })
     .limit(5)
-  if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
   if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { data: cases, error } = await query
   if (error || !cases?.length) return { items: [], total: total ?? 0 }
@@ -296,12 +296,12 @@ async function listUpcomingEvents(auth: AuthContext, employeeScope: StartPageEmp
 async function countEmployees(auth: AuthContext, employeeScope: StartPageEmployeeScope): Promise<number | null> {
   if (!auth.permissions.includes('employee:read')) return null
   if (employeeScope !== null && employeeScope.length === 0) return 0
-  if (!auth.administrationId) return 0
+  if (!auth.hrGroupId) return 0
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase.rpc('list_employee_overviews', {
     requested_tenant_id: auth.tenantId,
-    requested_administration_id: auth.administrationId,
+    requested_hr_group_id: auth.hrGroupId,
     requested_as_of: today,
     requested_archive_filter: 'active',
   })
@@ -317,10 +317,10 @@ async function countRecurringAbsence(auth: AuthContext, employeeScope: StartPage
   if (!auth.permissions.includes('absence:read')) return null
   if (employeeScope !== null && employeeScope.length === 0) return 0
   const supabase = await createClient()
+  const hrGroupId = requireHrGroupId(auth)
   // Medewerkers met meer dan 1 verzuimcasus (recurring)
   let query = supabase.from('absence_cases').select('employee_id')
-    .eq('tenant_id', auth.tenantId).is('archived_at', null)
-  if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
+    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).is('archived_at', null)
   if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { data, error } = await query.limit(10000)
   if (error || !data) return null
@@ -333,13 +333,13 @@ async function countLongTermSick(auth: AuthContext, employeeScope: StartPageEmpl
   if (!auth.permissions.includes('absence:read')) return null
   if (employeeScope !== null && employeeScope.length === 0) return 0
   const supabase = await createClient()
+  const hrGroupId = requireHrGroupId(auth)
   const twoWeeksAgo = new Date()
   twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
   const cutoff = twoWeeksAgo.toISOString().slice(0, 10)
   let query = supabase.from('absence_cases').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', auth.tenantId).eq('status', 'ACTIVE').is('archived_at', null)
+    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('status', 'ACTIVE').is('archived_at', null)
     .lte('first_absence_on', cutoff)
-  if (auth.administrationId) query = query.eq('administration_id', auth.administrationId)
   if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { count, error } = await query
   return error ? null : count ?? 0
@@ -347,13 +347,14 @@ async function countLongTermSick(auth: AuthContext, employeeScope: StartPageEmpl
 
 async function getStartPageWorkWeather(auth: AuthContext): Promise<WorkWeather | null> {
   const fallbackWeather = () => getWorkWeather(FALLBACK_WEATHER_LOCATION)
-  if (!auth.administrationId) return fallbackWeather()
+  const hrGroupId = auth.hrGroupId
+  if (!hrGroupId) return fallbackWeather()
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const [companyResult, assignmentResult] = await Promise.all([
-    supabase.from('administration_company_data').select('city, country_code').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).maybeSingle(),
+    supabase.from('administration_company_data').select('city, country_code').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).maybeSingle(),
     auth.employeeId
-      ? supabase.from('employee_organizations').select('location_id').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('employee_id', auth.employeeId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(25)
+      ? supabase.from('employee_organizations').select('location_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('employee_id', auth.employeeId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(25)
       : Promise.resolve({ data: [], error: null }),
   ])
   if (companyResult.error || assignmentResult.error) return fallbackWeather()
@@ -361,7 +362,7 @@ async function getStartPageWorkWeather(auth: AuthContext): Promise<WorkWeather |
   const currentAssignment = assignmentResult.data?.[0]
   const locationId = currentAssignment?.location_id ?? null
   const locationResult = locationId
-    ? await supabase.from('administration_locations').select('id, name, city, country_code').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('id', locationId).eq('is_active', true).maybeSingle()
+    ? await supabase.from('administration_locations').select('id, name, city, country_code').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', locationId).eq('is_active', true).maybeSingle()
     : { data: null, error: null }
   if (locationResult.error) return fallbackWeather()
 
@@ -449,7 +450,7 @@ export async function getStartPageData(requestedScope?: StartPageScope): Promise
     employeeId: auth.employeeId,
     firstName: employee.data?.first_name?.trim() || null,
     tenantName: context.tenant.name,
-    administrationName: context.administration?.name ?? null,
+    administrationName: context.activeAdministration?.name ?? null,
     isEmployeeOnly,
     companyDocuments,
     reminders: reminders.filter((reminder) => reminder.recipientStatus === 'PENDING' && reminder.reminderStatus === 'PUBLISHED'),

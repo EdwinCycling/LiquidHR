@@ -11,6 +11,7 @@
   "settings": "Settings",
   "personalSettings": "Personal settings",
   "administration": "Administration",
+  "hrGroup": "HR group",
   "navigation": "Navigation",
   "openMenu": "Open navigation",
   "closeMenu": "Close navigation",
@@ -18,6 +19,8 @@
   "expand": "Expand navigation",
   "switchingAdministration": "Switching administration…",
   "switchAdministrationFailed": "Could not switch administration.",
+  "switchingHrGroup": "Switching HR group…",
+  "switchHrGroupFailed": "Could not switch HR group.",
   "customerEnvironment": "Customer environment"
   ,"timeHub": "Time Hub",
   "masterData": "Master data",

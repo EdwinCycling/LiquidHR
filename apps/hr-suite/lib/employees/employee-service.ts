@@ -1,5 +1,5 @@
 import type { Json } from '@scope/db'
-import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { decryptPii, encryptPii } from '@/lib/security/pii-crypto'
@@ -170,7 +170,7 @@ export async function createEmployee(input: EmployeeCreateInput): Promise<Public
   const client = await createClient()
   const { data, error } = await client
     .from('employees')
-    .insert(toEmployeeInsert(context.tenantId, employeeNumber, input))
+    .insert(toEmployeeInsert(context.tenantId, requireHrGroupId(context), employeeNumber, input))
     .select('id, tenant_id, employee_number, first_name, birth_name, private_email, work_email, is_active, updated_at')
     .single()
 
@@ -205,6 +205,7 @@ export async function updateEmployee(employeeId: string, input: EmployeeUpdateIn
     .from('employees')
     .update(toEmployeeUpdate(input))
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', requireHrGroupId(context))
     .eq('id', employeeId)
     .eq('updated_at', input.updatedAt)
     .is('deleted_at', null)
@@ -225,6 +226,7 @@ export async function archiveEmployee(employeeId: string, updatedAt: string): Pr
     .from('employees')
     .update({ is_active: false, deleted_at: new Date().toISOString() })
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', requireHrGroupId(context))
     .eq('id', employeeId)
     .eq('updated_at', updatedAt)
     .is('deleted_at', null)
@@ -241,6 +243,7 @@ export async function setEmployeeArchived(employeeId: string, archived: boolean)
     .from('employees')
     .update({ is_archived: archived })
     .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', requireHrGroupId(context))
     .eq('id', employeeId)
     .is('deleted_at', null)
     .select('id, is_archived')
@@ -268,12 +271,12 @@ export async function uploadEmployeeAvatar(employeeId: string, file: File): Prom
   const context = await requirePermission('employee:write', employeeId)
   const compacted = await compactEmployeeAvatar(file)
   const supabase = await createClient()
-  const { data: current, error: currentError } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  const { data: current, error: currentError } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId).is('deleted_at', null).maybeSingle()
   if (currentError || !current) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
   const path = `${context.tenantId}/${employeeId}/${crypto.randomUUID()}.webp`
   const upload = await supabase.storage.from('employee-avatars').upload(path, compacted, { contentType: 'image/webp', upsert: false })
   if (upload.error) throw new EmployeeServiceError('EMPLOYEE_AVATAR_UPLOAD_FAILED', 500)
-  const { error } = await supabase.from('employees').update({ avatar_url: `storage://${path}` }).eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null)
+  const { error } = await supabase.from('employees').update({ avatar_url: `storage://${path}` }).eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId).is('deleted_at', null)
   if (error) {
     await supabase.storage.from('employee-avatars').remove([path])
     throw new EmployeeServiceError('EMPLOYEE_AVATAR_SAVE_FAILED', 500)
@@ -284,9 +287,9 @@ export async function uploadEmployeeAvatar(employeeId: string, file: File): Prom
 export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
   const context = await requirePermission('employee:write', employeeId)
   const supabase = await createClient()
-  const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId).is('deleted_at', null).maybeSingle()
   if (error || !data) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
-  const { error: updateError } = await supabase.from('employees').update({ avatar_url: null }).eq('tenant_id', context.tenantId).eq('id', employeeId)
+  const { error: updateError } = await supabase.from('employees').update({ avatar_url: null }).eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId)
   if (updateError) throw new EmployeeServiceError('EMPLOYEE_AVATAR_SAVE_FAILED', 500)
   if (data.avatar_url?.startsWith('storage://')) await supabase.storage.from('employee-avatars').remove([data.avatar_url.slice('storage://'.length)])
 }
@@ -294,7 +297,7 @@ export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
 export async function getEmployeeAvatar(employeeId: string): Promise<{ body: ArrayBuffer; contentType: string } | { url: string } | null> {
   const context = await requirePermission('employee:read', employeeId)
   const supabase = await createClient()
-  const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('id', employeeId).is('deleted_at', null).maybeSingle()
+  const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId).is('deleted_at', null).maybeSingle()
   if (error || !data?.avatar_url) return null
   if (!data.avatar_url.startsWith('storage://')) return { url: data.avatar_url }
   const path = data.avatar_url.slice('storage://'.length)

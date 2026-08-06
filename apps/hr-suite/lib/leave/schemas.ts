@@ -124,7 +124,10 @@ const accrualRuleInput = z.object({
 
 const exceptionInput = z.object({
   action: z.literal('ACCRUAL_EXCEPTION'),
-  employeeIds: z.array(z.string().trim().min(1).max(100)).min(1).max(500),
+  employmentSelections: z.array(z.object({
+    employeeId: z.string().trim().min(1).max(100),
+    employmentId: z.string().trim().min(1).max(100),
+  }).strict()).min(1).max(500),
   leaveTypeId: z.string().trim().min(1).max(100),
   validFrom: isoDate,
   validUntil: isoDate.nullable().optional(),
@@ -185,6 +188,23 @@ const profileAssignmentInput = z.object({
   validUntil: isoDate.nullable().optional(),
 }).strict()
 
+const employeeSetInput = z.object({
+  action: z.literal('EMPLOYEE_SET'),
+  name: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(500).nullable().optional(),
+  leaveProfileId: z.string().trim().min(1).max(100),
+  priority: z.number().int().min(1).max(32767).default(100),
+  isActive: z.boolean().default(true),
+}).strict()
+
+const employeeSetMemberInput = z.object({
+  action: z.literal('EMPLOYEE_SET_MEMBER'),
+  employeeSetId: z.string().trim().min(1).max(100),
+  employeeId: z.string().trim().min(1).max(100),
+  validFrom: isoDate,
+  validUntil: isoDate.nullable().optional(),
+}).strict()
+
 const catalogUpdateInput = z.object({
   action: z.literal('UPDATE_PROFILE'),
   id: z.string().trim().min(1).max(100),
@@ -205,7 +225,7 @@ const archiveInput = z.object({
   id: z.string().trim().min(1).max(100),
 }).strict()
 
-export const leaveConfigurationMutationSchema = z.discriminatedUnion('action', [accrualRuleInput, exceptionInput, bonusRuleInput, priorityRuleInput, priorityRuleUpdateInput, profileAssignmentInput, catalogUpdateInput, archiveInput])
+export const leaveConfigurationMutationSchema = z.discriminatedUnion('action', [accrualRuleInput, exceptionInput, bonusRuleInput, priorityRuleInput, priorityRuleUpdateInput, profileAssignmentInput, employeeSetInput, employeeSetMemberInput, catalogUpdateInput, archiveInput])
 export type LeaveConfigurationMutation = z.infer<typeof leaveConfigurationMutationSchema>
 
 const overtimeLimitFields = {

@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
 export type EmploymentCatalog = 'LABOR_CONDITION_SET' | 'FLEX_PHASE' | 'SALARY_FREQUENCY' | 'COST_CARRIER' | 'COST_CENTER'
@@ -63,10 +63,11 @@ export async function createEmploymentCatalogItem(
 ): Promise<void> {
   const context = await requirePermission(catalog === 'SALARY_FREQUENCY' ? 'salary:write' : 'contract:write')
   const adminId = administrationId(context.administrationId)
+  const groupId = requireHrGroupId(context)
   const supabase = await createClient()
   const scope = { tenant_id: context.tenantId, administration_id: adminId, code: input.code, name: input.name }
   const result = catalog === 'LABOR_CONDITION_SET'
-    ? await supabase.from('labor_condition_sets').insert({ ...scope, standard_hours_per_week: input.numericValue ?? 40 })
+    ? await supabase.from('labor_condition_sets').insert({ ...scope, hr_group_id: groupId, standard_hours_per_week: input.numericValue ?? 40 })
     : catalog === 'FLEX_PHASE'
       ? await supabase.from('flex_phases').insert({ ...scope, sort_order: input.numericValue ?? 0 })
       : catalog === 'SALARY_FREQUENCY'

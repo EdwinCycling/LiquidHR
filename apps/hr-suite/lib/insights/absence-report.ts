@@ -1,4 +1,4 @@
-import { requirePermission } from '@/lib/auth/permissions'
+import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
 export interface AbsenceInsightQuery {
@@ -138,15 +138,16 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
   const context = await requirePermission('report-absence:read')
   await requirePermission('employee:read')
   if (!context.administrationId) throw new AbsenceInsightsServiceError('INSIGHTS_ADMINISTRATION_REQUIRED', 400)
+  const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const administrationId = context.administrationId
 
   const [employmentResult, departmentsResult, organizationResult, scheduleResult, caseResult] = await Promise.all([
-    supabase.from('employments').select('id,employee_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate).or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000),
-    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('is_active', true).order('name').limit(500),
-    supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(10000),
+    supabase.from('employments').select('id,employee_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', query.endDate).or(`ends_on.is.null,ends_on.gte.${query.startDate}`).limit(5000),
+    supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('name').limit(500),
+    supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(10000),
     supabase.from('employment_schedules').select('employment_id,schedule_type,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours,sunday_hours,part_time_factor,valid_from,valid_until').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('valid_from', query.endDate).or(`valid_until.is.null,valid_until.gte.${query.startDate}`).limit(10000),
-    supabase.from('absence_cases').select('id,employee_id,employment_id,status,first_absence_on,archived_at').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).is('archived_at', null).lte('first_absence_on', query.endDate).limit(10000),
+    supabase.from('absence_cases').select('id,employee_id,employment_id,status,first_absence_on,archived_at').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('archived_at', null).lte('first_absence_on', query.endDate).limit(10000),
   ])
   if (employmentResult.error) fail(employmentResult.error)
   if (departmentsResult.error) fail(departmentsResult.error)
@@ -162,14 +163,14 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
   const employeeIds = [...new Set(employments.map((item) => item.employee_id))]
   const caseIds = cases.map((item) => item.id)
   const [employeesResult, spellsResult] = await Promise.all([
-    employeeIds.length ? supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name').eq('tenant_id', context.tenantId).in('id', employeeIds).is('deleted_at', null).limit(10000) : Promise.resolve({ data: [], error: null }),
-    caseIds.length ? supabase.from('absence_spells').select('id,case_id,started_on,recovered_on').eq('tenant_id', context.tenantId).in('case_id', caseIds).limit(10000) : Promise.resolve({ data: [], error: null }),
+    employeeIds.length ? supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('id', employeeIds).is('deleted_at', null).limit(10000) : Promise.resolve({ data: [], error: null }),
+    caseIds.length ? supabase.from('absence_spells').select('id,case_id,started_on,recovered_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('case_id', caseIds).limit(10000) : Promise.resolve({ data: [], error: null }),
   ])
   if (employeesResult.error) fail(employeesResult.error)
   if (spellsResult.error) fail(spellsResult.error)
   const spellIds = (spellsResult.data as Array<{ id: string }>).map((spell) => spell.id)
   const capacitiesResult = spellIds.length
-    ? await supabase.from('absence_capacity_changes').select('spell_id,effective_on,absence_percentage').eq('tenant_id', context.tenantId).in('spell_id', spellIds).limit(20000)
+    ? await supabase.from('absence_capacity_changes').select('spell_id,effective_on,absence_percentage').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('spell_id', spellIds).limit(20000)
     : { data: [], error: null }
   if (capacitiesResult.error) fail(capacitiesResult.error)
   const employees = employeesResult.data as EmployeeRow[]

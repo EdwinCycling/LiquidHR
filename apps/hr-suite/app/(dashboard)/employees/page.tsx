@@ -29,6 +29,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   const requestedArchiveFilter: EmployeeArchiveFilter = archive === 'archived' || archive === 'all' ? archive : archive === 'active' ? 'active' : scope === 'team' ? 'active' : storedPreferences.archive
   const authContext = await requireAnyPermission(['employee:read', 'employee-directory:read'])
   const directoryMode = !authContext.permissions.includes('employee:read')
+  if (directoryMode && !authContext.administrationId) redirect('/geen-toegang')
   if (directoryMode && !(await getEmployeeDirectoryAccess())) redirect('/geen-toegang')
   const directoryVisibility = await getEmployeeDirectoryVisibility()
   const archiveFilter: EmployeeArchiveFilter = directoryMode ? 'active' : requestedArchiveFilter

@@ -30,6 +30,29 @@ export const supportSessionSchema = z.object({
   durationMinutes: z.coerce.number().int().refine((value) => [15, 30, 60].includes(value)),
 })
 
+export const hrGroupSchema = z.object({
+  id: uuidStringSchema,
+  tenantId: uuidStringSchema,
+  code: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  isActive: z.boolean(),
+  administrations: z.array(z.object({
+    id: uuidStringSchema,
+    code: z.string(),
+    name: z.string(),
+    administrationNumber: z.string(),
+    isActive: z.boolean(),
+  })),
+})
+
+export const createHrGroupSchema = z.object({
+  tenantId: uuidStringSchema,
+  code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]+$/).max(80),
+  name: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(1000),
+})
+
 export const snapshotTenantSchema = z.object({
   id: uuidStringSchema,
   name: z.string(),
@@ -75,3 +98,4 @@ export const controlSnapshotSchema = z.object({
 
 export type ControlSnapshot = z.infer<typeof controlSnapshotSchema>
 export type SnapshotTenant = z.infer<typeof snapshotTenantSchema>
+export type HrGroup = z.infer<typeof hrGroupSchema>

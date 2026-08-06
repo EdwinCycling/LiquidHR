@@ -42,8 +42,8 @@ export default async function AbsenceSettingsPage() {
           saved: t('absenceSettings.saved'),
           failed: t('absenceSettings.failed'),
           invalid: t('absenceSettings.invalid'),
-          employeeSelfReport: 'Medewerker mag zichzelf ziek melden',
-          employeeSelfReportHelp: 'Standaard uit. De medewerker kan alleen de eerste ziektedag doorgeven; manager en HR Admin controleren en vullen de ziekmelding verder aan.',
+          employeeSelfReport: t('absenceSettings.title'),
+          employeeSelfReportHelp: t('absenceSettings.subtitle'),
         }}
       />
       <AbsenceTaskTemplateManager

@@ -4,6 +4,16 @@
 
 De zichtbare productversie komt uitsluitend uit `apps/hr-suite/lib/app-version.ts` en volgt `X.datum.volgnummer`. De huidige productversie is `1.20260805.1`; de npm-versie in `package.json` is technische package-metadata en bepaalt de zichtbare appversie niet.
 
+## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
+
+Een Luna-stap is pas afgerond na de volledige verticale slice: schema/Supabase (migratie, RLS, grants, audit en gecontroleerde testdata), API, UI, tests, documentatie en relevante lokale, remote en geauthentiseerde browserverificatie. Open onderdelen of blokkades blokkeren de status **afgerond**; de volgende stap start pas na een expliciete per-spec controle.
+
+## Overdracht na Step-9-verificatie 2026-08-06
+
+Step 9 is afgerond. De fixturemigration `apps/hr-suite/supabase/migrations/20260806101419_hr_group_step9_manager_multiple_employment_fixture.sql` staat remote als `20260806130420_hr_group_step9_manager_multiple_employment_fixture`. De minimale RLS-correctie staat lokaal in `20260806133314_hr_group_absence_employment_read_scope.sql` en `20260806133600_consolidate_employments_absence_read_policy.sql`; remote zijn deze als `20260806133414_hr_group_absence_employment_read_scope` en `20260806133633_consolidate_employments_absence_read_policy` toegepast. Omar heeft exact twee actieve employments en twee actuele managerplaatsingen. De herhaalde lokale gates, remote contract-/RLS-controle, typegeneratie en advisors zijn groen; security 1 INFO/19 WARN en performance 342 INFO/0 WARN zijn de bestaande projectbaseline.
+
+De geauthentiseerde browserflow bevestigt HR Admin met Omar tweemaal en Test Manager met beide employmentopties. Eén employment is expliciet geselecteerd zonder opslag; de console eindigt op 0 errors/0 warnings. Remote blijven Omar's absence-cases en spells op 0. Stap 1 t/m 9 zijn hiermee volgens de Luna-werkafspraak doorlopen. Zie [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de volledige handoff. Geen commit, push, merge of deployment uitgevoerd.
+
 ## Actueel domeinbesluit 2026-08-05: HR-groepen en employmentgebonden verlof/verzuim
 
 De actuele basis voor de komende LiquidHR-slice staat in:
@@ -12,14 +22,29 @@ De actuele basis voor de komende LiquidHR-slice staat in:
 - [ADR-0009 — HR-groepen als zichtbaarheids- en inrichtingsgrens](decisions/ADR-0009-hr-groepen-als-zichtbaarheids-en-inrichtingsgrens.md)
 - [FDR-0006 — Parallel verzuim per dienstverband](decisions/FDR-0006-parallel-verzuim-per-dienstverband.md)
 - [Uitvoeringsplan voor Luna](delivery/LUNA_HR_GROEP_IMPLEMENTATIEPLAN.md)
+- [Instructie voor de volgende Luna-thread](delivery/LUNA_NEXT_THREAD_INSTRUCTIE_2026-08-06.md)
 
 Deze besluiten vervangen voor het doelmodel de eerdere tenantbrede `SEPARATE`/`COMBINED`-keuze. Een HR-groep is de primaire switch en zichtbaarheidgrens. Bedrijf, locaties, afdelingen, functies, rollen, verlofregels en verzuiminstellingen zijn HR-groepgebonden. Salaris, payroll, administratiegegevens, verlofsaldo en verzuimcasussen blijven gekoppeld aan administratie of dienstverband volgens de nieuwe ownershipmatrix.
 
 Verzuim mag gelijktijdig bestaan op verschillende dienstverbanden en HR-groepen. Alleen overlap binnen hetzelfde dienstverband wordt geblokkeerd. Een herstelmelding op het ene dienstverband wijzigt geen verzuim op een ander dienstverband.
 
-De documentatie-update is voorbereid; de schema-, API-, UI- en remote databasewijzigingen zijn nog niet uitgevoerd.
+Stap 3 t/m 6 van het Luna-plan zijn uitgevoerd in de migrations `20260805144951_hr_group_schema_and_test_data`, `20260805144952_hr_group_schema_finalize`, `20260805162000_hr_group_context_and_control_plane`, `20260805180000_hr_group_company_administration_locations`, `20260805200000_hr_group_people_organization_roles`, `20260805203000_hr_group_people_rpc_alignment`, `20260805203100_hr_group_complete_employment` en de aansluitende privilege-/FK-indexhardening en fixtures. De schemafundering bevat `hr_groups`, groepskoppelingen, composite foreign keys, restrictive HR-groep-RLS, groeps-toegang, vaste CAO-regels, groepsbrede bedrijf/locaties, groepsgebonden personen/organisatie en een reproduceerbare mapping voor de bestaande synthetische data. `packages/db/types.ts` is opnieuw gegenereerd en de migrations zijn remote toegepast op het gekoppelde Supabase-testproject.
+
+Stap 5 en 6 zijn voor alle eigen specs 100% vastgesteld: bedrijf en locaties zijn groepsbreed, administraties behouden een stabiel intern ID met wijzigbare naam/nummer, personen/afdelingen/functies/rollen zijn HR-groepgebonden, employments blijven administratiegebonden en meerdere employments worden per employment getoond. Cross-group locatie- en persoonsgebruik wordt door API/RPC, composite FK en RLS geweigerd. De gecontroleerde `TEST-BOUNDARY`-fixture bevat één bedrijf, één administratie, één locatie en nul medewerkers; `TEST-MULTIGROUP` bevat de expliciete Step-6-managerfixture. De lokale pgTAP-runner blijft Docker-afhankelijk, maar pgtap is remote versioneerbaar geïnstalleerd en de oude pgTAP-contracttests zijn rechtstreeks groen uitgevoerd. De equivalente remote contract-, RLS- en transactietests zijn geslaagd. Stap 7 is daarna end-to-end uitgevoerd en per alle eigen specs 100% vastgesteld.
+
+Stap 7 is volledig uitgevoerd in de migrations `20260805210000_hr_group_leave_scope` t/m `20260805210800_hr_group_anon_privilege_hardening`. Verlofcatalogi, profielen, regels, employee sets, jaarsturing en overwerk zijn HR-groepgebonden; uitzonderingen, saldo, buckets, grootboek, rollovers, allocaties en aanvragen blijven employmentgebonden. De resolver gebruikt `employment exception -> employee set -> HR-group default`. De fixture bevat `Stap 7 testverlof`, profielwaarden 1.5/2.5 uur, een setlid, een grensgroep zonder catalogusrecords en twee DEMO-028-employment-buckets. Remote RLS, de drie pgTAP-contracttests (37/37, 23/23, 35/35), functionele tests, advisors en de geauthentiseerde HR Admin/manager/medewerker-browserflows zijn groen of conform verwachting.
 
 De huidige database bevat uitsluitend synthetische testdata. De komende implementatie hoeft geen oud gedrag of bestaande productiegegevens te blijven ondersteunen. Er komt geen fallback, dual-read, dual-write of compatibiliteitslaag voor de oude tenant-/administratiescope.
+
+## Actuele update 2026-08-06: Stap 8 verzuim per dienstverband
+
+Stap 8 is functioneel uitgevoerd via migration `20260806120000_hr_group_absence_per_employment.sql`. Verzuiminstellingen zijn uniek per HR-groep; casussen en ziekteperioden dragen een verplicht `employment_id`. Een exclusion constraint blokkeert overlap alleen binnen dezelfde tenant, HR-groep en employment. Composite foreign keys, RLS/policies, grants, auditmutaties, indexes en de capacity-mutatie zijn in dezelfde slice opgenomen. De historische administratieverwijzing in instellingen is nullable metadata en geen scopegrens meer.
+
+De report-, recovery- en partial-capacity-RPC's valideren tenant, HR-groep, medewerker, employment, datum, permission en idempotency server-side. De service gebruikt de gedeelde employment resolver: exact één geldige employment wordt automatisch gekozen, exact één manager-match ook, en nul/meerdere matches blijven een expliciete keuze. De UI ondersteunt ziekmelding, gedeeltelijk herstel, volledig herstel en employmentkeuze vanuit `/absence/new`, het medewerkerdashboard en het verzuimtabblad; alle nieuwe tekst staat in NL/EN-berichten.
+
+Remote is de migration toegepast, `packages/db/types.ts` opnieuw gegenereerd, advisors uitgevoerd en `apps/hr-suite/supabase/tests/hr_group_absence_step8_contract.sql` transactioneel geslaagd. Die contracttest controleert overlap op hetzelfde employment, parallelle employments, parallelle HR-groepen, herstelisolatie, partial capacity, RLS, grants, RPC-signatures en afwezigheid van medische kolommen. Lokaal zijn 129 testbestanden/478 tests, strict typecheck, lint, i18n (28 namespaces), productiebuild (171 pagina's) en `git diff --check` groen.
+
+Geauthentiseerde browsercontrole op poort 3000 bevestigde HR Admin-groep A/B-inhoudswissel, twee zichtbare employments met expliciete keuze, volledig herstel en partial-capacity HTTP 200, de manager één-match-flow en de medewerker-self-serviceflow op 390x844 met URL-state en 0 console-errors. De Step-9-fixture bevat nu een teamlid met twee geldige employments; de manager multiple-matchregel is geauthentiseerd in de browser gecontroleerd met expliciete employmentkeuze. De synthetische Fin- en Noah-dossiers zijn voor de herstelacties gebruikt.
 
 ## Actuele update 2026-08-04: Supabase security- en performance-hardening
 

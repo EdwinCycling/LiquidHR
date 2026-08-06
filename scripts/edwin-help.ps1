@@ -49,6 +49,14 @@ $commands = @(
         Example = 'Feature afgerond'
     },
     [pscustomobject]@{
+        Name = 'Feature samenvoegen'
+        Aliases = @('feature merge', 'merge feature')
+        Description = 'Controleert de releasegate, merge-t naar main, pusht main en ruimt tijdelijke refs pas veilig op.'
+        Source = 'AGENTS.md: Feature worktree workflow in Codex-chat'
+        Risk = 'Merge, push en opruimen; stopt bij iedere veiligheidsvoorwaarde'
+        Example = 'Feature samenvoegen'
+    },
+    [pscustomobject]@{
         Name = 'Maak project overview'
         Aliases = @('project overview', 'projectoverzicht', 'metrics')
         Description = "Maakt een actuele inventaris met code-KPI's, routes, database en mandagenbandbreedte."
@@ -63,6 +71,14 @@ $commands = @(
         Source = '.\scripts\measure-next-memory.ps1'
         Risk = 'Schrijft alleen het opgegeven meetbestand'
         Example = '.\scripts\measure-next-memory.ps1 -ProcessIdParam 1234 -OutputPath .\work\next-memory.csv'
+    },
+    [pscustomobject]@{
+        Name = 'Schrijf blog'
+        Aliases = @('blog schrijven', 'schrijf artikel', 'EdwinHelp schrijven', 'redigeer tekst')
+        Description = 'Schrijft of redigeert Nederlandse blogs en professionele teksten in Edwin-stijl, vanuit chat of bestanden in work.'
+        Source = 'docs\skills\edwinhelp-writing\SKILL.md'
+        Risk = 'Read/write tekst; geen code-, Git-, database- of deploymentactie'
+        Example = 'Schrijf een blog over de trend achter deze gebeurtenis'
     }
 )
 
@@ -97,11 +113,11 @@ function Write-CommandEntry {
 Write-ToolkitHeader -Title 'EdwinHelp'
 Write-Host 'Dit is een lokaal, read-only overzicht. Het voert geen workflow uit.'
 
-$selected = if ([string]::IsNullOrWhiteSpace($Command)) {
+$selected = @(if ([string]::IsNullOrWhiteSpace($Command)) {
     $commands
 } else {
     @($commands | Where-Object { Test-CommandMatch -Entry $_ -Query $Command.Trim() })
-}
+})
 
 if ($selected.Count -eq 0) {
     throw "Geen Edwin-commando gevonden voor '$Command'. Gebruik EdwinHelp voor het volledige overzicht."

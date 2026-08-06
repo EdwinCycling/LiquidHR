@@ -3,7 +3,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ContextAccessError } from '@/lib/context/administration-context'
-import { getAdministrationSwitcherMode } from '@/lib/context/administration-context'
+import { getAdministrationSwitcherMode, getHrGroupSwitcherMode } from '@/lib/context/administration-context'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { APP_VERSION } from '@/lib/app-version'
@@ -48,7 +48,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, reminders, enabledModules, productUpdates, profile] = await Promise.all([
-    getUserPreferences({ supabase, userId: data.claims.sub, tenantId: context.tenant.id, administrationId: context.administration?.id ?? null }),
+    getUserPreferences({ supabase, userId: data.claims.sub, tenantId: context.tenant.id, administrationId: context.activeAdministration?.id ?? null }),
     getTranslator('common'),
     getTranslator('navigation'),
     getTranslator('auth'),
@@ -58,7 +58,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     getEnabledTenantModules({ auth: authContext, supabase }),
     getProductUpdateDashboardData(),
     authContext.employeeId
-      ? supabase.from('employees').select('first_name, avatar_url').eq('id', authContext.employeeId).eq('tenant_id', context.tenant.id).is('deleted_at', null).maybeSingle().then(({ data: employee }) => employee)
+      ? supabase.from('employees').select('first_name, avatar_url').eq('id', authContext.employeeId).eq('tenant_id', context.tenant.id).eq('hr_group_id', authContext.hrGroupId ?? '').is('deleted_at', null).maybeSingle().then(({ data: employee }) => employee)
       : Promise.resolve(null),
   ])
   const profileFirstName = profile?.first_name?.trim() || (typeof data.claims.email === 'string' ? data.claims.email.split('@')[0] : '') || common('appName')
@@ -89,8 +89,11 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   return (
     <div className="fixed inset-0 flex h-dvh min-h-0 overflow-hidden bg-background">
       <Sidebar
-        activeAdministrationId={context.administration?.id ?? null}
-        administrations={context.administrations}
+        activeHrGroupId={context.activeHrGroup.id}
+        hrGroups={context.hrGroups}
+        hrGroupSwitcherMode={getHrGroupSwitcherMode(context)}
+        activeAdministrationId={context.activeAdministration?.id ?? null}
+        administrations={context.administrationsInActiveHrGroup}
         administrationSwitcherMode={getAdministrationSwitcherMode(context)}
         canReadEmployees={canReadEmployees}
         canReadDashboard={canReadDashboard}
@@ -118,6 +121,9 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           collapse: navigation('collapse'),
           expand: navigation('expand'),
           administration: navigation('administration'),
+          hrGroup: navigation('hrGroup'),
+          switchingHrGroup: navigation('switchingHrGroup'),
+          switchHrGroupFailed: navigation('switchHrGroupFailed'),
           switchingAdministration: navigation('switchingAdministration'),
           switchAdministrationFailed: navigation('switchAdministrationFailed'),
           timeHub: navigation('timeHub'),

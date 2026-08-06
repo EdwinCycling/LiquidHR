@@ -1,12 +1,13 @@
 import 'server-only'
 
-import type { AuthContext } from '@/lib/auth/permissions'
+import { requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
 export type EmployeeScope = 'all' | 'team'
 
 export async function listDirectTeamEmployeeIds(auth: AuthContext): Promise<string[]> {
   if (!auth.employeeId || !auth.administrationId || !auth.activeRoles.includes('DIRECT_MANAGER')) return []
+  const groupId = requireHrGroupId(auth)
 
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
@@ -14,6 +15,7 @@ export async function listDirectTeamEmployeeIds(auth: AuthContext): Promise<stri
     .from('employee_organizations')
     .select('employee_id')
     .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', groupId)
     .eq('administration_id', auth.administrationId)
     .eq('direct_manager_id', auth.employeeId)
     .neq('employee_id', auth.employeeId)

@@ -3,7 +3,7 @@
 > **Actuele scope vanaf 2026-08-05:** verzuiminstellingen zijn HR-groepgebonden; een verzuimcasus en ziekteperiode zijn altijd aan één dienstverband gekoppeld. Overlap wordt alleen binnen hetzelfde dienstverband geblokkeerd. Overlap over verschillende dienstverbanden of HR-groepen heen is toegestaan. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) en [FDR-0006](../../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md).
 
 Status: **LEIDEND**  
-Implementatie: **IN UITVOERING — schema, API, UI en browsercontrole volgen**  
+Implementatie: **STAP 8 FUNCTIONEEL GEÏMPLEMENTEERD — schema/RLS, API, UI, tests en browsercontrole uitgevoerd; Stap 9 blijft open**
 Scope: HR-groepgebonden verzuiminstellingen en employmentgebonden verzuimregistratie.
 
 ## 1. Doel
@@ -67,7 +67,7 @@ De drempel staat per HR-groep. De telling blijft per dienstverband/casuscontext 
 
 ## 8. Toegang
 
-De kernpermissions zijn `absence:read`, `absence:write` en `absence:recover`. De eerste release bevat geen medewerker-selfservice. RLS en `requirePermission()` bepalen samen de tenant-, HR-groep-, employment- en casusscope.
+De kernpermissions zijn `absence:read`, `absence:write` en `absence:recover`. Medewerker-selfservice voor de eerste ziekmelding is geïmplementeerd binnen de actieve HR-groep; herstel, capacity-wijzigingen en aanvullende casusvelden blijven server-side en met RLS begrensd. RLS en `requirePermission()` bepalen samen de tenant-, HR-groep-, employment- en casusscope.
 
 ## 9. Ingangen
 

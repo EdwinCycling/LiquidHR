@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
+import { permissionErrorResponse, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createDepartment, OrganizationServiceError } from '@/lib/organization/management-service'
 import { departmentCreateSchema } from '@/lib/organization/schemas'
 import { createClient } from '@/lib/supabase/server'
@@ -26,14 +26,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 }
 
 export async function GET() {
-  try {
-    const context = await requirePermission('department:read')
-    const supabase = await createClient()
+    try {
+      const context = await requirePermission('department:read')
+      const groupId = requireHrGroupId(context)
+      const supabase = await createClient()
     const query = supabase
       .from('departments')
-      .select('id, code, name, description, parent_id')
-      .eq('tenant_id', context.tenantId)
-      .eq('is_active', true)
+        .select('id, code, name, description, parent_id')
+        .eq('tenant_id', context.tenantId)
+        .eq('hr_group_id', groupId)
+        .eq('is_active', true)
 
     const { data, error } = await query
       .order('name')
