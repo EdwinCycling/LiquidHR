@@ -10,7 +10,7 @@ De zichtbare productversie is verhoogd naar `1.20260806.2`. De remote migrations
 
 Remote bewijs: alle tien betrokken tabellen hebben geen lege `hr_group_id`, RLS is actief, de nieuwe holiday-RPC en custom-field securityfuncties bestaan en de groepsbrede unieke sleutels bevatten geen duplicaten. De officiële `packages/db/types.ts` is opnieuw gegenereerd. Advisors zijn security `1 INFO / 19 WARN` (projectbaseline) en performance `348 INFO / 0 WARN`.
 
-Lokale releasegate: 130/130 testbestanden, 481/481 tests, strict TypeScript, lint, i18n-pariteit met 28 namespaces, productiebuild met 173 pagina's en `git diff --check` zijn groen. Geauthentiseerde browsercontrole: HR Admin ziet alleen HR-groep `Planeten`, de administratiekeuze ontbreekt in de sidebar, administratiegebonden contracten tonen `Jupiter BV` met wisselknop, de keuze-pagina toont Mars/Jupiter/Mercurius als kaarten en de accountweergave toont `Versie 1.20260806.2`; console 0 errors/0 warnings. GitHub en Vercel worden hierna gecontroleerd.
+Lokale releasegate: 130/130 testbestanden, 481/481 tests, strict TypeScript, lint, i18n-pariteit met 28 namespaces, productiebuild met 173 pagina's en `git diff --check` zijn groen. Geauthentiseerde browsercontrole: HR Admin ziet alleen HR-groep `Planeten`, de administratiekeuze ontbreekt in de sidebar, administratiegebonden contracten tonen `Jupiter BV` met wisselknop, de keuze-pagina toont Mars/Jupiter/Mercurius als kaarten en de accountweergave toont `Versie 1.20260806.2`; console 0 errors/0 warnings. GitHub bevat implementatiecommit `b6c5fc5f6ec9d9df79f465ba3f8cc2e2cfebbf8d`. Vercel Production-deployment `dpl_3LTk81cA8YdtGiRL27VQRWum1ADJ` (`liquidhr-p6m6ngtkm-edwinitsolutions.vercel.app`) staat op `READY` en is exact op die commit gebouwd. De runtimefoutscan en error/fatal-logscan zijn leeg; de publieke alias geeft zonder sessie de verwachte Vercel SSO-redirect.
 
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
@@ -18,7 +18,7 @@ Een Luna-stap is pas afgerond wanneer de volledige verticale slice is uitgevoerd
 
 ## Demo-scope namen bijgewerkt 2026-08-06
 
-De zichtbare namen van de synthetische `liquid-hr-demo-holding`-testdata zijn aangepast in de lokale migration `20260806150000_rename_demo_scope_display_names.sql` en remote toegepast als `rename_demo_scope_display_names`. De klant heet **De Sterren holding**; HR-groep `DEFAULT` heet **Planeten** en bevat **Mars BV**, **Jupiter BV** en **Mercurius BV**. HR-groep `TEST-BOUNDARY` heet **TEST (leeg)** en bevat **Test BV** zonder medewerkers. De bestaande `TEST-MULTIGROUP`-groep bevat **DGA administratie** met één medewerker. Technische codes, ids, relaties, medewerkers en autorisaties zijn niet gewijzigd.
+De zichtbare namen van de synthetische `liquid-hr-demo-holding`-testdata zijn remote aangepast via migration `20260806143509_rename_demo_scope_display_names`. De klant heet **De Sterren holding**; HR-groep `DEFAULT` heet **Planeten** en bevat **Mars BV**, **Jupiter BV** en **Mercurius BV**. HR-groep `TEST-BOUNDARY` heet **TEST (leeg)** en bevat **Test BV** zonder medewerkers. De bestaande `TEST-MULTIGROUP`-groep bevat **DGA administratie** met één medewerker. Technische codes, ids, relaties, medewerkers en autorisaties zijn niet gewijzigd.
 
 ## Administratiekeuze voor HR-admininstellingen 2026-08-06
 
@@ -36,7 +36,7 @@ Bedrijfsinstellingen met kleuren/logo, feestdagen, eindredenen per land, vrije v
 
 De services, routes en dedicated UI-schermen gebruiken nu de actieve HR-groep en tonen daar geen administratiekeuze meer. De branding- en bedrijfsdocumentopslag gebruikt voor nieuwe bestanden een groepspad; bestaande paden blijven via het gekoppelde groepsrecord leesbaar. De gecombineerde Stamdata-overview blijft bewust administratiegekozen voor documentcategorieën; de aparte eindredenenpagina is groepsbreed.
 
-Lokaal gecontroleerd: strict TypeScript is groen. Remote toepassen van de nieuwe migrations, officiële DB-typegeneratie, Supabase-advisors en geauthentiseerde browsercontrole na de schemawijziging zijn nog open; er is geen remote write, commit, push, merge of deployment uitgevoerd.
+Lokaal gecontroleerd: strict TypeScript, lint, i18n, tests en productiebuild zijn groen. De nieuwe migrations zijn remote toegepast, officiële DB-types zijn opnieuw gegenereerd, Supabase-advisors zijn uitgevoerd en de geauthentiseerde browsercontrole na de schemawijziging is geslaagd. De policy-hardening is aanvullend remote toegepast; security blijft op de bestaande projectbaseline en performance heeft geen waarschuwingen.
 
 ## Step-9-verificatie afgerond 2026-08-06
 
