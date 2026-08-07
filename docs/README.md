@@ -12,11 +12,15 @@ De remote controle bevestigt gevulde `hr_group_id`-koppelingen voor alle tien be
 
 De lokale releasegate is groen: 130 testbestanden/481 tests, strict TypeScript, lint, i18n-pariteit met 28 namespaces, productiebuild met 173 gegenereerde pagina's en `git diff --check`. De geauthentiseerde browsercontrole bevestigt de HR-groepcontext `Planeten`, geen administratie-dropdown in de sidebar, alle drie administratiekaarten en zichtbare versie `1.20260806.2`; de console eindigt op 0 errors/0 warnings. GitHub bevat implementatiecommit `b6c5fc5f6ec9d9df79f465ba3f8cc2e2cfebbf8d`. Vercel Production-deployment `dpl_3LTk81cA8YdtGiRL27VQRWum1ADJ` (`liquidhr-p6m6ngtkm-edwinitsolutions.vercel.app`) staat op `READY` en is exact op die commit gebouwd. De runtimefoutscan en error/fatal-logscan zijn leeg; de publieke alias geeft zonder sessie de verwachte Vercel SSO-redirect.
 
-## Actuele performance-optimalisatie 2026-08-06: startpagina en medewerkerslijst
+## Actuele performance-optimalisatie 2026-08-07: startpagina en medewerkerslijst
 
 Op feature-branch `feature/performance-startpagina-medewerkerslijst` is de request-opbouw van `/dashboard/start` en `/employees` verkort. Layout en pagina hergebruiken nu dezelfde request-scoped autorisatie, actieve context en Supabase-client. De startpagina voert onafhankelijke data-, vertaal- en voorkeurreads parallel uit; de medewerkerslijst start de employee-read tegelijk met directory-, vertaal- en teamscope-reads en deelt de directe-teamquery met de employee-service. De startpaginatelling gebruikt twee smalle parallelle queries in plaats van de volledige employee-overview-RPC. Er is bewust geen schemawijziging toegevoegd: de live queryplannen/advisors tonen voor deze paden geen ontbrekende index als hoofdprobleem.
 
-Lokaal zijn 130 testbestanden/481 tests, strict TypeScript, lint, i18n en productiebuild groen. De bestaande productie-baseline is eerder met een geauthentiseerde Chrome-sessie gemeten; een after-change meting op Vercel volgt pas na een preview/deployment. De huidige productieversie is dus nog niet deze feature-branch.
+Lokaal zijn 130 testbestanden/481 tests, strict TypeScript, lint, i18n en productiebuild groen. Commit `3fcfe7068c4ea796a1544576cdadaa218a959be5` is naar GitHub-branch `feature/performance-startpagina-medewerkerslijst` gepusht. De gekoppelde Vercel-preview [`liquidhr-rgbpt20os-edwinitsolutions.vercel.app`](https://liquidhr-rgbpt20os-edwinitsolutions.vercel.app) staat op `READY`; buildduur was 39 seconden, zonder error/fatal-runtimelogs.
+
+De geauthentiseerde Chrome-meting gebruikte drie runs per route en dezelfde zichtbare contentmarkers. Voor HR Admin ging `/dashboard/start` van mediaan 1.014 ms naar 916 ms en `/employees` van 886 ms naar 835 ms. Voor Manager ging de startpagina van 2.076 ms naar 979 ms en de medewerkerslijst van 1.088 ms naar 973 ms. Voor Employee ging de medewerkerslijst van 938 ms naar 807 ms. De medewerkerrol landt voor de startpagina bewust in de eigen medewerkercontext en rendert daar niet dezelfde startpaginamarker. De meting is richtinggevend: netwerk- en cold/warm-variatie blijft zichtbaar.
+
+De huidige Vercel Production blijft deployment `dpl_5yXSL5Q6ykSaoaLfRP21X3ehpVuK` op commit `445d91c` en versie `1.20260806.2`; de performance-branch is nog niet naar `main` samengevoegd of als productie gepromoveerd.
 
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
