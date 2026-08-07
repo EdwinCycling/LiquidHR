@@ -2,7 +2,7 @@
 
 ## Release 2026-08-07: productversie 1.20260807.2
 
-De zichtbare productversie is verhoogd naar `1.20260807.2` volgens de centrale `X.datum.volgnummer`-conventie. De versie staat uitsluitend in `apps/hr-suite/lib/app-version.ts`; de bijbehorende unit-test is bijgewerkt.
+De zichtbare productversie is verhoogd naar `1.20260807.2` volgens de centrale `X.datum.volgnummer`-conventie. De versie staat uitsluitend in `apps/hr-suite/lib/app-version.ts`; de bijbehorende unit-test is bijgewerkt. Releasecommit `98ac2ebc3c8c0b15dd73f373ea4f0889cf14d0a3` staat op `main`; Vercel Production-deployment `dpl_66LXmSsJavEWFj34CFZqnjPfCKVy` staat op `READY` en is exact op deze commit gebouwd.
 
 ## Actuele medewerker-aanmaakwizard 2026-08-07
 
