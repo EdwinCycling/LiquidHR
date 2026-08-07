@@ -9,6 +9,13 @@ import {
   type StartPageWindowLayout,
 } from './start-page-layout'
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+interface StartPagePreferencesReadDependencies {
+  supabase: SupabaseServerClient
+  userId: string
+}
+
 export type StartPageViewMode = 'full' | 'compact'
 
 export interface StartPagePreferences {
@@ -61,9 +68,9 @@ async function getUserId(): Promise<string | null> {
   return claims?.claims.sub ?? null
 }
 
-export async function getStartPagePreferences(): Promise<StartPagePreferences> {
-  const supabase = await createClient()
-  const userId = (await supabase.auth.getClaims()).data?.claims.sub
+export async function getStartPagePreferences(dependencies?: StartPagePreferencesReadDependencies): Promise<StartPagePreferences> {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const userId = dependencies?.userId ?? (await supabase.auth.getClaims()).data?.claims.sub
   if (!userId) return DEFAULT_START_PAGE_PREFERENCES
   const { data } = await supabase.from('user_preferences').select('ui_state').eq('auth_user_id', userId).maybeSingle()
   const state = isRecord(data?.ui_state) ? data.ui_state : {}

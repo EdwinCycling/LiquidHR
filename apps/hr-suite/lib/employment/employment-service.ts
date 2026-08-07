@@ -18,6 +18,13 @@ import type {
 } from './schemas'
 
 type EmploymentRow = Database['public']['Tables']['employments']['Row']
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+export interface EmployeeOverviewReadDependencies {
+  context: Awaited<ReturnType<typeof requireAnyPermission>>
+  supabase: SupabaseServerClient
+  teamEmployeeIds?: Promise<string[]>
+}
 
 export class EmploymentServiceError extends Error {
   constructor(
@@ -476,14 +483,15 @@ export async function listEmployeeEmployments(employeeId: string): Promise<Emplo
 }
 
 async function listDirectTeamEmployeeOverviews(
-  context: Awaited<ReturnType<typeof requireAnyPermission>>,
+  context: EmployeeOverviewReadDependencies['context'],
   archiveFilter: EmployeeArchiveFilter,
   today: string,
+  supabase: SupabaseServerClient,
+  requestedTeamEmployeeIds?: string[],
 ): Promise<EmployeeOverview[]> {
-  const teamEmployeeIds = await listDirectTeamEmployeeIds(context)
+  const teamEmployeeIds = requestedTeamEmployeeIds ?? await listDirectTeamEmployeeIds(context, supabase)
   if (teamEmployeeIds.length === 0) return []
 
-  const supabase = await createClient()
   const { data, error } = await supabase.rpc('list_employee_overviews', {
     requested_tenant_id: context.tenantId,
     requested_hr_group_id: requireHrGroupId(context),
@@ -502,15 +510,19 @@ export async function listEmployeesOverview(
   archiveFilter: EmployeeArchiveFilter = 'active',
   scope: EmployeeScope = 'all',
   options: { activeDirectoryOnly?: boolean } = {},
+  dependencies?: EmployeeOverviewReadDependencies,
 ): Promise<EmployeeOverview[]> {
-  const context = await requireAnyPermission(['employee:read', 'employee-directory:read'])
+  const context = dependencies?.context ?? await requireAnyPermission(['employee:read', 'employee-directory:read'])
+  if (dependencies && !context.permissions.includes('employee:read') && !context.permissions.includes('employee-directory:read')) {
+    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  }
+  const supabase = dependencies?.supabase ?? await createClient()
   const hrGroupId = requireHrGroupId(context)
   const today = new Date().toISOString().slice(0, 10)
   const effectiveArchiveFilter = options.activeDirectoryOnly ? 'active' : archiveFilter
   if (scope === 'team' && !context.activeRoles.includes('DIRECT_MANAGER')) throw new AuthorizationError('Je hebt geen toegang tot de teamscope.')
-  if (scope === 'team') return listDirectTeamEmployeeOverviews(context, effectiveArchiveFilter, today)
+  if (scope === 'team') return listDirectTeamEmployeeOverviews(context, effectiveArchiveFilter, today, supabase, dependencies?.teamEmployeeIds ? await dependencies.teamEmployeeIds : undefined)
 
-  const supabase = await createClient()
   const { data, error } = await supabase.rpc('list_employee_overviews', {
     requested_tenant_id: context.tenantId,
     requested_hr_group_id: hrGroupId,

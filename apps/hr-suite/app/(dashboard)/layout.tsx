@@ -1,14 +1,12 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
-import { requireAuthContext } from '@/lib/auth/permissions'
+import { AuthenticationError, getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { getHrGroupSwitcherMode } from '@/lib/context/administration-context'
-import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
 import { APP_VERSION } from '@/lib/app-version'
-import { getUserPreferences } from '@/lib/preferences/server'
-import { createClient } from '@/lib/supabase/server'
+import { getRequestUserPreferences } from '@/lib/preferences/server'
 import { listMyReminders } from '@/lib/reminders/reminder-service'
 import { getEnabledTenantModules } from '@/lib/modules/module-service'
 import { HeRaFloating } from '@/components/hera/hera-floating'
@@ -20,20 +18,16 @@ import { TEST_ROLE_SWITCH_TARGETS, isTestRoleSwitchAccount, isTestRoleSwitchEnab
 import type { TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-
-  if (!data?.claims?.sub) redirect('/login')
-
-  let context
+  let requestContext
   try {
-    context = await loadActiveContext(data.claims.sub, supabase)
+    requestContext = await getRequestAuthorizationContext()
   } catch (error) {
     if (error instanceof ContextAccessError) redirect('/geen-toegang')
+    if (error instanceof AuthenticationError) redirect('/login')
     throw error
   }
 
-  const authContext = await requireAuthContext(supabase, context)
+  const { supabase, context: authContext, activeContext: context, email } = requestContext
   const canReadEmployees = authContext.permissions.includes('employee:read') || authContext.permissions.includes('employee-directory:read')
   const canReadDashboard = authContext.permissions.includes('dashboard:read')
   const canReadStartPage = authContext.permissions.includes('start-page:read')
@@ -48,7 +42,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, reminders, enabledModules, productUpdates, profile] = await Promise.all([
-    getUserPreferences({ supabase, userId: data.claims.sub, tenantId: context.tenant.id, hrGroupId: context.activeHrGroup?.id ?? null }),
+    getRequestUserPreferences(),
     getTranslator('common'),
     getTranslator('navigation'),
     getTranslator('auth'),
@@ -56,14 +50,14 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     getTranslator('productUpdates'),
     listMyReminders(20, { context: authContext, supabase }).catch(() => []),
     getEnabledTenantModules({ auth: authContext, supabase }),
-    getProductUpdateDashboardData(),
+    getProductUpdateDashboardData({ context: authContext, supabase }),
     authContext.employeeId
       ? supabase.from('employees').select('first_name, avatar_url').eq('id', authContext.employeeId).eq('tenant_id', context.tenant.id).eq('hr_group_id', authContext.hrGroupId ?? '').is('deleted_at', null).maybeSingle().then(({ data: employee }) => employee)
       : Promise.resolve(null),
   ])
-  const profileFirstName = profile?.first_name?.trim() || (typeof data.claims.email === 'string' ? data.claims.email.split('@')[0] : '') || common('appName')
+  const profileFirstName = profile?.first_name?.trim() || (typeof email === 'string' ? email.split('@')[0] : '') || common('appName')
   const profileAvatarUrl = authContext.employeeId ? employeeAvatarHref(authContext.employeeId, profile?.avatar_url ?? null) : null
-  const currentEmail = typeof data.claims.email === 'string' ? data.claims.email.trim().toLowerCase() : null
+  const currentEmail = typeof email === 'string' ? email.trim().toLowerCase() : null
   const testRoleSwitchOptions: TestRoleSwitchOption[] = [
     { key: TEST_ROLE_SWITCH_TARGETS[0].key, email: TEST_ROLE_SWITCH_TARGETS[0].email, label: navigation('testRoleSwitchEdwin') },
     { key: TEST_ROLE_SWITCH_TARGETS[1].key, email: TEST_ROLE_SWITCH_TARGETS[1].email, label: navigation('testRoleSwitchHrAdmin') },

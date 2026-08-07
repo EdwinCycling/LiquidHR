@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { StartPage } from '@/components/startpage/start-page'
-import { requireAuthContext } from '@/lib/auth/permissions'
+import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
-import { getUserPreferences } from '@/lib/preferences/server'
+import { getRequestUserPreferences } from '@/lib/preferences/server'
 import { getStartPagePreferences } from '@/lib/preferences/start-page'
 import { getStartPageData, type StartPageScope } from '@/lib/startpage/service'
 
@@ -11,7 +11,8 @@ interface StartPageRouteProps {
 }
 
 export default async function StartPageRoute({ searchParams }: StartPageRouteProps) {
-  const authContext = await requireAuthContext()
+  const requestContext = await getRequestAuthorizationContext()
+  const authContext = requestContext.context
   if (!authContext.permissions.includes('start-page:read')) {
     if (authContext.employeeId && authContext.permissions.includes('self:employee:read')) {
       redirect(`/employees/${authContext.employeeId}`)
@@ -21,12 +22,17 @@ export default async function StartPageRoute({ searchParams }: StartPageRoutePro
 
   const { scope: requestedScope } = await searchParams
   const scope: StartPageScope | undefined = requestedScope === 'company' || requestedScope === 'team' ? requestedScope : undefined
-  const data = await getStartPageData(scope)
-  const [locale, preferences, translate, startPagePreferences] = await Promise.all([
+  const dataPromise = getStartPageData(scope, {
+    supabase: requestContext.supabase,
+    auth: requestContext.context,
+    activeContext: requestContext.activeContext,
+  })
+  const [data, locale, preferences, translate, startPagePreferences] = await Promise.all([
+    dataPromise,
     getLocale(),
-    getUserPreferences(),
+    getRequestUserPreferences(),
     getTranslator('startpage'),
-    getStartPagePreferences(),
+    getStartPagePreferences({ supabase: requestContext.supabase, userId: requestContext.context.userId }),
   ])
   const hour = new Date().getHours()
   const greeting = hour < 12 ? translate('goodMorning') : hour < 18 ? translate('goodAfternoon') : translate('goodEvening')

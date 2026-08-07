@@ -4,12 +4,13 @@ import { requireHrGroupId, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
 export type EmployeeScope = 'all' | 'team'
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
-export async function listDirectTeamEmployeeIds(auth: AuthContext): Promise<string[]> {
+export async function listDirectTeamEmployeeIds(auth: AuthContext, existingClient?: SupabaseServerClient): Promise<string[]> {
   if (!auth.employeeId || !auth.administrationId || !auth.activeRoles.includes('DIRECT_MANAGER')) return []
   const groupId = requireHrGroupId(auth)
 
-  const supabase = await createClient()
+  const supabase = existingClient ?? await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('employee_organizations')

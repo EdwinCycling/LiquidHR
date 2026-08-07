@@ -16,6 +16,12 @@ import type {
 type ItemRow = Database['public']['Tables']['continuous_appraisal_items']['Row']
 type CommentRow = Database['public']['Tables']['continuous_appraisal_item_comments']['Row']
 type AttachmentRow = Database['public']['Tables']['continuous_appraisal_attachments']['Row']
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+interface ContinuousAppraisalReadDependencies {
+  context: AuthContext
+  supabase: SupabaseServerClient
+}
 
 const CONTINUOUS_APPRAISAL_ATTACHMENT_BUCKET = 'continuous-appraisal-attachments'
 const CONTINUOUS_APPRAISAL_ATTACHMENT_MAX_SIZE = 10 * 1024 * 1024
@@ -248,9 +254,9 @@ export async function listContinuousAppraisalWorkspace(targetEmployeeId: string,
   }
 }
 
-export async function getContinuousAppraisalSummary(): Promise<ContinuousAppraisalSummary | null> {
-  const supabase = await createClient()
-  const initialContext = await requireAuthContext(supabase)
+export async function getContinuousAppraisalSummary(dependencies?: ContinuousAppraisalReadDependencies): Promise<ContinuousAppraisalSummary | null> {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const initialContext = dependencies?.context ?? await requireAuthContext(supabase)
   if (!initialContext.employeeId) return null
   const employeeId = initialContext.employeeId
   const context = await requirePermission('continuous-appraisal:read', employeeId)

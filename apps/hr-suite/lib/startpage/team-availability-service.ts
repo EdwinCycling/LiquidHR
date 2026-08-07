@@ -7,6 +7,8 @@ import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 import { getPatternDay, type WorkPatternDay } from '@/lib/work-patterns/work-pattern-model'
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
 export type TeamAvailabilityStatus = 'AVAILABLE' | 'OFF' | 'LEAVE' | 'ABSENT'
 
 export interface StartPageTeamAvailabilityCell {
@@ -65,14 +67,14 @@ function scheduledMinutesFromLegacySchedule(schedule: {
   return Math.max(0, Math.round(Number(hours) * 60))
 }
 
-export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmployeeIds?: string[]): Promise<StartPageTeamAvailability> {
+export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmployeeIds?: string[], existingClient?: SupabaseServerClient): Promise<StartPageTeamAvailability> {
   const range = availabilityDateRange()
-  const teamEmployeeIds = requestedTeamEmployeeIds ?? await listDirectTeamEmployeeIds(auth)
+  const teamEmployeeIds = requestedTeamEmployeeIds ?? await listDirectTeamEmployeeIds(auth, existingClient)
   const empty = { dates: range.dates, members: [] }
   if (!auth.administrationId || !teamEmployeeIds.length) return empty
 
   try {
-    const supabase = await createClient()
+    const supabase = existingClient ?? await createClient()
     const hrGroupId = requireHrGroupId(auth)
     const [employeesResult, employmentsResult] = await Promise.all([
       supabase.from('employees').select('id,first_name,birth_name,avatar_url').eq('tenant_id', auth.tenantId).in('id', teamEmployeeIds).eq('is_archived', false).is('deleted_at', null).limit(500),
@@ -121,7 +123,7 @@ export async function loadTeamAvailability(auth: AuthContext, requestedTeamEmplo
     })
     await Promise.all(employeesNeedingRosterFallback.map(async (employee) => {
       try {
-        const detail = await getEmployeeDirectoryDetail(employee.id)
+        const detail = await getEmployeeDirectoryDetail(employee.id, { context: auth, supabase })
         if (detail.schedule?.length) directorySchedulesByEmployee.set(employee.id, detail.schedule)
       } catch {
         // De startpagina blijft bruikbaar als de bestaande directoryprojectie niet beschikbaar is.

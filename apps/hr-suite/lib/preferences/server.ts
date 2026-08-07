@@ -4,6 +4,7 @@ import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { LOCALE_COOKIE } from '@/lib/i18n/config'
 import { ACTIVE_HR_GROUP_COOKIE } from '@/lib/context/server-context'
+import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import {
   resolveUserPreferences,
@@ -60,4 +61,17 @@ export const getUserPreferences = cache(async (dependencies?: UserPreferencesDep
   if (!tenantId) return preferences
   const branding = await getBrandingForHrGroup(tenantId, hrGroupId, supabase)
   return { ...preferences, companyBranding: branding }
+})
+
+// Layout and page components in one render share this request-scoped result.
+// This keeps the common preference query from running once in the layout and
+// again in the active page.
+export const getRequestUserPreferences = cache(async (): Promise<UserPreferences> => {
+  const { supabase, context, activeContext } = await getRequestAuthorizationContext()
+  return getUserPreferences({
+    supabase,
+    userId: context.userId,
+    tenantId: activeContext.tenant.id,
+    hrGroupId: activeContext.activeHrGroup.id,
+  })
 })

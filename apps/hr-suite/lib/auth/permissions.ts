@@ -34,14 +34,27 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 interface RequestAuthorizationContext {
   supabase: SupabaseServerClient
   context: AuthContext
+  activeContext: ActiveContext
+  email: unknown
 }
 
 // React cache is request-scoped during Server Component rendering. Keeping the
 // client and resolved context together prevents each permission check in one
 // render from repeating auth, active-context, role, and permission queries.
-const getRequestAuthorizationContext = cache(async (): Promise<RequestAuthorizationContext> => {
+export const getRequestAuthorizationContext = cache(async (): Promise<RequestAuthorizationContext> => {
   const supabase = await createClient()
-  return { supabase, context: await requireAuthContext(supabase) }
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+
+  if (claimsError || !userId) throw new AuthenticationError('Je bent niet ingelogd.')
+
+  const activeContext = await loadActiveContext(userId, supabase)
+  return {
+    supabase,
+    context: await resolveAuthContext(supabase, activeContext, userId),
+    activeContext,
+    email: claimsData.claims.email,
+  }
 })
 
 const getSelfPermissions = cache(async (supabase: SupabaseServerClient, tenantId: string): Promise<string[]> => {
@@ -104,14 +117,7 @@ async function roleCodesForRoleIds(roleIds: string[], supabase: SupabaseServerCl
   return roles.map((role) => role.code)
 }
 
-export async function requireAuthContext(existingClient?: SupabaseServerClient, existingActiveContext?: ActiveContext): Promise<AuthContext> {
-  const supabase = existingClient ?? await createClient()
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-  const userId = claimsData?.claims?.sub
-
-  if (claimsError || !userId) throw new AuthenticationError('Je bent niet ingelogd.')
-
-  const activeContext = existingActiveContext ?? await loadActiveContext(userId, supabase)
+async function resolveAuthContext(supabase: SupabaseServerClient, activeContext: ActiveContext, userId: string): Promise<AuthContext> {
   const tenantId = activeContext.tenant.id
   const hrGroupId = activeContext.activeHrGroup.id
   const administrationId = activeContext.activeAdministration?.id ?? null
@@ -177,6 +183,21 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
     activeRoles,
     permissions,
   }
+}
+
+export async function requireAuthContext(existingClient?: SupabaseServerClient, existingActiveContext?: ActiveContext): Promise<AuthContext> {
+  if (!existingClient && !existingActiveContext) {
+    return (await getRequestAuthorizationContext()).context
+  }
+
+  const supabase = existingClient ?? await createClient()
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+
+  if (claimsError || !userId) throw new AuthenticationError('Je bent niet ingelogd.')
+
+  const activeContext = existingActiveContext ?? await loadActiveContext(userId, supabase)
+  return resolveAuthContext(supabase, activeContext, userId)
 }
 
 export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {

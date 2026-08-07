@@ -8,6 +8,13 @@ import {
   type EmployeeListPreferencesPatch,
 } from './employee-list-state'
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+interface EmployeeListPreferencesReadDependencies {
+  supabase: SupabaseServerClient
+  userId: string
+}
+
 function isRecord(value: Json | null | undefined): value is { [key: string]: Json | undefined } {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -20,10 +27,9 @@ function withoutFilterPanelOpen(value: { [key: string]: Json | undefined }): { [
   return cleaned
 }
 
-export async function getStoredEmployeesListPreferences(): Promise<EmployeeListPreferences> {
-  const supabase = await createClient()
-  const { data: claims } = await supabase.auth.getClaims()
-  const userId = claims?.claims.sub
+export async function getStoredEmployeesListPreferences(dependencies?: EmployeeListPreferencesReadDependencies): Promise<EmployeeListPreferences> {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const userId = dependencies?.userId ?? (await supabase.auth.getClaims()).data?.claims.sub
   if (!userId) return parseEmployeeListPreferences(null)
   const { data } = await supabase.from('user_preferences').select('ui_state').eq('auth_user_id', userId).maybeSingle()
   if (!isRecord(data?.ui_state)) return parseEmployeeListPreferences(null)

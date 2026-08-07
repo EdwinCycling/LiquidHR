@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { EmployeeFilterPanel } from '@/components/employees/employee-filter-panel'
 import { EmployeeList } from '@/components/employees/employee-list'
-import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
+import { getRequestAuthorizationContext, requireAnyPermission } from '@/lib/auth/permissions'
 import { getEmployeeDirectoryAccess, getEmployeeDirectoryVisibility } from '@/lib/employee-directory/service'
 import { listEmployeesOverview } from '@/lib/employment/employment-service'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
@@ -25,25 +25,37 @@ const STATUSES: EmploymentStatus[] = [
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
   const { search = '', status, archive, sort, view, scope } = await searchParams
-  const storedPreferences = await getStoredEmployeesListPreferences()
-  const requestedArchiveFilter: EmployeeArchiveFilter = archive === 'archived' || archive === 'all' ? archive : archive === 'active' ? 'active' : scope === 'team' ? 'active' : storedPreferences.archive
+  const requestContext = await getRequestAuthorizationContext()
   const authContext = await requireAnyPermission(['employee:read', 'employee-directory:read'])
   const directoryMode = !authContext.permissions.includes('employee:read')
   if (directoryMode && !authContext.administrationId) redirect('/geen-toegang')
-  if (directoryMode && !(await getEmployeeDirectoryAccess())) redirect('/geen-toegang')
-  const directoryVisibility = await getEmployeeDirectoryVisibility()
-  const archiveFilter: EmployeeArchiveFilter = directoryMode ? 'active' : requestedArchiveFilter
+  const directoryDependencies = { context: authContext, supabase: requestContext.supabase }
   const canSelectTeamScope = authContext.activeRoles.includes('DIRECT_MANAGER')
   const limitsManagerDetails = canSelectTeamScope && !authContext.activeRoles.includes('TENANT_ADMIN')
-  const directTeamEmployeeIds = limitsManagerDetails ? await listDirectTeamEmployeeIds(authContext) : []
+  const storedPreferencesPromise = getStoredEmployeesListPreferences({ supabase: requestContext.supabase, userId: authContext.userId })
+  const directoryAccessPromise = directoryMode ? getEmployeeDirectoryAccess(directoryDependencies) : Promise.resolve(true)
+  const directoryVisibilityPromise = getEmployeeDirectoryVisibility(directoryDependencies)
+  const translationsPromise = Promise.all([getTranslator('employees'), getTranslator('employment')])
+  const directTeamEmployeeIdsPromise = canSelectTeamScope ? listDirectTeamEmployeeIds(authContext, requestContext.supabase) : Promise.resolve([])
+  const storedPreferences = await storedPreferencesPromise
+  const requestedArchiveFilter: EmployeeArchiveFilter = archive === 'archived' || archive === 'all' ? archive : archive === 'active' ? 'active' : scope === 'team' ? 'active' : storedPreferences.archive
+  const archiveFilter: EmployeeArchiveFilter = directoryMode ? 'active' : requestedArchiveFilter
   const requestedScope: EmployeeListScope | null = scope === 'team' || scope === 'all' ? scope : null
   const employeeScope: EmployeeListScope = canSelectTeamScope ? (requestedScope ?? 'team') : 'all'
-  const [employees, canCreateEmployee, tEmployees, tEmployment] = await Promise.all([
-    listEmployeesOverview(archiveFilter, employeeScope, { activeDirectoryOnly: directoryMode }),
-    canCreateEmployees(),
-    getTranslator('employees'),
-    getTranslator('employment'),
+  const employeesPromise = listEmployeesOverview(archiveFilter, employeeScope, { activeDirectoryOnly: directoryMode }, {
+    context: authContext,
+    supabase: requestContext.supabase,
+    teamEmployeeIds: canSelectTeamScope ? directTeamEmployeeIdsPromise : undefined,
+  })
+  const [directoryAccess, directoryVisibility, [tEmployees, tEmployment], directTeamEmployeeIds, employees] = await Promise.all([
+    directoryAccessPromise,
+    directoryVisibilityPromise,
+    translationsPromise,
+    directTeamEmployeeIdsPromise,
+    employeesPromise,
   ])
+  if (directoryMode && !directoryAccess) redirect('/geen-toegang')
+  const canCreateEmployee = authContext.permissions.includes('employee:write')
   const sortOrder: EmployeeListSort = sort === 'first-name' || sort === 'last-name' ? sort : storedPreferences.sort
   const viewMode: EmployeeListView = view === 'compact' || view === 'detail' || view === 'card' || view === 'photo-large' || view === 'photo' || view === 'photo-small' || view === 'photo-only' || view === 'photo-collage' ? view : storedPreferences.view
   const statusFilter: EmployeeStatusFilter = directoryMode
@@ -162,14 +174,4 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
       </div>
     </main>
   )
-}
-
-async function canCreateEmployees(): Promise<boolean> {
-  try {
-    await requirePermission('employee:write')
-    return true
-  } catch (error) {
-    if (error instanceof AuthorizationError) return false
-    throw error
-  }
 }

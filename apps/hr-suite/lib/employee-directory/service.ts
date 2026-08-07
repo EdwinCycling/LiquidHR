@@ -2,7 +2,7 @@ import 'server-only'
 
 import type { Json } from '@scope/db'
 import { z } from 'zod'
-import { requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAnyPermission, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
 export interface EmployeeDirectorySettings {
@@ -47,6 +47,12 @@ export const employeeDirectorySettingsSchema = z.object({
 })
 
 export type EmployeeDirectorySettingsInput = z.infer<typeof employeeDirectorySettingsSchema>
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+export interface EmployeeDirectoryReadDependencies {
+  context: AuthContext
+  supabase: SupabaseServerClient
+}
 
 export class EmployeeDirectoryError extends Error {
   constructor(readonly code: string, readonly status: 400 | 403 | 404 | 500) {
@@ -127,10 +133,13 @@ export async function updateEmployeeDirectorySettings(rawInput: unknown): Promis
   if (error) throw new EmployeeDirectoryError('SETTINGS_UPDATE_FAILED', 500)
 }
 
-export async function getEmployeeDirectoryVisibility(): Promise<EmployeeDirectoryVisibility> {
-  const context = await requireAnyPermission(['employee-directory:read', 'employee:read'])
+export async function getEmployeeDirectoryVisibility(dependencies?: EmployeeDirectoryReadDependencies): Promise<EmployeeDirectoryVisibility> {
+  const context = dependencies?.context ?? await requireAnyPermission(['employee-directory:read', 'employee:read'])
+  if (dependencies && !context.permissions.includes('employee-directory:read') && !context.permissions.includes('employee:read')) {
+    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  }
   const adminId = administrationId(context.administrationId)
-  const supabase = await createClient()
+  const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.rpc('get_employee_directory_visibility', {
     requested_tenant_id: context.tenantId,
     requested_administration_id: adminId,
@@ -139,10 +148,13 @@ export async function getEmployeeDirectoryVisibility(): Promise<EmployeeDirector
   return mapVisibility(data)
 }
 
-export async function getEmployeeDirectoryAccess(): Promise<boolean> {
-  const context = await requirePermission('employee-directory:read')
+export async function getEmployeeDirectoryAccess(dependencies?: EmployeeDirectoryReadDependencies): Promise<boolean> {
+  const context = dependencies?.context ?? await requirePermission('employee-directory:read')
+  if (dependencies && !context.permissions.includes('employee-directory:read')) {
+    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  }
   const adminId = administrationId(context.administrationId)
-  const supabase = await createClient()
+  const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.rpc('get_employee_directory_access', {
     requested_tenant_id: context.tenantId,
     requested_administration_id: adminId,
@@ -212,10 +224,13 @@ function weekStart(): string {
   return now.toISOString().slice(0, 10)
 }
 
-export async function getEmployeeDirectoryDetail(employeeId: string): Promise<EmployeeDirectoryDetail> {
-  const context = await requireAnyPermission(['employee-directory:read', 'employee:read'])
+export async function getEmployeeDirectoryDetail(employeeId: string, dependencies?: EmployeeDirectoryReadDependencies): Promise<EmployeeDirectoryDetail> {
+  const context = dependencies?.context ?? await requireAnyPermission(['employee-directory:read', 'employee:read'])
+  if (dependencies && !context.permissions.includes('employee-directory:read') && !context.permissions.includes('employee:read')) {
+    throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
+  }
   const adminId = administrationId(context.administrationId)
-  const supabase = await createClient()
+  const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.rpc('get_employee_directory_detail', {
     requested_tenant_id: context.tenantId,
     requested_administration_id: adminId,
