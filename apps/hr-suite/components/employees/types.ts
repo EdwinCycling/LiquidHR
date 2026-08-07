@@ -120,7 +120,7 @@ export interface EmployeeDetailViewModel {
     jobTitle: string | null
     hoursPerWeek: number | null
     laborConditionName: string | null
-    workerType: Database['public']['Enums']['employment_worker_type'] | null
+    employmentType: Database['public']['Enums']['employment_type'] | null
   }>
   status: 'ACTIVE_EMPLOYEE' | 'FUTURE_EMPLOYEE' | 'FORMER_EMPLOYEE' | 'NEVER_EMPLOYED'
   addresses?: EmployeeAddress[]

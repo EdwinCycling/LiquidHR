@@ -4391,7 +4391,9 @@ export type Database = {
           valid_from: string
           valid_until: string | null
           wednesday_hours: number | null
-          work_scope: Database["public"]["Enums"]["employment_work_scope"] | null
+          work_scope:
+            | Database["public"]["Enums"]["employment_work_scope"]
+            | null
         }
         Insert: {
           administration_id: string
@@ -4420,7 +4422,9 @@ export type Database = {
           valid_from: string
           valid_until?: string | null
           wednesday_hours?: number | null
-          work_scope?: Database["public"]["Enums"]["employment_work_scope"] | null
+          work_scope?:
+            | Database["public"]["Enums"]["employment_work_scope"]
+            | null
         }
         Update: {
           administration_id?: string
@@ -4449,7 +4453,9 @@ export type Database = {
           valid_from?: string
           valid_until?: string | null
           wednesday_hours?: number | null
-          work_scope?: Database["public"]["Enums"]["employment_work_scope"] | null
+          work_scope?:
+            | Database["public"]["Enums"]["employment_work_scope"]
+            | null
         }
         Relationships: [
           {
@@ -7394,10 +7400,10 @@ export type Database = {
           hr_group_id: string
           id: string
           is_self_service: boolean
-          requires_manager_approval: boolean
           limit_hours: number | null
           limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry: boolean
+          requires_manager_approval: boolean
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -7411,10 +7417,10 @@ export type Database = {
           hr_group_id: string
           id?: string
           is_self_service?: boolean
-          requires_manager_approval?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
+          requires_manager_approval?: boolean
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -7428,10 +7434,10 @@ export type Database = {
           hr_group_id?: string
           id?: string
           is_self_service?: boolean
-          requires_manager_approval?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
+          requires_manager_approval?: boolean
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -10843,30 +10849,6 @@ export type Database = {
           tenant_id: string
         }[]
       }
-      create_labor_condition_successor: {
-        Args: {
-          requested_administration_id: string
-          requested_name: string
-          requested_predecessor_id: string
-          requested_standard_hours_per_week: number
-          requested_tenant_id: string
-          requested_valid_from: string
-        }
-        Returns: {
-          administration_id: string
-          code: string
-          created_at: string
-          hr_group_id: string
-          id: string
-          is_active: boolean
-          name: string
-          predecessor_id: string | null
-          standard_hours_per_week: number
-          tenant_id: string
-          updated_at: string
-          valid_from: string
-        }[]
-      }
       activate_due_talent_review_campaigns: {
         Args: { requested_tenant_id: string }
         Returns: number
@@ -11146,6 +11128,36 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: string
+      }
+      create_labor_condition_successor: {
+        Args: {
+          requested_administration_id: string
+          requested_name: string
+          requested_predecessor_id: string
+          requested_standard_hours_per_week: number
+          requested_tenant_id: string
+          requested_valid_from: string
+        }
+        Returns: {
+          administration_id: string
+          code: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          predecessor_id: string | null
+          standard_hours_per_week: number
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "labor_condition_sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_leave_accrual_rule: {
         Args: {
@@ -11602,7 +11614,15 @@ export type Database = {
       document_target_type: "EMPLOYEE" | "MANAGEMENT_ROLE" | "DEPARTMENT_BRANCH"
       education_level: "MBO" | "HBO" | "WO" | "HIGHSCHOOL" | "OTHER" | "UNKNOWN"
       employment_record_status: "DRAFT" | "CONFIRMED" | "CANCELLED"
-      employment_type: "EMPLOYEE" | "INTERN" | "APPRENTICE" | "CONTRACTOR"
+      employment_type:
+        | "EMPLOYEE"
+        | "INTERN"
+        | "APPRENTICE"
+        | "CONTRACTOR"
+        | "TEMPORARY_AGENCY"
+        | "FREELANCER"
+        | "VOLUNTEER"
+        | "NO_PAYROLL"
       employment_work_scope: "FULL_TIME" | "PART_TIME"
       employment_worker_type:
         | "EMPLOYEE"
@@ -11905,7 +11925,16 @@ export const Constants = {
       ],
       education_level: ["MBO", "HBO", "WO", "HIGHSCHOOL", "OTHER", "UNKNOWN"],
       employment_record_status: ["DRAFT", "CONFIRMED", "CANCELLED"],
-      employment_type: ["EMPLOYEE", "INTERN", "APPRENTICE", "CONTRACTOR"],
+      employment_type: [
+        "EMPLOYEE",
+        "INTERN",
+        "APPRENTICE",
+        "CONTRACTOR",
+        "TEMPORARY_AGENCY",
+        "FREELANCER",
+        "VOLUNTEER",
+        "NO_PAYROLL",
+      ],
       employment_work_scope: ["FULL_TIME", "PART_TIME"],
       employment_worker_type: [
         "EMPLOYEE",

@@ -40,7 +40,7 @@ import type { EmployeeDetailViewModel } from './types'
 export interface EmployeeDashboardDocument { id: string; title: string; expiresOn: string | null; createdAt: string }
 
 export interface EmployeeDashboardLabels extends EmployeeDashboardSummaryLabels {
-  title: string; subtitle: string; openDetails: string; workContact: string; privateContact: string; birthDate: string; nationality: string; birthPlace: string; gender: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; employmentNumber: string; employmentPeriod: string; employmentActive: string; employmentFuture: string; employmentEnded: string; employmentNoActive: string; employmentAdd: string; laborConditions: string; workerType: string; workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceHasSafetyNet: string; absenceWorkAccident: string; absenceThirdPartyAccident: string; absenceUnknown: string; absenceYes: string; absenceNo: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string; absenceNowSick: string; absenceNowNotSick: string; absenceLastReport: string; absenceNoHistory: string; absenceActiveSince: string; absenceRecoveryWindow: string; absenceClose: string
+  title: string; subtitle: string; openDetails: string; workContact: string; privateContact: string; birthDate: string; nationality: string; birthPlace: string; gender: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; employmentNumber: string; employmentPeriod: string; employmentActive: string; employmentFuture: string; employmentEnded: string; employmentNoActive: string; employmentAdd: string; laborConditions: string; workerType: string; workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string; workerFreelancer: string; workerVolunteer: string; workerNoPayroll: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceHasSafetyNet: string; absenceWorkAccident: string; absenceThirdPartyAccident: string; absenceUnknown: string; absenceYes: string; absenceNo: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string; absenceNowSick: string; absenceNowNotSick: string; absenceLastReport: string; absenceNoHistory: string; absenceActiveSince: string; absenceRecoveryWindow: string; absenceClose: string
   absenceOpenCase: string
 }
 
@@ -112,13 +112,17 @@ function EmploymentSummaryList({
   const active = hasActiveEmployment(employments.map((employment) => ({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status })), today)
   const workerTypeLabel = (workerType: string | null) => workerType === 'EMPLOYEE'
     ? labels.workerEmployee
-    : workerType === 'STUDENT_INTERN'
+    : workerType === 'INTERN'
       ? labels.workerStudentIntern
       : workerType === 'TEMPORARY_AGENCY'
         ? labels.workerTemporaryAgency
-        : workerType === 'EXTERNAL_NO_PAYROLL'
-          ? labels.workerExternal
-          : labels.notRecorded
+        : workerType === 'FREELANCER'
+          ? labels.workerFreelancer
+          : workerType === 'VOLUNTEER'
+            ? labels.workerVolunteer
+            : workerType === 'NO_PAYROLL'
+              ? labels.workerNoPayroll
+              : labels.notRecorded
   const statusLabel = (status: ReturnType<typeof getEmploymentCardStatus>) => status === 'ACTIVE'
     ? labels.employmentActive
     : status === 'FUTURE'
@@ -147,7 +151,7 @@ function EmploymentSummaryList({
           <dl className="mt-4 grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
             <DataPoint label={labels.jobTitle} value={summary?.jobTitle ?? labels.notRecorded} />
             <DataPoint label={labels.department} value={summary?.departmentName ?? labels.notRecorded} />
-            <DataPoint label={labels.workerType} value={workerTypeLabel(summary?.workerType ?? null)} />
+            <DataPoint label={labels.workerType} value={workerTypeLabel(summary?.employmentType ?? null)} />
             <DataPoint label={labels.hoursPerWeek} value={summary?.hoursPerWeek === null || summary?.hoursPerWeek === undefined ? labels.notRecorded : `${summary.hoursPerWeek}u`} />
             <DataPoint label={labels.laborConditions} value={summary?.laborConditionName ?? labels.notRecorded} />
           </dl>

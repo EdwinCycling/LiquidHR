@@ -37,7 +37,8 @@ export default async function EmploymentContractSettingsPage() {
         title: t('general'),
         children: <EmploymentGeneralSettings
           defaultCountryCode={settings.defaultCountryCode}
-          labels={{ country: t('defaultEmploymentCountry'), save: t('confirm'), saved: t('changeSaved'), failed: t('changeFailed'), search: t('catalogSearch'), empty: t('catalogEmpty') }}
+          frequencies={settings.salaryFrequencies.map((row) => ({ id: row.id, code: row.code, name: row.name, isActive: row.is_active, numericValue: row.periods_per_year }))}
+          labels={{ country: t('defaultEmploymentCountry'), paymentFrequency: t('paymentFrequency'), monthly: t('monthly'), fourWeekly: t('fourWeekly'), save: t('confirm'), saved: t('changeSaved'), failed: t('changeFailed'), search: t('catalogSearch'), empty: t('catalogEmpty') }}
         />,
       },
       {

@@ -195,14 +195,20 @@ export default async function EmploymentDetailPage({
         ? t("ended")
         : t("active");
   const contractTypeLabel = detail.employment.contract_type === 'INDEFINITE' ? t('indefinite') : t('definite');
-  const workerTypeLabel = currentContract?.worker_type === 'EMPLOYEE'
+  const workerTypeLabel = detail.employment.employment_type === 'EMPLOYEE'
     ? t('workerEmployee')
-    : currentContract?.worker_type === 'STUDENT_INTERN'
+    : detail.employment.employment_type === 'INTERN' || detail.employment.employment_type === 'APPRENTICE'
       ? t('workerStudentIntern')
-      : currentContract?.worker_type === 'TEMPORARY_AGENCY'
+      : detail.employment.employment_type === 'TEMPORARY_AGENCY'
         ? t('workerTemporaryAgency')
-        : currentContract?.worker_type === 'EXTERNAL_NO_PAYROLL'
-          ? t('workerExternal')
+        : detail.employment.employment_type === 'FREELANCER'
+          ? t('workerFreelancer')
+          : detail.employment.employment_type === 'VOLUNTEER'
+            ? t('workerVolunteer')
+            : detail.employment.employment_type === 'NO_PAYROLL'
+              ? t('workerNoPayroll')
+              : detail.employment.employment_type === 'CONTRACTOR'
+                ? t('workerExternal')
           : t('notRecorded');
   const timelineListLabels = {
     current: t("currentValue"),
@@ -345,11 +351,12 @@ export default async function EmploymentDetailPage({
                   value={String(detail.incomeRelationships[0]?.income_relationships?.ikv_number ?? t("notRecorded"))}
                 />
                 <DataCard title={t("laborConditions")} value={currentContract?.labor_condition_sets?.name ?? t("notRecorded")} />
-                <DataCard title={t("workerType")} value={currentContract?.worker_type === "EMPLOYEE" ? t("workerEmployee") : currentContract?.worker_type === "STUDENT_INTERN" ? t("workerStudentIntern") : currentContract?.worker_type === "TEMPORARY_AGENCY" ? t("workerTemporaryAgency") : currentContract?.worker_type === "EXTERNAL_NO_PAYROLL" ? t("workerExternal") : t("notRecorded")} />
+                <DataCard title={t("workerType")} value={workerTypeLabel} />
               </div>
             </section>
             <EmploymentContractTimeline
               employmentId={employmentId}
+              employmentType={detail.employment.employment_type}
               canWrite={detail.capabilities.canWriteContract}
               contracts={detail.contracts.map((contract) => ({
                 id: contract.id,
@@ -373,15 +380,12 @@ export default async function EmploymentDetailPage({
               labels={{
                 title: t("contractsTitle"), add: t("contractAdd"), edit: t("change"),
                 close: t("cancel"), save: t("confirm"), cancel: t("cancel"),
-                workerType: t("workerType"), flexPhase: t("flexPhase"),
+                flexPhase: t("flexPhase"),
                 laborConditions: t("laborConditions"), fulltimeReference: t("fulltimeReference"), duration: t("duration"),
                 startDate: t("startDate"), endDate: t("endsOn"),
                 probation: t("probation"), probationEnd: t("probationEnd"),
                 indefinite: t("indefinite"), definite: t("definite"),
-                yes: t("yes"), no: t("no"), workerEmployee: t("workerEmployee"),
-                workerStudentIntern: t("workerStudentIntern"),
-                workerTemporaryAgency: t("workerTemporaryAgency"),
-                workerExternal: t("workerExternal"), active: t("active"),
+                yes: t("yes"), no: t("no"), active: t("active"),
                 failed: t("changeFailed"), addBlocked: t("contractAddBlocked"),
               }}
             />

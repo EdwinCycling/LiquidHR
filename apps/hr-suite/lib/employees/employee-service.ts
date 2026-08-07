@@ -153,6 +153,47 @@ export async function getNextEmployeeNumber(): Promise<string> {
   return reserveEmployeeNumber(context)
 }
 
+export interface EmployeeNumberUsage {
+  highestNumericEmployeeNumber: string | null
+  usedEmployeeNumbers: string[]
+  truncated: boolean
+}
+
+export async function getEmployeeNumberUsage(): Promise<EmployeeNumberUsage> {
+  const context = await requirePermission('employee:write')
+  const supabase = await createClient()
+  const limit = 5_000
+  const { data, error } = await supabase
+    .from('employees')
+    .select('employee_number')
+    .eq('tenant_id', context.tenantId)
+    .order('employee_number')
+    .limit(limit)
+  if (error) throw new EmployeeServiceError('EMPLOYEE_NUMBER_USAGE_FAILED', 500)
+  const usedEmployeeNumbers = (data ?? []).map((row) => row.employee_number)
+  const numericValues = usedEmployeeNumbers
+    .map((number) => Number(number))
+    .filter((number) => Number.isSafeInteger(number) && number > 0)
+  return {
+    highestNumericEmployeeNumber: numericValues.length > 0 ? String(Math.max(...numericValues)) : null,
+    usedEmployeeNumbers,
+    truncated: usedEmployeeNumbers.length >= limit,
+  }
+}
+
+export async function checkEmployeeNumberAvailability(employeeNumber: string): Promise<boolean> {
+  const context = await requirePermission('employee:write')
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('tenant_id', context.tenantId)
+    .eq('employee_number', employeeNumber.trim())
+    .maybeSingle()
+  if (error) throw new EmployeeServiceError('EMPLOYEE_NUMBER_AVAILABILITY_FAILED', 500)
+  return !data
+}
+
 export async function createEmployee(input: EmployeeCreateInput): Promise<PublicEmployee> {
   const context = await requirePermission('employee:write')
   const employeeNumber = input.employeeNumber?.trim() || await reserveEmployeeNumber(context)

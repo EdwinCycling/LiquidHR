@@ -1,8 +1,12 @@
 # Liquid HR documentatie-index
 
-## Release 2026-08-07: productversie 1.20260807.1
+## Release 2026-08-07: productversie 1.20260807.2
 
-De zichtbare productversie is verhoogd naar `1.20260807.1` volgens de centrale `X.datum.volgnummer`-conventie. De versie staat uitsluitend in `apps/hr-suite/lib/app-version.ts`; de bijbehorende unit-test is bijgewerkt.
+De zichtbare productversie is verhoogd naar `1.20260807.2` volgens de centrale `X.datum.volgnummer`-conventie. De versie staat uitsluitend in `apps/hr-suite/lib/app-version.ts`; de bijbehorende unit-test is bijgewerkt.
+
+## Actuele medewerker-aanmaakwizard 2026-08-07
+
+De medewerkerwizard bevat partnernaam in de kerngegevens, extra medewerkerentiteitgegevens, zichtbare required/optional-aanduidingen, een adres zonder invoer van een geldigheidsdatum en twee duidelijke controleacties: alleen medewerker aanmaken of medewerker plus dienstverband aanmaken. Bij het dienstverband wordt eerst de administratie gekozen wanneer de HR-groep meerdere administraties bevat; de administratiedetails zijn uitklapbaar. Het medewerkertype staat op dienstverbandniveau met de zes nieuwe keuzes. Daarna kan de gebruiker loon-/contractgegevens toevoegen of overslaan; bij toevoegen worden de contract-, rooster-, salaris- en organisatie/kostenstappen aan de linkerzijde zichtbaar. De wizard vraagt gegevens niet dubbel, toont betaalfrequenties volgens de administratie-instelling, ondersteunt salarisschaal plus trede en toont de bijbehorende beloning. Functiegroep → functie → afdeling en leidinggevende zijn gekoppeld; kostenallocaties kunnen worden gesplitst. Nationaliteit en land zijn zoekbaar, startdatum en ancienniteitsdatum staan op de eerste dienstverbandstap en BSN is optioneel met uitleg. De drie migraties zijn remote toegepast als `20260807185718_allow_hr_address_creation_before_placement`, `20260807185727_allow_employee_administration_assignment_for_employment_creation` en `20260807185745_expand_employment_types_and_wizard_flow`. Security-advisor staat op 1 INFO / 21 WARN en performance op 344 INFO; dit is de bestaande projectbaseline. De officiële database-types zijn opnieuw gegenereerd.
 
 ## Actuele regelingentijdlijn 2026-08-07
 

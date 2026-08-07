@@ -131,6 +131,19 @@ export async function updateDefaultEmploymentCountry(countryCode: string): Promi
   if (error) throw new EmploymentSettingsError('EMPLOYMENT_SETTINGS_UPDATE_FAILED', 500)
 }
 
+export async function setEmploymentPaymentFrequencies(codes: Array<'MONTHLY' | 'FOUR_WEEKLY'>): Promise<void> {
+  if (codes.length === 0) throw new EmploymentSettingsError('PAYMENT_FREQUENCY_REQUIRED', 400)
+  const context = await requirePermission('salary:write')
+  const adminId = administrationId(context.administrationId)
+  const supabase = await createClient()
+  const selected = new Set(codes)
+  const [monthly, fourWeekly] = await Promise.all([
+    supabase.from('salary_frequencies').update({ is_active: selected.has('MONTHLY') }, { count: 'exact' }).eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('code', 'MONTHLY'),
+    supabase.from('salary_frequencies').update({ is_active: selected.has('FOUR_WEEKLY') }, { count: 'exact' }).eq('tenant_id', context.tenantId).eq('administration_id', adminId).eq('code', 'FOUR_WEEKLY'),
+  ])
+  if (monthly.error || fourWeekly.error || monthly.count !== 1 || fourWeekly.count !== 1) throw new EmploymentSettingsError('PAYMENT_FREQUENCY_UPDATE_FAILED', 500)
+}
+
 export async function createEmploymentCatalogItem(
   catalog: EmploymentCatalog,
   input: { code: string; name: string; numericValue: number | null },

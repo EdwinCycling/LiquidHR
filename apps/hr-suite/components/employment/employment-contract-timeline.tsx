@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 
 type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
+type EmploymentType = 'EMPLOYEE' | 'INTERN' | 'APPRENTICE' | 'CONTRACTOR' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
 type DurationType = 'INDEFINITE' | 'DEFINITE'
 
 interface Contract {
@@ -35,6 +36,7 @@ interface Draft {
 
 interface Props {
   employmentId: string
+  employmentType: EmploymentType
   contracts: Contract[]
   canWrite: boolean
   options: {
@@ -43,11 +45,10 @@ interface Props {
   }
   labels: {
     title: string; add: string; edit: string; close: string; save: string; cancel: string
-    workerType: string; flexPhase: string; laborConditions: string; fulltimeReference: string; duration: string
+    flexPhase: string; laborConditions: string; fulltimeReference: string; duration: string
     startDate: string; endDate: string; probation: string; probationEnd: string
     indefinite: string; definite: string; yes: string; no: string
-    workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string
-    workerExternal: string; active: string; failed: string; addBlocked: string
+    active: string; failed: string; addBlocked: string
   }
 }
 
@@ -57,7 +58,14 @@ function addDay(value: string): string {
   return date.toISOString().slice(0, 10)
 }
 
-export function EmploymentContractTimeline({ employmentId, contracts, canWrite, options, labels }: Props) {
+function workerTypeForEmployment(type: EmploymentType): WorkerType {
+  if (type === 'INTERN' || type === 'APPRENTICE') return 'STUDENT_INTERN'
+  if (type === 'TEMPORARY_AGENCY') return 'TEMPORARY_AGENCY'
+  if (type === 'CONTRACTOR' || type === 'FREELANCER' || type === 'VOLUNTEER' || type === 'NO_PAYROLL') return 'EXTERNAL_NO_PAYROLL'
+  return 'EMPLOYEE'
+}
+
+export function EmploymentContractTimeline({ employmentId, employmentType, contracts, canWrite, options, labels }: Props) {
   const router = useRouter()
   const [selected, setSelected] = useState<Contract | null>(null)
   const [mode, setMode] = useState<'view' | 'edit' | 'add'>('view')
@@ -91,7 +99,7 @@ export function EmploymentContractTimeline({ employmentId, contracts, canWrite, 
     if (!latest?.endsOn) { setError(labels.addBlocked); return }
     setSelected(null)
     setDraft({
-      workerType: 'EMPLOYEE',
+      workerType: workerTypeForEmployment(employmentType),
       flexPhaseId: options.flexPhases[0]?.id ?? '',
       laborConditionSetId: latest.laborConditionSetId,
       durationType: 'INDEFINITE',
@@ -160,7 +168,6 @@ export function EmploymentContractTimeline({ employmentId, contracts, canWrite, 
           <button type="button" className="button-secondary" onClick={() => { setDraft(null); setSelected(null) }}>{labels.close}</button>
         </div>
         {mode === 'view' ? <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Item label={labels.workerType} value={draft.workerType} />
           <Item label={labels.laborConditions} value={selected?.laborConditionName ?? ''} />
           <Item label={labels.fulltimeReference} value={String(selected?.fulltimeHoursPerWeek ?? options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40)} />
           <Item label={labels.startDate} value={draft.startsOn} />
@@ -187,7 +194,6 @@ function ContractFields({ draft, update, options, labels }: {
   const inputClass = 'form-field'
   const fulltimeHours = options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40
   return <div className="mt-5 grid gap-4 sm:grid-cols-2">
-    <label className="grid gap-1.5 text-sm font-medium">{labels.workerType}<select className={inputClass} value={draft.workerType} onChange={(event) => update('workerType', event.target.value as WorkerType)}><option value="EMPLOYEE">{labels.workerEmployee}</option><option value="STUDENT_INTERN">{labels.workerStudentIntern}</option><option value="TEMPORARY_AGENCY">{labels.workerTemporaryAgency}</option><option value="EXTERNAL_NO_PAYROLL">{labels.workerExternal}</option></select></label>
     {draft.workerType === 'TEMPORARY_AGENCY' && <label className="grid gap-1.5 text-sm font-medium">{labels.flexPhase}<select className={inputClass} value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
     <label className="grid gap-1.5 text-sm font-medium">{labels.laborConditions}<select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeReference}<input className={`${inputClass} bg-muted/40`} type="number" value={fulltimeHours} readOnly /></label>

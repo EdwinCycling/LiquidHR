@@ -1,8 +1,18 @@
 # Implementatiestatus Liquid HR
 
-## Release 2026-08-07: productversie 1.20260807.1
+## Release 2026-08-07: productversie 1.20260807.2
 
-De zichtbare productversie is verhoogd naar `1.20260807.1`; de versie-unit-test is bijgewerkt. De releasegate is lokaal groen: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit en productiebuild met 173 pagina's.
+De zichtbare productversie is verhoogd naar `1.20260807.2`; de versie-unit-test is bijgewerkt. De releasegate is lokaal groen: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit en productiebuild met 175 pagina's.
+
+## Actuele slice 2026-08-07: medewerker-aanmaakwizard
+
+De vervolgactie voor **medewerker + dienstverband** blijft in dezelfde wizard. Bij meerdere administraties begint de dienstverbandflow met een expliciete, zoekbare administratiekeuze en uitklapbare details. Het medewerkertype staat op dienstverbandniveau met zes keuzes; `employment_contracts.worker_type` blijft alleen technische compatibiliteit. Na het dienstverband kiest de gebruiker loon-/contractgegevens toevoegen of overslaan. Bij toevoegen komen contract, rooster, salaris, organisatie en kosten als dynamische stappen in de linker navigatie. De administratie-instelling ondersteunt maand en 4 weken als multi-select; de wizard toont één frequentie automatisch of laat bij twee frequenties kiezen. Salarisschaal + trede toont het bijbehorende bedrag; functiegroep → functie → afdeling → leidinggevende en gesplitste kostenallocatie zijn aangesloten. Nationaliteit en land zijn zoekbare landkeuzes; startdatum en ancienniteitsdatum staan op de eerste dienstverbandstap. Het medewerker-/personeelsnummer blijft medewerker-niveau, het dienstverbandnummer staat op employment-niveau. De wizard geeft nummergebruik en live uniekheid terug, toont BSN als optioneel met uitleg en voorkomt dubbele medewerker-PATCHes vanuit de dienstverband-prerequisites.
+
+De remote migraties `20260807185718_allow_hr_address_creation_before_placement`, `20260807185727_allow_employee_administration_assignment_for_employment_creation` en `20260807185745_expand_employment_types_and_wizard_flow` zijn toegepast. De employment-enum, RLS-policies en `publish_complete_employment` zijn read-only gecontroleerd; de officiële database-types zijn opnieuw gegenereerd. Security-advisor staat op 1 INFO / 21 WARN en performance op 344 INFO, zonder nieuwe melding voor deze slice. Geauthentiseerde browsercontrole volgt na de Vercel-deployment. Lokaal zijn i18n, 132/490 tests, strict TypeScript, ESLint, productiebuild met 175 pagina's en `git diff --check` groen.
+
+De wizard is uitgebreid met partnernaam, extra velden van de medewerkerentiteit, required/optional-markering, adresopslag met interne `valid_from = 1900-01-01` en een controlepagina met afzonderlijke acties voor medewerker aanmaken en medewerker plus dienstverband aanmaken. Na een geslaagde creatie verlaat de flow de wizard via de persoonskaart of het nieuwe dienstverband.
+
+De migratie `20260807185718_allow_hr_address_creation_before_placement` laat HR het adres opslaan vóór een organisatieplaatsing of dienstverband en voorkomt daarmee de bestaande 403-situatie in deze wizard. Status: remote toegepast en read-only gecontroleerd; er is geen medewerker/testrecord aangemaakt. Lokale verificatie is groen voor 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n en productiebuild.
 
 ## Actuele slice 2026-08-07: CAO-/bedrijfsregelingentijdlijn
 

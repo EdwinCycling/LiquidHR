@@ -1,7 +1,7 @@
 import 'server-only'
 
 import type { Database, Json } from '@scope/db'
-import { AuthorizationError, requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
@@ -49,8 +49,19 @@ export type EmployeeArchiveFilter = 'active' | 'archived' | 'all'
 export type { EmployeeOverview } from './employee-overview'
 
 export interface EmploymentCreationOptions {
+  administrations: Array<{
+    id: string
+    code: string
+    name: string
+    administrationNumber?: string
+    cocNumber?: string | null
+    vatNumber?: string | null
+  }>
+  selectedAdministrationId: string
   departments: Array<{ id: string; code: string; name: string }>
-  jobs: Array<{ id: string; code: string; name: string }>
+  jobGroups: Array<{ id: string; code: string; name: string }>
+  jobs: Array<{ id: string; code: string; name: string; jobGroupId: string }>
+  managers: Array<{ id: string; employeeNumber: string; name: string }>
   costCenters: Array<{ id: string; code: string; name: string }>
   costCarriers: Array<{ id: string; code: string; name: string }>
   laborConditionSets: Array<{ id: string; code: string; name: string; standardHoursPerWeek: number }>
@@ -62,8 +73,10 @@ export interface EmploymentCreationOptions {
     validFrom: string
     validUntil: string | null
   }>
+  salaryScales: Array<{ id: string; code: string; name: string }>
   salaryScaleSteps: Array<{
     id: string
+    salaryScaleId: string
     label: string
     fulltimeAmount: number
   }>
@@ -126,7 +139,7 @@ export interface EmployeeEmploymentDetail {
     jobTitle: string | null
     hoursPerWeek: number | null
     laborConditionName: string | null
-    workerType: Database['public']['Enums']['employment_worker_type'] | null
+    employmentType: Database['public']['Enums']['employment_type'] | null
   }>
   status: EmploymentStatus
   addresses: Array<{
@@ -186,6 +199,22 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 function requireAdministrationId(administrationId: string | null): string {
   if (!administrationId) throw new EmploymentServiceError('ADMINISTRATION_REQUIRED', 400)
   return administrationId
+}
+
+async function resolveEmploymentAdministration(employeeId: string, requestedAdministrationId?: string): Promise<{
+  context: Awaited<ReturnType<typeof getRequestAuthorizationContext>>['context']
+  supabase: SupabaseServerClient
+  administrationId: string
+  administrations: Awaited<ReturnType<typeof getRequestAuthorizationContext>>['activeContext']['administrationsInActiveHrGroup']
+}> {
+  await requirePermission('contract:write', employeeId)
+  const authorization = await getRequestAuthorizationContext()
+  const administrationId = requestedAdministrationId ?? requireAdministrationId(authorization.context.administrationId)
+  const administrations = authorization.activeContext.administrationsInActiveHrGroup
+  if (!administrations.some((administration) => administration.id === administrationId)) {
+    throw new EmploymentServiceError('ADMINISTRATION_NOT_FOUND', 404)
+  }
+  return { context: authorization.context, supabase: authorization.supabase, administrationId, administrations }
 }
 
 export async function findIdentityCandidates(input: IdentityMatchInput): Promise<IdentityCandidate[]> {
@@ -319,13 +348,13 @@ export async function createEmployment(input: CreateEmploymentInput): Promise<{
 export async function publishCompleteEmployment(
   employeeId: string,
   input: CompleteEmploymentCreateInput,
+  requestedAdministrationId?: string,
 ): Promise<string> {
-  const context = await requirePermission('contract:write', employeeId)
-  const administrationId = requireAdministrationId(context.administrationId)
-  await requirePermission('organization-placement:write', employeeId)
+  const { supabase, administrationId } = await resolveEmploymentAdministration(employeeId, requestedAdministrationId)
+  if (input.contract) await requirePermission('organization-placement:write', employeeId)
   if (input.salary) await requirePermission('salary:write', employeeId)
+  await ensureEmployeeAdministrationAssignment(employeeId, input.employment.startsOn, administrationId)
 
-  const supabase = await createClient()
   const { data, error } = await supabase.rpc('publish_complete_employment', {
     requested_employee_id: employeeId,
     requested_administration_id: administrationId,
@@ -343,27 +372,29 @@ export async function publishCompleteEmployment(
 
 export async function getEmploymentCreationOptions(
   employeeId: string,
+  requestedAdministrationId?: string,
 ): Promise<EmploymentCreationOptions> {
-  const context = await requirePermission('contract:write', employeeId)
-  await requirePermission('organization-placement:write', employeeId)
-  const administrationId = requireAdministrationId(context.administrationId)
+  const { context, supabase, administrationId, administrations } = await resolveEmploymentAdministration(employeeId, requestedAdministrationId)
   const canWriteSalary = await permissionAllowed('salary:write', employeeId)
-  const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const [currentYear, currentMonth] = today.split('-').map(Number)
   const defaultStartDate = new Date(Date.UTC(currentYear, currentMonth, 1)).toISOString().slice(0, 10)
 
   const [
-    departmentsResult, jobsResult, costCentersResult, costCarriersResult,
+    departmentsResult, jobGroupsResult, jobsResult, costCentersResult, costCarriersResult,
     laborConditionSetsResult, flexPhasesResult, salaryFrequenciesResult,
     hrSettingsResult, employeeResult, bsnResult, primaryResult, ikvResult,
-    minimumWagesResult, scaleStepsResult,
+    minimumWagesResult, salaryScalesResult, scaleStepsResult, managersResult,
   ] = await Promise.all([
     supabase.from('departments').select('id, code, name')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', requireHrGroupId(context))
       .eq('is_active', true).order('code').limit(500),
-    supabase.from('jobs').select('id, code, job_revisions!job_revisions_job_hr_group_fkey(name)')
+    supabase.from('job_groups').select('id, code, name')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', requireHrGroupId(context))
+      .eq('is_active', true).order('code').limit(500),
+    supabase.from('jobs').select('id, code, job_group_id, job_revisions!job_revisions_job_hr_group_fkey(name)')
       .eq('tenant_id', context.tenantId)
       .eq('hr_group_id', requireHrGroupId(context))
       .eq('is_active', true).order('code').limit(500),
@@ -403,29 +434,53 @@ export async function getEmploymentCreationOptions(
         .eq('country_code', 'NL').order('valid_from').order('minimum_age').limit(100)
       : Promise.resolve({ data: [], error: null }),
     canWriteSalary
+      ? supabase.from('salary_scales').select('id, code, name')
+        .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+        .eq('is_active', true).order('code').limit(100)
+      : Promise.resolve({ data: [], error: null }),
+    canWriteSalary
       ? supabase.from('salary_scale_steps')
-        .select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
+        .select('id, salary_scale_id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
         .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
         .lte('valid_from', today).or(`valid_until.is.null,valid_until.gt.${today}`)
         .order('fulltime_amount').limit(500)
       : Promise.resolve({ data: [], error: null }),
+    supabase.from('employees').select('id, employee_number, first_name, birth_name')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context))
+      .is('deleted_at', null).order('employee_number').limit(500),
   ])
   const optionResults = [
-    departmentsResult, jobsResult, costCentersResult, costCarriersResult,
+    departmentsResult, jobGroupsResult, jobsResult, costCentersResult, costCarriersResult,
     laborConditionSetsResult, flexPhasesResult, salaryFrequenciesResult,
     hrSettingsResult, employeeResult, bsnResult, primaryResult, ikvResult,
-    minimumWagesResult, scaleStepsResult,
+    minimumWagesResult, salaryScalesResult, scaleStepsResult, managersResult,
   ]
   if (optionResults.some((result) => result.error) || !employeeResult.data) {
     throw new EmploymentServiceError('EMPLOYMENT_OPTIONS_FAILED', 500)
   }
 
   return {
+    administrations: administrations.map((administration) => ({
+      id: administration.id,
+      code: administration.code,
+      name: administration.name,
+      administrationNumber: administration.administrationNumber,
+      cocNumber: administration.cocNumber,
+      vatNumber: administration.vatNumber,
+    })),
+    selectedAdministrationId: administrationId,
     departments: departmentsResult.data ?? [],
+    jobGroups: jobGroupsResult.data ?? [],
     jobs: (jobsResult.data ?? []).map((job) => ({
       id: job.id,
       code: job.code,
+      jobGroupId: job.job_group_id,
       name: job.job_revisions[0]?.name ?? job.code,
+    })),
+    managers: (managersResult.data ?? []).filter((employee) => employee.id !== employeeId).map((employee) => ({
+      id: employee.id,
+      employeeNumber: employee.employee_number,
+      name: `${employee.first_name} ${employee.birth_name}`.trim(),
     })),
     costCenters: costCentersResult.data ?? [],
     costCarriers: costCarriersResult.data ?? [],
@@ -443,8 +498,10 @@ export async function getEmploymentCreationOptions(
       validFrom: rate.valid_from,
       validUntil: rate.valid_until,
     })),
+    salaryScales: salaryScalesResult.data ?? [],
     salaryScaleSteps: (scaleStepsResult.data ?? []).map((step) => ({
       id: step.id,
+      salaryScaleId: step.salary_scale_id,
       label: `${step.salary_scales?.code ?? ''} · ${step.step_name || step.step_code}`,
       fulltimeAmount: step.fulltime_amount,
     })),
@@ -463,6 +520,39 @@ export async function getEmploymentCreationOptions(
       hasBsn: Boolean(bsnResult.data),
     },
   }
+}
+
+export async function ensureEmployeeAdministrationAssignment(
+  employeeId: string,
+  effectiveFrom: string,
+  requestedAdministrationId?: string,
+): Promise<void> {
+  const { context, supabase, administrationId } = await resolveEmploymentAdministration(employeeId, requestedAdministrationId)
+  const groupId = requireHrGroupId(context)
+  const { data: existing, error: existingError } = await supabase
+    .from('employee_administration_assignments')
+    .select('id')
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', groupId)
+    .eq('administration_id', administrationId)
+    .eq('employee_id', employeeId)
+    .lte('effective_from', effectiveFrom)
+    .or(`effective_to.is.null,effective_to.gte.${effectiveFrom}`)
+    .limit(1)
+    .maybeSingle()
+  if (existingError) throw new EmploymentServiceError('EMPLOYEE_ADMINISTRATION_ASSIGNMENT_READ_FAILED', 500)
+  if (existing) return
+
+  const { error: insertError } = await supabase.from('employee_administration_assignments').insert({
+    tenant_id: context.tenantId,
+    hr_group_id: groupId,
+    administration_id: administrationId,
+    employee_id: employeeId,
+    effective_from: effectiveFrom,
+    effective_to: null,
+  })
+  if (insertError?.code === '23505') return
+  if (insertError) throw new EmploymentServiceError('EMPLOYEE_ADMINISTRATION_ASSIGNMENT_CREATE_FAILED', 500)
 }
 
 export async function listEmployeeEmployments(employeeId: string): Promise<EmploymentRow[]> {
@@ -729,7 +819,7 @@ export async function getEmployeeEmploymentDetail(
         jobTitle: organization?.job_title ?? null,
         hoursPerWeek: schedule?.average_hours_per_week ?? null,
         laborConditionName: contract?.labor_condition_sets?.name ?? null,
-        workerType: contract?.worker_type ?? null,
+        employmentType: employment.employment_type ?? null,
       }
     }),
     status: deriveEmploymentStatus(

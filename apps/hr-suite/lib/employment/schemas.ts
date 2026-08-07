@@ -69,7 +69,8 @@ const completeOrganizationSchema = z.object({
 }).strict()
 
 const completeContractSchema = z.object({
-  workerType: z.enum(['EMPLOYEE', 'STUDENT_INTERN', 'TEMPORARY_AGENCY', 'EXTERNAL_NO_PAYROLL']),
+  // Kept optional for older callers; the source of truth is employment.employmentType.
+  workerType: z.enum(['EMPLOYEE', 'STUDENT_INTERN', 'TEMPORARY_AGENCY', 'EXTERNAL_NO_PAYROLL']).default('EMPLOYEE'),
   flexPhaseId: z.string().uuid().nullish(),
   laborConditionSetId: z.string().uuid(),
   durationType: z.enum(['INDEFINITE', 'DEFINITE']),
@@ -183,18 +184,30 @@ const completeCostAllocationSchema = z.object({
 export const completeEmploymentCreateSchema = z.object({
   employment: z.object({
     employmentNumber: z.string().trim().min(1).max(40),
+    employmentType: z.enum(['EMPLOYEE', 'INTERN', 'APPRENTICE', 'CONTRACTOR', 'TEMPORARY_AGENCY', 'FREELANCER', 'VOLUNTEER', 'NO_PAYROLL']).default('EMPLOYEE'),
     startsOn: dateOnly,
     seniorityDate: dateOnly,
     countryCode: z.string().regex(/^[A-Z]{2}$/),
     isPrimary: z.boolean(),
   }).strict(),
-  incomeRelationship: completeIncomeRelationshipSchema,
-  organization: completeOrganizationSchema,
-  contract: completeContractSchema,
-  schedule: completeScheduleSchema,
+  incomeRelationship: completeIncomeRelationshipSchema.optional(),
+  organization: completeOrganizationSchema.optional(),
+  contract: completeContractSchema.optional(),
+  schedule: completeScheduleSchema.optional(),
   salary: completeSalarySchema.optional(),
-  costAllocation: completeCostAllocationSchema,
+  costAllocation: completeCostAllocationSchema.optional(),
 }).strict().superRefine((value, context) => {
+  if (!value.contract) {
+    if (value.incomeRelationship || value.organization || value.schedule || value.salary || value.costAllocation) {
+      context.addIssue({ code: 'custom', path: ['contract'], message: 'CONTRACT_DETAILS_NOT_ALLOWED' })
+    }
+    return
+  }
+  if (!value.incomeRelationship) context.addIssue({ code: 'custom', path: ['incomeRelationship'], message: 'INCOME_RELATIONSHIP_REQUIRED' })
+  if (!value.organization) context.addIssue({ code: 'custom', path: ['organization'], message: 'ORGANIZATION_REQUIRED' })
+  if (!value.schedule) context.addIssue({ code: 'custom', path: ['schedule'], message: 'SCHEDULE_REQUIRED' })
+  if (!value.costAllocation) context.addIssue({ code: 'custom', path: ['costAllocation'], message: 'COST_ALLOCATION_REQUIRED' })
+  if (!value.incomeRelationship || !value.organization || !value.schedule || !value.costAllocation) return
   const startsOn = value.employment.startsOn
   const endsOn = value.contract.endsOn
   const dates = [

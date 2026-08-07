@@ -7,16 +7,22 @@ import { CountryPicker } from '@/components/ui/country-picker'
 type Catalog = 'LABOR_CONDITION_SET' | 'FLEX_PHASE' | 'SALARY_FREQUENCY' | 'COST_CARRIER' | 'COST_CENTER'
 type CatalogRow = { id: string; code: string; name: string; isActive: boolean; numericValue: number | null }
 
-export function EmploymentGeneralSettings({ defaultCountryCode, labels }: { defaultCountryCode: string; labels: { country: string; save: string; saved: string; failed: string; search: string; empty: string } }) {
+export function EmploymentGeneralSettings({ defaultCountryCode, frequencies, labels }: { defaultCountryCode: string; frequencies: CatalogRow[]; labels: { country: string; paymentFrequency: string; monthly: string; fourWeekly: string; save: string; saved: string; failed: string; search: string; empty: string } }) {
   const router = useRouter()
   const [countryCode, setCountryCode] = useState(defaultCountryCode)
+  const [selectedFrequencies, setSelectedFrequencies] = useState<string[]>(() => frequencies.filter((frequency) => frequency.isActive).map((frequency) => frequency.code))
   const [state, setState] = useState<'idle' | 'saved' | 'failed'>('idle')
   async function save(): Promise<void> {
-    const response = await fetch('/api/settings/employment-contracts', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'COUNTRY', countryCode }) })
+    if (selectedFrequencies.length === 0) { setState('failed'); return }
+    const [countryResponse, frequencyResponse] = await Promise.all([
+      fetch('/api/settings/employment-contracts', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'COUNTRY', countryCode }) }),
+      fetch('/api/settings/employment-contracts', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'PAYMENT_FREQUENCIES', codes: selectedFrequencies }) }),
+    ])
+    const response = countryResponse.ok && frequencyResponse.ok ? countryResponse : frequencyResponse
     setState(response.ok ? 'saved' : 'failed')
     if (response.ok) router.refresh()
   }
-  return <div className="max-w-xl"><label className="grid gap-1.5 text-sm font-medium">{labels.country}<CountryPicker value={countryCode} onChange={(value) => { setCountryCode(value); setState('idle') }} searchLabel={labels.search} emptyLabel={labels.empty} /></label><div className="mt-4 flex items-center gap-3"><button type="button" className="button-primary" onClick={save}>{labels.save}</button>{state === 'saved' && <p className="text-sm text-success">{labels.saved}</p>}{state === 'failed' && <p className="text-sm text-destructive">{labels.failed}</p>}</div></div>
+  return <div className="max-w-xl"><label className="grid gap-1.5 text-sm font-medium">{labels.country}<CountryPicker value={countryCode} onChange={(value) => { setCountryCode(value); setState('idle') }} searchLabel={labels.search} emptyLabel={labels.empty} /></label><fieldset className="mt-5 rounded-2xl border p-4"><legend className="px-1 text-sm font-semibold">{labels.paymentFrequency}</legend><div className="mt-2 grid gap-3 sm:grid-cols-2">{frequencies.filter((frequency) => frequency.code === 'MONTHLY' || frequency.code === 'FOUR_WEEKLY').map((frequency) => <label className="flex items-center gap-3 rounded-xl border p-3 text-sm font-medium" key={frequency.code}><input type="checkbox" checked={selectedFrequencies.includes(frequency.code)} onChange={(event) => { setSelectedFrequencies((current) => event.target.checked ? [...new Set([...current, frequency.code])] : current.filter((code) => code !== frequency.code)); setState('idle') }} />{frequency.code === 'MONTHLY' ? labels.monthly : labels.fourWeekly}</label>)}</div></fieldset><div className="mt-4 flex items-center gap-3"><button type="button" className="button-primary" onClick={() => void save()}>{labels.save}</button>{state === 'saved' && <p className="text-sm text-success">{labels.saved}</p>}{state === 'failed' && <p className="text-sm text-destructive">{labels.failed}</p>}</div></div>
 }
 
 export function EmploymentCatalogManager({ catalog, rows, numericLabel, labels }: { catalog: Catalog; rows: CatalogRow[]; numericLabel: string | null; labels: { search: string; code: string; name: string; add: string; edit: string; save: string; cancel: string; active: string; inactive: string; activate: string; deactivate: string; empty: string; failed: string } }) {

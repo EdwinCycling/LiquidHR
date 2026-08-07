@@ -10,7 +10,7 @@ type Employment = Database['public']['Tables']['employments']['Row']
 
 interface EmploymentTimelineProps {
   employments: Employment[]
-  summaries: Array<{ employmentId: string; administrationName: string | null; departmentName: string | null; jobTitle: string | null; hoursPerWeek: number | null; laborConditionName: string | null; workerType: 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL' | null }>
+  summaries: Array<{ employmentId: string; administrationName: string | null; departmentName: string | null; jobTitle: string | null; hoursPerWeek: number | null; laborConditionName: string | null; employmentType: Database['public']['Enums']['employment_type'] | null }>
   locale: string
   dateFormat: DateFormat
   labels: {
@@ -36,6 +36,9 @@ interface EmploymentTimelineProps {
     workerStudentIntern: string
     workerTemporaryAgency: string
     workerExternal: string
+    workerFreelancer: string
+    workerVolunteer: string
+    workerNoPayroll: string
     notRecorded: string
   }
 }
@@ -53,7 +56,7 @@ export function EmploymentTimeline({ employments, summaries, locale, dateFormat,
         const status = employment.starts_on > today ? 'future' : employment.ends_on && employment.ends_on < today ? 'ended' : 'active'
         const summary = summaries.find((item) => item.employmentId === employment.id)
         const duration = seniorityDuration(employment.seniority_date, today)
-        const workerType = summary?.workerType === 'EMPLOYEE' ? labels.workerEmployee : summary?.workerType === 'STUDENT_INTERN' ? labels.workerStudentIntern : summary?.workerType === 'TEMPORARY_AGENCY' ? labels.workerTemporaryAgency : summary?.workerType === 'EXTERNAL_NO_PAYROLL' ? labels.workerExternal : labels.notRecorded
+        const workerType = summary?.employmentType === 'EMPLOYEE' ? labels.workerEmployee : summary?.employmentType === 'INTERN' ? labels.workerStudentIntern : summary?.employmentType === 'TEMPORARY_AGENCY' ? labels.workerTemporaryAgency : summary?.employmentType === 'FREELANCER' ? labels.workerFreelancer : summary?.employmentType === 'VOLUNTEER' ? labels.workerVolunteer : summary?.employmentType === 'NO_PAYROLL' ? labels.workerNoPayroll : labels.notRecorded
         return (
           <li key={employment.id}>
             <Link prefetch={false} href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="group block h-full cursor-pointer rounded-2xl border bg-surface p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">

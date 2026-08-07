@@ -1,8 +1,30 @@
 # Actuele overdracht Liquid HR
 
-## Release 2026-08-07: productversie 1.20260807.1
+## Release 2026-08-07: productversie 1.20260807.2
 
-De zichtbare productversie is verhoogd naar `1.20260807.1` volgens de centrale releaseconventie. De versie-unit-test is bijgewerkt. Lokale releasegate: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en productiebuild met 173 pagina's zijn groen.
+De zichtbare productversie is verhoogd naar `1.20260807.2` volgens de centrale releaseconventie. De versie-unit-test is bijgewerkt. Lokale releasegate: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en productiebuild met 175 pagina's zijn groen.
+
+## Update 2026-08-07: medewerker-aanmaakwizard
+
+De wizard is uitgebreid met een expliciete administratiekeuze als eerste dienstverbandstap bij meerdere administraties, uitklapbare administratiedetails en het medewerkertype op dienstverbandniveau: Medewerker, Stagiair, Uitzendkracht / Externe, ZZP / Freelancer, Vrijwilliger en Geen verloning (diverse). Na het dienstverband kiest de gebruiker of loon-/contractgegevens worden toegevoegd; bij ja worden contract, rooster, salaris, organisatie en kosten als extra wizardstappen aan de linkerzijde toegevoegd. De administratie-instelling ondersteunt nu één of beide betaalfrequenties (maand en 4 weken). De salarisstap ondersteunt salarisschaal + trede met bedrag, en de organisatiesectie functiegroep → functie → afdeling → leidinggevende plus gesplitste kostenallocatie.
+
+De bestaande contractkolom `employment_contracts.worker_type` blijft alleen technische compatibiliteit; de UI vraagt het type niet meer op contractniveau en toont het type vanuit `employments.employment_type`. De migratie `20260807185745_expand_employment_types_and_wizard_flow` breidt de enum uit en maakt de complete employment-RPC geschikt voor zowel alleen dienstverband als dienstverband met looncontract. Samen met `20260807185718_allow_hr_address_creation_before_placement` en `20260807185727_allow_employee_administration_assignment_for_employment_creation` is deze remote toegepast. Security-advisor staat op 1 INFO / 21 WARN en performance op 344 INFO; dit is de bestaande projectbaseline. De officiële database-types zijn opnieuw gegenereerd. Geauthentiseerde browsercontrole moet nog na de deployment worden uitgevoerd.
+
+Lokale verificatie na deze uitbreiding: i18n 28 namespaces, 132 testbestanden/490 tests, strict TypeScript, ESLint, productiebuild met 175 pagina's en `git diff --check` zijn groen.
+
+## Update 2026-08-07: dienstverband vervolgen in dezelfde wizard
+
+De actie **Medewerker + dienstverband aanmaken** blijft nu in dezelfde wizard. De linker stappenlijst wordt uitgebreid met de zes dienstverbandstappen en gebruikt het bestaande dienstverbandformulier zonder medewerkergegevens opnieuw te vragen. Nationaliteit en land gebruiken een zoekbare landkeuze. De eerste dienstverbandstap bevat dienstverbandnummer, startdatum en ancienniteitsdatum; het medewerker-/personeelsnummer blijft op `employees`, terwijl het dienstverband een eigen `employment_number` heeft. Het medewerker-/personeelsnummer toont het hoogste gebruikte nummer, een lijst met gebruikte nummers en een debounced live uniekheidscontrole.
+
+BSN is in de dienstverbandstap optioneel en toont uitleg wanneer het leeg blijft. De bestaande dienstverband-prerequisite-PATCH schrijft niet langer het medewerker-/personeelsnummer terug; daarmee wordt de gemelde 409 niet meer door een dubbele medewerker-update veroorzaakt. Voor een nieuwe medewerker wordt vóór het laden van de dienstverbandstappen een administratie-koppeling gelegd. De lokale migratie `20260807183000_allow_employee_administration_assignment_for_employment_creation.sql` bevat daarvoor de beperkte insert-policy voor gebruikers met `contract:write`.
+
+Verificatie: strict TypeScript, volledige ESLint, 132 testbestanden/490 tests, i18n-pariteit met 28 namespaces, productiebuild met 175 gegenereerde pagina's en `git diff --check` zijn groen. De drie migraties zijn remote geregistreerd als `20260807185718`, `20260807185727` en `20260807185745`; de remote RLS/enum/RPC-controle en typegeneratie zijn groen. De geauthentiseerde browserflow volgt na de code-deployment. De read-only browsercontrole is niet opnieuw uitgevoerd omdat de lokale Playwright-daemon op deze sessie met `EPERM` startte.
+
+De wizard heeft nu een afzonderlijk tabblad voor extra medewerkergegevens, toont partnernaam zodra een partnernaamvariant wordt gekozen, markeert verplichte en optionele velden en heeft op de controlepagina aparte acties voor alleen medewerker aanmaken en medewerker plus dienstverband aanmaken. Na opslaan navigeert de wizard naar de persoonskaart of direct naar het nieuwe dienstverband. De adresdatum wordt niet meer gevraagd; een nieuw adres krijgt onder water `1900-01-01` als `valid_from`.
+
+De migratie `20260807185718_allow_hr_address_creation_before_placement` verruimt de bestaande helper voor HR-beheerders, zodat een adres van een zojuist aangemaakte medewerker ook vóór organisatieplaatsing of dienstverband kan worden opgeslagen. Dit adresseert de gemelde 403. De migratie is remote toegepast; de security-advisor blijft op de bestaande baseline en de officiële `packages/db/types.ts` is opnieuw gegenereerd.
+
+Verificatie na de laatste codewijziging: 132 testbestanden/490 tests, strict TypeScript, volledige ESLint, i18n-pariteit met 28 namespaces, productiebuild met 173 pagina's en `git diff --check` zijn groen. De geauthentiseerde lokale browsercontrole bevestigde de nieuwe partnernaam-, extra-gegevens-, required/optional- en controleacties; daarbij is een stapindexfout gevonden en direct hersteld. Er is geen medewerker opgeslagen, geen commit, push, merge of deployment uitgevoerd.
 
 ## Testdatareset verlofopbouw 2026-08-07
 
