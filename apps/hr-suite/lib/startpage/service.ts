@@ -8,6 +8,7 @@ import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
 import { FALLBACK_WEATHER_LOCATION, getWorkWeather, type WorkWeather } from '@/lib/weather/open-meteo'
 import { getContinuousAppraisalSummary, type ContinuousAppraisalSummary } from '@/lib/continuous-appraisal/service'
+import type { ServerPerformanceTrace } from '@/lib/performance/server-trace'
 import { loadTeamAvailability, type StartPageTeamAvailability } from './team-availability-service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -16,6 +17,7 @@ export interface StartPageDependencies {
   supabase: SupabaseServerClient
   auth: AuthContext
   activeContext: ActiveContext
+  performance?: ServerPerformanceTrace
 }
 
 export interface StartPageData {
@@ -179,8 +181,6 @@ async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmp
     if (employeeScope.length === 0) return { items: [], total: 0 }
     countQuery = countQuery.in('employee_id', employeeScope)
   }
-  const { count: total } = await countQuery
-
   let query = supabase.from('absence_cases')
     .select('id, employee_id, first_absence_on, status')
     .eq('tenant_id', auth.tenantId)
@@ -190,7 +190,7 @@ async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmp
     .order('first_absence_on', { ascending: false })
     .limit(5)
   if (employeeScope !== null) query = query.in('employee_id', employeeScope)
-  const { data: cases, error } = await query
+  const [{ count: total }, { data: cases, error }] = await Promise.all([countQuery, query])
   if (error || !cases?.length) return { items: [], total: total ?? 0 }
   const employeeIds = [...new Set(cases.map((item) => item.employee_id))]
   const { data: employees, error: employeeError } = await supabase.from('employees')
@@ -429,38 +429,50 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
   const supabase = dependencies?.supabase ?? await createClient()
   const auth = dependencies?.auth ?? await requireAuthContext(supabase)
   const context = dependencies?.activeContext ?? await loadActiveContext(auth.userId, supabase)
+  const performanceTrace = dependencies?.performance
+  const measure = <T>(label: string, operation: () => Promise<T>): Promise<T> => performanceTrace ? performanceTrace.measure(label, operation) : operation()
   const isEmployeeOnly = !auth.permissions.includes('start-page:read')
   const personalOnly = auth.employeeId !== null && !auth.permissions.includes('workforce:read')
   const isManager = auth.activeRoles.includes('DIRECT_MANAGER')
   const isHrAdmin = auth.activeRoles.includes('TENANT_ADMIN')
   const canSwitchScope = isManager && isHrAdmin
   const scope: StartPageScope = isManager ? (isHrAdmin && requestedScope === 'company' ? 'company' : 'team') : 'company'
-  const employeeScope = scope === 'team' ? await listDirectTeamEmployeeIds(auth, supabase) : null
-  const managerTeamEmployeeIds = isManager && scope === 'team' ? (employeeScope ?? await listDirectTeamEmployeeIds(auth, supabase)) : []
+  // Start the team-scope lookup together with the independent dashboard reads.
+  // Scope-dependent reads await this shared promise without creating a separate
+  // auth/client waterfall for every branch.
+  const employeeScopePromise: Promise<StartPageEmployeeScope> = scope === 'team'
+    ? measure('scope.team', () => listDirectTeamEmployeeIds(auth, supabase))
+    : Promise.resolve(null)
+  const managerTeamEmployeeIdsPromise = isManager && scope === 'team'
+    ? employeeScopePromise.then((employeeScope) => employeeScope ?? [])
+    : Promise.resolve([])
   const workforceLinks = listStartPageWorkforceLinks(auth.permissions, personalOnly)
+  const employeePromise = auth.employeeId
+    ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
+    : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal, teamAvailability] = await Promise.all([
-    auth.employeeId
-      ? supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    listLeaveAbsences(auth, employeeScope, supabase),
-    listActiveAbsences(auth, employeeScope, supabase),
-    countCompanyDocuments(auth, supabase),
-    listMyReminders(8, { context: auth, supabase }).catch(() => []),
-    listUpcomingEvents(auth, employeeScope, supabase),
-    countEmployees(auth, employeeScope, supabase),
-    countRecurringAbsence(auth, employeeScope, supabase),
-    countLongTermSick(auth, employeeScope, supabase),
-    getStartPageWorkWeather(auth, supabase),
-    getStartPageHomeWeather(auth, supabase),
-    getStartPageCountdowns(auth, supabase),
-    getStartPageContinuousAppraisal({ context: auth, supabase }),
-    isManager && scope === 'team' ? loadTeamAvailability(auth, managerTeamEmployeeIds, supabase) : Promise.resolve(null),
-  ])
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal, teamAvailability] = await measure('data.parallel', () => Promise.all([
+    measure('employee', () => employeePromise),
+    employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
+    employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
+    measure('companyDocuments', () => countCompanyDocuments(auth, supabase)),
+    measure('reminders', () => listMyReminders(8, { context: auth, supabase }).catch(() => [])),
+    employeeScopePromise.then((employeeScope) => measure('events', () => listUpcomingEvents(auth, employeeScope, supabase))),
+    employeeScopePromise.then((employeeScope) => measure('employeeCount', () => countEmployees(auth, employeeScope, supabase))),
+    employeeScopePromise.then((employeeScope) => measure('recurringAbsence', () => countRecurringAbsence(auth, employeeScope, supabase))),
+    employeeScopePromise.then((employeeScope) => measure('longTermSick', () => countLongTermSick(auth, employeeScope, supabase))),
+    measure('workWeather', () => getStartPageWorkWeather(auth, supabase)),
+    measure('homeWeather', () => getStartPageHomeWeather(auth, supabase)),
+    measure('countdowns', () => getStartPageCountdowns(auth, supabase)),
+    measure('continuousAppraisal', () => getStartPageContinuousAppraisal({ context: auth, supabase })),
+    isManager && scope === 'team'
+      ? managerTeamEmployeeIdsPromise.then((managerTeamEmployeeIds) => measure('teamAvailability', () => loadTeamAvailability(auth, managerTeamEmployeeIds, supabase)))
+      : Promise.resolve(null),
+  ]))
 
   return {
     employeeId: auth.employeeId,
-    firstName: employee.data?.first_name?.trim() || null,
+    firstName: employee?.data?.first_name?.trim() || null,
     tenantName: context.tenant.name,
     administrationName: context.activeAdministration?.name ?? null,
     isEmployeeOnly,

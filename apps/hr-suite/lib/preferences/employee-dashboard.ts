@@ -6,12 +6,13 @@ import { DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT } from './employee-dashboard-layout'
 export { DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT, employeeDashboardLayoutJson, parseEmployeeDashboardLayout }
 export type { EmployeeDashboardLayout }
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) }
 
-export async function getEmployeeDashboardLayout(): Promise<EmployeeDashboardLayout> {
-  const supabase = await createClient()
-  const { data: claims } = await supabase.auth.getClaims()
-  const userId = claims?.claims.sub
+export async function getEmployeeDashboardLayout(dependencies?: { supabase: SupabaseServerClient; userId: string }): Promise<EmployeeDashboardLayout> {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const userId = dependencies?.userId ?? (await supabase.auth.getClaims()).data?.claims.sub
   if (!userId) return DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT
   const { data } = await supabase.from('user_preferences').select('ui_state').eq('auth_user_id', userId).maybeSingle()
   const state = isRecord(data?.ui_state) ? data.ui_state : {}

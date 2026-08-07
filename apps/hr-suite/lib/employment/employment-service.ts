@@ -170,6 +170,7 @@ export type EmployeeDetailLoadScope = 'all' | 'overview' | 'personal' | 'employm
 
 export interface EmployeeDetailLoadOptions {
   includeSalary?: boolean
+  supabase?: SupabaseServerClient
 }
 
 async function permissionAllowed(permissionCode: string, employeeId: string): Promise<boolean> {
@@ -541,7 +542,7 @@ export async function getEmployeeEmploymentDetail(
   options: EmployeeDetailLoadOptions = {},
 ): Promise<EmployeeEmploymentDetail> {
   const context = await requirePermission('employee:read', employeeId)
-  const supabase = await createClient()
+  const supabase = options.supabase ?? await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const isAllScope = scope === 'all'
   const includePersonalData = isAllScope || scope === 'overview' || scope === 'personal'

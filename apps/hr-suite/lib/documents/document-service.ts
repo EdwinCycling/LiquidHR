@@ -22,6 +22,24 @@ export async function listEmployeeDocuments(employeeId: string) {
   return data
 }
 
+export async function listEmployeeDashboardDocuments(employeeId: string, limit = 3) {
+  await requirePermission('document:read', employeeId)
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('employee_documents')
+    .select('id, title, expires_on, created_at')
+    .eq('employee_id', employeeId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw new DocumentServiceError('DOCUMENT_READ_FAILED', 500)
+  return (data ?? []).map((document) => ({
+    id: document.id,
+    title: document.title,
+    expiresOn: document.expires_on,
+    createdAt: document.created_at,
+  }))
+}
+
 export async function getDocumentOptions(employeeId: string) {
   const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId); const hrGroupId = requireHrGroupId(context); const supabase = await createClient()
   const [categories, departments, roles, employees, cloudTags, customFieldDefinitions, customFieldOptions] = await Promise.all([

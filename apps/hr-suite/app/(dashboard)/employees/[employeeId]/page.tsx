@@ -3,14 +3,14 @@ import { ArrowLeft, BriefcaseBusiness, Mail, Phone } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
-import { EmployeeDashboard, type EmployeeDashboardDocument } from '@/components/employees/employee-dashboard'
+import { EmployeeDashboard } from '@/components/employees/employee-dashboard'
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
 import { EmploymentCreateModal } from '@/components/employment/employment-create-modal'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
 import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
-import { AuthorizationError, requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
 import {
   EmploymentServiceError,
   getEmployeeEmploymentDetail,
@@ -19,9 +19,10 @@ import {
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT, getEmployeeDashboardLayout } from '@/lib/preferences/employee-dashboard'
+import { createServerPerformanceTrace, type ServerPerformanceTrace } from '@/lib/performance/server-trace'
 import { getEmployeeCustomFields } from '@/lib/custom-fields/service'
 import { listEmployeeActivity } from '@/lib/employees/employee-activity-service'
-import { getDocumentOptions, listEmployeeDocuments } from '@/lib/documents/document-service'
+import { getDocumentOptions, listEmployeeDashboardDocuments, listEmployeeDocuments } from '@/lib/documents/document-service'
 import { listEmployeePayslips } from '@/lib/documents/payslip-service'
 import { EmployeePayslips } from '@/components/documents/employee-payslips'
 import { listEmployeeReminders } from '@/lib/reminders/reminder-service'
@@ -34,17 +35,27 @@ import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { AbsenceCaseDetail } from '@/components/absence/absence-case-detail'
 import { listEmployeeAbsence } from '@/lib/absence/service'
 import { canEmployeeSelfReportAbsence } from '@/lib/absence/settings-service'
+import { createClient } from '@/lib/supabase/server'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
-  searchParams: Promise<{ tab?: string; create?: string; view?: string; caseId?: string }>
+  searchParams: Promise<{ tab?: string; create?: string; view?: string; caseId?: string; perf?: string }>
 }
 
-async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents' | 'payslips' | 'notes' | 'absence') {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+interface EmployeeDetailDependencies {
+  supabase: SupabaseServerClient
+  userId: string
+  performance: ServerPerformanceTrace
+}
+
+async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents' | 'payslips' | 'notes' | 'absence', dependencies: EmployeeDetailDependencies) {
   try {
+    const { performance } = dependencies
     const detailScope = tab === 'overview' ? 'overview' : tab === 'personal' ? 'personal' : tab === 'employments' ? 'employments' : 'employments'
-    const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, canReadDashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity] = await Promise.all([
-      getEmployeeEmploymentDetail(employeeId, detailScope, { includeSalary: tab !== 'overview' }),
+    const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, canReadDashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity] = await performance.measure('initial.parallel', () => Promise.all([
+      getEmployeeEmploymentDetail(employeeId, detailScope, { includeSalary: tab !== 'overview', supabase: dependencies.supabase }),
       tab === 'personal' || tab === 'overview' ? getEmployeeCustomFields(employeeId) : Promise.resolve([]),
       tab === 'overview' || tab === 'reminders' ? listEmployeeReminders(employeeId).catch(() => []) : Promise.resolve([]),
       tab === 'personal' ? listEmployeeRoleAssignments(employeeId).catch(() => []) : Promise.resolve([]),
@@ -57,14 +68,14 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       getTranslator('customFields'),
       getTranslator('documents'),
       tab === 'overview' ? permissionAllowed('document:read', employeeId) : Promise.resolve(false),
-      tab === 'overview' ? getEmployeeDashboardLayout() : Promise.resolve(DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT),
+      tab === 'overview' ? getEmployeeDashboardLayout({ supabase: dependencies.supabase, userId: dependencies.userId }) : Promise.resolve(DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT),
       tab === 'overview' ? listEmployeeActivity(employeeId).catch(() => []) : Promise.resolve([]),
       tab === 'overview' ? permissionAllowed('employee-activity:write', employeeId) : Promise.resolve(false),
-    ])
+    ]))
     const [canReadDocuments, canWriteDocuments, canDeleteDocuments] = tab === 'documents'
-      ? await Promise.all([
+      ? await performance.measure('documents.permissions', () => Promise.all([
         permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
-      ])
+      ]))
       : [false, false, false]
     const creationOptions = canManageEmployments && tab === 'employments'
       ? await getEmploymentCreationOptions(employeeId)
@@ -75,15 +86,20 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
     ]) : [[], null]
     const canReadPayslips = tab === 'payslips' ? await permissionAllowed('payslip:read', employeeId) : false
     const payslips = tab === 'payslips' && canReadPayslips ? await listEmployeePayslips(employeeId) : []
-    const dashboardDocuments: EmployeeDashboardDocument[] = tab === 'overview' && canReadDashboardDocuments
-      ? (await listEmployeeDocuments(employeeId)).filter((document) => document.deleted_at === null).slice(0, 3).map((document) => ({ id: document.id, title: document.title, expiresOn: document.expires_on, createdAt: document.created_at }))
-      : []
-    const absenceCases = tab === 'overview' || tab === 'absence' ? await listEmployeeAbsence(employeeId).catch(() => []) : []
-    const selfReport = tab === 'overview' ? await canEmployeeSelfReportAbsence(employeeId).catch(() => false) : false
+    const [dashboardDocuments, absenceCases, selfReport, canReadNotes] = await performance.measure('overview.parallel', () => Promise.all([
+      tab === 'overview' && canReadDashboardDocuments ? listEmployeeDashboardDocuments(employeeId) : Promise.resolve([]),
+      tab === 'overview' || tab === 'absence' ? listEmployeeAbsence(employeeId).catch(() => []) : Promise.resolve([]),
+      tab === 'overview' ? canEmployeeSelfReportAbsence(employeeId).catch(() => false) : Promise.resolve(false),
+      tab === 'notes' ? employeeNotesPermissionAllowed(employeeId) : Promise.resolve(false),
+    ]))
     const base = [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport] as const
-    const canReadNotes = await employeeNotesPermissionAllowed(employeeId)
-    const [canWriteNotes, canDeleteNotes] = canReadNotes ? await Promise.all([permissionAllowed('employee-note:write', employeeId), permissionAllowed('employee-note:delete', employeeId)]) : [false, false]
-    const notes = tab === 'notes' && canReadNotes ? await listEmployeeNotes(employeeId) : []
+    const [canWriteNotes, canDeleteNotes, notes] = canReadNotes
+      ? await performance.measure('notes.parallel', () => Promise.all([
+        permissionAllowed('employee-note:write', employeeId),
+        permissionAllowed('employee-note:delete', employeeId),
+        listEmployeeNotes(employeeId),
+      ]))
+      : [false, false, []]
     return [...base, notes, canReadNotes, canWriteNotes, canDeleteNotes] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
@@ -103,15 +119,22 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const authContext = await requireAuthContext()
+  const { tab: requestedTab, create, view, caseId, perf } = await searchParams
+  const performanceTrace = createServerPerformanceTrace('/employees/[employeeId]', perf === '1')
+  const requestContext = await performanceTrace.measure('auth.context', getRequestAuthorizationContext)
+  const authContext = requestContext.context
   if (authContext.employeeId !== employeeId && !authContext.permissions.includes('employee:read')) redirect('/employees')
   if (authContext.employeeId !== employeeId && authContext.activeRoles.includes('DIRECT_MANAGER') && !authContext.activeRoles.includes('TENANT_ADMIN')) {
-    const directTeamEmployeeIds = await listDirectTeamEmployeeIds(authContext)
+    const directTeamEmployeeIds = await performanceTrace.measure('auth.teamScope', () => listDirectTeamEmployeeIds(authContext, requestContext.supabase))
     if (!directTeamEmployeeIds.includes(employeeId)) redirect('/employees')
   }
-  const { tab: requestedTab, create, view, caseId } = await searchParams
   const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' ? requestedTab : 'overview'
-  const [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await loadPageData(employeeId, tab)
+  const [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await performanceTrace.measure('page.data', () => loadPageData(employeeId, tab, {
+    supabase: requestContext.supabase,
+    userId: authContext.userId,
+    performance: performanceTrace,
+  }))
+  performanceTrace.finish()
   const compact = view === 'compact'
   const absenceOverview = absenceCases.find((item) => item.status === 'ACTIVE') ?? absenceCases.find((item) => item.status !== 'CLOSED') ?? absenceCases[0] ?? null
   const selectedAbsenceCase = tab === 'absence' && caseId ? absenceCases.find((item) => item.id === caseId) ?? null : null
