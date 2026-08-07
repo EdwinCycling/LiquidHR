@@ -18,6 +18,14 @@ Er is geen databasewijziging nodig gebleken: relevante employee/employment-index
 
 De authenticated after-change meting in Chrome gebruikte drie runs per route. Mediane tijden, productie -> preview: HR Admin `/dashboard/start` 1.014 -> 916 ms en `/employees` 886 -> 835 ms; Manager `/dashboard/start` 2.076 -> 979 ms en `/employees` 1.088 -> 973 ms; Employee `/employees` 938 -> 807 ms. De Employee-rol landt voor de startpagina in de eigen medewerkercontext en toont daar niet dezelfde startpaginamarker. De resultaten zijn richtinggevend door cold/warm- en netwerkvariatie. Production blijft op `dpl_5yXSL5Q6ykSaoaLfRP21X3ehpVuK` / commit `445d91c` / versie `1.20260806.2`; samenvoegen naar `main` is nog niet uitgevoerd.
 
+## Performance vervolg uitgevoerd 2026-08-07: startpagina en medewerkerdashboard
+
+De featurebranch bevat in commit `d7a3727f5acc4fc9d540e191c7d50db83cca47e0` een opt-in server-timinglaag (`?perf=1`) en veilige request-optimalisaties voor `/dashboard/start` en `/employees/[employeeId]`: teamscope en onafhankelijke startpaginareads starten zonder onnodige waterfall, actieve verzuimtelling gebruikt parallelle queries, overzichtsdata op het medewerkerdashboard loopt parallel, dashboarddocumenten zijn beperkt tot een actieve top-3-read en de notitiepermission wordt alleen voor het notitietabblad geladen. De medewerkerslijst is niet functioneel aangepast.
+
+De volledige lokale releasegate blijft groen: 130 testbestanden/481 tests, strict TypeScript, lint, i18n met 28 namespaces, productiebuild met 173 routes en `git diff --check`. Supabase is read-only gecontroleerd; de relevante bestaande indexes zijn aanwezig en performance-advisor staat op 347 INFO/0 WARN. Er is bewust geen database-migratie gemaakt. De GitHub-branch is gepusht en Vercel-preview `dpl_7yQdNXbyww1gh2pkHhnVvJnmzqA6` staat op READY met een geslaagde build en lege preview error/fatal-logscan.
+
+Chrome-resultaat met drie runs: HR Admin `/dashboard/start` preview 2441/1154/952 (mediaan 1154 ms), Production 1079/933/822 (933 ms); HR Admin medewerkerdashboard preview 1228/1054/865 (1054 ms), Production 1154/1089/1144 (1154 ms); `/employees` is alleen als regressiesmoke gemeten op preview 985/840/838 (840 ms) en Production 990/766/851 (851 ms). Manager en Medewerker zijn op de preview via de bestaande testrolwissel gecontroleerd; de previewbrowserconsole bleef schoon. Deze wall-clockmeting is door cold/warm-start en netwerkvariatie richtinggevend; Production/main is niet gewijzigd.
+
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
 Een Luna-stap is pas afgerond na de volledige verticale slice: schema/Supabase (migratie, RLS, grants, audit en gecontroleerde testdata), API, UI, tests, documentatie en relevante lokale, remote en geauthentiseerde browserverificatie. Open onderdelen of blokkades blokkeren de status **afgerond**; de volgende stap start pas na een expliciete per-spec controle.

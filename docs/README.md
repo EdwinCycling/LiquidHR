@@ -22,6 +22,14 @@ De geauthentiseerde Chrome-meting gebruikte drie runs per route en dezelfde zich
 
 De huidige Vercel Production blijft deployment `dpl_5yXSL5Q6ykSaoaLfRP21X3ehpVuK` op commit `445d91c` en versie `1.20260806.2`; de performance-branch is nog niet naar `main` samengevoegd of als productie gepromoveerd.
 
+## Vervolg performance 2026-08-07: meetlaag, startpagina en medewerkerdashboard
+
+Commit `d7a3727f5acc4fc9d540e191c7d50db83cca47e0` voegt een opt-in server-trace toe via `?perf=1` en verkort de request-keten van `/dashboard/start` en `/employees/[employeeId]`. De startpagina start de teamscope-read gelijktijdig met onafhankelijke reads en maakt de actieve-verzuimteller parallel. Het medewerkerdashboard gebruikt de request-scoped Supabase-client voor detail/layoutvoorkeuren, haalt dashboarddocumenten met een smalle top-3-read op, paralleliseert overzichtsdata en controleert notitiepermissies alleen op het notitietabblad. De medewerkerslijst is in deze slice niet functioneel gewijzigd.
+
+De volledige lokale gate bleef groen: 130 testbestanden/481 tests, strict TypeScript, lint, 28 gelijke NL/EN-namespaces, productiebuild met 173 routes en `git diff --check`. Supabase is read-only gecontroleerd: relevante bestaande indexes zijn aanwezig, performance-advisor `347 INFO / 0 WARN`; er is geen DDL/RLS-migratie nodig. GitHub bevat de feature-branchcommit; Vercel-preview [`liquidhr-4iossnx68-edwinitsolutions.vercel.app`](https://liquidhr-4iossnx68-edwinitsolutions.vercel.app) (`dpl_7yQdNXbyww1gh2pkHhnVvJnmzqA6`) staat op `READY`, exact op deze commit, en de build error/fatal-logscan is leeg.
+
+De nieuwe authenticated Chrome-meting gebruikte drie runs per route. HR Admin: startpagina preview `2441/1154/952` (mediaan `1154 ms`) tegenover Production `1079/933/822` (mediaan `933 ms`); medewerkerdashboard preview `1228/1054/865` (`1054 ms`) tegenover Production `1154/1089/1144` (`1154 ms`); medewerkerslijst als regressiesmoke preview `985/840/838` (`840 ms`) tegenover Production `990/766/851` (`851 ms`). Manager en Medewerker zijn op de preview met dezelfde rolwisselaar gecontroleerd; hun console eindigde op 0 errors/0 warnings. De server-traces tonen dat na de auth/contextfase de dashboardreads parallel worden afgehandeld. De wall-clockresultaten blijven gevoelig voor cold/warm-start en netwerkvariatie; `main`/Production is bewust niet gewijzigd.
+
 ## Werkafspraak voor alle Luna-stappen vanaf 2026-08-05
 
 Een Luna-stap is pas afgerond na de volledige verticale slice: schema/Supabase (migratie, RLS, grants, audit en gecontroleerde testdata), API, UI, tests, documentatie en relevante lokale, remote en geauthentiseerde browserverificatie. Open onderdelen of blokkades blokkeren de status **afgerond**; de volgende stap start pas na een expliciete per-spec controle.
