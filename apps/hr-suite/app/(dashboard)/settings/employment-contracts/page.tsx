@@ -5,6 +5,7 @@ import {
   EmploymentCatalogManager,
   EmploymentGeneralSettings,
 } from '@/components/settings/employment-contract-settings'
+import { EmploymentRegulationsManager } from '@/components/settings/employment-regulations-manager'
 import { getEmploymentSettings } from '@/lib/employment/employment-settings'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
@@ -42,11 +43,11 @@ export default async function EmploymentContractSettingsPage() {
       {
         id: 'laborConditions',
         title: t('laborConditions'),
-        children: <EmploymentCatalogManager
-          catalog="LABOR_CONDITION_SET"
-          numericLabel={t('standardWeeklyHours')}
-          rows={settings.laborConditionSets.map((row) => ({ id: row.id, code: row.code, name: row.name, isActive: row.is_active, numericValue: row.standard_hours_per_week }))}
-          labels={labels}
+        children: <EmploymentRegulationsManager
+          timelines={settings.laborConditionTimelines}
+          labels={{
+            search: t('catalogSearch'), addRegulation: t('regulationAdd'), addSuccessor: t('regulationAddSuccessor'), edit: t('catalogEdit'), save: t('catalogSave'), cancel: t('catalogCancel'), name: t('catalogName'), validFrom: t('regulationValidFrom'), standardHours: t('standardWeeklyHours'), successor: t('regulationSuccessor'), successors: t('regulationSuccessors'), current: t('regulationCurrent'), historical: t('regulationHistorical'), validUntil: t('regulationValidUntil'), empty: t('catalogEmpty'), failed: t('changeFailed'), description: t('regulationTimelineDescription'), newTitle: t('regulationNewTitle'), editTitle: t('regulationEditTitle'), successorTitle: t('regulationSuccessorTitle'), continuityHint: t('regulationContinuityHint'),
+          }}
         />,
       },
       {

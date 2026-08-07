@@ -45,12 +45,13 @@ export type LeaveRequestConfirmInput = z.infer<typeof leaveRequestConfirmSchema>
 
 const leaveTypeInput = z.object({
   action: z.literal('LEAVE_TYPE'),
+  id: z.string().trim().min(1).max(100).optional(),
   name: z.string().trim().min(1).max(160),
   colorCode: z.string().trim().min(1).max(32),
-  scope: z.enum(['STATUTORY', 'NON_STATUTORY', 'ADV', 'OTHER']),
-  entitlementMode: z.enum(['ACCRUAL', 'UNLIMITED', 'ANNUAL_HOURS_CAP', 'WEEKLY_HOURS_FACTOR_CAP']),
+  entitlementMode: z.enum(['ACCRUAL', 'UNLIMITED', 'ANNUAL_HOURS_CAP', 'ANNUAL_HOURS_FTE_CAP', 'OVERTIME_HOURS']),
   annualHoursCap: z.number().finite().nonnegative().nullable().optional(),
-  weeklyHoursCapFactor: z.number().finite().nonnegative().nullable().optional(),
+  annualHoursFteCap: z.number().finite().nonnegative().nullable().optional(),
+  overtimeWorkHourTypeIds: z.array(z.string().trim().min(1).max(100)).max(100).default([]),
   isSelfService: z.boolean().default(true),
   allowLimitOverrun: z.boolean().default(false),
   pinInCalendar: z.boolean().default(false),
@@ -60,9 +61,11 @@ const leaveTypeInput = z.object({
   isActive: z.boolean().default(true),
 }).strict().superRefine((value, context) => {
   if (value.entitlementMode === 'ANNUAL_HOURS_CAP' && value.annualHoursCap === undefined) context.addIssue({ code: 'custom', path: ['annualHoursCap'], message: 'LEAVE_ANNUAL_CAP_REQUIRED' })
-  if (value.entitlementMode === 'WEEKLY_HOURS_FACTOR_CAP' && value.weeklyHoursCapFactor === undefined) context.addIssue({ code: 'custom', path: ['weeklyHoursCapFactor'], message: 'LEAVE_WEEKLY_FACTOR_REQUIRED' })
+  if (value.entitlementMode === 'ANNUAL_HOURS_FTE_CAP' && value.annualHoursFteCap === undefined) context.addIssue({ code: 'custom', path: ['annualHoursFteCap'], message: 'LEAVE_ANNUAL_FTE_CAP_REQUIRED' })
+  if (value.entitlementMode === 'OVERTIME_HOURS' && value.overtimeWorkHourTypeIds.length === 0) context.addIssue({ code: 'custom', path: ['overtimeWorkHourTypeIds'], message: 'LEAVE_OVERTIME_TYPE_REQUIRED' })
   if (value.entitlementMode !== 'ANNUAL_HOURS_CAP' && value.annualHoursCap !== undefined && value.annualHoursCap !== null) context.addIssue({ code: 'custom', path: ['annualHoursCap'], message: 'LEAVE_ANNUAL_CAP_NOT_ALLOWED' })
-  if (value.entitlementMode !== 'WEEKLY_HOURS_FACTOR_CAP' && value.weeklyHoursCapFactor !== undefined && value.weeklyHoursCapFactor !== null) context.addIssue({ code: 'custom', path: ['weeklyHoursCapFactor'], message: 'LEAVE_WEEKLY_FACTOR_NOT_ALLOWED' })
+  if (value.entitlementMode !== 'ANNUAL_HOURS_FTE_CAP' && value.annualHoursFteCap !== undefined && value.annualHoursFteCap !== null) context.addIssue({ code: 'custom', path: ['annualHoursFteCap'], message: 'LEAVE_ANNUAL_FTE_CAP_NOT_ALLOWED' })
+  if (value.entitlementMode !== 'OVERTIME_HOURS' && value.overtimeWorkHourTypeIds.length > 0) context.addIssue({ code: 'custom', path: ['overtimeWorkHourTypeIds'], message: 'LEAVE_OVERTIME_TYPES_NOT_ALLOWED' })
 })
 
 const workHourTypeInput = z.object({
@@ -72,13 +75,13 @@ const workHourTypeInput = z.object({
   category: z.enum(['REGULAR_WORK', 'OVERTIME', 'INFORMATIONAL']),
   isActive: z.boolean().default(true),
   notifyManagerOnEntry: z.boolean().default(false),
+  requiresManagerApproval: z.boolean().default(false),
   isSelfService: z.boolean().default(true),
   pinInCalendar: z.boolean().default(false),
   limitMode: z.enum(['UNLIMITED', 'MONTHLY_HOURS', 'YEARLY_HOURS', 'CONTRACT_HOURS_FACTOR']).default('UNLIMITED'),
   limitHours: z.number().finite().nonnegative().nullable().optional(),
   contractHoursFactor: z.number().finite().nonnegative().nullable().optional(),
 }).strict().superRefine((value, context) => {
-  if (value.category !== 'OVERTIME' && value.limitMode !== 'UNLIMITED') context.addIssue({ code: 'custom', path: ['limitMode'], message: 'OVERTIME_LIMIT_ONLY_FOR_OVERTIME' })
   if ((value.limitMode === 'MONTHLY_HOURS' || value.limitMode === 'YEARLY_HOURS') && value.limitHours === undefined) context.addIssue({ code: 'custom', path: ['limitHours'], message: 'OVERTIME_LIMIT_HOURS_REQUIRED' })
   if (value.limitMode === 'CONTRACT_HOURS_FACTOR' && value.contractHoursFactor === undefined) context.addIssue({ code: 'custom', path: ['contractHoursFactor'], message: 'OVERTIME_LIMIT_FACTOR_REQUIRED' })
   if (value.limitMode !== 'MONTHLY_HOURS' && value.limitMode !== 'YEARLY_HOURS' && value.limitHours !== undefined && value.limitHours !== null) context.addIssue({ code: 'custom', path: ['limitHours'], message: 'OVERTIME_LIMIT_HOURS_NOT_ALLOWED' })
@@ -101,7 +104,7 @@ const commonRuleFields = {
   validFrom: isoDate,
   validUntil: isoDate.nullable().optional(),
   accrualBasis: z.enum(['CONTRACT_HOURS', 'WORKED_HOURS']),
-  accrualFrequency: z.enum(['PAYROLL_PERIOD', 'YEARLY']),
+  accrualFrequency: z.enum(['PAYROLL_PERIOD', 'FOUR_WEEKLY', 'MONTHLY', 'YEARLY']),
   accrualTiming: z.enum(['UPFRONT', 'ARREARS']),
   accrualAmount: z.number().finite().nonnegative().nullable().optional(),
   accrualRate: z.number().finite().nonnegative().nullable().optional(),
@@ -112,9 +115,11 @@ const commonRuleFields = {
 
 const accrualRuleInput = z.object({
   action: z.literal('ACCRUAL_RULE'),
+  id: z.string().trim().min(1).max(100).optional(),
   ...commonRuleFields,
   predecessorRuleId: z.string().trim().min(1).max(100).nullable().optional(),
 }).strict().superRefine((value, context) => {
+  if (value.id && value.predecessorRuleId) context.addIssue({ code: 'custom', path: ['predecessorRuleId'], message: 'LEAVE_RULE_UPDATE_CANNOT_HAVE_PREDECESSOR' })
   if (value.accrualBasis === 'CONTRACT_HOURS' && value.accrualAmount === undefined) context.addIssue({ code: 'custom', path: ['accrualAmount'], message: 'LEAVE_ACCRUAL_AMOUNT_REQUIRED' })
   if (value.accrualBasis === 'WORKED_HOURS' && value.accrualRate === undefined) context.addIssue({ code: 'custom', path: ['accrualRate'], message: 'LEAVE_ACCRUAL_RATE_REQUIRED' })
   if (value.accrualBasis === 'CONTRACT_HOURS' && value.accrualRate !== undefined && value.accrualRate !== null) context.addIssue({ code: 'custom', path: ['accrualRate'], message: 'LEAVE_ACCRUAL_RATE_NOT_ALLOWED' })
@@ -137,6 +142,8 @@ const exceptionInput = z.object({
   reason: z.string().trim().min(1).max(500),
 }).strict().superRefine((value, context) => {
   if (value.noAccrual && value.accrualAmount !== undefined && value.accrualAmount !== null) context.addIssue({ code: 'custom', path: ['accrualAmount'], message: 'LEAVE_EXCEPTION_AMOUNT_NOT_ALLOWED' })
+  if (value.noAccrual && value.expirationMonths !== undefined && value.expirationMonths !== null) context.addIssue({ code: 'custom', path: ['expirationMonths'], message: 'LEAVE_EXCEPTION_EXPIRY_NOT_ALLOWED' })
+  if (!value.noAccrual && (value.expirationMonths === undefined || value.expirationMonths === null)) context.addIssue({ code: 'custom', path: ['expirationMonths'], message: 'LEAVE_EXCEPTION_EXPIRY_REQUIRED' })
 })
 
 const bonusRuleInput = z.object({
@@ -210,10 +217,6 @@ const catalogUpdateInput = z.object({
   id: z.string().trim().min(1).max(100),
   name: z.string().trim().min(1).max(160).optional(),
   colorCode: z.string().trim().min(1).max(32).optional(),
-  scope: z.enum(['STATUTORY', 'NON_STATUTORY', 'ADV', 'OTHER']).optional(),
-  entitlementMode: z.enum(['ACCRUAL', 'UNLIMITED', 'ANNUAL_HOURS_CAP', 'WEEKLY_HOURS_FACTOR_CAP']).optional(),
-  annualHoursCap: z.number().finite().nonnegative().nullable().optional(),
-  weeklyHoursCapFactor: z.number().finite().nonnegative().nullable().optional(),
   category: z.enum(['REGULAR_WORK', 'OVERTIME', 'INFORMATIONAL']).optional(),
   description: z.string().trim().max(500).nullable().optional(),
   isSelfService: z.boolean().optional(),
@@ -245,6 +248,7 @@ export const overtimeSettingsMutationSchema = z.object({
   action: z.literal('OVERTIME_SETTINGS'),
   workHourTypeId: z.string().trim().min(1).max(100),
   notifyManagerOnEntry: z.boolean(),
+  requiresManagerApproval: z.boolean().default(false),
   isSelfService: z.boolean(),
   ...overtimeLimitFields,
 }).strict().superRefine(overtimeLimitRefinement)
@@ -264,10 +268,13 @@ export type OvertimeConfigurationMutation = z.infer<typeof overtimeConfiguration
 const workHourSettingsMutationSchema = z.object({
   action: z.literal('WORK_HOUR_SETTINGS'),
   workHourTypeId: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(160).optional(),
+  colorCode: z.string().trim().min(1).max(32).optional(),
   isActive: z.boolean().optional(),
   isSelfService: z.boolean(),
   pinInCalendar: z.boolean().optional(),
   notifyManagerOnEntry: z.boolean().optional(),
+  requiresManagerApproval: z.boolean().default(false),
   ...overtimeLimitFields,
 }).strict().superRefine(overtimeLimitRefinement)
 

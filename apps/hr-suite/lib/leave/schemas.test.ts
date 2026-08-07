@@ -18,17 +18,29 @@ describe('leave api schemas', () => {
       action: 'LEAVE_TYPE',
       name: 'Zorgverlof',
       colorCode: '#10b981',
-      scope: 'OTHER',
       entitlementMode: 'ANNUAL_HOURS_CAP',
     }).success).toBe(false)
     const parsed = leaveCatalogMutationSchema.parse({
       action: 'LEAVE_TYPE',
       name: 'Zorgverlof',
       colorCode: '#10b981',
-      scope: 'OTHER',
       entitlementMode: 'UNLIMITED',
     })
     expect(parsed.action === 'LEAVE_TYPE' && parsed.isSelfService).toBe(true)
+    expect(leaveCatalogMutationSchema.safeParse({
+      action: 'LEAVE_TYPE',
+      name: 'Parttime verlof',
+      colorCode: '#10b981',
+      entitlementMode: 'ANNUAL_HOURS_FTE_CAP',
+      annualHoursFteCap: 160,
+    }).success).toBe(true)
+    expect(leaveCatalogMutationSchema.safeParse({
+      action: 'LEAVE_TYPE',
+      name: 'Overurenverlof',
+      colorCode: '#10b981',
+      entitlementMode: 'OVERTIME_HOURS',
+      overtimeWorkHourTypeIds: ['overtime-1'],
+    }).success).toBe(true)
   })
 
   it('vereist gekoppelde werkurentypen voor opbouw per gewerkt uur', () => {
@@ -46,6 +58,41 @@ describe('leave api schemas', () => {
       pauseLeaveTypeIds: [],
     })
     expect(result.success).toBe(false)
+  })
+
+  it('accepteert een directe wijziging van een opbouwregel en weigert daarbij een voorganger', () => {
+    const update = leaveConfigurationMutationSchema.safeParse({
+      action: 'ACCRUAL_RULE',
+      id: 'rule-1',
+      leaveProfileId: 'profile-1',
+      leaveTypeId: 'leave-1',
+      validFrom: '2026-01-01',
+      accrualBasis: 'CONTRACT_HOURS',
+      accrualFrequency: 'MONTHLY',
+      accrualTiming: 'ARREARS',
+      accrualAmount: 1.5,
+      expirationMonths: 6,
+      workHourTypeIds: [],
+      pauseLeaveTypeIds: [],
+    })
+    expect(update.success).toBe(true)
+
+    const invalid = leaveConfigurationMutationSchema.safeParse({
+      action: 'ACCRUAL_RULE',
+      id: 'rule-1',
+      leaveProfileId: 'profile-1',
+      leaveTypeId: 'leave-1',
+      predecessorRuleId: 'rule-0',
+      validFrom: '2026-01-01',
+      accrualBasis: 'CONTRACT_HOURS',
+      accrualFrequency: 'MONTHLY',
+      accrualTiming: 'ARREARS',
+      accrualAmount: 1.5,
+      expirationMonths: 6,
+      workHourTypeIds: [],
+      pauseLeaveTypeIds: [],
+    })
+    expect(invalid.success).toBe(false)
   })
 
   it('ondersteunt leeftijd/anciënniteit zonder hoeveelheid of werkurentypen', () => {
@@ -73,6 +120,31 @@ describe('leave api schemas', () => {
       reason: 'Collectieve afspraak',
     })
     expect(result.success).toBe(true)
+  })
+
+  it('verwijdert de vervaltermijn uit een uitzondering zonder verlofopbouw', () => {
+    const valid = leaveConfigurationMutationSchema.safeParse({
+      action: 'ACCRUAL_EXCEPTION',
+      employmentSelections: [{ employeeId: 'employee-1', employmentId: 'employment-1' }],
+      leaveTypeId: 'leave-1',
+      validFrom: '2026-01-01',
+      noAccrual: true,
+      accrualAmount: null,
+      expirationMonths: null,
+      reason: 'Geen opbouw afgesproken',
+    })
+    expect(valid.success).toBe(true)
+
+    const invalid = leaveConfigurationMutationSchema.safeParse({
+      action: 'ACCRUAL_EXCEPTION',
+      employmentSelections: [{ employeeId: 'employee-1', employmentId: 'employment-1' }],
+      leaveTypeId: 'leave-1',
+      validFrom: '2026-01-01',
+      noAccrual: true,
+      expirationMonths: 6,
+      reason: 'Geen opbouw afgesproken',
+    })
+    expect(invalid.success).toBe(false)
   })
 
   it('accepteert groepsbrede medewerkersets en arbeidsverbandleden', () => {
@@ -117,6 +189,19 @@ describe('leave api schemas', () => {
   })
 
   it('hergebruikt de vier beperkingstypen voor werkuren en ondersteunt uitzonderingen', () => {
+    expect(workHourConfigurationMutationSchema.safeParse({
+      action: 'WORK_HOUR_SETTINGS',
+      workHourTypeId: 'work-1',
+      name: 'Werkuren',
+      colorCode: '#2f6f4e',
+      isActive: true,
+      isSelfService: false,
+      pinInCalendar: true,
+      notifyManagerOnEntry: false,
+      requiresManagerApproval: true,
+      limitMode: 'YEARLY_HOURS',
+      limitHours: 160,
+    }).success).toBe(true)
     expect(workHourConfigurationMutationSchema.safeParse({
       action: 'WORK_HOUR_SETTINGS',
       workHourTypeId: 'work-1',

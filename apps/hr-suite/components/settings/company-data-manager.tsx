@@ -1,10 +1,8 @@
 'use client'
-
 import { createPortal } from 'react-dom'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Check, Edit3, LoaderCircle, MapPin, Plus, Search, Trash2, X } from 'lucide-react'
 import { CountryPicker } from '@/components/ui/country-picker'
-import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
 import type { CompanyAddress, CompanyData, CompanyDataSettings, CompanyLocation } from '@/lib/company-data/service'
 import { toCompanyDataUpdatePayload } from '@/lib/company-data/payloads'
@@ -14,12 +12,15 @@ interface CompanyDataLabels {
   companySectionDescription: string
   locationsSection: string
   locationsSectionDescription: string
+  addressSearchHint: string
+  saveHint: string
   singleLocation: string
   singleLocationDescription: string
   singleLocationDisabled: string
   save: string
   saving: string
   saved: string
+  ready: string
   failed: string
   addLocation: string
   editLocation: string
@@ -63,6 +64,10 @@ interface CompanyDataLabels {
 type AddressDraft = CompanyAddress
 type LocationDraft = AddressDraft & { name: string; isActive: boolean }
 
+const emptyHydrationSubscribe = () => () => undefined
+const getClientHydrated = () => true
+const getServerHydrated = () => false
+
 const blankAddress: AddressDraft = {
   addressLine1: '', addressLine2: '', street: '', houseNumber: '', houseNumberAddition: '', postalCode: '', city: '', region: '', countryCode: 'NL',
 }
@@ -83,8 +88,9 @@ function AddressFields({ values, onChange, labels, disabled = false }: { values:
   const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'failed'>('idle')
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
+  const hydrated = useSyncExternalStore(emptyHydrationSubscribe, getClientHydrated, getServerHydrated)
   const isDutch = values.countryCode === 'NL'
-  const countryLabel = new Intl.DisplayNames(['nl'], { type: 'region' }).of(values.countryCode) ?? values.countryCode
+  const countryLabel = hydrated ? new Intl.DisplayNames(['nl'], { type: 'region' }).of(values.countryCode) ?? values.countryCode : values.countryCode
   const set = (key: keyof AddressDraft, value: string) => onChange({ ...values, [key]: value })
   const updateQuery = (value: string): void => {
     setQuery(value)
@@ -158,6 +164,7 @@ export function CompanyDataManager({ initial, labels }: { initial: CompanyDataSe
   const [locationState, setLocationState] = useState<'idle' | 'saving' | 'failed'>('idle')
   const [message, setMessage] = useState('')
   const [modal, setModal] = useState<{ id?: string; draft: LocationDraft } | null>(null)
+  const [activeSection, setActiveSection] = useState<'company' | 'locations'>('company')
   const mounted = useSyncExternalStore(() => () => undefined, () => true, () => false)
 
   useEffect(() => {
@@ -166,6 +173,12 @@ export function CompanyDataManager({ initial, labels }: { initial: CompanyDataSe
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [modal])
+
+  function updateCompany(next: CompanyData): void {
+    setCompany(next)
+    setCompanyState('idle')
+    setMessage('')
+  }
 
   async function saveCompany(): Promise<void> {
     setCompanyState('saving'); setMessage('')
@@ -195,11 +208,38 @@ export function CompanyDataManager({ initial, labels }: { initial: CompanyDataSe
     setLocations((current) => current.filter((item) => item.id !== location.id)); setLocationState('idle')
   }
 
-  const modalView = modal && mounted ? createPortal(<div className="fixed inset-0 z-[9999] grid place-items-center bg-sidebar/60 p-4 backdrop-blur-sm" onMouseDown={() => setModal(null)} role="presentation"><section aria-modal="true" className="max-h-[min(780px,calc(100vh-2rem))] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-surface p-5 shadow-2xl sm:p-7" onMouseDown={(event) => event.stopPropagation()} role="dialog"><header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.locationsSection}</p><h2 className="mt-1 text-xl font-semibold">{modal.id ? labels.editLocation : labels.addLocation}</h2></div><button aria-label={labels.close} className="button-secondary" onClick={() => setModal(null)} type="button"><X size={16} /></button></header><form className="mt-6 grid gap-5" onSubmit={(event) => { event.preventDefault(); void saveLocation() }}><label className="grid gap-1.5 text-sm font-medium"><span>{labels.locationName}</span><input autoFocus className="form-field" onChange={(event) => setModal({ ...modal, draft: { ...modal.draft, name: event.target.value } })} value={modal.draft.name} /></label><AddressFields labels={labels} onChange={(draft) => setModal({ ...modal, draft: { ...modal.draft, ...draft } })} values={modal.draft} /><label className="flex items-center gap-3 text-sm font-medium"><input checked={modal.draft.isActive} className="size-4 accent-primary" onChange={(event) => setModal({ ...modal, draft: { ...modal.draft, isActive: event.target.checked } })} type="checkbox" />{labels.locationActive}</label><div className="flex flex-wrap justify-end gap-2 border-t pt-5"><button className="button-secondary" onClick={() => setModal(null)} type="button">{labels.cancel}</button><button className="button-primary" disabled={locationState === 'saving'} type="submit">{locationState === 'saving' ? <><LoaderCircle className="mr-2 animate-spin" size={16} />{labels.saving}</> : labels.save}</button></div>{locationState === 'failed' ? <p className="text-sm text-destructive" role="alert">{message}</p> : null}</form></section></div>, document.body) : null
+  const modalView = modal && mounted ? createPortal(<div className="fixed inset-0 z-[9999] grid place-items-center bg-sidebar/60 p-4 backdrop-blur-sm" onMouseDown={() => setModal(null)} role="presentation"><section aria-modal="true" className="max-h-[min(780px,calc(100vh-2rem))] w-full max-w-2xl overflow-y-auto rounded-xl border bg-surface p-5 shadow-2xl sm:p-7" onMouseDown={(event) => event.stopPropagation()} role="dialog"><header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.locationsSection}</p><h2 className="mt-1 text-xl font-semibold">{modal.id ? labels.editLocation : labels.addLocation}</h2></div><button aria-label={labels.close} className="button-secondary" onClick={() => setModal(null)} type="button"><X size={16} /></button></header><form className="mt-6 grid gap-5" onSubmit={(event) => { event.preventDefault(); void saveLocation() }}><label className="grid gap-1.5 text-sm font-medium"><span>{labels.locationName}</span><input autoFocus className="form-field" onChange={(event) => setModal({ ...modal, draft: { ...modal.draft, name: event.target.value } })} value={modal.draft.name} /></label><AddressFields labels={labels} onChange={(draft) => setModal({ ...modal, draft: { ...modal.draft, ...draft } })} values={modal.draft} /><label className="flex items-center gap-3 text-sm font-medium"><input checked={modal.draft.isActive} className="size-4 accent-primary" onChange={(event) => setModal({ ...modal, draft: { ...modal.draft, isActive: event.target.checked } })} type="checkbox" />{labels.locationActive}</label><div className="flex flex-wrap justify-end gap-2 border-t pt-5"><button className="button-secondary" onClick={() => setModal(null)} type="button">{labels.cancel}</button><button className="button-primary" disabled={locationState === 'saving'} type="submit">{locationState === 'saving' ? <><LoaderCircle className="mr-2 animate-spin" size={16} />{labels.saving}</> : labels.save}</button></div>{locationState === 'failed' ? <p className="text-sm text-destructive" role="alert">{message}</p> : null}</form></section></div>, document.body) : null
 
   return <>
-    <SettingsAccordion alwaysOpen initialOpen="companyData" sections={[
-      { id: 'companyData', title: <span><span className="block">{labels.companySection}</span><span className="mt-1 block text-sm font-normal text-muted-foreground">{labels.companySectionDescription}</span></span>, children: <form className="grid gap-6" onSubmit={(event) => { event.preventDefault(); void saveCompany() }}><label className="flex items-start gap-3 rounded-xl border bg-background p-4 text-sm"><input checked={company.singleLocation} className="mt-0.5 size-4 accent-primary" onChange={(event) => setCompany({ ...company, singleLocation: event.target.checked })} type="checkbox" /><span><span className="block font-semibold">{labels.singleLocation}</span><span className="mt-1 block leading-5 text-muted-foreground">{labels.singleLocationDescription}</span></span></label><AddressFields labels={labels} onChange={(address) => setCompany({ ...company, ...address })} values={company} /><div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5"><p className={`text-sm ${companyState === 'failed' ? 'text-destructive' : companyState === 'saved' ? 'text-success' : 'text-muted-foreground'}`} role={companyState === 'failed' ? 'alert' : 'status'}>{companyState === 'failed' ? message : companyState === 'saved' ? <><Check className="mr-1 inline" size={16} />{labels.saved}</> : ''}</p><button className="button-primary" disabled={companyState === 'saving'} type="submit">{companyState === 'saving' ? <><LoaderCircle className="mr-2 inline animate-spin" size={16} />{labels.saving}</> : labels.save}</button></div></form> },
-      { id: 'locations', title: <span><span className="block">{labels.locationsSection}</span><span className="mt-1 block text-sm font-normal text-muted-foreground">{labels.locationsSectionDescription}</span></span>, children: <div><div className="mb-5 flex flex-wrap items-start justify-between gap-4"><p className="max-w-2xl text-sm leading-6 text-muted-foreground">{company.singleLocation ? labels.singleLocationDisabled : labels.locationsSectionDescription}</p><button className="button-primary inline-flex shrink-0 items-center gap-2" disabled={company.singleLocation} onClick={() => { setMessage(''); setModal({ draft: { ...blankAddress, name: '', isActive: true } }) }} type="button"><Plus size={16} />{labels.addLocation}</button></div><fieldset className={company.singleLocation ? 'opacity-50' : ''} disabled={company.singleLocation}><div className="grid gap-3">{locations.length === 0 ? <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">{labels.emptyLocations}</div> : locations.map((location) => <article className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-background p-4" key={location.id}><div className="flex min-w-0 items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary"><MapPin size={18} /></span><div className="min-w-0"><h3 className="font-semibold">{location.name}</h3><p className="mt-1 truncate text-sm text-muted-foreground">{addressSummary(location)}</p><div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold"><span className={location.isActive ? 'rounded-full bg-success/10 px-2 py-1 text-success' : 'rounded-full bg-muted px-2 py-1 text-muted-foreground'}>{location.isActive ? labels.active : labels.inactive}</span>{location.used ? <span className="rounded-full bg-warning/10 px-2 py-1 text-warning">{labels.locationInUse}</span> : null}</div></div></div><div className="flex shrink-0 gap-2"><button aria-label={`${labels.editLocation}: ${location.name}`} className="button-secondary" onClick={() => setModal({ id: location.id, draft: { ...location } })} type="button"><Edit3 size={16} /></button><button aria-label={`${labels.deleteLocation}: ${location.name}`} className="button-secondary text-destructive" disabled={location.used || locationState === 'saving'} onClick={() => void removeLocation(location)} type="button"><Trash2 size={16} /></button></div></article>)}</div></fieldset><p className="mt-5 text-sm" role="status">{locationState === 'failed' ? <span className="text-destructive">{message}</span> : ''}</p></div> },
-    ]} />{modalView}</>
+    <div className="space-y-5">
+      <div aria-label={labels.companySection} className="grid gap-1 rounded-xl border bg-surface p-1 shadow-sm sm:grid-cols-2" role="tablist">
+        <button aria-controls="company-data-panel" aria-selected={activeSection === 'company'} className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${activeSection === 'company' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground hover:bg-muted'}`} onClick={() => setActiveSection('company')} role="tab" type="button">
+          <span className={`grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold ${activeSection === 'company' ? 'bg-primary-foreground/15' : 'bg-accent text-accent-foreground'}`}>1</span>
+          <span className="min-w-0"><span className="block text-sm font-semibold">{labels.companySection}</span><span className={`mt-0.5 block text-xs ${activeSection === 'company' ? 'text-primary-foreground/75' : 'text-muted-foreground'}`}>{labels.companySectionDescription}</span></span>
+        </button>
+        <button aria-controls="locations-panel" aria-selected={activeSection === 'locations'} className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${activeSection === 'locations' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground hover:bg-muted'} disabled:cursor-not-allowed disabled:opacity-50`} disabled={company.singleLocation} onClick={() => setActiveSection('locations')} role="tab" type="button">
+          <span className={`grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold ${activeSection === 'locations' ? 'bg-primary-foreground/15' : 'bg-accent text-accent-foreground'}`}>2</span>
+          <span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold"><span>{labels.locationsSection}</span><span className={`rounded-md px-1.5 py-0.5 text-[0.7rem] ${activeSection === 'locations' ? 'bg-primary-foreground/15' : 'bg-muted text-muted-foreground'}`}>{locations.length}</span></span><span className={`mt-0.5 block text-xs ${activeSection === 'locations' ? 'text-primary-foreground/75' : 'text-muted-foreground'}`}>{labels.locationsSectionDescription}</span></span>
+        </button>
+      </div>
+
+      {activeSection === 'company' ? <section aria-labelledby="company-data-title" className="rounded-xl border bg-surface p-5 shadow-sm sm:p-7" id="company-data-panel" role="tabpanel">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div><p className="eyebrow">{labels.companySection}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight" id="company-data-title">{labels.companySection}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.companySectionDescription}</p></div>
+          <span className="status-chip">{companyState === 'saved' ? labels.saved : companyState === 'failed' ? labels.failed : labels.ready}</span>
+        </header>
+        <form className="mt-6 grid gap-5" onSubmit={(event) => { event.preventDefault(); void saveCompany() }}>
+          <div className="rounded-xl border bg-surface-raised p-4 sm:p-5"><div className="mb-4"><p className="text-sm font-semibold">{labels.addressSearch}</p><p className="mt-1 text-sm leading-5 text-muted-foreground">{labels.addressSearchHint}</p></div><AddressFields labels={labels} onChange={(address) => updateCompany({ ...company, ...address })} values={company} /></div>
+          <label className="flex items-start gap-3 rounded-lg border bg-background p-4 text-sm"><input checked={company.singleLocation} className="mt-0.5 size-4 accent-primary" onChange={(event) => { updateCompany({ ...company, singleLocation: event.target.checked }); setActiveSection('company') }} type="checkbox" /><span><span className="block font-semibold">{labels.singleLocation}</span><span className="mt-1 block leading-5 text-muted-foreground">{labels.singleLocationDescription}</span></span></label>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5"><p className={`text-sm ${companyState === 'failed' ? 'text-destructive' : companyState === 'saved' ? 'text-success' : 'text-muted-foreground'}`} role={companyState === 'failed' ? 'alert' : 'status'}>{companyState === 'failed' ? message : companyState === 'saved' ? <><Check className="mr-1 inline" size={16} />{labels.saved}</> : labels.saveHint}</p><button className="button-primary" disabled={companyState === 'saving'} type="submit">{companyState === 'saving' ? <><LoaderCircle className="mr-2 inline animate-spin" size={16} />{labels.saving}</> : labels.save}</button></div>
+        </form>
+      </section> : <section aria-labelledby="locations-title" className="rounded-xl border bg-surface p-5 shadow-sm sm:p-7" id="locations-panel" role="tabpanel">
+        <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow">{labels.locationsSection}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight" id="locations-title">{labels.locationsSection}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.locationsSectionDescription}</p></div><button className="button-primary inline-flex shrink-0 items-center gap-2" disabled={company.singleLocation} onClick={() => { setMessage(''); setModal({ draft: { ...blankAddress, name: '', isActive: true } }) }} type="button"><Plus size={16} />{labels.addLocation}</button></header>
+        {company.singleLocation ? <p className="mt-6 rounded-lg border border-warning/30 bg-warning-surface/60 p-4 text-sm leading-5 text-muted-foreground">{labels.singleLocationDisabled}</p> : null}
+        <fieldset className={company.singleLocation ? 'mt-6 opacity-50' : 'mt-6'} disabled={company.singleLocation}><div className="grid gap-3">{locations.length === 0 ? <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">{labels.emptyLocations}</div> : locations.map((location) => <article className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-background p-4" key={location.id}><div className="flex min-w-0 items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-primary"><MapPin size={18} /></span><div className="min-w-0"><h3 className="font-semibold">{location.name}</h3><p className="mt-1 truncate text-sm text-muted-foreground">{addressSummary(location)}</p><div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold"><span className={location.isActive ? 'rounded-md bg-success/10 px-2 py-1 text-success' : 'rounded-md bg-muted px-2 py-1 text-muted-foreground'}>{location.isActive ? labels.active : labels.inactive}</span>{location.used ? <span className="rounded-md bg-warning/10 px-2 py-1 text-warning">{labels.locationInUse}</span> : null}</div></div></div><div className="flex shrink-0 gap-2"><button aria-label={`${labels.editLocation}: ${location.name}`} className="button-secondary" onClick={() => setModal({ id: location.id, draft: { ...location } })} type="button"><Edit3 size={16} /></button><button aria-label={`${labels.deleteLocation}: ${location.name}`} className="button-secondary text-destructive" disabled={location.used || locationState === 'saving'} onClick={() => void removeLocation(location)} type="button"><Trash2 size={16} /></button></div></article>)}</div></fieldset>
+        <p className="mt-5 text-sm" role="status">{locationState === 'failed' ? <span className="text-destructive">{message}</span> : ''}</p>
+      </section>}
+    </div>
+    {modalView}
+  </>
 }

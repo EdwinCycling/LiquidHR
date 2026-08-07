@@ -127,7 +127,9 @@ export default async function EmploymentDetailPage({
       "scheduleType",
       "averageHours",
       "averageDays",
+      "fulltimeReference",
       "partTimeFactor",
+      "factorCalculated",
       "startWeek",
       "timeForTime",
       "hoursAndAverageDays",
@@ -357,6 +359,7 @@ export default async function EmploymentDetailPage({
                 flexPhaseName: contract.flex_phases?.name ?? null,
                 laborConditionSetId: contract.labor_condition_set_id,
                 laborConditionName: contract.labor_condition_sets?.name ?? t("notRecorded"),
+                fulltimeHoursPerWeek: Number(contract.fulltime_hours_per_week ?? contract.labor_condition_sets?.standard_hours_per_week ?? 40),
                 durationType: contract.duration_type,
                 startsOn: contract.starts_on,
                 endsOn: contract.ends_on,
@@ -364,14 +367,14 @@ export default async function EmploymentDetailPage({
                 probationEndsOn: contract.probation_ends_on,
               }))}
               options={{
-                laborConditionSets: [...detail.options.laborConditionSets],
+                laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: item.standard_hours_per_week })),
                 flexPhases: [...detail.options.flexPhases],
               }}
               labels={{
                 title: t("contractsTitle"), add: t("contractAdd"), edit: t("change"),
                 close: t("cancel"), save: t("confirm"), cancel: t("cancel"),
                 workerType: t("workerType"), flexPhase: t("flexPhase"),
-                laborConditions: t("laborConditions"), duration: t("duration"),
+                laborConditions: t("laborConditions"), fulltimeReference: t("fulltimeReference"), duration: t("duration"),
                 startDate: t("startDate"), endDate: t("endsOn"),
                 probation: t("probation"), probationEnd: t("probationEnd"),
                 indefinite: t("indefinite"), definite: t("definite"),
@@ -407,6 +410,7 @@ export default async function EmploymentDetailPage({
                 details: [
                   { label: t("scheduleType"), value: row.schedule_type },
                   { label: t("weeklyHours"), value: String(row.average_hours_per_week) },
+                  { label: t("fulltimeReference"), value: String(row.fulltime_hours_per_week) },
                   { label: t("partTimeFactor"), value: `${Math.round(Number(row.part_time_factor) * 100)}%` },
                   { label: t("onCallEmployee"), value: row.is_on_call ? t("yes") : t("no") },
                 ],
@@ -467,6 +471,7 @@ export default async function EmploymentDetailPage({
               canWrite={detail.capabilities.canWriteContract}
               blockCount={detail.schedules.length}
               latestEffectiveOn={detail.schedules[0]?.valid_from}
+              fulltimeHoursPerWeek={Number(detail.schedules[0]?.fulltime_hours_per_week ?? 40)}
               labels={mutationLabels}
             />
           </div>

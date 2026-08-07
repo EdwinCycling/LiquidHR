@@ -79,6 +79,14 @@ $commands = @(
         Source = 'docs\skills\edwinhelp-writing\SKILL.md'
         Risk = 'Read/write tekst; geen code-, Git-, database- of deploymentactie'
         Example = 'Schrijf een blog over de trend achter deze gebeurtenis'
+    },
+    [pscustomobject]@{
+        Name = 'Redesign LiquidHR scherm'
+        Aliases = @('scherm redesign', 'UX redesign', 'redesign pagina', 'herontwerp scherm')
+        Description = 'Analyseert en herontwerpt één LiquidHR-scherm volgens Liquid Flow en werkt requirements, status en delivery-context bij.'
+        Source = 'docs\skills\edwinhelp-screen-redesign\SKILL.md'
+        Risk = 'Read/write UX-documentatie en in-scope UI; geen schema, merge, push of deploy zonder aparte opdracht'
+        Example = 'Gebruik EdwinHelp. Redesign de pagina Rollen en autorisatie op /authorization.'
     }
 )
 

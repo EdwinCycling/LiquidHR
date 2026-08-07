@@ -1,13 +1,14 @@
 import type { Database, Tables } from '@scope/db'
 import { requirePermission, requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { LeaveServiceError } from './leave-service'
 import type { LeaveRequestConfirmInput, LeaveRequestPreviewQuery } from './schemas'
 import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOption } from './employment-resolver'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = LeaveEmployment
-type ScheduleRow = Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>
+type ScheduleRow = Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'average_hours_per_week' | 'fulltime_hours_per_week' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>
 type ConfirmLeaveRequestArgs = Omit<
   Database['public']['Functions']['confirm_group_leave_request']['Args'],
   'requested_priority_rule_id' | 'requested_leave_type_id' | 'requested_specific_start' | 'requested_specific_end'
@@ -87,7 +88,7 @@ function dateRange(startDate: string, endDate: string): string[] {
 async function effectiveSchedule(supabase: SupabaseServerClient, employment: EmploymentRow, date: string): Promise<ScheduleRow | null> {
   const result = await supabase
     .from('employment_schedules')
-    .select('valid_from, valid_until, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours')
+    .select('valid_from, valid_until, average_hours_per_week, fulltime_hours_per_week, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours')
     .eq('tenant_id', employment.tenant_id)
     .eq('administration_id', employment.administration_id)
     .eq('employee_id', employment.employee_id)
@@ -122,11 +123,18 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
   if (holidays.error) databaseError(holidays.error)
   const holidayDates = new Set(holidays.data.map((holiday) => holiday.holiday_date))
   const fullDayMinutes = scheduleRows.reduce((sum, schedule, index) => sum + (holidayDates.has(dates[index]) ? 0 : Math.round(hoursForDay(schedule, dates[index]) * 60)), 0)
+  const referenceSchedule = scheduleRows.find((schedule): schedule is ScheduleRow => schedule !== null)
+  const partTimeFactor = referenceSchedule
+    ? calculateCappedPartTimeFactor(
+      Number(referenceSchedule.average_hours_per_week),
+      Number(referenceSchedule.fulltime_hours_per_week),
+    )
+    : null
   const settings = await supabase.from('leave_settings').select('half_day_minutes').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).maybeSingle()
   if (settings.error) databaseError(settings.error)
   const halfDayMinutes = settings.data?.half_day_minutes ?? 240
   const [types, buckets, transactions, priorityRules, priorityItems] = await Promise.all([
-    supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).order('name').limit(500),
+    supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).order('name').limit(500),
     supabase.from('leave_balance_buckets').select('id, leave_type_id, total_accrued, total_taken, total_expired, expiration_date').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).limit(2000),
     supabase.from('leave_accrual_transactions').select('leave_type_id, amount, transaction_type, transaction_date').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).lte('transaction_date', '2100-12-31').limit(5000),
     supabase.from('leave_priority_rules').select('id, name, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).lte('valid_from', input.startDate).or(`valid_until.is.null,valid_until.gte.${input.startDate}`).order('name').limit(100),
@@ -158,7 +166,7 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
         entitlementMode: type.entitlement_mode,
         currentBalanceHours: balance,
         projectedEndBalanceHours: balance,
-        annualLimitHours: type.entitlement_mode === 'ANNUAL_HOURS_CAP' ? Number(type.annual_hours_cap ?? 0) : type.entitlement_mode === 'WEEKLY_HOURS_FACTOR_CAP' ? null : null,
+        annualLimitHours: type.entitlement_mode === 'ANNUAL_HOURS_CAP' ? Number(type.annual_hours_cap ?? 0) : type.entitlement_mode === 'ANNUAL_HOURS_FTE_CAP' ? (partTimeFactor == null || type.annual_hours_fte_cap == null ? null : Number(type.annual_hours_fte_cap) * partTimeFactor) : null,
         status: unlimited ? 'UNLIMITED' : balance && balance > 0 ? 'AVAILABLE' : 'NO_BALANCE',
       }
     }),

@@ -1,5 +1,41 @@
 # Implementatiestatus Liquid HR
 
+## Release 2026-08-07: productversie 1.20260807.1
+
+De zichtbare productversie is verhoogd naar `1.20260807.1`; de versie-unit-test is bijgewerkt. De releasegate is lokaal groen: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit en productiebuild met 173 pagina's.
+
+## Actuele slice 2026-08-07: CAO-/bedrijfsregelingentijdlijn
+
+De bestaande regelingencatalogus is uitgebreid naar een echte opvolgende tijdlijn. Iedere `labor_condition_sets`-versie heeft een verplichte `valid_from` en optionele `predecessor_id`; een opvolger moet na de vorige versie starten, er kan maar één directe opvolger zijn en de database-trigger voorkomt cycli en ongeldige terugdatering. `create_labor_condition_successor` maakt de opvolger en zet de vorige versie inactief in één databasebewerking. De route `/settings/employment-contracts` gebruikt een nieuw lijst-eerst tijdlijnscherm onder `CAO / arbeidsvoorwaarden` met zoeken, regeling toevoegen, versie wijzigen en opvolger toevoegen.
+
+Remote migratie `20260807145526_add_labor_condition_timeline` is toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; de vier bestaande regelingen zijn als roots behouden. Gecontroleerd: kolommen, trigger, authenticated RPC-recht, tijdlijnmodeltests, i18n, strict TypeScript en gerichte linting. Geen commit, push, merge of deployment uitgevoerd.
+
+## Actuele slice 2026-08-07: fulltime-referentie voor verlof en dienstverband
+
+De fulltime-norm komt nu uit de op het dienstverband geldende CAO/bedrijfseigen regeling (`standard_hours_per_week`) en wordt als historische snapshot op het contract en ieder rooster opgeslagen in `fulltime_hours_per_week`. De factor voor verlof en FTE-limieten is `min(contracturen, fulltime-norm) / fulltime-norm`, met een maximum van 1. De database-trigger, verlofservices, pure engine, aanvraaglimiet, rapportage, dienstverbandwizard en contract-/roostermutaties gebruiken dezelfde regel. De remote migrations `20260807141014_use_labor_condition_fulltime_reference` en `20260807162539_add_employment_contract_fulltime_reference` zijn toegepast; bestaande contracten en roosters zijn gecontroleerd en er zijn geen ontbrekende snapshots of formulemismatches. De salarisweergave blijft de bestaande verhouding voor contracturen gebruiken; de fulltime-cap is specifiek voor verlof/FTE.
+
+Lokale verificatie: 131 testbestanden/488 tests, strict TypeScript, i18n-pariteit en productiebuild geslaagd. Supabase advisors zijn opnieuw uitgevoerd; alleen bestaande projectbrede security/performance-meldingen blijven staan. Deze featurebranch is niet gecommit, gepusht of gedeployed.
+
+## Correctie 2026-08-07: uitzonderingen, samenvatting en verplichte naam
+
+De uitzondering-editor toont geen vervaltermijn wanneer geen verlofopbouw wordt toegepast en bewaart dan geen expiry-waarde. De samenvattingen gebruiken leesbare zinnen en tonen werkurentypen alleen voor `WORKED_HOURS`. Naam is verplicht; dubbele verloftypenamen binnen dezelfde HR-groep worden vooraf gemeld en aanvullend door de unieke index `leave_types_tenant_hr_group_name_unique` beschermd. Remote migratie `20260807134827_leave_type_name_uniqueness` is toegepast; er zijn geen dubbele genormaliseerde testnamen.
+
+## Actuele slice 2026-08-07: verlofopbouwinrichting
+
+De HR-admininrichting voor verloftypen is opnieuw opgebouwd rond vijf expliciete keuzes: `UNLIMITED`, `ACCRUAL`, `ANNUAL_HOURS_CAP`, `ANNUAL_HOURS_FTE_CAP` en `OVERTIME_HOURS`. Bestaande catalogusrijen openen nu via de volledige klikbare rij, met handcursor en toetsenbordbediening, en bestaande verloftypen kunnen worden gewijzigd. De oude `Soort verlof`- en profielkeuze zijn verwijderd. De opbouweditor toont `Contracturen` of `Werkuren`; bij werkuren staat de multi-selectie direct onder `Type`. Periodes ondersteunen verloningsperiode of specifiek 4-wekelijks, maandelijks en jaarlijks. Bestaande opbouwregelkaarten zijn volledig klikbaar en direct wijzigbaar; een nieuwe regel neemt de laatste waarden over, ondersteunt annuleren en toont de vervaltermijn met de eenheid `Maanden`.
+
+Remote zijn op Supabase-project `wnpfloqpjvaacobppbpk` de lokale migraties `20260807100345_leave_accrual_enum_options`, `20260807100842_redesign_leave_accrual_configuration`, `20260807103107_apply_leave_fte_cap_to_requests`, `20260807104155_optimize_leave_type_overtime_indexes` en `20260807130219_update_leave_accrual_rule` toegepast; de laatste staat remote geregistreerd als `20260807130439_update_leave_accrual_rule`. De nieuwe `leave_type_overtime_work_hours`-tabel heeft RLS, policies, grants, audit en samengestelde foreign keys; de update-RPC voor directe wijziging is permission- en scopegevalideerd. De FTE-cap wordt in preview en bevestiging server-side met de geldige parttimefactor berekend; de oude weekfactor-testregels zijn naar de deeltijdfactor-keuze gerepareerd en er zijn geen actieve legacy-rijen meer. `packages/db/types.ts` is opnieuw gegenereerd.
+
+Verificatie: i18n-pariteit, strict TypeScript, 130 testbestanden/482 tests, volledige ESLint en productiebuild zijn geslaagd. De geauthentiseerde browsercontrole bevestigde de klikbare regelkaart met `cursor: pointer`, directe wijziging van een bestaande regel, kopiëren van de laatste waarden bij toevoegen, annuleren, de eenheid `Maanden` en 0 browserfouten of waarschuwingen. Supabase security-advisor toont geen RLS-melding voor de nieuwe koppeltabel; de SECURITY DEFINER-melding voor de expliciet geautoriseerde update-RPC valt binnen het bestaande RPC-patroon. De performance-advisor toont alleen bestaande databaseadviezen.
+
+Open: de volledige toekomstige opbouwprojectie en overuren-afgeleide opbouwberekening blijven afzonderlijke engine-scope. Deze branch is niet gecommit, gepusht of gedeployed.
+
+## Correctie 2026-08-07: werkuren- en overureninrichting
+
+Werkuren en overuren kunnen nu worden gewijzigd inclusief naam en kleur. De naam is verplicht en uniek binnen de HR-groep, hoofdletter- en spatieongevoelig; de database-index beschermt ook gelijktijdige mutaties. Het oude veld `Werkurentype` is verwijderd. Beide typen gebruiken dezelfde vier beperkingen: onbeperkt, maximum per jaar, maximum per maand en maximum per week op basis van contracturen maal factor.
+
+Op Basisinformatie staan voor beide typen de ja/nee-instellingen voor goedkeuring van invoer, manager informeren, actief en selfservice. Opslaan staat vóór Archiveren; archiveren opent een ja/nee-bevestiging. De schermtitel is `Uren opbouw/schrijven` en de tab heet `Verlofopbouw`. Remote migratie `20260807151500_work_hour_configuration_controls` is toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; `requires_manager_approval` en de unieke werkurentype-index zijn gecontroleerd, en de officiële DB-types zijn bijgewerkt.
+
 ## Historische update 2026-08-05: productversie gecorrigeerd
 
 De zichtbare productversie volgt de gedocumenteerde bron `apps/hr-suite/lib/app-version.ts` en de conventie `X.datum.volgnummer`. De vorige productversie was `1.20260805.1`. De npm-packageversie blijft `0.1.2`, omdat die niet de zichtbare productrelease bepaalt.

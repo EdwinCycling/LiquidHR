@@ -36,7 +36,7 @@
   "classic": "Klassiek",
   "minimal": "Minimaal",
   "liquid": "Liquid",
-  "saving": "Instellingen opslaan…",
+  "saving": "Instellingen opslaanâ€¦",
   "saved": "Instellingen opgeslagen.",
   "saveFailed": "Opslaan is niet gelukt.",
   "invalid": "Controleer je taal- en themakeuze.",
@@ -51,7 +51,7 @@
     "lastSelected": "Laatst gekozen",
     "choose": "Deze administratie kiezen",
     "selected": "Gekozen",
-    "switching": "Administratie openen…",
+    "switching": "Administratie openenâ€¦",
     "switchFailed": "De administratie kon niet worden gekozen.",
     "emptyTitle": "Geen administratie beschikbaar",
     "emptyDescription": "Binnen de actieve HR-groep heb je geen toegankelijke administratie. Kies een andere HR-groep of vraag toegang aan.",
@@ -74,7 +74,7 @@
     "sections": { "organization": "Organisatie & toegang", "hrSetup": "HR-inrichting", "platform": "Platform & uitbreidingen" },
     "tiles": {
       "authorization": "Rollen en autorisaties", "authorizationDescription": "Beheer rollen, rechten, scopes en het grafische autorisatieoverzicht.", "roleAssignments": "Roltoewijzingen", "roleAssignmentsDescription": "Wijs leidinggevende en aanvullende rollen toe en controleer afdelingsscope.",
-      "organization": "Afdelingen", "organizationDescription": "Richt afdelingen, hiërarchie en managers in.", "businessStructure": "Bedrijfsinrichting", "businessStructureDescription": "Beheer administraties en HR-groepen.", "companyData": "Bedrijfsgegevens", "companyDataDescription": "Beheer het groepsbrede bedrijfsadres en de locaties van de actieve HR-groep.", "administration": "Administratie", "administrationDescription": "Beheer administraties en HR-groepen.", "hrGroups": "HR-groepen", "hrGroupsDescription": "Beheer de actieve HR-groep en voeg administraties toe binnen de gekozen groep.",
+      "organization": "Afdelingen", "organizationDescription": "Richt afdelingen, hiÃ«rarchie en managers in.", "businessStructure": "Bedrijfsinrichting", "businessStructureDescription": "Beheer administraties en HR-groepen.", "companyData": "Bedrijfsgegevens", "companyDataDescription": "Beheer het groepsbrede bedrijfsadres en de locaties van de actieve HR-groep.", "administration": "Administratie", "administrationDescription": "Beheer administraties en HR-groepen.", "hrGroups": "HR-groepen", "hrGroupsDescription": "Beheer de actieve HR-groep en voeg administraties toe binnen de gekozen groep.",
       "employees": "Medewerkers", "employeesDescription": "Open het medewerkersbeheer en de personeelskaarten.", "employeeDirectory": "Medewerkersdirectory", "employeeDirectoryDescription": "Beheer voor de gekozen administratie welke informatie medewerkers in de veilige collega-popup kunnen zien.",
       "customFields": "Vrije velden", "customFieldsDescription": "Beheer HR-groepbrede aanvullende velden voor medewerkers en documenten.",
       "starPerformerTags": "Cloud tags", "starPerformerTagsDescription": "Beheer tenantbrede cloud tags die in meerdere modules hergebruikt kunnen worden.",
@@ -85,13 +85,13 @@
       "salary": "Schalen en treden", "salaryDescription": "Beheer effectieve salarisschalen, revisies en treden.",
       "holidays": "Feestdagen", "holidaysDescription": "Importeer landelijke feestdagen en voeg lokale dagen toe voor de actieve HR-groep.",
       "talentFoundation": "Talent Management", "talentFoundationDescription": "Beheer talentbibliotheek, niveaus en functieprofielen die aan het bestaande functiehuis zijn gekoppeld.",
-      "masterData": "Stamtabellen", "masterDataDescription": "Beheer HR-groepbrede eindredenen per land, administratiegebonden documentcategorieën en tenantbrede relatietypen.", "employmentContracts": "Dienstverbanden en contracten", "employmentContractsDescription": "Beheer voor de gekozen administratie het standaardland, arbeidsvoorwaarden, flexfasen, salarisfrequenties en kostendragers.", "leave": "Verlofopbouw", "leaveDescription": "Beheer HR-groepbrede verloftypen, werkuren, overuren en opbouwregels.", "absence": "Verzuim", "absenceDescription": "Beheer de HR-groepbrede verzuimdrempel en administratiegebonden eigen WvP-taken.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.", "companyDocuments": "Bedrijfsdocumenten", "companyDocumentsDescription": "Upload en verwijder documenten voor de actieve HR-groep.",
+      "masterData": "Stamtabellen", "masterDataDescription": "Beheer HR-groepbrede eindredenen per land, administratiegebonden documentcategorieÃ«n en tenantbrede relatietypen.", "employmentContracts": "Dienstverbanden en contracten", "employmentContractsDescription": "Beheer voor de gekozen administratie het standaardland, arbeidsvoorwaarden, flexfasen, salarisfrequenties en kostendragers.", "leave": "Verlofopbouw", "leaveDescription": "Beheer HR-groepbrede verloftypen, werkuren, overuren en opbouwregels.", "absence": "Verzuim", "absenceDescription": "Beheer de HR-groepbrede verzuimdrempel en administratiegebonden eigen WvP-taken.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.", "companyDocuments": "Bedrijfsdocumenten", "companyDocumentsDescription": "Upload en verwijder documenten voor de actieve HR-groep.",
       "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.", "companyBranding": "Bedrijfsinstellingen", "companyBrandingDescription": "Stel bedrijfskleuren en het logo in voor de actieve HR-groep.",
       "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
     },
     "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag"
   },
-  "employeeDirectory": { "title": "Medewerkersdirectory", "subtitle": "Bepaal welke collega-informatie medewerkers in een veilige popup mogen zien.", "enabled": "Medewerkers mogen de medewerkerslijst openen", "enabledDescription": "Wanneer dit uitstaat, blijft de lijst alleen beschikbaar voor HR en leidinggevenden.", "fieldsTitle": "Gegevens in de collega-popup", "fieldsDescription": "Alle opties staan standaard aan. Schakel afzonderlijke gegevens uit wanneer medewerkers die niet mogen zien.", "name": "Naam", "nameAlwaysOn": "altijd zichtbaar", "jobDepartment": "Functie en afdeling", "workEmail": "Zakelijk e-mailadres", "workPhone": "Zakelijk telefoonnummer", "presence": "Aanwezigheid deze week", "schedule": "Rooster", "save": "Instellingen opslaan", "saving": "Opslaan…", "saved": "Instellingen opgeslagen.", "failed": "De instellingen konden niet worden opgeslagen." },
+  "employeeDirectory": { "title": "Medewerkersdirectory", "subtitle": "Bepaal welke collega-informatie medewerkers in een veilige popup mogen zien.", "enabled": "Medewerkers mogen de medewerkerslijst openen", "enabledDescription": "Wanneer dit uitstaat, blijft de lijst alleen beschikbaar voor HR en leidinggevenden.", "fieldsTitle": "Gegevens in de collega-popup", "fieldsDescription": "Alle opties staan standaard aan. Schakel afzonderlijke gegevens uit wanneer medewerkers die niet mogen zien.", "name": "Naam", "nameAlwaysOn": "altijd zichtbaar", "jobDepartment": "Functie en afdeling", "workEmail": "Zakelijk e-mailadres", "workPhone": "Zakelijk telefoonnummer", "presence": "Aanwezigheid deze week", "schedule": "Rooster", "save": "Instellingen opslaan", "saving": "Opslaanâ€¦", "saved": "Instellingen opgeslagen.", "failed": "De instellingen konden niet worden opgeslagen." },
   "businessStructure": { "title": "Administratie", "subtitle": "Beheer alle administraties en HR-groepen binnen deze tenant.", "groups": "HR-groepen", "administrations": "Administraties", "add": "Administratie toevoegen", "edit": "Aanpassen", "save": "Opslaan", "cancel": "Annuleren", "name": "Naam", "description": "Omschrijving", "code": "Code", "number": "Administratienummer", "coc": "KvK-nummer", "vat": "Btw-nummer", "parent": "Parent-administratie", "active": "Actief", "group": "HR-groep", "failed": "Opslaan is niet gelukt.", "saved": "Opgeslagen.", "empty": "Selecteer links een administratie of HR-groep." },
   "hrGroups": {
     "title": "HR-groep",
@@ -133,7 +133,7 @@
     }
   },
   "dashboardWidgets": {
-    "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaan…", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt; de vorige instelling is hersteld.", "enabled": "Widget activeren", "active": "Actief", "inactive": "Niet actief", "roles": "Beschikbaar voor rollen", "allRoles": "Zonder selectie is de widget beschikbaar voor alle rollen met de vereiste rechten.", "noRoles": "Geen rollen beschikbaar.",
+    "title": "Dashboardwidgets", "subtitle": "Schakel datagedreven widgets in en bepaal per rol wie ze mag gebruiken.", "save": "Opslaan", "saving": "Opslaanâ€¦", "saved": "Opgeslagen.", "failed": "Opslaan is niet gelukt; de vorige instelling is hersteld.", "enabled": "Widget activeren", "active": "Actief", "inactive": "Niet actief", "roles": "Beschikbaar voor rollen", "allRoles": "Zonder selectie is de widget beschikbaar voor alle rollen met de vereiste rechten.", "noRoles": "Geen rollen beschikbaar.",
     "categories": { "CORE_HR": "Kern HR", "EMPLOYMENT": "Dienstverband", "DOCUMENTS": "Documenten", "COMPENSATION": "Beloning", "ORGANIZATION_TIME": "Organisatie & tijd" }
   },
   "menuOrderTitle": "Menuvolgorde",
@@ -142,12 +142,12 @@
   "menuOrderSaved": "Menuvolgorde opgeslagen.",
   "holidays": {
      "title": "Feestdagen", "subtitle": "Beheer de feestdagen van de actieve HR-groep per kalenderjaar en land. De import wordt als snapshot opgeslagen; lokale en uitgesloten dagen blijven bij herimport behouden.",
-    "year": "Kalenderjaar", "country": "Landcode", "preview": "Voorbeeld ophalen", "import": "Feestdagen importeren", "imported": "De feestdagen zijn geïmporteerd.", "providerFailed": "De feestdagenprovider is nu niet bereikbaar of de invoer is ongeldig.",
+    "year": "Kalenderjaar", "country": "Landcode", "preview": "Voorbeeld ophalen", "import": "Feestdagen importeren", "imported": "De feestdagen zijn geÃ¯mporteerd.", "providerFailed": "De feestdagenprovider is nu niet bereikbaar of de invoer is ongeldig.",
     "localTitle": "Lokale feestdag toevoegen", "localName": "Naam", "date": "Datum", "add": "Lokale dag toevoegen",
     "calendarTitle": "Feestdagen in dit kalenderjaar", "empty": "Nog geen feestdagen voor dit jaar.", "api": "Landelijke import", "manual": "Lokaal toegevoegd", "included": "In kalender", "excluded": "Uitgesloten"
   },
   "anniversaryRules": { "title": "Jubileumregels", "subtitle": "Deze tenantbrede lijst bepaalt welke werkjubilea in Aankomende gebeurtenissen worden getoond.", "years": "Jaar", "add": "Jubileum toevoegen", "save": "Opslaan", "delete": "Verwijderen", "saved": "Jubileumregel opgeslagen.", "failed": "De jubileumregel kon niet worden opgeslagen.", "empty": "Nog geen jubileumregels ingesteld." },
-  "absenceSettings": { "title": "Verzuiminstellingen", "subtitle": "Leg de HR-groepbrede verzuimdrempel en standaardcasemanager vast. Eigen WvP-taken worden per gekozen administratie beheerd.", "threshold": "Drempel frequent verzuim", "thresholdHelp": "Een nieuwe casus wordt gemarkeerd vanaf dit aantal casussen in de afgelopen twaalf maanden. Kies een waarde van 1 tot en met 20.", "caseManager": "Standaardcasemanager", "caseManagerHelp": "Alleen actieve medewerkers met een Liquid HR-gebruikersaccount in deze HR-groep kunnen worden gekozen.", "noCaseManager": "Geen standaardcasemanager", "save": "Instellingen opslaan", "saving": "Opslaan…", "saved": "Verzuiminstellingen opgeslagen.", "failed": "De verzuiminstellingen konden niet worden opgeslagen.", "invalid": "Controleer de drempel en de gekozen casemanager.", "tasksTitle": "Eigen WvP-taken", "tasksSubtitle": "Voeg administratiegebonden, niet-wettelijke taken toe. Wettelijke systeemtaken blijven onwijzigbaar en worden pas geactiveerd na inhoudelijke bevestiging.", "taskCode": "Code", "taskTitle": "Taaknaam", "taskDescription": "Omschrijving", "taskDueDays": "dagen na start", "evidenceRequired": "Bewijs vereist", "evidenceCategory": "Bewijscategorie", "taskAdd": "Taak toevoegen", "taskSaving": "Opslaan…", "taskActivate": "Activeren", "taskDeactivate": "Deactiveren", "taskCustom": "Eigen taak", "taskSystem": "Systeemtaak", "tasksEmpty": "Nog geen eigen WvP-taken voor deze administratie.", "taskFailed": "De taak kon niet worden opgeslagen.", "taskCodeConflict": "Deze taakcode bestaat al in deze administratie." },
+  "absenceSettings": { "title": "Verzuiminstellingen", "subtitle": "Leg de HR-groepbrede verzuimdrempel en standaardcasemanager vast. Eigen WvP-taken worden per gekozen administratie beheerd.", "threshold": "Drempel frequent verzuim", "thresholdHelp": "Een nieuwe casus wordt gemarkeerd vanaf dit aantal casussen in de afgelopen twaalf maanden. Kies een waarde van 1 tot en met 20.", "caseManager": "Standaardcasemanager", "caseManagerHelp": "Alleen actieve medewerkers met een Liquid HR-gebruikersaccount in deze HR-groep kunnen worden gekozen.", "noCaseManager": "Geen standaardcasemanager", "save": "Instellingen opslaan", "saving": "Opslaanâ€¦", "saved": "Verzuiminstellingen opgeslagen.", "failed": "De verzuiminstellingen konden niet worden opgeslagen.", "invalid": "Controleer de drempel en de gekozen casemanager.", "tasksTitle": "Eigen WvP-taken", "tasksSubtitle": "Voeg administratiegebonden, niet-wettelijke taken toe. Wettelijke systeemtaken blijven onwijzigbaar en worden pas geactiveerd na inhoudelijke bevestiging.", "taskCode": "Code", "taskTitle": "Taaknaam", "taskDescription": "Omschrijving", "taskDueDays": "dagen na start", "evidenceRequired": "Bewijs vereist", "evidenceCategory": "Bewijscategorie", "taskAdd": "Taak toevoegen", "taskSaving": "Opslaanâ€¦", "taskActivate": "Activeren", "taskDeactivate": "Deactiveren", "taskCustom": "Eigen taak", "taskSystem": "Systeemtaak", "tasksEmpty": "Nog geen eigen WvP-taken voor deze administratie.", "taskFailed": "De taak kon niet worden opgeslagen.", "taskCodeConflict": "Deze taakcode bestaat al in deze administratie." },
   "themes": {
     "liquid-navy": "Liquid Navy",
     "noordzee": "Noordzee",
@@ -178,25 +178,26 @@
     "upload": "Logo uploaden",
     "removeLogo": "Logo verwijderen",
     "save": "Bedrijfsstijl opslaan",
-    "saving": "Opslaan…",
+    "saving": "Opslaanâ€¦",
     "saved": "Bedrijfsstijl opgeslagen.",
     "failed": "De bedrijfsstijl kon niet worden opgeslagen.",
     "invalid": "Controleer de kleuren en het logo."
   },
   "companyData": {
-    "title": "Bedrijf gegevens",
+    "title": "Bedrijfsgegevens",
     "subtitle": "Leg het groepsbrede bedrijfsadres vast en beheer de locaties die door alle administraties binnen deze HR-groep kunnen worden gebruikt.",
-    "companySection": "Bedrijf data",
+    "companySection": "Bedrijfsadres",
     "companySectionDescription": "Het groepsbrede hoofdadres voor alle administraties in de geselecteerde HR-groep.",
     "locationsSection": "Locaties",
     "locationsSectionDescription": "Voeg nul of meer locaties toe wanneer de administratie meerdere locaties heeft.",
-    "singleLocation": "Deze HR-groep heeft één locatie",
+    "singleLocation": "Deze HR-groep heeft Ã©Ã©n locatie",
     "singleLocationDescription": "Het bedrijfsadres geldt dan als de enige locatie voor de hele HR-groep. Het locatiebeheer blijft uitgeschakeld zolang dit is aangevinkt.",
     "singleLocationDisabled": "Locatiebeheer is uitgeschakeld omdat het groepsbrede bedrijfsadres als enige locatie wordt gebruikt.",
-    "save": "Bedrijfsdata opslaan",
-    "saving": "Opslaan…",
-    "saved": "Bedrijfsdata opgeslagen.",
-    "failed": "De bedrijfsdata kon niet worden opgeslagen.",
+    "save": "Bedrijfsgegevens opslaan",
+    "saving": "Opslaanâ€¦",
+    "saved": "Bedrijfsgegevens opgeslagen.",
+    "ready": "Klaar om op te slaan",
+    "failed": "De bedrijfsgegevens konden niet worden opgeslagen.",
     "addLocation": "Locatie toevoegen",
     "editLocation": "Locatie wijzigen",
     "locationName": "Naam locatie",
@@ -213,11 +214,12 @@
     "countrySearch": "Zoek een land",
     "countryEmpty": "Geen land gevonden.",
     "addressSearch": "Adres zoeken",
+    "addressSearchHint": "Zoek een bestaand adres en controleer de gegevens voordat je opslaat.",
     "addressSearchPlaceholder": "Zoek op straat, plaats of postcode",
     "manualEntry": "Adres handmatig invoeren",
     "searchNoResults": "Geen suggesties gevonden. Je kunt het adres handmatig invoeren.",
     "searchUnavailable": "Adres zoeken is tijdelijk niet beschikbaar. Je kunt het adres handmatig invoeren.",
-    "searchLoading": "Adressen zoeken…",
+    "searchLoading": "Adressen zoekenâ€¦",
     "lookupByPostalCode": "Postcode en huisnummer",
     "lookup": "Straat en plaats aanvullen",
     "lookupHint": "Gebruik postcode en huisnummer om deze velden automatisch in te vullen.",
@@ -232,7 +234,8 @@
     "region": "Regio / provincie",
     "addressHelp": "Nederlandse adressen gebruiken straat, huisnummer en postcode. Voor andere landen gebruik je adresregel 1, optioneel adresregel 2, postcode, plaats en regio.",
     "genericError": "Opslaan is niet gelukt. Controleer de gegevens en probeer het opnieuw.",
-    "companyHasLocations": "Schakel eerst de bestaande locaties uit of verwijder ze voordat je één locatie instelt.",
-    "singleLocationError": "Voeg geen locaties toe zolang het bedrijfsadres als enige locatie is ingesteld."
+    "companyHasLocations": "Schakel eerst de bestaande locaties uit of verwijder ze voordat je Ã©Ã©n locatie instelt.",
+    "singleLocationError": "Voeg geen locaties toe zolang het bedrijfsadres als enige locatie is ingesteld.",
+    "saveHint": "Controleer het adres en sla de bedrijfsgegevens op wanneer alles klopt."
   }
 }

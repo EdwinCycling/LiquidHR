@@ -1,6 +1,7 @@
 import type { LeaveAccrualTiming } from './leave-engine'
+import { capPartTimeFactor } from '@/lib/employment/fulltime-reference'
 
-export type LeaveEntitlementMode = 'ACCRUAL' | 'UNLIMITED' | 'ANNUAL_HOURS_CAP' | 'WEEKLY_HOURS_FACTOR_CAP'
+export type LeaveEntitlementMode = 'ACCRUAL' | 'UNLIMITED' | 'ANNUAL_HOURS_CAP' | 'ANNUAL_HOURS_FTE_CAP' | 'OVERTIME_HOURS'
 export type LeaveTransactionType = 'ACCRUAL' | 'OPENING_BALANCE' | 'MANUAL_ADJUSTMENT' | 'TAKEN' | 'EXPIRED_DEDUCTION'
 
 export type ReportLeaveType = {
@@ -9,8 +10,8 @@ export type ReportLeaveType = {
   colorCode: string
   entitlementMode: LeaveEntitlementMode
   annualHoursCap?: number | null
-  weeklyHoursCapFactor?: number | null
-  averageHoursPerWeek?: number | null
+  annualHoursFteCap?: number | null
+  partTimeFactor?: number | null
 }
 
 export type ReportBucket = {
@@ -56,7 +57,7 @@ export type LeaveBalanceReport = {
 
 export type LeaveTypeBalanceReport = ReportLeaveType & {
   leaveTypeId: string
-  status: 'ACCRUAL' | 'UNLIMITED' | 'ANNUAL_HOURS_CAP' | 'WEEKLY_HOURS_FACTOR_CAP'
+  status: LeaveEntitlementMode
   annualLimit: number | null
   usedAnnualLimit: number | null
   startOfYearBalance: number | null
@@ -85,9 +86,9 @@ function sumTransactions(transactions: readonly ReportTransaction[], predicate: 
 
 function annualLimitForType(leaveType: ReportLeaveType): number | null {
   if (leaveType.entitlementMode === 'ANNUAL_HOURS_CAP') return leaveType.annualHoursCap ?? null
-  if (leaveType.entitlementMode === 'WEEKLY_HOURS_FACTOR_CAP') {
-    if (leaveType.averageHoursPerWeek === null || leaveType.averageHoursPerWeek === undefined || leaveType.weeklyHoursCapFactor === null || leaveType.weeklyHoursCapFactor === undefined) return null
-    return leaveType.averageHoursPerWeek * leaveType.weeklyHoursCapFactor
+  if (leaveType.entitlementMode === 'ANNUAL_HOURS_FTE_CAP') {
+    if (leaveType.annualHoursFteCap === null || leaveType.annualHoursFteCap === undefined || leaveType.partTimeFactor === null || leaveType.partTimeFactor === undefined) return null
+    return leaveType.annualHoursFteCap * capPartTimeFactor(leaveType.partTimeFactor)
   }
   return null
 }

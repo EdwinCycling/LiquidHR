@@ -8,6 +8,12 @@
 
 > **Aanvulling 2026-07-29 — actuele contractstructuur.** Een `Employment` is het dienstverband en bevat land, IKV-nummer, primaire status, begin-/anciënniteitsdatum en de uitdienstgegevens. Eén dienstverband heeft één of meer direct aansluitende `employment_contracts`. Een contract bevat medewerkerstype, arbeidsvoorwaardenregeling, bepaalde/onbepaalde duur en proeftijd. Rooster, salaris, organisatieplaatsing en kostenverdeling blijven afzonderlijke, aansluitende tijdlijnen onder het dienstverband.
 
+### Regelingentijdlijn en fulltime-referentie 2026-08-07
+
+CAO- en bedrijfseigen regelingen worden als opvolgende versies beheerd. Iedere versie heeft een verplichte `valid_from` en optioneel een `predecessor_id`. De vorige versie loopt automatisch tot de dag vóór de start van de opvolger; een opvolger moet strikt later starten, er is maximaal één directe opvolger en cyclische ketens zijn niet toegestaan. In de beheerscherm-UX staan regelingen als lijst met per regeling de volledige opvolgers; iedere versie kan worden gewijzigd en uitsluitend de laatste versie kan een nieuwe opvolger krijgen. Contracten blijven naar de concrete regelingversie verwijzen.
+
+De `standard_hours_per_week` van de op het contract gekozen CAO/bedrijfseigen regeling is de officiële fulltime-norm. `employment_contracts.fulltime_hours_per_week` bewaart daarvan een historische snapshot; nieuwe roosters nemen de snapshot van het geldige contract over in `employment_schedules.fulltime_hours_per_week`. De verloffactor is `min(contracturen, fulltime-norm) / fulltime-norm` en is maximaal 1. De contracturen blijven de feitelijke roosteruren en de salarisverhouding; de cap geldt voor verlof en FTE-limieten.
+
 ### Goedgekeurde aanmaakflow 2026-07-29
 
 1. Controleer vóór de wizard personeelsnummer, nationaliteit, geboortedatum, geslacht en voor Nederland het BSN. Ontbrekende gegevens worden eerst in een verplicht tussenscherm aangevuld.

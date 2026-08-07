@@ -313,7 +313,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 addTwoMonths: tEmployment('addTwoMonths'), onCallEmployee: tEmployment('onCallEmployee'),
                 onCallObligation: tEmployment('onCallObligation'), employmentScope: tEmployment('employmentScope'),
                 fullTime: tEmployment('fullTime'), partTime: tEmployment('partTime'),
-                weeklyHours: tEmployment('weeklyHours'), partTimeFactor: tEmployment('partTimeFactor'),
+                weeklyHours: tEmployment('weeklyHours'), fulltimeReference: tEmployment('fulltimeReference'), partTimeFactor: tEmployment('partTimeFactor'),
                 roster: tEmployment('roster'), rosterMismatch: tEmployment('rosterMismatch'),
                 monday: tEmployment('monday'), tuesday: tEmployment('tuesday'),
                 wednesday: tEmployment('wednesday'), thursday: tEmployment('thursday'),

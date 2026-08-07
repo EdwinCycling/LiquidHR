@@ -9,7 +9,6 @@ describe('POST /api/leave/catalog', () => {
         action: 'LEAVE_TYPE',
         name: 'Zorgverlof',
         colorCode: '#10b981',
-        scope: 'OTHER',
         entitlementMode: 'ANNUAL_HOURS_CAP',
       }),
       headers: { 'content-type': 'application/json' },

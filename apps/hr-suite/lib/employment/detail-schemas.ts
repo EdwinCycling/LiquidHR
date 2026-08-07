@@ -24,7 +24,7 @@ const scheduleMutation = z.object({
     startWeek: z.number().int().min(1).max(53).default(1),
     averageDaysPerWeek: z.number().min(0).max(7),
     averageHoursPerWeek: z.number().min(0).max(168),
-    partTimeFactor: z.number().min(0).max(2),
+    partTimeFactor: z.number().min(0).max(1),
     timeForTimeAccrual: z.number().min(0).default(0),
     mondayHours: nullableNumber, tuesdayHours: nullableNumber, wednesdayHours: nullableNumber,
     thursdayHours: nullableNumber, fridayHours: nullableNumber, saturdayHours: nullableNumber,
@@ -88,7 +88,7 @@ const combinedTimelineMutationItemSchema = z.discriminatedUnion('timeline', [
   z.object({ timeline: z.literal('LABOR_CONDITIONS'), payload: z.object({ conditionGroup: z.string().trim().min(1).max(160) }).strict() }).strict(),
   z.object({ timeline: z.literal('SCHEDULE'), payload: z.object({
     scheduleType: z.enum(['HOURS_PER_DAY', 'HOURS_AND_AVG_DAYS', 'HOURS_AND_SPECIFIC_DAYS', 'TIMES_PER_DAY']),
-    startWeek: z.number().int().min(1).max(53).default(1), averageDaysPerWeek: z.number().min(0).max(7), averageHoursPerWeek: z.number().min(0).max(168), partTimeFactor: z.number().min(0).max(2), timeForTimeAccrual: z.number().min(0).default(0),
+    startWeek: z.number().int().min(1).max(53).default(1), averageDaysPerWeek: z.number().min(0).max(7), averageHoursPerWeek: z.number().min(0).max(168), partTimeFactor: z.number().min(0).max(1), timeForTimeAccrual: z.number().min(0).default(0),
     mondayHours: nullableNumber, tuesdayHours: nullableNumber, wednesdayHours: nullableNumber, thursdayHours: nullableNumber, fridayHours: nullableNumber, saturdayHours: nullableNumber, sundayHours: nullableNumber,
   }).strict() }).strict(),
   z.object({ timeline: z.literal('SALARY'), payload: salaryPayload }).strict(),

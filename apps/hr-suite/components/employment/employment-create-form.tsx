@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { type FormEvent, type ReactNode, useMemo, useState } from 'react'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
+import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 
 type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
 type DurationType = 'INDEFINITE' | 'DEFINITE'
@@ -24,7 +25,7 @@ export interface EmploymentCreateFormProps {
     flexPhase: string; laborConditions: string; duration: string; indefinite: string; definite: string
     endDate: string; probation: string; probationEnd: string; addFourWeeks: string
     addOneMonth: string; addTwoMonths: string; onCallEmployee: string; onCallObligation: string
-    employmentScope: string; fullTime: string; partTime: string; weeklyHours: string
+    employmentScope: string; fullTime: string; partTime: string; weeklyHours: string; fulltimeReference: string
     partTimeFactor: string; roster: string; rosterMismatch: string; monday: string; tuesday: string
     wednesday: string; thursday: string; friday: string; saturday: string; sunday: string
     salaryCalculation: string; salaryManual: string; salaryMinimum: string; salaryTable: string
@@ -121,6 +122,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
     () => options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId),
     [draft.laborConditionSetId, options.laborConditionSets],
   )
+  const selectedFulltimeHours = selectedLaborSet?.standardHoursPerWeek ?? 40
   const selectedJob = options.jobs.find((item) => item.id === draft.jobId)
   const selectedScale = options.salaryScaleSteps.find((item) => item.id === draft.salaryScaleStepId)
   const employeeAge = ageOn(draft.birthDate, draft.startsOn)
@@ -132,7 +134,17 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
   const rosterMatches = Math.abs(rosterTotal - (Number(draft.weeklyHours) || 0)) < 0.0001
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]): void {
-    setDraft((current) => ({ ...current, [key]: value }))
+    setDraft((current) => {
+      const next = { ...current, [key]: value }
+      if (key === 'laborConditionSetId') {
+        const laborSet = options.laborConditionSets.find((item) => item.id === String(value))
+        next.partTimeFactor = String(calculateCappedPartTimeFactor(
+          Number(current.weeklyHours),
+          laborSet?.standardHoursPerWeek ?? 40,
+        ))
+      }
+      return next
+    })
     setState('idle')
     setErrorCode('')
   }
@@ -152,9 +164,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
         monday: String(daily), tuesday: String(daily), wednesday: String(daily),
         thursday: String(daily), friday: String(daily), saturday: '0', sunday: '0',
       },
-      partTimeFactor: current.workScope === 'FULL_TIME'
-        ? '1'
-        : String(weekly / (selectedLaborSet?.standardHoursPerWeek ?? 40)),
+      partTimeFactor: String(calculateCappedPartTimeFactor(weekly, selectedFulltimeHours)),
     }))
   }
 
@@ -227,7 +237,8 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
     setState('saving')
     const fulltimeAmount = selectedScale?.fulltimeAmount ?? Number(draft.fulltimeAmount)
     const standardHours = selectedLaborSet?.standardHoursPerWeek ?? 40
-    const factor = draft.isOnCall ? 0 : Number(draft.weeklyHours) / standardHours
+    const factor = draft.isOnCall ? 0 : calculateCappedPartTimeFactor(Number(draft.weeklyHours), standardHours)
+    const workScope = draft.isOnCall ? null : Number(draft.weeklyHours) >= standardHours ? 'FULL_TIME' : 'PART_TIME'
     const response = await fetch(`/api/employees/${employeeId}/employments`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -259,7 +270,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
           startWeek: 1,
           averageDaysPerWeek: dayKeys.filter((day) => Number(draft.days[day]) > 0).length,
           averageHoursPerWeek: Number(draft.weeklyHours),
-          partTimeFactor: draft.workScope === 'FULL_TIME' ? 1 : factor,
+          partTimeFactor: factor,
           timeForTimeAccrual: 0,
           mondayHours: Number(draft.days.monday), tuesdayHours: Number(draft.days.tuesday),
           wednesdayHours: Number(draft.days.wednesday), thursdayHours: Number(draft.days.thursday),
@@ -267,7 +278,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
           sundayHours: Number(draft.days.sunday),
           isOnCall: draft.isOnCall,
           onCallObligation: draft.isOnCall ? draft.onCallObligation : null,
-          workScope: draft.isOnCall ? null : draft.workScope,
+          workScope,
           validFrom: draft.startsOn,
         },
         salary: options.canWriteSalary ? {
@@ -353,6 +364,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
         <Field label={labels.workerType}><select className={inputClass} value={draft.workerType} onChange={(event) => update('workerType', event.target.value as WorkerType)}><option value="EMPLOYEE">{labels.workerEmployee}</option><option value="STUDENT_INTERN">{labels.workerStudentIntern}</option><option value="TEMPORARY_AGENCY">{labels.workerTemporaryAgency}</option><option value="EXTERNAL_NO_PAYROLL">{labels.workerExternal}</option></select></Field>
         {draft.workerType === 'TEMPORARY_AGENCY' && <Field label={labels.flexPhase}><select className={inputClass} value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>}
         <Field label={labels.laborConditions}><select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+        <Field label={labels.fulltimeReference}><input readOnly className={`${inputClass} bg-muted/40`} value={`${selectedFulltimeHours}`} /></Field>
         <Field label={labels.duration}><select className={inputClass} value={draft.durationType} onChange={(event) => update('durationType', event.target.value as DurationType)}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option></select></Field>
         <Field label={labels.startDate}><input type="date" readOnly className={`${inputClass} bg-muted/40`} value={draft.startsOn} /></Field>
         {draft.durationType === 'DEFINITE' && <Field label={labels.endDate}><input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /></Field>}
@@ -365,8 +377,9 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={labels.onCallEmployee}><select className={inputClass} value={String(draft.isOnCall)} onChange={(event) => update('isOnCall', event.target.value === 'true')}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></Field>
         {draft.isOnCall ? <Field label={labels.onCallObligation}><select className={inputClass} value={String(draft.onCallObligation)} onChange={(event) => update('onCallObligation', event.target.value === 'true')}><option value="true">{labels.yes}</option><option value="false">{labels.no}</option></select></Field> : <Field label={labels.employmentScope}><select className={inputClass} value={draft.workScope} onChange={(event) => update('workScope', event.target.value as Draft['workScope'])}><option value="FULL_TIME">{labels.fullTime}</option><option value="PART_TIME">{labels.partTime}</option></select></Field>}
+        <Field label={labels.fulltimeReference}><input readOnly className={`${inputClass} bg-muted/40`} value={`${selectedFulltimeHours}`} /></Field>
         <Field label={labels.weeklyHours}><input type="number" min="0" max="50" step="0.01" className={inputClass} value={draft.weeklyHours} onChange={(event) => distributeHours(event.target.value)} /></Field>
-        {!draft.isOnCall && <Field label={labels.partTimeFactor}><input readOnly className={`${inputClass} bg-muted/40`} value={draft.workScope === 'FULL_TIME' ? '100%' : `${Math.round(Number(draft.partTimeFactor) * 10000) / 100}%`} /></Field>}
+        {!draft.isOnCall && <Field label={labels.partTimeFactor}><input readOnly className={`${inputClass} bg-muted/40`} value={`${Math.round(Number(draft.partTimeFactor) * 10000) / 100}%`} /></Field>}
       </div>
       <h4 className="mt-6 font-semibold">{labels.roster}</h4>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">{dayKeys.map((day) => <Field key={day} label={labels[day]}><input type="number" min="0" max="24" step="0.25" className={inputClass} value={draft.days[day]} onChange={(event) => updateDay(day, event.target.value)} /></Field>)}</div>
@@ -379,7 +392,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
         <Field label={labels.frequency}><select className={inputClass} value={draft.salaryFrequencyId} onChange={(event) => update('salaryFrequencyId', event.target.value)}>{options.salaryFrequencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
         {draft.salaryBasis === 'CUSTOM_SCALE' && <Field label={labels.salaryScaleStep}><select className={inputClass} value={draft.salaryScaleStepId} onChange={(event) => update('salaryScaleStepId', event.target.value)}><option value="" />{options.salaryScaleSteps.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></Field>}
         {draft.salaryBasis === 'MINIMUM_WAGE' && <Field label={labels.minimumHourlyRate}><input readOnly className={`${inputClass} bg-muted/40`} value={minimumRate ? `€ ${minimumRate.hourlyAmount.toFixed(2)}` : '—'} /></Field>}
-        {draft.salaryBasis === 'MANUAL' && <><Field label={labels.fulltimeSalary}><input type="number" min="0" step="0.01" className={inputClass} value={draft.fulltimeAmount} onChange={(event) => { update('fulltimeAmount', event.target.value); const factor = Number(draft.weeklyHours) / (selectedLaborSet?.standardHoursPerWeek ?? 40); update('parttimeAmount', String(Number(event.target.value) * factor)) }} /></Field>{Number(draft.weeklyHours) !== (selectedLaborSet?.standardHoursPerWeek ?? 40) && <Field label={labels.parttimeSalary}><input type="number" min="0" step="0.01" className={inputClass} value={draft.parttimeAmount} onChange={(event) => { update('parttimeAmount', event.target.value); const factor = Number(draft.weeklyHours) / (selectedLaborSet?.standardHoursPerWeek ?? 40); if (factor > 0) update('fulltimeAmount', String(Number(event.target.value) / factor)) }} /></Field>}</>}
+        {draft.salaryBasis === 'MANUAL' && <><Field label={labels.fulltimeSalary}><input type="number" min="0" step="0.01" className={inputClass} value={draft.fulltimeAmount} onChange={(event) => { update('fulltimeAmount', event.target.value); const factor = Number(draft.weeklyHours) / selectedFulltimeHours; update('parttimeAmount', String(Number(event.target.value) * factor)) }} /></Field>{Number(draft.weeklyHours) !== selectedFulltimeHours && <Field label={labels.parttimeSalary}><input type="number" min="0" step="0.01" className={inputClass} value={draft.parttimeAmount} onChange={(event) => { update('parttimeAmount', event.target.value); const factor = Number(draft.weeklyHours) / selectedFulltimeHours; if (factor > 0) update('fulltimeAmount', String(Number(event.target.value) / factor)) }} /></Field>}</>}
       </div>}
     </WizardStep>}
 
@@ -399,6 +412,7 @@ export function EmploymentCreateForm({ employeeId, options, labels }: Employment
         <Summary label={labels.startDate} value={draft.startsOn} />
         <Summary label={labels.workerType} value={draft.workerType} />
         <Summary label={labels.laborConditions} value={selectedLaborSet?.name ?? ''} />
+        <Summary label={labels.fulltimeReference} value={`${selectedFulltimeHours}`} />
         <Summary label={labels.weeklyHours} value={draft.weeklyHours} />
         <Summary label={labels.job} value={selectedJob?.name ?? ''} />
       </dl>

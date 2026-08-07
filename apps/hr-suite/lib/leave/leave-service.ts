@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { Database, Json, Tables } from '@scope/db'
 import { permissionErrorResponse, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import type { LeaveCatalogMutation, LeaveConfigurationMutation, OvertimeConfigurationMutation, WorkHourConfigurationMutation } from './schemas'
 import { calculateLeaveBalanceReport, type ReportAccrualMoment, type ReportBucket, type ReportCarryForward, type ReportLeaveType, type ReportTransaction } from './report'
 import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOption } from './employment-resolver'
@@ -9,15 +10,6 @@ import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOptio
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = LeaveEmployment
 type OvertimeLimitMode = Database['public']['Enums']['overtime_limit_mode']
-type CreateLeaveAccrualRuleArgs = Omit<
-  Database['public']['Functions']['create_group_leave_accrual_rule']['Args'],
-  'requested_predecessor_rule_id' | 'requested_valid_until' | 'requested_accrual_amount' | 'requested_accrual_rate'
-> & {
-  requested_predecessor_rule_id: string | null
-  requested_valid_until: string | null
-  requested_accrual_amount: number | null
-  requested_accrual_rate: number | null
-}
 
 export class LeaveServiceError extends Error {
   constructor(
@@ -32,6 +24,46 @@ export class LeaveServiceError extends Error {
 
 function databaseError(error: { message: string } | null): never {
   throw new LeaveServiceError(error?.message.includes('LEAVE_') ? error.message.match(/LEAVE_[A-Z_]+/)?.[0] ?? 'LEAVE_OPERATION_FAILED' : 'LEAVE_OPERATION_FAILED', 500)
+}
+
+async function assertLeaveTypeNameAvailable(
+  supabase: SupabaseServerClient,
+  context: Awaited<ReturnType<typeof requireAuthContext>>,
+  hrGroupId: string,
+  name: string,
+  id?: string,
+) {
+  const result = await supabase
+    .from('leave_types')
+    .select('id, name')
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .limit(500)
+  if (result.error) databaseError(result.error)
+  const normalizedName = name.trim().toLocaleLowerCase()
+  if (result.data.some((item) => item.id !== id && item.name.trim().toLocaleLowerCase() === normalizedName)) {
+    throw new LeaveServiceError('LEAVE_TYPE_NAME_EXISTS', 409)
+  }
+}
+
+async function assertWorkHourTypeNameAvailable(
+  supabase: SupabaseServerClient,
+  context: Awaited<ReturnType<typeof requireAuthContext>>,
+  hrGroupId: string,
+  name: string,
+  id?: string,
+) {
+  const result = await supabase
+    .from('work_hour_types')
+    .select('id, name')
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .limit(500)
+  if (result.error) databaseError(result.error)
+  const normalizedName = name.trim().toLocaleLowerCase()
+  if (result.data.some((item) => item.id !== id && item.name.trim().toLocaleLowerCase() === normalizedName)) {
+    throw new LeaveServiceError('WORK_HOUR_TYPE_NAME_EXISTS', 409)
+  }
 }
 
 async function loadEmployment(
@@ -84,13 +116,13 @@ async function queryReportRows(
     .limit(5000)
   const leaveTypesQuery = supabase
     .from('leave_types')
-    .select('id, name, color_code, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor')
+    .select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap')
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', employment.hr_group_id)
     .limit(500)
   const scheduleQuery = supabase
     .from('employment_schedules')
-    .select('average_hours_per_week')
+    .select('average_hours_per_week, fulltime_hours_per_week')
     .eq('tenant_id', context.tenantId)
     .eq('employee_id', employment.employee_id)
     .eq('employment_id', employment.id)
@@ -149,15 +181,24 @@ async function queryReportRows(
     reason: row.reason,
     actorUserId: row.actor_user_id,
   }))
-  const leaveTypeRows: ReportLeaveType[] = leaveTypes.data.map((row) => ({
-    id: row.id,
-    name: row.name,
-    colorCode: row.color_code,
-    entitlementMode: row.entitlement_mode,
-    annualHoursCap: row.annual_hours_cap,
-    weeklyHoursCapFactor: row.weekly_hours_cap_factor,
-    averageHoursPerWeek: schedule.data?.average_hours_per_week ?? null,
-  }))
+  const leaveTypeRows: ReportLeaveType[] = leaveTypes.data.map((row) => {
+    if (row.entitlement_mode === 'WEEKLY_HOURS_FACTOR_CAP') throw new LeaveServiceError('LEAVE_OPERATION_FAILED', 500)
+    const partTimeFactor = schedule.data
+      ? calculateCappedPartTimeFactor(
+        Number(schedule.data.average_hours_per_week),
+        Number(schedule.data.fulltime_hours_per_week),
+      )
+      : null
+    return {
+      id: row.id,
+      name: row.name,
+      colorCode: row.color_code,
+      entitlementMode: row.entitlement_mode,
+      annualHoursCap: row.annual_hours_cap,
+      annualHoursFteCap: row.annual_hours_fte_cap,
+      partTimeFactor,
+    }
+  })
   const bucketYears = new Map(bucketRows.map((bucket) => [bucket.id, bucket.accrualYear]))
   const carryForwards: ReportCarryForward[] = rolloverItems
     .filter((item) => item.carried_hours > 0)
@@ -208,10 +249,10 @@ export async function listLeaveCatalog() {
   const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
-  const [leaveTypes, workHourTypes, overtimeSettings, profiles, rules, bonusRules, bonusTiers, priorityRules, priorityRuleItems, accrualRuleWorkHourTypes, accrualRulePauseTypes, leaveAccrualExceptions, exceptionEmployees, exceptionEmployments, employeeSets, employeeSetMembers] = await Promise.all([
-    supabase.from('leave_types').select('id, name, color_code, scope, entitlement_mode, annual_hours_cap, weekly_hours_cap_factor, is_active, is_self_service, is_system, allow_limit_overrun, pin_in_calendar, requires_manager_approval, notify_manager_on_request, requires_manager_approval_on_cancellation').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
+  const [leaveTypes, workHourTypes, overtimeSettings, profiles, rules, bonusRules, bonusTiers, priorityRules, priorityRuleItems, accrualRuleWorkHourTypes, accrualRulePauseTypes, leaveAccrualExceptions, exceptionEmployees, exceptionEmployments, employeeSets, employeeSetMembers, leaveTypeOvertimeWorkHours] = await Promise.all([
+    supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap, is_active, is_self_service, is_system, allow_limit_overrun, pin_in_calendar, requires_manager_approval, notify_manager_on_request, requires_manager_approval_on_cancellation').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
     supabase.from('work_hour_types').select('id, name, color_code, category, is_active, is_self_service, pin_in_calendar').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
-    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(500),
+    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, requires_manager_approval, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(500),
     supabase.from('leave_profiles').select('id, name, description, is_active, is_group_default').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
     supabase.from('leave_accrual_rules').select('id, leave_profile_id, leave_type_id, predecessor_rule_id, valid_from, valid_until, accrual_basis, accrual_frequency, accrual_timing, accrual_amount, accrual_rate, expiration_months').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('valid_from').limit(2000),
     supabase.from('leave_bonus_rules').select('id, leave_profile_id, leave_type_id, name, trigger_type, award_timing, pro_rate_first_year, is_active').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
@@ -225,6 +266,7 @@ export async function listLeaveCatalog() {
     supabase.from('employments').select('id, employee_id, employment_number, starts_on, ends_on, is_primary').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).order('is_primary', { ascending: false }).order('starts_on', { ascending: false }).limit(2000),
     supabase.from('employee_sets').select('id, name, description, priority, is_active, leave_profile_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('priority').order('name').limit(500),
     supabase.from('employee_set_members').select('id, employee_set_id, employee_id, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('valid_from', { ascending: false }).limit(5000),
+    supabase.from('leave_type_overtime_work_hours').select('leave_type_id, work_hour_type_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(5000),
   ])
   if (leaveTypes.error) databaseError(leaveTypes.error)
   if (workHourTypes.error) databaseError(workHourTypes.error)
@@ -242,6 +284,7 @@ export async function listLeaveCatalog() {
   if (exceptionEmployments.error) databaseError(exceptionEmployments.error)
   if (employeeSets.error) databaseError(employeeSets.error)
   if (employeeSetMembers.error) databaseError(employeeSetMembers.error)
+  if (leaveTypeOvertimeWorkHours.error) databaseError(leaveTypeOvertimeWorkHours.error)
   const employeeNames = new Map(exceptionEmployees.data.map((employee) => [employee.id, [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ')]))
   return {
     leaveTypes: leaveTypes.data,
@@ -264,6 +307,7 @@ export async function listLeaveCatalog() {
     })),
     employeeSets: employeeSets.data,
     employeeSetMembers: employeeSetMembers.data,
+    leaveTypeOvertimeWorkHours: leaveTypeOvertimeWorkHours.data,
     employeeSetEmployees: exceptionEmployees.data.map((employee) => ({
       id: employee.id,
       employee_number: employee.employee_number,
@@ -280,32 +324,35 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
   const supabase = await createClient()
 
   if (input.action === 'LEAVE_TYPE') {
-    const result = await supabase.from('leave_types').insert({
-      tenant_id: context.tenantId,
-      hr_group_id: hrGroupId,
-      administration_id: null,
-      name: input.name,
-      color_code: input.colorCode,
-      scope: input.scope,
-      entitlement_mode: input.entitlementMode,
-      annual_hours_cap: input.entitlementMode === 'ANNUAL_HOURS_CAP' ? input.annualHoursCap ?? null : null,
-      weekly_hours_cap_factor: input.entitlementMode === 'WEEKLY_HOURS_FACTOR_CAP' ? input.weeklyHoursCapFactor ?? null : null,
-      is_self_service: input.isSelfService,
-      allow_limit_overrun: input.allowLimitOverrun,
-      pin_in_calendar: input.pinInCalendar,
-      requires_manager_approval: input.requiresManagerApproval,
-      notify_manager_on_request: input.notifyManagerOnRequest,
-      requires_manager_approval_on_cancellation: input.requiresManagerApprovalOnCancellation,
-      is_active: input.isActive,
-      is_system: false,
-      created_by: context.userId,
-      updated_by: context.userId,
-    }).select('id').single()
-    if (result.error || !result.data) databaseError(result.error)
-    return { kind: input.action, id: result.data.id }
+    await assertLeaveTypeNameAvailable(supabase, context, hrGroupId, input.name, input.id)
+    const result = await supabase.rpc('save_group_leave_type', {
+      requested_tenant_id: context.tenantId,
+      requested_hr_group_id: hrGroupId,
+      requested_leave_type_id: input.id ?? null,
+      requested_name: input.name,
+      requested_color_code: input.colorCode,
+      requested_entitlement_mode: input.entitlementMode,
+      requested_annual_hours_cap: input.entitlementMode === 'ANNUAL_HOURS_CAP' ? input.annualHoursCap ?? null : null,
+      requested_annual_hours_fte_cap: input.entitlementMode === 'ANNUAL_HOURS_FTE_CAP' ? input.annualHoursFteCap ?? null : null,
+      requested_is_self_service: input.isSelfService,
+      requested_allow_limit_overrun: input.allowLimitOverrun,
+      requested_pin_in_calendar: input.pinInCalendar,
+      requested_requires_manager_approval: input.requiresManagerApproval,
+      requested_notify_manager_on_request: input.notifyManagerOnRequest,
+      requested_requires_manager_approval_on_cancellation: input.requiresManagerApprovalOnCancellation,
+      requested_is_active: input.isActive,
+      requested_overtime_work_hour_type_ids: input.overtimeWorkHourTypeIds,
+    } as unknown as Database['public']['Functions']['save_group_leave_type']['Args'])
+    if (result.error) {
+      if (result.error.message.includes('leave_types_tenant_hr_group_name_unique')) throw new LeaveServiceError('LEAVE_TYPE_NAME_EXISTS', 409)
+      databaseError(result.error)
+    }
+    if (!result.data) databaseError(null)
+    return { kind: input.action, id: result.data }
   }
 
   if (input.action === 'WORK_HOUR_TYPE') {
+    await assertWorkHourTypeNameAvailable(supabase, context, hrGroupId, input.name)
     const result = await supabase.from('work_hour_types').insert({
       tenant_id: context.tenantId,
       hr_group_id: hrGroupId,
@@ -327,6 +374,7 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
         administration_id: null,
         work_hour_type_id: result.data.id,
         notify_manager_on_entry: input.notifyManagerOnEntry,
+        requires_manager_approval: input.requiresManagerApproval,
         is_self_service: input.isSelfService,
         limit_mode: input.limitMode,
         limit_hours: input.limitMode === 'MONTHLY_HOURS' || input.limitMode === 'YEARLY_HOURS' ? input.limitHours ?? null : null,
@@ -416,6 +464,7 @@ export interface OvertimeSettingsPageData {
     id: string
     workHourTypeId: string
     notifyManagerOnEntry: boolean
+    requiresManagerApproval: boolean
     isSelfService: boolean
     limitMode: OvertimeLimitMode
     limitHours: number | null
@@ -434,7 +483,7 @@ export async function getOvertimeSettingsPageData(workHourTypeId: string, mode: 
   if (!type.data || (mode === 'OVERTIME' ? type.data.category !== 'OVERTIME' : type.data.category === 'INFORMATIONAL')) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
 
   const [settings, exceptions, assignments] = await Promise.all([
-    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).maybeSingle(),
+    supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, requires_manager_approval, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).maybeSingle(),
     supabase.from('overtime_type_exceptions').select('id, employee_id, allow_overtime_entry, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', workHourTypeId).order('created_at').limit(500),
     supabase.from('employments').select('employee_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', new Date().toISOString().slice(0, 10)).or(`ends_on.is.null,ends_on.gte.${new Date().toISOString().slice(0, 10)}`).limit(5000),
   ])
@@ -454,6 +503,7 @@ export async function getOvertimeSettingsPageData(workHourTypeId: string, mode: 
       id: settings.data.id,
       workHourTypeId: settings.data.work_hour_type_id,
       notifyManagerOnEntry: settings.data.notify_manager_on_entry,
+      requiresManagerApproval: settings.data.requires_manager_approval,
       isSelfService: settings.data.is_self_service,
       limitMode: settings.data.limit_mode,
       limitHours: settings.data.limit_hours,
@@ -490,6 +540,7 @@ export async function updateOvertimeConfiguration(input: Extract<OvertimeConfigu
   if (!type.data || type.data.category !== 'OVERTIME') throw new LeaveServiceError('OVERTIME_TYPE_NOT_FOUND', 404)
   const result = await supabase.from('overtime_type_settings').update({
     notify_manager_on_entry: input.notifyManagerOnEntry,
+    requires_manager_approval: input.requiresManagerApproval,
     is_self_service: input.isSelfService,
     ...overtimeLimitPayload(input),
     updated_by: context.userId,
@@ -533,11 +584,12 @@ export async function updateWorkHourSettings(input: Extract<WorkHourConfiguratio
   const supabase = await createClient()
   const type = await supabase.from('work_hour_types').select('id, category').eq('id', input.workHourTypeId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
   if (type.error) databaseError(type.error)
-  if (!type.data || type.data.category === 'INFORMATIONAL') throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
-  const result = await supabase.from('work_hour_types').update({ is_self_service: input.isSelfService, ...(input.isActive === undefined ? {} : { is_active: input.isActive }), ...(input.pinInCalendar === undefined ? {} : { pin_in_calendar: input.pinInCalendar }), updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('id', input.workHourTypeId).select('id').maybeSingle()
+  if (!type.data) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
+  if (input.name !== undefined) await assertWorkHourTypeNameAvailable(supabase, context, hrGroupId, input.name, input.workHourTypeId)
+  const result = await supabase.from('work_hour_types').update({ ...(input.name === undefined ? {} : { name: input.name }), ...(input.colorCode === undefined ? {} : { color_code: input.colorCode }), is_self_service: input.isSelfService, ...(input.isActive === undefined ? {} : { is_active: input.isActive }), ...(input.pinInCalendar === undefined ? {} : { pin_in_calendar: input.pinInCalendar }), updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('id', input.workHourTypeId).select('id').maybeSingle()
   if (result.error) databaseError(result.error)
   if (!result.data) throw new LeaveServiceError('WORK_HOUR_TYPE_NOT_FOUND', 404)
-  const settings = await supabase.from('overtime_type_settings').update({ ...(input.notifyManagerOnEntry === undefined ? {} : { notify_manager_on_entry: input.notifyManagerOnEntry }), is_self_service: input.isSelfService, limit_mode: input.limitMode, limit_hours: input.limitHours ?? null, contract_hours_factor: input.contractHoursFactor ?? null, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
+  const settings = await supabase.from('overtime_type_settings').update({ ...(input.notifyManagerOnEntry === undefined ? {} : { notify_manager_on_entry: input.notifyManagerOnEntry }), requires_manager_approval: input.requiresManagerApproval, is_self_service: input.isSelfService, limit_mode: input.limitMode, limit_hours: input.limitMode === 'MONTHLY_HOURS' || input.limitMode === 'YEARLY_HOURS' ? input.limitHours ?? null : null, contract_hours_factor: input.limitMode === 'CONTRACT_HOURS_FACTOR' ? input.contractHoursFactor ?? null : null, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', input.workHourTypeId).select('id').maybeSingle()
   if (settings.error) databaseError(settings.error)
   return { id: result.data.id }
 }
@@ -576,14 +628,11 @@ export async function createLeaveAccrualRule(input: AccrualRuleInput) {
   const context = await requirePermission('leave:write')
   const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
-  const args: CreateLeaveAccrualRuleArgs = {
+  const sharedArgs = {
     requested_tenant_id: context.tenantId,
     requested_hr_group_id: hrGroupId,
     requested_leave_profile_id: input.leaveProfileId,
     requested_leave_type_id: input.leaveTypeId,
-    requested_predecessor_rule_id: input.predecessorRuleId ?? null,
-    requested_valid_from: input.validFrom,
-    requested_valid_until: input.validUntil ?? null,
     requested_accrual_basis: input.accrualBasis,
     requested_accrual_frequency: input.accrualFrequency,
     requested_accrual_timing: input.accrualTiming,
@@ -593,11 +642,17 @@ export async function createLeaveAccrualRule(input: AccrualRuleInput) {
     requested_work_hour_type_ids: input.workHourTypeIds,
     requested_pause_leave_type_ids: input.pauseLeaveTypeIds,
   }
-  // Postgres-functieargumenten mogen null zijn, maar de generator neemt die nullability niet op.
-  const rule = await supabase.rpc(
-    'create_group_leave_accrual_rule',
-    args as unknown as Database['public']['Functions']['create_group_leave_accrual_rule']['Args'],
-  )
+  const rule = input.id
+    ? await supabase.rpc('update_group_leave_accrual_rule', {
+      ...sharedArgs,
+      requested_rule_id: input.id,
+    } as unknown as Database['public']['Functions']['update_group_leave_accrual_rule']['Args'])
+    : await supabase.rpc('create_group_leave_accrual_rule', {
+      ...sharedArgs,
+      requested_predecessor_rule_id: input.predecessorRuleId ?? null,
+      requested_valid_from: input.validFrom,
+      requested_valid_until: input.validUntil ?? null,
+    } as unknown as Database['public']['Functions']['create_group_leave_accrual_rule']['Args'])
   if (rule.error || !rule.data) databaseError(rule.error)
   return { id: rule.data }
 }

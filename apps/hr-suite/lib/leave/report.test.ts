@@ -44,4 +44,25 @@ describe('leave balance report', () => {
       currentBalance: null,
     })
   })
+
+  it('begrensd een FTE-jaarmaximum op de fulltime-norm', () => {
+    const report = calculateLeaveBalanceReport({
+      employmentId: 'employment-1',
+      calendarYear: 2026,
+      asOfDate: '2026-01-01',
+      leaveTypes: [{
+        id: 'care',
+        name: 'Zorgverlof',
+        entitlementMode: 'ANNUAL_HOURS_FTE_CAP',
+        annualHoursFteCap: 10,
+        partTimeFactor: 1.2,
+        colorCode: '#13b981',
+      }],
+      buckets: [],
+      transactions: [],
+      carryForwards: [],
+    })
+
+    expect(report.leaveTypes[0].annualLimit).toBe(10)
+  })
 })

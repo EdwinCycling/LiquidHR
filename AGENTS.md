@@ -90,6 +90,7 @@ De repository bevat vaste natuurlijke commando's. Gebruik `EdwinHelp` voor het a
 | **Zet Git backup terug** | `.\scripts\restore.ps1`: vraagt eerst om exact `HERSTEL`, weigert standaard een dirty werkboom en laat ongetrackte bestanden standaard staan. `-Force` en eventueel `-Clean` zijn alleen voor expliciet bevestigde noodsituaties. |
 | **Nieuwe feature: `<naam>`** | `.\scripts\new-feature.ps1 -Name '<naam>'`: vereist een schone werkboom, normaliseert de naam en maakt lokaal `feature/<slug>` vanaf `last-good`. |
 | **Feature afgerond** | `.\scripts\finish-feature.ps1`: draait de hr-suite-tests, commit alleen bij succes, werkt `last-good` bij en toont een mergevoorstel. Merge en push blijven altijd handmatig. |
+| **Redesign LiquidHR scherm** | Gebruik [`docs/skills/edwinhelp-screen-redesign/SKILL.md`](docs/skills/edwinhelp-screen-redesign/SKILL.md); werk per scherm de UX-requirements, statuslijst en delivery-context bij. |
 | **Maak project overview** | Gebruik [`docs/skills/project-overview/SKILL.md`](docs/skills/project-overview/SKILL.md): actuele code-, route-, database- en mandageninventaris; live records alleen als Supabase-MCP beschikbaar is. |
 | **Meet Next geheugen** | `.\scripts\measure-next-memory.ps1`: periodieke geheugenmeting van een draaiende Next-server naar het opgegeven CSV-bestand. |
 

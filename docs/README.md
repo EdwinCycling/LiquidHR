@@ -1,5 +1,21 @@
 # Liquid HR documentatie-index
 
+## Release 2026-08-07: productversie 1.20260807.1
+
+De zichtbare productversie is verhoogd naar `1.20260807.1` volgens de centrale `X.datum.volgnummer`-conventie. De versie staat uitsluitend in `apps/hr-suite/lib/app-version.ts`; de bijbehorende unit-test is bijgewerkt.
+
+## Actuele regelingentijdlijn 2026-08-07
+
+CAO- en bedrijfseigen regelingen worden in **Instellingen → Dienstverbanden en contracten → CAO / arbeidsvoorwaarden** als tijdlijn beheerd. Iedere `labor_condition_sets`-rij is een versie met `valid_from` en optioneel `predecessor_id`. De migratie `20260807145526_add_labor_condition_timeline` vult bestaande regelingen veilig met een startdatum, beschermt de opvolgerketen met een foreign key, unieke opvolgerindex en database-trigger, en biedt een transactionele opvolger-RPC. De UI toont per regeling alle opvolgers, berekent automatisch de vorige geldigheidsperiode tot de dag vóór de volgende startdatum en biedt toevoegen/wijzigen per versie. De bestaande contractreferentie en administratiecontext blijven behouden.
+
+## Actuele fulltime-referentie voor verlof en dienstverband 2026-08-07
+
+De `standard_hours_per_week` van de actieve CAO/bedrijfseigen regeling is nu de officiële fulltime-referentie. Zowel het contract als ieder `employment_schedules`-record bewaart daarvan een historische snapshot in `fulltime_hours_per_week`; de verloffactor wordt berekend als `min(contracturen, fulltime-norm) / fulltime-norm`. Daarmee geven 32 uur bij 40 uur fulltime een factor 0,8, 40 uur een factor 1 en meer dan 40 uur maximaal factor 1. De remote migrations `20260807141014_use_labor_condition_fulltime_reference` en `20260807162539_add_employment_contract_fulltime_reference` zijn toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; bestaande contracten en roosters zijn gevuld en gecontroleerd. De wizard en de dienstverbandmutatie tonen de fulltime-norm en rekenen de factor automatisch uit.
+
+## Actuele verlofopbouwinrichting 2026-08-07
+
+De HR-inrichting kiest nu eerst uit vijf beperkingstypen: onbeperkt, verlofopbouw, jaarlijks urenlimiet, jaarlijks urenlimiet met deeltijdfactor en beperking door overuren. De nieuwe leidende specificatie staat in [`requirements/leave/VERLOFOPBOUW_INRICHTING.md`](requirements/leave/VERLOFOPBOUW_INRICHTING.md). De schema-, API- en UI-slice is lokaal en remote uitgevoerd voor de testfase; bestaande testregels zijn waar nodig naar de nieuwe keuzes gerepareerd. Opbouwregelkaarten zijn volledig klikbaar en bewerkbaar; een nieuwe regel neemt de laatste waarden over en kan worden geannuleerd. De vervaltermijn toont de eenheid `Maanden`. De vijf enumkeuzes, RLS-koppeltabel, FTE-berekening en conditionele HR-editor zijn onderdeel van deze slice. De volledige toekomstige opbouwprojectie en overuren-afgeleide engine blijven open.
+
 ## Historische update 2026-08-05: productversie volgens centrale releaseconventie
 
 De zichtbare productversie kwam uitsluitend uit `apps/hr-suite/lib/app-version.ts` en volgde `X.datum.volgnummer`. De toenmalige productversie was `1.20260805.1`; de npm-versie in `package.json` is technische package-metadata en bepaalt de zichtbare appversie niet.
@@ -210,6 +226,8 @@ Talentstappen 1-8 zijn lokaal en remote doorgetrokken voor de testfase. Stap 7 b
 
 Developer workflow: [`DEVELOPER_TOOLKIT.md`](DEVELOPER_TOOLKIT.md) beschrijft de lokale Codex/Git- en EdwinHelp-commando's; [`skills/project-overview/SKILL.md`](skills/project-overview/SKILL.md) beschrijft de herbruikbare projectinventaris; [`../CODING_STANDARDS.md`](../CODING_STANDARDS.md) is de compacte dagelijkse codechecklist.
 
+De herbruikbare Liquid Flow-schermredesignwerkwijze staat in [`skills/edwinhelp-screen-redesign/SKILL.md`](skills/edwinhelp-screen-redesign/SKILL.md); de afgeronde schermen en volgende redesignpagina staan in [`requirements/ux/SCHERM_REDESIGN_STATUS.md`](requirements/ux/SCHERM_REDESIGN_STATUS.md).
+
 Actuele scope-aanvulling productupdates (2026-08-01): eigenaarberichten zijn globaal voor alle klanten; tenant HR Admins kunnen alleen eigen tenantberichten beheren en zien globale eigenaarberichten alleen-lezen.
 
 Actuele weergave-aanvulling productupdates (2026-08-01): banner- en login-popupberichten worden per gebruiker en per kanaal eenmalig getoond; de popup heeft een knop `Gezien`.
@@ -260,7 +278,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Domein | Document | Documentstatus | Implementatie |
 |---|---|---|---|
 | Bedrijf en locatie per dienstverband | [`requirements/employment/BEDRIJF_EN_LOCATIE_PER_DIENSTVERBAND.md`](requirements/employment/BEDRIJF_EN_LOCATIE_PER_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — lokale schema/RLS/RPC, API, eigen dienstverbandtab, read-only bedrijfskaart en locatie-opvolging zijn toegevoegd; remote migratie en authenticated browserbewijs volgen |
-| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/API, opvolgende opbouwregels, kleurgebruik, overwerkbeperkingen en de eerste verloftype-/uitzonderingen-UI zijn aanwezig; age/seniority-regels, volledige opbouwprojectie en ingelogde browsercontrole volgen |
+| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/API, direct bewerkbare en intern effective-dated opbouwregels, kleurgebruik, overwerkbeperkingen en de eerste verloftype-/uitzonderingen-UI zijn aanwezig; age/seniority-regels en volledige opbouwprojectie volgen |
 | Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | GEDEELTELIJK — geautoriseerde HR-admin/managerflow, priority/FIFO, directe goedkeuring, saldo-overzicht en kalenderweergave zijn geïmplementeerd; ESS, notificaties en manager-UI volgen later |
 | Verzuim en herstel | [`requirements/absence/VERZUIM_EN_HERSTEL.md`](requirements/absence/VERZUIM_EN_HERSTEL.md) | LEIDEND | GEDEELTELIJK — schema/RLS/RPC, API, dashboardvenster, startpagina, kalenderactie, medewerker-tab, herstel, instellingen en verzuimrapportage zijn live; voorziening en verdere WvP blijven open |
 | WvP Poortwachter | [`requirements/absence/WVP_POORTWACHTER_ENGINE.md`](requirements/absence/WVP_POORTWACHTER_ENGINE.md) | LEIDEND | GEDEELTELIJK — HR Admin kan eigen niet-wettelijke taaktemplates beheren; wettelijke milestone-engine, casustaken, dossier en signaleringen blijven open totdat de set inhoudelijk is bevestigd |

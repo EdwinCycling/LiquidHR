@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -3702,6 +3702,7 @@ export type Database = {
           employment_id: string
           ends_on: string | null
           flex_phase_id: string | null
+          fulltime_hours_per_week: number
           hr_group_id: string
           id: string
           labor_condition_set_id: string
@@ -3721,6 +3722,7 @@ export type Database = {
           employment_id: string
           ends_on?: string | null
           flex_phase_id?: string | null
+          fulltime_hours_per_week?: number
           hr_group_id: string
           id?: string
           labor_condition_set_id: string
@@ -3740,6 +3742,7 @@ export type Database = {
           employment_id?: string
           ends_on?: string | null
           flex_phase_id?: string | null
+          fulltime_hours_per_week?: number
           hr_group_id?: string
           id?: string
           labor_condition_set_id?: string
@@ -4370,6 +4373,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           friday_hours: number | null
+          fulltime_hours_per_week: number
           id: string
           is_on_call: boolean
           monday_hours: number | null
@@ -4387,7 +4391,7 @@ export type Database = {
           valid_from: string
           valid_until: string | null
           wednesday_hours: number | null
-          work_scope: Database["public"]["Enums"]["employment_work_scope"]
+          work_scope: Database["public"]["Enums"]["employment_work_scope"] | null
         }
         Insert: {
           administration_id: string
@@ -4398,6 +4402,7 @@ export type Database = {
           employee_id: string
           employment_id: string
           friday_hours?: number | null
+          fulltime_hours_per_week?: number
           id?: string
           is_on_call?: boolean
           monday_hours?: number | null
@@ -4415,7 +4420,7 @@ export type Database = {
           valid_from: string
           valid_until?: string | null
           wednesday_hours?: number | null
-          work_scope?: Database["public"]["Enums"]["employment_work_scope"]
+          work_scope?: Database["public"]["Enums"]["employment_work_scope"] | null
         }
         Update: {
           administration_id?: string
@@ -4426,6 +4431,7 @@ export type Database = {
           employee_id?: string
           employment_id?: string
           friday_hours?: number | null
+          fulltime_hours_per_week?: number
           id?: string
           is_on_call?: boolean
           monday_hours?: number | null
@@ -4443,7 +4449,7 @@ export type Database = {
           valid_from?: string
           valid_until?: string | null
           wednesday_hours?: number | null
-          work_scope?: Database["public"]["Enums"]["employment_work_scope"]
+          work_scope?: Database["public"]["Enums"]["employment_work_scope"] | null
         }
         Relationships: [
           {
@@ -5793,9 +5799,11 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          predecessor_id: string | null
           standard_hours_per_week: number
           tenant_id: string
           updated_at: string
+          valid_from: string
         }
         Insert: {
           administration_id: string
@@ -5805,9 +5813,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          predecessor_id?: string | null
           standard_hours_per_week?: number
           tenant_id: string
           updated_at?: string
+          valid_from?: string
         }
         Update: {
           administration_id?: string
@@ -5817,9 +5827,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          predecessor_id?: string | null
           standard_hours_per_week?: number
           tenant_id?: string
           updated_at?: string
+          valid_from?: string
         }
         Relationships: [
           {
@@ -5842,6 +5854,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "labor_condition_sets_predecessor_fkey"
+            columns: ["tenant_id", "administration_id", "predecessor_id"]
+            isOneToOne: false
+            referencedRelation: "labor_condition_sets"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
             foreignKeyName: "labor_condition_sets_tenant_id_fkey"
@@ -6896,11 +6915,71 @@ export type Database = {
           },
         ]
       }
+      leave_type_overtime_work_hours: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          created_by: string | null
+          hr_group_id: string
+          leave_type_id: string
+          tenant_id: string
+          work_hour_type_id: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          hr_group_id: string
+          leave_type_id: string
+          tenant_id: string
+          work_hour_type_id: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          hr_group_id?: string
+          leave_type_id?: string
+          tenant_id?: string
+          work_hour_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_type_overtime_work_hours_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_type_overtime_work_hours_leave_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "leave_type_overtime_work_hours_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_type_overtime_work_hours_work_type_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_hour_type_id"]
+            isOneToOne: false
+            referencedRelation: "work_hour_types"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
       leave_types: {
         Row: {
           administration_id: string | null
           allow_limit_overrun: boolean
           annual_hours_cap: number | null
+          annual_hours_fte_cap: number | null
           color_code: string
           created_at: string
           created_by: string | null
@@ -6915,16 +6994,15 @@ export type Database = {
           pin_in_calendar: boolean
           requires_manager_approval: boolean
           requires_manager_approval_on_cancellation: boolean
-          scope: Database["public"]["Enums"]["leave_type_scope"]
           tenant_id: string
           updated_at: string
           updated_by: string | null
-          weekly_hours_cap_factor: number | null
         }
         Insert: {
           administration_id?: string | null
           allow_limit_overrun?: boolean
           annual_hours_cap?: number | null
+          annual_hours_fte_cap?: number | null
           color_code?: string
           created_at?: string
           created_by?: string | null
@@ -6939,16 +7017,15 @@ export type Database = {
           pin_in_calendar?: boolean
           requires_manager_approval?: boolean
           requires_manager_approval_on_cancellation?: boolean
-          scope: Database["public"]["Enums"]["leave_type_scope"]
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
-          weekly_hours_cap_factor?: number | null
         }
         Update: {
           administration_id?: string | null
           allow_limit_overrun?: boolean
           annual_hours_cap?: number | null
+          annual_hours_fte_cap?: number | null
           color_code?: string
           created_at?: string
           created_by?: string | null
@@ -6963,11 +7040,9 @@ export type Database = {
           pin_in_calendar?: boolean
           requires_manager_approval?: boolean
           requires_manager_approval_on_cancellation?: boolean
-          scope?: Database["public"]["Enums"]["leave_type_scope"]
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
-          weekly_hours_cap_factor?: number | null
         }
         Relationships: [
           {
@@ -7319,6 +7394,7 @@ export type Database = {
           hr_group_id: string
           id: string
           is_self_service: boolean
+          requires_manager_approval: boolean
           limit_hours: number | null
           limit_mode: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry: boolean
@@ -7335,6 +7411,7 @@ export type Database = {
           hr_group_id: string
           id?: string
           is_self_service?: boolean
+          requires_manager_approval?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
@@ -7351,6 +7428,7 @@ export type Database = {
           hr_group_id?: string
           id?: string
           is_self_service?: boolean
+          requires_manager_approval?: boolean
           limit_hours?: number | null
           limit_mode?: Database["public"]["Enums"]["overtime_limit_mode"]
           notify_manager_on_entry?: boolean
@@ -10765,6 +10843,30 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      create_labor_condition_successor: {
+        Args: {
+          requested_administration_id: string
+          requested_name: string
+          requested_predecessor_id: string
+          requested_standard_hours_per_week: number
+          requested_tenant_id: string
+          requested_valid_from: string
+        }
+        Returns: {
+          administration_id: string
+          code: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          predecessor_id: string | null
+          standard_hours_per_week: number
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+        }[]
+      }
       activate_due_talent_review_campaigns: {
         Args: { requested_tenant_id: string }
         Returns: number
@@ -11387,6 +11489,27 @@ export type Database = {
         }
         Returns: Json
       }
+      save_group_leave_type: {
+        Args: {
+          requested_allow_limit_overrun: boolean
+          requested_annual_hours_cap: number
+          requested_annual_hours_fte_cap: number
+          requested_color_code: string
+          requested_entitlement_mode: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          requested_hr_group_id: string
+          requested_is_active: boolean
+          requested_is_self_service: boolean
+          requested_leave_type_id: string
+          requested_name: string
+          requested_notify_manager_on_request: boolean
+          requested_overtime_work_hour_type_ids: string[]
+          requested_pin_in_calendar: boolean
+          requested_requires_manager_approval: boolean
+          requested_requires_manager_approval_on_cancellation: boolean
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       start_platform_support_session: {
         Args: {
           requested_duration_minutes: number
@@ -11397,6 +11520,24 @@ export type Database = {
       }
       start_talent_review_campaign: {
         Args: { requested_campaign_id: string }
+        Returns: string
+      }
+      update_group_leave_accrual_rule: {
+        Args: {
+          requested_accrual_amount: number
+          requested_accrual_basis: Database["public"]["Enums"]["leave_accrual_basis"]
+          requested_accrual_frequency: Database["public"]["Enums"]["leave_accrual_frequency"]
+          requested_accrual_rate: number
+          requested_accrual_timing: Database["public"]["Enums"]["leave_accrual_timing"]
+          requested_expiration_months: number
+          requested_hr_group_id: string
+          requested_leave_profile_id: string
+          requested_leave_type_id: string
+          requested_pause_leave_type_ids: string[]
+          requested_rule_id: string
+          requested_tenant_id: string
+          requested_work_hour_type_ids: string[]
+        }
         Returns: string
       }
       update_personal_reminder: {
@@ -11483,7 +11624,11 @@ export type Database = {
       invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
       leave_accrual_basis: "CONTRACT_HOURS" | "WORKED_HOURS" | "AGE_SENIORITY"
-      leave_accrual_frequency: "PAYROLL_PERIOD" | "YEARLY"
+      leave_accrual_frequency:
+        | "PAYROLL_PERIOD"
+        | "YEARLY"
+        | "FOUR_WEEKLY"
+        | "MONTHLY"
       leave_accrual_timing: "UPFRONT" | "ARREARS"
       leave_bonus_award_timing: "START_OF_YEAR" | "ON_TRIGGER_DATE"
       leave_bonus_trigger_type: "AGE" | "SENIORITY"
@@ -11505,7 +11650,8 @@ export type Database = {
         | "UNLIMITED"
         | "ANNUAL_HOURS_CAP"
         | "WEEKLY_HOURS_FACTOR_CAP"
-      leave_type_scope: "STATUTORY" | "NON_STATUTORY" | "ADV" | "OTHER"
+        | "ANNUAL_HOURS_FTE_CAP"
+        | "OVERTIME_HOURS"
       leave_work_hour_entry_status:
         | "PENDING"
         | "APPROVED"
@@ -11784,7 +11930,12 @@ export const Constants = {
       invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
       leave_accrual_basis: ["CONTRACT_HOURS", "WORKED_HOURS", "AGE_SENIORITY"],
-      leave_accrual_frequency: ["PAYROLL_PERIOD", "YEARLY"],
+      leave_accrual_frequency: [
+        "PAYROLL_PERIOD",
+        "YEARLY",
+        "FOUR_WEEKLY",
+        "MONTHLY",
+      ],
       leave_accrual_timing: ["UPFRONT", "ARREARS"],
       leave_bonus_award_timing: ["START_OF_YEAR", "ON_TRIGGER_DATE"],
       leave_bonus_trigger_type: ["AGE", "SENIORITY"],
@@ -11808,8 +11959,9 @@ export const Constants = {
         "UNLIMITED",
         "ANNUAL_HOURS_CAP",
         "WEEKLY_HOURS_FACTOR_CAP",
+        "ANNUAL_HOURS_FTE_CAP",
+        "OVERTIME_HOURS",
       ],
-      leave_type_scope: ["STATUTORY", "NON_STATUTORY", "ADV", "OTHER"],
       leave_work_hour_entry_status: [
         "PENDING",
         "APPROVED",

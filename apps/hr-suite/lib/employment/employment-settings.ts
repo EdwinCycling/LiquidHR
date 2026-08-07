@@ -2,6 +2,7 @@ import 'server-only'
 
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { buildEmploymentRegulationTimelines } from './employment-regulation-model'
 
 export type EmploymentCatalog = 'LABOR_CONDITION_SET' | 'FLEX_PHASE' | 'SALARY_FREQUENCY' | 'COST_CARRIER' | 'COST_CENTER'
 
@@ -14,6 +15,31 @@ export class EmploymentSettingsError extends Error {
 function administrationId(value: string | null): string {
   if (!value) throw new EmploymentSettingsError('ADMINISTRATION_REQUIRED', 400)
   return value
+}
+
+function regulationCodeBase(name: string): string {
+  const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return (normalized || 'REGELING').slice(0, 28)
+}
+
+async function nextRegulationCode(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string, administrationIdValue: string, name: string): Promise<string> {
+  const base = regulationCodeBase(name)
+  const { data, error } = await supabase.from('labor_condition_sets').select('code').eq('tenant_id', tenantId).eq('administration_id', administrationIdValue).like('code', `${base}%`).limit(500)
+  if (error) throw new EmploymentSettingsError('REGULATION_CODE_READ_FAILED', 500)
+  const existing = new Set((data ?? []).map((row) => row.code))
+  if (!existing.has(base)) return base
+  let suffix = 2
+  while (existing.has(`${base}-${suffix}`)) suffix += 1
+  return `${base}-${suffix}`
+}
+
+function mapRegulationMutationError(message: string | undefined): EmploymentSettingsError {
+  if (message?.includes('LABOR_CONDITION_START_MUST_FOLLOW_PREDECESSOR')) return new EmploymentSettingsError('REGULATION_START_MUST_FOLLOW_PREDECESSOR', 400)
+  if (message?.includes('LABOR_CONDITION_START_MUST_PRECEDE_SUCCESSOR')) return new EmploymentSettingsError('REGULATION_START_MUST_PRECEDE_SUCCESSOR', 400)
+  if (message?.includes('LABOR_CONDITION_SUCCESSOR_EXISTS')) return new EmploymentSettingsError('REGULATION_SUCCESSOR_EXISTS', 409)
+  if (message?.includes('LABOR_CONDITION_PREDECESSOR_NOT_FOUND')) return new EmploymentSettingsError('REGULATION_PREDECESSOR_NOT_FOUND', 404)
+  if (message?.includes('LABOR_CONDITION_TIMELINE_CYCLE')) return new EmploymentSettingsError('REGULATION_TIMELINE_CYCLE', 400)
+  return new EmploymentSettingsError('REGULATION_UPDATE_FAILED', 500)
 }
 
 export async function getEmploymentSettings() {
@@ -40,11 +66,59 @@ export async function getEmploymentSettings() {
   return {
     defaultCountryCode: settings.data.default_employment_country_code,
     laborConditionSets: labor.data ?? [],
+    laborConditionTimelines: buildEmploymentRegulationTimelines(labor.data ?? []),
     flexPhases: flex.data ?? [],
     salaryFrequencies: frequencies.data ?? [],
     costCarriers: carriers.data ?? [],
     costCenters: centers.data ?? [],
   }
+}
+
+export async function createEmploymentRegulation(input: { name: string; validFrom: string; standardHoursPerWeek: number }): Promise<void> {
+  const context = await requirePermission('contract:write')
+  const adminId = administrationId(context.administrationId)
+  const groupId = requireHrGroupId(context)
+  const supabase = await createClient()
+  const code = await nextRegulationCode(supabase, context.tenantId, adminId, input.name)
+  const result = await supabase.from('labor_condition_sets').insert({
+    tenant_id: context.tenantId,
+    administration_id: adminId,
+    hr_group_id: groupId,
+    code,
+    name: input.name,
+    standard_hours_per_week: input.standardHoursPerWeek,
+    valid_from: input.validFrom,
+    predecessor_id: null,
+    is_active: true,
+  })
+  if (result.error) throw mapRegulationMutationError(result.error.message)
+}
+
+export async function updateEmploymentRegulation(id: string, input: { name: string; validFrom: string; standardHoursPerWeek: number }): Promise<void> {
+  const context = await requirePermission('contract:write')
+  const adminId = administrationId(context.administrationId)
+  const supabase = await createClient()
+  const result = await supabase.from('labor_condition_sets').update({
+    name: input.name,
+    valid_from: input.validFrom,
+    standard_hours_per_week: input.standardHoursPerWeek,
+  }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+  if (result.error) throw mapRegulationMutationError(result.error.message)
+}
+
+export async function createEmploymentRegulationSuccessor(input: { predecessorId: string; name: string; validFrom: string; standardHoursPerWeek: number }): Promise<void> {
+  const context = await requirePermission('contract:write')
+  const adminId = administrationId(context.administrationId)
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('create_labor_condition_successor', {
+    requested_tenant_id: context.tenantId,
+    requested_administration_id: adminId,
+    requested_predecessor_id: input.predecessorId,
+    requested_name: input.name,
+    requested_valid_from: input.validFrom,
+    requested_standard_hours_per_week: input.standardHoursPerWeek,
+  })
+  if (error) throw mapRegulationMutationError(error.message)
 }
 
 export async function updateDefaultEmploymentCountry(countryCode: string): Promise<void> {

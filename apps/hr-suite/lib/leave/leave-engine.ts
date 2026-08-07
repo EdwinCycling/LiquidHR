@@ -1,5 +1,7 @@
+import { capPartTimeFactor } from '@/lib/employment/fulltime-reference'
+
 export type LeaveAccrualTiming = 'UPFRONT' | 'ARREARS'
-export type LeaveAccrualFrequency = 'PAYROLL_PERIOD' | 'YEARLY'
+export type LeaveAccrualFrequency = 'PAYROLL_PERIOD' | 'FOUR_WEEKLY' | 'MONTHLY' | 'YEARLY'
 export type LeaveWorkHourCategory = 'REGULAR_WORK' | 'OVERTIME' | 'INFORMATIONAL'
 export type LeaveWorkHourStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED'
 export type BonusAwardTiming = 'START_OF_YEAR' | 'ON_TRIGGER_DATE'
@@ -69,7 +71,7 @@ export function calculateContractAccrual(input: {
   const fullPeriodWeekdays = countWeekdays(input.fullPeriodStart, input.fullPeriodEnd)
   if (fullPeriodWeekdays === 0) return 0
   const sliceWeekdays = countWeekdays(input.sliceStart, input.sliceEnd)
-  return (sliceWeekdays / fullPeriodWeekdays) * input.accrualAmount * input.partTimeFactor
+  return (sliceWeekdays / fullPeriodWeekdays) * input.accrualAmount * capPartTimeFactor(input.partTimeFactor)
 }
 
 export function calculateWorkedHoursAccrual(input: {
@@ -146,7 +148,7 @@ export function calculateBonusAward(input: {
   const yearStart = String(input.calendarYear) + '-01-01'
   const yearEnd = String(input.calendarYear + 1) + '-01-01'
   if (input.triggerDate >= yearEnd) return 0
-  const fullAward = input.bonusAmount * input.partTimeFactor
+  const fullAward = input.bonusAmount * capPartTimeFactor(input.partTimeFactor)
   if (input.awardTiming === 'START_OF_YEAR' || input.triggerDate < yearStart || !input.proRateFirstYear) return fullAward
   const remainingDays = Math.round((utcDate(yearEnd).getTime() - utcDate(input.triggerDate).getTime()) / 86_400_000)
   return fullAward * (remainingDays / daysInYear(input.calendarYear))

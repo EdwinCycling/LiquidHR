@@ -10,6 +10,18 @@ Fase: **opbouw, beheer en de group/employment-aanvraagfundering; geen volledige 
 
 Vastgelegd: 2026-07-21
 
+### Beheerbesluit 2026-08-07
+
+In de huidige HR-admin testfase kan een bestaande, niet-afgesloten opbouwregel rechtstreeks worden gewijzigd. `Opbouwregel toevoegen` maakt een nieuwe regel met de waarden van de laatste regel als voorstel; de database bewaart de interne voorgangerrelatie en effectieve datums voor de engine, maar toont geen opvolgeractie aan de gebruiker. De editor ondersteunt annuleren. Regels die een afgesloten jaar raken blijven onveranderlijk.
+
+### Fulltime-referentie 2026-08-07
+
+Voor iedere verlof- en FTE-berekening is `labor_condition_sets.standard_hours_per_week` van de op de ingangsdatum geldende CAO/bedrijfseigen regeling de fulltime-norm. Het rooster op `employment_schedules` bewaart deze norm als `fulltime_hours_per_week`, zodat historische berekeningen niet veranderen wanneer de regeling later een opvolger krijgt. De verloffactor is:
+
+`min(average_hours_per_week, fulltime_hours_per_week) / fulltime_hours_per_week`
+
+De factor is minimaal 0 en maximaal 1. Contracturen van 32 bij een fulltime-norm van 40 geven dus 0,8; 48 bij 40 geven 1 voor verlof. De contracturen blijven wel de feitelijke roosteruren voor het dienstverband en de salarisverhouding; de cap geldt voor verlof/FTE.
+
 ## 1.1 Uitgevoerde HR-groep/employment-scope-slice (2026-08-05)
 
 De Step-7-slice is end-to-end gerealiseerd. De groepscatalogi voor verloftypen, profielen, opbouwregels, bonusregels, voorrang, jaarsturing, employee sets en overwerk zijn gekoppeld aan de actieve HR-groep. `employment_leave_profiles`, uitzonderingen, buckets, transacties, rollovers, allocaties en aanvragen blijven gekoppeld aan exact één employment; er is geen persoonsbreed saldo.
@@ -100,7 +112,7 @@ Voorbeeld van niet-opbouwsoorten zijn later ziekenhuisbezoek of tandartsbezoek. 
 | `accrual_rate` | `numeric(12,6)`, uitsluitend voor `WORKED_HOURS`: door HR instelbare verlofuren per gewerkt uur voor deze opbouwregel. Er is geen vaste standaard; vijf minuten per uur (`0.083333`) is slechts een voorbeeld. |
 | `expiration_months` | Verplicht; vervaltermijn na het opbouwjaar. |
 
-Per profiel, type en datum mag slechts één actieve regel gelden. Alle eigenschappen van een regelversie — frequentie, periode, opbouwmoment, opbouwhoeveelheid/-ratio, opbouwpauze en vervaltermijn — wijzigen uitsluitend via een opvolger. De engine sluit dan de voorganger op de startdatum van de opvolger; de geldigheidsblokken sluiten altijd direct op elkaar aan, zonder overlap of gat. Historische en voor een afgesloten jaar geldige versies zijn onveranderlijk.
+Per profiel, type en datum mag slechts één actieve regel gelden. De engine bewaart bij een nieuwe regel de voorganger en sluit die voorganger op de startdatum van de nieuwe regel; de geldigheidsblokken sluiten altijd direct op elkaar aan, zonder overlap of gat. Een niet-afgesloten bestaande regel kan in de HR-admin rechtstreeks worden bijgewerkt zonder wijziging van de effectieve datums. Historische en voor een afgesloten jaar geldige versies zijn onveranderlijk.
 
 `leave_accrual_rule_work_hour_types` is de koppeltabel van één `leave_accrual_rule` met één of meer `work_hour_types`. De koppeling is uitsluitend toegestaan bij `WORKED_HOURS` en alleen naar `REGULAR_WORK` of `OVERTIME`; een uniek paar voorkomt dubbeltelling.
 
@@ -216,7 +228,7 @@ De nieuwe tegel onder HR-admininstellingen opent `/settings/leave-accrual`. De p
 
 - overzicht van actieve/komende profielen, gekoppelde dienstverbanden, opbouwregels met opvolgeraantal/-status en jaarstatus;
 - beheer van verloftypen met opbouw, onbeperkt recht, vaste jaarlimiet of gemiddelde-weekurenfactor; de drie categorieën werkurentypen; profielen; en versiegebonden opbouwregels met begin-/eindmoment, gekoppelde werkurentypen, opbouwpauze-typen en vervaltermijnen; daarnaast uitzonderingen, bonusregels/treden en voorrangsregels;
-- een opbouwregeloverzicht als tijdlijn/keten. De beheerder selecteert een voorganger of opvolger om de details te bekijken; wijzigen maakt een opvolger met een aansluitende ingangsdatum in plaats van een historische versie te overschrijven;
+- een opbouwregeloverzicht met klikbare regels. De beheerder opent een bestaande regel direct om de details te wijzigen of voegt een nieuwe regel toe die de laatste waarden overneemt; interne effectieve-datering en voorgangerrelaties blijven behouden;
 - jaarsturing om jaren te openen, voor toekomstige aanvragen vrij te geven en af te sluiten, inclusief preview van ieder over te dragen bucket, saldo en vervaldatum;
 - dienstverbandafwijkingen die altijd het specifieke dienstverband tonen, niet alleen de medewerker;
 - saldo-audit per dienstverband, type en opbouwjaar met buckettotalen en immutable grootboek;
@@ -225,7 +237,7 @@ De nieuwe tegel onder HR-admininstellingen opent `/settings/leave-accrual`. De p
 
 De actuele beheerflow toont in het verloftype de algemene instellingen zonder afwezigheid-specifieke opties: het verwijderen van afwezigheden uit het verleden en het vragen om een afwezigheidsattest horen niet bij een verloftype. De tabbladen Basisinformatie, Beperkingen en Geavanceerd blijven visueel actief gemarkeerd; Geavanceerd is voorlopig een expliciete placeholder.
 
-De tab Beperkingen toont per verloftype de effective-dated opbouwregels als een opvolgerketen. Een nieuwe regel krijgt een startdatum, sluit de geselecteerde voorganger op die datum en kan niet als historische versie worden overschreven. De beheerder ziet basis, periode, moment, hoeveelheid, werkurentypen, pauzes en vervaltermijn in een samenvatting onderaan. Contracturen ondersteunen uren/minuten per jaar of gekozen loonperiode; werkuren ondersteunen uren/minuten/seconden per gewerkt uur en één of meer werkurentypen, inclusief overuren. Leeftijd en anciënniteit staan als afzonderlijke bonusregeltegels met traptreden, timing, FTE-basis en samenvatting. Pauzes kunnen nul of meer andere verloftypen bevatten en verval is uitsluitend een aantal maanden na het einde van de opbouwperiode.
+De tab Beperkingen toont per verloftype de effective-dated opbouwregels als klikbare kaarten. Een nieuwe regel neemt de waarden van de laatste regel over en sluit intern de voorganger aan op de nieuwe startdatum; een bestaande niet-afgesloten regel kan direct worden gewijzigd. De beheerder ziet basis, periode, moment, hoeveelheid, werkurentypen, pauzes en vervaltermijn in een samenvatting onderaan; de vervaltermijn wordt als maanden getoond. Contracturen ondersteunen uren/minuten per jaar of gekozen loonperiode; werkuren ondersteunen uren/minuten/seconden per gewerkt uur en één of meer werkurentypen, inclusief overuren. Leeftijd en anciënniteit staan als afzonderlijke bonusregeltegels met traptreden, timing, FTE-basis en samenvatting. Pauzes kunnen nul of meer andere verloftypen bevatten en verval is uitsluitend een aantal maanden na het einde van de opbouwperiode.
 
 Uitzonderingen volgen dezelfde HR-groepgebonden selectie als werkuren: één of meerdere medewerkers of dienstverbanden binnen de geselecteerde groep, een effective-dated beperking, selfservice ja/nee en optioneel geen opbouw of een aangepaste hoeveelheid. De lijst gebruikt paginering van tien regels, toont naam en samenvatting/beperkingstype en ververst na bewaren of annuleren.
 
@@ -239,7 +251,7 @@ De kalender projecteert binnen de geselecteerde HR-groep per dienstverband allee
 
 ### 6.2 Overwerkbeheer en beperkingen
 
-Een bestaand verloftype, werkurentype of een bestaande opbouwregelversie wordt niet overschreven. Een opbouwregel krijgt uitsluitend een aansluitende opvolger; een catalogusitem kan alleen worden gearchiveerd. De beheerpagina toont het bestaande kleurgebruik zodat een beheerder een nog niet gebruikte kleur kan kiezen.
+Een bestaand verloftype en werkurentype kunnen worden gewijzigd volgens de catalogusregels. Een niet-afgesloten opbouwregel kan rechtstreeks worden bijgewerkt; een nieuwe opbouwregel krijgt intern een aansluitende voorgangerrelatie. Een afgesloten regelversie wordt niet overschreven en een catalogusitem kan alleen worden gearchiveerd. De beheerpagina toont het bestaande kleurgebruik zodat een beheerder een nog niet gebruikte kleur kan kiezen.
 
 Een overurentype heeft naast de immutable catalogusidentiteit een HR-groepgebonden configuratie met:
 

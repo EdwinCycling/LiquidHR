@@ -24,6 +24,17 @@ describe('leave engine', () => {
     })).toBeCloseTo(4, 5)
   })
 
+  it('begrensd de verlofopbouw bij contracturen boven fulltime op 100 procent', () => {
+    expect(calculateContractAccrual({
+      fullPeriodStart: '2026-01-01',
+      fullPeriodEnd: '2026-02-01',
+      sliceStart: '2026-01-01',
+      sliceEnd: '2026-02-01',
+      accrualAmount: 16,
+      partTimeFactor: 1.2,
+    })).toBe(16)
+  })
+
   it('neemt alleen goedgekeurde gewone uren en overwerk mee', () => {
     expect(calculateWorkedHoursAccrual({ hours: 8, accrualRate: 0.083333, status: 'APPROVED', category: 'REGULAR_WORK' })).toBeCloseTo(0.666664, 6)
     expect(calculateWorkedHoursAccrual({ hours: 8, accrualRate: 0.083333, status: 'APPROVED', category: 'REGULAR_WORK', employmentValid: false })).toBe(0)

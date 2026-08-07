@@ -103,7 +103,7 @@ const completeScheduleSchema = z.object({
   startWeek: z.number().int().min(1).max(53).default(1),
   averageDaysPerWeek: z.number().min(0).max(7),
   averageHoursPerWeek: z.number().min(0).max(168),
-  partTimeFactor: z.number().min(0).max(2),
+  partTimeFactor: z.number().min(0).max(1),
   timeForTimeAccrual: z.number().min(0).default(0),
   mondayHours: z.number().min(0).max(24).nullish(),
   tuesdayHours: z.number().min(0).max(24).nullish(),

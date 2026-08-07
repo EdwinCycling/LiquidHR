@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useMemo, useState } from 'react'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { ConfirmationDialog } from './confirmation-dialog'
 
 type Timeline = 'LABOR_CONDITIONS' | 'SCHEDULE' | 'SALARY' | 'COST_ALLOCATION'
@@ -18,11 +19,12 @@ interface EmploymentMutationPanelProps {
   latestEffectiveOn?: string
   costCenters?: Option[]
   costCarriers?: Option[]
+  fulltimeHoursPerWeek?: number
   directPayloads?: Partial<Record<Timeline, object>>
   labels: Record<string, string>
 }
 
-export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], directPayloads = {}, labels }: EmploymentMutationPanelProps) {
+export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], fulltimeHoursPerWeek = 40, directPayloads = {}, labels }: EmploymentMutationPanelProps) {
   const router = useRouter()
   const today = new Date().toISOString().slice(0, 10)
   const [dialog, setDialog] = useState<'change' | 'rollback' | null>(null)
@@ -54,7 +56,8 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
     if (timeline === 'SCHEDULE') return {
       scheduleType: String(values.scheduleType), startWeek: Number(values.startWeek),
       averageDaysPerWeek: Number(values.averageDaysPerWeek), averageHoursPerWeek: Number(values.averageHoursPerWeek),
-      partTimeFactor: Number(values.partTimeFactor), timeForTimeAccrual: Number(values.timeForTimeAccrual),
+      partTimeFactor: calculateCappedPartTimeFactor(Number(values.averageHoursPerWeek), fulltimeHoursPerWeek),
+      timeForTimeAccrual: Number(values.timeForTimeAccrual),
       mondayHours: null, tuesdayHours: null, wednesdayHours: null, thursdayHours: null,
       fridayHours: null, saturdayHours: null, sundayHours: null,
     }
@@ -114,9 +117,10 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
         {timeline === 'LABOR_CONDITIONS' && <label className="grid gap-1.5 text-sm font-medium">{labels.conditionGroup}<input className="form-field" name="conditionGroup" required /></label>}
         {timeline === 'SCHEDULE' && <>
           <label className="grid gap-1.5 text-sm font-medium">{labels.scheduleType}<select className="form-field" name="scheduleType"><option value="HOURS_AND_AVG_DAYS">{labels.hoursAndAverageDays}</option><option value="HOURS_PER_DAY">{labels.hoursPerDay}</option><option value="HOURS_AND_SPECIFIC_DAYS">{labels.hoursAndSpecificDays}</option><option value="TIMES_PER_DAY">{labels.timesPerDay}</option></select></label>
+          <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeReference}<input className="form-field bg-muted/40" type="number" value={fulltimeHoursPerWeek} readOnly /></label>
           <label className="grid gap-1.5 text-sm font-medium">{labels.averageHours}<input className="form-field" name="averageHoursPerWeek" type="number" min="0" max="168" step="0.01" required /></label>
           <label className="grid gap-1.5 text-sm font-medium">{labels.averageDays}<input className="form-field" name="averageDaysPerWeek" type="number" min="0" max="7" step="0.01" required /></label>
-          <label className="grid gap-1.5 text-sm font-medium">{labels.partTimeFactor}<input className="form-field" name="partTimeFactor" type="number" min="0" max="2" step="0.0001" required /></label>
+          <p className="self-end text-sm text-muted-foreground">{labels.partTimeFactor}: {labels.factorCalculated}</p>
           <label className="grid gap-1.5 text-sm font-medium">{labels.startWeek}<input className="form-field" name="startWeek" type="number" min="1" max="53" defaultValue="1" required /></label>
           <label className="grid gap-1.5 text-sm font-medium">{labels.timeForTime}<input className="form-field" name="timeForTimeAccrual" type="number" min="0" step="0.01" defaultValue="0" required /></label>
         </>}

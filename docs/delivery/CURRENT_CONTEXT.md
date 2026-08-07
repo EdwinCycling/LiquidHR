@@ -1,5 +1,43 @@
 # Actuele overdracht Liquid HR
 
+## Release 2026-08-07: productversie 1.20260807.1
+
+De zichtbare productversie is verhoogd naar `1.20260807.1` volgens de centrale releaseconventie. De versie-unit-test is bijgewerkt. Lokale releasegate: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en productiebuild met 173 pagina's zijn groen.
+
+## Testdatareset verlofopbouw 2026-08-07
+
+Op Supabase-project `wnpfloqpjvaacobppbpk` is de verlof-/urenconfiguratie van tenant **De Sterren holding** gecontroleerd leeggemaakt voor de volgende testfase. Verlofaanvragen, allocations, append-only verloftransacties, saldo-buckets, opbouwregels, uitzonderingen, profielen, verloftypen, werkurentypen, overureninstellingen en gekoppelde testdata zijn verwijderd. Medewerkers, dienstverbanden, contracten, algemene verlofinstellingen en jaarcontroles zijn behouden. De append-only en immutable triggers zijn binnen de transactie tijdelijk uitgeschakeld voor deze expliciet toegestane testreset en daarna gecontroleerd weer ingeschakeld. Controle na afloop: alle tien relevante tenanttabellen staan op 0 rijen.
+
+## Update 2026-08-07: CAO-/bedrijfsregelingentijdlijn
+
+Het instellingenpad **Dienstverbanden en contracten → CAO / arbeidsvoorwaarden** beheert nu regelingen als opvolgende tijdlijnen. `labor_condition_sets` heeft `valid_from` en `predecessor_id`; bestaande vier regelingen zijn gevuld met startdatum en blijven roots zonder opvolger. De migratie `20260807145526_add_labor_condition_timeline` bevat de samengestelde predecessor-FK, index op tijdlijn, unieke opvolgerindex, trigger tegen ongeldige startdatums/cycli en de transactionele `create_labor_condition_successor`-RPC. De UI toont per regeling alle versies, geldigheid tot de dag vóór de volgende startdatum, huidige/historische status en toevoegen/wijzigen.
+
+Verificatie: remote kolommen, trigger, authenticated RPC-execute en negatieve validatietest zijn gecontroleerd; 132 testbestanden/490 tests, i18n-pariteit (28 namespaces), strict TypeScript, volledige ESLint en productiebuild met 173 pagina's zijn groen. Geen commit, push, merge of deployment uitgevoerd.
+
+## Update 2026-08-07: werkuren en overuren
+
+Werkuren en overuren zijn gelijkgetrokken: bestaande namen en kleuren zijn bewerkbaar, naam is verplicht en hoofdletter-/spatieongevoelig uniek binnen de HR-groep, en het oude veld `Werkurentype` is vervangen door vier gedeelde beperkingen: onbeperkt, maximum uren per jaar, maximum uren per maand en maximum uren per week op basis van contracturen maal factor. Beide schermen tonen goedkeuring invoer, manager informeren, actief en selfservice als ja/nee-instellingen. Opslaan staat vóór archiveren; archiveren vraagt een ja/nee-bevestiging.
+
+De instellingenpagina heet `Uren opbouw/schrijven` en de tab `Verlofopbouw`. Remote migratie `20260807151500_work_hour_configuration_controls` is toegepast op project `wnpfloqpjvaacobppbpk`; de nieuwe goedkeuringskolom, de unieke werkurentype-index en nul dubbele genormaliseerde werkurentypen zijn gecontroleerd. Lokale typecheck en i18n-check zijn na deze wijziging groen; lint, tests, build en browsercontrole volgen nog. Geen commit, push, merge of deployment uitgevoerd.
+
+## Update 2026-08-07: fulltime-referentie voor verlof en dienstverband
+
+De standaarduren van de gekozen CAO/bedrijfseigen regeling zijn de officiële fulltime-norm. De remote migrations `20260807141014_use_labor_condition_fulltime_reference` en `20260807162539_add_employment_contract_fulltime_reference` voegen op zowel `employment_contracts` als `employment_schedules` de verplichte snapshot `fulltime_hours_per_week` toe. Bestaande records zijn gevuld vanuit de gekoppelde regeling. De database-trigger houdt de contractsnapshot vast en laat nieuwe roosters de contractsnapshot gebruiken; de factor is `min(average_hours_per_week, fulltime_hours_per_week) / fulltime_hours_per_week`. De factor is begrensd op 1 en `work_scope` is nullable voor oproepkrachten.
+
+De verlofservice, verlofaanvraaglimieten, verlofrapportage en pure leave-engine gebruiken deze begrensde factor. De nieuwe dienstverbandwizard en contract-/roostermutaties tonen de fulltime-norm en berekenen de factor automatisch; de dienstverbanddetailpagina toont de opgeslagen norm. Remote controle: 89 contracten en 88 roosters, geen ontbrekende fulltime-snapshot, geen formulemismatches en geen factoren boven 1. Lokale verificatie: 131 testbestanden/488 tests, strict TypeScript, i18n en productiebuild geslaagd. Supabase security- en performance-advisors tonen alleen de bestaande projectbaseline; er is geen nieuwe migratiespecifieke RLS-waarschuwing. Geen commit, push, merge of deployment uitgevoerd.
+
+## Correctie 2026-08-07: uitzonderingen, samenvatting en verplichte naam
+
+De uitzondering-editor verbergt de vervaltermijn zodra `Geen verlofopbouw` is geselecteerd en slaat dan expliciet `expirationMonths = null` op. De lijst en samenvatting tonen in dat geval geen vervaltermijn. Samenvattingen zijn uitgeschreven als leesbare zinnen; `Werkurentypen` wordt alleen genoemd bij opbouw op basis van werkuren. Een verloftypenaam is verplicht in de UI en wordt server-side en via een unieke, hoofdletterongevoelige HR-groep-index gecontroleerd. De remote migratie `20260807134827_leave_type_name_uniqueness` is toegepast en de controle vond geen dubbele namen.
+
+## Update 2026-08-07: verlofopbouwinrichting
+
+Afgerond in branch `feature/verlofopbouw-inrichting`: de catalogusrij voor een verloftype is volledig klikbaar met handcursor en Enter/spatiebediening; bestaande verloftypen zijn bewerkbaar. De beperking start nu met vijf keuzes: onbeperkt, verlofopbouw, uren per jaar, uren per jaar met deeltijdfactor en beperking door overuren. De oude `Soort verlof`- en profielvelden zijn verwijderd. De opbouweditor gebruikt `Contracturen` of `Werkuren`; de werkurentypen staan direct onder de keuze en specifieke periodes zijn 4-wekelijks, maandelijks of jaarlijks. Opbouwregelkaarten zijn volledig klikbaar en openen directe wijziging; `Opbouwregel toevoegen` neemt de laatste waarden over, heeft annuleren en toont de vervaltermijn als `6 Maanden`.
+
+Remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`: lokale migrations `20260807100345_leave_accrual_enum_options`, `20260807100842_redesign_leave_accrual_configuration`, `20260807103107_apply_leave_fte_cap_to_requests`, `20260807104155_optimize_leave_type_overtime_indexes` en `20260807130219_update_leave_accrual_rule`; de laatste staat remote geregistreerd als `20260807130439_update_leave_accrual_rule`. De nieuwe overuren-koppeltabel heeft RLS/policies/grants/audit; de update-RPC valideert HR-groep, permission, referenties en typecombinaties transactioneel. Testdata is direct gerepareerd: oude weekfactorregels zijn deeltijdfactorregels geworden met `160` uren als testcap; actieve legacy-weekfactorregels zijn `0`. `packages/db/types.ts` is opnieuw gegenereerd.
+
+Verificatie is groen voor i18n, strict typecheck, 130 testbestanden/482 tests, lint en productiebuild. De ingelogde Codex-browser met Test HR Admin bevestigde de klikbare wijzigingskaart, directe bestaande wijziging, kopie van de laatste waarden bij toevoegen, annuleren, zichtbare eenheid `Maanden` en 0 browserfouten of waarschuwingen. Geen commit, push of deployment uitgevoerd. Open blijft de volledige toekomstige opbouwprojectie en overuren-afgeleide engineberekening; die vallen buiten deze inrichting.
+
 ## Historische correctie 2026-08-05: productversie volgens documentatie
 
 De zichtbare appversie wordt bepaald door `apps/hr-suite/lib/app-version.ts`, niet door de npm-versie in `package.json`. Volgens de vastgelegde conventie `X.datum.volgnummer` was de vorige productversie `1.20260805.1`. De technische packageversie blijft `0.1.2`; de versiecheck bewaakt de productversie.
@@ -1159,3 +1197,31 @@ Historische overdrachtstekst; vervangen door de actuele Talent Foundation-update
 De lokale migration `20260804153000_employee_self_service_absence_reporting.sql` voegt per administratie `employee_self_report_enabled` toe, standaard `false`. De beveiligde verzuim-RPC accepteert bij ingeschakelde self-service alleen de eerste ziektedag voor de ingelogde medewerker; herstel, wijzigen en aanvullende verzuimgegevens blijven server-side geblokkeerd. De medewerkerpopup toont alleen deze datum en de afgesproken uitlegtekst. Na een self-service-melding worden direct gepubliceerde reminders aangemaakt voor de directe manager en actieve HR Admin/TENANT_ADMIN-accounts, met de eerste ziektedag in de omschrijving.
 
 Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migration, Supabase-advisors, officiële DB-types en authenticated browsercontrole moeten nog worden uitgevoerd.
+
+## UX-tooling update 2026-08-07: EdwinHelp screen redesign
+
+- De herbruikbare skill [`docs/skills/edwinhelp-screen-redesign/SKILL.md`](../skills/edwinhelp-screen-redesign/SKILL.md) is toegevoegd en opgenomen in EdwinHelp, `AGENTS.md`, `docs/README.md` en `docs/DEVELOPER_TOOLKIT.md`.
+- Het schermregister staat in [`docs/requirements/ux/SCHERM_REDESIGN_STATUS.md`](../requirements/ux/SCHERM_REDESIGN_STATUS.md). `/settings/company-data` is als eerste Liquid Flow-redesign geregistreerd; `/authorization` Rollen en autorisatie is de volgende pagina.
+- De per-scherm requirements gebruiken [`docs/requirements/ux/SCREEN_REDESIGN_TEMPLATE.md`](../requirements/ux/SCREEN_REDESIGN_TEMPLATE.md). Na ieder afgerond scherm worden requirements, status en dit contextdocument bijgewerkt.
+- De instructie bevat geen verplichte aparte featurebranch. De bestaande veiligheidsgrenzen blijven gelden: ongerelateerde wijzigingen niet aanraken en geen schema-, remote-, merge-, push- of deployactie zonder aparte opdracht.
+
+## UX-redesignvoorstel 2026-08-07: Rollen en autorisatie
+
+- Voor `/authorization` is het requirements- en ontwerpdocument [`REDESIGN_ROLLEN_EN_AUTORISATIE.md`](../requirements/ux/REDESIGN_ROLLEN_EN_AUTORISATIE.md) toegevoegd.
+- Het voorstel beschrijft een rustigere, minder ronde beheerflow voor rolkeuze, rechtenmatrix, heatmap, statusmeldingen, opslaan, dialogen, mobiel 390px, toegankelijkheid en NL/EN i18n.
+- De bestaande grens blijft leidend: `/authorization` beheert exacte rechten; `/role-assignments` beheert organisatiescope en rolhouders. Er zijn geen API-, database-, RLS-, remote- of autorisatiewijzigingen uitgevoerd.
+- De implementatie staat nu in de basiswerkplek `feature/verlofopbouw-inrichting`, zodat poort 3000 beide redesigns toont.
+- Typecheck, lint, i18n-check, `git diff --check` en browsercontrole op desktop/390px zijn geslaagd.
+
+## UX-redesign implementatie 2026-08-07: Rollen en autorisatie
+
+- Het voorgestelde visuele redesign van `/authorization` is vanuit de geïsoleerde werkplek overgezet naar de basiswerkplek `feature/verlofopbouw-inrichting`.
+- De autorisatieflow en API-contracten zijn behouden. De wijziging beperkt zich tot de autorisatiemanager: minder ronde hoeken, rustigere statuskaarten, compactere fout/statusmelding, semantische tabs en een duidelijke link naar `/role-assignments`.
+- Typecheck, lint, i18n-check en `git diff --check` zijn groen. Poort 3000 toont beide redesigns; desktop- en 390px-browsercontrole zijn geslaagd. Credentials zijn niet gekopieerd.
+- Status: `GEVERIFIEERD`; Edwin bepaalt het volgende scherm.
+
+## Hotfix 2026-08-07: hydration op bedrijfsgegevens
+
+- De hydrationfout op `/settings/company-data` kwam door server/client-verschillen in `Intl.DisplayNames` voor landlabels; bijvoorbeeld `FK` kon tijdens SSR een andere tekst krijgen dan in de browser.
+- `CountryPicker` en `AddressFields` gebruiken nu een deterministische SSR/eerste-client-render via `useSyncExternalStore`. Gelokaliseerde landnamen worden daarna client-side geactiveerd, zonder functionele wijziging aan het adresformulier.
+- Strict TypeScript, lint en browsercontrole op poort 3000 zijn geslaagd: de pagina laadt, zonder runtimefout en zonder hydration- of mismatchmeldingen.

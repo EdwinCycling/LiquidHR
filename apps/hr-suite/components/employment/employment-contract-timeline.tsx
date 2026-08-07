@@ -14,6 +14,7 @@ interface Contract {
   flexPhaseName: string | null
   laborConditionSetId: string
   laborConditionName: string
+  fulltimeHoursPerWeek: number
   durationType: DurationType
   startsOn: string
   endsOn: string | null
@@ -37,12 +38,12 @@ interface Props {
   contracts: Contract[]
   canWrite: boolean
   options: {
-    laborConditionSets: Array<{ id: string; name: string }>
+    laborConditionSets: Array<{ id: string; name: string; standardHoursPerWeek: number }>
     flexPhases: Array<{ id: string; name: string }>
   }
   labels: {
     title: string; add: string; edit: string; close: string; save: string; cancel: string
-    workerType: string; flexPhase: string; laborConditions: string; duration: string
+    workerType: string; flexPhase: string; laborConditions: string; fulltimeReference: string; duration: string
     startDate: string; endDate: string; probation: string; probationEnd: string
     indefinite: string; definite: string; yes: string; no: string
     workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string
@@ -147,6 +148,7 @@ export function EmploymentContractTimeline({ employmentId, contracts, canWrite, 
           <div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{contract.sequenceNumber}. {contract.durationType === 'INDEFINITE' ? labels.indefinite : labels.definite}</p><p className="mt-1 font-semibold">{contract.laborConditionName}</p></div>
           <span className="status-chip bg-accent text-accent-foreground">{contract.endsOn ?? labels.active}</span>
         </div>
+        <p className="mt-1 text-sm text-muted-foreground">{labels.fulltimeReference}: {contract.fulltimeHoursPerWeek}</p>
         <p className="mt-3 text-sm text-muted-foreground">{contract.startsOn} — {contract.endsOn ?? labels.active}</p>
       </button>)}
     </div>
@@ -160,6 +162,7 @@ export function EmploymentContractTimeline({ employmentId, contracts, canWrite, 
         {mode === 'view' ? <dl className="mt-5 grid gap-4 sm:grid-cols-2">
           <Item label={labels.workerType} value={draft.workerType} />
           <Item label={labels.laborConditions} value={selected?.laborConditionName ?? ''} />
+          <Item label={labels.fulltimeReference} value={String(selected?.fulltimeHoursPerWeek ?? options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40)} />
           <Item label={labels.startDate} value={draft.startsOn} />
           <Item label={labels.endDate} value={draft.endsOn || labels.active} />
           <Item label={labels.flexPhase} value={selected?.flexPhaseName ?? '—'} />
@@ -182,10 +185,12 @@ function ContractFields({ draft, update, options, labels }: {
   labels: Props['labels']
 }) {
   const inputClass = 'form-field'
+  const fulltimeHours = options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40
   return <div className="mt-5 grid gap-4 sm:grid-cols-2">
     <label className="grid gap-1.5 text-sm font-medium">{labels.workerType}<select className={inputClass} value={draft.workerType} onChange={(event) => update('workerType', event.target.value as WorkerType)}><option value="EMPLOYEE">{labels.workerEmployee}</option><option value="STUDENT_INTERN">{labels.workerStudentIntern}</option><option value="TEMPORARY_AGENCY">{labels.workerTemporaryAgency}</option><option value="EXTERNAL_NO_PAYROLL">{labels.workerExternal}</option></select></label>
     {draft.workerType === 'TEMPORARY_AGENCY' && <label className="grid gap-1.5 text-sm font-medium">{labels.flexPhase}<select className={inputClass} value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
     <label className="grid gap-1.5 text-sm font-medium">{labels.laborConditions}<select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeReference}<input className={`${inputClass} bg-muted/40`} type="number" value={fulltimeHours} readOnly /></label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.duration}<select className={inputClass} value={draft.durationType} onChange={(event) => update('durationType', event.target.value as DurationType)}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option></select></label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.startDate}<input type="date" className={inputClass} value={draft.startsOn} onChange={(event) => update('startsOn', event.target.value)} /></label>
     {draft.durationType === 'DEFINITE' && <label className="grid gap-1.5 text-sm font-medium">{labels.endDate}<input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /></label>}

@@ -15,6 +15,7 @@ Deze toolkit geeft LiquidHR vaste, natuurlijke werkcommando's. `EdwinHelp` is he
 | `Maak project overview` | Gebruikt de project-overview-skill voor actuele lokale KPI's en optioneel geaggregeerde live Supabase-cijfers. |
 | `Meet Next geheugen` | Meet een draaiende Next-server en schrijft de opgegeven CSV-meting. |
 | `Schrijf blog` | Schrijft of redigeert Nederlandse blogs en professionele teksten in Edwin-stijl, vanuit chat of bestanden in `work`. |
+| `Redesign LiquidHR scherm` | Analyseert en herontwerpt één scherm volgens de Liquid Flow-skill en werkt requirements, status en delivery-context bij. |
 
 De natuurlijke commando's zijn vastgelegd in [`AGENTS.md`](../AGENTS.md). Codex vertaalt ze naar de scripts in [`scripts/`](../scripts/).
 
@@ -37,6 +38,16 @@ De schrijfmodus staat in [`docs/skills/edwinhelp-writing/SKILL.md`](skills/edwin
 - **Codex vanuit de repository:** zeg `Lees AGENTS.md en ga verder vanaf CURRENT_CONTEXT.md. Gebruik EdwinHelp en schrijf ...`.
 
 De schrijfmodus mag tekstbestanden lezen en nieuwe tekstbestanden maken, maar voert geen code-, Git-, database-, merge-, push- of deploymentactie uit. Voor projectstatus, branches en Git blijft het bestaande EdwinHelp-commando leidend.
+
+## Schermen redesignen vanuit EdwinHelp
+
+De vaste werkwijze staat in [`docs/skills/edwinhelp-screen-redesign/SKILL.md`](skills/edwinhelp-screen-redesign/SKILL.md). De afgeronde schermen en de volgende pagina staan in [`docs/requirements/ux/SCHERM_REDESIGN_STATUS.md`](requirements/ux/SCHERM_REDESIGN_STATUS.md).
+
+Gebruik bijvoorbeeld:
+
+```text
+Gebruik EdwinHelp. Redesign de pagina Rollen en autorisatie op /authorization. Lees eerst de bestaande autorisatie-requirements en het UX-statusdocument. Maak eerst het requirementsdocument en een ontwerpvoorstel.
+```
 
 ## Veiligheidsregels
 
