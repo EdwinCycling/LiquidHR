@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Actuele release-status 2026-08-09
+
+De mobiele Google-login hotfix staat live. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub `main`; Vercel Production-deployment `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` is `READY` op alias `liquid-hr-hr-suite.vercel.app`. De zichtbare appversie is `1.20260809.2`. De remote `NEXT_PUBLIC_APP_URL` bleef ongewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de code gebruikt die waarde niet langer als request-origin wanneer de actuele host beschikbaar is.
+
 ## Mobiele Google-login hotfix 2026-08-09
 
 De productie-login stuurde Google OAuth via een verouderde `NEXT_PUBLIC_APP_URL` naar `https://liquidhr.vercel.app/auth/callback`. Dat domein hoort niet bij het actuele Vercel-project en staat niet in de Supabase-redirectallowlist, waardoor Supabase terugviel op de Site URL en de gebruiker zonder sessie op de startpagina belandde. Branch `codex/fix-mobile-google-auth` bepaalt de publieke origin nu uit gevalideerde request-/proxyheaders, gebruikt dezelfde origin na de PKCE-codewisseling, bewaart een veilige `next`, toont een juiste callbackfout en blokkeert herhaalde Google-submits tijdens laden.
