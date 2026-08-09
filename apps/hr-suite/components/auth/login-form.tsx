@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { ArrowLeft, KeyRound, LoaderCircle, Mail } from 'lucide-react'
 import {
   requestPasswordReset,
@@ -26,6 +27,7 @@ export interface LoginFormLabels {
   backToLogin: string
   resetSent: string
   invalidCredentials: string
+  authFailed: string
   providerUnavailable: string
   invitationOnly: string
 }
@@ -33,10 +35,11 @@ export interface LoginFormLabels {
 interface LoginFormProps {
   labels: LoginFormLabels
   nextPath: string
+  authError: boolean
   providerError: boolean
 }
 
-export function LoginForm({ labels, nextPath, providerError }: LoginFormProps) {
+export function LoginForm({ labels, nextPath, authError, providerError }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'reset'>('login')
   const [loginState, loginAction, loginPending] = useActionState(
     signInWithPassword,
@@ -98,6 +101,8 @@ export function LoginForm({ labels, nextPath, providerError }: LoginFormProps) {
 
   const loginError = loginState.code === 'invalidCredentials'
     ? labels.invalidCredentials
+    : authError
+      ? labels.authFailed
     : loginState.code === 'providerUnavailable' || providerError
       ? labels.providerUnavailable
       : null
@@ -177,15 +182,31 @@ export function LoginForm({ labels, nextPath, providerError }: LoginFormProps) {
 
       <form action={signInWithGoogle}>
         <input name="next" type="hidden" value={nextPath} />
-        <button className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border bg-surface-raised px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted" type="submit">
-          <span aria-hidden="true" className="grid size-6 place-items-center rounded-md border bg-surface text-xs font-bold text-accent-foreground">G</span>
-          {labels.signInWithGoogle}
-        </button>
+        <GoogleSignInButton labels={labels} />
       </form>
 
       <p className="mt-6 border-t pt-5 text-center text-xs leading-5 text-muted-foreground">
         {labels.invitationOnly}
       </p>
     </div>
+  )
+}
+
+function GoogleSignInButton({ labels }: { labels: LoginFormLabels }) {
+  const { pending } = useFormStatus()
+
+  return (
+    <button
+      className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border bg-surface-raised px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-wait disabled:opacity-65"
+      disabled={pending}
+      type="submit"
+    >
+      {pending ? (
+        <LoaderCircle aria-hidden="true" className="animate-spin" size={18} />
+      ) : (
+        <span aria-hidden="true" className="grid size-6 place-items-center rounded-md border bg-surface text-xs font-bold text-accent-foreground">G</span>
+      )}
+      {pending ? labels.signingIn : labels.signInWithGoogle}
+    </button>
   )
 }

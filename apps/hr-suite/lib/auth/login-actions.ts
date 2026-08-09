@@ -3,6 +3,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { loginSchema, safeNextPath } from '@/lib/auth/login-rules'
+import { resolveRequestOrigin } from '@/lib/auth/request-origin'
 import { createClient } from '@/lib/supabase/server'
 
 export interface LoginActionState {
@@ -10,19 +11,13 @@ export interface LoginActionState {
 }
 
 async function getAppOrigin(): Promise<string> {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return new URL(process.env.NEXT_PUBLIC_APP_URL).origin
-  }
-
   const requestHeaders = await headers()
-  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host')
-  const protocol = requestHeaders.get('x-forwarded-proto') ?? 'http'
-
-  if (host && (protocol === 'https' || host.startsWith('localhost:') || host.startsWith('127.0.0.1:'))) {
-    return `${protocol}://${host}`
-  }
-
-  return 'http://localhost:3000'
+  return resolveRequestOrigin({
+    fallbackUrl: process.env.NEXT_PUBLIC_APP_URL,
+    forwardedHost: requestHeaders.get('x-forwarded-host'),
+    forwardedProtocol: requestHeaders.get('x-forwarded-proto'),
+    host: requestHeaders.get('host'),
+  })
 }
 
 export async function signInWithPassword(

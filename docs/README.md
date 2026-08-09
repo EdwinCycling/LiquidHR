@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## Mobiele Google-login hotfix 2026-08-09
+
+De productie-login stuurde Google OAuth via een verouderde `NEXT_PUBLIC_APP_URL` naar `https://liquidhr.vercel.app/auth/callback`. Dat domein hoort niet bij het actuele Vercel-project en staat niet in de Supabase-redirectallowlist, waardoor Supabase terugviel op de Site URL en de gebruiker zonder sessie op de startpagina belandde. Branch `codex/fix-mobile-google-auth` bepaalt de publieke origin nu uit gevalideerde request-/proxyheaders, gebruikt dezelfde origin na de PKCE-codewisseling, bewaart een veilige `next`, toont een juiste callbackfout en blokkeert herhaalde Google-submits tijdens laden.
+
+Lokaal bewijs: 7 gerichte auth-tests, 145 testbestanden/546 tests, strict typecheck, i18n-pariteit met 29 namespaces en de Webpack-productiebuild met 181 pagina's zijn groen. Op 390x844 gebruikt de gewijzigde build `http://localhost:3100/auth/callback`, ook met de bewust verouderde omgevingswaarde, en heeft het loginscherm geen horizontale overflow. Gerichte ESLint wordt geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit. De hotfix is nog niet samengevoegd, gepusht of gedeployed; productie blijft dus open tot de expliciete feature-release. Als configuratiehygiëne moet `NEXT_PUBLIC_APP_URL` bij die release naar `https://liquid-hr-hr-suite.vercel.app` worden gecorrigeerd.
+
+## Release 2026-08-09: productversie 1.20260809.2
+
+De zichtbare appversie is verhoogd voor de mobiele Google-login hotfix. De release staat lokaal klaar op `codex/fix-mobile-google-auth`; merge, GitHub-push en Vercel-deployment volgen na de releasegate.
+
 ## Release 2026-08-09: productversie 1.20260809.1
 
 De zichtbare productversie is verhoogd naar `1.20260809.1` volgens de centrale `X.datum.volgnummer`-conventie. Releasecommit `4813082e9f4a16ace3621d39f3b6d9968b2e716e` staat op `main` en `origin/main`. De automatische Vercel Production-deployment `dpl_GSqHEfvq7J3SCjPzxRwYDT6Bt4c5` staat op `READY`, is exact op deze commit gebouwd en geeft `/login` HTTP 200. De runtime-errorscan over het afgelopen uur vond geen fouten.
