@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Mobiele Google-login hotfix 2026-08-09 — lokaal gereed, productie open
+
+De oorzaak is in productie gereproduceerd: de Google OAuth-aanvraag gebruikte via de verouderde `NEXT_PUBLIC_APP_URL` het niet-actuele en niet-geallowliste callbackdomein `liquidhr.vercel.app`. Supabase viel daardoor terug op de Site URL en rondde de PKCE-sessie niet af. De lokale hotfix op `codex/fix-mobile-google-auth` geeft gevalideerde request-/proxyheaders voorrang, gebruikt dezelfde publieke origin in de callback, bewaart een veilige doelroute, toont callbackfouten nauwkeurig en voorkomt dubbele submits tijdens de redirect.
+
+Bewijs: 7/7 gerichte auth-tests, volledige Vitest-suite 145/546, strict typecheck, i18n 29 namespaces en Webpack-build 181 pagina's zijn groen. De mobiele browserproef op 390x844 bewijst dat de gewijzigde build ondanks een bewust stale env-waarde naar de actuele requesthost terugstuurt en geen horizontale overflow heeft. Gerichte ESLint is niet uitvoerbaar door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit. Er zijn geen remote configuratie- of productiewijzigingen gedaan; merge, push, deployment en het corrigeren van `NEXT_PUBLIC_APP_URL` naar `https://liquid-hr-hr-suite.vercel.app` wachten op de expliciete feature-release.
+
+De zichtbare productversie is voor deze release verhoogd naar `1.20260809.2` in `apps/hr-suite/lib/app-version.ts`; de unit-test verwacht dezelfde waarde.
+
 ## P8 — proces- en formulierstudio 2026-08-09
 
 P8 is geïmplementeerd in de feature-worktree en lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. `main` is nu de gecombineerde lokale testbasis; er is niets naar GitHub gepusht of gedeployed en er is geen down-scenario uitgevoerd. Alleen synthetische testdata en de drie bestaande interne testaccounts zijn gebruikt.

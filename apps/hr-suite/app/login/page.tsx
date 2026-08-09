@@ -32,6 +32,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     backToLogin: auth('backToLogin'),
     resetSent: auth('resetSent'),
     invalidCredentials: auth('invalidCredentials'),
+    authFailed: auth('authFailed'),
     providerUnavailable: auth('providerUnavailable'),
     invitationOnly: auth('invitationOnly'),
   }
@@ -57,6 +58,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{auth('subtitle')}</p>
       </div>
       <LoginForm
+        authError={params.error === 'auth'}
         labels={labels}
         nextPath={nextPath}
         providerError={params.error === 'provider'}

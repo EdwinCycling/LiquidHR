@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## Mobiele Google-login hotfix 2026-08-09
+
+- Oorzaak bewezen in de actuele productieflow: de OAuth-aanvraag bevatte `redirect_to=https://liquidhr.vercel.app/auth/callback?...`, afkomstig uit een verouderde `NEXT_PUBLIC_APP_URL`. Dit domein is geen actueel projectdomein en staat niet in de Supabase-redirectallowlist. Supabase verwerkte Google `/authorize` en `/callback` met 302, maar daarna volgde geen PKCE-tokenwisseling; de fallback naar de Site URL verklaart de terugkeer naar de startpagina zonder sessie.
+- Fix staat uitsluitend op branch `codex/fix-mobile-google-auth` in worktree `.worktrees/fix-mobile-google-auth`: gevalideerde request-/forwarded-hostorigin vóór omgevingsfallback, dezelfde publieke origin in de callback, veilige `next`-retour bij succes en fout, een correcte callbackfoutmelding en een pending/disabled Google-knop tegen herhaalde submits.
+- Verificatie groen: 7/7 gerichte auth-tests; volledige suite 145 testbestanden/546 tests; strict typecheck; NL/EN-pariteit voor 29 namespaces; Webpack-productiebuild met 181 pagina's. Een 390x844-browserproef tegen de gewijzigde productiebuild op poort 3100 koos ondanks de bewust verouderde env-waarde correct `http://localhost:3100/auth/callback` en liet geen horizontale overflow zien.
+- Bestaande blokkade: gerichte ESLint start niet door ESLint 10 versus `eslint-plugin-react` (`contextOrFilename.getFilename is not a function`); deze niet-inhoudelijke repofout is niet opnieuw uitgevoerd of verbreed.
+- Open: niets is samengevoegd, gepusht, gedeployed of remote gewijzigd. Productie blijft defect tot de expliciete feature-release. Corrigeer bij of vóór die release ook `NEXT_PUBLIC_APP_URL` naar `https://liquid-hr-hr-suite.vercel.app`; de codefix is daar niet langer afhankelijk van voor requestgebonden OAuth.
+
+## Releaseversie 2026-08-09
+
+- `apps/hr-suite/lib/app-version.ts` en de bijbehorende test zijn verhoogd naar `1.20260809.2` voor deze hotfix.
+
 ## Release 2026-08-09
 
 - Productversie verhoogd naar `1.20260809.1`; releasecommit `4813082e9f4a16ace3621d39f3b6d9968b2e716e` staat op `main` en `origin/main`.
