@@ -2,7 +2,7 @@
 
 ## P8-verificatie — proces- en formulierstudio 2026-08-09
 
-P8 is uitgevoerd op uitsluitend `codex/process-automation-p4-p5` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5`. De hoofdworkspace op `main` bleef veiligheidskopie. Er is niet gecommit, gepusht, gemerged of gedeployed. Er is alleen synthetische testdata gebruikt; er is geen down-scenario uitgevoerd.
+P8 is uitgevoerd in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` en daarna lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. De hoofdworkspace op `main` is nu de gecombineerde testbasis voor poort 3000. Er is niets naar GitHub gepusht of gedeployed. Er is alleen synthetische testdata gebruikt; er is geen down-scenario uitgevoerd.
 
 De noodzakelijke bouwvolgorde is aangehouden: schema -> API -> UI.
 
@@ -39,7 +39,7 @@ Dit blok is de gecontroleerde P4/P5/P6/P7-basis waarop P8 is voortgebouwd; de ge
 
 ## Canonieke lokale voortzettingsbasis voor P9 2026-08-09
 
-Alle lokale wijzigingen voor deze voortzetting zijn samengebracht in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5`, branch `codex/process-automation-p4-p5`. Dit is de enige actieve lokale basis voor de volgende thread en de handmatige P9-opvolging. De hoofdworkspace op `main` is bewust als ongewijzigde veiligheidskopie behouden; gebruik die niet als voortzettingsbasis. Er is lokaal geen commit gemaakt en er is niets naar GitHub gepusht, gemerged of gedeployed.
+De gecombineerde lokale versie staat nu in `C:\Users\Edwin\Documents\Apps\LiquidHR`, branch `main`, mergecommit `2ff60c5`. Dit is de actieve basis voor de volgende testthread en handmatige P9-opvolging. De feature-worktree en checkpoint `c33e799` blijven behouden als herstelbare bron. Er is niets naar GitHub gepusht of gedeployed.
 
 De noodzakelijke fixes zijn beperkt gehouden en in de volgorde schema -> API -> UI uitgevoerd. Remote staat de additive P5-scope-RPC-hardening geregistreerd. De form-projectie en autosave behouden de documentreferentie- en scopevalidatie; een actor zonder employee-context kan via de expliciete task-scope branch lezen en opslaan. De API-downloadroute gebruikt na de context-RPC het bestaande admin storage-signing pad voor exact het geautoriseerde process-document. De work- en work-item-projecties accepteren database-UUID's met geldige Postgres UUID-opmaak, ook wanneer de variantnibble niet RFC-4122 is.
 

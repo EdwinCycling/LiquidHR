@@ -2,7 +2,7 @@
 
 ## P8 — proces- en formulierstudio 2026-08-09
 
-P8 is geïmplementeerd in de feature-worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` op branch `codex/process-automation-p4-p5`. `main` bleef veiligheidskopie; er is geen commit, push, merge, deployment of down-scenario uitgevoerd. Alleen synthetische testdata en de drie bestaande interne testaccounts zijn gebruikt.
+P8 is geïmplementeerd in de feature-worktree en lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. `main` is nu de gecombineerde lokale testbasis; er is niets naar GitHub gepusht of gedeployed en er is geen down-scenario uitgevoerd. Alleen synthetische testdata en de drie bestaande interne testaccounts zijn gebruikt.
 
 De slice is in de vereiste volgorde gebouwd: schema -> API -> UI. Schema/RLS/grants staan in de drie P8-migraties; API-routes leveren catalogus/detail, draft autosave met expected revision, clone, publish, retire en no-write trial; de UI levert list-first Procesen/Formulieren, toegankelijke staplijst/canvas, form fields/secties/properties, participant access, compilerfeedback, preview, diff, publish-confirmatie/changelog, read-only published state en clone/archive. `packages/db/types.ts` is opnieuw gegenereerd en NL/EN-pariteit is groen.
 
@@ -35,7 +35,7 @@ Dit historische blok beschrijft de gecontroleerde P4/P5/P6/P7-basis vóór de P8
 
 ## Canonieke lokale voortzettingsbasis voor P9 2026-08-09
 
-De samengevoegde lokale versie staat uitsluitend als actieve voortzettingsbasis in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5`, branch `codex/process-automation-p4-p5`. De hoofdworkspace op `main` is bewust als veiligheidskopie behouden en is geen tweede ontwikkelbasis. Er is geen lokale commit, push, merge of deployment uitgevoerd.
+De samengevoegde lokale versie staat als actieve voortzettingsbasis in `C:\Users\Edwin\Documents\Apps\LiquidHR`, branch `main`, mergecommit `2ff60c5`. De feature-worktree blijft behouden als checkpoint `c33e799`. Er is niets naar GitHub gepusht of gedeployed.
 
 Schema/API/UI-fixes: additive P5-scope-RPC-hardening op Supabase; database-UUID-validatie in de work-projecties; en een process-output-downloadpad dat na context-autorisatie exact het geautoriseerde document via de admin storage-client signeert. De laatste gerichte tests zijn groen: 3 bestanden, 8/8 tests. Strict typecheck is groen. Repo-lint blijft geblokkeerd vóór inhoudelijke linting door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit.
 

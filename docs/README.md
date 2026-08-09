@@ -2,11 +2,11 @@
 
 ## P8-status en lokale voortzettingsbasis 2026-08-09
 
-P8 — proces- en formulierstudio — is schema/API/UI-matig uitgevoerd in uitsluitend `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` op `codex/process-automation-p4-p5`. De remote P8-tabellen/RLS/RPC-grants, lokale tests/build en de authenticated HR-admin lifecycle zijn bewezen. De P8-gate blijft bewust onder 100%: clean live revision-conflictfeedback/stop-retry, volledige field/preview/accessmatrix-herhaling en de P9-controles staan open. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor exact bewijs en het handmatige plan. Er is geen commit, push, merge, deployment of down-scenario uitgevoerd.
+P8 — proces- en formulierstudio — is schema/API/UI-matig uitgevoerd in de feature-worktree en lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. De remote P8-tabellen/RLS/RPC-grants, lokale tests/build en de authenticated HR-admin lifecycle zijn bewezen. De P8-gate blijft bewust onder 100%: clean live revision-conflictfeedback/stop-retry, volledige field/preview/accessmatrix-herhaling en de P9-controles staan open. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor exact bewijs en het handmatige plan. Er is niets naar GitHub gepusht of gedeployed en er is geen down-scenario uitgevoerd.
 
 ## Canonieke lokale voortzettingsbasis voor P9 2026-08-09
 
-Gebruik voor de volgende thread uitsluitend worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` op branch `codex/process-automation-p4-p5`. De lokale wijzigingen uit de hoofdworkspace zijn hierin samengebracht. `main` is alleen als veiligheidskopie behouden; er is nog geen commit, push, merge of deployment uitgevoerd.
+Gebruik voor de volgende testthread de hoofdworkspace `C:\Users\Edwin\Documents\Apps\LiquidHR` op branch `main`; dit is nu de gecombineerde lokale testbasis. De feature-worktree blijft als bron/checkpoint beschikbaar op `codex/process-automation-p4-p5`. Er is nog niets naar GitHub gepusht of gedeployed.
 
 ## Historische P4/P5/P6/P7-gate vóór P8 2026-08-08: Process Automation runtime, werk en automation
 
