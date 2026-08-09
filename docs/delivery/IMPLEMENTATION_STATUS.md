@@ -13,6 +13,7 @@ De slice is in de vereiste volgorde gebouwd: schema -> API -> UI. Schema/RLS/gra
 - Advisors: security 22 totaal, 0 P8-specifieke securitywaarschuwingen; performance 383 totaal, uitsluitend INFO’s over ongebruikte indexen op de kleine testtabellen.
 - Lokaal: 143 Vitest-bestanden/539 tests, gerichte compiler/resolver 19/19, strict typecheck, gerichte ESLint (`--max-warnings=0`), i18n 29 namespaces, `git diff --check` en Webpack-build met 181 statische pagina’s geslaagd.
 - Authenticated localhost-browser: HR-admin catalogus, draft, autosave/revisie, trial zonder runtime-writes, publish versie 1/read-only en clone zijn doorlopen; trialpad/SLA/output/blockers waren zichtbaar en de console was leeg.
+- Main-herverificatie na mergecommit `2ff60c5`: 143/539 tests, `type-check`, `check:i18n`, volledige ESLint en Webpack-build met 181 pagina’s groen; lokaal geven `/login` en `/settings/process-automation` HTTP 200. De laatste Codex in-app authenticated smokecheck bleef hangen tijdens navigatie.
 
 ### Open en geblokkeerd
 

@@ -16,6 +16,7 @@ Remote en lokaal bewijs:
 - De synthetische catalogus bevat `internal-transfer-mslq73xj` als `PUBLISHED` met één published version en `internal-transfer-mslq73xj-copy-mslqd4ax` als `DRAFT` zonder published version. De stale-revision guard gaf remote `PROCESS_DEFINITION_DRAFT_CONFLICT`; de serverguard is daarmee bewezen.
 - Supabase advisors zijn na de laatste grants opnieuw uitgevoerd: security totaal 22 met 0 P8-specifieke securitywaarschuwingen; performance totaal 383 met alleen INFO-meldingen over nog ongebruikte kleine-dataset-indexen.
 - Lokaal: volledige hr-suite 143 bestanden/539 tests groen, gerichte compiler/resolvertests 19/19 groen, strict typecheck, gerichte ESLint met nul warnings, i18n-pariteit (29 namespaces) en `git diff --check` groen. De Webpack-productiebuild is groen (181 statische pagina’s). De standaard Turbopack-build blijft omgevingsmatig geblokkeerd door de externe `node_modules`-symlink/junction; dit is geen P8-codefailure.
+- Na de lokale main-samenvoeging is opnieuw gecontroleerd vanuit `main`: 143/539 tests, `type-check`, `check:i18n`, volledige ESLint (`--max-warnings=0`) en Webpack-build met 181 pagina’s zijn groen. `http://127.0.0.1:3000/login` en `/settings/process-automation` geven lokaal HTTP 200; de Codex in-app authenticated target bleef bij deze laatste smokecheck hangen.
 
 Authenticated browserbewijs op de lokale devserver:
 
