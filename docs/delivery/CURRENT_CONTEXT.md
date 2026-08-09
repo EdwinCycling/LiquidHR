@@ -1,5 +1,12 @@
 # Actuele overdracht Liquid HR
 
+## Release 2026-08-09
+
+- Productversie verhoogd naar `1.20260809.1`; releasecommit `4813082e9f4a16ace3621d39f3b6d9968b2e716e` staat op `main` en `origin/main`.
+- Lokale releasecheck: 143 testbestanden/539 tests, strict typecheck, i18n-pariteit met 29 namespaces, lint en Webpack-productiebuild met 181 pagina's geslaagd. De standaard Turbopack-build blijft omgevingsmatig afhankelijk van de bekende worktree-junction.
+- Vercel Production `dpl_GSqHEfvq7J3SCjPzxRwYDT6Bt4c5` staat op `READY`, aliases zijn `liquidhr-edwinitsolutions.vercel.app` en `liquid-hr-hr-suite.vercel.app`; `/login` gaf HTTP 200 en de runtime-errorscan over het laatste uur gaf nul fouten.
+- Er is geen directe Vercel-mutatie uitgevoerd; de deployment kwam automatisch via de push naar `main`. De bestaande ongetrackte `.codex-worktrees/` is ongemoeid gelaten.
+
 ## P8-verificatie — proces- en formulierstudio 2026-08-09
 
 P8 is uitgevoerd in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` en daarna lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. De hoofdworkspace op `main` is nu de gecombineerde testbasis voor poort 3000. Er is niets naar GitHub gepusht of gedeployed. Er is alleen synthetische testdata gebruikt; er is geen down-scenario uitgevoerd.

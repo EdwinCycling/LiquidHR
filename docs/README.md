@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Release 2026-08-09: productversie 1.20260809.1
+
+De zichtbare productversie is verhoogd naar `1.20260809.1` volgens de centrale `X.datum.volgnummer`-conventie. Releasecommit `4813082e9f4a16ace3621d39f3b6d9968b2e716e` staat op `main` en `origin/main`. De automatische Vercel Production-deployment `dpl_GSqHEfvq7J3SCjPzxRwYDT6Bt4c5` staat op `READY`, is exact op deze commit gebouwd en geeft `/login` HTTP 200. De runtime-errorscan over het afgelopen uur vond geen fouten.
+
 ## P8-status en lokale voortzettingsbasis 2026-08-09
 
 P8 — proces- en formulierstudio — is schema/API/UI-matig uitgevoerd in de feature-worktree en lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. De remote P8-tabellen/RLS/RPC-grants, lokale tests/build en de authenticated HR-admin lifecycle zijn bewezen. De P8-gate blijft bewust onder 100%: clean live revision-conflictfeedback/stop-retry, volledige field/preview/accessmatrix-herhaling en de P9-controles staan open. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor exact bewijs en het handmatige plan. Er is niets naar GitHub gepusht of gedeployed en er is geen down-scenario uitgevoerd.
