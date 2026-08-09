@@ -3,12 +3,14 @@ import { z } from 'zod'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
+const databaseUuidSchema = z.string().regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)
+
 const kernelResultSchema = z.object({
-  workItemId: z.string().uuid(),
+  workItemId: databaseUuidSchema,
   status: z.string(),
-  assigneeEmployeeId: z.string().uuid().nullable(),
+  assigneeEmployeeId: databaseUuidSchema.nullable(),
   expectedVersion: z.number().int().nonnegative(),
-  eventId: z.string().uuid(),
+  eventId: databaseUuidSchema,
 }).strict()
 
 export type WorkItemKernelResult = z.infer<typeof kernelResultSchema>

@@ -35,6 +35,10 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     authContext.employeeId !== null
     && (authContext.permissions.includes('self:continuous-appraisal:read') || authContext.permissions.includes('self:talent:read'))
   )
+  const canReadProcessWork = authContext.permissions.includes('process-task:read')
+    || authContext.permissions.includes('self:process-task:read')
+    || authContext.permissions.includes('process-instance:read')
+    || authContext.permissions.includes('self:process-instance:read')
   const canReadOrganizationChart = authContext.permissions.includes('organization-chart:read')
     || (authContext.employeeId !== null && authContext.permissions.includes('self:employee:read'))
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
@@ -90,6 +94,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadDashboard={canReadDashboard}
         canReadStartPage={canReadStartPage}
         canReadWorkforce={canReadWorkforce}
+        canReadProcessWork={canReadProcessWork}
         canReadOrganizationChart={canReadOrganizationChart}
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
@@ -106,6 +111,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           hrCalendar: navigation('hrCalendar'),
           insights: navigation('insights'),
           workforce: navigation('workforce'),
+          work: navigation('work'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

@@ -9,6 +9,7 @@ import {
   ChevronUp,
   House,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   Menu,
   Network,
@@ -48,6 +49,7 @@ interface SidebarLabels {
   hrCalendar: string
   insights: string
   workforce: string
+  work: string
   navigation: string
   openMenu: string
   closeMenu: string
@@ -66,6 +68,7 @@ interface SidebarProps {
   canReadDashboard: boolean
   canReadStartPage: boolean
   canReadWorkforce: boolean
+  canReadProcessWork: boolean
   canReadOrganizationChart: boolean
   canReadSettings: boolean
   canReadHrCalendar: boolean
@@ -98,6 +101,7 @@ export function Sidebar({
   canReadDashboard,
   canReadStartPage,
   canReadWorkforce,
+  canReadProcessWork,
   canReadOrganizationChart,
   canReadSettings,
   canReadHrCalendar,
@@ -126,6 +130,7 @@ export function Sidebar({
     { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: canReadDashboard, nested: false },
     { href: '/dashboard/start', label: labels.startPage, icon: House, visible: canReadStartPage, nested: false },
     { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees, nested: false },
+    { href: '/work', label: labels.work, icon: ListTodo, visible: canReadProcessWork, nested: false },
     { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart, nested: false },
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
@@ -137,7 +142,7 @@ export function Sidebar({
       try {
         const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]')
         if (!Array.isArray(saved)) return
-        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/settings'])
+        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/work', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/settings'])
         const normalized = saved.filter((value): value is string => typeof value === 'string' && allowedMenuHrefs.has(value))
         if (canReadStartPage && !normalized.includes('/dashboard/start')) {
           const dashboardIndex = normalized.indexOf('/dashboard')
@@ -153,7 +158,7 @@ export function Sidebar({
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
-  }, [canReadStartPage, canReadWorkforce])
+  }, [canReadProcessWork, canReadStartPage, canReadWorkforce])
   const orderedLinks = [...links].sort((left, right) => {
     const leftIndex = menuOrder.indexOf(left.href)
     const rightIndex = menuOrder.indexOf(right.href)

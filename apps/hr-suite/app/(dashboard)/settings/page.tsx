@@ -18,6 +18,7 @@ import {
   Umbrella,
   Users,
   UsersRound,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -144,6 +145,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('contract:read'),
       allowed('talent:manage'),
       allowed('hr-group:read'),
+      allowed('process-definition:read'),
     ]),
   ])
 
@@ -163,6 +165,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     employmentContracts,
     talentManage,
     hrGroups,
+    processDefinitions,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -253,6 +256,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.talentFoundation'),
           description: messages('admin.tiles.talentFoundationDescription'),
           visible: talentManage,
+        },
+        {
+          kind: 'link',
+          href: '/settings/process-automation',
+          icon: Workflow,
+          title: messages('admin.tiles.processAutomation'),
+          description: messages('admin.tiles.processAutomationDescription'),
+          visible: processDefinitions,
         },
         {
           kind: 'link',

@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/server'
 import { FALLBACK_WEATHER_LOCATION, getWorkWeather, type WorkWeather } from '@/lib/weather/open-meteo'
 import { getContinuousAppraisalSummary, type ContinuousAppraisalSummary } from '@/lib/continuous-appraisal/service'
 import type { ServerPerformanceTrace } from '@/lib/performance/server-trace'
+import type { Locale } from '@/lib/i18n/config'
+import { listProcessWork } from '@/lib/process-automation/work-service'
 import { loadTeamAvailability, type StartPageTeamAvailability } from './team-availability-service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -17,6 +19,7 @@ export interface StartPageDependencies {
   supabase: SupabaseServerClient
   auth: AuthContext
   activeContext: ActiveContext
+  locale?: Locale
   performance?: ServerPerformanceTrace
 }
 
@@ -40,6 +43,7 @@ export interface StartPageData {
   nextLeaveInDays: number | null
   nextHolidayInDays: number | null
   continuousAppraisal: ContinuousAppraisalSummary | null
+  processWork: StartPageProcessWork | null
   teamAvailability: StartPageTeamAvailability | null
   canReadWorkforce: boolean
   workforceLinks: StartPageWorkforceLink[]
@@ -87,6 +91,22 @@ export interface StartPageEvent {
   employeeId: string
   employeeName: string
   years: number | null
+}
+
+export interface StartPageProcessWorkItem {
+  workItemId: string
+  processTitle: string
+  stepTitle: string
+  subjectName: string | null
+  deadlineAt: string | null
+  isOverdue: boolean
+}
+
+export interface StartPageProcessWork {
+  total: number
+  overdueCount: number
+  dueTodayCount: number
+  items: StartPageProcessWorkItem[]
 }
 
 interface StartPageCountdowns {
@@ -425,6 +445,36 @@ async function getStartPageContinuousAppraisal(dependencies: { context: AuthCont
   }
 }
 
+async function getStartPageProcessWork(auth: AuthContext, supabase: SupabaseServerClient, locale: Locale): Promise<StartPageProcessWork | null> {
+  if (!auth.hrGroupId || !auth.permissions.some((permission) => ['process-task:read', 'self:process-task:read', 'process-instance:read', 'self:process-instance:read'].includes(permission))) return null
+  try {
+    const work = await listProcessWork({
+      administrationId: auth.administrationId ?? undefined,
+      language: locale,
+      limit: 100,
+      sort: 'DEADLINE',
+      tab: 'TODO',
+    }, { context: auth, supabase })
+    const today = new Date().toISOString().slice(0, 10)
+    return {
+      total: work.total,
+      overdueCount: work.items.filter((item) => item.isOverdue).length,
+      dueTodayCount: work.items.filter((item) => item.deadlineAt?.slice(0, 10) === today && !item.isOverdue).length,
+      items: work.items.slice(0, 4).map((item) => ({
+        workItemId: item.workItemId,
+        processTitle: item.processTitle,
+        stepTitle: item.stepTitle,
+        subjectName: item.subjectName,
+        deadlineAt: item.deadlineAt,
+        isOverdue: item.isOverdue,
+      })),
+    }
+  } catch {
+    // Een ontbrekende procesrechten- of bronconfiguratie mag de startpagina niet breken.
+    return null
+  }
+}
+
 export async function getStartPageData(requestedScope?: StartPageScope, dependencies?: StartPageDependencies): Promise<StartPageData> {
   const supabase = dependencies?.supabase ?? await createClient()
   const auth = dependencies?.auth ?? await requireAuthContext(supabase)
@@ -451,7 +501,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal, teamAvailability] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal, processWork, teamAvailability] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -465,6 +515,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     measure('homeWeather', () => getStartPageHomeWeather(auth, supabase)),
     measure('countdowns', () => getStartPageCountdowns(auth, supabase)),
     measure('continuousAppraisal', () => getStartPageContinuousAppraisal({ context: auth, supabase })),
+    measure('processWork', () => getStartPageProcessWork(auth, supabase, dependencies?.locale ?? 'nl')),
     isManager && scope === 'team'
       ? managerTeamEmployeeIdsPromise.then((managerTeamEmployeeIds) => measure('teamAvailability', () => loadTeamAvailability(auth, managerTeamEmployeeIds, supabase)))
       : Promise.resolve(null),
@@ -490,6 +541,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     nextLeaveInDays: countdowns.nextLeaveInDays,
     nextHolidayInDays: countdowns.nextHolidayInDays,
     continuousAppraisal,
+    processWork,
     teamAvailability,
     canReadWorkforce: auth.permissions.includes('workforce:read') || workforceLinks.length > 0,
     workforceLinks,

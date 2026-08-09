@@ -1,0 +1,153 @@
+import { redirect } from 'next/navigation'
+import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { StudioWorkspace, type StudioLabels } from '@/components/process-automation/studio-workspace'
+import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
+import {
+  getStudioDefinition,
+  listStudioCatalog,
+  studioDefinitionIdSchema,
+} from '@/lib/process-automation/studio-service'
+import { getTranslator } from '@/lib/i18n/server'
+
+async function can(permission: string): Promise<boolean> {
+  try {
+    await requirePermission(permission)
+    return true
+  } catch (error) {
+    if (error instanceof AuthorizationError) return false
+    throw error
+  }
+}
+
+export default async function ProcessAutomationSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ definition?: string; tab?: string }>
+}) {
+  try {
+    await requireAnyPermission(['process-definition:read', 'form-definition:read'])
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+
+  const [{ definition: requestedDefinition, tab: requestedTab }, messages, catalog, canWrite, canPublish] = await Promise.all([
+    searchParams,
+    getTranslator('processAutomation'),
+    listStudioCatalog(),
+    can('process-definition:write'),
+    can('process-definition:publish'),
+  ])
+
+  const initialTab = requestedTab === 'forms' ? 'forms' : 'processes'
+  const requestedId = studioDefinitionIdSchema.safeParse(requestedDefinition)
+  const selectedId = requestedId.success && catalog.some((item) => item.id === requestedId.data)
+    ? requestedId.data
+    : catalog[0]?.id
+  const initialSelection = selectedId ? await getStudioDefinition(selectedId) : null
+
+  const labels: StudioLabels = {
+    title: messages('studio.title'),
+    description: messages('studio.description'),
+    processCatalog: messages('studio.processCatalog'),
+    formCatalog: messages('studio.formCatalog'),
+    search: messages('studio.search'),
+    status: messages('studio.status'),
+    allStatuses: messages('studio.allStatuses'),
+    draft: messages('studio.draft'),
+    published: messages('studio.published'),
+    retired: messages('studio.retired'),
+    newProcess: messages('studio.newProcess'),
+    clone: messages('studio.clone'),
+    noDefinitions: messages('studio.noDefinitions'),
+    noValue: messages('studio.noValue'),
+    chooseDefinition: messages('studio.chooseDefinition'),
+    processStudio: messages('studio.processStudio'),
+    formStudio: messages('studio.formStudio'),
+    stepList: messages('studio.stepList'),
+    steps: messages('studio.steps'),
+    step: messages('studio.step'),
+    stepType: messages('studio.stepType'),
+    participant: messages('studio.participant'),
+    titleNl: messages('studio.titleNl'),
+    titleEn: messages('studio.titleEn'),
+    descriptionNl: messages('studio.descriptionNl'),
+    descriptionEn: messages('studio.descriptionEn'),
+    fieldLibrary: messages('studio.fieldLibrary'),
+    addField: messages('studio.addField'),
+    fields: messages('studio.fields'),
+    accessMatrix: messages('studio.accessMatrix'),
+    hidden: messages('studio.hidden'),
+    read: messages('studio.read'),
+    writeOptional: messages('studio.writeOptional'),
+    writeRequired: messages('studio.writeRequired'),
+    preview: messages('studio.preview'),
+    previewParticipant: messages('studio.previewParticipant'),
+    desktop: messages('studio.desktop'),
+    mobile: messages('studio.mobile'),
+    syntheticData: messages('studio.syntheticData'),
+    saved: messages('studio.saved'),
+    saving: messages('studio.saving'),
+    saveError: messages('studio.saveError'),
+    revisionConflict: messages('studio.revisionConflict'),
+    startEditing: messages('studio.startEditing'),
+    readOnly: messages('studio.readOnly'),
+    publish: messages('studio.publish'),
+    publishConfirmation: messages('studio.publishConfirmation'),
+    changelog: messages('studio.changelog'),
+    changelogPlaceholder: messages('studio.changelogPlaceholder'),
+    cancel: messages('studio.cancel'),
+    confirmPublish: messages('studio.confirmPublish'),
+    retire: messages('studio.retire'),
+    retireReason: messages('studio.retireReason'),
+    confirmRetire: messages('studio.confirmRetire'),
+    versionDiff: messages('studio.versionDiff'),
+    noChanges: messages('studio.noChanges'),
+    compilerFeedback: messages('studio.compilerFeedback'),
+    path: messages('studio.path'),
+    processTrial: messages('studio.processTrial'),
+    trialDate: messages('studio.trialDate'),
+    runTrial: messages('studio.runTrial'),
+    trialNoWrites: messages('studio.trialNoWrites'),
+    trialPath: messages('studio.trialPath'),
+    trialParticipants: messages('studio.trialParticipants'),
+    trialOutput: messages('studio.trialOutput'),
+    success: messages('studio.success'),
+    warning: messages('studio.warning'),
+    blocking: messages('studio.blocking'),
+    compilerBlocked: messages('studio.compilerBlocked'),
+    selected: messages('studio.selected'),
+    formSection: messages('studio.formSection'),
+    noFields: messages('studio.noFields'),
+    fieldKey: messages('studio.fieldKey'),
+    fieldType: messages('studio.fieldType'),
+    fieldLabel: messages('studio.fieldLabel'),
+    version: messages('studio.version'),
+    formsCount: messages('studio.formsCount'),
+    language: messages('studio.language'),
+    viewport: messages('studio.viewport'),
+    dutch: messages('studio.dutch'),
+    english: messages('studio.english'),
+    candidates: messages('studio.candidates'),
+    sla: messages('studio.sla'),
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1500px] px-5 py-8 lg:px-10">
+      <AdminSettingsPageHeader
+        backLabel={messages('studio.backToSettings')}
+        eyebrow={messages('studio.eyebrow')}
+        subtitle={messages('studio.description')}
+        title={messages('studio.title')}
+      />
+      <StudioWorkspace
+        canPublish={canPublish}
+        canWrite={canWrite}
+        initialCatalog={catalog}
+        initialSelection={initialSelection}
+        initialTab={initialTab}
+        labels={labels}
+      />
+    </div>
+  )
+}

@@ -3,6 +3,7 @@ import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 import type { Json } from '@scope/db'
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
 import type { DocumentDeleteInput, DocumentMetadataInput } from './schemas'
@@ -108,6 +109,15 @@ export async function createDocumentDownload(employeeId: string, documentId: str
   if (error || !document) throw new DocumentServiceError('DOCUMENT_NOT_FOUND', 404)
   const signed = await supabase.storage.from(BUCKET).createSignedUrl(document.storage_key, 60)
   if (signed.error) throw new DocumentServiceError('DOCUMENT_DOWNLOAD_FAILED', 500)
+  return signed.data.signedUrl
+}
+
+export async function createProcessOutputDocumentDownload(employeeId: string, documentId: string): Promise<string> {
+  const admin = createAdminClient()
+  const { data: document, error } = await admin.from('employee_documents').select('storage_key').eq('id', documentId).eq('employee_id', employeeId).is('deleted_at', null).maybeSingle()
+  if (error || !document) throw new DocumentServiceError('DOCUMENT_NOT_FOUND', 404)
+  const signed = await admin.storage.from(BUCKET).createSignedUrl(document.storage_key, 60)
+  if (signed.error || !signed.data?.signedUrl) throw new DocumentServiceError('DOCUMENT_DOWNLOAD_FAILED', 500)
   return signed.data.signedUrl
 }
 
