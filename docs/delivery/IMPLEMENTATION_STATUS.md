@@ -1,16 +1,121 @@
 # Implementatiestatus Liquid HR
 
+## P8 — proces- en formulierstudio 2026-08-09
+
+P8 is geïmplementeerd in de feature-worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` op branch `codex/process-automation-p4-p5`. `main` bleef veiligheidskopie; er is geen commit, push, merge, deployment of down-scenario uitgevoerd. Alleen synthetische testdata en de drie bestaande interne testaccounts zijn gebruikt.
+
+De slice is in de vereiste volgorde gebouwd: schema -> API -> UI. Schema/RLS/grants staan in de drie P8-migraties; API-routes leveren catalogus/detail, draft autosave met expected revision, clone, publish, retire en no-write trial; de UI levert list-first Procesen/Formulieren, toegankelijke staplijst/canvas, form fields/secties/properties, participant access, compilerfeedback, preview, diff, publish-confirmatie/changelog, read-only published state en clone/archive. `packages/db/types.ts` is opnieuw gegenereerd en NL/EN-pariteit is groen.
+
+### Bewijs
+
+- Remote: de zes P8-tabellen hebben RLS aan en exact één policy. Publieke RPC-wrappers zijn invoker-only met authenticated execute; interne mutatiekernfuncties zijn security-definer met authenticated execute en anon geweigerd. De P8-migraties zijn geregistreerd.
+- Remote synthetic state: `internal-transfer-mslq73xj` is `PUBLISHED` met één version; `internal-transfer-mslq73xj-copy-mslqd4ax` is `DRAFT` zonder published version. De revision guard leverde `PROCESS_DEFINITION_DRAFT_CONFLICT` in de remote stale-concurrencyproef.
+- Advisors: security 22 totaal, 0 P8-specifieke securitywaarschuwingen; performance 383 totaal, uitsluitend INFO’s over ongebruikte indexen op de kleine testtabellen.
+- Lokaal: 143 Vitest-bestanden/539 tests, gerichte compiler/resolver 19/19, strict typecheck, gerichte ESLint (`--max-warnings=0`), i18n 29 namespaces, `git diff --check` en Webpack-build met 181 statische pagina’s geslaagd.
+- Authenticated localhost-browser: HR-admin catalogus, draft, autosave/revisie, trial zonder runtime-writes, publish versie 1/read-only en clone zijn doorlopen; trialpad/SLA/output/blockers waren zichtbaar en de console was leeg.
+
+### Open en geblokkeerd
+
+- Open: een schone twee-tab authenticated browserherhaling die de zichtbare revision-conflictmelding én het stoppen van autosave-retries bewijst. De serverrespons is remote bewezen; de laatste Codex in-app browserherhaling bleef tijdens login/navigatie hangen.
+- Open: volledige live herhaling van field/preview/accessmatrix, een volledig succesvolle resolverfixture en de formele P9-controles (keyboard/axe, cross-role deny, scheduler/restart, HTML/PDF-inhoud en cross-role download).
+- Geblokkeerd: de standaard Turbopack-productiebuild op deze worktree door de externe `node_modules`-symlink/junction. De Webpack-productiebuild slaagt; er is geen inhoudelijke P8-buildfailure vastgesteld.
+
+De P8-status is daarom bewezen maar niet als 100%-gate gesloten. De uitvoering stopt vóór P9.
+
+### Handmatig testplan na P9
+
+1. Gebruik `hradmin.fixture@liquidhr.test`, `manager.fixture@liquidhr.test` en `employee.fixture@liquidhr.test` met de behouden synthetische P8-clone. Open dezelfde draft in twee HR-admin-tabs, schrijf tab A, submit stale tab B en controleer gelokaliseerde conflictfeedback, geen retry-loop en reload.
+2. Test één ongeldige draft voor exacte compiler-code/pad/boodschap; herstel de draft. Controleer preview op participant/stap/NL/EN/desktop/390px, participant access en keyboard/focus.
+3. Vul een synthetische employee/manager-resolverfixture aan en controleer zowel success als blockers. Vergelijk database-tellingen vóór/na: trial mag geen runtime instance, work item, event of output maken.
+4. Controleer publish changelog, immutable read-only, diff, clone, archive/retire en impact. Herhaal route/API-deny voor manager en employee en voer daarna de P9 keyboard/axe-, scheduler/restart- en HTML/PDF/cross-role-downloadcontroles uit.
+
+## Historische P4/P5/P6/P7-verificatie vóór P8 2026-08-09
+
+Dit historische blok beschrijft de gecontroleerde P4/P5/P6/P7-basis vóór de P8-slice. De gecombineerde gate van die eerdere fasen bleef onder 100%.
+
+## Canonieke lokale voortzettingsbasis voor P9 2026-08-09
+
+De samengevoegde lokale versie staat uitsluitend als actieve voortzettingsbasis in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5`, branch `codex/process-automation-p4-p5`. De hoofdworkspace op `main` is bewust als veiligheidskopie behouden en is geen tweede ontwikkelbasis. Er is geen lokale commit, push, merge of deployment uitgevoerd.
+
+Schema/API/UI-fixes: additive P5-scope-RPC-hardening op Supabase; database-UUID-validatie in de work-projecties; en een process-output-downloadpad dat na context-autorisatie exact het geautoriseerde document via de admin storage-client signeert. De laatste gerichte tests zijn groen: 3 bestanden, 8/8 tests. Strict typecheck is groen. Repo-lint blijft geblokkeerd vóór inhoudelijke linting door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit.
+
+Remote SQL: P5 participant access en P6/P7 contracttest geslaagd zonder fout. De tijdelijke, geautoriseerde fixture `p4-p7-live-gate` bewees een niet-lege queue, vier P5-rollen, role projections, claim/action, één winnaar bij concurrency, negatieve HTTP-403, retry/backoff/dead-letter/requeue, reminder-idempotency en output/download. Authenticated browser op localhost:3000 bewees de vier P5-DOM-projecties, manager- en employee-flows, P6 action, keyboard/autosave, lege console en HR-admin/employee output-download. Supabase advisors: security 22 (1 INFO/21 WARN), performance 383 INFO; geen P4/P5/P6/P7-securitytarget.
+
+Cleanup is aantoonbaar groen: exacte fixture-rows in form/process/runtime/audit en het storage-object zijn allemaal 0. De bestaande drie interne testaccounts zijn niet verwijderd; cleanup raakte alleen de synthetische fixturedata. Er is geen down-migratiescenario uitgevoerd.
+
+Open voor fase 9: HR-admin zonder employee-context heeft een UI-affordance voor claim/action terwijl de server correct 403 geeft; expliciete candidate-before-claim negatieve action; volledige keyboard/focus- en axe-eindcontrole; persistente scheduler-fallback/restart; en inhoudelijke HTML/PDF-bestandscontrole plus cross-role downloaddeny. Zie het handmatige testplan in `CURRENT_CONTEXT.md`.
+
+## Actuele P4/P5/P6/P7-gate 2026-08-08: Process Automation runtime, werk en automation
+
+Deze voortzetting voert uitsluitend P6 en P7 uit op featurebranch `codex/process-automation-p4-p5`. P8, product-AI, visual builder, commit, push, merge en deployment zijn niet uitgevoerd. De actuele P4/P5-handoff is opnieuw gecontroleerd: P4 is functioneel bewezen en P5 houdt participant-DOM/network-bewijs open; P6/P7 hadden geen niet-lege remote fixtures.
+
+P6 levert `/work` als lijst-eerst werkruimte met zoeken, URL-state, tabs, filters, sortering, veilige kleine projecties, detail met subject/opdracht/formulier/current-new, voortgang, tijdlijn, actiebalk, assignmentuitleg en concurrencyfeedback. Sidebar, `/dashboard/start` en de medewerkerdetail-Processen-tab zijn aangesloten; NL/EN-sleutels zijn gelijk.
+
+P7 levert de gedeelde `workflow_jobs`-queue, claim/finish/requeue met locking, retry/backoff/dead-letter, deadlineprojectie naar bestaande reminders, in-app aandacht, HTML/PDF-dossieroutput, downloadcontext, output-permissions en operatorrequeue. Immediate drain en de authenticated schedulerfallback bestaan; een persistente schedulerconfiguratie is niet toegevoegd. Er is geen externe AI of mailprovider toegevoegd.
+
+Lokale migraties voor P6/P7 staan in `apps/hr-suite/supabase/migrations/20260808170000_process_automation_p6_work_projection.sql` tot en met `20260808171200_process_automation_p6_p7_wrapper_execution.sql`; de relevante P6/P7-files zijn schema, API, UI, role-permissions, output-download en advisor/runtime hardening. `packages/db/types.ts` is opnieuw gegenereerd.
+
+Remote bewijs: P6/P7-contracttest `[]`; `workflow_jobs`, `process_outputs` en `process_reminder_deliveries` hebben RLS, elk exact één policy en geen directe `anon`/`authenticated`-tabelrechten. De 14 interne security-definerhelpers en 14 publieke invoker-wrappers hebben authenticated execute en anon geweigerd. De tenant-specifieke HR/TENANT-adminrollen hebben de benodigde Process Automation-permissions. Advisors tonen geen P6/P7-specifieke securitywaarschuwing; projectbaseline en unused-index-INFO's op lege proces-tabellen blijven apart.
+
+Lokale gate: gerichte P6/P7-tests 3 bestanden/8 tests, volledige hr-suite 140 bestanden/527 tests, strict typecheck, i18n 29 namespaces, gerichte ESLint en Webpack-productiebuild met 179 pagina's zijn groen. De volledige lintopdracht blijft geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit; de standaard Turbopack-build blijft geblokkeerd door de externe `node_modules`-junction, terwijl Webpack slaagt. Browserbewijs voor HR-admin, manager en medewerker op `/work` is groen in de lege-state; desktop 1280px en 390×844 mobiel hebben geen overflow.
+
+Open: P5 participant-DOM/network, P6 queuekandidaat en niet-lege claim/action-rolflows, volledige keyboard/focus- en gerichte axe-controle, P7 live dubbele runner/crash-retry/dead-letter/verlopen-job/output/reminder/download en persistente scheduler-operatie. De gecombineerde P4/P5/P6/P7-gate is niet 100%; uitvoering stopt vóór P8.
+
+## Historische P4/P5-gate 2026-08-08: Process Automation runtime en formulieren
+
+Deze slice voert uitsluitend P4 en P5 uit in featurebranch `codex/process-automation-p4-p5`; P6, product-AI, visual builder, commit, push, merge en deployment zijn niet uitgevoerd. De P2/P3-handoff is opnieuw remote gecontroleerd: de twee tijdelijke concurrency-fixtures zijn weg en runtime-/form-/event-/audit-testtabellen zijn leeg.
+
+P4 is gebouwd als transactionele runtime-kernel: start en work-item actions gebruiken locks, expected versions, idempotency en correlation; conditions worden allowlisted geevalueerd; assignment, terminal outcomes, request changes, cancel en parallel `ALL` zijn atomaire paden. Events zijn append-only en runtime-mutaties schrijven gesaneerde CRUD-audit zonder formwaarden. P5 voegt form definitions/versions, current/new response revisions, expected-version autosave, server-side access/visibility/hidden projection, typed values, shared Zod-payloads, NL/EN en een toegankelijke `/process-runtime/[workItemId]`-renderer toe. `DOCUMENT_REFERENCE` verwijst uitsluitend naar een niet-verwijderde, tenantgescopeerde `employee_documents`-record waarvoor het bestaande `document:read`-domeinrecht en `document_audiences` gelden.
+
+Remote controles zijn groen voor schema, RLS, grants, audit en types: alle zes runtime/form-tabellen en `audit_logs` hebben RLS; form response-tabellen hebben geen authenticated tabelgrants; public wrappers zijn invoker-only/authenticated-only; interne kernels zijn definer/authenticated-only en anon is geweigerd. Zes runtime-audittriggers zijn actief, de bestaande auditactiecheck blijft canoniek, en `packages/db/types.ts` is opnieuw gegenereerd. Supabase security advisor bleef projectbaseline (22 meldingen, 1 INFO/21 WARN) zonder P4/P5-target; performance had geen P4/P5-FK-indexmelding.
+
+Remote SQL-tests zijn opnieuw geslaagd voor contract, start/materialisatie, duplicate submit/start, stale/forbidden, request changes/reject/cancel, half-failure rollback, parallel `ALL` en vier participant access projections. De participant-test dekt requester/manager/HR/observer exact af, inclusief hidden/conditional fields, NL/EN labels en documentreferentievalidatie tegen het bestaande documentdomein. Alle fixtures rolden terug.
+
+Lokale gate: 137 testbestanden/519 tests, strict typecheck, i18n 29 namespaces, gerichte ESLint en Webpack-productiebuild met 176 pagina's zijn groen. Repo-brede ESLint faalt vóór deze slice op de bestaande ESLint 10/`eslint-plugin-react`-compatibiliteit; de standaard Turbopack-build faalt vóór compilatie op de externe `node_modules`-junction van de feature-worktree. De Webpack-build is de geslaagde productiebuild. Authenticated browsercontrole laadde `/dashboard/start`; de 390x844 runtime-route zonder blijvende fixture gaf correct 404. De expliciete vier-participant DOM/network-browsergate blijft open omdat geen persistente fixture is achtergelaten.
+
+Gatebesluit: P4 is volledig bewezen; P5 is schema/API/UI/code- en remote-testmatig uitgevoerd, maar de expliciete participant-DOM/network-browserverificatie ontbreekt. De gecombineerde P4/P5-gate is dus niet 100% bereikt. Stop vóór P6.
+
+## Historische P2/P3-gate 2026-08-08: Process Automation datamodel en work-item kernel
+
+P1, P2 en P3 zijn lokaal en remote doorgetrokken. P2 levert de scopevaste proces-/formulierdefinities, immutable published versions, runtime instances/steps/workitems/events, typed subjectlinks, pinned process versions, RLS, canonical permissions, authenticated-SELECT-only grants en FK-indexen. P3 levert de assignment resolver met business date policies, `EXACTLY_ONE`/`ANY_ONE`/`ALL`, eligibility/scope/self-assignment/deputyregels, evidence-materialisatie en atomaire claim/release/reassign/re-resolve-RPC's met optimistic locking en audit-events. De server-adapters staan in `apps/hr-suite/app/api/process-work-items/[workItemId]/`; er is bewust geen runtime-transition-engine of user-facing studio/runtime-UI gebouwd.
+
+Remote toegepaste migraties: `20260808122825_process_automation_p2_foundation`, `20260808124007_process_automation_p3_workitem_kernel`, `20260808125031_process_automation_p2_grant_hardening`, `20260808125355_process_automation_p3_rpc_contract` en de additive FK-indexmigratie. Remote contractverificatie is groen: RLS/policies, typed constraints, immutable/append-only triggers, SELECT-only grants, optimistic locking, audit-events, directe mutatieblokkade en de echte twee-sessie `ANY_ONE`-claim met één winnaar.
+
+Verse lokale verificatie: gerichte Process Automation-tests 3 bestanden/20 tests, volledige hr-suite 137 bestanden/514 tests, strict TypeScript, ESLint, i18n-pariteit (28 namespaces), productiebuild (175 pagina's) en `git diff --check` zijn groen. Supabase security-advisor toont geen nieuwe P2/P3-waarschuwing; performance toont alleen INFO's, waaronder unused-indexmeldingen omdat de nieuwe tabellen leeg zijn. Er is geen productseed, P4-transition-engine, UI/browserflow, commit, push of deployment uitgevoerd.
+
+De definitieve P2/P3-handoff is 100% afgerond. De twee-sessie remote test gebruikte uitsluitend tijdelijke fixturekeys `p3-concurrency-contract` en `p3-concurrency-contract-2`; na expliciete bevestiging zijn deze in één gecontroleerde cleanup-transactie verwijderd. De nul-rijencontrole van definities, drafts, versions, instances, subjectlinks, steps, workitems, candidates en events is groen; de drie immutable/append-only-triggers staan weer actief. P4 en P5 zijn nog niet gestart. Er is geen commit, push, merge of deployment uitgevoerd.
+
+## Historische P1-gate 2026-08-08: Process Automation definitiecompiler
+
+De zin "P4 en P5 zijn nog niet gestart" in de historische P2/P3-handoff hierboven beschreef de status vóór deze branch. Lees voor de actuele status de P4/P5-sectie bovenaan.
+
+Dit was de pure strict-TypeScript-startfase; de actuele P2/P3-status staat hierboven.
+
 ## Release 2026-08-07: productversie 1.20260807.2
 
 De zichtbare productversie is verhoogd naar `1.20260807.2`; de versie-unit-test is bijgewerkt. De releasegate is lokaal groen: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit en productiebuild met 175 pagina's. Commit `98ac2ebc3c8c0b15dd73f373ea4f0889cf14d0a3` staat op `main` en is naar GitHub gepusht.
 
 ## Actuele slice 2026-08-07: medewerker-aanmaakwizard
 
+Aanvulling 2026-08-08: de resterende adres-409 bleek een tweede RLS-scopefout. Een bestaand PRIMARY-adres werd vóór organisatieplaatsing niet gelezen, waardoor de herintredingsflow een dubbele POST deed. `20260808133244_allow_hr_preplacement_subresource_access` is remote toegepast; de gerichte remote controle ziet het bestaande adres weer. Ook de activiteitenfeed gebruikt nu dezelfde geldige HR-groepsscope vóór plaatsing.
+
+Aanvulling 2026-08-08: de terugkerende 409 bleek geen echte concurrencywijziging maar een RLS-policy die een nieuwe medewerker zonder organisatieplaatsing niet liet wijzigen. `20260808144955_allow_hr_group_employee_update_before_placement` is remote toegepast; de transactionele regressietest is groen en de tijdelijke fixture is teruggedraaid. De Controle-onderbalk blijft nu vast in beeld terwijl het middenstuk scrolt.
+
+Aanvulling 2026-08-08: de dienstverbandopties worden cachevrij opgehaald. Bij een `EMPLOYEE_CONCURRENCY_CONFLICT` ververst de wizard de snapshot en herhaalt alleen wanneer de relevante persoonsgegevens ongewijzigd zijn; als de actuele waarden al overeenkomen met de invoer, gaat de wizard direct verder. Gerichte tests, strict TypeScript en lint zijn groen; er is geen schemawijziging.
+
+Aanvulling 2026-08-08: de nieuwe medewerkerwizard accepteert voor geboortedatum alleen een leeftijd van 10 tot en met 90 jaar. De administratie-voorwaardestap voorkomt dubbele medewerker-PATCHes met dezelfde concurrency-token via een synchrone opslagguard. Leeftijds-/wizardtests, strict TypeScript, i18n en gerichte ESLint zijn groen; er is geen schemawijziging.
+
+Aanvulling 2026-08-08: de validatie van de dienstverbandwizard is gecentraliseerd. De administratie-/voorwaardestap controleert nu lokaal alle verplichte velden vóór de medewerker-PATCH. Dezelfde verplichte-veldenmelding geldt voor alle dienstverbandtabs en voor 400-validatiefouten bij opslaan. De gerichte validatietest staat in `components/employment/employment-wizard-validation.test.ts`; er is geen schemawijziging.
+
 De vervolgactie voor **medewerker + dienstverband** blijft in dezelfde wizard. Bij meerdere administraties begint de dienstverbandflow met een expliciete, zoekbare administratiekeuze en uitklapbare details. Het medewerkertype staat op dienstverbandniveau met zes keuzes; `employment_contracts.worker_type` blijft alleen technische compatibiliteit. Na het dienstverband kiest de gebruiker loon-/contractgegevens toevoegen of overslaan. Bij toevoegen komen contract, rooster, salaris, organisatie en kosten als dynamische stappen in de linker navigatie. De administratie-instelling ondersteunt maand en 4 weken als multi-select; de wizard toont één frequentie automatisch of laat bij twee frequenties kiezen. Salarisschaal + trede toont het bijbehorende bedrag; functiegroep → functie → afdeling → leidinggevende en gesplitste kostenallocatie zijn aangesloten. Nationaliteit en land zijn zoekbare landkeuzes; startdatum en ancienniteitsdatum staan op de eerste dienstverbandstap. Het medewerker-/personeelsnummer blijft medewerker-niveau, het dienstverbandnummer staat op employment-niveau. De wizard geeft nummergebruik en live uniekheid terug, toont BSN als optioneel met uitleg en voorkomt dubbele medewerker-PATCHes vanuit de dienstverband-prerequisites.
 
 De remote migraties `20260807185718_allow_hr_address_creation_before_placement`, `20260807185727_allow_employee_administration_assignment_for_employment_creation` en `20260807185745_expand_employment_types_and_wizard_flow` zijn toegepast. De employment-enum, RLS-policies en `publish_complete_employment` zijn read-only gecontroleerd; de officiële database-types zijn opnieuw gegenereerd. Security-advisor staat op 1 INFO / 21 WARN en performance op 344 INFO, zonder nieuwe melding voor deze slice. Vercel Production-deployment `dpl_66LXmSsJavEWFj34CFZqnjPfCKVy` staat op `READY` en is exact op deze commit gebouwd; `/login` geeft HTTP 200. De runtime-error- en error/fatal-logscans over het afgelopen uur zijn leeg. Geauthentiseerde browsercontrole van de wizard blijft open. Lokaal zijn i18n, 132/490 tests, strict TypeScript, ESLint, productiebuild met 175 pagina's en `git diff --check` groen.
 
 De wizard is uitgebreid met partnernaam, extra velden van de medewerkerentiteit, required/optional-markering, adresopslag met interne `valid_from = 1900-01-01` en een controlepagina met afzonderlijke acties voor medewerker aanmaken en medewerker plus dienstverband aanmaken. Na een geslaagde creatie verlaat de flow de wizard via de persoonskaart of het nieuwe dienstverband.
+
+De kerngegevens-tab toont het personeelsnummer op een eigen rij, daarna roepnaam en tussenvoegsel. Het naamvoorbeeld toont alleen de volledige opgebouwde naam; partnernaam gebruikt nu ook het afzonderlijke partner-tussenvoegsel.
+
+Validatiefouten tonen een gerichte samenvatting in plaats van de algemene foutmelding. De wizard toont tussen de navigatieknoppen alleen een subtiele **Meer gegevens**-indicator wanneer er onder de huidige positie nog scrollinhoud staat. Extra gegevens gebruikt de optionele inklapsectie en toont **Vrije velden** alleen wanneer actieve medewerkerdefinities voor de HR-groep aanwezig zijn.
 
 De migratie `20260807185718_allow_hr_address_creation_before_placement` laat HR het adres opslaan vóór een organisatieplaatsing of dienstverband en voorkomt daarmee de bestaande 403-situatie in deze wizard. Status: remote toegepast en read-only gecontroleerd; er is geen medewerker/testrecord aangemaakt. Lokale verificatie is groen voor 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n en productiebuild.
 
@@ -749,7 +854,7 @@ De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken 
 | IKV los van dienstverband | GEÏMPLEMENTEERD | `income_relationships` plus tijdsgebonden koppeltabel; één IKV kan gecontroleerd aan dienstverbanden worden gekoppeld |
 | Arbeidsvoorwaarden, urenafspraak, werkpatroon, salaris en kostenverdeling | GEDEELTELIJK | Atomaire apply/rollback-RPC's, afzonderlijke 1–4-weeks werkpatroontijdlijn met exacte urencontrole, TWK-splitsing, 100%-kostenverdeling, audit en mutatieformulieren zijn aanwezig. Eén multi-domein-RPC voor direct gecombineerde wijzigingen volgt nog. |
 | Uitdienstmelding | GEÏMPLEMENTEERD | Workflow met wettelijke reden, datum en bevestiging; beëindiging wordt pas definitief via de confirm-RPC |
-| Herintreding | GEÏMPLEMENTEERD | Bestaande Employee wordt hergebruikt en krijgt een nieuw Employment; identity-match voorkomt stil dupliceren |
+| Bestaande medewerker gebruiken en herintreding | GEÏMPLEMENTEERD | Identity-match voorkomt stil dupliceren. Een match zonder dienstverband kan worden aangevuld of met een nieuw Employment worden vervolgd; een afgesloten match kan als herintreder worden gebruikt met een optionele kopieerkeuze voor het nieuwe Employment |
 | Medewerker- en dienstverband-UI | GEÏMPLEMENTEERD | Medewerkerkaart toont effective-dated dienstverbanden met anciënniteit vanaf de afwijkende datum en actuele samenvatting (afdeling, functie, uren, CAO en medewerkerstype). De dienstverbanddetailroute bundelt basis/IKV en de selecteerbare contractreeks op Overzicht; rooster, salaris, organisatie en kostenverdeling gebruiken uniforme, wijzigbare tijdlijnen. Persoonsgegevens gebruiken doorzoekbare landkeuzes voor geboorteland en nationaliteit, met het administratie-standaardland als beginwaarde. De verplichte basisgegevenscontrole en volledige dienstverband-/contractwizard zijn aanwezig. Aanmaak van een volledig nieuwe persoonskaart na 'geen match' blijft een afzonderlijke toekomstige flow. |
 | Ketenadvies nieuwe contracten | GEÏMPLEMENTEERD | Datumgebonden 2020/2028-regels, bekende interne/externe historie, niet-blokkerende waarschuwing en verplichte motivering bij risico of onvolledige historie. |
 | Volledige dienstverbandpublicatie | GEÏMPLEMENTEERD | De wizard controleert eerst verplichte medewerkergegevens en publiceert daarna Employment, IKV-koppeling, eerste contract, arbeidsvoorwaarden, rooster, salaris, plaatsing en exact 100% kostenverdeling in één transactie. |

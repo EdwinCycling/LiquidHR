@@ -7,14 +7,12 @@ import { EmployeeDashboard } from '@/components/employees/employee-dashboard'
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
-import { EmploymentCreateModal } from '@/components/employment/employment-create-modal'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
 import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
 import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
 import {
   EmploymentServiceError,
   getEmployeeEmploymentDetail,
-  getEmploymentCreationOptions,
 } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getUserPreferences } from '@/lib/preferences/server'
@@ -36,10 +34,11 @@ import { AbsenceCaseDetail } from '@/components/absence/absence-case-detail'
 import { listEmployeeAbsence } from '@/lib/absence/service'
 import { canEmployeeSelfReportAbsence } from '@/lib/absence/settings-service'
 import { createClient } from '@/lib/supabase/server'
+import { listProcessWork } from '@/lib/process-automation/work-service'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
-  searchParams: Promise<{ tab?: string; create?: string; view?: string; caseId?: string; perf?: string }>
+  searchParams: Promise<{ tab?: string; edit?: string; view?: string; caseId?: string; perf?: string }>
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -50,12 +49,12 @@ interface EmployeeDetailDependencies {
   performance: ServerPerformanceTrace
 }
 
-async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents' | 'payslips' | 'notes' | 'absence', dependencies: EmployeeDetailDependencies) {
+async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | 'employments' | 'reminders' | 'documents' | 'payslips' | 'notes' | 'absence' | 'processes', dependencies: EmployeeDetailDependencies) {
   try {
     const { performance } = dependencies
-    const detailScope = tab === 'overview' ? 'overview' : tab === 'personal' ? 'personal' : tab === 'employments' ? 'employments' : 'employments'
+    const detailScope = tab === 'overview' || tab === 'processes' ? 'overview' : tab === 'personal' ? 'personal' : tab === 'employments' ? 'employments' : 'employments'
     const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, canReadDashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity] = await performance.measure('initial.parallel', () => Promise.all([
-      getEmployeeEmploymentDetail(employeeId, detailScope, { includeSalary: tab !== 'overview', supabase: dependencies.supabase }),
+      getEmployeeEmploymentDetail(employeeId, detailScope, { includeSalary: tab !== 'overview' && tab !== 'processes', supabase: dependencies.supabase }),
       tab === 'personal' || tab === 'overview' ? getEmployeeCustomFields(employeeId) : Promise.resolve([]),
       tab === 'overview' || tab === 'reminders' ? listEmployeeReminders(employeeId).catch(() => []) : Promise.resolve([]),
       tab === 'personal' ? listEmployeeRoleAssignments(employeeId).catch(() => []) : Promise.resolve([]),
@@ -77,9 +76,6 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
         permissionAllowed('document:read', employeeId), permissionAllowed('document:write', employeeId), permissionAllowed('document:delete', employeeId),
       ]))
       : [false, false, false]
-    const creationOptions = canManageEmployments && tab === 'employments'
-      ? await getEmploymentCreationOptions(employeeId)
-      : null
     const [documents, documentOptions] = tab === 'documents' ? await Promise.all([
       canReadDocuments ? listEmployeeDocuments(employeeId) : Promise.resolve([]),
       canWriteDocuments ? getDocumentOptions(employeeId) : Promise.resolve(null),
@@ -92,7 +88,7 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       tab === 'overview' ? canEmployeeSelfReportAbsence(employeeId).catch(() => false) : Promise.resolve(false),
       tab === 'notes' ? employeeNotesPermissionAllowed(employeeId) : Promise.resolve(false),
     ]))
-    const base = [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport] as const
+    const base = [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport] as const
     const [canWriteNotes, canDeleteNotes, notes] = canReadNotes
       ? await performance.measure('notes.parallel', () => Promise.all([
         permissionAllowed('employee-note:write', employeeId),
@@ -119,7 +115,7 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
 
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const { tab: requestedTab, create, view, caseId, perf } = await searchParams
+  const { tab: requestedTab, edit, view, caseId, perf } = await searchParams
   const performanceTrace = createServerPerformanceTrace('/employees/[employeeId]', perf === '1')
   const requestContext = await performanceTrace.measure('auth.context', getRequestAuthorizationContext)
   const authContext = requestContext.context
@@ -128,13 +124,18 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     const directTeamEmployeeIds = await performanceTrace.measure('auth.teamScope', () => listDirectTeamEmployeeIds(authContext, requestContext.supabase))
     if (!directTeamEmployeeIds.includes(employeeId)) redirect('/employees')
   }
-  const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' ? requestedTab : 'overview'
-  const [detail, customFields, reminders, roleAssignments, creationOptions, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await performanceTrace.measure('page.data', () => loadPageData(employeeId, tab, {
+  const canReadProcesses = authContext.permissions.includes('process-instance:read') || authContext.permissions.includes('self:process-instance:read')
+  const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' || (requestedTab === 'processes' && canReadProcesses) ? requestedTab : 'overview'
+  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await performanceTrace.measure('page.data', () => loadPageData(employeeId, tab, {
     supabase: requestContext.supabase,
     userId: authContext.userId,
     performance: performanceTrace,
   }))
   performanceTrace.finish()
+  const tProcess = await getTranslator('processAutomation', locale)
+  const processWork = tab === 'processes' && canReadProcesses
+    ? await listProcessWork({ subjectEmployeeId: employeeId, tab: 'ALL', language: locale }).catch(() => null)
+    : null
   const compact = view === 'compact'
   const absenceOverview = absenceCases.find((item) => item.status === 'ACTIVE') ?? absenceCases.find((item) => item.status !== 'CLOSED') ?? absenceCases[0] ?? null
   const selectedAbsenceCase = tab === 'absence' && caseId ? absenceCases.find((item) => item.id === caseId) ?? null : null
@@ -142,6 +143,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     ACTIVE_EMPLOYEE: tEmployment('active'), FUTURE_EMPLOYEE: tEmployment('future'),
     FORMER_EMPLOYEE: tEmployees('former'), NEVER_EMPLOYED: tEmployees('external'),
   }[detail.status]
+  const processStatusLabel = (status: string) => ({
+    OPEN: tProcess('statusOpen'), CLAIMED: tProcess('statusClaimed'), BLOCKED: tProcess('statusBlocked'), COMPLETED: tProcess('statusCompleted'), CANCELLED: tProcess('statusCancelled'), EXPIRED: tProcess('statusExpired'),
+  }[status] ?? tProcess('unknown'))
 
   return (
       <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
@@ -161,7 +165,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             </div>
             {!compact && <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
               <Link prefetch={false} href={`/employees/${employeeId}?tab=${tab}&view=compact`} className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20">{tEmployees('compact')}</Link>
-              <EmployeeArchiveToggle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
+              <EmployeeArchiveToggle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
             </div>}
             {compact && <Link prefetch={false} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20">{tEmployees('expand')}</Link>}
           </div>
@@ -173,9 +177,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         </div>
 
         <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
-          {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
+          {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
             const active = tab === item
-            const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
+            const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'processes' ? tProcess('processesTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
             return <Link prefetch={false} key={item} href={`/employees/${employeeId}?tab=${item}&view=${compact ? 'compact' : 'expanded'}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}>{label}</Link>
           })}
         </nav>
@@ -193,11 +197,14 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           performanceDescription: tEmployees('dashboardPerformanceDescription'), futureModule: tEmployees('dashboardFutureModule'), futureModuleDescription: tEmployees('dashboardFutureModuleDescription'), viewContracts: tEmployees('tabEmployments'), viewDocuments: tEmployees('tabDocuments'), viewReminders: tEmployees('tabReminders'), moveUp: tEmployees('dashboardMoveUp'), moveDown: tEmployees('dashboardMoveDown'), drag: tEmployees('dashboardDrag'), layoutSaving: tEmployees('dashboardLayoutSaving'), layoutSaved: tEmployees('dashboardLayoutSaved'), layoutFailed: tEmployees('dashboardLayoutFailed'), profileLinks: tEmployees('profileLinks'), noProfileLinks: tEmployees('noProfileLinks'), addProfileLink: tEmployees('addProfileLink'), linkLabel: tEmployees('linkLabel'), linkUrl: tEmployees('linkUrl'), saveLink: tEmployees('saveLink'), linkFailed: tEmployees('linkFailed'), absenceReport: tEmployees('absenceReport'), absenceStartDate: tEmployees('absenceStartDate'), absencePercentage: tEmployees('absencePercentage'), absenceExpectedRecovery: tEmployees('absenceExpectedRecovery'), absenceHasSafetyNet: tEmployees('absenceHasSafetyNet'), absenceWorkAccident: tEmployees('absenceWorkAccident'), absenceThirdPartyAccident: tEmployees('absenceThirdPartyAccident'), absenceUnknown: tEmployees('absenceUnknown'), absenceYes: tEmployees('absenceYes'), absenceNo: tEmployees('absenceNo'), absenceSubmit: tEmployees('absenceSubmit'), absenceRecover: tEmployees('absenceRecover'), absenceRecoveredOn: tEmployees('absenceRecoveredOn'), absenceSaveFailed: tEmployees('absenceSaveFailed'), absenceNowSick: tEmployees('absenceNowSick'), absenceNowNotSick: tEmployees('absenceNowNotSick'), absenceLastReport: tEmployees('absenceLastReport'), absenceNoHistory: tEmployees('absenceNoHistory'), absenceActiveSince: tEmployees('absenceActiveSince'), absenceRecoveryWindow: tEmployees('absenceRecoveryWindow'), absenceOpenCase: tEmployees('absenceOpenCase'), absenceClose: tEmployees('absenceClose'), name: tEmployees('name'), age: tEmployees('age'), daysUntilBirthday: tEmployees('daysUntilBirthday'), workEmail: tEmployees('workEmail'), privateEmail: tEmployees('privateEmail'), workPhone: tEmployees('workPhone'), privatePhone: tEmployees('privatePhone'),
         }} />}
 
+        {tab === 'processes' && <section className="mt-8 space-y-5"><header><p className="eyebrow text-primary">{tProcess('processesTab')}</p><h2 className="mt-1 text-2xl font-semibold">{tProcess('workspaceTitle')}</h2><p className="mt-2 text-sm text-muted-foreground">{tProcess('workspaceDescription')}</p></header>{!processWork ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{tProcess('readError')}</p> : processWork.items.length === 0 ? <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground" role="status">{tProcess('noItems')}</p> : <div className="grid gap-4">{processWork.items.map((item) => <article className="rounded-2xl border border-border bg-surface p-5" key={item.workItemId}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{item.processKey}</p><h3 className="mt-1 font-semibold">{item.processTitle}</h3></div><span className="status-chip bg-muted text-muted-foreground">{processStatusLabel(item.status)}</span></div><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3"><div><dt className="text-xs text-muted-foreground">{tProcess('step')}</dt><dd className="mt-1">{item.stepTitle}</dd></div><div><dt className="text-xs text-muted-foreground">{tProcess('subject')}</dt><dd className="mt-1">{item.subjectName ?? tProcess('unknown')}</dd></div><div><dt className="text-xs text-muted-foreground">{tProcess('deadline')}</dt><dd className="mt-1">{item.deadlineAt ?? tProcess('unknown')}</dd></div></dl><Link prefetch={false} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href={`/work/${item.workItemId}`}>{tProcess('open')}</Link></article>)}</div>}</section>}
+
         {tab === 'absence' && (selectedAbsenceCase ? <section className="mt-8"><AbsenceCaseDetail employeeId={employeeId} employmentId={detail.employments[0]?.id} compact={compact} absenceCase={selectedAbsenceCase} locale={locale} dateFormat={preferences.dateFormat} labels={{ title: tEmployees('absenceCaseDetail'), dossier: tEmployees('absenceCaseDossier'), heading: tEmployees('absenceCaseHeading'), back: tEmployees('absenceCaseBack'), status: tEmployees('absenceCaseStatus'), firstAbsence: tEmployees('absenceCaseFirstAbsence'), effectiveClockStart: tEmployees('absenceCaseEffectiveClockStart'), recoveryWindowEnds: tEmployees('absenceCaseRecoveryWindowEnds'), closedAt: tEmployees('absenceCaseClosedAt'), periods: tEmployees('absenceCasePeriods'), reportedAt: tEmployees('absenceCaseReportedAt'), expectedRecovery: tEmployees('absenceCaseExpectedRecovery'), recoveredOn: tEmployees('absenceCaseRecoveredOn'), capacity: tEmployees('absenceCaseCapacity'), capacityEffectiveOn: tEmployees('absenceCaseCapacityEffectiveOn'), nextReview: tEmployees('absenceCaseNextReview'), safetyNet: tEmployees('absenceHasSafetyNet'), workAccident: tEmployees('absenceWorkAccident'), thirdPartyAccident: tEmployees('absenceThirdPartyAccident'), frequentAbsence: tEmployees('absenceFrequent'), priorCases: tEmployees('absenceCasePriorCases'), threshold: tEmployees('absenceCaseThreshold'), noValue: tEmployees('absenceCaseNoValue'), yes: tEmployees('absenceYes'), no: tEmployees('absenceNo'), unknown: tEmployees('absenceUnknown'), nowSick: tEmployees('absenceNowSick'), nowNotSick: tEmployees('absenceNowNotSick'), recoveryWindow: tEmployees('absenceRecoveryWindow'), report: tEmployees('absenceReport'), startDate: tEmployees('absenceStartDate'), percentage: tEmployees('absencePercentage'), expectedRecoveryInput: tEmployees('absenceExpectedRecovery'), submit: tEmployees('absenceSubmit'), better: tEmployees('absenceRecover'), saveFailed: tEmployees('absenceSaveFailed'), close: tEmployees('absenceClose') }} /></section> : <section className="mt-8 space-y-6"><header><p className="eyebrow text-primary">{tEmployees('absenceTab')}</p><h2 className="mt-1 text-2xl font-semibold">{tEmployees('dashboardAbsence')}</h2></header><AbsenceQuickForm employeeId={employeeId} employmentId={detail.employments[0]?.id} currentCase={absenceOverview} recoveryMode="hidden" showReportAction={!absenceOverview || absenceOverview.status === 'CLOSED'} labels={{ report: tEmployees('absenceReport'), startDate: tEmployees('absenceStartDate'), percentage: tEmployees('absencePercentage'), expectedRecovery: tEmployees('absenceExpectedRecovery'), hasSafetyNet: tEmployees('absenceHasSafetyNet'), workAccident: tEmployees('absenceWorkAccident'), thirdPartyAccident: tEmployees('absenceThirdPartyAccident'), unknown: tEmployees('absenceUnknown'), yes: tEmployees('absenceYes'), no: tEmployees('absenceNo'), submit: tEmployees('absenceSubmit'), recover: tEmployees('absenceRecover'), recoveredOn: tEmployees('absenceRecoveredOn'), failed: tEmployees('absenceSaveFailed'), close: tEmployees('absenceClose') }} />{absenceCases.length > 0 ? <div className="space-y-3">{absenceCases.map((item) => <Link prefetch={false} key={item.id} href={`/employees/${employeeId}?tab=absence&view=${compact ? 'compact' : 'expanded'}&caseId=${item.id}`} className="group block rounded-2xl border bg-surface p-5 transition-colors hover:border-primary/45 hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{item.firstAbsenceOn}</h3><span className={`status-chip ${item.status === 'ACTIVE' ? 'bg-destructive-surface text-destructive' : item.status === 'RECOVERY_WINDOW' ? 'bg-accent text-accent-foreground' : 'bg-success-surface text-success'}`}>{item.status === 'ACTIVE' ? tEmployees('absenceNowSick') : item.status === 'RECOVERY_WINDOW' ? tEmployees('absenceRecoveryWindow', { date: item.recoveryWindowEndsOn ?? '' }) : tEmployees('absenceNowNotSick')}</span></div><p className="mt-2 text-sm text-muted-foreground">{item.spells.length} {tEmployees('absenceCasePeriods').toLowerCase()} · {item.spells[0]?.absencePercentage ?? 100}%</p><span className="mt-4 inline-flex text-sm font-semibold text-primary">{tEmployees('absenceCaseOpen')}</span></Link>)}</div> : <p className="rounded-xl border border-dashed border-primary/25 bg-accent/20 p-4 text-sm text-muted-foreground">{tEmployees('absenceEmpty')}</p>}</section>)}
 
         {tab === 'personal' && <>
         <EmployeePersonCard
           detail={detail}
+          initialEdit={edit === '1'}
           defaultCountryCode={detail.defaultCountryCode}
           customFields={customFields}
           roleAssignments={roleAssignments}
@@ -223,7 +230,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             bsnProtected: tEmployees('bsnProtected'), revealBsn: tEmployees('revealBsn'), revealingBsn: tEmployees('revealingBsn'),
             bsnNotRecorded: tEmployees('bsnNotRecorded'), bsnAuditHelp: tEmployees('bsnAuditHelp'), addressesTitle: tEmployees('addressesTitle'), primaryAddress: tEmployees('primaryAddress'), secondaryAddress: tEmployees('secondaryAddress'), secondaryAddressDescription: tEmployees('secondaryAddressDescription'), secondaryAddressHelp: tEmployees('secondaryAddressHelp'), noSecondaryAddress: tEmployees('noSecondaryAddress'),
              addressesEmpty: tEmployees('addressesEmpty'), relocateAddress: tEmployees('relocateAddress'), addAddress: tEmployees('addAddress'), editResource: tEmployees('editResource'), deleteResource: tEmployees('deleteResource'), confirmDelete: tEmployees('confirmDelete'), cannotDeleteLastAddress: tEmployees('cannotDeleteLastAddress'), directReminderTitle: tEmployees('directReminderTitle'), directReminderHelp: tEmployees('directReminderHelp'), reminderHrAdmin: tEmployees('reminderHrAdmin'), reminderManager: tEmployees('reminderManager'), reminderEmployee: tEmployees('reminderEmployee'), country: tEmployees('country'), addressSearch: tEmployees('addressSearch'), addressSearchPlaceholder: tEmployees('addressSearchPlaceholder'), manualEntry: tEmployees('manualEntry'), searchNoResults: tEmployees('searchNoResults'), searchUnavailable: tEmployees('searchUnavailable'), searchLoading: tEmployees('searchLoading'), lookupByPostalCode: tEmployees('lookupByPostalCode'), lookup: tEmployees('lookup'), lookupHint: tEmployees('lookupHint'), lookupUnavailable: tEmployees('lookupUnavailable'), addressLine1: tEmployees('addressLine1'), addressLine2: tEmployees('addressLine2'), region: tEmployees('region'), current: tEmployees('current'), validFrom: tEmployees('validFrom'),
-            validUntil: tEmployees('validUntil'), clearValidUntil: tEmployees('clearValidUntil'), street: tEmployees('street'), houseNumber: tEmployees('houseNumber'), addition: tEmployees('addition'),
+            validUntil: tEmployees('validUntil'), clearValidUntil: tEmployees('clearValidUntil'), street: tEmployees('street'), streetHasNumberNote: tEmployees('streetHasNumberNote'), houseNumber: tEmployees('houseNumber'), addition: tEmployees('addition'),
             postalCode: tEmployees('postalCode'), city: tEmployees('city'), province: tEmployees('province'), countryCode: tEmployees('countryCode'),
             saveAddress: tEmployees('saveAddress'), banksTitle: tEmployees('banksTitle'), banksEmpty: tEmployees('banksEmpty'), addBank: tEmployees('addBank'),
             primary: tEmployees('primary'), iban: tEmployees('iban'), bic: tEmployees('bic'), accountHolder: tEmployees('accountHolder'),
@@ -278,59 +285,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
               }}
             />
           </section>
-          {canManageEmployments && creationOptions && <div className="mt-6 flex justify-end">
-            <EmploymentCreateModal
-              employeeId={employeeId}
-              options={creationOptions}
-              initialOpen={create === '1'}
-              labels={{
-                title: tEmployment('new'),
-                modalTitle: tEmployment('newWizardTitle'),
-                cancel: tEmployment('cancel'),
-                submit: tEmployment('create'), saved: tEmployment('created'), failed: tErrors('generic'),
-                previous: tEmployment('previous'), next: tEmployment('next'),
-                requiredFields: tEmployment('requiredFields'),
-                 employmentNumber: tEmployment('employmentNumber'), primaryEmployment: tEmployment('primaryEmployment'), required: tEmployment('required'), optional: tEmployment('optional'),
-                 administration: tEmployment('administration'), administrationSearch: tEmployment('administrationSearch'), administrationDetails: tEmployment('administrationDetails'), administrationNumber: tEmployment('administrationNumber'), cocNumber: tEmployment('cocNumber'), vatNumber: tEmployment('vatNumber'),
-                yes: tEmployment('yes'), no: tEmployment('no'), startDate: tEmployment('startDate'),
-                seniorityDate: tEmployment('seniorityDate'), country: tEmployment('country'),
-                ikvNumber: tEmployment('incomeRelationshipNumber'), prerequisitesTitle: tEmployment('prerequisitesTitle'),
-                nationality: tEmployment('nationality'), bsn: tEmployment('bsn'), birthDate: tEmployment('birthDate'),
-                gender: tEmployment('gender'), bsnOptionalHelp: tEmployment('bsnOptionalHelp'),
-                countrySearch: tEmployment('countrySearch'), countryNoResults: tEmployment('countryNoResults'),
-                savePrerequisites: tEmployment('savePrerequisites'), prerequisiteSaved: tEmployment('prerequisiteSaved'),
-                genderMale: tEmployment('genderMale'), genderFemale: tEmployment('genderFemale'),
-                genderOther: tEmployment('genderOther'), genderUndisclosed: tEmployment('genderUndisclosed'),
-                 stepAdministration: tEmployment('stepAdministration'), stepEmployment: tEmployment('stepEmployment'), stepPayrollChoice: tEmployment('stepPayrollChoice'), stepContract: tEmployment('stepContract'),
-                 stepSchedule: tEmployment('stepSchedule'), stepSalary: tEmployment('stepSalary'),
-                 stepOther: tEmployment('stepOther'), stepReview: tEmployment('stepReview'),
-                 payrollChoiceTitle: tEmployment('payrollChoiceTitle'), payrollChoiceHelp: tEmployment('payrollChoiceHelp'), addPayrollDetails: tEmployment('addPayrollDetails'), skipPayrollDetails: tEmployment('skipPayrollDetails'),
-                workerType: tEmployment('workerType'), workerEmployee: tEmployment('workerEmployee'),
-                workerStudentIntern: tEmployment('workerStudentIntern'),
-                 workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerFreelancer: tEmployment('workerFreelancer'), workerVolunteer: tEmployment('workerVolunteer'), workerNoPayroll: tEmployment('workerNoPayroll'),
-                flexPhase: tEmployment('flexPhase'), laborConditions: tEmployment('laborConditions'),
-                duration: tEmployment('duration'), indefinite: tEmployment('indefinite'),
-                definite: tEmployment('definite'), endDate: tEmployment('endsOn'),
-                probation: tEmployment('probation'), probationEnd: tEmployment('probationEnd'),
-                addFourWeeks: tEmployment('addFourWeeks'), addOneMonth: tEmployment('addOneMonth'),
-                addTwoMonths: tEmployment('addTwoMonths'), onCallEmployee: tEmployment('onCallEmployee'),
-                onCallObligation: tEmployment('onCallObligation'), employmentScope: tEmployment('employmentScope'),
-                fullTime: tEmployment('fullTime'), partTime: tEmployment('partTime'),
-                weeklyHours: tEmployment('weeklyHours'), fulltimeReference: tEmployment('fulltimeReference'), partTimeFactor: tEmployment('partTimeFactor'),
-                roster: tEmployment('roster'), rosterMismatch: tEmployment('rosterMismatch'),
-                monday: tEmployment('monday'), tuesday: tEmployment('tuesday'),
-                wednesday: tEmployment('wednesday'), thursday: tEmployment('thursday'),
-                friday: tEmployment('friday'), saturday: tEmployment('saturday'), sunday: tEmployment('sunday'),
-                salaryCalculation: tEmployment('salaryCalculation'), salaryManual: tEmployment('salaryManual'),
-                salaryMinimum: tEmployment('salaryMinimum'), salaryTable: tEmployment('salaryTable'),
-                 frequency: tEmployment('frequency'), frequencySingleHelp: tEmployment('frequencySingleHelp'), frequencyNone: tEmployment('frequencyNone'), fulltimeSalary: tEmployment('fulltimeSalary'),
-                 parttimeSalary: tEmployment('parttimeSalary'), salaryScale: tEmployment('salaryScale'), salaryScaleStep: tEmployment('salaryScaleStep'), salaryScaleAmount: tEmployment('salaryScaleAmount'),
-                 minimumHourlyRate: tEmployment('minimumHourlyRate'),
-                 jobGroup: tEmployment('jobGroup'), department: tEmployment('department'), job: tEmployment('job'), manager: tEmployment('manager'), noManager: tEmployment('noManager'),
-                 costCenter: tEmployment('costCenter'), costCarrier: tEmployment('costCarrier'), splitCostCenter: tEmployment('splitCostCenter'), addAllocation: tEmployment('addAllocation'), removeAllocation: tEmployment('removeAllocation'), allocationPercentage: tEmployment('allocationPercentage'), allocationTotal: tEmployment('allocationTotal'), allocationMismatch: tEmployment('allocationMismatch'),
-                 completeSummary: tEmployment('completeSummary'), createHint: tEmployment('createHint'), optionsLoading: tEmployment('optionsLoading'),
-              }}
-            />
+          {canManageEmployments && <div className="mt-6 flex justify-end">
+            <Link href={`/employees/${employeeId}/employments/new`} className="button-primary">{tEmployment('new')}</Link>
           </div>}
         </div>}
       </main>

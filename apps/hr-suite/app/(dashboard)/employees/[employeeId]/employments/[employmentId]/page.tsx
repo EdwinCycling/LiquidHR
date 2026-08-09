@@ -18,6 +18,7 @@ import { SelectableTimelineList } from "@/components/employment/selectable-timel
 import { OrganizationTimelineManager } from "@/components/employment/organization-timeline-manager";
 import { CompanyLocationTimelineManager } from "@/components/employment/company-location-timeline-manager";
 import { WorkPatternPanel } from "@/components/employment/work-pattern-panel";
+import { EmploymentOverviewActions } from "@/components/employment/employment-overview-actions";
 import {
   EmploymentDetailError,
   getEmploymentDetail,
@@ -55,26 +56,6 @@ function periodLabel(
   const format = (value: string) =>
     formatDate(value, { locale, dateFormat });
   return `${format(from)} — ${until ? format(until) : open}`;
-}
-
-function DataCard({
-  title,
-  value,
-  meta,
-}: {
-  title: string;
-  value: string;
-  meta?: string;
-}) {
-  return (
-    <article className="rounded-xl border bg-surface p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">
-        {title}
-      </p>
-      <p className="mt-2 font-semibold">{value}</p>
-      {meta && <p className="mt-1 text-sm text-muted-foreground">{meta}</p>}
-    </article>
-  );
 }
 
 async function loadPageData(employeeId: string, employmentId: string, tab: Tab) {
@@ -328,35 +309,56 @@ export default async function EmploymentDetailPage({
       <div className="mt-6">
         {tab === "overview" && (
           <div className="space-y-5">
-            <section className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <DataCard
-                  title={t("employmentNumber")}
-                  value={detail.employment.employment_number}
-                />
-                <DataCard
-                  title={t("startDate")}
-                  value={periodLabel(
-                    detail.employment.starts_on,
-                    detail.employment.ends_on,
-                    locale,
-                    preferences.dateFormat,
-                    t("active"),
-                  )}
-                />
-                <DataCard title={t("seniorityDate")} value={detail.employment.seniority_date} meta={seniority ? t("seniorityDuration", { years: seniority.years, months: seniority.months }) : t("notRecorded")} />
-                <DataCard title={t("country")} value={detail.employment.country_code} />
-                <DataCard
-                  title={t("incomeRelationshipNumber")}
-                  value={String(detail.incomeRelationships[0]?.income_relationships?.ikv_number ?? t("notRecorded"))}
-                />
-                <DataCard title={t("laborConditions")} value={currentContract?.labor_condition_sets?.name ?? t("notRecorded")} />
-                <DataCard title={t("workerType")} value={workerTypeLabel} />
+            <section aria-labelledby="employment-summary-title" className="rounded-2xl border bg-surface p-5 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-4">
+                <div>
+                  <p className="eyebrow">{t("employmentContext")}</p>
+                  <h2 className="mt-1 text-xl font-semibold" id="employment-summary-title">{t("summaryTitle")}</h2>
+                </div>
+                <span className="status-chip bg-muted text-muted-foreground">{detail.employment.employment_number}</span>
               </div>
+              <dl className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("summaryAdministration")}</dt>
+                  <dd className="mt-2 font-semibold">{detail.administration.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("summaryLaborConditions")}</dt>
+                  <dd className="mt-2 font-semibold">{currentContract?.labor_condition_sets?.name ?? t("notRecorded")}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("workerType")}</dt>
+                  <dd className="mt-2 font-semibold">{workerTypeLabel}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("seniorityDate")}</dt>
+                  <dd className="mt-2 font-semibold">
+                    {detail.employment.seniority_date
+                      ? formatDate(detail.employment.seniority_date, { locale, dateFormat: preferences.dateFormat })
+                      : t("notRecorded")}
+                    {seniority ? <span className="mt-1 block text-sm font-normal text-muted-foreground">{t("seniorityDuration", { years: seniority.years, months: seniority.months })}</span> : null}
+                  </dd>
+                </div>
+              </dl>
             </section>
+            <EmploymentOverviewActions
+              labels={{
+                sectionTitle: t("changeActionsTitle"),
+                hoursSchedule: t("changeHoursSchedule"),
+                hoursScheduleSalary: t("changeHoursScheduleSalary"),
+                functionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"),
+                salary: t("changeSalary"),
+                laborConditions: t("changeLaborConditions"),
+                contractTypeStartDate: t("changeContractTypeStartDate"),
+                deleteContract: t("changeDeleteContract"),
+                modalTitle: t("changeModalTitle"),
+                cancel: t("cancel"),
+              }}
+            />
             <EmploymentContractTimeline
+              employeeId={employeeId}
               employmentId={employmentId}
-              employmentType={detail.employment.employment_type}
+              employmentStartsOn={detail.employment.starts_on}
               canWrite={detail.capabilities.canWriteContract}
               contracts={detail.contracts.map((contract) => ({
                 id: contract.id,
@@ -386,7 +388,7 @@ export default async function EmploymentDetailPage({
                 probation: t("probation"), probationEnd: t("probationEnd"),
                 indefinite: t("indefinite"), definite: t("definite"),
                 yes: t("yes"), no: t("no"), active: t("active"),
-                failed: t("changeFailed"), addBlocked: t("contractAddBlocked"),
+                failed: t("changeFailed"), addBlocked: t("contractAddBlocked"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
               }}
             />
             <article className="rounded-2xl border bg-surface p-5 shadow-sm">

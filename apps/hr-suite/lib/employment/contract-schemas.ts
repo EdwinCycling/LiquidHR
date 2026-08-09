@@ -33,3 +33,12 @@ export const employmentContractMutationSchema = z.object({
 })
 
 export type EmploymentContractMutationInput = z.infer<typeof employmentContractMutationSchema>
+
+export function isEmploymentContractStartDateValid(
+  startsOn: string,
+  employmentStartsOn: string,
+  isFirstContract: boolean,
+): boolean {
+  if (!startsOn || !employmentStartsOn || startsOn < employmentStartsOn) return false
+  return !isFirstContract || startsOn === employmentStartsOn
+}

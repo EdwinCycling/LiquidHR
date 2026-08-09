@@ -149,8 +149,12 @@ async function reserveEmployeeNumber(context: AuthContext): Promise<string> {
 }
 
 export async function getNextEmployeeNumber(): Promise<string> {
-  const context = await requirePermission('employee:write')
-  return reserveEmployeeNumber(context)
+  await requirePermission('employee:write')
+  const usage = await getEmployeeNumberUsage()
+  const numericValues = usage.usedEmployeeNumbers
+    .map((number) => Number(number))
+    .filter((number) => Number.isSafeInteger(number) && number > 0)
+  return String((numericValues.length > 0 ? Math.max(...numericValues) : 100001) + 1)
 }
 
 export interface EmployeeNumberUsage {

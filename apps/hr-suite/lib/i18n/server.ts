@@ -27,6 +27,7 @@ import talentReviewEn from '@/messages/en/talentReview.json'
 import continuousAppraisalEn from '@/messages/en/continuousAppraisal.json'
 import productUpdatesEn from '@/messages/en/productUpdates.json'
 import supportEn from '@/messages/en/support.json'
+import processAutomationEn from '@/messages/en/processAutomation.json'
 import authNl from '@/messages/nl/auth.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
@@ -54,6 +55,7 @@ import talentReviewNl from '@/messages/nl/talentReview.json'
 import continuousAppraisalNl from '@/messages/nl/continuousAppraisal.json'
 import productUpdatesNl from '@/messages/nl/productUpdates.json'
 import supportNl from '@/messages/nl/support.json'
+import processAutomationNl from '@/messages/nl/processAutomation.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -90,6 +92,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     continuousAppraisal: continuousAppraisalNl,
     productUpdates: productUpdatesNl,
     support: supportNl,
+    processAutomation: processAutomationNl,
   },
   en: {
     auth: authEn,
@@ -119,6 +122,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     continuousAppraisal: continuousAppraisalEn,
     productUpdates: productUpdatesEn,
     support: supportEn,
+    processAutomation: processAutomationEn,
   },
 }
 

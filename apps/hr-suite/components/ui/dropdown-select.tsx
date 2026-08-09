@@ -1,6 +1,6 @@
 'use client'
 import { Check, ChevronDown, Search } from 'lucide-react'
-import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type FocusEventHandler, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 type OptionElementProps = {
@@ -22,6 +22,7 @@ type DropdownSelectProps = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, '
   emptyLabel?: string
   multiple?: boolean
   onChange?: (event: ChangeEvent<HTMLSelectElement>) => void
+  onTriggerBlur?: FocusEventHandler<HTMLButtonElement>
   placeholder?: ReactNode
   searchable?: boolean
   searchPlaceholder?: string
@@ -60,7 +61,8 @@ function filterOptions(options: DropdownOption[], search: string): DropdownOptio
 
 export function DropdownSelect(props: DropdownSelectProps) {
   if (props.multiple) {
-    const { children, className, defaultValue, disabled, emptyLabel, id, name, onChange, placeholder, required, searchable, searchPlaceholder, value, ...nativeProps } = props
+    const { children, className, defaultValue, disabled, emptyLabel, id, name, onChange, onTriggerBlur, placeholder, required, searchable, searchPlaceholder, value, ...nativeProps } = props
+    void onTriggerBlur
     void emptyLabel
     void placeholder
     void searchable
@@ -79,6 +81,7 @@ function DropdownSingleSelect({
   id,
   name,
   onChange,
+  onTriggerBlur,
   placeholder = 'Selecteer een optie',
   required = false,
   searchable = false,
@@ -209,7 +212,7 @@ function DropdownSingleSelect({
 
   return <>
     <select aria-describedby={selectProps['aria-describedby']} aria-hidden="true" aria-invalid={selectProps['aria-invalid']} aria-labelledby={selectProps['aria-labelledby']} className="sr-only" disabled={disabled} id={`${menuId}-native`} name={name} required={required} tabIndex={-1} {...(value === undefined ? { defaultValue: currentValue, onChange } : { value: currentValue, onChange: onChange ?? (() => undefined) })}>{children}</select>
-     <button aria-controls={open ? menuId : undefined} aria-describedby={selectProps['aria-describedby']} aria-expanded={open} aria-haspopup="listbox" aria-label={triggerAriaLabel} aria-labelledby={selectProps['aria-labelledby']} className={`inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-border/90 bg-surface px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60 ${selectProps['aria-invalid'] ? 'border-destructive' : ''} ${className ?? ''}`} data-invalid={selectProps['aria-invalid']} disabled={disabled} id={id} onClick={() => open ? closeMenu() : openMenu()} onKeyDown={handleTriggerKeyDown} ref={triggerRef} type="button"><span className={`min-w-0 flex-1 truncate ${selectedOption ? '' : 'text-muted-foreground'}`}>{triggerLabel}</span><ChevronDown aria-hidden="true" className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} /></button>
+     <button aria-controls={open ? menuId : undefined} aria-describedby={selectProps['aria-describedby']} aria-expanded={open} aria-haspopup="listbox" aria-label={triggerAriaLabel} aria-labelledby={selectProps['aria-labelledby']} className={`inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-border/90 bg-surface px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60 ${selectProps['aria-invalid'] ? 'border-destructive' : ''} ${className ?? ''}`} data-invalid={selectProps['aria-invalid']} disabled={disabled} id={id} onBlur={onTriggerBlur} onClick={() => open ? closeMenu() : openMenu()} onKeyDown={handleTriggerKeyDown} ref={triggerRef} type="button"><span className={`min-w-0 flex-1 truncate ${selectedOption ? '' : 'text-muted-foreground'}`}>{triggerLabel}</span><ChevronDown aria-hidden="true" className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} /></button>
      {open ? createPortal(<div className="fixed z-[80] overflow-hidden rounded-xl border border-border bg-surface p-2 shadow-2xl" id={menuId} ref={menuRef} role="listbox" style={{ top: menuPosition.top, left: menuPosition.left, minWidth: menuPosition.width }} onKeyDown={handleMenuKeyDown}>
        {searchable ? <div className="relative mb-2"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input aria-label={searchPlaceholder} className="min-h-10 w-full rounded-lg border border-border/90 bg-surface-raised pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-focus/20" onChange={(event) => { const nextQuery = event.target.value; setQuery(nextQuery); setActiveIndex(nextEnabled(filterOptions(options, nextQuery), 0, 1)) }} placeholder={searchPlaceholder} ref={searchRef} value={query} /></div> : null}
        <div className="max-h-72 overflow-y-auto" role="presentation">{visibleOptions.length ? visibleOptions.map((option, index) => <button aria-selected={option.value === currentValue} className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${option.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted'} ${option.value === currentValue ? 'bg-accent font-semibold text-accent-foreground' : ''}`} disabled={option.disabled} key={option.value} onClick={() => choose(option)} ref={(node) => { optionRefs.current[index] = node }} role="option" tabIndex={activeIndex === index ? 0 : -1} type="button"><span className="min-w-0 truncate">{option.label}</span>{option.value === currentValue ? <Check aria-hidden="true" className="size-4 shrink-0 text-primary" /> : null}</button>) : <p className="px-3 py-3 text-sm text-muted-foreground">{emptyLabel}</p>}</div>

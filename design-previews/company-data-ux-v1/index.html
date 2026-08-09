@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Liquid HR — Bedrijfsgegevens UX concept</title>
+    <link rel="stylesheet" href="./theme.css">
+  </head>
+  <body class="page-no-guide">
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Liquid HR navigatie">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">e</span>
+          <span>Liquid HR</span>
+        </div>
+
+        <div class="sidebar-context">
+          <button class="context-button" type="button" aria-label="Actieve HR-groep">
+            <span>Planeten</span>
+            <span aria-hidden="true">⌄</span>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">⌂</span>Dashboard</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">◈</span>Startpagina</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">♧</span>Medewerkers</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">⌗</span>Organogram</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">▥</span>Inzichten</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">□</span>Kalender</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">▱</span>Ontwikkeling</a>
+          <a class="sidebar-link is-active" href="#" aria-current="page"><span class="sidebar-icon" aria-hidden="true">⚙</span>Instellingen</a>
+          <a class="sidebar-link" href="#"><span class="sidebar-icon" aria-hidden="true">✦</span>Wat is nieuw</a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="avatar" aria-hidden="true">E</span>
+          <span>Edwin</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <div class="page-shell">
+          <header class="page-header">
+            <div>
+              <a class="back-link" href="#"><span aria-hidden="true">←</span> Terug naar instellingen</a>
+              <p class="eyebrow">HR-beheer · concept naast productie</p>
+              <h1>Bedrijfsgegevens</h1>
+              <p class="page-subtitle">Leg het groepsbrede adres vast en voeg locaties toe wanneer dat nodig is. Je ziet steeds waar je bent en wat er na opslaan gebeurt.</p>
+            </div>
+            <div class="header-meta"><span class="live-dot" aria-hidden="true"></span> HR-groep · Planeten</div>
+          </header>
+
+          <nav class="stepper" aria-label="Bedrijfsgegevens stappen">
+            <button class="step-button is-active" data-step="address" type="button" aria-current="step">
+              <span class="step-number">1</span>
+              <span class="step-copy"><strong>Bedrijfsadres</strong><span>Gedeeld hoofdadres</span></span>
+            </button>
+            <button class="step-button" data-step="locations" type="button">
+              <span class="step-number">2</span>
+              <span class="step-copy"><strong>Locaties</strong><span>0 locaties toegevoegd</span></span>
+            </button>
+          </nav>
+
+          <div class="content-grid">
+            <section class="panel form-panel address-panel" data-panel="address" aria-labelledby="address-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="address-title">Bedrijfsadres</h2>
+                  <p>Dit adres is zichtbaar als het groepsbrede hoofdadres voor alle administraties binnen Planeten.</p>
+                </div>
+                <span class="panel-badge">Nog niet opgeslagen</span>
+              </div>
+
+              <form id="company-form" novalidate>
+                <div class="panel-body">
+                  <div class="callout">
+                    <span class="callout-icon" aria-hidden="true">✦</span>
+                    <div>
+                      <strong>Begin met zoeken — dat is het snelst</strong>
+                      <p>Typ minimaal drie tekens. We vullen de adresvelden voor je aan; handmatig invoeren kan altijd.</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="section-kicker">Adres vinden</div>
+                    <div class="search-card">
+                      <div class="search-card-header">
+                        <h3>Gebruik een adreszoeker</h3>
+                        <span>Snelle invoer</span>
+                      </div>
+
+                      <div class="search-grid">
+                        <div class="field">
+                          <label for="country">Land</label>
+                          <select id="country" name="country">
+                            <option value="NL">Nederland</option>
+                            <option value="BE">België</option>
+                            <option value="DE">Duitsland</option>
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label for="address-search">Adres zoeken</label>
+                          <div class="search-control">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+                            <input id="address-search" name="address-search" type="search" autocomplete="off" placeholder="Zoek op straat, plaats of postcode" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded="false">
+                          </div>
+                          <ul class="suggestions" id="address-suggestions" role="listbox" aria-label="Adres-suggesties">
+                            <li><button type="button" data-suggestion="Wibautstraat 131, 1091 GL Amsterdam"><span class="suggestion-icon" aria-hidden="true">⌖</span><span>Wibautstraat 131, 1091 GL Amsterdam</span></button></li>
+                            <li><button type="button" data-suggestion="Wibautstraat 135, 1091 GL Amsterdam"><span class="suggestion-icon" aria-hidden="true">⌖</span><span>Wibautstraat 135, 1091 GL Amsterdam</span></button></li>
+                            <li><button type="button" data-suggestion="Wibautstraat 147, 1091 GL Amsterdam"><span class="suggestion-icon" aria-hidden="true">⌖</span><span>Wibautstraat 147, 1091 GL Amsterdam</span></button></li>
+                          </ul>
+                          <p class="search-feedback" id="search-feedback" role="status"><span aria-hidden="true">✓</span><span>Adres gekozen. Controleer de velden hieronder.</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <details class="manual-details" open>
+                    <summary>Adres handmatig invoeren <span class="sr-only">openklappen</span></summary>
+                    <div class="manual-content">
+                      <div class="form-grid">
+                        <div class="field">
+                          <label for="street">Straat</label>
+                          <input id="street" name="street" autocomplete="street-address" placeholder="Bijvoorbeeld Wibautstraat">
+                        </div>
+                        <div class="field">
+                          <label for="house-number">Huisnummer</label>
+                          <input id="house-number" name="house-number" inputmode="numeric" autocomplete="address-line1" placeholder="131">
+                        </div>
+                        <div class="field">
+                          <label for="addition">Toevoeging <span class="field-hint">optioneel</span></label>
+                          <input id="addition" name="addition" autocomplete="address-line1" placeholder="A">
+                        </div>
+                      </div>
+                      <div class="form-grid form-grid-secondary">
+                        <div class="field">
+                          <label for="postal-code">Postcode</label>
+                          <input id="postal-code" name="postal-code" inputmode="text" autocomplete="postal-code" placeholder="1091 GL">
+                        </div>
+                        <div class="field">
+                          <label for="city">Plaats</label>
+                          <input id="city" name="city" autocomplete="address-level2" placeholder="Amsterdam">
+                        </div>
+                        <div class="field">
+                          <label for="region">Regio / provincie <span class="field-hint">optioneel</span></label>
+                          <input id="region" name="region" autocomplete="address-level1" placeholder="Noord-Holland">
+                        </div>
+                      </div>
+                      <p class="address-help"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 10v6"></path><path d="M12 7h.01"></path></svg>Nederlandse adressen gebruiken straat, huisnummer en postcode. Voor andere landen verandert de invoer automatisch naar adresregels.</p>
+                    </div>
+                  </details>
+
+                  <label class="location-toggle" for="single-location">
+                    <input id="single-location" name="single-location" type="checkbox">
+                    <span><strong>Deze HR-groep heeft één locatie</strong><p>Het bedrijfsadres wordt dan automatisch de enige locatie. De stap Locaties blijft beschikbaar, maar toevoegen en wijzigen wordt uitgeschakeld.</p></span>
+                  </label>
+                </div>
+
+                <div class="action-bar">
+                  <p class="status" id="company-status" role="status">Wijzigingen worden pas actief na opslaan.</p>
+                  <button class="primary-button" type="submit"><span aria-hidden="true">✓</span> Bedrijfsgegevens opslaan</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel form-panel locations-panel" data-panel="locations" aria-labelledby="locations-title" hidden>
+              <div class="panel-header">
+                <div>
+                  <h2 id="locations-title">Locaties</h2>
+                  <p>Voeg locaties toe wanneer administraties op meerdere plekken werken. Elke locatie krijgt een eigen adres en status.</p>
+                </div>
+                <span class="panel-badge">0 locaties</span>
+              </div>
+              <div class="locations-content">
+                <div class="callout">
+                  <span class="callout-icon" aria-hidden="true">⌖</span>
+                  <div><strong>Alleen nodig bij meerdere werkplekken</strong><p>Heeft deze HR-groep één locatie? Zet dat aan bij het bedrijfsadres en laat deze stap leeg.</p></div>
+                </div>
+                <div class="location-empty-large">
+                  <span class="empty-location-icon" aria-hidden="true">＋</span>
+                  <h3>Nog geen locaties toegevoegd</h3>
+                  <p>Je kunt later altijd een locatie toevoegen. De bedrijfsgegevens blijven gewoon bewaard.</p>
+                  <button class="primary-button" type="button" data-add-location><span aria-hidden="true">＋</span> Locatie toevoegen</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="side-rail">
+              <section class="guide-card" aria-labelledby="guide-title">
+                <div class="guide-label"><span aria-hidden="true">◌</span> In één minuut geregeld</div>
+                <h2 id="guide-title">Van zoeken naar klaar.</h2>
+                <p>De pagina is opgebouwd rond de volgorde waarin je de gegevens meestal invoert.</p>
+                <ol class="guide-list">
+                  <li>Zoek je adres of vul het handmatig in.</li>
+                  <li>Kies of je één of meerdere locaties hebt.</li>
+                  <li>Sla op en ga verder met je volgende instelling.</li>
+                </ol>
+              </section>
+
+              <section class="panel locations-card" aria-labelledby="locations-summary-title">
+                <div class="locations-card-header">
+                  <div><h2 id="locations-summary-title">Locaties</h2><p>Optioneel · alleen bij meerdere locaties</p></div>
+                  <span class="location-count" aria-label="0 locaties">0</span>
+                </div>
+                <div class="empty-location">
+                  <span class="empty-location-icon" aria-hidden="true">⌖</span>
+                  <strong>Nog geen locaties</strong>
+                  <p>Voeg ze toe wanneer je klaar bent met het hoofdadres.</p>
+                  <button class="text-button" type="button" data-go-locations>Locaties openen <span aria-hidden="true">→</span></button>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./interactions.js" defer></script>
+  </body>
+</html>

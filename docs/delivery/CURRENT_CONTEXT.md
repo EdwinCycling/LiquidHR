@@ -1,5 +1,211 @@
 # Actuele overdracht Liquid HR
 
+## P8-verificatie — proces- en formulierstudio 2026-08-09
+
+P8 is uitgevoerd op uitsluitend `codex/process-automation-p4-p5` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5`. De hoofdworkspace op `main` bleef veiligheidskopie. Er is niet gecommit, gepusht, gemerged of gedeployed. Er is alleen synthetische testdata gebruikt; er is geen down-scenario uitgevoerd.
+
+De noodzakelijke bouwvolgorde is aangehouden: schema -> API -> UI.
+
+- Schema: `20260809100000_process_automation_p8_studio.sql`, `20260809100500_process_automation_p8_studio_security.sql` en `20260809101000_process_automation_p8_studio_security_grants.sql` voegen de studio-RPC’s, immutable publish/version/changelog-guards en interne security-definerkern toe. De database-types zijn opnieuw gegenereerd.
+- API: catalogus/detail, draft autosave met expected revision, clone, publish, retire en trial zijn aangesloten. Compilerissues bevatten code, pad en boodschap. Trial gebruikt de bestaande assignment-resolver, rapporteert pad, deelnemers, rechten, SLA, output en blockers en schrijft geen runtime-data.
+- UI: list-first Procesen/Formulieren, canvas plus toegankelijke staplijst, field library/secties/properties, participant-accessmatrix, compilerfeedback, preview voor participant/stap/taal/desktop/390, diff, publish-confirmatie/changelog, published read-only en clone/archive zijn aangesloten. NL/EN hebben gelijke nieuwe sleutels.
+
+Remote en lokaal bewijs:
+
+- Remote zijn alle zes P8-tabellen gecontroleerd met RLS aan en exact één policy. Publieke mutation-wrappers zijn `SECURITY INVOKER`, alleen authenticated uitvoerbaar; interne mutationfuncties zijn `SECURITY DEFINER`, met `anon` geweigerd en `authenticated` toegestaan. De drie P8-migraties staan geregistreerd.
+- De synthetische catalogus bevat `internal-transfer-mslq73xj` als `PUBLISHED` met één published version en `internal-transfer-mslq73xj-copy-mslqd4ax` als `DRAFT` zonder published version. De stale-revision guard gaf remote `PROCESS_DEFINITION_DRAFT_CONFLICT`; de serverguard is daarmee bewezen.
+- Supabase advisors zijn na de laatste grants opnieuw uitgevoerd: security totaal 22 met 0 P8-specifieke securitywaarschuwingen; performance totaal 383 met alleen INFO-meldingen over nog ongebruikte kleine-dataset-indexen.
+- Lokaal: volledige hr-suite 143 bestanden/539 tests groen, gerichte compiler/resolvertests 19/19 groen, strict typecheck, gerichte ESLint met nul warnings, i18n-pariteit (29 namespaces) en `git diff --check` groen. De Webpack-productiebuild is groen (181 statische pagina’s). De standaard Turbopack-build blijft omgevingsmatig geblokkeerd door de externe `node_modules`-symlink/junction; dit is geen P8-codefailure.
+
+Authenticated browserbewijs op de lokale devserver:
+
+- De HR-admin-flow bewees catalogus -> draft aanmaken -> autosave/revisie -> trial zonder runtime-writes (pad, SLA, output en blockers zichtbaar) -> publish versie 1/read-only -> clone. De browserconsole was in die run leeg. De trial liet bewust de niet-volledige resolver zien: initiator/source-manager/target-manager blockers en een HR-queue-uitkomst; dit is correcte blocker-weergave, geen succesvolle volledige businessfixture.
+- De laatste gerichte wijziging voegde de stop/retry-guard voor stale autosave toe. Een nieuwe schone twee-tab authenticated browserrun die specifiek de zichtbare revision-conflictmelding en het stoppen van retries bewijst, kon in de Codex in-app browser niet worden afgerond doordat het lokale browser-target tijdens login/navigatie bleef hangen. Dit bewijs blijft open; de remote conflictrespons is wel bewezen. Een lokale loginrequest op poort 3000 gaf HTTP 200.
+
+### P8-status vóór P9
+
+Bewezen: schema/RLS/grants, API-contracten, compiler/resolvertests, lokale gates, remote publish/versioning, HR-admin studio lifecycle en no-runtime-write trial. Open: schone live UI-evidence voor revision conflict/stop-retry, volledige live field/preview/accessmatrix-herhaling en een volledige succesvolle resolverfixture. Geblokkeerd: standaard Turbopack door worktree-symlink en de laatste Codex-browserherhaling door het browser-target. P8 wordt daarom niet als 100%-gate gemarkeerd. P9 is niet uitgevoerd.
+
+### Handmatig testplan na P9
+
+1. Gebruik de bestaande drie interne fixtures (`hradmin.fixture@liquidhr.test`, `manager.fixture@liquidhr.test`, `employee.fixture@liquidhr.test`) en uitsluitend de behouden P8-clone. Open dezelfde draft in twee HR-admin-tabs; sla tab A op, submit daarna vanuit tab B met stale revision en verwacht de gelokaliseerde conflictmelding, geen retry-loop en een correcte reload.
+2. Maak in de testfase één tijdelijk ongeldige draft-inhoud, controleer exacte compiler-code/pad/boodschap en herstel daarna. Controleer preview voor participant, stap, NL/EN, desktop en 390px; controleer de participant-accessmatrix en keyboard/focus.
+3. Doorloop Procesproef met een synthetische employee/managerfixture die alle resolverpaden vult. Controleer success en blocker-modus afzonderlijk en bevestig vóór/na dat geen process instance, work item, event of output is geschreven.
+4. Controleer publish-confirmatie/changelog, immutable published read-only, diff, clone, archive/retire en impactweergave. Herhaal manager/employee-deny op route en API. Voer daarna de P9-controles uit: volledige keyboard/axe, scheduler/restart en inhoudelijke HTML/PDF/cross-role-downloadcontrole.
+
+## Historische P4/P5/P6/P7-verificatie vóór P8 2026-08-09
+
+Dit blok is de gecontroleerde P4/P5/P6/P7-basis waarop P8 is voortgebouwd; de gecombineerde gate van die eerdere fasen is bewust niet als 100% gemarkeerd.
+
+## Canonieke lokale voortzettingsbasis voor P9 2026-08-09
+
+Alle lokale wijzigingen voor deze voortzetting zijn samengebracht in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5`, branch `codex/process-automation-p4-p5`. Dit is de enige actieve lokale basis voor de volgende thread en de handmatige P9-opvolging. De hoofdworkspace op `main` is bewust als ongewijzigde veiligheidskopie behouden; gebruik die niet als voortzettingsbasis. Er is lokaal geen commit gemaakt en er is niets naar GitHub gepusht, gemerged of gedeployed.
+
+De noodzakelijke fixes zijn beperkt gehouden en in de volgorde schema -> API -> UI uitgevoerd. Remote staat de additive P5-scope-RPC-hardening geregistreerd. De form-projectie en autosave behouden de documentreferentie- en scopevalidatie; een actor zonder employee-context kan via de expliciete task-scope branch lezen en opslaan. De API-downloadroute gebruikt na de context-RPC het bestaande admin storage-signing pad voor exact het geautoriseerde process-document. De work- en work-item-projecties accepteren database-UUID's met geldige Postgres UUID-opmaak, ook wanneer de variantnibble niet RFC-4122 is.
+
+Remote SQL-bewijs: `process_automation_p5_participant_access.sql` en `process_automation_p6_p7.sql` zijn na de hardening zonder fout geslaagd. Een expliciet geautoriseerde synthetische fixture `p4-p7-live-gate` leverde 4 P5-participant-items en een niet-lege P6-queuekandidaat. De live P7-proeven bewezen dubbele-runner-claim met één winnaar, crash/retry/backoff, expired-job naar dead-letter, operator-requeue, reminder-idempotency, output completion en job-success. De output werd `AVAILABLE` met HTML/PDF-metadata; de authenticated download gaf voor de geautoriseerde HR-admin/employee-context een lokale redirect naar het exact gesigneerde synthetische document.
+
+Authenticated browser-bewijs op localhost:3000: HR-admin zag de vier P5-rollen met respectievelijk `Aanvrager`, `Manager`, `Voorwaardelijk HR` en `Observator`, inclusief formulier/submit en zonder load-, forbidden- of console-error. Manager claimde en actioneerde de P6-work-item; employee claimde de requester-item en autosave schreef een response revision. Twee gelijktijdige requester-claims hadden precies één winnaar. Keyboardbewijs toont focus op het formulierinput en autosave `Opgeslagen`. De queue bevatte tijdens de fixture zes zichtbare items voor HR-admin en manager. Een HR-admin zonder employee-context kreeg bij claim terecht HTTP 403; dit is tegelijk een open UI-contractpunt omdat de projectie daar nog een claim/action affordance toont.
+
+Lokale verificatie na de laatste fix: 3 gerichte bestanden, 8/8 Vitest-tests groen (`workflow-job-service`, `process-output`, output-download route), strict typecheck groen en `git diff --check` zonder inhoudelijke fout. Repo-lint stopt vóór linting op de bestaande ESLint 10/`eslint-plugin-react`-compatibiliteit. Supabase advisors en types zijn opnieuw uitgevoerd.
+
+De fixture is transactioneel en aantoonbaar opgeruimd: alle exacte form/process/instance/step/work-item/candidate/event/response/revision/job/output/document/audit-rows en het storage-object staan op 0. De bestaande drie fixtureaccounts zijn niet verwijderd; cleanup raakte alleen de synthetische fixturedata. Er is geen down-migratiescenario uitgevoerd.
+
+### Open / handmatig na fase 9
+
+- P5/P6: HR-admin scope-only claim/action moet productmatig worden beslist: affordance verbergen of een expliciete actor/reassign-flow toevoegen; de negatieve HTTP-403 is bewezen.
+- P6: voer nog de expliciete kandidaat-zonder-claim negatieve action-check uit en leg de verwachte status vast.
+- P6: volledige focus-ring/keyboardmatrix en axe-resultaat op `/work` en detail per rol zijn nog niet als eindbewijs vastgelegd.
+- P7: persistente scheduler/cron-fallback en een echte live dubbele runner over procesrestart heen blijven handmatig te bewijzen; de SQL-kernelproeven zijn wel groen.
+- P7: controleer na fase 9 nog het gedownloade bestand inhoudelijk (PDF-header/HTML-download) en cross-role downloaddeny voor een niet-geautoriseerde context.
+
+### Handmatig testplan na fase 9
+
+1. Log in als HR-admin, manager en employee en open `/work`; controleer lijst, zoek/filter/sortering, detail, vier P5-velden, NL/EN en geen cross-role data.
+2. Gebruik twee sessies op één OPEN item: één claim moet winnen, de andere krijgt `ALREADY_CLAIMED`; controleer daarna release, toegestane action en stale expected-version.
+3. Probeer vóór claim een action, een onjuiste HTTP-action en cross-tenant/output-download; verwacht respectievelijk de gedocumenteerde negatieve status, 403/404 en geen documentlek.
+4. Doorloop alleen met toetsenbord: skip-links, combobox, tabs, formulier, submit, focus-ring en escape/terug; voer daarna axe uit op lijst en detail en noteer violations/incomplete apart.
+5. Laat de scheduler minstens twee runners, crash/retry/backoff, expired/dead-letter, requeue en reminder opnieuw uitvoeren; controleer job-idempotency en persistence na restart.
+6. Download HTML/PDF als geautoriseerde actor, controleer bestandstype/inhoud en herhaal als niet-geautoriseerde rol. Noteer elk resultaat naast dit document.
+
+## Actuele P4/P5/P6/P7-gate 2026-08-08: Process Automation runtime, werk en automation
+
+Deze overdracht gaat uitsluitend over P6 en P7 van `LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`, met de actuele P4/P5-handoff als gecontroleerde context. Het werk staat in featurebranch `codex/process-automation-p4-p5`; P8, product-AI, visual builder, commit, push, merge en deployment zijn bewust niet uitgevoerd. P4 is functioneel bewezen; P5 houdt participant-DOM/network-bewijs open. P6/P7 zijn opnieuw lokaal en remote gecontroleerd en hadden geen niet-lege remote fixtures.
+
+Schema is remote toegepast via de P4/P5-runtime-, form-runtime-, schema-hardening-, hardening-, performance-, grants-, audit-, assignment-, form/action/start-alias-, label-text- en document-reference-compatibiliteitsmigraties. P4 bevat atomic start/action, locks, idempotency/correlation, conditions, assignment, terminal outcomes, parallel `ALL`, append-only events en gesaneerde audit. P5 bevat form versions, current/new revisions, expected-version autosave, server-side access/visibility/hidden projection, typed values, NL/EN labels, shared Zod payloads, accessible renderer en documentreferenties via `employee_documents` plus `document_audiences` en het bestaande documentleesrecht.
+
+Remote security- en datatoegangcontrole voor P4/P5: RLS staat aan op alle zes runtime/form-tabellen en `audit_logs`; response-tabellen hebben geen directe authenticated tabelgrants. Public RPC-wrappers zijn invoker-only met authenticated execute; interne kernels zijn definer met authenticated execute en anon execute uit. Zes runtime-audittriggers zijn aanwezig; audit blijft beperkt tot canonieke CRUD-acties en slaat geen formwaarden op. `packages/db/types.ts` is opnieuw gegenereerd tegen het actuele remote schema.
+
+Remote regressies zijn opnieuw geslaagd: P4/P5-contract, runtime/idempotency/stale concurrency, request changes/reject/cancel/rollback, parallel `ALL` en P5 vier-participant access projection/document domain. Iedere SQL-fixture gebruikte een transactie met rollback; remote tellingen zijn nul voor process instances, steps, workitems, events, form responses, revisions en P4/P5-auditrows. Supabase security advisor bleef projectbaseline (22 meldingen, 1 INFO/21 WARN) zonder P4/P5-target; performance had geen P4/P5-unindexed-FK-melding en alleen verwachte unused-index-INFO's op lege/tabellen.
+
+De daaropvolgende P4/P5-statusregel is de historische handoff vóór de P6/P7-voortzetting; de actuele P6/P7-status staat in het blok eronder.
+
+Lokale verificatie voor deze voortzetting: volledige Vitest 140 bestanden/527 tests, strict typecheck, i18n 29 namespaces, gerichte ESLint en Webpack-productiebuild met 179 pagina's zijn groen. Repo-brede ESLint blijft geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit; de standaard Turbopack-build kan de externe `node_modules`-junction van deze feature-worktree niet verwerken, maar de Webpack-build slaagt.
+
+Status: P4 is volledig bewezen. P5 is functioneel, remote en lokaal code-/testmatig uitgevoerd; participant-DOM/network-bewijs blijft open. De gecombineerde P4/P5-gate is niet 100%; stop vóór P6. Geen remote testdata, commit, push, merge of deployment achtergelaten.
+
+### P6/P7-voortzetting en actuele deliverystatus
+
+De vorige P4/P5-regels hierboven beschrijven de handoff vóór deze voortzetting. P6 is daarna gebouwd met lokale migraties `20260808170000_process_automation_p6_work_projection.sql`, `20260808170700_process_automation_p6_administration_filter.sql` en `20260808171100_process_automation_p6_role_permissions.sql`. De werkruimte `/work` gebruikt URL-state voor zoeken, tabs, filters en sortering en toont veilige projecties; het detail bevat subject/opdracht/formulier/current-new, voortgang, tijdlijn, actiebalk, assignmentuitleg en concurrentiefeedback. Sidebar, startpagina en medewerkerdetail-tab zijn aangesloten met gelijke NL/EN-sleutels.
+
+P7 is gebouwd met de job-, kernel-, deadline-, output-, download- en hardeningmigraties `20260808170100` t/m `20260808171200` in de lokale worktree. Dit omvat locking, retry/backoff/dead-letter, deadlineprojectie naar bestaande reminders, in-app proceswerkprojectie, HTML/PDF-dossieroutput, actor-only outputrechten, operations/requeue en de wrapper-executionfix. Immediate drain en de authenticated schedulerfallback bestaan; een persistente schedulerconfiguratie is niet toegevoegd. Er is geen product-AI of externe mailprovider toegevoegd.
+
+Remote bewijs is opnieuw gecontroleerd: de P6/P7-contracttest geeft `[]`; de drie nieuwe tabellen hebben RLS, elk één policy en geen directe `anon`/`authenticated`-tabelrechten. Er zijn 14 interne security-definerhelpers en 14 publieke invoker-wrappers met authenticated execute en anon geweigerd. Tenant-specifieke HR/TENANT-adminrollen hebben de Process Automation-permissions; `packages/db/types.ts` is opnieuw gegenereerd. P6/P7-specifieke securityadvisorwaarschuwingen ontbreken; resterende meldingen zijn inherited baseline of INFO's voor ongebruikte indexen op lege proces-tabellen.
+
+Browserbewijs is groen voor HR-admin, manager en medewerker op `/work` in de lege-state; desktop 1280px en mobiel 390×844 hebben geen horizontale overflow. Een geautoriseerde niet-lege queue-kandidaat ontbreekt remote en er is geen seeddata achtergelaten. Open blijven P5 participant-DOM/network, queuekandidaat en niet-lege claim/action-rolflows, volledige keyboard/focus- en gerichte axe-controle, live P7 dubbele runner/crash-retry/dead-letter/verlopen-job/output/reminder/download, en persistente scheduler-operatie. De gecombineerde P4/P5/P6/P7-gate is daarom niet 100%; uitvoering stopt vóór P8.
+
+## Historische P2/P3-gate 2026-08-08: Process Automation datamodel en work-item kernel
+
+P1 is uitgebreid met P2 en P3. P2 staat remote als scopevast proces-/formulierdatamodel met drafts, immutable published versions, runtime instances/steps/workitems/events, typed employee/employment-subjectlinks, pinned process versions, RLS, canonical permissions, authenticated-SELECT-only grants en FK-indexen. P3 staat remote als assignment resolver/kernel: business date policies, `EXACTLY_ONE`/`ANY_ONE`/`ALL`, candidate eligibility, scope/self-assignment/deputyregels, evidence-materialisatie, claim/release/reassign/re-resolve, expected-version locking en audit-events. De API-adapters staan onder `apps/hr-suite/app/api/process-work-items/[workItemId]/`; P4 transition engine, studio/runtime-UI en product-AI zijn niet gestart.
+
+Remote migraties: `20260808122825_process_automation_p2_foundation`, `20260808124007_process_automation_p3_workitem_kernel`, `20260808125031_process_automation_p2_grant_hardening`, `20260808125355_process_automation_p3_rpc_contract` en de additive FK-indexmigratie. De remote P2/P3-contracttest slaagt. De echte twee-sessie `ANY_ONE`-test slaagt: één claim wint op de instance-lock, de tweede krijgt `ALREADY_CLAIMED`; stale release, audit-events en directe tabelmutatie zijn eveneens gecontroleerd.
+
+Verse lokale gate: 137 testbestanden/514 tests, gerichte Process Automation-tests 20/20, strict TypeScript, ESLint, i18n 28 namespaces, productiebuild 175 pagina's en `git diff --check` groen. De database-types zijn opnieuw gegenereerd en bevatten de nieuwe tabellen/enums/RPC's. Geen commit, push, merge of deployment.
+
+De definitieve P2/P3-handoff is 100% afgerond. Na expliciete bevestiging zijn de twee tijdelijke concurrency-fixtures (`p3-concurrency-contract` en `p3-concurrency-contract-2`) in één gecontroleerde transactie verwijderd; de nul-rijencontrole omvatte definities, drafts, versions, instances, subjectlinks, steps, workitems, candidates en events. De drie tijdelijk uitgeschakelde immutable/append-only-triggers zijn in dezelfde transactie weer actief gezet. P4 en P5 zijn nog niet gestart. De lokale gates, remote contracttests, twee-sessie-concurrencytest, advisors, typegeneratie en migratielijst zijn gecontroleerd; er is geen commit, push, merge of deployment uitgevoerd.
+
+## Historische P1-gate 2026-08-08: Process Automation definitiecompiler
+
+De zin "P4 en P5 zijn nog niet gestart" in de historische P2/P3-handoff hierboven beschreef de status vóór deze branch. Lees voor de actuele status de P4/P5-sectie bovenaan.
+
+Dit was de P1-startstatus; de actuele P2/P3-status en de resterende cleanup-blocker staan hierboven.
+
+## Hotfix 2026-08-08: verplichte velden in dienstverbandwizard
+
+## Hotfix 2026-08-08: administratie-409 en controlebalk
+
+De terugkerende 409 bij de administratievoorwaardestap kwam door `employees_update_group`: een nieuwe medewerker heeft nog geen organisatieplaatsing en viel daardoor buiten `can_manage_employee`, ondanks een geldig HR-groepsrecht. Migration `20260808144955_allow_hr_group_employee_update_before_placement` is met expliciete toestemming remote toegepast op `wnpfloqpjvaacobppbpk`. De transactionele RLS-regressietest slaagde; tijdelijke testdata is teruggedraaid. De Controle-onderbalk staat nu absoluut vast binnen de wizardkaart met een scrollbaar middendeel.
+
+Verificatie: leeftijds-/wizardtests 4/4, strict TypeScript, gerichte ESLint, i18n 28 namespaces, lokale browsercontrole van vaste onderbalk, remote policycontrole en Supabase security/performance advisors. Advisors tonen alleen bestaande projectbrede meldingen.
+
+De dienstverbandwizard gebruikt nu één gedeelde validatie voor Administratie, Dienstverband, Contract, Rooster en uren, Salaris en Overige. Ook de voorafgaande medewerkergegevenscontrole valideert land, nationaliteit, geboortedatum en geslacht vóór de PATCH. Bij een ontbrekend verplicht veld wordt overal **Vul eerst alle verplichte velden in.** getoond; de technische 400- of algemene foutmelding wordt niet meer aan de gebruiker getoond. Een regressietest dekt de voorwaardestap en iedere wizardtab af.
+
+Verificatie: gerichte Vitest (2 tests), strict TypeScript, gerichte ESLint en `git diff --check` zijn groen. De lokale authenticated browserflow bereikte de dienstverbandaanmaak maar bleef tijdens de bestaande medewerker-aanmaakrequest wachten; de uiteindelijke zichtbare dienstverbandtab is daardoor in deze run niet opnieuw bevestigd.
+
+## Hotfix 2026-08-08: adres-409 bij herintreding vóór organisatieplaatsing
+
+De resterende 409 kwam door een tweede RLS-scopefout. Een bestaand PRIMARY-adres van een medewerker zonder organisatieplaatsing was voor HR niet leesbaar, waardoor de herintredingsflow een dubbele adres-POST deed. Migration `20260808133244_allow_hr_preplacement_subresource_access` is met expliciete toestemming remote toegepast. De migration geeft HR binnen dezelfde HR-groep toegang tot medewerker-subresources en de activiteitenfeed vóór organisatieplaatsing, met behoud van tenant-, HR-groep- en permissionchecks.
+
+Verificatie: remote `subresource_read_allowed=true` en één zichtbaar bestaand adres, remote migratielijst bevestigd, security/performance advisors uitgevoerd en lokale testsuite 137/514 groen. Advisors tonen alleen bestaande projectbrede meldingen.
+
+## Update 2026-08-08: dienstverbandwizard voorkomt verouderde optiesnapshot
+
+De dienstverbandopties worden bij het laden expliciet zonder browsercache opgehaald. Als de medewerker toch tussen laden en opslaan wijzigt, ververst de wizard de opties en probeert alleen opnieuw wanneer de relevante nationaliteit, geboortedatum en het geslacht niet door een andere wijziging zijn aangepast. Wanneer de actuele gegevens al overeenkomen met de invoer, gaat de wizard direct verder. Een echte wijziging van dezelfde persoonsgegevens blijft een controleerbare conflictmelding.
+
+Verificatie: gerichte Vitest, strict TypeScript, gerichte ESLint en `git diff --check` zijn groen. Er is geen databasewijziging uitgevoerd.
+
+## Update 2026-08-08: leeftijdsgrens en dubbele administratie-opslag
+
+De nieuwe medewerkerwizard controleert een ingevulde geboortedatum op een leeftijd van minimaal 10 en maximaal 90 jaar, inclusief de grenswaarden. De controle geldt in de identiteitscontrole, de kerngegevens en de voorafgaande gegevensstap van het dienstverband; NL/EN-meldingen zijn toegevoegd.
+
+De terugkerende 409 in Administratie is read-only bevestigd als een dubbele PATCH met dezelfde `updatedAt`-waarde: de eerste poging slaagt, de tweede poging wordt door de optimistic-concurrencycontrole geweigerd. De wizard blokkeert nu synchroon een tweede opslagactie totdat de eerste klaar is. Er is geen databasewijziging uitgevoerd.
+
+Verificatie: leeftijds- en wizardvalidatietests (4 tests), strict TypeScript, i18n-pariteit, gerichte ESLint en `git diff --check` zijn groen.
+
+## Update 2026-08-08: exacte BSN-match bepaalt wizardroute
+
+Een exacte BSN-match kan niet meer via **Nieuwe medewerker aanmaken** verdergaan. Bij een bestaand actief dienstverband stopt de wizard en blijft alleen de route naar de bestaande medewerker beschikbaar. Bij een afgesloten dienstverband of een bestaande medewerker zonder dienstverband kan de gebruiker de bestaande persoonskaart laden, gegevens bijwerken en kiezen voor alleen bijwerken of bijwerken plus een nieuw dienstverband. Deze route gebruikt de bestaande Employee en gaat niet via `POST /api/employees`.
+
+## Update 2026-08-08: wizardkop en aanmaakconflict
+
+De overbodige subtitel boven de medewerkerwizard is verwijderd en de wizard start daardoor hoger. De stappennavigatie gebruikt op desktop geen sticky-top-offset meer en staat gelijk met de bovenkant van het invoerpaneel. De aanmaakactie behandelt elk `EMPLOYEE_NUMBER_CONFLICT`, ook zonder voorgesteld nummer, gericht op de kerngegevens; een dubbele BSN krijgt een eigen melding en verwijst terug naar de identiteitscontrole. TypeScript, ESLint, i18n, diff-check en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: lege controlesectie en dienstverbandconflict
+
+Op de controlepagina wordt **Extra gegevens** alleen nog getoond wanneer minstens één aanvullend veld is ingevuld; een lege sectie verdwijnt volledig uit de samenvatting. In de eerste dienstverbandstap wordt na een geslaagde medewerker-PATCH de door de API teruggegeven `updatedAt` in de lokale optiesnapshot bijgewerkt. Daarmee blijft de optimistic-concurrencywaarde actueel voor vervolgacties. Een echte `EMPLOYEE_CONCURRENCY_CONFLICT` krijgt bovendien een gerichte NL/EN-melding. TypeScript, ESLint, i18n en een authenticated browsercontrole van de lege controlesectie zijn groen. Er is geen medewerker of dienstverband aangemaakt.
+
+## Update 2026-08-08: medewerkerwizard controle en adreslayout
+
+In Extra gegevens verschijnt het blok **Vrije velden** alleen wanneer de actieve HR-groep minstens één actieve medewerkerdefinitie heeft waarvoor de gebruiker schrijfrechten heeft. Zonder ingerichte medewerker-velden blijft het blok volledig weg. De adresinvoer gebruikt voor straat, huisnummer en toevoeging een vaste, nette veldverdeling. Bij binnenkomst op Controle wordt de scrollpositie naar boven gezet. De controle groepeert de volledige naamopbouw, naamgebruik, partnernaam en overige kerngegevens onder Identiteit; partnernaam staat niet meer los onder Extra gegevens. De controlefooter blijft op één regel met compactere knoptekst. Tijdens het aanmaken van een medewerker met dienstverband toont de wizard dezelfde blokkerende voortgangsweergave als bij de identiteitscontrole. TypeScript, lint, i18n en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: validatiemeldingen en Meer gegevens in medewerkerwizard
+
+De medewerkerwizard toont bij ontbrekende verplichte kerngegevens nu **Vul de gemarkeerde verplichte velden in.** in plaats van de algemene foutmelding. Overige veldvalidatie gebruikt **Corrigeer de gemarkeerde velden**; adrescombinaties behouden hun specifieke adresmelding. Het grote blok **Meer gegevens** met toelichting en aanvullende kerngegevens is uit de kerngegevens-tab verwijderd. De wizard toont alleen een subtiele **Meer gegevens**-indicator tussen de navigatieknoppen wanneer er onder de huidige positie nog scrollinhoud staat. De extra-gegevens-tab behoudt haar eigen inklapbare blokken; identiteit en contact tonen hetzelfde signaal alleen wanneer er daar nog inhoud onder staat. TypeScript, lint, i18n en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: kerngegevens-tab medewerkerwizard
+
+De kerngegevens-tab toont het personeelsnummer op een eigen rij, gevolgd door roepnaam en geboortenaam-tussenvoegsel. Het naamvoorbeeld toont alleen de volledige opgebouwde naam. Partnernaam heeft nu ook een afzonderlijk tussenvoegselveld; de naamopbouw gebruikt dit veld in alle partnernaam-volgordes. TypeScript, lint, i18n en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: bestaande medewerker gebruiken in medewerkerwizard
+
+De medewerkerwizard biedt bij een gevonden persoon zonder dienstverband de expliciete actie **Deze medewerker gebruiken** en bij een persoon met alleen een afgesloten dienstverband **Herintreden met deze medewerker**. De bestaande Employee blijft behouden; de wizard laadt de persoons-, contact-, adres- en vrije-veldgegevens in de volgende tabs en maakt geen tweede Employee. Bij een medewerker zonder dienstverband kan de gebruiker op de controlepagina kiezen voor alleen **Medewerker bijwerken** of **Medewerker + dienstverband aanmaken**. Bij herintreding verschijnt bij de overgang naar het nieuwe dienstverband een tussenkeuze om bruikbare gegevens uit het laatst afgesloten dienstverband als voorstellen over te nemen of met nieuwe gegevens te beginnen. Contract-, rooster-, salaris-, organisatie- en kostenverdelingsvoorstellen worden server-side beperkt tot de gekozen administratie en actuele stamdata. Als de gebruiker de bestaande match niet kiest, blijft de route voor een nieuwe medewerker beschikbaar. Hiervoor was geen schemawijziging nodig.
+
+Strict TypeScript, volledige ESLint, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen. De authenticated lokale browsercontrole bevestigde de herintredingsactie voor Iris de Boer en het voorvullen van kern-, extra- en contactgegevens. De laatste opslagactie en publicatie van een nieuw testdienstverband zijn niet uitgevoerd om testdata niet te muteren.
+
+## Update 2026-08-08: identiteitscontrole overslaan
+
+De medewerker-aanmaakwizard heeft onderaan de identiteitsstap een actie om de controle over te slaan. Deze actie haalt wel het volgende personeelsnummer op en gaat door naar de kerngegevens, maar neemt geen ongeteste identiteitsvelden mee. NL/EN i18n-check en strict TypeScript zijn groen; een authenticated browsercontrole van deze nieuwe actie blijft open.
+
+De navigatieknoppen van iedere wizardstap staan nu als onderbalk onderaan de vaste wizardhoogte en blijven tijdens scrollen zichtbaar. Boven de knoppen staat een subtiele dunne scheidingslijn. TypeScript, lint en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+Tijdens de identiteitscontrole wordt stap 1 tijdelijk geblokkeerd met een interactieve voortgangsweergave met drie fasen, voortgangsbalk en statusiconen. De controle gebruikt NL/EN i18n en verdwijnt automatisch zodra de matchrespons terugkomt. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De melding dat er meer inhoud onderaan staat is hoger boven de navigatiebalk geplaatst en gebruikt nu een subtiele groenige successtijl met duidelijke pijl. TypeScript, lint en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De identiteitsstap toont geen apart `Identiteit`-label meer en de identiteits-progressiekaart toont geen extra toelichtingszin meer. Daarmee is verticale ruimte teruggewonnen; de voortgangstitel, fasen en balk blijven behouden.
+
+De wizardonderbalk gebruikt nu minder verticale padding, waardoor meer ruimte beschikbaar blijft voor formulierinvoer. De scrollhint blijft erboven geplaatst. De herbruikbare UX-standaard staat in [`requirements/ux/WIZARD_UX_STANDARD.md`](../requirements/ux/WIZARD_UX_STANDARD.md) en is toegevoegd aan de documentatie-index.
+
+De wizard heeft daarnaast een vaste hoogte per stap. De adresmelding blijft bij het straatveld uitgelijnd, geselecteerde adreszoekresultaten verdwijnen na keuze en de identiteitsacties staan op één regel met overslaan links en controleren rechts. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+Na een afgeronde identiteitscontrole wisselt de onderbalk naar **Invoer nieuwe medewerker afbreken** links en **Doorgaan** rechts. De actie om de controle over te slaan en de controleknop verdwijnen dan. Bij een exacte match blijft de waarschuwing zichtbaar, maar kan de gebruiker zelf alsnog doorgaan met het invoeren van een nieuwe medewerker. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+Na het voltooien van de kerngegevens toont de wizard onder de stappen **Nog niet opgeslagen** met een save-icoon. Handmatig opslaan maakt de medewerker met de beschikbare kerngegevens aan via de bestaande medewerker-API; daarna toont de wizard **Opgeslagen** en blijft de save-actie beschikbaar voor latere wijzigingen. Het afronden van de wizard werkt vervolgens de opgeslagen medewerker bij in plaats van een dubbele medewerker aan te maken. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De mobiele medewerkerwizard begrenst de breedte van de wizard, scrollcontainer, formulieren en veldlabels expliciet en verbergt horizontale overflow. Daarmee blijven tekstvelden op smalle schermen binnen het paneel. TypeScript, lint en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De kerngegevensstap gebruikt nu `Geboortenaam/Achternaam` en toont tijdens het typen een live naamvoorbeeld met roepnaam, achternaam, partnernaam en de gekozen naamvolgorde. De Extra gegevensstap bestaat uit twee standaard ingeklapte vensters: Optionele extra gegevens en Vrije velden; bestaande actieve HR-groepsvrije velden kunnen daar worden ingevuld en na het aanmaken opgeslagen. De wizard gebruikt een begrensd scrollbaar middenstuk, sticky onderknoppen en een verdwijnende pijlmelding wanneer er meer inhoud onderaan staat. Lokale controles: strict TypeScript, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen. Authenticated browsercontrole van deze visuele flow blijft open.
+
+## Update 2026-08-08: identiteitsmatch en medewerkerarchivering
+
+De medewerker-aanmaakwizard toont bij gevonden medewerkers een uitklapbaar informatieblok met archiefstatus, medewerkertype, actief of laatst bevestigde dienstverband en administratie-nummer plus naam. De identiteitsmatch en de aanvullende dienstverbandread zijn beperkt tot de actieve HR-groep; daarmee worden cross-group kandidaten niet meer als bestaande medewerker aangeboden. De archiefmelding maakt een 404 door ontbrekende of niet-zichtbare HR-groepsscope expliciet. Lokale controles: strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen. Authenticated browsercontrole van de nieuwe informatieweergave en de daadwerkelijke archive-mutatie blijft nog open.
+
+De wizard berekent het voorgestelde personeelsnummer nu uit het hoogste werkelijk gebruikte numerieke nummer plus één. De reserverings-RPC wordt niet meer aangeroepen voor alleen het tonen van het voorstel; daarmee kunnen verlaten wizards het zichtbare nummer niet meer kunstmatig verhogen. De definitieve creatie blijft bij ontbrekende invoer via de bestaande reserveringsroute concurrencyveilig.
+
+De wizard toont geen optionele-labels meer; verplichte velden tonen alleen een sterretje. Veldfouten worden bij blur opnieuw gecontroleerd en verdwijnen wanneer het veld geldig is; samengestelde fouten blijven staan tot alle betrokken velden samen geldig zijn. Dit UX-contract staat leidend in `docs/requirements/ux/FORMULIER_VALIDATIE_EN_LABELS.md`. Lokale controles na deze wijziging: strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen.
+
+De adresstap van de medewerkerwizard gebruikt nu dezelfde adreszoekopdracht en postcode/huisnummer-aanvulling als de persoonskaart. Suggesties vullen straat, huisnummer, toevoeging, postcode en plaats in; handmatige invoer blijft beschikbaar. Wanneer een straatnaam cijfers bevat, verschijnt in zowel de wizard als het bestaande woonadresformulier een niet-blokkerende controleopmerking dat dit onderdeel van de straatnaam kan zijn en dat het huisnummer apart moet worden gecontroleerd. Lokale controles na deze uitbreiding zijn groen; authenticated browsercontrole van de nieuwe wizard-adresflow blijft open.
+
 ## Release 2026-08-07: productversie 1.20260807.2
 
 De zichtbare productversie is verhoogd naar `1.20260807.2` volgens de centrale releaseconventie. De versie-unit-test is bijgewerkt. Lokale releasegate: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en productiebuild met 175 pagina's zijn groen. Commit `98ac2ebc3c8c0b15dd73f373ea4f0889cf14d0a3` staat op `main` en is naar GitHub gepusht.

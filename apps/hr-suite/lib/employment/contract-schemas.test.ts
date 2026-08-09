@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { employmentContractMutationSchema } from './contract-schemas'
+import { employmentContractMutationSchema, isEmploymentContractStartDateValid } from './contract-schemas'
 
 const valid = {
   workerType: 'EMPLOYEE',
@@ -27,5 +27,13 @@ describe('employmentContractMutationSchema', () => {
       ...valid,
       durationType: 'INDEFINITE',
     }).success).toBe(false)
+  })
+
+  it('houdt iedere contractstart binnen het dienstverband en vergrendelt het eerste contract op de dienstverbandstart', () => {
+    expect(isEmploymentContractStartDateValid('2026-07-31', '2026-08-01', true)).toBe(false)
+    expect(isEmploymentContractStartDateValid('2026-08-02', '2026-08-01', true)).toBe(false)
+    expect(isEmploymentContractStartDateValid('2026-08-01', '2026-08-01', true)).toBe(true)
+    expect(isEmploymentContractStartDateValid('2026-08-01', '2026-08-01', false)).toBe(true)
+    expect(isEmploymentContractStartDateValid('2026-08-02', '2026-08-01', false)).toBe(true)
   })
 })

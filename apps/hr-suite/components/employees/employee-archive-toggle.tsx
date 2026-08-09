@@ -14,6 +14,7 @@ interface Labels {
   cancel: string
   saved: string
   failed: string
+  notFound: string
   hasActiveEmployment: string
 }
 
@@ -22,12 +23,14 @@ export function EmployeeArchiveToggle({ employeeId, archived, hasActiveEmploymen
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [failureMessage, setFailureMessage] = useState<string | null>(null)
   const nextArchived = !archived
   const blockedByEmployment = !archived && hasActiveEmployment
 
   async function confirmChange() {
     setSaving(true)
     setFailed(false)
+    setFailureMessage(null)
     const response = await fetch(`/api/employees/${employeeId}/archive`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
@@ -36,6 +39,7 @@ export function EmployeeArchiveToggle({ employeeId, archived, hasActiveEmploymen
     setSaving(false)
     if (!response.ok) {
       setFailed(true)
+      setFailureMessage(response.status === 404 ? labels.notFound : labels.failed)
       return
     }
     setOpen(false)
@@ -58,7 +62,7 @@ export function EmployeeArchiveToggle({ employeeId, archived, hasActiveEmploymen
           {blockedByEmployment
             ? <p className="mt-2 text-sm text-warning">{labels.hasActiveEmployment}</p>
             : <p className="mt-2 text-sm text-muted-foreground">{labels.archiveBody}</p>}
-          {failed && <p className="mt-3 text-sm text-destructive">{labels.failed}</p>}
+          {failed && <p className="mt-3 text-sm text-destructive">{failureMessage ?? labels.failed}</p>}
           <div className="mt-6 flex justify-end gap-3">
             <button type="button" className="button-secondary" disabled={saving} onClick={() => setOpen(false)}>{labels.cancel}</button>
             {!blockedByEmployment && <button type="button" className="button-primary" disabled={saving} onClick={() => void confirmChange()}>{saving ? labels.saved : labels.archiveAction}</button>}

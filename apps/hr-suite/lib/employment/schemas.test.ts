@@ -172,4 +172,12 @@ describe('completeEmploymentCreateSchema', () => {
       incomeRelationship: { ...valid.incomeRelationship, ikvNumber: 100 },
     }).success).toBe(false)
   })
+
+  it('weigert een proeftijd die buiten een tijdelijk contract valt', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      employment: { ...valid.employment, startsOn: '2026-08-01', seniorityDate: '2026-08-01' },
+      contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2026-09-01', probationApplies: true, probationEndsOn: '2026-09-02' },
+    }).success).toBe(false)
+  })
 })
