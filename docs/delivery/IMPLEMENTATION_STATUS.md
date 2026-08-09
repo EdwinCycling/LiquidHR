@@ -4,6 +4,8 @@
 
 P8 is geïmplementeerd in de feature-worktree en lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. `main` is nu de gecombineerde lokale testbasis; er is niets naar GitHub gepusht of gedeployed en er is geen down-scenario uitgevoerd. Alleen synthetische testdata en de drie bestaande interne testaccounts zijn gebruikt.
 
+Actuele lokale runtimecontrole: de `main`-devserver draait vanuit `apps/hr-suite` op poort 3000 (PID 32160); `/login`, `/employees` en `/settings/process-automation` geven HTTP 200. De gemelde authenticated `/employees`-runtime-overlay viel samen met remote Supabase HTTP 504-responses op `user_access`, `user_hr_group_access` en `user_preferences`. Het project staat momenteel `ACTIVE_HEALTHY`; na lokale serverherstart is geen nieuwe serverfout geproduceerd. Dit is als externe/transiënte backendstoring geregistreerd, niet als bewezen codefailure; een browser-reload blijft de eerstvolgende gebruikerscontrole.
+
 De slice is in de vereiste volgorde gebouwd: schema -> API -> UI. Schema/RLS/grants staan in de drie P8-migraties; API-routes leveren catalogus/detail, draft autosave met expected revision, clone, publish, retire en no-write trial; de UI levert list-first Procesen/Formulieren, toegankelijke staplijst/canvas, form fields/secties/properties, participant access, compilerfeedback, preview, diff, publish-confirmatie/changelog, read-only published state en clone/archive. `packages/db/types.ts` is opnieuw gegenereerd en NL/EN-pariteit is groen.
 
 ### Bewijs

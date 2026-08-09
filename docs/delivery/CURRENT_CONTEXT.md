@@ -4,6 +4,8 @@
 
 P8 is uitgevoerd in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\process-automation-p4-p5` en daarna lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. De hoofdworkspace op `main` is nu de gecombineerde testbasis voor poort 3000. Er is niets naar GitHub gepusht of gedeployed. Er is alleen synthetische testdata gebruikt; er is geen down-scenario uitgevoerd.
 
+Actuele lokale runtimecontrole: de `main`-devserver draait vanuit `apps/hr-suite` op poort 3000 (PID 32160); `/login`, `/employees` en `/settings/process-automation` geven lokaal HTTP 200. De gemelde Next-runtime-overlay op een eerder geladen authenticated `/employees`-tab viel samen met Supabase API-logs met HTTP 504 op `user_access`, `user_hr_group_access` en `user_preferences`. Het Supabase-project staat momenteel `ACTIVE_HEALTHY`; er is daarom geen codewijziging voor deze melding doorgevoerd. Na herstart van de lokale server is de route opnieuw HTTP 200; bij de gebruiker is een reload nodig om de oude development-overlay te vervangen.
+
 De noodzakelijke bouwvolgorde is aangehouden: schema -> API -> UI.
 
 - Schema: `20260809100000_process_automation_p8_studio.sql`, `20260809100500_process_automation_p8_studio_security.sql` en `20260809101000_process_automation_p8_studio_security_grants.sql` voegen de studio-RPC’s, immutable publish/version/changelog-guards en interne security-definerkern toe. De database-types zijn opnieuw gegenereerd.
