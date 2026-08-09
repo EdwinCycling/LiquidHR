@@ -8,6 +8,8 @@ Actuele lokale runtimecontrole: de `main`-devserver draait vanuit `apps/hr-suite
 
 Aanvullende diagnose: read-only `pg_stat_activity` liet tijdelijk elf gelijktijdige `save_process_definition_draft`-requests zien, waarvan meerdere op dezelfde draft-lock wachtten. De lokale Next-processen zijn gecontroleerd gestopt en er draait nu opnieuw één schone `main`-devserver op poort 3000. Er is geen remote data verwijderd of teruggedraaid. De oorzaak van de oorspronkelijke pooluitputting is daarmee vastgesteld als een open/overlappende studio-save-testaanvraag; de bestaande UI-stopguard blijft een open authenticated browserbewijs en wordt niet als volledig bewezen geclaimd.
 
+Incident na login: een afgebroken transactionele P8-save hield een tuple-lock op `process_definitions` vast; acht actieve save-sessies wachtten daarop en veroorzaakten `PGRST003` in het dashboard. Alleen deze vastgelopen authenticated test-sessies zijn beëindigd; er is geen rij verwijderd, geen migratie teruggedraaid en geen down-scenario uitgevoerd. Nacontrole is groen: nul wachtende definition-locks en nul afgebroken transacties. De gebruiker moet de bestaande tab reloaden en opnieuw inloggen; open geen tweede studio-tab totdat de revision-conflict/stop-retrybrowserproef opnieuw wordt uitgevoerd.
+
 De noodzakelijke bouwvolgorde is aangehouden: schema -> API -> UI.
 
 - Schema: `20260809100000_process_automation_p8_studio.sql`, `20260809100500_process_automation_p8_studio_security.sql` en `20260809101000_process_automation_p8_studio_security_grants.sql` voegen de studio-RPC’s, immutable publish/version/changelog-guards en interne security-definerkern toe. De database-types zijn opnieuw gegenereerd.
