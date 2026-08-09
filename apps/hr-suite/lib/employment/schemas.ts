@@ -94,6 +94,9 @@ const completeContractSchema = z.object({
   if (value.probationApplies && (!value.probationEndsOn || value.probationEndsOn < value.startsOn)) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_INVALID' })
   }
+  if (value.probationApplies && value.durationType === 'DEFINITE' && value.probationEndsOn && value.endsOn && value.probationEndsOn > value.endsOn) {
+    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_OUTSIDE_CONTRACT' })
+  }
   if (!value.probationApplies && value.probationEndsOn) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_NOT_ALLOWED' })
   }

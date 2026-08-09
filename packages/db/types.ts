@@ -10774,6 +10774,900 @@ export type Database = {
         ]
       }
     }
+      process_definitions: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: Json | null
+          hr_group_id: string
+          id: string
+          key: string
+          scope_type: Database["public"]["Enums"]["access_scope_type"]
+          status: Database["public"]["Enums"]["process_definition_status"]
+          tenant_id: string
+          title: Json
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: Json | null
+          hr_group_id: string
+          id?: string
+          key: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
+          status?: Database["public"]["Enums"]["process_definition_status"]
+          tenant_id: string
+          title: Json
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: Json | null
+          hr_group_id?: string
+          id?: string
+          key?: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
+          status?: Database["public"]["Enums"]["process_definition_status"]
+          tenant_id?: string
+          title?: Json
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_definitions_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_definitions_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      process_definition_drafts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          definition_json: Json
+          hr_group_id: string
+          id: string
+          process_definition_id: string
+          revision: number
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          validation_report: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          definition_json: Json
+          hr_group_id: string
+          id?: string
+          process_definition_id: string
+          revision: number
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          validation_report?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          definition_json?: Json
+          hr_group_id?: string
+          id?: string
+          process_definition_id?: string
+          revision?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          validation_report?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_definition_drafts_definition_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_definition_id"]
+            isOneToOne: false
+            referencedRelation: "process_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      process_versions: {
+        Row: {
+          compiler_version: string
+          created_at: string
+          definition_hash: string
+          definition_json: Json
+          hr_group_id: string
+          id: string
+          process_definition_id: string
+          published_at: string
+          published_by_user_id: string | null
+          schema_version: number
+          tenant_id: string
+          version_number: number
+        }
+        Insert: {
+          compiler_version: string
+          created_at?: string
+          definition_hash: string
+          definition_json: Json
+          hr_group_id: string
+          id?: string
+          process_definition_id: string
+          published_at?: string
+          published_by_user_id?: string | null
+          schema_version: number
+          tenant_id: string
+          version_number: number
+        }
+        Update: {
+          compiler_version?: string
+          created_at?: string
+          definition_hash?: string
+          definition_json?: Json
+          hr_group_id?: string
+          id?: string
+          process_definition_id?: string
+          published_at?: string
+          published_by_user_id?: string | null
+          schema_version?: number
+          tenant_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_versions_definition_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_definition_id"]
+            isOneToOne: false
+            referencedRelation: "process_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      form_definitions: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: Json | null
+          hr_group_id: string
+          id: string
+          key: string
+          scope_type: Database["public"]["Enums"]["access_scope_type"]
+          status: Database["public"]["Enums"]["process_definition_status"]
+          tenant_id: string
+          title: Json
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: Json | null
+          hr_group_id: string
+          id?: string
+          key: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
+          status?: Database["public"]["Enums"]["process_definition_status"]
+          tenant_id: string
+          title: Json
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: Json | null
+          hr_group_id?: string
+          id?: string
+          key?: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
+          status?: Database["public"]["Enums"]["process_definition_status"]
+          tenant_id?: string
+          title?: Json
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_definitions_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "form_definitions_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      form_definition_drafts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          definition_json: Json
+          form_definition_id: string
+          hr_group_id: string
+          id: string
+          revision: number
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          validation_report: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          definition_json: Json
+          form_definition_id: string
+          hr_group_id: string
+          id?: string
+          revision: number
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          validation_report?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          definition_json?: Json
+          form_definition_id?: string
+          hr_group_id?: string
+          id?: string
+          revision?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          validation_report?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_definition_drafts_definition_fkey"
+            columns: ["tenant_id", "hr_group_id", "form_definition_id"]
+            isOneToOne: false
+            referencedRelation: "form_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      form_versions: {
+        Row: {
+          compiler_version: string
+          created_at: string
+          definition_hash: string
+          definition_json: Json
+          form_definition_id: string
+          hr_group_id: string
+          id: string
+          published_at: string
+          published_by_user_id: string | null
+          schema_version: number
+          tenant_id: string
+          version_number: number
+        }
+        Insert: {
+          compiler_version: string
+          created_at?: string
+          definition_hash: string
+          definition_json: Json
+          form_definition_id: string
+          hr_group_id: string
+          id?: string
+          published_at?: string
+          published_by_user_id?: string | null
+          schema_version: number
+          tenant_id: string
+          version_number: number
+        }
+        Update: {
+          compiler_version?: string
+          created_at?: string
+          definition_hash?: string
+          definition_json?: Json
+          form_definition_id?: string
+          hr_group_id?: string
+          id?: string
+          published_at?: string
+          published_by_user_id?: string | null
+          schema_version?: number
+          tenant_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_versions_definition_fkey"
+            columns: ["tenant_id", "hr_group_id", "form_definition_id"]
+            isOneToOne: false
+            referencedRelation: "form_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      process_instances: {
+        Row: {
+          administration_id: string | null
+          business_effective_date: string | null
+          completed_at: string | null
+          created_at: string
+          current_step_key: string | null
+          hr_group_id: string
+          id: string
+          initiator_employee_id: string | null
+          initiator_user_id: string
+          instance_version: number
+          metadata: Json
+          process_definition_id: string
+          process_version_id: string
+          scope_type: Database["public"]["Enums"]["access_scope_type"]
+          started_at: string | null
+          status: Database["public"]["Enums"]["process_instance_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id?: string | null
+          business_effective_date?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_step_key?: string | null
+          hr_group_id: string
+          id?: string
+          initiator_employee_id?: string | null
+          initiator_user_id: string
+          instance_version?: number
+          metadata?: Json
+          process_definition_id: string
+          process_version_id: string
+          scope_type: Database["public"]["Enums"]["access_scope_type"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_instance_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string | null
+          business_effective_date?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_step_key?: string | null
+          hr_group_id?: string
+          id?: string
+          initiator_employee_id?: string | null
+          initiator_user_id?: string
+          instance_version?: number
+          metadata?: Json
+          process_definition_id?: string
+          process_version_id?: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_instance_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_instances_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_instances_definition_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_definition_id"]
+            isOneToOne: false
+            referencedRelation: "process_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_instances_initiator_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "initiator_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_instances_pinned_version_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "process_definition_id",
+              "process_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "process_versions"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "process_definition_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "process_instances_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      process_employee_subjects: {
+        Row: {
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          hr_group_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          hr_group_id?: string
+          process_instance_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_employee_subjects_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_employee_subjects_instance_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      process_employment_subjects: {
+        Row: {
+          administration_id: string
+          created_at: string
+          employment_id: string
+          hr_group_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          employment_id: string
+          hr_group_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          employment_id?: string
+          hr_group_id?: string
+          process_instance_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_employment_subjects_employment_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "process_employment_subjects_instance_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "process_instance_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
+          },
+        ]
+      }
+      process_step_instances: {
+        Row: {
+          activated_at: string | null
+          activation_number: number
+          blocked_code: string | null
+          completed_at: string | null
+          created_at: string
+          deadline_at: string | null
+          expected_version: number
+          hr_group_id: string
+          id: string
+          process_instance_id: string
+          process_version_id: string
+          status: Database["public"]["Enums"]["process_step_instance_status"]
+          step_key: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_number?: number
+          blocked_code?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deadline_at?: string | null
+          expected_version?: number
+          hr_group_id: string
+          id?: string
+          process_instance_id: string
+          process_version_id: string
+          status?: Database["public"]["Enums"]["process_step_instance_status"]
+          step_key: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activation_number?: number
+          blocked_code?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deadline_at?: string | null
+          expected_version?: number
+          hr_group_id?: string
+          id?: string
+          process_instance_id?: string
+          process_version_id?: string
+          status?: Database["public"]["Enums"]["process_step_instance_status"]
+          step_key?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_step_instances_instance_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "process_instance_id",
+              "process_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "id",
+              "process_version_id",
+            ]
+          },
+        ]
+      }
+      process_work_items: {
+        Row: {
+          allow_self_assignment: boolean
+          assignee_employee_id: string | null
+          assignment_mode: Database["public"]["Enums"]["process_assignment_mode"]
+          assignment_snapshot: Json
+          available_at: string
+          blocked_code: string | null
+          claimed_at: string | null
+          claimed_by_user_id: string | null
+          created_at: string
+          deadline_at: string | null
+          expected_version: number
+          hr_group_id: string
+          id: string
+          participant_key: string
+          process_instance_id: string
+          process_version_id: string
+          status: Database["public"]["Enums"]["process_work_item_status"]
+          step_instance_id: string
+          step_key: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_self_assignment?: boolean
+          assignee_employee_id?: string | null
+          assignment_mode: Database["public"]["Enums"]["process_assignment_mode"]
+          assignment_snapshot?: Json
+          available_at?: string
+          blocked_code?: string | null
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          deadline_at?: string | null
+          expected_version?: number
+          hr_group_id: string
+          id?: string
+          participant_key: string
+          process_instance_id: string
+          process_version_id: string
+          status?: Database["public"]["Enums"]["process_work_item_status"]
+          step_instance_id: string
+          step_key: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_self_assignment?: boolean
+          assignee_employee_id?: string | null
+          assignment_mode?: Database["public"]["Enums"]["process_assignment_mode"]
+          assignment_snapshot?: Json
+          available_at?: string
+          blocked_code?: string | null
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          deadline_at?: string | null
+          expected_version?: number
+          hr_group_id?: string
+          id?: string
+          participant_key?: string
+          process_instance_id?: string
+          process_version_id?: string
+          status?: Database["public"]["Enums"]["process_work_item_status"]
+          step_instance_id?: string
+          step_key?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_work_items_assignee_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_work_items_instance_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_work_items_step_instance_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "process_instance_id",
+              "step_instance_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "process_step_instances"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "process_instance_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "process_work_items_version_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "process_instance_id",
+              "process_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "id",
+              "process_version_id",
+            ]
+          },
+        ]
+      }
+      process_work_item_candidates: {
+        Row: {
+          ancestor_path: Json
+          candidate_user_id: string | null
+          created_at: string
+          employee_id: string
+          evidence: Json
+          hr_group_id: string
+          id: string
+          ineligible_reason: string | null
+          is_eligible: boolean
+          management_role_code: string | null
+          management_role_id: string | null
+          resolution_date: string
+          resolution_policy: string
+          resolution_revision: number
+          resolution_source: string
+          source_department_id: string | null
+          tenant_id: string
+          work_item_id: string
+        }
+        Insert: {
+          ancestor_path?: Json
+          candidate_user_id?: string | null
+          created_at?: string
+          employee_id: string
+          evidence?: Json
+          hr_group_id: string
+          id?: string
+          ineligible_reason?: string | null
+          is_eligible: boolean
+          management_role_code?: string | null
+          management_role_id?: string | null
+          resolution_date: string
+          resolution_policy: string
+          resolution_revision?: number
+          resolution_source: string
+          source_department_id?: string | null
+          tenant_id: string
+          work_item_id: string
+        }
+        Update: {
+          ancestor_path?: Json
+          candidate_user_id?: string | null
+          created_at?: string
+          employee_id?: string
+          evidence?: Json
+          hr_group_id?: string
+          id?: string
+          ineligible_reason?: string | null
+          is_eligible?: boolean
+          management_role_code?: string | null
+          management_role_id?: string | null
+          resolution_date?: string
+          resolution_policy?: string
+          resolution_revision?: number
+          resolution_source?: string
+          source_department_id?: string | null
+          tenant_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_work_item_candidates_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_work_item_candidates_management_role_id_fkey"
+            columns: ["management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_work_item_candidates_role_fkey"
+            columns: ["management_role_id"]
+            isOneToOne: false
+            referencedRelation: "management_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_work_item_candidates_work_item_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_item_id"]
+            isOneToOne: false
+            referencedRelation: "process_work_items"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      process_events: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          idempotency_key: string | null
+          payload: Json
+          process_instance_id: string
+          sequence_number: number
+          tenant_id: string
+          work_item_id: string | null
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          process_instance_id: string
+          sequence_number: number
+          tenant_id: string
+          work_item_id?: string | null
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          process_instance_id?: string
+          sequence_number?: number
+          tenant_id?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_events_actor_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_events_instance_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_events_work_item_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_item_id"]
+            isOneToOne: false
+            referencedRelation: "process_work_items"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
     Views: {
       hr_change_events: {
         Row: {
@@ -11573,6 +12467,35 @@ export type Database = {
         Args: { requested_administration_id: string; requested_payload: Json }
         Returns: string
       }
+      claim_process_work_item: {
+        Args: {
+          requested_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
+      release_process_work_item: {
+        Args: {
+          requested_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
+      reassign_process_work_item: {
+        Args: {
+          requested_employee_id: string
+          requested_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
+      re_resolve_process_work_item: {
+        Args: {
+          requested_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       absence_case_status: "ACTIVE" | "RECOVERY_WINDOW" | "CLOSED"
@@ -11700,6 +12623,31 @@ export type Database = {
       payroll_reporting_status: "DRAFT" | "READY" | "REPORTED" | "CLOSED"
       platform_operator_role: "OWNER" | "OPERATOR" | "AUDITOR"
       platform_support_session_status: "ACTIVE" | "ENDED"
+      process_assignment_mode: "EXACTLY_ONE" | "ANY_ONE" | "ALL"
+      process_definition_status: "DRAFT" | "PUBLISHED" | "RETIRED"
+      process_instance_status:
+        | "DRAFT"
+        | "RUNNING"
+        | "WAITING"
+        | "BLOCKED"
+        | "COMPLETED"
+        | "REJECTED"
+        | "CANCELLED"
+        | "FAILED"
+      process_step_instance_status:
+        | "PENDING"
+        | "ACTIVE"
+        | "BLOCKED"
+        | "COMPLETED"
+        | "REJECTED"
+        | "CANCELLED"
+      process_work_item_status:
+        | "OPEN"
+        | "CLAIMED"
+        | "COMPLETED"
+        | "CANCELLED"
+        | "EXPIRED"
+        | "BLOCKED"
       relation_type:
         | "PARTNER"
         | "CHILD"
@@ -12024,6 +12972,34 @@ export const Constants = {
       payroll_reporting_status: ["DRAFT", "READY", "REPORTED", "CLOSED"],
       platform_operator_role: ["OWNER", "OPERATOR", "AUDITOR"],
       platform_support_session_status: ["ACTIVE", "ENDED"],
+      process_assignment_mode: ["EXACTLY_ONE", "ANY_ONE", "ALL"],
+      process_definition_status: ["DRAFT", "PUBLISHED", "RETIRED"],
+      process_instance_status: [
+        "DRAFT",
+        "RUNNING",
+        "WAITING",
+        "BLOCKED",
+        "COMPLETED",
+        "REJECTED",
+        "CANCELLED",
+        "FAILED",
+      ],
+      process_step_instance_status: [
+        "PENDING",
+        "ACTIVE",
+        "BLOCKED",
+        "COMPLETED",
+        "REJECTED",
+        "CANCELLED",
+      ],
+      process_work_item_status: [
+        "OPEN",
+        "CLAIMED",
+        "COMPLETED",
+        "CANCELLED",
+        "EXPIRED",
+        "BLOCKED",
+      ],
       relation_type: [
         "PARTNER",
         "CHILD",

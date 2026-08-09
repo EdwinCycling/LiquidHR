@@ -1,5 +1,145 @@
 # Actuele overdracht Liquid HR
 
+## Hotfix 2026-08-08: looncontractkeuze gaat eerst naar Controleren
+
+De knop **Doorgaan** na **Geen looncontractgegevens toevoegen** kan het dienstverband niet meer opslaan. De submit-handler accepteert een opslag uitsluitend wanneer de actuele wizardstap **Controleren** is; op eerdere stappen wordt alleen genavigeerd. Daarmee verschijnt de voortgangsindicator pas bij de expliciete aanmaakactie op Controleren. De regressietest `employment-wizard-validation.test.ts` borgt deze grens. Verificatie: gerichte Vitest (6 tests), strict TypeScript, gerichte ESLint en `git diff --check` zijn groen. Geen databasewijziging, commit, push, merge of deployment.
+
+## Update 2026-08-08: dienstverbanddetail overzicht en wijzigingsacties
+
+De eerste tab van het dienstverbanddetail blijft **Overzicht**. De losse overzichtskaarten met dienstverbandnummer, startperiode, land, IKV-nummer en overige detailwaarden zijn vervangen door één breed samenvattingsvenster met **Adm.**, **CAO**, **Medewerkertype** en **Anciënniteitsdatum**. Daaronder staan zeven kleine actiekaarten voor uren/rooster, uren/rooster/salaris, functie/afdeling/kostenplaats, salaris, CAO, contracttype/startdatum en contract verwijderen.
+
+Iedere actiekaart opent voorlopig een lege toegankelijke modal met de specifieke wijzigingstitel en links de knop **Annuleren**. De inhoudelijke wijzigingsformulieren en opslaglogica blijven open voor een volgende opdracht; er is geen schemawijziging of API-wijziging uitgevoerd. NL/EN-sleutels zijn gelijkgetrokken. Verificatie: i18n-pariteit, strict TypeScript, lint zonder fouten (alleen een bestaande waarschuwing in een andere contractwizard), `git diff --check` en authenticated browsercontrole op desktop en 390×844; de modal opent en sluit correct en de browserconsole bleef leeg.
+
+## Actuele P2/P3-gate 2026-08-08: Process Automation datamodel en work-item kernel
+
+P1 is uitgebreid met P2 en P3. P2 staat remote als scopevast proces-/formulierdatamodel met drafts, immutable published versions, runtime instances/steps/workitems/events, typed employee/employment-subjectlinks, pinned process versions, RLS, canonical permissions, authenticated-SELECT-only grants en FK-indexen. P3 staat remote als assignment resolver/kernel: business date policies, `EXACTLY_ONE`/`ANY_ONE`/`ALL`, candidate eligibility, scope/self-assignment/deputyregels, evidence-materialisatie, claim/release/reassign/re-resolve, expected-version locking en audit-events. De API-adapters staan onder `apps/hr-suite/app/api/process-work-items/[workItemId]/`; P4 transition engine, studio/runtime-UI en product-AI zijn niet gestart.
+
+Remote migraties: `20260808122825_process_automation_p2_foundation`, `20260808124007_process_automation_p3_workitem_kernel`, `20260808125031_process_automation_p2_grant_hardening`, `20260808125355_process_automation_p3_rpc_contract` en de additive FK-indexmigratie. De remote P2/P3-contracttest slaagt. De echte twee-sessie `ANY_ONE`-test slaagt: één claim wint op de instance-lock, de tweede krijgt `ALREADY_CLAIMED`; stale release, audit-events en directe tabelmutatie zijn eveneens gecontroleerd.
+
+Verse lokale gate: 137 testbestanden/514 tests, gerichte Process Automation-tests 20/20, strict TypeScript, ESLint, i18n 28 namespaces, productiebuild 175 pagina's en `git diff --check` groen. De database-types zijn opnieuw gegenereerd en bevatten de nieuwe tabellen/enums/RPC's. Geen commit, push, merge of deployment.
+
+De definitieve P2/P3-handoff is 100% afgerond. Na expliciete bevestiging zijn de twee tijdelijke concurrency-fixtures (`p3-concurrency-contract` en `p3-concurrency-contract-2`) in één gecontroleerde transactie verwijderd; de nul-rijencontrole omvatte definities, drafts, versions, instances, subjectlinks, steps, workitems, candidates en events. De drie tijdelijk uitgeschakelde immutable/append-only-triggers zijn in dezelfde transactie weer actief gezet. P4 en P5 zijn nog niet gestart. De lokale gates, remote contracttests, twee-sessie-concurrencytest, advisors, typegeneratie en migratielijst zijn gecontroleerd; er is geen commit, push, merge of deployment uitgevoerd.
+
+## Update 2026-08-08: dienstverbandwizard layout, contractvalidatie en rooster
+
+De gedeelde dienstverbandwizard gebruikt nu op iedere tab een vaste flexkolom met een sticky onderbalk, dunne scheidingslijn en scrollbaar middenstuk. De administratie-tab toont geen lege **Meer gegevens**-hint meer. De linker stapnavigatie van de medewerkerwizard blijft binnen de viewport en de eerste wizardtabs gebruiken dezelfde onderbalkopzet. Op smalle viewports toont de stapnavigatie bovenaan de tekst zonder nummer; in de rechterkolom blijven nummer en tekst samen zichtbaar.
+
+Functioneel wordt het dienstverbandnummer standaard op het eerstvolgende vrije nummer binnen de gekozen administratie gezet, en zijn de payroll-keuzetekst en looncontractweergave aangescherpt. De fulltime-norm komt als kleine tekst uit de gekozen CAO/bedrijfsregeling; de frequentie is alleen een keuzeveld wanneer meerdere actieve frequenties zijn ingericht. Salarisbedragen worden op twee decimalen genormaliseerd. Leidinggevenden worden server-side en in de UI afgeleid uit afdeling en HR-inrichting en zijn niet meer kiesbaar. Kostenplaatsen kunnen worden gesplitst; één kostendrager geldt voor de volledige verdeling.
+
+Contractdatums staan op één regel waar de viewport dat toelaat. Einddatums worden niet vóór de startdatum toegestaan; korte bepaalde contracten, startdatums ver in het verleden/de toekomst en proeftijden langer dan drie maanden geven een waarschuwing zonder de opslag te blokkeren. Een proeftijd buiten het contract blijft wel ongeldig. Het rooster accepteert geen negatieve uren of werkweken boven 50 uur, toont uitgelijnde dagvelden en ondersteunt een tweede week waarvan het gemiddelde exact aan de uren per week moet voldoen. De bestaande werkpatroon-API wordt gebruikt om die tweede week na publicatie vast te leggen.
+
+De controle-tab toont salaris (voltijd of deeltijd), afdeling en functie. Als bij opslaan vanaf Controle toch een eerdere stap ongeldig is, gaat de wizard terug naar de eerste ongeldige stap in plaats van een generieke **Vul eerst alle verplichte velden in**-melding op de lees-only controlepagina te tonen. De gerapporteerde 400 wordt niet meer automatisch als ontbrekende verplichte velden gelabeld; de servercode blijft beschikbaar voor de concrete foutweergave.
+
+Verificatie in de authenticated lokale browser op poort 3000: Administratie, Dienstverband, Contract, Rooster en uren, Salaris, Overige en Controle zijn doorlopen op een bestaande medewerker zonder dienstverband; er is geen nieuw dienstverband opgeslagen. De medewerkerwizard-shell en linker stapnavigatie zijn visueel gecontroleerd. Strict TypeScript, i18n-pariteit, gerichte wizard-/schema-tests en `git diff --check` zijn groen. Er is geen nieuwe databasewijziging, commit, push, merge of deployment uitgevoerd.
+
+## Update 2026-08-08: nieuw dienstverband vanuit bestaande medewerker
+
+De oude dienstverbandpopup en de losse dienstverbandwizard-instap zijn verwijderd. De knop **Nieuw dienstverband** op Medewerkergegevens → Dienstverbanden opent nu rechtstreeks de bestaande medewerkerwizard-shell in dienstverbandmodus, vanaf Administratie, inclusief de keuze om na het dienstverband wel of geen looncontractgegevens toe te voegen. De wizardtitel toont daarbij de samengestelde medewerkernaam, zodat de context tijdens de hele flow zichtbaar blijft. De bestaande opties zetten een nieuw dienstverband zonder actieve primaire relatie standaard primair; bij een bestaande actieve primaire relatie blijft een parallel dienstverband standaard niet-primair.
+
+De knop **Contract toevoegen** op het dienstverbandoverzicht gebruikt dezelfde wizard-shell in contractmodus en opent direct op Looncontract met medewerker, dienstverband en administratie als vaste context. Een actief huidig contract blijft geblokkeerd tot het is beëindigd.
+
+Verificatie: authenticated lokale browsercontrole op poort 3000 bevestigde beide instapgevallen zonder opslag: 0 dienstverbanden start primair en een actieve primaire relatie start parallel. Console-errors en -warnings waren leeg. Daarnaast zijn strict TypeScript, volledige ESLint, i18n-pariteit, gerichte dienstverbandwizardtests (4/4) en `git diff --check` groen. Er is geen databasewijziging, testdienstverband, commit, push, merge of deployment uitgevoerd.
+
+## Historische P1-gate 2026-08-08: Process Automation definitiecompiler
+
+Dit was de P1-startstatus; de actuele P2/P3-status en de resterende cleanup-blocker staan hierboven.
+
+## Hotfix 2026-08-08: verplichte velden in dienstverbandwizard
+
+## Hotfix 2026-08-08: administratie-409 en controlebalk
+
+De terugkerende 409 bij de administratievoorwaardestap kwam door `employees_update_group`: een nieuwe medewerker heeft nog geen organisatieplaatsing en viel daardoor buiten `can_manage_employee`, ondanks een geldig HR-groepsrecht. Migration `20260808144955_allow_hr_group_employee_update_before_placement` is met expliciete toestemming remote toegepast op `wnpfloqpjvaacobppbpk`. De transactionele RLS-regressietest slaagde; tijdelijke testdata is teruggedraaid. De Controle-onderbalk staat nu absoluut vast binnen de wizardkaart met een scrollbaar middendeel.
+
+Verificatie: leeftijds-/wizardtests 4/4, strict TypeScript, gerichte ESLint, i18n 28 namespaces, lokale browsercontrole van vaste onderbalk, remote policycontrole en Supabase security/performance advisors. Advisors tonen alleen bestaande projectbrede meldingen.
+
+De dienstverbandwizard gebruikt nu één gedeelde validatie voor Administratie, Dienstverband, Contract, Rooster en uren, Salaris en Overige. Ook de voorafgaande medewerkergegevenscontrole valideert land, nationaliteit, geboortedatum en geslacht vóór de PATCH. Bij een ontbrekend verplicht veld wordt overal **Vul eerst alle verplichte velden in.** getoond; de technische 400- of algemene foutmelding wordt niet meer aan de gebruiker getoond. Een regressietest dekt de voorwaardestap en iedere wizardtab af.
+
+Verificatie: gerichte Vitest (2 tests), strict TypeScript, gerichte ESLint en `git diff --check` zijn groen. De lokale authenticated browserflow bereikte de dienstverbandaanmaak maar bleef tijdens de bestaande medewerker-aanmaakrequest wachten; de uiteindelijke zichtbare dienstverbandtab is daardoor in deze run niet opnieuw bevestigd.
+
+## Hotfix 2026-08-08: adres-409 bij herintreding vóór organisatieplaatsing
+
+De resterende 409 kwam door een tweede RLS-scopefout. Een bestaand PRIMARY-adres van een medewerker zonder organisatieplaatsing was voor HR niet leesbaar, waardoor de herintredingsflow een dubbele adres-POST deed. Migration `20260808133244_allow_hr_preplacement_subresource_access` is met expliciete toestemming remote toegepast. De migration geeft HR binnen dezelfde HR-groep toegang tot medewerker-subresources en de activiteitenfeed vóór organisatieplaatsing, met behoud van tenant-, HR-groep- en permissionchecks.
+
+Verificatie: remote `subresource_read_allowed=true` en één zichtbaar bestaand adres, remote migratielijst bevestigd, security/performance advisors uitgevoerd en lokale testsuite 137/514 groen. Advisors tonen alleen bestaande projectbrede meldingen.
+
+## Update 2026-08-08: dienstverbandwizard voorkomt verouderde optiesnapshot
+
+De dienstverbandopties worden bij het laden expliciet zonder browsercache opgehaald. Als de medewerker toch tussen laden en opslaan wijzigt, ververst de wizard de opties en probeert alleen opnieuw wanneer de relevante nationaliteit, geboortedatum en het geslacht niet door een andere wijziging zijn aangepast. Wanneer de actuele gegevens al overeenkomen met de invoer, gaat de wizard direct verder. Een echte wijziging van dezelfde persoonsgegevens blijft een controleerbare conflictmelding.
+
+Verificatie: gerichte Vitest, strict TypeScript, gerichte ESLint en `git diff --check` zijn groen. Er is geen databasewijziging uitgevoerd.
+
+## Update 2026-08-08: leeftijdsgrens en dubbele administratie-opslag
+
+De nieuwe medewerkerwizard controleert een ingevulde geboortedatum op een leeftijd van minimaal 10 en maximaal 90 jaar, inclusief de grenswaarden. De controle geldt in de identiteitscontrole, de kerngegevens en de voorafgaande gegevensstap van het dienstverband; NL/EN-meldingen zijn toegevoegd.
+
+De terugkerende 409 in Administratie is read-only bevestigd als een dubbele PATCH met dezelfde `updatedAt`-waarde: de eerste poging slaagt, de tweede poging wordt door de optimistic-concurrencycontrole geweigerd. De wizard blokkeert nu synchroon een tweede opslagactie totdat de eerste klaar is. Er is geen databasewijziging uitgevoerd.
+
+Verificatie: leeftijds- en wizardvalidatietests (4 tests), strict TypeScript, i18n-pariteit, gerichte ESLint en `git diff --check` zijn groen.
+
+## Update 2026-08-08: exacte BSN-match bepaalt wizardroute
+
+Een exacte BSN-match kan niet meer via **Nieuwe medewerker aanmaken** verdergaan. Bij een bestaand actief dienstverband stopt de wizard en blijft alleen de route naar de bestaande medewerker beschikbaar. Bij een afgesloten dienstverband of een bestaande medewerker zonder dienstverband kan de gebruiker de bestaande persoonskaart laden, gegevens bijwerken en kiezen voor alleen bijwerken of bijwerken plus een nieuw dienstverband. Deze route gebruikt de bestaande Employee en gaat niet via `POST /api/employees`.
+
+## Update 2026-08-08: wizardkop en aanmaakconflict
+
+De overbodige subtitel boven de medewerkerwizard is verwijderd en de wizard start daardoor hoger. De stappennavigatie gebruikt op desktop geen sticky-top-offset meer en staat gelijk met de bovenkant van het invoerpaneel. De aanmaakactie behandelt elk `EMPLOYEE_NUMBER_CONFLICT`, ook zonder voorgesteld nummer, gericht op de kerngegevens; een dubbele BSN krijgt een eigen melding en verwijst terug naar de identiteitscontrole. TypeScript, ESLint, i18n, diff-check en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: lege controlesectie en dienstverbandconflict
+
+Op de controlepagina wordt **Extra gegevens** alleen nog getoond wanneer minstens één aanvullend veld is ingevuld; een lege sectie verdwijnt volledig uit de samenvatting. In de eerste dienstverbandstap wordt na een geslaagde medewerker-PATCH de door de API teruggegeven `updatedAt` in de lokale optiesnapshot bijgewerkt. Daarmee blijft de optimistic-concurrencywaarde actueel voor vervolgacties. Een echte `EMPLOYEE_CONCURRENCY_CONFLICT` krijgt bovendien een gerichte NL/EN-melding. TypeScript, ESLint, i18n en een authenticated browsercontrole van de lege controlesectie zijn groen. Er is geen medewerker of dienstverband aangemaakt.
+
+## Update 2026-08-08: medewerkerwizard controle en adreslayout
+
+In Extra gegevens verschijnt het blok **Vrije velden** alleen wanneer de actieve HR-groep minstens één actieve medewerkerdefinitie heeft waarvoor de gebruiker schrijfrechten heeft. Zonder ingerichte medewerker-velden blijft het blok volledig weg. De adresinvoer gebruikt voor straat, huisnummer en toevoeging een vaste, nette veldverdeling. Bij binnenkomst op Controle wordt de scrollpositie naar boven gezet. De controle groepeert de volledige naamopbouw, naamgebruik, partnernaam en overige kerngegevens onder Identiteit; partnernaam staat niet meer los onder Extra gegevens. De controlefooter blijft op één regel met compactere knoptekst. Tijdens het aanmaken van een medewerker met dienstverband toont de wizard dezelfde blokkerende voortgangsweergave als bij de identiteitscontrole. TypeScript, lint, i18n en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: validatiemeldingen en Meer gegevens in medewerkerwizard
+
+De medewerkerwizard toont bij ontbrekende verplichte kerngegevens nu **Vul de gemarkeerde verplichte velden in.** in plaats van de algemene foutmelding. Overige veldvalidatie gebruikt **Corrigeer de gemarkeerde velden**; adrescombinaties behouden hun specifieke adresmelding. Het grote blok **Meer gegevens** met toelichting en aanvullende kerngegevens is uit de kerngegevens-tab verwijderd. De wizard toont alleen een subtiele **Meer gegevens**-indicator tussen de navigatieknoppen wanneer er onder de huidige positie nog scrollinhoud staat. De extra-gegevens-tab behoudt haar eigen inklapbare blokken; identiteit en contact tonen hetzelfde signaal alleen wanneer er daar nog inhoud onder staat. TypeScript, lint, i18n en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: kerngegevens-tab medewerkerwizard
+
+De kerngegevens-tab toont het personeelsnummer op een eigen rij, gevolgd door roepnaam en geboortenaam-tussenvoegsel. Het naamvoorbeeld toont alleen de volledige opgebouwde naam. Partnernaam heeft nu ook een afzonderlijk tussenvoegselveld; de naamopbouw gebruikt dit veld in alle partnernaam-volgordes. TypeScript, lint, i18n en authenticated browsercontrole zijn groen.
+
+## Update 2026-08-08: bestaande medewerker gebruiken in medewerkerwizard
+
+De medewerkerwizard biedt bij een gevonden persoon zonder dienstverband de expliciete actie **Deze medewerker gebruiken** en bij een persoon met alleen een afgesloten dienstverband **Herintreden met deze medewerker**. De bestaande Employee blijft behouden; de wizard laadt de persoons-, contact-, adres- en vrije-veldgegevens in de volgende tabs en maakt geen tweede Employee. Bij een medewerker zonder dienstverband kan de gebruiker op de controlepagina kiezen voor alleen **Medewerker bijwerken** of **Medewerker + dienstverband aanmaken**. Bij herintreding verschijnt bij de overgang naar het nieuwe dienstverband een tussenkeuze om bruikbare gegevens uit het laatst afgesloten dienstverband als voorstellen over te nemen of met nieuwe gegevens te beginnen. Contract-, rooster-, salaris-, organisatie- en kostenverdelingsvoorstellen worden server-side beperkt tot de gekozen administratie en actuele stamdata. Als de gebruiker de bestaande match niet kiest, blijft de route voor een nieuwe medewerker beschikbaar. Hiervoor was geen schemawijziging nodig.
+
+Strict TypeScript, volledige ESLint, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen. De authenticated lokale browsercontrole bevestigde de herintredingsactie voor Iris de Boer en het voorvullen van kern-, extra- en contactgegevens. De laatste opslagactie en publicatie van een nieuw testdienstverband zijn niet uitgevoerd om testdata niet te muteren.
+
+## Update 2026-08-08: identiteitscontrole overslaan
+
+De medewerker-aanmaakwizard heeft onderaan de identiteitsstap een actie om de controle over te slaan. Deze actie haalt wel het volgende personeelsnummer op en gaat door naar de kerngegevens, maar neemt geen ongeteste identiteitsvelden mee. NL/EN i18n-check en strict TypeScript zijn groen; een authenticated browsercontrole van deze nieuwe actie blijft open.
+
+De navigatieknoppen van iedere wizardstap staan nu als onderbalk onderaan de vaste wizardhoogte en blijven tijdens scrollen zichtbaar. Boven de knoppen staat een subtiele dunne scheidingslijn. TypeScript, lint en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+Tijdens de identiteitscontrole wordt stap 1 tijdelijk geblokkeerd met een interactieve voortgangsweergave met drie fasen, voortgangsbalk en statusiconen. De controle gebruikt NL/EN i18n en verdwijnt automatisch zodra de matchrespons terugkomt. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De melding dat er meer inhoud onderaan staat is hoger boven de navigatiebalk geplaatst en gebruikt nu een subtiele groenige successtijl met duidelijke pijl. TypeScript, lint en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De identiteitsstap toont geen apart `Identiteit`-label meer en de identiteits-progressiekaart toont geen extra toelichtingszin meer. Daarmee is verticale ruimte teruggewonnen; de voortgangstitel, fasen en balk blijven behouden.
+
+De wizardonderbalk gebruikt nu minder verticale padding, waardoor meer ruimte beschikbaar blijft voor formulierinvoer. De scrollhint blijft erboven geplaatst. De herbruikbare UX-standaard staat in [`requirements/ux/WIZARD_UX_STANDARD.md`](../requirements/ux/WIZARD_UX_STANDARD.md) en is toegevoegd aan de documentatie-index.
+
+De wizard heeft daarnaast een vaste hoogte per stap. De adresmelding blijft bij het straatveld uitgelijnd, geselecteerde adreszoekresultaten verdwijnen na keuze en de identiteitsacties staan op één regel met overslaan links en controleren rechts. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+Na een afgeronde identiteitscontrole wisselt de onderbalk naar **Invoer nieuwe medewerker afbreken** links en **Doorgaan** rechts. De actie om de controle over te slaan en de controleknop verdwijnen dan. Bij een exacte match blijft de waarschuwing zichtbaar, maar kan de gebruiker zelf alsnog doorgaan met het invoeren van een nieuwe medewerker. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+Na het voltooien van de kerngegevens toont de wizard onder de stappen **Nog niet opgeslagen** met een save-icoon. Handmatig opslaan maakt de medewerker met de beschikbare kerngegevens aan via de bestaande medewerker-API; daarna toont de wizard **Opgeslagen** en blijft de save-actie beschikbaar voor latere wijzigingen. Het afronden van de wizard werkt vervolgens de opgeslagen medewerker bij in plaats van een dubbele medewerker aan te maken. TypeScript, lint, i18n en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De mobiele medewerkerwizard begrenst de breedte van de wizard, scrollcontainer, formulieren en veldlabels expliciet en verbergt horizontale overflow. Daarmee blijven tekstvelden op smalle schermen binnen het paneel. TypeScript, lint en `git diff --check` zijn groen; authenticated browsercontrole blijft open.
+
+De kerngegevensstap gebruikt nu `Geboortenaam/Achternaam` en toont tijdens het typen een live naamvoorbeeld met roepnaam, achternaam, partnernaam en de gekozen naamvolgorde. De Extra gegevensstap bestaat uit twee standaard ingeklapte vensters: Optionele extra gegevens en Vrije velden; bestaande actieve HR-groepsvrije velden kunnen daar worden ingevuld en na het aanmaken opgeslagen. De wizard gebruikt een begrensd scrollbaar middenstuk, sticky onderknoppen en een verdwijnende pijlmelding wanneer er meer inhoud onderaan staat. Lokale controles: strict TypeScript, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen. Authenticated browsercontrole van deze visuele flow blijft open.
+
+## Update 2026-08-08: identiteitsmatch en medewerkerarchivering
+
+De medewerker-aanmaakwizard toont bij gevonden medewerkers een uitklapbaar informatieblok met archiefstatus, medewerkertype, actief of laatst bevestigde dienstverband en administratie-nummer plus naam. De identiteitsmatch en de aanvullende dienstverbandread zijn beperkt tot de actieve HR-groep; daarmee worden cross-group kandidaten niet meer als bestaande medewerker aangeboden. De archiefmelding maakt een 404 door ontbrekende of niet-zichtbare HR-groepsscope expliciet. Lokale controles: strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen. Authenticated browsercontrole van de nieuwe informatieweergave en de daadwerkelijke archive-mutatie blijft nog open.
+
+De wizard berekent het voorgestelde personeelsnummer nu uit het hoogste werkelijk gebruikte numerieke nummer plus één. De reserverings-RPC wordt niet meer aangeroepen voor alleen het tonen van het voorstel; daarmee kunnen verlaten wizards het zichtbare nummer niet meer kunstmatig verhogen. De definitieve creatie blijft bij ontbrekende invoer via de bestaande reserveringsroute concurrencyveilig.
+
+De wizard toont geen optionele-labels meer; verplichte velden tonen alleen een sterretje. Veldfouten worden bij blur opnieuw gecontroleerd en verdwijnen wanneer het veld geldig is; samengestelde fouten blijven staan tot alle betrokken velden samen geldig zijn. Dit UX-contract staat leidend in `docs/requirements/ux/FORMULIER_VALIDATIE_EN_LABELS.md`. Lokale controles na deze wijziging: strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en `git diff --check` zijn groen.
+
+De adresstap van de medewerkerwizard gebruikt nu dezelfde adreszoekopdracht en postcode/huisnummer-aanvulling als de persoonskaart. Suggesties vullen straat, huisnummer, toevoeging, postcode en plaats in; handmatige invoer blijft beschikbaar. Wanneer een straatnaam cijfers bevat, verschijnt in zowel de wizard als het bestaande woonadresformulier een niet-blokkerende controleopmerking dat dit onderdeel van de straatnaam kan zijn en dat het huisnummer apart moet worden gecontroleerd. Lokale controles na deze uitbreiding zijn groen; authenticated browsercontrole van de nieuwe wizard-adresflow blijft open.
+
 ## Release 2026-08-07: productversie 1.20260807.2
 
 De zichtbare productversie is verhoogd naar `1.20260807.2` volgens de centrale releaseconventie. De versie-unit-test is bijgewerkt. Lokale releasegate: 132 testbestanden/490 tests, strict TypeScript, ESLint, i18n-pariteit met 28 namespaces en productiebuild met 175 pagina's zijn groen. Commit `98ac2ebc3c8c0b15dd73f373ea4f0889cf14d0a3` staat op `main` en is naar GitHub gepusht.

@@ -1,0 +1,202 @@
+import type { ProcessDefinitionDraft } from '../definition-schemas'
+
+const text = (nl: string, en: string) => ({ nl, en })
+
+const access = (participantKey: string, mode: 'HIDDEN' | 'READ' | 'WRITE_OPTIONAL' | 'WRITE_REQUIRED') => ({ participantKey, mode })
+
+export const internalTransferFixture: ProcessDefinitionDraft = {
+  schemaVersion: 1,
+  key: 'internal-transfer',
+  status: 'DRAFT',
+  title: text('Interne overplaatsing', 'Internal transfer'),
+  description: text('Een gecontroleerde wijziging van afdeling of functie.', 'A controlled change of department or job.'),
+  enabledLanguages: ['nl', 'en'],
+  startStepKey: 'request',
+  participants: [
+    {
+      key: 'initiator',
+      label: text('Aanvrager', 'Initiator'),
+      selector: { type: 'INITIATOR', resolutionDatePolicy: 'STEP_ACTIVATED_AT' },
+      assignmentMode: 'EXACTLY_ONE',
+      permission: 'self:process-instance:start',
+    },
+    {
+      key: 'source-manager',
+      label: text('Huidige manager', 'Current manager'),
+      selector: { type: 'DIRECT_MANAGER_OF_SUBJECT', resolutionDatePolicy: 'BUSINESS_EFFECTIVE_DATE' },
+      assignmentMode: 'EXACTLY_ONE',
+      permission: 'process-task:act',
+    },
+    {
+      key: 'target-manager',
+      label: text('Nieuwe manager', 'New manager'),
+      selector: {
+        type: 'MANAGEMENT_ROLE_ON_SELECTED_DEPARTMENT',
+        roleCode: 'department-manager',
+        departmentFieldKey: 'target-department',
+        resolutionDatePolicy: 'BUSINESS_EFFECTIVE_DATE',
+      },
+      assignmentMode: 'EXACTLY_ONE',
+      permission: 'process-task:act',
+    },
+    {
+      key: 'hr-queue',
+      label: text('HR-werkvoorraad', 'HR work queue'),
+      selector: {
+        type: 'PERMISSION_WORK_QUEUE',
+        permission: 'process-task:act',
+        queueKey: 'hr-processes',
+        resolutionDatePolicy: 'STEP_ACTIVATED_AT',
+      },
+      assignmentMode: 'ANY_ONE',
+      permission: 'process-task:act',
+    },
+  ],
+  forms: [
+    {
+      key: 'internal-transfer-form',
+      version: 1,
+      title: text('Gegevens interne overplaatsing', 'Internal transfer details'),
+      sections: [
+        {
+          key: 'proposal',
+          title: text('Voorstel', 'Proposal'),
+          fields: [
+            {
+              key: 'current-department',
+              label: text('Huidige afdeling', 'Current department'),
+              type: 'DEPARTMENT_REFERENCE',
+              binding: { kind: 'DOMAIN_READ', key: 'employee.current.department' },
+              access: [
+                access('initiator', 'READ'),
+                access('source-manager', 'READ'),
+                access('target-manager', 'READ'),
+                access('hr-queue', 'READ'),
+              ],
+            },
+            {
+              key: 'target-department',
+              label: text('Nieuwe afdeling', 'Target department'),
+              type: 'DEPARTMENT_REFERENCE',
+              binding: { kind: 'DOMAIN_PROPOSAL', key: 'employment.organizationChange.targetDepartment' },
+              access: [
+                access('initiator', 'WRITE_REQUIRED'),
+                access('source-manager', 'READ'),
+                access('target-manager', 'READ'),
+                access('hr-queue', 'WRITE_OPTIONAL'),
+              ],
+            },
+            {
+              key: 'effective-on',
+              label: text('Ingangsdatum', 'Effective date'),
+              type: 'DATE',
+              binding: { kind: 'DOMAIN_PROPOSAL', key: 'employment.organizationChange.effectiveOn' },
+              access: [
+                access('initiator', 'WRITE_REQUIRED'),
+                access('source-manager', 'READ'),
+                access('target-manager', 'READ'),
+                access('hr-queue', 'WRITE_OPTIONAL'),
+              ],
+            },
+            {
+              key: 'reason',
+              label: text('Reden', 'Reason'),
+              helpText: text('Beschrijf kort de aanleiding.', 'Briefly describe the reason.'),
+              type: 'LONG_TEXT',
+              binding: { kind: 'PROCESS_ONLY' },
+              access: [
+                access('initiator', 'WRITE_OPTIONAL'),
+                access('source-manager', 'READ'),
+                access('target-manager', 'READ'),
+                access('hr-queue', 'READ'),
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  steps: [
+    {
+      key: 'request',
+      type: 'FORM',
+      title: text('Aanvraag invullen', 'Complete request'),
+      participantKey: 'initiator',
+      formKey: 'internal-transfer-form',
+      allowedActions: ['SUBMIT', 'CANCEL'],
+      sla: {
+        duration: { amount: 2, unit: 'DAYS' },
+        businessDays: true,
+        onBreach: 'ESCALATE',
+        escalationParticipantKey: 'hr-queue',
+      },
+    },
+    {
+      key: 'source-approval',
+      type: 'DECISION',
+      title: text('Goedkeuring huidige manager', 'Current manager approval'),
+      participantKey: 'source-manager',
+      allowedActions: ['APPROVE', 'REJECT', 'REQUEST_CHANGES', 'CANCEL'],
+      sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+    },
+    {
+      key: 'target-approval',
+      type: 'DECISION',
+      title: text('Goedkeuring nieuwe manager', 'New manager approval'),
+      participantKey: 'target-manager',
+      allowedActions: ['APPROVE', 'REJECT', 'REQUEST_CHANGES', 'CANCEL'],
+      sla: { duration: { amount: 2, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+    },
+    {
+      key: 'hr-validation',
+      type: 'DECISION',
+      title: text('HR-controle', 'HR validation'),
+      participantKey: 'hr-queue',
+      allowedActions: ['APPROVE', 'REJECT', 'REQUEST_CHANGES', 'CANCEL'],
+      sla: { duration: { amount: 3, unit: 'DAYS' }, businessDays: true, onBreach: 'NOTIFY' },
+    },
+    {
+      key: 'completed',
+      type: 'END',
+      title: text('Afgerond', 'Completed'),
+      allowedActions: [],
+      terminalOutcome: 'COMPLETED',
+    },
+    {
+      key: 'rejected',
+      type: 'END',
+      title: text('Afgewezen', 'Rejected'),
+      allowedActions: [],
+      terminalOutcome: 'REJECTED',
+    },
+    {
+      key: 'cancelled',
+      type: 'END',
+      title: text('Geannuleerd', 'Cancelled'),
+      allowedActions: [],
+      terminalOutcome: 'CANCELLED',
+    },
+  ],
+  transitions: [
+    { key: 'request-submit', fromStepKey: 'request', toStepKey: 'source-approval', action: 'SUBMIT', kind: 'FORWARD', label: text('Verstuur aanvraag', 'Submit request') },
+    { key: 'request-cancel', fromStepKey: 'request', toStepKey: 'cancelled', action: 'CANCEL', kind: 'FORWARD', label: text('Annuleer', 'Cancel') },
+    { key: 'source-approve', fromStepKey: 'source-approval', toStepKey: 'target-approval', action: 'APPROVE', kind: 'FORWARD', label: text('Goedkeuren', 'Approve') },
+    { key: 'source-reject', fromStepKey: 'source-approval', toStepKey: 'rejected', action: 'REJECT', kind: 'FORWARD', label: text('Afwijzen', 'Reject') },
+    { key: 'source-changes', fromStepKey: 'source-approval', toStepKey: 'request', action: 'REQUEST_CHANGES', kind: 'RECOVERY', label: text('Wijzigingen vragen', 'Request changes') },
+    { key: 'source-cancel', fromStepKey: 'source-approval', toStepKey: 'cancelled', action: 'CANCEL', kind: 'FORWARD', label: text('Annuleer', 'Cancel') },
+    { key: 'target-approve', fromStepKey: 'target-approval', toStepKey: 'hr-validation', action: 'APPROVE', kind: 'FORWARD', label: text('Goedkeuren', 'Approve') },
+    { key: 'target-reject', fromStepKey: 'target-approval', toStepKey: 'rejected', action: 'REJECT', kind: 'FORWARD', label: text('Afwijzen', 'Reject') },
+    { key: 'target-changes', fromStepKey: 'target-approval', toStepKey: 'request', action: 'REQUEST_CHANGES', kind: 'RECOVERY', label: text('Wijzigingen vragen', 'Request changes') },
+    { key: 'target-cancel', fromStepKey: 'target-approval', toStepKey: 'cancelled', action: 'CANCEL', kind: 'FORWARD', label: text('Annuleer', 'Cancel') },
+    { key: 'hr-approve', fromStepKey: 'hr-validation', toStepKey: 'completed', action: 'APPROVE', kind: 'FORWARD', label: text('Afronden', 'Complete') },
+    { key: 'hr-reject', fromStepKey: 'hr-validation', toStepKey: 'rejected', action: 'REJECT', kind: 'FORWARD', label: text('Afwijzen', 'Reject') },
+    { key: 'hr-changes', fromStepKey: 'hr-validation', toStepKey: 'request', action: 'REQUEST_CHANGES', kind: 'RECOVERY', label: text('Wijzigingen vragen', 'Request changes') },
+    { key: 'hr-cancel', fromStepKey: 'hr-validation', toStepKey: 'cancelled', action: 'CANCEL', kind: 'FORWARD', label: text('Annuleer', 'Cancel') },
+  ],
+  output: {
+    key: 'transfer-summary',
+    title: text('Samenvatting interne overplaatsing', 'Internal transfer summary'),
+    format: 'JSON',
+    fieldKeys: ['current-department', 'target-department', 'effective-on', 'reason'],
+  },
+}

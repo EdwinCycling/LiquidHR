@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 
 type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
-type EmploymentType = 'EMPLOYEE' | 'INTERN' | 'APPRENTICE' | 'CONTRACTOR' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
 type DurationType = 'INDEFINITE' | 'DEFINITE'
 
 interface Contract {
@@ -35,8 +34,8 @@ interface Draft {
 }
 
 interface Props {
+  employeeId: string
   employmentId: string
-  employmentType: EmploymentType
   contracts: Contract[]
   canWrite: boolean
   options: {
@@ -48,24 +47,12 @@ interface Props {
     flexPhase: string; laborConditions: string; fulltimeReference: string; duration: string
     startDate: string; endDate: string; probation: string; probationEnd: string
     indefinite: string; definite: string; yes: string; no: string
-    active: string; failed: string; addBlocked: string
+    active: string; failed: string; addBlocked: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
   }
+  employmentStartsOn: string
 }
 
-function addDay(value: string): string {
-  const [year, month, day] = value.split('-').map(Number)
-  const date = new Date(Date.UTC(year, month - 1, day + 1))
-  return date.toISOString().slice(0, 10)
-}
-
-function workerTypeForEmployment(type: EmploymentType): WorkerType {
-  if (type === 'INTERN' || type === 'APPRENTICE') return 'STUDENT_INTERN'
-  if (type === 'TEMPORARY_AGENCY') return 'TEMPORARY_AGENCY'
-  if (type === 'CONTRACTOR' || type === 'FREELANCER' || type === 'VOLUNTEER' || type === 'NO_PAYROLL') return 'EXTERNAL_NO_PAYROLL'
-  return 'EMPLOYEE'
-}
-
-export function EmploymentContractTimeline({ employmentId, employmentType, contracts, canWrite, options, labels }: Props) {
+export function EmploymentContractTimeline({ employeeId, employmentId, contracts, canWrite, options, labels, employmentStartsOn }: Props) {
   const router = useRouter()
   const [selected, setSelected] = useState<Contract | null>(null)
   const [mode, setMode] = useState<'view' | 'edit' | 'add'>('view')
@@ -97,19 +84,7 @@ export function EmploymentContractTimeline({ employmentId, employmentType, contr
 
   function add(): void {
     if (!latest?.endsOn) { setError(labels.addBlocked); return }
-    setSelected(null)
-    setDraft({
-      workerType: workerTypeForEmployment(employmentType),
-      flexPhaseId: options.flexPhases[0]?.id ?? '',
-      laborConditionSetId: latest.laborConditionSetId,
-      durationType: 'INDEFINITE',
-      startsOn: addDay(latest.endsOn),
-      endsOn: '',
-      probationApplies: false,
-      probationEndsOn: '',
-    })
-    setMode('add')
-    setError('')
+    router.push(`/employees/${employeeId}/employments/${employmentId}/contracts/new`)
   }
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]): void {
@@ -174,7 +149,7 @@ export function EmploymentContractTimeline({ employmentId, employmentType, contr
           <Item label={labels.endDate} value={draft.endsOn || labels.active} />
           <Item label={labels.flexPhase} value={selected?.flexPhaseName ?? '—'} />
           <Item label={labels.probationEnd} value={draft.probationEndsOn || '—'} />
-        </dl> : <ContractFields draft={draft} update={update} options={options} labels={labels} />}
+        </dl> : <ContractFields draft={draft} update={update} options={options} labels={labels} employmentStartsOn={employmentStartsOn} isFirstContract={selected?.sequenceNumber === 1} />}
         {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
         <div className="mt-6 flex justify-end gap-3 border-t pt-4">
           {mode === 'view' && canWrite && <button type="button" className="button-primary" onClick={() => setMode('edit')}>{labels.edit}</button>}
@@ -185,11 +160,13 @@ export function EmploymentContractTimeline({ employmentId, employmentType, contr
   </section>
 }
 
-function ContractFields({ draft, update, options, labels }: {
+function ContractFields({ draft, update, options, labels, employmentStartsOn, isFirstContract }: {
   draft: Draft
   update: <K extends keyof Draft>(key: K, value: Draft[K]) => void
   options: Props['options']
   labels: Props['labels']
+  employmentStartsOn: string
+  isFirstContract: boolean
 }) {
   const inputClass = 'form-field'
   const fulltimeHours = options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40
@@ -198,7 +175,7 @@ function ContractFields({ draft, update, options, labels }: {
     <label className="grid gap-1.5 text-sm font-medium">{labels.laborConditions}<select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeReference}<input className={`${inputClass} bg-muted/40`} type="number" value={fulltimeHours} readOnly /></label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.duration}<select className={inputClass} value={draft.durationType} onChange={(event) => update('durationType', event.target.value as DurationType)}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option></select></label>
-    <label className="grid gap-1.5 text-sm font-medium">{labels.startDate}<input type="date" className={inputClass} value={draft.startsOn} onChange={(event) => update('startsOn', event.target.value)} /></label>
+    <label className="grid gap-1.5 text-sm font-medium">{labels.startDate}<input type="date" min={employmentStartsOn} readOnly={isFirstContract} className={`${inputClass}${isFirstContract ? ' bg-muted/40' : ''}`} value={draft.startsOn} onChange={(event) => update('startsOn', event.target.value)} /><span className="text-xs font-normal text-muted-foreground">{isFirstContract ? labels.firstContractStartDateHelp : labels.contractStartDateMinimumHelp}</span></label>
     {draft.durationType === 'DEFINITE' && <label className="grid gap-1.5 text-sm font-medium">{labels.endDate}<input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /></label>}
     <label className="grid gap-1.5 text-sm font-medium">{labels.probation}<select className={inputClass} value={String(draft.probationApplies)} onChange={(event) => update('probationApplies', event.target.value === 'true')}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></label>
     {draft.probationApplies && <label className="grid gap-1.5 text-sm font-medium">{labels.probationEnd}<input type="date" min={draft.startsOn} className={inputClass} value={draft.probationEndsOn} onChange={(event) => update('probationEndsOn', event.target.value)} /></label>}

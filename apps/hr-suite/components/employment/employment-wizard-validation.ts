@@ -1,0 +1,89 @@
+export type EmploymentWizardStep = 'administration' | 'employment' | 'payrollChoice' | 'contract' | 'schedule' | 'salary' | 'other' | 'review'
+
+export function canSubmitEmploymentWizard(step: EmploymentWizardStep): boolean {
+  return step === 'review'
+}
+
+export interface EmploymentWizardValidationInput {
+  administrationId: string
+  nationality: string
+  birthDate: string
+  gender: string
+  employmentNumber: string
+  startsOn: string
+  seniorityDate: string
+  countryCode: string
+  ikvNumber: string
+  employmentType: 'EMPLOYEE' | 'INTERN' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
+  flexPhaseId: string
+  laborConditionSetId: string
+  durationType: 'INDEFINITE' | 'DEFINITE'
+  endsOn: string
+  probationApplies: boolean
+  probationEndsOn: string
+  weeklyHours: string
+  days: Readonly<Record<string, string>>
+  secondWeekDays: Readonly<Record<string, string>>
+  twoWeekRoster: boolean
+  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE'
+  salaryFrequencyId: string
+  fulltimeAmount: string
+  salaryScaleStepId: string
+  jobGroupId: string
+  jobId: string
+  departmentId: string
+  allocations: Array<{ costCenterId: string; costCarrierId: string }>
+}
+
+export interface EmploymentWizardValidationOptions {
+  optionsLoading: boolean
+  payrollDetails: boolean | null
+  canWriteSalary: boolean
+  minimumRateAvailable: boolean
+  rosterMatches: boolean
+  allocationsMatch: boolean
+}
+
+export function hasMissingEmploymentPrerequisites(input: Pick<EmploymentWizardValidationInput, 'countryCode' | 'nationality' | 'birthDate' | 'gender'>): boolean {
+  return !input.countryCode || !input.nationality || !input.birthDate || !input.gender
+}
+
+export function isEmploymentWizardStepValid(
+  step: EmploymentWizardStep,
+  input: EmploymentWizardValidationInput,
+  options: EmploymentWizardValidationOptions,
+): boolean {
+  if (step === 'administration') return Boolean(input.administrationId) && !options.optionsLoading
+  if (step === 'employment') {
+    return Boolean(input.employmentNumber && input.startsOn && input.seniorityDate && input.countryCode
+      && (!options.payrollDetails || (Number(input.ikvNumber) >= 1 && Number(input.ikvNumber) <= 99)))
+  }
+  if (step === 'payrollChoice') return options.payrollDetails !== null
+  if (step === 'review') return true
+  if (step === 'contract') {
+    return Boolean(input.laborConditionSetId
+      && (input.employmentType !== 'TEMPORARY_AGENCY' || input.flexPhaseId)
+      && (input.durationType === 'INDEFINITE' || (input.endsOn && input.endsOn >= input.startsOn))
+      && (!input.probationApplies || (input.probationEndsOn && input.probationEndsOn >= input.startsOn
+        && (input.durationType === 'INDEFINITE' || !input.endsOn || input.probationEndsOn <= input.endsOn))))
+  }
+  if (step === 'schedule') {
+    const weeklyHours = Number(input.weeklyHours)
+    const dayValues = Object.values(input.days)
+    const secondWeekValues = Object.values(input.secondWeekDays)
+    const allDayValues = input.twoWeekRoster ? [...dayValues, ...secondWeekValues] : dayValues
+    const validDayValues = allDayValues.length > 0 && allDayValues.every((value) => value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 24)
+    const rosterMatches = Math.abs(allDayValues.reduce((sum, value) => sum + (Number(value) || 0), 0) - weeklyHours * (input.twoWeekRoster ? 2 : 1)) < 0.0001
+    return options.rosterMatches && rosterMatches && input.weeklyHours.trim() !== '' && Number.isFinite(weeklyHours) && weeklyHours >= 0 && weeklyHours <= 50 && validDayValues
+  }
+  if (step === 'salary') {
+    if (!options.canWriteSalary) return true
+    if (!input.salaryFrequencyId) return false
+    if (input.salaryBasis === 'MINIMUM_WAGE') return options.minimumRateAvailable
+    if (input.salaryBasis === 'CUSTOM_SCALE') return Boolean(input.salaryScaleStepId)
+    return Boolean(input.fulltimeAmount)
+  }
+  return Boolean(input.jobGroupId && input.jobId && input.departmentId
+    && input.allocations.every((allocation) => allocation.costCenterId && allocation.costCarrierId)
+    && options.allocationsMatch)
+}
