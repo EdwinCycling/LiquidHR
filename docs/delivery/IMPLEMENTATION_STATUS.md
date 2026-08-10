@@ -1,8 +1,8 @@
 # Implementatiestatus Liquid HR
 
-## Release 2026-08-10: productversie 1.20260810.1 — productie READY
+## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
-De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De gecombineerde `main` is getest en staat op GitHub op commit `ae48a0a1358613f95de0525e8d910443bbf7d046`. Vercel Production-deployment `dpl_ACrvPmcSc6va4sbZoj7vXXceeuih` is `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200 en de runtime-errorscan van het afgelopen uur is leeg. De drie employment-migraties blijven remote open wegens de duplicate-IKV-preconditie.
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd zonder verwijdering: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De duplicate-controle retourneert nul actieve groepen; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. GitHub- en Vercel-verificatie volgen na de lokale releasegate.
 
 ## Weerbericht verhuisd naar medewerkerheader 2026-08-10 — geverifieerd
 
@@ -13,11 +13,11 @@ Het weerinstrument en de Compact-schakelaar zijn uit de startpagina-header verwi
 De uitgebreide medewerkerheader heeft dezelfde gegevens en acties in een nieuwe responsive compositie: een compacte ronde avatar, prominente naam met personeelsnummer/status, foto-acties in dezelfde naamkleur, 40x40 weer- en compact/uitgebreid-iconen naast elkaar en de archiveeractie onderaan boven de contactonderregel. Op mobiel stapelt de header verticaal; de bestaande compacte variant blijft via dezelfde URL-state beschikbaar. Gerichte ESLint, strict TypeScript, `git diff --check` en desktopbrowsercontrole zijn gecontroleerd. Geen schema-, API- of remotewijziging.
 ## Dienstverbandwizard: onderhoud en contractregels 2026-08-10
 
-**Status: lokaal gedaan, geverifieerd en samengevoegd in `main`; remote migratie open.** Vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` zijn de wizard, employment API-validatie, contract-/detailroutes, i18n, lokale migraties en regressietests samengevoegd. Er is nog geen push, deployment of remote write voor deze slice uitgevoerd.
+**Status: lokaal gedaan, geverifieerd, samengevoegd in `main` en remote schema toegepast.** Vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` zijn de wizard, employment API-validatie, contract-/detailroutes, i18n, migraties en regressietests samengevoegd. Push en deployment volgen na de lokale releasegate.
 
 De wizard gebruikt per medewerker het hoogste numerieke dienstverbandnummer plus één en behandelt het IKV-nummer als uniek per medewerker, niet organisatiebreed. Contracten zonder einddatum, proeftijdregels, kalendermaand-snelkeuzes, Nederlandse decimale invoer, nuluren voor oproepkrachten, review-vóór-save, Annuleren, administratie-informatie en de footerfix zijn aangesloten. De POST-400 is opgelost door de te strenge RFC-UUID-check in de employmentpayload te vervangen door PostgreSQL-UUID-opmaakvalidatie; een exacte browserpayload-regressietest dekt dit af.
 
-Bewijs: 149/569 Vitest, strict typecheck, 29 NL/EN-namespaces, `git diff --check`, Webpack-build met 185 pagina's en gerichte localhost-browsercontrole zijn groen. De remote migratie is bewust open: de read-only controle vond één bestaande dubbele IKV 9 voor dezelfde medewerker in een gesloten en een open relatie. Eerst is een expliciete keuze nodig voor historische cleanup/index-toepassing. De bestaande ESLint 10/`eslint-plugin-react`-fout blijft een niet-inhoudelijke repo-blokkade.
+Bewijs: 149/569 Vitest, strict typecheck, 29 NL/EN-namespaces, `git diff --check`, Webpack-build met 185 pagina's en gerichte localhost-browsercontrole zijn groen. Remote zijn de drie migraties geregistreerd; de gesloten IKV 9 is behouden, de latere open relatie is IKV 10, en actieve IKV-duplicaten ontbreken. De bestaande ESLint 10/`eslint-plugin-react`-fout blijft een niet-inhoudelijke repo-blokkade.
 
 ## Vorige productie-release-status 2026-08-09
 

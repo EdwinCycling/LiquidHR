@@ -1,11 +1,11 @@
 # Actuele overdracht Liquid HR
 
-## Release 2026-08-10: productversie 1.20260810.1
+## Release 2026-08-10: productversie 1.20260810.2
 
-- De zichtbare productversie is verhoogd naar `1.20260810.1` volgens de centrale `X.datum.volgnummer`-conventie.
-- `main` bevat de lokale consolidatie en employment-merge (`7b8bee2`) en staat op GitHub op `ae48a0a1358613f95de0525e8d910443bbf7d046`.
-- Vercel Production `dpl_ACrvPmcSc6va4sbZoj7vXXceeuih` is `READY` met alias `liquid-hr-hr-suite.vercel.app`; `/login` geeft HTTP 200 en de runtime-errorscan van het afgelopen uur is leeg.
-- De drie employment-migraties zijn niet remote toegepast: de read-only controle vond de bestaande dubbele IKV-preconditie. Geen remote databasewijziging is zonder aparte goedkeuring uitgevoerd.
+- De zichtbare productversie is verhoogd naar `1.20260810.2` volgens de centrale `X.datum.volgnummer`-conventie.
+- `main` bevat de lokale consolidatie en employment-merge; de releasecommit en Vercel-deployment worden na de releasegate toegevoegd.
+- De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`: `add_temporary_no_end_contract_type`, `employment_number_ikv_and_probation_rules` en `add_cao_probation_override`.
+- De bestaande actieve dubbele IKV is binnen de migratie gerepareerd zonder verwijdering: gesloten historische IKV 9 bleef 9; de latere open conceptrelatie kreeg IKV 10. De remote controle geeft nul actieve dubbele IKV-groepen. Advisors en officiële typegeneratie zijn uitgevoerd.
 
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 
@@ -28,7 +28,7 @@
 - Geen schema-, API- of remote-wijziging buiten de nieuwe lokale migraties uitgevoerd. De wijzigingen zijn nu lokaal opgenomen in `main`; push en deployment blijven apart open.
 ## Dienstverbandwizard: nummering, contractregels en aanmaakflow 2026-08-10
 
-Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes`. De remote migratie, push en deployment zijn nog niet uitgevoerd.
+Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes`. De drie remote migraties zijn toegepast; push en deployment volgen na de lokale releasegate.
 
 ### Gedaan
 
@@ -46,8 +46,8 @@ Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\
 
 ### Open / geblokkeerd
 
-- De drie lokale Supabase-migraties voor tijdelijk-zonder-einddatum, nummer/IKV/proeftijd en de configureerbare CAO-proeftijdgrens zijn niet remote toegepast. Een read-only controle van Supabase-project `wnpfloqpjvaacobppbpk` vond één historische dubbele IKV 9 voor dezelfde medewerker over een afgesloten en een open relatie. Daarom is een expliciete cleanup-/indexbeslissing nodig vóór toepassing van de strikte unieke index; er is geen data gemuteerd.
-- Tot die expliciete remote migratie blijven de live database-indexen de oude organisatiebrede nummer-/IKV-semantiek volgen. De lokale code/API-fix voor de 400 en de wizard-UX zijn wel klaar en lokaal bewezen.
+- De drie Supabase-migraties zijn remote toegepast. Voor de unieke IKV-index is de bestaande dubbele groep deterministisch gerepareerd: de vroegste historische relatie behield IKV 9 en de latere open relatie kreeg de eerst vrije IKV 10. Er zijn geen rijen verwijderd; de duplicate-controle retourneert nul actieve groepen.
+- Remote staan de per-medewerker unieke indexen, `TEMPORARY_NO_END`-enumwaarden, de numerieke dienstverbandtrigger, contract-/proeftijdguards en `probation_maximum_months` actief. De lokale code/API-fix voor de 400 en de wizard-UX blijven lokaal bewezen.
 
 ## Vorige productie-release-status 2026-08-09
 

@@ -1,15 +1,15 @@
 # Liquid HR documentatie-index
 
-## Release 2026-08-10: productversie 1.20260810.1 — productie READY
+## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
-De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De gecombineerde `main` is getest en staat op GitHub op commit `ae48a0a1358613f95de0525e8d910443bbf7d046`. Vercel Production-deployment `dpl_ACrvPmcSc6va4sbZoj7vXXceeuih` is `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200 en de runtime-errorscan van het afgelopen uur is leeg. De drie employment-migraties blijven remote open wegens de duplicate-IKV-preconditie.
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De remote controle geeft nul actieve IKV-duplicaten; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. GitHub- en Vercel-verificatie volgen na de lokale releasegate.
 
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 
 De feestdageninstellingen ondersteunen naast lokale feestdagen nu HR-groepbrede bedrijfsactiviteiten met naam en datum. Actieve feestdagen en de eerstvolgende bedrijfsactiviteit verschijnen in de startpagina- en medewerkerheader. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) voor de lokale verificatie en de nog openstaande remote/browser-gate.
 ## Dienstverbandwizard: onderhoud en aanmaakregels 2026-08-10
 
-De lokale feature-slice voor de dienstverbandwizard staat in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` op branch `codex/employment-wizard-fixes`. De implementatie bevat per-medewerker nummering voor dienstverband en IKV, contracten zonder einddatum, proeftijdvalidatie, einddatum-snelkeuzes, review-vóór-save, annuleren, administratie-informatie, Nederlandse decimale invoer en de fix voor de POST-400 door PostgreSQL-UUID-validatie. Lokaal zijn 149/569 tests, typecheck, i18n, diff-check, Webpack-build en browsercontrole groen. Remote migratie en release zijn nog niet uitgevoerd; zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de duplicate-IKV-preconditie en resterende actie.
+De feature-slice voor de dienstverbandwizard is lokaal samengevoegd in `main` en remote toegepast. De implementatie bevat per-medewerker nummering voor dienstverband en IKV, contracten zonder einddatum, proeftijdvalidatie, einddatum-snelkeuzes, review-vóór-save, annuleren, administratie-informatie, Nederlandse decimale invoer en de fix voor de POST-400 door PostgreSQL-UUID-validatie. De remote unieke indexen zijn actief en de duplicate-IKV-preconditie is opgelost; zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor bewijs.
 
 ## Vorige productie-release-status 2026-08-09
 
