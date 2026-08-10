@@ -4,18 +4,22 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Archive,
+  ArrowLeft,
   Check,
+  CheckCircle2,
   ChevronRight,
   Copy,
   FlaskConical,
   FormInput,
   GitCompareArrows,
   Languages,
+  LayoutDashboard,
   LockKeyhole,
   Plus,
   Search,
   Send,
   Workflow,
+  X,
 } from 'lucide-react'
 import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
 import {
@@ -40,6 +44,7 @@ import type {
 } from '@/lib/process-automation/studio-service'
 
 type StudioTab = 'processes' | 'forms'
+type StudioStage = 'process' | 'form' | 'preview' | 'trial' | 'versions'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 export interface StudioLabels {
@@ -152,6 +157,33 @@ export interface StudioLabels {
   readonly noOptions: string
   readonly version: string
   readonly formsCount: string
+  readonly overview: string
+  readonly overviewDescription: string
+  readonly totalDefinitions: string
+  readonly productionDefinitions: string
+  readonly draftDefinitions: string
+  readonly retiredDefinitions: string
+  readonly productionHelp: string
+  readonly catalogDescription: string
+  readonly selectedDefinition: string
+  readonly studioNavigation: string
+  readonly newWizardTitle: string
+  readonly newWizardDescription: string
+  readonly wizardBasics: string
+  readonly wizardStartingPoint: string
+  readonly wizardReview: string
+  readonly processName: string
+  readonly processNamePlaceholder: string
+  readonly processKey: string
+  readonly processKeyHelp: string
+  readonly blankProcess: string
+  readonly blankProcessDescription: string
+  readonly certifiedRecipe: string
+  readonly certifiedRecipeDescription: string
+  readonly continue: string
+  readonly back: string
+  readonly createDraft: string
+  readonly creationSummary: string
 }
 
 interface StudioWorkspaceProps {
@@ -333,6 +365,11 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [trial, setTrial] = useState<StudioTrialReport | null>(null)
   const [trialLoading, setTrialLoading] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [studioStage, setStudioStage] = useState<StudioStage>('process')
+  const [showCreateWizard, setShowCreateWizard] = useState(false)
+  const [createStep, setCreateStep] = useState(0)
+  const [createName, setCreateName] = useState('')
+  const [createKey, setCreateKey] = useState('')
   const saveInFlightRef = useRef(false)
   const saveBlockedRef = useRef(false)
 
@@ -387,10 +424,11 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
 
   async function createDefinition() {
     setActionError('')
-    const key = `internal-transfer-${Date.now().toString(36)}`
+    const key = createKey.trim() || `process-${Date.now().toString(36)}`
     const response = await fetch('/api/process-automation/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) })
     const payload = await response.json() as { data?: { id: string }; code?: string }
     if (!response.ok || !payload.data) { setActionError(payload.code ?? labels.saveError); return }
+    setShowCreateWizard(false)
     router.push(`/settings/process-automation?definition=${payload.data.id}`)
   }
 
@@ -609,17 +647,42 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     const access = field.access.find((rule) => rule.participantKey === previewParticipantDefinition?.key)
     return access?.mode !== 'HIDDEN'
   }) ?? []
+  const productionCount = catalog.filter((item) => item.status === 'PUBLISHED').length
+  const draftCount = catalog.filter((item) => item.status === 'DRAFT').length
+  const retiredCount = catalog.filter((item) => item.status === 'RETIRED').length
+  const stageItems: readonly { id: StudioStage; label: string; icon: typeof Workflow }[] = [
+    { id: 'process', label: labels.processStudio, icon: Workflow },
+    { id: 'form', label: labels.formStudio, icon: FormInput },
+    { id: 'preview', label: labels.preview, icon: Languages },
+    { id: 'trial', label: labels.processTrial, icon: FlaskConical },
+    { id: 'versions', label: labels.versionDiff, icon: GitCompareArrows },
+  ]
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-5 lg:grid-cols-[minmax(250px,0.34fr)_minmax(0,1fr)]">
-        <aside className="rounded-3xl border bg-surface p-4 shadow-sm" aria-label={labels.processCatalog}>
+      <section aria-labelledby="automation-overview-title" className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div><p className="eyebrow">{labels.overview}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight" id="automation-overview-title">{labels.overview}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.overviewDescription}</p></div>
+          {canWrite ? <button className="button-primary inline-flex items-center gap-2" onClick={() => { setCreateStep(0); setCreateName(''); setCreateKey(''); setShowCreateWizard(true) }} type="button"><Plus aria-hidden="true" size={17} />{labels.newProcess}</button> : null}
+        </div>
+        <dl className="mt-6 grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
+          {[
+            [labels.totalDefinitions, catalog.length, labels.catalogDescription],
+            [labels.productionDefinitions, productionCount, labels.productionHelp],
+            [labels.draftDefinitions, draftCount, labels.wizardBasics],
+            [labels.retiredDefinitions, retiredCount, labels.retired],
+          ].map(([label, value, help]) => <div className="bg-background p-4" key={String(label)}><dt className="text-xs font-semibold text-muted-foreground">{label}</dt><dd className="mt-1 text-2xl font-semibold">{value}</dd><p className="mt-1 text-xs text-muted-foreground">{help}</p></div>)}
+        </dl>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(280px,0.32fr)_minmax(0,1fr)]">
+        <aside className="rounded-xl border bg-surface p-4 shadow-sm" aria-label={labels.processCatalog}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="eyebrow">{labels.title}</p>
               <h2 className="mt-1 text-xl font-semibold">{labels.processCatalog}</h2>
             </div>
-            {canWrite ? <button className="inline-flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground" onClick={() => void createDefinition()} title={labels.newProcess} type="button"><Plus aria-hidden="true" size={18} /></button> : null}
+            <span className="status-chip">{visibleCatalog.length}</span>
           </div>
 
           <div className="mt-4 grid grid-cols-2 rounded-xl bg-muted p-1 text-sm">
@@ -646,7 +709,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
             {visibleCatalog.map((item) => {
               const active = selected?.definition.id === item.id
               return (
-                <button className={`w-full rounded-2xl border p-3 text-left transition ${active ? 'border-primary bg-accent/50 shadow-sm' : 'bg-background hover:border-primary/40'}`} key={item.id} onClick={() => selectCatalogItem(item)} role="listitem" type="button">
+                <button aria-current={active ? 'true' : undefined} className={`w-full rounded-lg border p-3 text-left transition ${active ? 'border-primary bg-accent/50 shadow-sm' : 'bg-background hover:border-primary/40'}`} key={item.id} onClick={() => selectCatalogItem(item)} role="listitem" type="button">
                   <span className="flex items-start justify-between gap-2">
                     <span className="min-w-0">
                       <span className="block truncate font-semibold">{titleFor(item.title) || item.key}</span>
@@ -667,15 +730,15 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
 
         <main className="min-w-0 space-y-5">
           {!selected || !draft ? (
-            <section className="grid min-h-96 place-items-center rounded-3xl border border-dashed bg-surface p-8 text-center">
+            <section className="grid min-h-96 place-items-center rounded-xl border border-dashed bg-surface p-8 text-center">
               <div><Workflow className="mx-auto text-muted-foreground" size={40} /><h2 className="mt-4 text-xl font-semibold">{labels.chooseDefinition}</h2><p className="mt-2 text-sm text-muted-foreground">{labels.description}</p></div>
             </section>
           ) : (
             <>
-              <header className="rounded-3xl border bg-surface p-5 shadow-sm">
+              <header className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(selected.definition.status)}`}>{statusLabel(selected.definition.status, labels)}</span><span className="text-xs text-muted-foreground">{selected.definition.key}</span></div>
+                    <p className="eyebrow">{labels.selectedDefinition}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(selected.definition.status)}`}>{statusLabel(selected.definition.status, labels)}</span><span className="text-xs text-muted-foreground">{selected.definition.key}</span></div>
                     {editing && selected.definition.status !== 'RETIRED' ? <input aria-label={labels.titleNl} className="mt-3 w-full rounded-xl border bg-background px-3 py-2 text-2xl font-semibold outline-none focus:border-primary" onChange={(event) => updateDraft((current) => ({ ...current, title: { ...current.title, nl: event.target.value } }))} value={draft.title.nl ?? ''} /> : <h2 className="mt-3 text-2xl font-semibold">{titleFor(draft.title)}</h2>}
                     <p className="mt-2 text-sm text-muted-foreground">{selected.definition.status === 'PUBLISHED' ? labels.readOnly : labels.processStudio}</p>
                   </div>
@@ -692,7 +755,11 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                 <IssueList issues={issues} labels={labels} />
               </header>
 
-              <section className="rounded-3xl border bg-surface p-5 shadow-sm">
+              <nav aria-label={labels.studioNavigation} className="grid gap-1 rounded-xl border bg-surface p-1 shadow-sm sm:grid-cols-5">
+                {stageItems.map((item, index) => { const Icon = item.icon; const active = studioStage === item.id; return <button aria-current={active ? 'step' : undefined} className={`flex items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} key={item.id} onClick={() => setStudioStage(item.id)} type="button"><span className={`grid size-7 shrink-0 place-items-center rounded-md text-xs ${active ? 'bg-primary-foreground/15' : 'bg-muted'}`}>{index + 1}</span><Icon aria-hidden="true" className="hidden xl:block" size={15} /><span className="truncate">{item.label}</span></button> })}
+              </nav>
+
+              {studioStage === 'process' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.processStudio}</p><h3 className="mt-1 text-xl font-semibold">{labels.steps}</h3></div><span className="text-xs text-muted-foreground">{labels.stepList}</span></div>
                 <div className="mt-5 grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
                   <nav aria-label={labels.stepList} className="space-y-2">
@@ -707,9 +774,9 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                     <div className="grid gap-3 md:grid-cols-2">{draft.transitions.filter((transition) => transition.fromStepKey === selectedStep?.key).map((transition) => <div className="rounded-2xl border border-dashed p-4 text-sm" key={transition.key}><span className="text-xs font-semibold text-muted-foreground">{transition.action}</span><p className="mt-1 font-semibold">{titleFor(transition.label)}</p><p className="mt-1 text-xs text-muted-foreground">→ {transition.toStepKey}</p></div>)}</div>
                   </div>
                 </div>
-              </section>
+              </section> : null}
 
-              <section className="rounded-3xl border bg-surface p-5 shadow-sm">
+              {studioStage === 'form' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.formStudio}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title) : labels.noValue}</h3></div><FormInput className="text-primary" size={22} /></div>
                 {selectedForm ? <>
                   <div className="mt-4 flex flex-wrap gap-2">{draft.forms.map((form) => <button className={`rounded-xl border px-3 py-2 text-sm font-semibold ${form.key === selectedForm.key ? 'border-primary bg-accent/50' : ''}`} key={form.key} onClick={() => setActiveFormKey(form.key)} type="button">{titleFor(form.title)} · {labels.version} {form.version}</button>)}</div>
@@ -770,25 +837,40 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                      </div>
                   </div>
                 </> : <p className="mt-4 text-sm text-muted-foreground">{labels.noValue}</p>}
-              </section>
+              </section> : null}
 
-              <section className="rounded-3xl border bg-surface p-5 shadow-sm">
+              {studioStage === 'preview' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
                 <div className="mt-4 grid gap-3 md:grid-cols-3"><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
                 <div className={`mt-4 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}><p className="mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs font-semibold text-primary">{labels.syntheticData}</p>{previewFields.length ? <div className="space-y-4">{previewFields.map(({ section, field }) => { const previewFieldId = `studio-preview-${field.key}`; const previewLabelId = `${previewFieldId}-label`; return <div className="text-sm font-semibold" key={`${section.key}-${field.key}`}><p id={previewLabelId}>{titleFor(field.label, previewLanguage)}{field.access.some((rule) => rule.participantKey === previewParticipantDefinition?.key && rule.mode === 'WRITE_REQUIRED') ? <span aria-hidden="true" className="ml-1 text-destructive">*</span> : null}</p>{field.helpText ? <p className="mt-1 text-xs font-normal text-muted-foreground">{titleFor(field.helpText, previewLanguage)}</p> : null}<PreviewFieldControl field={field} id={previewFieldId} labelId={previewLabelId} labels={labels} language={previewLanguage} /></div> })}</div> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
-              </section>
+              </section> : null}
 
-              <section className="rounded-3xl border bg-surface p-5 shadow-sm">
+              {studioStage === 'trial' ? <section className="rounded-xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.processTrial}</p><h3 className="mt-1 text-xl font-semibold">{labels.processTrial}</h3></div><FlaskConical className="text-primary" size={22} /></div>
                 <div className="mt-4 flex flex-wrap items-end gap-3"><label className="text-xs font-semibold">{labels.trialDate}<input className="mt-1 rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setTrialDate(event.target.value)} type="date" value={trialDate} /></label><button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50" disabled={trialLoading} onClick={() => void runTrial()} type="button"><FlaskConical size={15} />{trialLoading ? labels.saving : labels.runTrial}</button></div>
                 {trial ? <div className="mt-5 space-y-4"><div className={`rounded-2xl border p-4 ${trial.status === 'SUCCESS' ? 'border-emerald-300 bg-emerald-50' : trial.status === 'WARNING' ? 'border-amber-300 bg-amber-50' : 'border-destructive/30 bg-destructive/5'}`}><div className="flex items-center gap-2 font-semibold">{trial.status === 'SUCCESS' ? <Check size={17} /> : null}{trial.status === 'SUCCESS' ? labels.success : trial.status === 'WARNING' ? labels.warning : labels.blocking}</div><p className="mt-2 text-sm">{labels.trialNoWrites}</p></div><div className="grid gap-4 lg:grid-cols-2"><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialPath}</h4><ol className="mt-3 space-y-2">{trial.path.map((step, index) => <li className="flex gap-3 text-sm" key={step.stepKey}><span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold">{index + 1}</span><span><span className="font-semibold">{titleFor(step.title, trial.language)}</span><span className="block text-xs text-muted-foreground">{step.stepKey}{step.nextStepKey ? ` → ${step.nextStepKey}` : ''}{step.sla ? ` · ${labels.sla} ${step.sla.duration.amount} ${step.sla.duration.unit}` : ''}</span></span></li>)}</ol></div><div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialParticipants}</h4><div className="mt-3 space-y-2">{trial.participants.map((participant) => <div className="rounded-xl border p-3 text-sm" key={participant.participantKey}><div className="flex justify-between gap-2"><span className="font-semibold">{participant.participantKey}</span><span className="text-xs font-semibold">{participant.status}</span></div><p className="mt-1 text-xs text-muted-foreground">{participant.selectorType} · {participant.permission} · {participant.candidateEmployeeIds.length} {labels.candidates}</p>{participant.message ? <p className="mt-1 text-xs text-destructive">{participant.message}</p> : null}</div>)}</div></div></div>{trial.output ? <div className="rounded-2xl border p-4"><h4 className="font-semibold">{labels.trialOutput}</h4><p className="mt-1 text-sm">{titleFor(trial.output.title, trial.language)} · {trial.output.format}</p></div> : null}{trial.blockers.length || trial.warnings.length ? <IssueList issues={[...trial.blockers, ...trial.warnings]} labels={labels} /> : null}</div> : null}
-              </section>
+              </section> : null}
 
-              <section className="rounded-3xl border bg-surface p-5 shadow-sm"><div className="flex items-center gap-2"><GitCompareArrows className="text-primary" size={21} /><h3 className="text-xl font-semibold">{labels.versionDiff}</h3></div>{selected.diff.changedPaths.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.noChanges}</p> : <ul className="mt-3 grid gap-2 text-xs md:grid-cols-2">{selected.diff.changedPaths.slice(0, 80).map((path) => <li className="rounded-xl border px-3 py-2 font-mono" key={path}>{path}</li>)}</ul>}</section>
+              {studioStage === 'versions' ? <section className="rounded-xl border bg-surface p-5 shadow-sm"><div className="flex items-center gap-2"><GitCompareArrows className="text-primary" size={21} /><h3 className="text-xl font-semibold">{labels.versionDiff}</h3></div>{selected.diff.changedPaths.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{labels.noChanges}</p> : <ul className="mt-3 grid gap-2 text-xs md:grid-cols-2">{selected.diff.changedPaths.slice(0, 80).map((path) => <li className="rounded-lg border px-3 py-2 font-mono" key={path}>{path}</li>)}</ul>}</section> : null}
             </>
           )}
         </main>
       </div>
+
+      {showCreateWizard ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-sidebar/60 p-4 backdrop-blur-sm" role="dialog">
+        <section aria-labelledby="create-process-title" className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border bg-surface p-5 shadow-2xl sm:p-7">
+          <header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.newProcess}</p><h2 className="mt-1 text-2xl font-semibold" id="create-process-title">{labels.newWizardTitle}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{labels.newWizardDescription}</p></div><button aria-label={labels.cancel} className="button-secondary" onClick={() => setShowCreateWizard(false)} type="button"><X size={16} /></button></header>
+          <ol aria-label={labels.newWizardTitle} className="mt-6 grid gap-1 rounded-lg border bg-muted p-1 sm:grid-cols-3">
+            {[labels.wizardBasics, labels.wizardStartingPoint, labels.wizardReview].map((label, index) => <li className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${createStep === index ? 'bg-surface text-foreground shadow-sm' : index < createStep ? 'text-success' : 'text-muted-foreground'}`} key={label}><span className={`grid size-6 place-items-center rounded-md text-xs ${index < createStep ? 'bg-success/10' : 'bg-background'}`}>{index < createStep ? <CheckCircle2 size={14} /> : index + 1}</span>{label}</li>)}
+          </ol>
+          <div className="mt-6 min-h-60">
+            {createStep === 0 ? <div className="grid gap-5"><label className="grid gap-1.5 text-sm font-semibold">{labels.processName}<input autoFocus className="form-field font-normal" onChange={(event) => { const name = event.target.value; setCreateName(name); setCreateKey(name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) }} placeholder={labels.processNamePlaceholder} value={createName} /></label><label className="grid gap-1.5 text-sm font-semibold">{labels.processKey}<input className="form-field font-mono font-normal" onChange={(event) => setCreateKey(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} value={createKey} /><span className="text-xs font-normal leading-5 text-muted-foreground">{labels.processKeyHelp}</span></label></div> : null}
+            {createStep === 1 ? <div className="grid gap-3"><div className="flex items-start gap-4 rounded-lg border border-primary bg-accent/40 p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-primary"><Workflow size={19} /></span><span><span className="font-semibold">{labels.blankProcess}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.blankProcessDescription}</span></span></div><div className="flex items-start gap-4 rounded-lg border bg-muted/40 p-4 opacity-75"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-background text-muted-foreground"><LayoutDashboard size={19} /></span><span><span className="font-semibold">{labels.certifiedRecipe}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.certifiedRecipeDescription}</span></span></div></div> : null}
+            {createStep === 2 ? <div className="rounded-lg border bg-background p-5"><p className="eyebrow">{labels.creationSummary}</p><dl className="mt-4 grid gap-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processName}</dt><dd className="mt-1 font-semibold">{createName}</dd></div><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processKey}</dt><dd className="mt-1 break-all font-mono text-sm">{createKey}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-muted-foreground">{labels.wizardStartingPoint}</dt><dd className="mt-1 text-sm">{labels.blankProcessDescription}</dd></div></dl></div> : null}
+          </div>
+          <footer className="mt-6 flex items-center justify-between gap-3 border-t pt-5"><button className="button-secondary inline-flex items-center gap-2" onClick={() => createStep === 0 ? setShowCreateWizard(false) : setCreateStep((step) => step - 1)} type="button">{createStep === 0 ? labels.cancel : <><ArrowLeft size={15} />{labels.back}</>}</button>{createStep < 2 ? <button className="button-primary" disabled={createStep === 0 && (!createName.trim() || createKey.length < 3)} onClick={() => setCreateStep((step) => step + 1)} type="button">{labels.continue}</button> : <button className="button-primary inline-flex items-center gap-2" onClick={() => void createDefinition()} type="button"><Plus size={15} />{labels.createDraft}</button>}</footer>
+        </section>
+      </div> : null}
 
       {showPublish ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-5" role="dialog"><div className="w-full max-w-lg rounded-3xl border bg-surface p-6 shadow-xl"><h2 className="text-xl font-semibold">{labels.publishConfirmation}</h2><label className="mt-5 block text-sm font-semibold">{labels.changelog}<textarea className="mt-1 min-h-32 w-full rounded-xl border bg-background px-3 py-2 font-normal" onChange={(event) => setPublishChangelog(event.target.value)} placeholder={labels.changelogPlaceholder} value={publishChangelog} /></label><div className="mt-5 flex justify-end gap-2"><button className="rounded-xl border px-4 py-2 text-sm font-semibold" onClick={() => setShowPublish(false)} type="button">{labels.cancel}</button><button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50" disabled={!publishChangelog.trim()} onClick={() => void publishDefinition()} type="button"><Send size={15} />{labels.confirmPublish}</button></div></div></div> : null}
       {showRetire ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-5" role="dialog"><div className="w-full max-w-lg rounded-3xl border bg-surface p-6 shadow-xl"><h2 className="text-xl font-semibold">{labels.retire}</h2><label className="mt-5 block text-sm font-semibold">{labels.retireReason}<textarea className="mt-1 min-h-28 w-full rounded-xl border bg-background px-3 py-2 font-normal" onChange={(event) => setRetireReason(event.target.value)} value={retireReason} /></label><div className="mt-5 flex justify-end gap-2"><button className="rounded-xl border px-4 py-2 text-sm font-semibold" onClick={() => setShowRetire(false)} type="button">{labels.cancel}</button><button className="rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground disabled:opacity-50" disabled={!retireReason.trim()} onClick={() => void retireDefinition()} type="button">{labels.confirmRetire}</button></div></div></div> : null}

@@ -1586,3 +1586,10 @@ Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migrat
 - NL/EN-teksten zijn gelijkgetrokken en uitgebreid voor de nieuwe status- en zoekuitleg. Er zijn geen schema-, migratie- of remote wijzigingen uitgevoerd.
 - Verificatie: strict typecheck, ESLint, i18n-pariteit (28 namespaces), diff-check, Next productiebuild via Webpack en ingelogde desktop-/390px-browsercontrole geslaagd. De browser gaf alleen de bestaande CountryPicker hydration-waarschuwing voor de landnaam `Falklandeilanden`; dit staat los van deze UX-slice.
 - De feature is lokaal samengevoegd naar `main` als onderdeel van deze releasebasis; push en deployment volgen pas na de releasegate.
+# UX-redesign Workflows en formulieren 2026-08-10
+
+- In feature-worktree `codex/process-automation-redesign` is `/settings/process-automation` heringericht van één lange studiopagina naar overzicht → catalogus → één actieve studiostap.
+- Het overzicht onderscheidt alle processen, concepten, gepubliceerde productieversies en gearchiveerde definities. De bestaande catalogus blijft lijst-eerst en behoudt zoeken/filteren/selectie.
+- Een nieuwe driestapswizard volgt het patroon van de medewerkerwizard: Basis, Startpunt en Controleren. Hij maakt via de bestaande API uitsluitend een concept aan; schema, API-contracten, RLS en permissies zijn niet gewijzigd.
+- Processtudio, formulierstudio, preview, Procesproef en versieverschil zijn als genummerde stappen bereikbaar en worden niet meer tegelijk onder elkaar getoond.
+- Strict TypeScript, i18n-pariteit en diff-check zijn groen. Gerichte ESLint wordt geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit. Desktop-/390px-browsercontrole is geblokkeerd omdat de geïsoleerde worktree geen lokale Supabase-env bevat; er zijn geen secrets gekopieerd of gelinkt.

@@ -6,12 +6,14 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 |---|---|---|---|---|
 | Bedrijfsgegevens | `/settings/company-data` | AFGEROND | [`BEDRIJFSGEGEVENS_REDESIGN.md`](BEDRIJFSGEGEVENS_REDESIGN.md) | Volgende redesign: Rollen en autorisatie |
 | Rollen en autorisatie | `/authorization` | GEVERIFIEERD | [`REDESIGN_ROLLEN_EN_AUTORISATIE.md`](REDESIGN_ROLLEN_EN_AUTORISATIE.md) | Edwin bepaalt het volgende scherm |
+| Workflows en formulieren | `/settings/process-automation` | GEIMPLEMENTEERD | [`REDESIGN_WORKFLOWS_EN_FORMULIEREN.md`](REDESIGN_WORKFLOWS_EN_FORMULIEREN.md) | Browsercontrole uitvoeren in een geauthenticeerde omgeving |
 
 ## Volgorde
 
 1. Bedrijfsgegevens — afgerond als eerste Liquid Flow-redesign.
 2. Rollen en autorisatie — redesign doorgevoerd en geverifieerd op desktop en 390px.
-3. Daarna bepaalt Edwin per keer de volgende pagina.
+3. Workflows en formulieren — overzicht, productie-inzicht en begeleide aanmaakflow geïmplementeerd; browserverificatie geblokkeerd door ontbrekende lokale worktree-env.
+4. Daarna bepaalt Edwin per keer de volgende pagina.
 
 ## Werkwijze na ieder scherm
 

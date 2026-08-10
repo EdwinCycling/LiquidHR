@@ -1068,3 +1068,8 @@ Foto wijzigen/verwijderen is zichtbaar op de medewerkerdetailpagina voor gebruik
 - Tijdhub-reminders gebruiken voor het eerstvolgende item een bestaande warning-surface in notitiekaartstijl. Reminderpanelen berekenen een positie naast of boven de trigger en hebben een expliciete sluitknop. Er is geen demo-record voor verlopen reminders aangemaakt of gewijzigd.
 - Browsercontrole op poort 3000 bevestigde de Talentfundament-header, sidebaruitlijning, één-open-regel, geel kaartje, niet-overlappende popover en sluiten; browserconsole: geen errors.
 - Verificatie: typecheck, lint, i18n-pariteit (24 namespaces), 111 testbestanden/410 tests en productiebuild (115 statische pagina's) geslaagd. Geen dependency-installatie, schemawijziging, deploy of commit.
+# UX-redesign Workflows en formulieren 2026-08-10
+
+De beheerroute `/settings/process-automation` heeft nu een expliciet statusoverzicht, een compacte lijst-eerst catalogus en een genummerde studioflow. Concept, gepubliceerd/in productie en gearchiveerd zijn als afzonderlijke aantallen zichtbaar. Proces, formulier, preview, Procesproef en versieverschil worden per onderwerp geopend in plaats van als één lange pagina.
+
+`Nieuw proces` gebruikt een driestapswizard met basisgegevens, startpunt en review vóór aanmaken. De bestaande create-route, autorisatie, autosave, compiler, recepten en publicatiegrenzen zijn ongewijzigd. Strict TypeScript, i18n en diff-check zijn groen. ESLint blijft geblokkeerd door de bestaande ESLint 10/plugin-incompatibiliteit; browserbewijs is geblokkeerd doordat lokale Supabase-env bewust niet naar de worktree is gekopieerd.
