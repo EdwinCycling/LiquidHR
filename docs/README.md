@@ -2,7 +2,7 @@
 
 ## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
-De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De remote controle geeft nul actieve IKV-duplicaten; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. GitHub- en Vercel-verificatie volgen na de lokale releasegate.
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De remote controle geeft nul actieve IKV-duplicaten; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. Releasecommit `cce23987603bf25d2778672ce5a17a543e1f717a` staat op GitHub `main`; Vercel Production `dpl_A7nVUHc5JhCcAuQy2hiaNkRYno3L` is `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200. De runtime-scan toont alleen een bestaand projectbaseline-incident (`PGRST303 JWT issued at future` op `/settings/holidays`).
 
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 

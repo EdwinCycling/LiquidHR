@@ -3,7 +3,7 @@
 ## Release 2026-08-10: productversie 1.20260810.2
 
 - De zichtbare productversie is verhoogd naar `1.20260810.2` volgens de centrale `X.datum.volgnummer`-conventie.
-- `main` bevat de lokale consolidatie en employment-merge; de releasecommit en Vercel-deployment worden na de releasegate toegevoegd.
+- `main` bevat de lokale consolidatie en employment-merge. Releasecommit `cce23987603bf25d2778672ce5a17a543e1f717a` staat op GitHub `main`; Vercel Production `dpl_A7nVUHc5JhCcAuQy2hiaNkRYno3L` is `READY` op exact deze commit met alias `liquid-hr-hr-suite.vercel.app`.
 - De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`: `add_temporary_no_end_contract_type`, `employment_number_ikv_and_probation_rules` en `add_cao_probation_override`.
 - De bestaande actieve dubbele IKV is binnen de migratie gerepareerd zonder verwijdering: gesloten historische IKV 9 bleef 9; de latere open conceptrelatie kreeg IKV 10. De remote controle geeft nul actieve dubbele IKV-groepen. Advisors en officiële typegeneratie zijn uitgevoerd.
 
@@ -28,7 +28,7 @@
 - Geen schema-, API- of remote-wijziging buiten de nieuwe lokale migraties uitgevoerd. De wijzigingen zijn nu lokaal opgenomen in `main`; push en deployment blijven apart open.
 ## Dienstverbandwizard: nummering, contractregels en aanmaakflow 2026-08-10
 
-Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes`. De drie remote migraties zijn toegepast; push en deployment volgen na de lokale releasegate.
+Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes`. De drie remote migraties zijn toegepast en de release staat op GitHub/Vercel; de gebruiker voert nu de functionele test uit.
 
 ### Gedaan
 

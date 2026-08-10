@@ -2,7 +2,7 @@
 
 ## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
-De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd zonder verwijdering: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De duplicate-controle retourneert nul actieve groepen; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. GitHub- en Vercel-verificatie volgen na de lokale releasegate.
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd zonder verwijdering: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De duplicate-controle retourneert nul actieve groepen; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. Releasecommit `cce23987603bf25d2778672ce5a17a543e1f717a` staat op GitHub `main`; Vercel Production `dpl_A7nVUHc5JhCcAuQy2hiaNkRYno3L` is `READY` op exact deze commit en `/login` geeft HTTP 200. De runtime-scan toont alleen het bestaande projectbaseline-incident `PGRST303 JWT issued at future` op `/settings/holidays`.
 
 ## Weerbericht verhuisd naar medewerkerheader 2026-08-10 — geverifieerd
 
@@ -13,7 +13,7 @@ Het weerinstrument en de Compact-schakelaar zijn uit de startpagina-header verwi
 De uitgebreide medewerkerheader heeft dezelfde gegevens en acties in een nieuwe responsive compositie: een compacte ronde avatar, prominente naam met personeelsnummer/status, foto-acties in dezelfde naamkleur, 40x40 weer- en compact/uitgebreid-iconen naast elkaar en de archiveeractie onderaan boven de contactonderregel. Op mobiel stapelt de header verticaal; de bestaande compacte variant blijft via dezelfde URL-state beschikbaar. Gerichte ESLint, strict TypeScript, `git diff --check` en desktopbrowsercontrole zijn gecontroleerd. Geen schema-, API- of remotewijziging.
 ## Dienstverbandwizard: onderhoud en contractregels 2026-08-10
 
-**Status: lokaal gedaan, geverifieerd, samengevoegd in `main` en remote schema toegepast.** Vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` zijn de wizard, employment API-validatie, contract-/detailroutes, i18n, migraties en regressietests samengevoegd. Push en deployment volgen na de lokale releasegate.
+**Status: lokaal gedaan, geverifieerd, samengevoegd in `main`, remote schema toegepast en gedeployed.** Vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` zijn de wizard, employment API-validatie, contract-/detailroutes, i18n, migraties en regressietests samengevoegd. De gebruiker voert nu de functionele test uit.
 
 De wizard gebruikt per medewerker het hoogste numerieke dienstverbandnummer plus één en behandelt het IKV-nummer als uniek per medewerker, niet organisatiebreed. Contracten zonder einddatum, proeftijdregels, kalendermaand-snelkeuzes, Nederlandse decimale invoer, nuluren voor oproepkrachten, review-vóór-save, Annuleren, administratie-informatie en de footerfix zijn aangesloten. De POST-400 is opgelost door de te strenge RFC-UUID-check in de employmentpayload te vervangen door PostgreSQL-UUID-opmaakvalidatie; een exacte browserpayload-regressietest dekt dit af.
 
