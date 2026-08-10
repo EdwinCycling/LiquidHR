@@ -9,7 +9,7 @@ import {
 describe('createEmploymentSchema', () => {
   const valid = {
     employeeId: 'be1f0904-72b8-4e1d-9a10-625711d11d7a',
-    employmentNumber: 'DV-001',
+    employmentNumber: '1',
     employmentType: 'EMPLOYEE',
     contractType: 'INDEFINITE',
     startsOn: '2026-08-01',
@@ -18,7 +18,7 @@ describe('createEmploymentSchema', () => {
   }
 
   it('accepteert parallelle dienstverbanden zonder overlapcontrole in het contract', () => {
-    expect(createEmploymentSchema.parse(valid).employmentNumber).toBe('DV-001')
+    expect(createEmploymentSchema.parse(valid).employmentNumber).toBe('1')
   })
 
   it('weigert ongeldige perioden en client-side scopevelden', () => {
@@ -53,7 +53,7 @@ describe('terminationSchema', () => {
 describe('completeEmploymentCreateSchema', () => {
   const valid = {
     employment: {
-      employmentNumber: 'DV-100',
+      employmentNumber: '100',
       startsOn: '2026-08-01',
       seniorityDate: '2026-08-01',
       countryCode: 'NL',
@@ -179,5 +179,32 @@ describe('completeEmploymentCreateSchema', () => {
       employment: { ...valid.employment, startsOn: '2026-08-01', seniorityDate: '2026-08-01' },
       contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2026-09-01', probationApplies: true, probationEndsOn: '2026-09-02' },
     }).success).toBe(false)
+  })
+
+  it('weigert een proeftijd bij een contract van zes maanden of korter', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2027-02-01', probationApplies: true, probationEndsOn: '2026-09-01' },
+    }).success).toBe(false)
+  })
+
+  it('beperkt een middel-lang tijdelijk contract tot maximaal een maand proeftijd', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2027-08-01', probationApplies: true, probationEndsOn: '2026-10-01' },
+    }).success).toBe(false)
+  })
+
+  it('accepteert de volledige on-call inzending uit de wizard', () => {
+    const result = completeEmploymentCreateSchema.safeParse({
+      employment: { employmentNumber: '1', employmentType: 'EMPLOYEE', startsOn: '2026-09-01', seniorityDate: '2026-09-01', countryCode: 'NL', isPrimary: false },
+      incomeRelationship: { payrollTaxSubnumber: '0001', ikvNumber: 2, validFrom: '2026-09-01' },
+      contract: { workerType: 'EMPLOYEE', flexPhaseId: null, laborConditionSetId: '4a3f96c5-45db-2cd9-5aff-971eee7eab44', durationType: 'INDEFINITE', startsOn: '2026-09-01', endsOn: null, probationApplies: false, probationEndsOn: null },
+      schedule: { scheduleType: 'HOURS_PER_DAY', startWeek: 1, averageDaysPerWeek: 0, averageHoursPerWeek: 0, partTimeFactor: 0, timeForTimeAccrual: 0, mondayHours: 0, tuesdayHours: 0, wednesdayHours: 0, thursdayHours: 0, fridayHours: 0, saturdayHours: 0, sundayHours: 0, isOnCall: true, onCallObligation: true, workScope: null, validFrom: '2026-09-01' },
+      salary: { paymentType: 'PERIODIC_FIXED', paymentFrequency: 'FOUR_WEEKLY', salaryFrequencyId: '9cea4610-0b69-e90a-20f3-1d77e04248f4', salaryBasis: 'MANUAL', fulltimeAmount: 3500, parttimeAmount: 1, hourlyRate: null, currencyCode: 'EUR', salaryScaleStepId: null, validFrom: '2026-09-01' },
+      organization: { departmentId: 'b551dc4c-0482-3911-5e7a-5b40cf8fe113', jobId: '1ddf85af-721d-4887-a5e4-74dd2c037ee4', jobTitle: 'Monteur', managerEmployeeId: '6f2e2302-748f-8684-0ce6-1b29702d5d92', effectiveFrom: '2026-09-01' },
+      costAllocation: { validFrom: '2026-09-01', allocations: [{ costCenterId: 'f6401e40-e815-a9c0-2d5f-072dc201bb99', costCarrierId: '74bb945b-aca7-5707-8548-a7d2ea5739c2', percentage: 100 }] },
+    })
+    expect(result.success).toBe(true)
   })
 })

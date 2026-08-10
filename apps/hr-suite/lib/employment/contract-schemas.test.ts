@@ -29,6 +29,15 @@ describe('employmentContractMutationSchema', () => {
     }).success).toBe(false)
   })
 
+  it('weigert een proeftijd voor een contract van zes maanden', () => {
+    expect(employmentContractMutationSchema.safeParse({
+      ...valid,
+      endsOn: '2027-02-01',
+      probationApplies: true,
+      probationEndsOn: '2026-09-01',
+    }).success).toBe(false)
+  })
+
   it('houdt iedere contractstart binnen het dienstverband en vergrendelt het eerste contract op de dienstverbandstart', () => {
     expect(isEmploymentContractStartDateValid('2026-07-31', '2026-08-01', true)).toBe(false)
     expect(isEmploymentContractStartDateValid('2026-08-02', '2026-08-01', true)).toBe(false)

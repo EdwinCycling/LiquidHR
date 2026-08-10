@@ -11,6 +11,7 @@ import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './e
 import { listDirectTeamEmployeeIds, type EmployeeScope } from '@/lib/organization/team-scope'
 import { mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
 import { nextAvailableEmploymentNumber } from './employment-number'
+import { validateProbation } from './probation-rules'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -113,6 +114,9 @@ export interface EmploymentCreationOptions {
     administrationNumber?: string
     cocNumber?: string | null
     vatNumber?: string | null
+    activeEmployeeCount: number
+    archivedEmployeeCount: number
+    availableLaborConditions: Array<{ code: string; name: string }>
   }>
   selectedAdministrationId: string
   departments: Array<{ id: string; code: string; name: string }>
@@ -122,7 +126,7 @@ export interface EmploymentCreationOptions {
   departmentManagers: Record<string, Array<{ id: string; employeeNumber: string; name: string }>>
   costCenters: Array<{ id: string; code: string; name: string }>
   costCarriers: Array<{ id: string; code: string; name: string }>
-  laborConditionSets: Array<{ id: string; code: string; name: string; standardHoursPerWeek: number }>
+  laborConditionSets: Array<{ id: string; code: string; name: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }>
   flexPhases: Array<{ id: string; code: string; name: string }>
   salaryFrequencies: Array<{ id: string; code: string; name: string }>
   minimumWageRates: Array<{
@@ -548,6 +552,22 @@ export async function publishCompleteEmployment(
   const { context, supabase, administrationId } = await resolveEmploymentAdministration(employeeId, requestedAdministrationId)
   if (input.contract) await requirePermission('organization-placement:write', employeeId)
   if (input.salary) await requirePermission('salary:write', employeeId)
+  if (input.contract) {
+    const { data: laborCondition, error: laborConditionError } = await supabase
+      .from('labor_condition_sets')
+      .select('*')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', requireHrGroupId(context))
+      .eq('administration_id', administrationId)
+      .eq('id', input.contract.laborConditionSetId)
+      .maybeSingle()
+    if (laborConditionError || !laborCondition) throw new EmploymentServiceError('LABOR_CONDITION_NOT_FOUND', 400)
+    const probationError = validateProbation({
+      ...input.contract,
+      caoAllowsTwoMonths: laborCondition.probation_maximum_months === 2,
+    })
+    if (probationError) throw new EmploymentServiceError(probationError, 400)
+  }
   await ensureEmployeeAdministrationAssignment(employeeId, input.employment.startsOn, administrationId)
 
   let requestedInput = input
@@ -598,25 +618,27 @@ export async function getEmploymentCreationOptions(
   const today = new Date().toISOString().slice(0, 10)
   const [currentYear, currentMonth] = today.split('-').map(Number)
   const defaultStartDate = new Date(Date.UTC(currentYear, currentMonth, 1)).toISOString().slice(0, 10)
+  const administrationIds = administrations.map((administration) => administration.id)
+  const hrGroupId = requireHrGroupId(context)
 
   const [
     departmentsResult, jobGroupsResult, jobsResult, costCentersResult, costCarriersResult,
     laborConditionSetsResult, flexPhasesResult, salaryFrequenciesResult,
     hrSettingsResult, employeeResult, bsnResult, primaryResult, employmentNumbersResult, ikvResult,
     minimumWagesResult, salaryScalesResult, scaleStepsResult, managersResult,
-    managementAssignmentsResult, managementRolesResult,
+    managementAssignmentsResult, managementRolesResult, administrationEmploymentStatsResult, administrationEmployeesResult,
   ] = await Promise.all([
     supabase.from('departments').select('id, code, name')
       .eq('tenant_id', context.tenantId)
-      .eq('hr_group_id', requireHrGroupId(context))
+      .eq('hr_group_id', hrGroupId)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('job_groups').select('id, code, name')
       .eq('tenant_id', context.tenantId)
-      .eq('hr_group_id', requireHrGroupId(context))
+      .eq('hr_group_id', hrGroupId)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('jobs').select('id, code, job_group_id, job_revisions!job_revisions_job_hr_group_fkey(name)')
       .eq('tenant_id', context.tenantId)
-      .eq('hr_group_id', requireHrGroupId(context))
+      .eq('hr_group_id', hrGroupId)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('cost_centers').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
@@ -624,8 +646,8 @@ export async function getEmploymentCreationOptions(
     supabase.from('cost_carriers').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .eq('is_active', true).order('code').limit(500),
-    supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+    supabase.from('labor_condition_sets').select('*')
+      .eq('tenant_id', context.tenantId).in('administration_id', administrationIds)
       .eq('is_active', true).order('code').limit(500),
     supabase.from('flex_phases').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
@@ -645,10 +667,11 @@ export async function getEmploymentCreationOptions(
       .eq('employee_id', employeeId).eq('is_primary', true).is('deleted_at', null)
       .order('starts_on', { ascending: false }).limit(100),
     supabase.from('employments').select('employment_number')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
-      .is('deleted_at', null).order('employment_number').limit(5_000),
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('employee_id', employeeId)
+      .is('deleted_at', null).limit(5_000),
     supabase.from('income_relationships').select('ikv_number')
-      .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
+      .eq('tenant_id', context.tenantId).eq('employee_id', employeeId)
+      .is('deleted_at', null)
       .order('ikv_number', { ascending: false }).limit(1),
     canWriteSalary
       ? supabase.from('statutory_minimum_wages')
@@ -669,13 +692,18 @@ export async function getEmploymentCreationOptions(
         .order('fulltime_amount').limit(500)
       : Promise.resolve({ data: [], error: null }),
     supabase.from('employees').select('id, employee_number, first_name, birth_name')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context))
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .is('deleted_at', null).order('employee_number').limit(500),
     supabase.from('department_management').select('department_id, management_role_id, employee_id, effective_from, effective_to')
-      .eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context))
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
       .lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).limit(1000),
     supabase.from('management_roles').select('id, code')
       .or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`).eq('code', 'DIRECT_MANAGER').eq('is_active', true).is('deleted_at', null).limit(20),
+    supabase.from('employments').select('administration_id, employee_id, starts_on, ends_on, record_status')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('administration_id', administrationIds)
+      .is('deleted_at', null).limit(10_000),
+    supabase.from('employees').select('id, is_archived')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null).limit(10_000),
   ])
   const optionResults = [
     departmentsResult, jobGroupsResult, jobsResult, costCentersResult, costCarriersResult,
@@ -708,6 +736,29 @@ export async function getEmploymentCreationOptions(
     return result
   }, {})
   const nextEmploymentNumber = nextAvailableEmploymentNumber((employmentNumbersResult.data ?? []).map((row) => row.employment_number))
+  const highestIkvNumber = ikvResult.data?.[0]?.ikv_number ?? 0
+  const archivedByEmployeeId = new Map((administrationEmployeesResult.data ?? []).map((employee) => [employee.id, employee.is_archived]))
+  const activeEmployeeIdsByAdministration = new Map<string, Set<string>>()
+  const archivedEmployeeIdsByAdministration = new Map<string, Set<string>>()
+  for (const employment of administrationEmploymentStatsResult.data ?? []) {
+    if (employment.record_status !== 'CONFIRMED') continue
+    if (employment.starts_on <= today && (!employment.ends_on || employment.ends_on >= today) && archivedByEmployeeId.get(employment.employee_id) !== true) {
+      const activeEmployeeIds = activeEmployeeIdsByAdministration.get(employment.administration_id) ?? new Set<string>()
+      activeEmployeeIds.add(employment.employee_id)
+      activeEmployeeIdsByAdministration.set(employment.administration_id, activeEmployeeIds)
+    }
+    if (archivedByEmployeeId.get(employment.employee_id) === true) {
+      const archivedEmployeeIds = archivedEmployeeIdsByAdministration.get(employment.administration_id) ?? new Set<string>()
+      archivedEmployeeIds.add(employment.employee_id)
+      archivedEmployeeIdsByAdministration.set(employment.administration_id, archivedEmployeeIds)
+    }
+  }
+  const laborConditionRowsByAdministration = new Map<string, Array<{ code: string; name: string }>>()
+  for (const conditionSet of laborConditionSetsResult.data ?? []) {
+    const rows = laborConditionRowsByAdministration.get(conditionSet.administration_id) ?? []
+    rows.push({ code: conditionSet.code, name: conditionSet.name })
+    laborConditionRowsByAdministration.set(conditionSet.administration_id, rows)
+  }
 
   return {
     administrations: administrations.map((administration) => ({
@@ -717,6 +768,9 @@ export async function getEmploymentCreationOptions(
       administrationNumber: administration.administrationNumber,
       cocNumber: administration.cocNumber,
       vatNumber: administration.vatNumber,
+      activeEmployeeCount: activeEmployeeIdsByAdministration.get(administration.id)?.size ?? 0,
+      archivedEmployeeCount: archivedEmployeeIdsByAdministration.get(administration.id)?.size ?? 0,
+      availableLaborConditions: laborConditionRowsByAdministration.get(administration.id) ?? [],
     })),
     selectedAdministrationId: administrationId,
     nextEmploymentNumber,
@@ -736,11 +790,12 @@ export async function getEmploymentCreationOptions(
     departmentManagers,
     costCenters: costCentersResult.data ?? [],
     costCarriers: costCarriersResult.data ?? [],
-    laborConditionSets: (laborConditionSetsResult.data ?? []).map((item) => ({
+    laborConditionSets: (laborConditionSetsResult.data ?? []).filter((item) => item.administration_id === administrationId).map((item) => ({
       id: item.id,
       code: item.code,
       name: item.name,
       standardHoursPerWeek: item.standard_hours_per_week,
+      probationMaximumMonths: item.probation_maximum_months === 2 ? 2 : 1,
     })),
     flexPhases: flexPhasesResult.data ?? [],
     salaryFrequencies: salaryFrequenciesResult.data ?? [],
@@ -757,7 +812,7 @@ export async function getEmploymentCreationOptions(
       label: `${step.salary_scales?.code ?? ''} · ${step.step_name || step.step_code}`,
       fulltimeAmount: step.fulltime_amount,
     })),
-    nextIkvNumber: Math.min((ikvResult.data?.[0]?.ikv_number ?? 0) + 1, 99),
+    nextIkvNumber: highestIkvNumber < 99 ? highestIkvNumber + 1 : 0,
     canWriteSalary,
     defaultCountryCode: hrSettingsResult.data?.default_employment_country_code ?? 'NL',
     defaultStartDate,

@@ -12,20 +12,21 @@ import {
   updateDefaultEmploymentCountry,
   setEmploymentPaymentFrequencies,
 } from '@/lib/employment/employment-settings'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 
 const catalog = z.enum(['LABOR_CONDITION_SET', 'FLEX_PHASE', 'SALARY_FREQUENCY', 'COST_CARRIER', 'COST_CENTER'])
 const catalogInput = z.object({ catalog, code: z.string().trim().min(1).max(40), name: z.string().trim().min(1).max(160), numericValue: z.number().min(0).max(999).nullish() }).strict()
-const regulationInput = z.object({ name: z.string().trim().min(1).max(160), validFrom: z.string().date(), standardHoursPerWeek: z.number().positive().max(60) }).strict()
+const regulationInput = z.object({ name: z.string().trim().min(1).max(160), validFrom: z.string().date(), standardHoursPerWeek: z.number().positive().max(60), probationMaximumMonths: z.union([z.literal(1), z.literal(2)]).default(1) }).strict()
 const paymentFrequencies = z.array(z.enum(['MONTHLY', 'FOUR_WEEKLY'])).min(1).max(2)
 const requestSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('COUNTRY'), countryCode: z.string().regex(/^[A-Z]{2}$/) }).strict(),
   z.object({ action: z.literal('PAYMENT_FREQUENCIES'), codes: paymentFrequencies }).strict(),
   z.object({ action: z.literal('CREATE'), ...catalogInput.shape }).strict(),
-  z.object({ action: z.literal('UPDATE'), id: z.string().uuid(), ...catalogInput.shape }).strict(),
-  z.object({ action: z.literal('ACTIVE'), catalog, id: z.string().uuid(), isActive: z.boolean() }).strict(),
+  z.object({ action: z.literal('UPDATE'), id: databaseUuid, ...catalogInput.shape }).strict(),
+  z.object({ action: z.literal('ACTIVE'), catalog, id: databaseUuid, isActive: z.boolean() }).strict(),
   z.object({ action: z.literal('REGULATION_CREATE'), ...regulationInput.shape }).strict(),
-  z.object({ action: z.literal('REGULATION_UPDATE'), id: z.string().uuid(), ...regulationInput.shape }).strict(),
-  z.object({ action: z.literal('REGULATION_SUCCESSOR'), predecessorId: z.string().uuid(), ...regulationInput.shape }).strict(),
+  z.object({ action: z.literal('REGULATION_UPDATE'), id: databaseUuid, ...regulationInput.shape }).strict(),
+  z.object({ action: z.literal('REGULATION_SUCCESSOR'), predecessorId: databaseUuid, ...regulationInput.shape }).strict(),
 ])
 
 function fail(error: unknown): NextResponse | null {

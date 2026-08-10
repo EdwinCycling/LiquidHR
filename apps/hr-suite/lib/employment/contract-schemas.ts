@@ -1,16 +1,19 @@
 import { z } from 'zod'
+import { databaseUuid } from '@/lib/validation/database-uuid'
+import { validateProbation } from './probation-rules'
 
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 export const employmentContractMutationSchema = z.object({
   workerType: z.enum(['EMPLOYEE', 'STUDENT_INTERN', 'TEMPORARY_AGENCY', 'EXTERNAL_NO_PAYROLL']),
-  flexPhaseId: z.string().uuid().nullish(),
-  laborConditionSetId: z.string().uuid(),
-  durationType: z.enum(['INDEFINITE', 'DEFINITE']),
+  flexPhaseId: databaseUuid.nullish(),
+  laborConditionSetId: databaseUuid,
+  durationType: z.enum(['INDEFINITE', 'DEFINITE', 'TEMPORARY_NO_END']),
   startsOn: dateOnly,
   endsOn: dateOnly.nullish(),
   probationApplies: z.boolean(),
   probationEndsOn: dateOnly.nullish(),
+  caoAllowsTwoMonths: z.boolean().optional(),
 }).strict().superRefine((value, context) => {
   if (value.workerType === 'TEMPORARY_AGENCY' && !value.flexPhaseId) {
     context.addIssue({ code: 'custom', path: ['flexPhaseId'], message: 'FLEX_PHASE_REQUIRED' })
@@ -18,7 +21,7 @@ export const employmentContractMutationSchema = z.object({
   if (value.workerType !== 'TEMPORARY_AGENCY' && value.flexPhaseId) {
     context.addIssue({ code: 'custom', path: ['flexPhaseId'], message: 'FLEX_PHASE_NOT_ALLOWED' })
   }
-  if (value.durationType === 'INDEFINITE' && value.endsOn) {
+  if (value.durationType !== 'DEFINITE' && value.endsOn) {
     context.addIssue({ code: 'custom', path: ['endsOn'], message: 'CONTRACT_END_DATE_NOT_ALLOWED' })
   }
   if (value.durationType === 'DEFINITE' && (!value.endsOn || value.endsOn < value.startsOn)) {
@@ -29,6 +32,11 @@ export const employmentContractMutationSchema = z.object({
   }
   if (!value.probationApplies && value.probationEndsOn) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_NOT_ALLOWED' })
+  }
+  // De route valideert de CAO-afwijking na het ophalen van de gekozen regeling.
+  const probationError = validateProbation({ ...value, caoAllowsTwoMonths: value.caoAllowsTwoMonths === true })
+  if (probationError && probationError !== 'PROBATION_DATE_OUTSIDE_CONTRACT' && probationError !== 'PROBATION_DATE_NOT_ALLOWED') {
+    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: probationError })
   }
 })
 

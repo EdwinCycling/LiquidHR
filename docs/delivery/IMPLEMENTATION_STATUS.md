@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Dienstverbandwizard: onderhoud en contractregels 2026-08-10
+
+**Status: lokaal gedaan en geverifieerd; remote migratie open.** In worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` op branch `codex/employment-wizard-fixes` zijn de wizard, employment API-validatie, contract-/detailroutes, i18n, lokale migraties en regressietests aangepast. Er is geen commit, push, merge, deployment of remote write uitgevoerd.
+
+De wizard gebruikt per medewerker het hoogste numerieke dienstverbandnummer plus één en behandelt het IKV-nummer als uniek per medewerker, niet organisatiebreed. Contracten zonder einddatum, proeftijdregels, kalendermaand-snelkeuzes, Nederlandse decimale invoer, nuluren voor oproepkrachten, review-vóór-save, Annuleren, administratie-informatie en de footerfix zijn aangesloten. De POST-400 is opgelost door de te strenge RFC-UUID-check in de employmentpayload te vervangen door PostgreSQL-UUID-opmaakvalidatie; een exacte browserpayload-regressietest dekt dit af.
+
+Bewijs: 149/569 Vitest, strict typecheck, 29 NL/EN-namespaces, `git diff --check`, Webpack-build met 185 pagina's en gerichte localhost-browsercontrole zijn groen. De remote migratie is bewust open: de read-only controle vond één bestaande dubbele IKV 9 voor dezelfde medewerker in een gesloten en een open relatie. Eerst is een expliciete keuze nodig voor historische cleanup/index-toepassing. De bestaande ESLint 10/`eslint-plugin-react`-fout blijft een niet-inhoudelijke repo-blokkade.
+
 ## Actuele release-status 2026-08-09
 
 De mobiele Google-login hotfix is productie-live. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub `main`; Vercel Production-deployment `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`. De zichtbare appversie is `1.20260809.2`. De remote `NEXT_PUBLIC_APP_URL` bleef ongewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de code gebruikt bij actuele requestheaders de stale waarde niet langer als origin.

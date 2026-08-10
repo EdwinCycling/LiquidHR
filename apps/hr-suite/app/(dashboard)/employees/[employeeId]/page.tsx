@@ -275,6 +275,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 status: tEmployment('status'),
                 indefinite: tEmployment('indefinite'),
                 definite: tEmployment('definite'),
+                temporaryWithoutEnd: tEmployment('temporaryWithoutEnd'),
                  seniority: tEmployment('seniorityDate'), seniorityDuration: tEmployment('seniorityDuration'),
                  administration: tEmployment('administration'),
                  department: tEmployment('department'), jobTitle: tEmployment('jobTitle'), hoursPerWeek: tEmployment('weeklyHours'),

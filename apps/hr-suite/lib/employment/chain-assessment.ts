@@ -7,7 +7,7 @@ interface TemporaryContractPeriod {
 }
 
 interface ProposedContract extends TemporaryContractPeriod {
-  contractType: 'INDEFINITE' | 'DEFINITE' | 'ON_CALL' | 'TEMPORARY_AGENCY' | 'EXTERNAL'
+  contractType: 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END' | 'ON_CALL' | 'TEMPORARY_AGENCY' | 'EXTERNAL'
 }
 
 export interface ChainAssessmentInput {

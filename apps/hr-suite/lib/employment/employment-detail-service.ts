@@ -11,6 +11,7 @@ import type {
 import { assessEmploymentChain } from './chain-assessment'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import type { EmploymentContractMutationInput } from './contract-schemas'
+import { validateProbation } from './probation-rules'
 import type { CompanyLocationMutationInput } from './company-location-schemas'
 
 type Tables = Database['public']['Tables']
@@ -171,7 +172,7 @@ export async function getEmploymentDetail(
     : Promise.resolve({ data: [], error: null }))
   const contractOptionsQuery = includeOverview
     ? Promise.all([
-      supabase.from('labor_condition_sets').select('id, code, name, standard_hours_per_week')
+      supabase.from('labor_condition_sets').select('*')
         .eq('administration_id', employment.administration_id).eq('is_active', true).order('code').limit(500),
       supabase.from('flex_phases').select('id, code, name')
         .eq('administration_id', employment.administration_id).eq('is_active', true).order('sort_order').limit(500),
@@ -322,8 +323,21 @@ export async function manageEmploymentContract(
   contractId: string | null,
   input: EmploymentContractMutationInput,
 ): Promise<string> {
-  await loadEmploymentForAction(employmentId, 'contract:write')
+  const employment = await loadEmploymentForAction(employmentId, 'contract:write')
   const supabase = await createClient()
+  const { data: laborCondition, error: laborConditionError } = await supabase
+    .from('labor_condition_sets')
+    .select('*')
+    .eq('tenant_id', employment.tenant_id)
+    .eq('administration_id', employment.administration_id)
+    .eq('id', input.laborConditionSetId)
+    .maybeSingle()
+  if (laborConditionError || !laborCondition) throw new EmploymentDetailError('LABOR_CONDITION_NOT_FOUND', 400)
+  const probationError = validateProbation({
+    ...input,
+    caoAllowsTwoMonths: laborCondition.probation_maximum_months === 2,
+  })
+  if (probationError) throw new EmploymentDetailError(probationError, 400)
   const { data, error } = await supabase.rpc('manage_employment_contract', {
     requested_employment_id: employmentId,
     requested_contract_id: contractId as string,

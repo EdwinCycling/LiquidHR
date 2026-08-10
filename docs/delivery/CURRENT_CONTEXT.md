@@ -1,5 +1,28 @@
 # Actuele overdracht Liquid HR
 
+## Dienstverbandwizard: nummering, contractregels en aanmaakflow 2026-08-10
+
+Deze verticale slice staat lokaal in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` op branch `codex/employment-wizard-fixes`. Er is niets gecommit, gepusht, gemerged, gedeployed of remote gewijzigd.
+
+### Gedaan
+
+- Schema/API/UI volgen `schema -> API -> UI`: dienstverbandnummers zijn niet-negatieve numerieke volgnummers per medewerker; het IKV-nummer is alleen per medewerker uniek. De nieuwe contractduur `TEMPORARY_NO_END` is toegevoegd aan het lokale typecontract.
+- Proeftijdregels zijn gedeeld tussen wizard, contractroute en servervalidatie. Er zijn kalendermaandknoppen en einddatumknoppen voor 1/3/6/12 maanden; oproepuren worden bij een lege keuze op 0 gezet. De roosterverplichte ster staat alleen bij de titel.
+- De wizard gaat na **Overige** naar **Controleren** en bewaart pas via **Dienstverband aanmaken**. Annuleren en een viewport-veilige footer zijn toegevoegd. Administratiedetails tonen over de volle breedte administratiegegevens, actieve/gearchiveerde medewerkers en beschikbare CAO's.
+- Getallen accepteren `,`, `.` en Nederlandse duizendscheiding in invoervelden. Gangbaar vervolgontwerp is een persoonlijke locale-/nummernotatievoorkeur; een nieuwe voorkeur is in deze slice nog niet toegevoegd.
+- De gemelde POST-400 is gereproduceerd met de exacte browserpayload. De oorzaak was `z.string().uuid()` op geldige PostgreSQL-UUID-opmaak met niet-RFC-variant/version-nibbles; de employment-envelope en relevante nested IDs gebruiken nu een database-UUID-validator. De exacte full-on-call-payload heeft een regressietest.
+
+### Verificatie
+
+- Volledige hr-suite: 149 testbestanden en 569 tests groen; strict TypeScript, i18n-pariteit (29 namespaces), `git diff --check` en Webpack-productiebuild met 185 pagina's groen.
+- Browser op `127.0.0.1:3000`: administratie-informatie, oplopend nummer/IKV, tijdelijk-zonder-einddatum, einddatumknoppen, proeftijdmeldingen, roosterster, oproep-0-uren, review-vóór-save en Annuleren gecontroleerd. De knop **Dienstverband aanmaken** is niet aangeklikt; er is geen persistent testdienstverband aangemaakt.
+- Gerichte ESLint blijft geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`); dit is geen inhoudelijke wizardfout.
+
+### Open / geblokkeerd
+
+- De drie lokale Supabase-migraties voor tijdelijk-zonder-einddatum, nummer/IKV/proeftijd en de configureerbare CAO-proeftijdgrens zijn niet remote toegepast. Een read-only controle van Supabase-project `wnpfloqpjvaacobppbpk` vond één historische dubbele IKV 9 voor dezelfde medewerker over een afgesloten en een open relatie. Daarom is een expliciete cleanup-/indexbeslissing nodig vóór toepassing van de strikte unieke index; er is geen data gemuteerd.
+- Tot die expliciete remote migratie blijven de live database-indexen de oude organisatiebrede nummer-/IKV-semantiek volgen. De lokale code/API-fix voor de 400 en de wizard-UX zijn wel klaar en lokaal bewezen.
+
 ## Actuele release-status 2026-08-09
 
 - De mobiele Google-login hotfix is live op `main`. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub; Vercel Production `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`.

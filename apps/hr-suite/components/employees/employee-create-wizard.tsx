@@ -1169,6 +1169,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               copyPreviousData={rehireCopyChoice === 'yes'}
               onStepChange={setEmploymentStep}
               onPayrollChoiceChange={setEmploymentPayrollDetails}
+              onCancel={() => router.push(`/employees/${createdEmployeeId}?tab=employments`)}
               onSaving={() => { setEmploymentSaving(true); setEmploymentCreateProgress(0) }}
               onSaveFailed={() => setEmploymentSaving(false)}
               onSaved={(employmentId) => { setEmploymentSaving(false); setCreatedEmploymentId(employmentId) }}
@@ -1557,7 +1558,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
         </>}
         {error && !createdEmployeeId && <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl bg-destructive-surface p-4 text-sm text-destructive"><AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
         </div>
-        {state === 'creating' && <EmploymentCreateProgress labels={labels} progress={employmentCreateProgress} />}
+        {state === 'creating' && !(createdEmployeeId && createDestination === 'employment') && <EmploymentCreateProgress labels={labels} progress={employmentCreateProgress} />}
         {showNumberUsage && numberUsage && <div className="fixed inset-0 z-50 grid place-items-center bg-sidebar/70 p-4" role="presentation" onMouseDown={() => setShowNumberUsage(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="employee-number-usage-title" className="w-full max-w-2xl rounded-2xl border bg-surface p-6 shadow-xl" onMouseDown={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">

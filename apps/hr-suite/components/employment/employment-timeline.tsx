@@ -24,6 +24,7 @@ interface EmploymentTimelineProps {
     status: string
     indefinite: string
     definite: string
+    temporaryWithoutEnd: string
     seniority: string
     seniorityDuration: string
     administration: string
@@ -65,7 +66,7 @@ export function EmploymentTimeline({ employments, summaries, locale, dateFormat,
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {labels.employmentNumber} {employment.employment_number}
                   </p>
-                  <h3 className="mt-2 text-xl font-semibold">{employment.contract_type === 'INDEFINITE' ? labels.indefinite : labels.definite}</h3>
+                  <h3 className="mt-2 text-xl font-semibold">{employment.contract_type === 'INDEFINITE' ? labels.indefinite : employment.contract_type === 'DEFINITE' ? labels.definite : labels.temporaryWithoutEnd}</h3>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   {employment.is_primary && <span className="status-chip">{labels.primary}</span>}

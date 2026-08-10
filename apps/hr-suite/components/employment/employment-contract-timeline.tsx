@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 
 type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
-type DurationType = 'INDEFINITE' | 'DEFINITE'
+type DurationType = 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
 
 interface Contract {
   id: string
@@ -39,15 +39,15 @@ interface Props {
   contracts: Contract[]
   canWrite: boolean
   options: {
-    laborConditionSets: Array<{ id: string; name: string; standardHoursPerWeek: number }>
+  laborConditionSets: Array<{ id: string; name: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }>
     flexPhases: Array<{ id: string; name: string }>
   }
   labels: {
     title: string; add: string; edit: string; close: string; save: string; cancel: string
     flexPhase: string; laborConditions: string; fulltimeReference: string; duration: string
     startDate: string; endDate: string; probation: string; probationEnd: string
-    indefinite: string; definite: string; yes: string; no: string
-    active: string; failed: string; addBlocked: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
+    indefinite: string; definite: string; temporaryWithoutEnd: string; yes: string; no: string
+    active: string; failed: string; addBlocked: string; probationCaoMaximum: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
   }
   employmentStartsOn: string
 }
@@ -101,6 +101,7 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
       flexPhaseId: draft.workerType === 'TEMPORARY_AGENCY' ? draft.flexPhaseId : null,
       endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null,
       probationEndsOn: draft.probationApplies ? draft.probationEndsOn : null,
+      caoAllowsTwoMonths: options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.probationMaximumMonths === 2,
     }
     const response = await fetch(`/api/employments/${employmentId}/contracts`, {
       method: mode === 'add' ? 'POST' : 'PATCH',
@@ -128,7 +129,7 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
     <div className="mt-5 grid gap-3 md:grid-cols-2">
       {ordered.map((contract) => <button type="button" key={contract.id} className="cursor-pointer rounded-2xl border p-4 text-left transition hover:border-primary hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => open(contract)}>
         <div className="flex items-start justify-between gap-3">
-          <div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{contract.sequenceNumber}. {contract.durationType === 'INDEFINITE' ? labels.indefinite : labels.definite}</p><p className="mt-1 font-semibold">{contract.laborConditionName}</p></div>
+          <div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{contract.sequenceNumber}. {contract.durationType === 'INDEFINITE' ? labels.indefinite : contract.durationType === 'DEFINITE' ? labels.definite : labels.temporaryWithoutEnd}</p><p className="mt-1 font-semibold">{contract.laborConditionName}</p></div>
           <span className="status-chip bg-accent text-accent-foreground">{contract.endsOn ?? labels.active}</span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{labels.fulltimeReference}: {contract.fulltimeHoursPerWeek}</p>
@@ -169,12 +170,13 @@ function ContractFields({ draft, update, options, labels, employmentStartsOn, is
   isFirstContract: boolean
 }) {
   const inputClass = 'form-field'
-  const fulltimeHours = options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40
+  const selectedLaborConditionSet = options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)
+  const fulltimeHours = selectedLaborConditionSet?.standardHoursPerWeek ?? 40
   return <div className="mt-5 grid gap-4 sm:grid-cols-2">
     {draft.workerType === 'TEMPORARY_AGENCY' && <label className="grid gap-1.5 text-sm font-medium">{labels.flexPhase}<select className={inputClass} value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
-    <label className="grid gap-1.5 text-sm font-medium">{labels.laborConditions}<select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    <label className="grid gap-1.5 text-sm font-medium">{labels.laborConditions}<select className={inputClass} value={draft.laborConditionSetId} onChange={(event) => update('laborConditionSetId', event.target.value)}>{options.laborConditionSets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{selectedLaborConditionSet?.probationMaximumMonths === 2 && <span className="text-xs font-normal text-muted-foreground">{labels.probationCaoMaximum}</span>}</label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeReference}<input className={`${inputClass} bg-muted/40`} type="number" value={fulltimeHours} readOnly /></label>
-    <label className="grid gap-1.5 text-sm font-medium">{labels.duration}<select className={inputClass} value={draft.durationType} onChange={(event) => update('durationType', event.target.value as DurationType)}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option></select></label>
+    <label className="grid gap-1.5 text-sm font-medium">{labels.duration}<select className={inputClass} value={draft.durationType} onChange={(event) => { const durationType = event.target.value as DurationType; update('durationType', durationType); if (durationType !== 'DEFINITE') update('endsOn', '') }}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option><option value="TEMPORARY_NO_END">{labels.temporaryWithoutEnd}</option></select></label>
     <label className="grid gap-1.5 text-sm font-medium">{labels.startDate}<input type="date" min={employmentStartsOn} readOnly={isFirstContract} className={`${inputClass}${isFirstContract ? ' bg-muted/40' : ''}`} value={draft.startsOn} onChange={(event) => update('startsOn', event.target.value)} /><span className="text-xs font-normal text-muted-foreground">{isFirstContract ? labels.firstContractStartDateHelp : labels.contractStartDateMinimumHelp}</span></label>
     {draft.durationType === 'DEFINITE' && <label className="grid gap-1.5 text-sm font-medium">{labels.endDate}<input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /></label>}
     <label className="grid gap-1.5 text-sm font-medium">{labels.probation}<select className={inputClass} value={String(draft.probationApplies)} onChange={(event) => update('probationApplies', event.target.value === 'true')}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></label>

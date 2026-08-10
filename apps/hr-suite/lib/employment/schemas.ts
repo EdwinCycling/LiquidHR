@@ -1,10 +1,12 @@
 import { z } from 'zod'
 import { normalizeBsn } from '@/lib/security/bsn-fingerprint'
+import { databaseUuid } from '@/lib/validation/database-uuid'
+import { validateProbation } from './probation-rules'
 
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 const employmentRequestShape = {
-  employmentNumber: z.string().trim().min(1).max(40),
+  employmentNumber: z.string().trim().regex(/^\d+$/, 'EMPLOYMENT_NUMBER_INVALID').max(40),
   employmentType: z.enum(['EMPLOYEE', 'INTERN', 'APPRENTICE', 'CONTRACTOR']).default('EMPLOYEE'),
   contractType: z.enum(['INDEFINITE', 'DEFINITE', 'ON_CALL', 'TEMPORARY_AGENCY', 'EXTERNAL']),
   startsOn: dateOnly,
@@ -46,7 +48,7 @@ export const createEmploymentRequestSchema = z
   .superRefine(validateEmploymentDates)
 
 export const createEmploymentSchema = z
-  .object({ employeeId: z.string().uuid(), ...employmentRequestShape })
+  .object({ employeeId: databaseUuid, ...employmentRequestShape })
   .strict()
   .superRefine(validateEmploymentDates)
 
@@ -58,11 +60,11 @@ const completeIncomeRelationshipSchema = z.object({
 }).strict()
 
 const completeOrganizationSchema = z.object({
-  departmentId: z.string().uuid(),
-  jobId: z.string().uuid(),
+  departmentId: databaseUuid,
+  jobId: databaseUuid,
   jobTitle: z.string().trim().min(1).max(160),
-  managerEmployeeId: z.string().uuid().nullish(),
-  directManagerDeputyId: z.string().uuid().nullish(),
+  managerEmployeeId: databaseUuid.nullish(),
+  directManagerDeputyId: databaseUuid.nullish(),
   costBearer: z.string().trim().max(120).nullish(),
   effectiveFrom: dateOnly,
   effectiveTo: dateOnly.nullish(),
@@ -71,13 +73,14 @@ const completeOrganizationSchema = z.object({
 const completeContractSchema = z.object({
   // Kept optional for older callers; the source of truth is employment.employmentType.
   workerType: z.enum(['EMPLOYEE', 'STUDENT_INTERN', 'TEMPORARY_AGENCY', 'EXTERNAL_NO_PAYROLL']).default('EMPLOYEE'),
-  flexPhaseId: z.string().uuid().nullish(),
-  laborConditionSetId: z.string().uuid(),
-  durationType: z.enum(['INDEFINITE', 'DEFINITE']),
+  flexPhaseId: databaseUuid.nullish(),
+  laborConditionSetId: databaseUuid,
+  durationType: z.enum(['INDEFINITE', 'DEFINITE', 'TEMPORARY_NO_END']),
   startsOn: dateOnly,
   endsOn: dateOnly.nullish(),
   probationApplies: z.boolean(),
   probationEndsOn: dateOnly.nullish(),
+  caoAllowsTwoMonths: z.boolean().optional(),
 }).strict().superRefine((value, context) => {
   if (value.workerType === 'TEMPORARY_AGENCY' && !value.flexPhaseId) {
     context.addIssue({ code: 'custom', path: ['flexPhaseId'], message: 'FLEX_PHASE_REQUIRED' })
@@ -85,7 +88,7 @@ const completeContractSchema = z.object({
   if (value.workerType !== 'TEMPORARY_AGENCY' && value.flexPhaseId) {
     context.addIssue({ code: 'custom', path: ['flexPhaseId'], message: 'FLEX_PHASE_NOT_ALLOWED' })
   }
-  if (value.durationType === 'INDEFINITE' && value.endsOn) {
+  if (value.durationType !== 'DEFINITE' && value.endsOn) {
     context.addIssue({ code: 'custom', path: ['endsOn'], message: 'CONTRACT_END_DATE_NOT_ALLOWED' })
   }
   if (value.durationType === 'DEFINITE' && (!value.endsOn || value.endsOn < value.startsOn)) {
@@ -99,6 +102,11 @@ const completeContractSchema = z.object({
   }
   if (!value.probationApplies && value.probationEndsOn) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_NOT_ALLOWED' })
+  }
+  // De client mag de gekozen CAO-afwijking meesturen; de service en database controleren deze server-side opnieuw.
+  const probationError = validateProbation({ ...value, caoAllowsTwoMonths: value.caoAllowsTwoMonths === true })
+  if (probationError && probationError !== 'PROBATION_DATE_OUTSIDE_CONTRACT' && probationError !== 'PROBATION_DATE_NOT_ALLOWED') {
+    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: probationError })
   }
 })
 
@@ -151,8 +159,8 @@ const completeSalarySchema = z.object({
   parttimeAmount: z.number().nonnegative().nullish(),
   hourlyRate: z.number().nonnegative().nullish(),
   currencyCode: z.string().regex(/^[A-Z]{3}$/).default('EUR'),
-  salaryFrequencyId: z.string().uuid(),
-  salaryScaleStepId: z.string().uuid().nullish(),
+  salaryFrequencyId: databaseUuid,
+  salaryScaleStepId: databaseUuid.nullish(),
   caoScaleName: z.string().trim().min(1).max(100).nullish(),
   caoStepName: z.string().trim().min(1).max(100).nullish(),
   validFrom: dateOnly,
@@ -173,8 +181,8 @@ const completeCostAllocationSchema = z.object({
   validFrom: dateOnly,
   validUntil: dateOnly.nullish(),
   allocations: z.array(z.object({
-    costCenterId: z.string().uuid(),
-    costCarrierId: z.string().uuid(),
+    costCenterId: databaseUuid,
+    costCarrierId: databaseUuid,
     percentage: z.number().gt(0).max(100),
   }).strict()).min(1).max(50),
 }).strict().superRefine((value, context) => {
@@ -186,7 +194,7 @@ const completeCostAllocationSchema = z.object({
 
 export const completeEmploymentCreateSchema = z.object({
   employment: z.object({
-    employmentNumber: z.string().trim().min(1).max(40),
+    employmentNumber: z.string().trim().regex(/^\d+$/, 'EMPLOYMENT_NUMBER_INVALID').max(40),
     employmentType: z.enum(['EMPLOYEE', 'INTERN', 'APPRENTICE', 'CONTRACTOR', 'TEMPORARY_AGENCY', 'FREELANCER', 'VOLUNTEER', 'NO_PAYROLL']).default('EMPLOYEE'),
     startsOn: dateOnly,
     seniorityDate: dateOnly,
@@ -259,8 +267,8 @@ export const identityMatchSchema = z
 export const terminationSchema = z
   .object({
     lastWorkingDay: dateOnly,
-    internalReasonId: z.string().uuid(),
-    statutoryReasonId: z.string().uuid(),
+    internalReasonId: databaseUuid,
+    statutoryReasonId: databaseUuid,
     initiator: z.enum(['EMPLOYER', 'EMPLOYEE', 'MUTUAL', 'BY_LAW', 'OTHER']),
     explanation: z.string().trim().max(2_000).nullish(),
   })
