@@ -86,6 +86,7 @@
       "holidays": "Feestdagen en Bedrijfsactiviteiten", "holidaysDescription": "Beheer landelijke en lokale feestdagen en bedrijfsactiviteiten voor de actieve HR-groep.",
       "talentFoundation": "Talent Management", "talentFoundationDescription": "Beheer talentbibliotheek, niveaus en functieprofielen die aan het bestaande functiehuis zijn gekoppeld.",
       "masterData": "Stamtabellen", "masterDataDescription": "Beheer HR-groepbrede eindredenen per land, administratiegebonden documentcategorieÃ«n en tenantbrede relatietypen.", "employmentContracts": "Dienstverbanden en contracten", "employmentContractsDescription": "Beheer voor de gekozen administratie het standaardland, arbeidsvoorwaarden, flexfasen, salarisfrequenties en kostendragers.", "leave": "Verlofopbouw", "leaveDescription": "Beheer HR-groepbrede verloftypen, werkuren, overuren en opbouwregels.", "absence": "Verzuim", "absenceDescription": "Beheer de HR-groepbrede verzuimdrempel en administratiegebonden eigen WvP-taken.", "anniversaryRules": "Jubileumregels", "anniversaryRulesDescription": "Bepaal na hoeveel dienstjaren werkjubilea in rapportages verschijnen.", "companyDocuments": "Bedrijfsdocumenten", "companyDocumentsDescription": "Upload en verwijder documenten voor de actieve HR-groep.", "processAutomation": "Workflows en formulieren", "processAutomationDescription": "Bouw, test, publiceer en archiveer HR-processen en formulieren zonder code.",
+      "research": "Surveys en eNPS", "researchDescription": "Maak campagnes, beheer doelgroepen en volg respons en geanonimiseerde resultaten.",
       "modules": "Actieve modules", "modulesDescription": "Schakel beschikbare extra modules tenantbreed in of uit.", "companyBranding": "Bedrijfsinstellingen", "companyBrandingDescription": "Stel bedrijfskleuren en het logo in voor de actieve HR-groep.",
       "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol."
     },
@@ -125,6 +126,8 @@
       "DOCUMENTS": { "name": "Documentdossiers", "description": "Documenten, metadata, doelgroepen en vervalreminders per medewerker." },
       "REMINDERS": { "name": "Reminders", "description": "Persoonlijke en HR-reminders met rollen, organogram en personen als doelgroep." },
       "TALENT": { "name": "Talent", "description": "Tenant-breed functiehuis, competenties, niveaus en functieprofielen." },
+      "SURVEYS": { "name": "Surveys", "description": "Flexibele enquêtes, polls en uitvragen met optionele anonimiteit en matrixvragen." },
+      "ENPS": { "name": "eNPS & medewerkersonderzoek", "description": "Volledig anonieme betrokkenheidsmetingen met vaste eNPS-vraag en privacydrempel." },
       "LEAVE": { "name": "Verlof", "description": "Verlofregistratie en verlofsaldi in de medewerkerskalender." },
       "ABSENCE": { "name": "Verzuim", "description": "Verzuimdossiers en signalering in de kalender." },
       "ASSETS": { "name": "Bedrijfsmiddelen", "description": "Uitgifte en inname van middelen per medewerker." },

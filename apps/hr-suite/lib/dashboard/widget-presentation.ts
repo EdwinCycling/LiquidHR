@@ -12,6 +12,7 @@ export const dashboardCategoryOrder: readonly DashboardWidgetCategory[] = [
   'DOCUMENTS',
   'COMPENSATION',
   'ORGANIZATION_TIME',
+  'RESEARCH',
 ]
 
 export interface DashboardWidgetPresentation {

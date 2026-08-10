@@ -1,5 +1,28 @@
 # Actuele overdracht Liquid HR
 
+## Surveys en eNPS 2026-08-10 — remote testklaar
+
+De nieuwe modules staan op branch `codex/survey-enps-modules` in worktree `.codex-worktrees/survey-enps-modules`. De twee migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; de feature is nog niet gecommit, met `main` samengevoegd, gepusht of gedeployed.
+
+### Gedaan
+
+- Schema -> API -> UI is aangehouden. De additive migratie voegt twee modulecodes, veertien RLS-tabellen, vier canonieke permissions, respondent-RPC's, de volledige systeemvragenbank van 150 vragen in 15 categorieën en de twee dashboardwidgets toe.
+- HR Admin heeft `/settings/research`, survey- en eNPS-builders, beheer van eigen vragen/categorieën en `/research/monitor`. Medewerkers hebben `/research`, eigen uitnodigingen en de open-onderzoekenwidget. Leidinggevenden krijgen geen beheer, resultaten of monitorwidget; zij kunnen alleen als geselecteerde medewerker zelf reageren.
+- Survey ondersteunt tekst, keuzes, getal, datum/tijd en matrix, anonimiteit, afdelingen/locaties/entiteiten/medewerkers als doelgroep, toegankelijke volgorde, statusmonitor, individuele en bulkherinnering, taart-/staaf-/gestapelde grafieken, numerieke aggregaties en CSV met identiteiten uitsluitend bij niet-anonieme campagnes.
+- eNPS ondersteunt de onverplaatsbare 0-10-hoofdvraag, campagnebrede driverschaal, eigen vragen, aan/uitzetten, volgorde, benchmark, promoter/passive/detractor-aantallen, drivers, uitklapbare verdelingen en open reacties. Onder vijf responses blokkeert zowel UI als RLS alle inhoudelijke resultaten. Responses bevatten geen medewerker-, gebruiker-, e-mail-, IP- of apparaatkoppeling; uitnodigingen bevatten geen respons-ID of indientijdstip.
+
+### Geverifieerd
+
+- De volledige hr-suite is groen met 154 testbestanden/590 tests; de gerichte research/module/widget-suite telt 10 bestanden/30 tests. Strict TypeScript, 30 gelijke NL/EN-namespaces, de Webpack-productiebuild met 197 routes en `git diff --check` zijn eveneens groen.
+- De seed is statisch gecontroleerd op 150 unieke nummers van 1 t/m 150. Het remote SQL-contract is groen voor RLS op alle veertien tabellen, rollen, functiegrants, zero-traceability, de database-privacydrempel en vragenbanktoegang.
+- Supabase-migraties `add_survey_and_enps_modules` en `optimize_research_rls_and_indexes` zijn transactioneel toegepast. De advisors melden geen research-specifieke securitybevinding en geen performance-WARN; verse indexen geven uitsluitend verwachte INFO-meldingen voor nog ongebruikt. De officiële remote types zijn gegenereerd; de lokaal al aanwezige maar remote nog ontbrekende `company_activities`-typedefinitie is behouden.
+- Repo-lint blijft vóór bestandsanalyse geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`). De lokale SQL-test kon niet draaien omdat Docker niet actief is, maar hetzelfde contract is succesvol op het gekoppelde remote project uitgevoerd.
+
+### Open / geblokkeerd
+
+- Authenticated browserbewijs voor HR Admin, medewerker en manager op de samengevoegde `main`-versie op poort 3000 is nog open; controleer desktop/390px, keyboard/focus en console/netwerk. Zonder afzonderlijke fixturetoestemming worden geen campagnes of responses als testdata aangemaakt.
+- De beschreven automatische eNPS-herinneringsmail vereist nog een gekozen mailprovider en geplande worker/cron. De huidige werkende herinnering is een HR-actie die het signaal in de medewerkerhub toont; er is geen externe e-mailbezorging geclaimd.
+
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 
 - `main` bevat de lokale commits `f907eb8` (bedrijfsactiviteiten, feestdagen en employment-overzicht) en `5077aa0` (Liquid Flow applicatiebrede UX). De bronwerkmap `codex/liquid-flow-appwide` is gecontroleerd vastgelegd als `4d2e262`; gegenereerde `next-env.d.ts`-wijzigingen zijn bewust niet meegenomen.

@@ -36,4 +36,11 @@ describe('dashboard widget access', () => {
 
     expect(visible.has('MY_SALARY_HISTORY')).toBe(true)
   })
+
+  it('toont de open-onderzoekenwidget alleen met een medewerkerscontext', () => {
+    const entry = getWidgetCatalogEntry('OPEN_RESEARCH')!
+    const base = { configs: [{ widgetType: 'OPEN_RESEARCH', isEnabled: true }], roleAccess: [], activeRoleIds: new Set<string>(), permissions: new Set(['self:research:respond']), entries: [entry] }
+    expect(resolveVisibleWidgetTypes({ ...base, hasEmployeeContext: false }).has('OPEN_RESEARCH')).toBe(false)
+    expect(resolveVisibleWidgetTypes({ ...base, hasEmployeeContext: true }).has('OPEN_RESEARCH')).toBe(true)
+  })
 })

@@ -1,6 +1,7 @@
 import type { AuthContext } from '@/lib/auth/permissions'
 import type { createClient } from '@/lib/supabase/server'
 import type { DashboardWidget } from './service'
+import { asResearchClient } from '@/lib/research/database'
 
 type DashboardSupabaseClient = Awaited<ReturnType<typeof createClient>>
 
@@ -43,7 +44,7 @@ export async function loadDashboardWidgetData(
   widget: DashboardWidget,
 ): Promise<DashboardWidgetData> {
   if (widget.type === 'WELCOME') return { status: 'ready', kind: 'welcome' }
-  if (!['MY_REMINDERS', 'ORGANIZATION_OVERVIEW', 'EMPLOYEE_OVERVIEW', 'COMPANY_DOCUMENTS'].includes(widget.type)) {
+  if (!['MY_REMINDERS', 'ORGANIZATION_OVERVIEW', 'EMPLOYEE_OVERVIEW', 'COMPANY_DOCUMENTS', 'OPEN_RESEARCH', 'RESEARCH_MONITOR'].includes(widget.type)) {
     return { status: 'empty', reason: 'DATA_SOURCE_PENDING' }
   }
   if (!scope.supabase) return { status: 'error', code: 'WIDGET_LOAD_FAILED' }
@@ -71,6 +72,33 @@ export async function loadDashboardWidgetData(
       const result = await query
       if (result.error) throw result.error
       return { status: 'ready', kind: 'metric', value: result.count ?? 0, href: '/company-documents' }
+    }
+    if (widget.type === 'OPEN_RESEARCH') {
+      if (!scope.context.employeeId || !scope.context.hrGroupId) return { status: 'ready', kind: 'metric', value: 0, href: '/research' }
+      const research = asResearchClient(scope.supabase)
+      const [surveyInvitations, enpsInvitations] = await Promise.all([
+        research.from('survey_invitations').select('survey_id').eq('tenant_id', scope.context.tenantId).eq('hr_group_id', scope.context.hrGroupId).eq('employee_id', scope.context.employeeId).eq('has_submitted', false).limit(250),
+        research.from('enps_invitations').select('campaign_id').eq('tenant_id', scope.context.tenantId).eq('hr_group_id', scope.context.hrGroupId).eq('employee_id', scope.context.employeeId).eq('has_submitted', false).limit(250),
+      ])
+      if (surveyInvitations.error || enpsInvitations.error) throw surveyInvitations.error ?? enpsInvitations.error
+      const now = new Date().toISOString()
+      const surveyIds = [...new Set((surveyInvitations.data ?? []).map((invitation) => invitation.survey_id))]
+      const enpsIds = [...new Set((enpsInvitations.data ?? []).map((invitation) => invitation.campaign_id))]
+      const [surveys, enps] = await Promise.all([
+        surveyIds.length ? research.from('surveys').select('id').in('id', surveyIds).eq('status', 'ACTIVE').lte('starts_at', now).gte('ends_at', now).limit(250) : Promise.resolve({ data: [], error: null }),
+        enpsIds.length ? research.from('enps_campaigns').select('id').in('id', enpsIds).eq('status', 'ACTIVE').lte('starts_at', now).gte('ends_at', now).limit(250) : Promise.resolve({ data: [], error: null }),
+      ])
+      if (surveys.error || enps.error) throw surveys.error ?? enps.error
+      return { status: 'ready', kind: 'metric', value: (surveys.data?.length ?? 0) + (enps.data?.length ?? 0), href: '/research' }
+    }
+    if (widget.type === 'RESEARCH_MONITOR') {
+      const research = asResearchClient(scope.supabase)
+      const [surveys, enps] = await Promise.all([
+        research.from('surveys').select('id', { count: 'exact', head: true }).eq('tenant_id', scope.context.tenantId).eq('hr_group_id', scope.context.hrGroupId ?? '').eq('status', 'ACTIVE').gte('ends_at', new Date().toISOString()),
+        research.from('enps_campaigns').select('id', { count: 'exact', head: true }).eq('tenant_id', scope.context.tenantId).eq('hr_group_id', scope.context.hrGroupId ?? '').eq('status', 'ACTIVE').gte('ends_at', new Date().toISOString()),
+      ])
+      if (surveys.error || enps.error) throw surveys.error ?? enps.error
+      return { status: 'ready', kind: 'metric', value: (surveys.count ?? 0) + (enps.count ?? 0), href: '/research/monitor' }
     }
     return { status: 'ready', kind: 'metric', value: await countScopedEmployees(scope), href: '/employees' }
   } catch {

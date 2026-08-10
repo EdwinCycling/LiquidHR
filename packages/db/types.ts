@@ -5085,6 +5085,363 @@ export type Database = {
           },
         ]
       }
+      enps_answers: {
+        Row: {
+          answer_value: string
+          campaign_id: string
+          hr_group_id: string
+          id: string
+          question_id: string
+          response_id: string
+          tenant_id: string
+        }
+        Insert: {
+          answer_value: string
+          campaign_id: string
+          hr_group_id: string
+          id?: string
+          question_id: string
+          response_id: string
+          tenant_id: string
+        }
+        Update: {
+          answer_value?: string
+          campaign_id?: string
+          hr_group_id?: string
+          id?: string
+          question_id?: string
+          response_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_answers_question_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id", "question_id"]
+            isOneToOne: false
+            referencedRelation: "enps_questions"
+            referencedColumns: ["tenant_id", "hr_group_id", "campaign_id", "id"]
+          },
+          {
+            foreignKeyName: "enps_answers_response_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id", "response_id"]
+            isOneToOne: false
+            referencedRelation: "enps_responses"
+            referencedColumns: ["tenant_id", "hr_group_id", "campaign_id", "id"]
+          },
+        ]
+      }
+      enps_campaigns: {
+        Row: {
+          activated_at: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          ends_at: string
+          hr_group_id: string
+          id: string
+          reminder_interval_days: number
+          scale_type: string
+          starts_at: string
+          status: string
+          target_ids: string[]
+          target_mode: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by: string
+          ends_at: string
+          hr_group_id: string
+          id?: string
+          reminder_interval_days?: number
+          scale_type?: string
+          starts_at: string
+          status?: string
+          target_ids?: string[]
+          target_mode: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          hr_group_id?: string
+          id?: string
+          reminder_interval_days?: number
+          scale_type?: string
+          starts_at?: string
+          status?: string
+          target_ids?: string[]
+          target_mode?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_campaigns_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "enps_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enps_invitations: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          employee_id: string
+          has_submitted: boolean
+          hr_group_id: string
+          id: string
+          last_reminded_at: string | null
+          reminder_count: number
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          employee_id: string
+          has_submitted?: boolean
+          hr_group_id: string
+          id?: string
+          last_reminded_at?: string | null
+          reminder_count?: number
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          employee_id?: string
+          has_submitted?: boolean
+          hr_group_id?: string
+          id?: string
+          last_reminded_at?: string | null
+          reminder_count?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_invitations_campaign_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "enps_campaigns"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "enps_invitations_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      enps_question_bank: {
+        Row: {
+          category_id: string
+          default_type: string
+          hr_group_id: string | null
+          id: string
+          is_mandatory_enps: boolean
+          is_system: boolean
+          question_number: number | null
+          question_text: string
+          tenant_id: string | null
+        }
+        Insert: {
+          category_id: string
+          default_type: string
+          hr_group_id?: string | null
+          id?: string
+          is_mandatory_enps?: boolean
+          is_system?: boolean
+          question_number?: number | null
+          question_text: string
+          tenant_id?: string | null
+        }
+        Update: {
+          category_id?: string
+          default_type?: string
+          hr_group_id?: string | null
+          id?: string
+          is_mandatory_enps?: boolean
+          is_system?: boolean
+          question_number?: number | null
+          question_text?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_question_bank_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "enps_question_bank_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enps_question_bank_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "enps_question_bank_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enps_question_bank_categories: {
+        Row: {
+          hr_group_id: string | null
+          id: string
+          is_system: boolean
+          name: string
+          order_index: number
+          tenant_id: string | null
+        }
+        Insert: {
+          hr_group_id?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          order_index: number
+          tenant_id?: string | null
+        }
+        Update: {
+          hr_group_id?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          order_index?: number
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_question_bank_categories_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "enps_question_bank_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enps_questions: {
+        Row: {
+          bank_question_id: string | null
+          campaign_id: string
+          category_name: string
+          hr_group_id: string
+          id: string
+          is_enabled: boolean
+          is_mandatory: boolean
+          order_index: number
+          question_text: string
+          question_type: string
+          tenant_id: string
+        }
+        Insert: {
+          bank_question_id?: string | null
+          campaign_id: string
+          category_name: string
+          hr_group_id: string
+          id?: string
+          is_enabled?: boolean
+          is_mandatory?: boolean
+          order_index: number
+          question_text: string
+          question_type: string
+          tenant_id: string
+        }
+        Update: {
+          bank_question_id?: string | null
+          campaign_id?: string
+          category_name?: string
+          hr_group_id?: string
+          id?: string
+          is_enabled?: boolean
+          is_mandatory?: boolean
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_questions_bank_question_id_fkey"
+            columns: ["bank_question_id"]
+            isOneToOne: false
+            referencedRelation: "enps_question_bank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enps_questions_campaign_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "enps_campaigns"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      enps_responses: {
+        Row: {
+          campaign_id: string
+          hr_group_id: string
+          id: string
+          submitted_at: string
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id: string
+          hr_group_id: string
+          id?: string
+          submitted_at?: string
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string
+          hr_group_id?: string
+          id?: string
+          submitted_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enps_responses_campaign_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "enps_campaigns"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
       flex_phases: {
         Row: {
           administration_id: string
@@ -10296,6 +10653,365 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_answers: {
+        Row: {
+          answer_text: string | null
+          hr_group_id: string
+          id: string
+          matrix_row_id: string | null
+          option_id: string | null
+          question_id: string
+          response_id: string
+          survey_id: string
+          tenant_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          hr_group_id: string
+          id?: string
+          matrix_row_id?: string | null
+          option_id?: string | null
+          question_id: string
+          response_id: string
+          survey_id: string
+          tenant_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          hr_group_id?: string
+          id?: string
+          matrix_row_id?: string | null
+          option_id?: string | null
+          question_id?: string
+          response_id?: string
+          survey_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_answers_matrix_row_fkey"
+            columns: ["question_id", "matrix_row_id"]
+            isOneToOne: false
+            referencedRelation: "survey_matrix_rows"
+            referencedColumns: ["question_id", "id"]
+          },
+          {
+            foreignKeyName: "survey_answers_option_fkey"
+            columns: ["question_id", "option_id"]
+            isOneToOne: false
+            referencedRelation: "survey_question_options"
+            referencedColumns: ["question_id", "id"]
+          },
+          {
+            foreignKeyName: "survey_answers_question_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id", "question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["tenant_id", "hr_group_id", "survey_id", "id"]
+          },
+          {
+            foreignKeyName: "survey_answers_response_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id", "response_id"]
+            isOneToOne: false
+            referencedRelation: "survey_responses"
+            referencedColumns: ["tenant_id", "hr_group_id", "survey_id", "id"]
+          },
+        ]
+      }
+      survey_invitations: {
+        Row: {
+          created_at: string
+          employee_id: string
+          has_submitted: boolean
+          hr_group_id: string
+          id: string
+          last_reminded_at: string | null
+          reminder_count: number
+          submitted_at: string | null
+          survey_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          has_submitted?: boolean
+          hr_group_id: string
+          id?: string
+          last_reminded_at?: string | null
+          reminder_count?: number
+          submitted_at?: string | null
+          survey_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          has_submitted?: boolean
+          hr_group_id?: string
+          id?: string
+          last_reminded_at?: string | null
+          reminder_count?: number
+          submitted_at?: string | null
+          survey_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_invitations_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "survey_invitations_survey_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      survey_matrix_rows: {
+        Row: {
+          hr_group_id: string
+          id: string
+          is_required: boolean
+          order_index: number
+          question_id: string
+          row_label: string
+          survey_id: string
+          tenant_id: string
+        }
+        Insert: {
+          hr_group_id: string
+          id?: string
+          is_required?: boolean
+          order_index: number
+          question_id: string
+          row_label: string
+          survey_id: string
+          tenant_id: string
+        }
+        Update: {
+          hr_group_id?: string
+          id?: string
+          is_required?: boolean
+          order_index?: number
+          question_id?: string
+          row_label?: string
+          survey_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_matrix_rows_question_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id", "question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["tenant_id", "hr_group_id", "survey_id", "id"]
+          },
+        ]
+      }
+      survey_question_options: {
+        Row: {
+          hr_group_id: string
+          id: string
+          option_label: string
+          order_index: number
+          question_id: string
+          survey_id: string
+          tenant_id: string
+        }
+        Insert: {
+          hr_group_id: string
+          id?: string
+          option_label: string
+          order_index: number
+          question_id: string
+          survey_id: string
+          tenant_id: string
+        }
+        Update: {
+          hr_group_id?: string
+          id?: string
+          option_label?: string
+          order_index?: number
+          question_id?: string
+          survey_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_question_options_question_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id", "question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["tenant_id", "hr_group_id", "survey_id", "id"]
+          },
+        ]
+      }
+      survey_questions: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_required: boolean
+          order_index: number
+          question_text: string
+          question_type: string
+          survey_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          is_required?: boolean
+          order_index: number
+          question_text: string
+          question_type: string
+          survey_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          is_required?: boolean
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          survey_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_questions_survey_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      survey_responses: {
+        Row: {
+          hr_group_id: string
+          id: string
+          respondent_employee_id: string | null
+          submitted_at: string
+          survey_id: string
+          tenant_id: string
+        }
+        Insert: {
+          hr_group_id: string
+          id?: string
+          respondent_employee_id?: string | null
+          submitted_at?: string
+          survey_id: string
+          tenant_id: string
+        }
+        Update: {
+          hr_group_id?: string
+          id?: string
+          respondent_employee_id?: string | null
+          submitted_at?: string
+          survey_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "respondent_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "survey_responses_survey_fkey"
+            columns: ["tenant_id", "hr_group_id", "survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          activated_at: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          description: string
+          ends_at: string
+          hr_group_id: string
+          id: string
+          is_anonymous: boolean
+          starts_at: string
+          status: string
+          target_ids: string[]
+          target_mode: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string
+          ends_at: string
+          hr_group_id: string
+          id?: string
+          is_anonymous?: boolean
+          starts_at: string
+          status?: string
+          target_ids?: string[]
+          target_mode: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          ends_at?: string
+          hr_group_id?: string
+          id?: string
+          is_anonymous?: boolean
+          starts_at?: string
+          status?: string
+          target_ids?: string[]
+          target_mode?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surveys_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "surveys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_assessment_answers: {
         Row: {
           answer_text: string | null
@@ -13575,6 +14291,14 @@ export type Database = {
         Args: { requested_campaign_id: string }
         Returns: string
       }
+      submit_enps_response: {
+        Args: { p_answers: Json; p_invitation_id: string }
+        Returns: string
+      }
+      submit_survey_response: {
+        Args: { p_answers: Json; p_invitation_id: string }
+        Returns: string
+      }
       update_group_leave_accrual_rule: {
         Args: {
           requested_accrual_amount: number
@@ -13637,10 +14361,10 @@ export type Database = {
       contract_type:
         | "INDEFINITE"
         | "DEFINITE"
-        | "TEMPORARY_NO_END"
         | "ON_CALL"
         | "TEMPORARY_AGENCY"
         | "EXTERNAL"
+        | "TEMPORARY_NO_END"
       custom_field_audience_access: "HIDDEN" | "READ" | "WRITE"
       custom_field_entity_type: "EMPLOYEE" | "DOCUMENT"
       custom_field_type:
@@ -13976,10 +14700,10 @@ export const Constants = {
       contract_type: [
         "INDEFINITE",
         "DEFINITE",
-        "TEMPORARY_NO_END",
         "ON_CALL",
         "TEMPORARY_AGENCY",
         "EXTERNAL",
+        "TEMPORARY_NO_END",
       ],
       custom_field_audience_access: ["HIDDEN", "READ", "WRITE"],
       custom_field_entity_type: ["EMPLOYEE", "DOCUMENT"],

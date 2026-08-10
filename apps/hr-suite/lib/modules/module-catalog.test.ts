@@ -9,6 +9,8 @@ describe('module catalog', () => {
       'DOCUMENTS',
       'REMINDERS',
       'TALENT',
+      'SURVEYS',
+      'ENPS',
     ])
     expect(catalog.filter((module) => module.status === 'COMING_SOON').every((module) => !module.toggleable)).toBe(true)
   })
