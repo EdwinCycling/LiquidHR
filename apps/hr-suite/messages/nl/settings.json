@@ -178,7 +178,7 @@
     "upload": "Logo uploaden",
     "removeLogo": "Logo verwijderen",
     "save": "Bedrijfsstijl opslaan",
-    "saving": "Opslaanâ€¦",
+    "saving": "Opslaan…",
     "saved": "Bedrijfsstijl opgeslagen.",
     "failed": "De bedrijfsstijl kon niet worden opgeslagen.",
     "invalid": "Controleer de kleuren en het logo."
@@ -219,7 +219,7 @@
     "manualEntry": "Adres handmatig invoeren",
     "searchNoResults": "Geen suggesties gevonden. Je kunt het adres handmatig invoeren.",
     "searchUnavailable": "Adres zoeken is tijdelijk niet beschikbaar. Je kunt het adres handmatig invoeren.",
-    "searchLoading": "Adressen zoekenâ€¦",
+    "searchLoading": "Adressen zoeken…",
     "lookupByPostalCode": "Postcode en huisnummer",
     "lookup": "Straat en plaats aanvullen",
     "lookupHint": "Gebruik postcode en huisnummer om deze velden automatisch in te vullen.",
@@ -234,7 +234,7 @@
     "region": "Regio / provincie",
     "addressHelp": "Nederlandse adressen gebruiken straat, huisnummer en postcode. Voor andere landen gebruik je adresregel 1, optioneel adresregel 2, postcode, plaats en regio.",
     "genericError": "Opslaan is niet gelukt. Controleer de gegevens en probeer het opnieuw.",
-    "companyHasLocations": "Schakel eerst de bestaande locaties uit of verwijder ze voordat je Ã©Ã©n locatie instelt.",
+    "companyHasLocations": "Schakel eerst de bestaande locaties uit of verwijder ze voordat je één locatie instelt.",
     "singleLocationError": "Voeg geen locaties toe zolang het bedrijfsadres als enige locatie is ingesteld.",
     "saveHint": "Controleer het adres en sla de bedrijfsgegevens op wanneer alles klopt."
   }

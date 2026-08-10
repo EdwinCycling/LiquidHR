@@ -1573,3 +1573,10 @@ Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migrat
 - De hydrationfout op `/settings/company-data` kwam door server/client-verschillen in `Intl.DisplayNames` voor landlabels; bijvoorbeeld `FK` kon tijdens SSR een andere tekst krijgen dan in de browser.
 - `CountryPicker` en `AddressFields` gebruiken nu een deterministische SSR/eerste-client-render via `useSyncExternalStore`. Gelokaliseerde landnamen worden daarna client-side geactiveerd, zonder functionele wijziging aan het adresformulier.
 - Strict TypeScript, lint en browsercontrole op poort 3000 zijn geslaagd: de pagina laadt, zonder runtimefout en zonder hydration- of mismatchmeldingen.
+## UX-update 2026-08-07: Liquid Flow applicatiebrede stijl
+
+- In geïsoleerde featurebranch `codex/liquid-flow-appwide` zijn de gedeelde radius-tokens, formulier-/dropdown-/knopstijlen, instellingenheaders en accordions aangescherpt. De bestaande `globals.css` blijft de centrale stijlbron; er is geen tweede stylesheet-thema nodig.
+- `/settings/company-data` gebruikt nu een rustige tweestapsflow voor bedrijfsadres en locaties. Het grote informatievenster is op deze pagina verwijderd; adreszoeker, handmatige invoer, locatiebeheer en bestaande API-opslag zijn behouden.
+- NL/EN-teksten zijn gelijkgetrokken en uitgebreid voor de nieuwe status- en zoekuitleg. Er zijn geen schema-, migratie- of remote wijzigingen uitgevoerd.
+- Verificatie: strict typecheck, ESLint, i18n-pariteit (28 namespaces), diff-check, Next productiebuild via Webpack en ingelogde desktop-/390px-browsercontrole geslaagd. De browser gaf alleen de bestaande CountryPicker hydration-waarschuwing voor de landnaam `Falklandeilanden`; dit staat los van deze UX-slice.
+- De feature is lokaal samengevoegd naar `main` als onderdeel van deze releasebasis; push en deployment volgen pas na de releasegate.
