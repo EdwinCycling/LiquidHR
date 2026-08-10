@@ -8,6 +8,7 @@ export interface WidgetAccessInput {
   activeRoleIds: Set<string>
   permissions: Set<string>
   entries: readonly DashboardWidgetCatalogEntry[]
+  hasEmployeeContext?: boolean
 }
 
 export function resolveVisibleWidgetTypes(input: WidgetAccessInput): Set<DashboardWidgetType> {
@@ -22,6 +23,7 @@ export function resolveVisibleWidgetTypes(input: WidgetAccessInput): Set<Dashboa
   const visible = new Set<DashboardWidgetType>()
   for (const entry of input.entries) {
     if (configByType.get(entry.type) !== true) continue
+    if (entry.employeeOnly && input.hasEmployeeContext !== true) continue
     const permittedRoles = rolesByType.get(entry.type)
     if (permittedRoles && ![...permittedRoles].some((roleId) => input.activeRoleIds.has(roleId))) continue
 

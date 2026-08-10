@@ -1,6 +1,6 @@
 import type { DashboardWidgetType } from './schemas'
 
-export const dashboardWidgetCategories = ['CORE_HR', 'EMPLOYMENT', 'DOCUMENTS', 'COMPENSATION', 'ORGANIZATION_TIME'] as const
+export const dashboardWidgetCategories = ['CORE_HR', 'EMPLOYMENT', 'DOCUMENTS', 'COMPENSATION', 'ORGANIZATION_TIME', 'RESEARCH'] as const
 export type DashboardWidgetCategory = (typeof dashboardWidgetCategories)[number]
 
 export const dashboardWidgetWidths = ['HALF', 'TWO_THIRDS', 'FULL'] as const
@@ -19,6 +19,7 @@ export interface DashboardWidgetCatalogEntry {
   loader: string
   permissions: readonly string[]
   selfOnly?: boolean
+  employeeOnly?: boolean
 }
 
 const employeeRead = ['employee:read'] as const
@@ -69,6 +70,8 @@ export const DASHBOARD_WIDGET_CATALOG: readonly DashboardWidgetCatalogEntry[] = 
   { type: 'ACTIVE_REMINDERS', category: 'ORGANIZATION_TIME', titleKey: 'widgets.activeReminders.title', descriptionKey: 'widgets.activeReminders.description', visualization: 'TABLE', defaultWidth: 'HALF', loader: 'activeReminders', permissions: ['reminder:read'] },
   { type: 'ORGANIZATION_SUMMARY', category: 'ORGANIZATION_TIME', titleKey: 'widgets.organizationSummary.title', descriptionKey: 'widgets.organizationSummary.description', visualization: 'KPI', defaultWidth: 'HALF', loader: 'organizationSummary', permissions: ['organization-chart:read'] },
   { type: 'WORK_PATTERNS_BY_DEPARTMENT', category: 'ORGANIZATION_TIME', titleKey: 'widgets.workPatternsByDepartment.title', descriptionKey: 'widgets.workPatternsByDepartment.description', visualization: 'BAR', defaultWidth: 'TWO_THIRDS', loader: 'workPatternsByDepartment', permissions: ['employee:read', 'work-schedule:read', 'department:read'] },
+  { type: 'OPEN_RESEARCH', category: 'RESEARCH', titleKey: 'widgets.openResearch.title', descriptionKey: 'widgets.openResearch.description', visualization: 'KPI', defaultWidth: 'HALF', loader: 'openResearch', permissions: ['research:respond'], selfOnly: true, employeeOnly: true },
+  { type: 'RESEARCH_MONITOR', category: 'RESEARCH', titleKey: 'widgets.researchMonitor.title', descriptionKey: 'widgets.researchMonitor.description', visualization: 'KPI', defaultWidth: 'HALF', loader: 'researchMonitor', permissions: ['research:read'] },
 ]
 
 export function getWidgetCatalogEntry(type: DashboardWidgetType): DashboardWidgetCatalogEntry | undefined {

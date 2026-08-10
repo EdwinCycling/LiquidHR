@@ -6,6 +6,7 @@ export default async function MenuOrderPage() {
   const items = [
     { href: '/dashboard', label: navigation('dashboard') }, { href: '/dashboard/start', label: navigation('startPage') },
     { href: '/employees', label: navigation('employees') },
+    { href: '/research', label: navigation('research') },
     { href: '/organization-chart', label: navigation('organizationChart') }, { href: '/hr-calendar', label: navigation('hrCalendar') },
     { href: '/insights', label: navigation('insights') }, { href: '/workforce', label: navigation('workforce') }, { href: '/settings', label: navigation('settings') },
   ]

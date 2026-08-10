@@ -16,6 +16,7 @@ import { ProductUpdateBanner, ProductUpdateLoginPopup } from '@/components/produ
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { TEST_ROLE_SWITCH_TARGETS, isTestRoleSwitchAccount, isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
 import type { TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
+import { resolveResearchAccess } from '@/lib/research/access'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let requestContext
@@ -43,6 +44,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     || (authContext.employeeId !== null && authContext.permissions.includes('self:employee:read'))
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
   const canReadSettings = authContext.permissions.includes('settings:read')
+  const researchAccess = resolveResearchAccess(authContext)
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, reminders, enabledModules, productUpdates, profile] = await Promise.all([
@@ -99,6 +101,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
         canReadInsights={insightPermissions.some(Boolean)}
+        canOpenResearch={researchAccess.canOpenHub && (enabledModules.includes('SURVEYS') || enabledModules.includes('ENPS'))}
         labels={{
           appName: common('appName'),
           dashboard: navigation('dashboard'),
@@ -112,6 +115,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           insights: navigation('insights'),
           workforce: navigation('workforce'),
           work: navigation('work'),
+          research: navigation('research'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

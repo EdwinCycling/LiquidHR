@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Surveys en eNPS 2026-08-10 — GEDEELTELIJK / remote testklaar
+
+De verticale slice bevat lokaal de volledige basis van beide tenantmodules: schema/RLS/grants, privacyveilige inzend-RPC's, systeem- en eigen eNPS-vragenbank, campagnebouwers, doelgroepen inclusief entiteiten, medewerkerhub/respondentflow, HR-instellingen, HR-monitor/resultaten, CSV en rolgebonden dashboardwidgets. Alleen `TENANT_ADMIN` krijgt beheer/resultaten; `DIRECT_MANAGER` krijgt geen onderzoeksrechten en medewerkers blijven self-bound.
+
+Verificatie is groen voor de volledige hr-suite (154 testbestanden/590 tests), 10 gerichte testbestanden/30 tests, strict TypeScript, 30 gelijke NL/EN-namespaces, Webpack-productiebuild met 197 routes en diff-check. De twee researchmigraties staan remote; het remote SQL-contract is groen. De Supabase-advisors melden geen research-specifieke securitybevinding en geen performance-WARN, en de officiële types zijn gegenereerd met behoud van de lokaal al bestaande `company_activities`-typedefinitie. Bestaande ESLint 10/React-plugin-incompatibiliteit blokkeert lint vóór inhoudelijke analyse.
+
+De status blijft `GEDEELTELIJK` totdat authenticated drie-rollen-browserbewijs op de samengevoegde `main`-versie is afgerond en voor de automatische eNPS-herinneringsmail een mailprovider plus scheduler is aangesloten. Er is nog geen commit, push, merge of deployment uitgevoerd.
+
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 
 De lokale `main`-basis bevat de bedrijfsactiviteiten/feestdagen- en employment-overzichtslice plus de gecontroleerde Liquid Flow UX-slice. De zichtbare appversie is verhoogd in `apps/hr-suite/lib/app-version.ts`; de technische npm-versie blijft ongewijzigd. De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. De releasecode staat op `edf8de9`; `main` bevat daarna docs-only verificatiecommit `f185a58`. Vercel Production `dpl_FtSAqLQqavF5JBg4ax1E6vWVJFme` en de daaropvolgende docs-only deployment zijn `READY`, `/login` geeft HTTP 200 en de runtime-scan over het laatste uur is schoon.

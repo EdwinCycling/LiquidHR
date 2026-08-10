@@ -99,5 +99,6 @@ export async function resolveVisibleDashboardWidgetTypes(
     activeRoleIds: new Set((rolesResult.data ?? []).map((role) => role.id)),
     permissions: new Set(context.permissions),
     entries: DASHBOARD_WIDGET_CATALOG,
+    hasEmployeeContext: context.employeeId !== null,
   })
 }

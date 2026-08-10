@@ -19,6 +19,7 @@ import {
   Users,
   UsersRound,
   Workflow,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -146,6 +147,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('talent:manage'),
       allowed('hr-group:read'),
       allowed('process-definition:read'),
+      allowed('research:write'),
     ]),
   ])
 
@@ -166,6 +168,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     talentManage,
     hrGroups,
     processDefinitions,
+    research,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -264,6 +267,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.processAutomation'),
           description: messages('admin.tiles.processAutomationDescription'),
           visible: processDefinitions,
+        },
+        {
+          kind: 'link',
+          href: '/settings/research',
+          icon: ClipboardList,
+          title: messages('admin.tiles.research'),
+          description: messages('admin.tiles.researchDescription'),
+          visible: research,
         },
         {
           kind: 'link',

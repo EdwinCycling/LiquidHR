@@ -1,4 +1,4 @@
-import { ArrowUpRight, BellRing, Building2, CircleAlert, FileText, Sparkles, Users } from 'lucide-react'
+import { ArrowUpRight, BarChart3, BellRing, Building2, CircleAlert, ClipboardList, FileText, Sparkles, Users } from 'lucide-react'
 import Link from 'next/link'
 import type { DashboardWidget } from '@/lib/dashboard/service'
 import type { DashboardWidgetData } from '@/lib/dashboard/widget-loaders'
@@ -15,6 +15,10 @@ export interface DashboardWidgetLabels {
   openOrganization: string
   openEmployees: string
   openCompanyDocuments: string
+  openResearch: string
+  researchMonitor: string
+  openResearchHub: string
+  openResearchMonitor: string
   empty: string
   dataSourcePending: string
   widgetError: string
@@ -52,7 +56,11 @@ export function DashboardWidgetRenderer({ data, labels, presentation, widget }: 
     </article>
   )
 
-  const content = widget.type === 'MY_REMINDERS'
+  const content = widget.type === 'OPEN_RESEARCH'
+    ? { icon: ClipboardList, title: labels.openResearch, href: data.href, link: labels.openResearchHub }
+    : widget.type === 'RESEARCH_MONITOR'
+      ? { icon: BarChart3, title: labels.researchMonitor, href: data.href, link: labels.openResearchMonitor }
+    : widget.type === 'MY_REMINDERS'
     ? { icon: BellRing, title: labels.myReminders, href: data.href, link: labels.openReminders }
     : widget.type === 'ORGANIZATION_OVERVIEW'
       ? { icon: Building2, title: labels.organization, href: '/organization-chart', link: labels.openOrganization }
