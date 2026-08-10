@@ -1,8 +1,8 @@
 # Actuele overdracht Liquid HR
 
-## Surveys en eNPS 2026-08-10 — remote testklaar
+## Surveys en eNPS 2026-08-10 — samengevoegd en browsergeverifieerd
 
-De nieuwe modules staan op branch `codex/survey-enps-modules` in worktree `.codex-worktrees/survey-enps-modules`. De twee migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; de feature is nog niet gecommit, met `main` samengevoegd, gepusht of gedeployed.
+De nieuwe modules zijn vanuit branch `codex/survey-enps-modules` lokaal met `main` samengevoegd. De twee migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De lokale `main`-versie draait voor handmatige controle op poort 3000; er is niets gepusht of gedeployed.
 
 ### Gedaan
 
@@ -13,15 +13,17 @@ De nieuwe modules staan op branch `codex/survey-enps-modules` in worktree `.code
 
 ### Geverifieerd
 
-- De volledige hr-suite is groen met 154 testbestanden/590 tests; de gerichte research/module/widget-suite telt 10 bestanden/30 tests. Strict TypeScript, 30 gelijke NL/EN-namespaces, de Webpack-productiebuild met 197 routes en `git diff --check` zijn eveneens groen.
+- De volledige hr-suite is groen met 154 testbestanden/590 tests; na de browserfixes telt de gerichte research/module/widget-suite 10 bestanden/31 tests. Strict TypeScript, 30 gelijke NL/EN-namespaces, de Webpack-productiebuild met 197 routes en `git diff --check` zijn eveneens groen.
 - De seed is statisch gecontroleerd op 150 unieke nummers van 1 t/m 150. Het remote SQL-contract is groen voor RLS op alle veertien tabellen, rollen, functiegrants, zero-traceability, de database-privacydrempel en vragenbanktoegang.
 - Supabase-migraties `add_survey_and_enps_modules` en `optimize_research_rls_and_indexes` zijn transactioneel toegepast. De advisors melden geen research-specifieke securitybevinding en geen performance-WARN; verse indexen geven uitsluitend verwachte INFO-meldingen voor nog ongebruikt. De officiële remote types zijn gegenereerd; de lokaal al aanwezige maar remote nog ontbrekende `company_activities`-typedefinitie is behouden.
+- Authenticated browserbewijs op de samengevoegde `main`-versie is groen. HR Admin opent instellingen, monitor, vragenbank, surveybuilder en eNPS-builder; de vragenbank toont 15 categorieën en de builder zoekt in 150 vragen. Manager en medewerker bereiken hun persoonlijke onderzoekshub maar worden voor instellingen en monitor naar `/geen-toegang` gestuurd. De instellingenpagina is ook op 390x844 visueel gecontroleerd. De verse browserconsole heeft nul errors en de verse Next-errorlog is leeg.
+- De browserproef vond en herstelde twee niet-serialiseerbare labelprops tussen Server en Client Components. Alle dynamische researchlabels worden nu als stringtemplate doorgegeven; de widgettest bewijst aanvullend dat alleen HR met `research:read` de monitorwidget krijgt, terwijl een manager zonder onderzoeksrecht die niet krijgt.
 - Repo-lint blijft vóór bestandsanalyse geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`). De lokale SQL-test kon niet draaien omdat Docker niet actief is, maar hetzelfde contract is succesvol op het gekoppelde remote project uitgevoerd.
 
 ### Open / geblokkeerd
 
-- Authenticated browserbewijs voor HR Admin, medewerker en manager op de samengevoegde `main`-versie op poort 3000 is nog open; controleer desktop/390px, keyboard/focus en console/netwerk. Zonder afzonderlijke fixturetoestemming worden geen campagnes of responses als testdata aangemaakt.
 - De beschreven automatische eNPS-herinneringsmail vereist nog een gekozen mailprovider en geplande worker/cron. De huidige werkende herinnering is een HR-actie die het signaal in de medewerkerhub toont; er is geen externe e-mailbezorging geclaimd.
+- Conceptcampagnes na creatie wijzigen en een volledige live campagne-/responseproef blijven open. Er is bewust geen synthetische campagne of response aangemaakt zonder afzonderlijke fixturetoestemming.
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 

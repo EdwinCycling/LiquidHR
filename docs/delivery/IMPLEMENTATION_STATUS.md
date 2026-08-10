@@ -1,12 +1,12 @@
 # Implementatiestatus Liquid HR
 
-## Surveys en eNPS 2026-08-10 — GEDEELTELIJK / remote testklaar
+## Surveys en eNPS 2026-08-10 — GEDEELTELIJK / main browsergeverifieerd
 
 De verticale slice bevat lokaal de volledige basis van beide tenantmodules: schema/RLS/grants, privacyveilige inzend-RPC's, systeem- en eigen eNPS-vragenbank, campagnebouwers, doelgroepen inclusief entiteiten, medewerkerhub/respondentflow, HR-instellingen, HR-monitor/resultaten, CSV en rolgebonden dashboardwidgets. Alleen `TENANT_ADMIN` krijgt beheer/resultaten; `DIRECT_MANAGER` krijgt geen onderzoeksrechten en medewerkers blijven self-bound.
 
-Verificatie is groen voor de volledige hr-suite (154 testbestanden/590 tests), 10 gerichte testbestanden/30 tests, strict TypeScript, 30 gelijke NL/EN-namespaces, Webpack-productiebuild met 197 routes en diff-check. De twee researchmigraties staan remote; het remote SQL-contract is groen. De Supabase-advisors melden geen research-specifieke securitybevinding en geen performance-WARN, en de officiële types zijn gegenereerd met behoud van de lokaal al bestaande `company_activities`-typedefinitie. Bestaande ESLint 10/React-plugin-incompatibiliteit blokkeert lint vóór inhoudelijke analyse.
+Verificatie is groen voor de volledige hr-suite (154 testbestanden/590 tests), 10 gerichte testbestanden/31 tests, strict TypeScript, 30 gelijke NL/EN-namespaces, Webpack-productiebuild met 197 routes en diff-check. De twee researchmigraties staan remote; het remote SQL-contract is groen. De Supabase-advisors melden geen research-specifieke securitybevinding en geen performance-WARN, en de officiële types zijn gegenereerd met behoud van de lokaal al bestaande `company_activities`-typedefinitie. Bestaande ESLint 10/React-plugin-incompatibiliteit blokkeert lint vóór inhoudelijke analyse.
 
-De status blijft `GEDEELTELIJK` totdat authenticated drie-rollen-browserbewijs op de samengevoegde `main`-versie is afgerond en voor de automatische eNPS-herinneringsmail een mailprovider plus scheduler is aangesloten. Er is nog geen commit, push, merge of deployment uitgevoerd.
+Authenticated browserbewijs op de samengevoegde `main`-versie is groen voor HR Admin, manager en medewerker: beheer/monitor/bouwers/vragenbank voor HR, persoonlijke hub voor manager en medewerker en `/geen-toegang` op hun verboden routes. Desktop, 390x844, browserconsole en verse Next-errorlog zijn gecontroleerd. De status blijft `GEDEELTELIJK` totdat een mailprovider plus scheduler voor automatische eNPS-herinneringen is aangesloten, concepten na creatie wijzigbaar zijn en een geautoriseerde live campagne-/responseproef is afgerond. Er is lokaal gemerged; push en deployment zijn niet uitgevoerd.
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 

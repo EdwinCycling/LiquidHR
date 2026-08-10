@@ -48,4 +48,4 @@ Autorisatie wordt zowel server-side als via RLS afgedwongen. Modulecodes `SURVEY
 - E-mailbezorging en geplande achtergrondtaken voor automatische eNPS-herinneringen; de huidige handmatige herinnering is een zichtbaar in-app signaal.
 - Concepten wijzigen nadat ze zijn geactiveerd.
 - Resultaten segmenteren op kleine groepen; dit vereist een afzonderlijk privacybesluit.
-- Authenticated drie-rollen-browserbewijs op de samengevoegde `main`-versie.
+- Geautoriseerde end-to-end campagne-/responseproef met exacte cleanup.

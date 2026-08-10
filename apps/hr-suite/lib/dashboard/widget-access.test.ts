@@ -43,4 +43,17 @@ describe('dashboard widget access', () => {
     expect(resolveVisibleWidgetTypes({ ...base, hasEmployeeContext: false }).has('OPEN_RESEARCH')).toBe(false)
     expect(resolveVisibleWidgetTypes({ ...base, hasEmployeeContext: true }).has('OPEN_RESEARCH')).toBe(true)
   })
+
+  it('toont de onderzoeksmonitor alleen met het onderzoeksleesrecht van HR', () => {
+    const entry = getWidgetCatalogEntry('RESEARCH_MONITOR')!
+    const base = {
+      configs: [{ widgetType: 'RESEARCH_MONITOR', isEnabled: true }],
+      roleAccess: [],
+      activeRoleIds: new Set<string>(),
+      entries: [entry],
+    }
+
+    expect(resolveVisibleWidgetTypes({ ...base, permissions: new Set(['research:read']) }).has('RESEARCH_MONITOR')).toBe(true)
+    expect(resolveVisibleWidgetTypes({ ...base, permissions: new Set(['employee:manager-read']) }).has('RESEARCH_MONITOR')).toBe(false)
+  })
 })
