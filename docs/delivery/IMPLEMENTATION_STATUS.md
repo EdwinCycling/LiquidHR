@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Lokale release candidate 2026-08-10: productversie 1.20260810.1
+
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De gecombineerde lokale `main` bevat de geconsolideerde HR-, Process Automation-, bedrijfsactiviteiten-, weer- en dienstverbandwijzigingen. Tests, push en deployment volgen.
+
 ## Weerbericht verhuisd naar medewerkerheader 2026-08-10 — geverifieerd
 
 Het weerinstrument en de Compact-schakelaar zijn uit de startpagina-header verwijderd, evenals het daar getoonde logo. De medewerkerheader heeft nu een klein weericoon met een responsive drawer voor werktemperatuur, maximum, luchtvochtigheid, wind en luchtdruk. De privé-adresoptie wordt alleen voor de eigen medewerkerkaart geladen en getoond. Sluiten werkt via kruisje, Escape en klik buiten het venster. Strict TypeScript, gerichte ESLint, i18n-pariteit, `git diff --check` en desktop-/390px-browsercontrole zijn uitgevoerd. Geen schema-, API- of remotewijziging.
@@ -15,7 +19,7 @@ De wizard gebruikt per medewerker het hoogste numerieke dienstverbandnummer plus
 
 Bewijs: 149/569 Vitest, strict typecheck, 29 NL/EN-namespaces, `git diff --check`, Webpack-build met 185 pagina's en gerichte localhost-browsercontrole zijn groen. De remote migratie is bewust open: de read-only controle vond één bestaande dubbele IKV 9 voor dezelfde medewerker in een gesloten en een open relatie. Eerst is een expliciete keuze nodig voor historische cleanup/index-toepassing. De bestaande ESLint 10/`eslint-plugin-react`-fout blijft een niet-inhoudelijke repo-blokkade.
 
-## Actuele release-status 2026-08-09
+## Vorige productie-release-status 2026-08-09
 
 De mobiele Google-login hotfix is productie-live. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub `main`; Vercel Production-deployment `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`. De zichtbare appversie is `1.20260809.2`. De remote `NEXT_PUBLIC_APP_URL` bleef ongewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de code gebruikt bij actuele requestheaders de stale waarde niet langer als origin.
 

@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Lokale release candidate 2026-08-10: productversie 1.20260810.1
+
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De gecombineerde lokale `main` bevat de HR-, Process Automation-, bedrijfsactiviteiten-, weer- en dienstverbandwijzigingen; tests en publicatie volgen na deze versiecheck.
+
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 
 De feestdageninstellingen ondersteunen naast lokale feestdagen nu HR-groepbrede bedrijfsactiviteiten met naam en datum. Actieve feestdagen en de eerstvolgende bedrijfsactiviteit verschijnen in de startpagina- en medewerkerheader. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) voor de lokale verificatie en de nog openstaande remote/browser-gate.
@@ -7,7 +11,7 @@ De feestdageninstellingen ondersteunen naast lokale feestdagen nu HR-groepbrede 
 
 De lokale feature-slice voor de dienstverbandwizard staat in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` op branch `codex/employment-wizard-fixes`. De implementatie bevat per-medewerker nummering voor dienstverband en IKV, contracten zonder einddatum, proeftijdvalidatie, einddatum-snelkeuzes, review-vóór-save, annuleren, administratie-informatie, Nederlandse decimale invoer en de fix voor de POST-400 door PostgreSQL-UUID-validatie. Lokaal zijn 149/569 tests, typecheck, i18n, diff-check, Webpack-build en browsercontrole groen. Remote migratie en release zijn nog niet uitgevoerd; zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de duplicate-IKV-preconditie en resterende actie.
 
-## Actuele release-status 2026-08-09
+## Vorige productie-release-status 2026-08-09
 
 De mobiele Google-login hotfix staat live. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub `main`; Vercel Production-deployment `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` is `READY` op alias `liquid-hr-hr-suite.vercel.app`. De zichtbare appversie is `1.20260809.2`. De remote `NEXT_PUBLIC_APP_URL` bleef ongewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de code gebruikt die waarde niet langer als request-origin wanneer de actuele host beschikbaar is.
 

@@ -1,5 +1,10 @@
 # Actuele overdracht Liquid HR
 
+## Lokale release candidate 2026-08-10
+
+- De zichtbare productversie is verhoogd naar `1.20260810.1` volgens de centrale `X.datum.volgnummer`-conventie.
+- `main` bevat de lokale consolidatie en employment-merge (`7b8bee2`). Tests, push en deployment volgen; er is nog geen publicatie van deze versie uitgevoerd.
+
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 
 - `/settings/holidays` heeft naast lokale feestdagen een HR-groepbrede invoer voor bedrijfsactiviteiten met naam en datum. De bestaande landelijke feestdagen kunnen per record expliciet worden geactiveerd of gedeactiveerd; gedeactiveerde dagen blijven buiten de kalender- en verlofselecties.
@@ -42,7 +47,7 @@ Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\
 - De drie lokale Supabase-migraties voor tijdelijk-zonder-einddatum, nummer/IKV/proeftijd en de configureerbare CAO-proeftijdgrens zijn niet remote toegepast. Een read-only controle van Supabase-project `wnpfloqpjvaacobppbpk` vond één historische dubbele IKV 9 voor dezelfde medewerker over een afgesloten en een open relatie. Daarom is een expliciete cleanup-/indexbeslissing nodig vóór toepassing van de strikte unieke index; er is geen data gemuteerd.
 - Tot die expliciete remote migratie blijven de live database-indexen de oude organisatiebrede nummer-/IKV-semantiek volgen. De lokale code/API-fix voor de 400 en de wizard-UX zijn wel klaar en lokaal bewezen.
 
-## Actuele release-status 2026-08-09
+## Vorige productie-release-status 2026-08-09
 
 - De mobiele Google-login hotfix is live op `main`. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub; Vercel Production `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`.
 - De zichtbare productversie is `1.20260809.2`. `NEXT_PUBLIC_APP_URL` is remote niet gewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de request-origin-fix maakt de stale waarde niet langer bepalend.
