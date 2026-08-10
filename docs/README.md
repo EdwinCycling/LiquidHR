@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
+
+De hoofdworkspace `main` bevat nu de gecontroleerde lokale employment-/bedrijfsactiviteiten-slice en de Liquid Flow UX-slice uit `codex/liquid-flow-appwide`. De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie; packageversie `0.1.2` blijft technische metadata. De lokale gate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. GitHub-push en Vercel-publicatie volgen nog.
+
 ## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
 De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De remote controle geeft nul actieve IKV-duplicaten; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. Releasecommit `cce23987603bf25d2778672ce5a17a543e1f717a` staat op GitHub `main`; Vercel Production `dpl_A7nVUHc5JhCcAuQy2hiaNkRYno3L` is `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200. De runtime-scan toont alleen een bestaand projectbaseline-incident (`PGRST303 JWT issued at future` op `/settings/holidays`).

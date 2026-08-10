@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
+
+De lokale `main`-basis bevat de bedrijfsactiviteiten/feestdagen- en employment-overzichtslice plus de gecontroleerde Liquid Flow UX-slice. De zichtbare appversie is verhoogd in `apps/hr-suite/lib/app-version.ts`; de technische npm-versie blijft ongewijzigd. De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. Remote schema, GitHub en Vercel worden pas daarna gecontroleerd.
+
 ## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
 De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De drie employment-migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De bestaande actieve dubbele IKV is transactioneel gerepareerd zonder verwijdering: de gesloten historische IKV 9 bleef behouden en de latere open relatie kreeg IKV 10. De duplicate-controle retourneert nul actieve groepen; security- en performance-advisors en officiële typegeneratie zijn uitgevoerd. Releasecommit `cce23987603bf25d2778672ce5a17a543e1f717a` staat op GitHub `main`; Vercel Production `dpl_A7nVUHc5JhCcAuQy2hiaNkRYno3L` is `READY` op exact deze commit en `/login` geeft HTTP 200. De runtime-scan toont alleen het bestaande projectbaseline-incident `PGRST303 JWT issued at future` op `/settings/holidays`.

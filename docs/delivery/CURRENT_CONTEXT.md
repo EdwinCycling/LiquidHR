@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
+
+- `main` bevat de lokale commits `f907eb8` (bedrijfsactiviteiten, feestdagen en employment-overzicht) en `5077aa0` (Liquid Flow applicatiebrede UX). De bronwerkmap `codex/liquid-flow-appwide` is gecontroleerd vastgelegd als `4d2e262`; gegenereerde `next-env.d.ts`-wijzigingen zijn bewust niet meegenomen.
+- De zichtbare appversie is verhoogd van `1.20260810.2` naar `1.20260810.3` in `apps/hr-suite/lib/app-version.ts`; de unit-test verwacht dezelfde waarde. De packageversie blijft technische metadata.
+- De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. GitHub-push en Vercel-deployment zijn nog niet uitgevoerd.
+
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10 — lokaal bijgewerkt
 
 - `/settings/holidays` toont lokale feestdagen en bedrijfsactiviteiten nu als volle, onder elkaar gestapelde instellingenvensters. Beide typen staan samen in één datumlijst; bedrijfsactiviteiten hebben een afwijkende primaire kleurset en een wijzigingsmodal met naam, datum en actieve status.
