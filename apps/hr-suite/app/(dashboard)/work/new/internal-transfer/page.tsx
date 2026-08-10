@@ -4,11 +4,22 @@ import { getInternalTransferStartData, type InternalTransferStartData } from '@/
 import { ProcessRecipeError } from '@/lib/process-automation/recipe-service'
 import { getTranslator } from '@/lib/i18n/server'
 
-export default async function InternalTransferStartPage() {
+interface InternalTransferStartPageProps {
+  readonly searchParams: Promise<{ employeeId?: string; departmentId?: string }>
+}
+
+function safeUuid(value: string | undefined): string | undefined {
+  return value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : undefined
+}
+
+export default async function InternalTransferStartPage({ searchParams }: InternalTransferStartPageProps) {
+  const query = await searchParams
+  const initialEmployeeId = safeUuid(query.employeeId)
+  const departmentId = safeUuid(query.departmentId)
   const t = await getTranslator('processAutomation')
   let data: InternalTransferStartData | null = null
   try {
-    data = await getInternalTransferStartData()
+    data = await getInternalTransferStartData(departmentId)
   } catch (error) {
     if (error instanceof ProcessRecipeError && error.code === 'PROCESS_RECIPE_NOT_ACTIVATED') {
       return <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 lg:px-10">
@@ -39,5 +50,5 @@ export default async function InternalTransferStartPage() {
     failed: t('p9.failed'),
     notActivated: t('p9.notActivated'),
   }
-  return <InternalTransferStartForm data={data} labels={labels} />
+  return <InternalTransferStartForm data={data} initialEmployeeId={initialEmployeeId} labels={labels} />
 }

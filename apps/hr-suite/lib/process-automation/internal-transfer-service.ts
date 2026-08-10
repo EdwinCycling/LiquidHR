@@ -3,31 +3,33 @@ import { NextResponse } from 'next/server'
 import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
+const postgresUuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+
 const previewItemSchema = z.object({
   code: z.string(),
   candidateCount: z.number().int().nonnegative().optional(),
 }).passthrough()
 
 const organizationSnapshotSchema = z.object({
-  placementId: z.string().uuid().nullable().optional(),
-  departmentId: z.string().uuid().nullable().optional(),
+  placementId: postgresUuid.nullable().optional(),
+  departmentId: postgresUuid.nullable().optional(),
   departmentCode: z.string().nullable().optional(),
   departmentName: z.string().nullable().optional(),
-  jobId: z.string().uuid().nullable().optional(),
+  jobId: postgresUuid.nullable().optional(),
   jobCode: z.string().nullable().optional(),
   jobName: z.string().nullable().optional(),
-  managerId: z.string().uuid().nullable().optional(),
+  managerId: postgresUuid.nullable().optional(),
   managerName: z.string().nullable().optional(),
 }).strict()
 
 const previewSchema = z.object({
   adapterKey: z.literal('INTERNAL_TRANSFER_ORGANIZATION'),
-  processInstanceId: z.string().uuid(),
-  workItemId: z.string().uuid(),
+  processInstanceId: postgresUuid,
+  workItemId: postgresUuid,
   status: z.enum(['SUCCESS', 'WARNING', 'BLOCKING']),
   writesPerformed: z.literal(false),
   effectiveOn: z.string().nullable(),
-  employee: z.object({ id: z.string().uuid().nullable(), employmentId: z.string().uuid().nullable() }).strict(),
+  employee: z.object({ id: postgresUuid.nullable(), employmentId: postgresUuid.nullable() }).strict(),
   current: organizationSnapshotSchema,
   proposed: organizationSnapshotSchema,
   blockers: z.array(previewItemSchema),
@@ -36,14 +38,14 @@ const previewSchema = z.object({
 }).strict()
 
 const commitSchema = z.object({
-  processInstanceId: z.string().uuid(),
+  processInstanceId: postgresUuid,
   status: z.string(),
   currentStepKey: z.string().nullable(),
   instanceVersion: z.number().int().positive(),
-  correlationId: z.string().uuid().nullable(),
-  eventId: z.string().uuid().nullable(),
+  correlationId: postgresUuid.nullable(),
+  eventId: postgresUuid.nullable(),
   adapterKey: z.literal('INTERNAL_TRANSFER_ORGANIZATION'),
-  organizationPlacementId: z.string().uuid(),
+  organizationPlacementId: postgresUuid,
   preview: previewSchema,
   writesPerformed: z.literal(true),
 }).strict()
@@ -73,7 +75,8 @@ function throwRpcError(message: string): never {
 
 export async function getInternalTransferPreview(workItemId: string): Promise<InternalTransferPreview> {
   const supabase = await createClient()
-  await requirePermission('organization-placement:write')
+  // De preview schrijft niets weg; de RPC blijft de scoped placement-check afdwingen.
+  await requireAuthContext(supabase)
   const { data, error } = await supabase.rpc('get_internal_transfer_preview', {
     requested_work_item_id: workItemId,
   })

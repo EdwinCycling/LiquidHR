@@ -1,15 +1,17 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
+export const databaseUuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+
 const localizedTextSchema = z.record(z.string(), z.string()).default({})
 
 export const processOutputSourceSchema = z.object({
-  tenantId: z.string().uuid(),
-  hrGroupId: z.string().uuid(),
-  administrationId: z.string().uuid(),
-  processInstanceId: z.string().uuid(),
-  processVersionId: z.string().uuid(),
-  subjectEmployeeId: z.string().uuid(),
+  tenantId: databaseUuidSchema,
+  hrGroupId: databaseUuidSchema,
+  administrationId: databaseUuidSchema,
+  processInstanceId: databaseUuidSchema,
+  processVersionId: databaseUuidSchema,
+  subjectEmployeeId: databaseUuidSchema,
   outputKey: z.string(),
   title: localizedTextSchema,
   outputFormat: z.literal('PDF'),
@@ -23,7 +25,7 @@ export const processOutputSourceSchema = z.object({
 }).strict()
 
 export const processOutputBeginSchema = z.object({
-  outputId: z.string().uuid(),
+  outputId: databaseUuidSchema,
   status: z.literal('PENDING'),
   source: processOutputSourceSchema,
 }).strict()

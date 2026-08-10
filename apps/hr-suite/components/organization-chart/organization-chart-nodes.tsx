@@ -21,6 +21,10 @@ export interface OrganizationChartLabels {
   departmentNode: string
   groupNode: string
   employeeNode: string
+  startProcess: string
+  canStartProcess: boolean
+  canStartSelfProcess: boolean
+  currentEmployeeId: string | null
 }
 
 export interface OrganizationChartNodeData extends Record<string, unknown> {
@@ -98,6 +102,7 @@ function DepartmentCard({ node, labels }: { node: Extract<OrganizationChartNode,
             <p className="mt-0.5 line-clamp-2 text-xs font-medium">{managerText}</p>
           </div>
         </div>
+        {labels.canStartProcess ? <Link className="mt-3 inline-flex rounded-lg px-2.5 py-2 text-xs font-semibold text-primary hover:bg-primary/10" href={`/work/new/internal-transfer?departmentId=${node.departmentId}`}>{labels.startProcess}</Link> : null}
       </div>
     </article>
   )
@@ -142,26 +147,30 @@ function GroupCard({ node, labels }: { node: Extract<OrganizationChartNode, { ty
 function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, { type: 'employee' }>; labels: OrganizationChartLabels }) {
   const visibleBadges = node.badges.slice(0, 2)
   const extraBadges = node.badges.length - visibleBadges.length
+  const canStart = labels.canStartProcess || (labels.canStartSelfProcess && labels.currentEmployeeId === node.employeeId)
 
   return (
-    <Link aria-label={interpolate(labels.openEmployee, { name: node.name })} href={`/employees/${node.employeeId}`} prefetch={false} className={`block w-full rounded-2xl border bg-surface p-3.5 shadow-sm outline-none transition-[opacity,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-focus md:w-56 ${stateClasses(node.matchState)}`}>
-      <div className="flex items-center gap-3">
-        <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted text-xs font-bold text-foreground">
-          {node.avatarUrl ? <Image alt="" className="object-cover" fill sizes="40px" src={node.avatarUrl} /> : initials(node.name)}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-foreground">{node.name}</span>
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{node.jobTitle ?? labels.jobUnknown}</span>
-          <span className="mt-0.5 block truncate text-[0.68rem] text-muted-foreground">{node.departmentName}</span>
-        </span>
-      </div>
-      {node.badges.length > 0 ? (
-        <span className="mt-3 flex flex-wrap gap-1.5">
-          {visibleBadges.map((badge) => <span className="rounded-full bg-accent px-2 py-1 text-[0.62rem] font-semibold text-accent-foreground" key={badge.code}>{badge.name}</span>)}
-          {extraBadges > 0 ? <span className="rounded-full bg-muted px-2 py-1 text-[0.62rem] font-semibold text-muted-foreground">{interpolate(labels.moreBadges, { count: extraBadges })}</span> : null}
-        </span>
-      ) : null}
-    </Link>
+    <div className={`w-full rounded-2xl border bg-surface p-3.5 shadow-sm outline-none transition-[opacity,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md md:w-56 ${stateClasses(node.matchState)}`}>
+      <Link aria-label={interpolate(labels.openEmployee, { name: node.name })} href={`/employees/${node.employeeId}`} prefetch={false} className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-focus">
+        <div className="flex items-center gap-3">
+          <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted text-xs font-bold text-foreground">
+            {node.avatarUrl ? <Image alt="" className="object-cover" fill sizes="40px" src={node.avatarUrl} /> : initials(node.name)}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-foreground">{node.name}</span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">{node.jobTitle ?? labels.jobUnknown}</span>
+            <span className="mt-0.5 block truncate text-[0.68rem] text-muted-foreground">{node.departmentName}</span>
+          </span>
+        </div>
+        {node.badges.length > 0 ? (
+          <span className="mt-3 flex flex-wrap gap-1.5">
+            {visibleBadges.map((badge) => <span className="rounded-full bg-accent px-2 py-1 text-[0.62rem] font-semibold text-accent-foreground" key={badge.code}>{badge.name}</span>)}
+            {extraBadges > 0 ? <span className="rounded-full bg-muted px-2 py-1 text-[0.62rem] font-semibold text-muted-foreground">{interpolate(labels.moreBadges, { count: extraBadges })}</span> : null}
+          </span>
+        ) : null}
+      </Link>
+      {canStart ? <Link className="mt-3 inline-flex rounded-lg px-2.5 py-2 text-xs font-semibold text-primary hover:bg-primary/10" href={`/work/new/internal-transfer?employeeId=${node.employeeId}`}>{labels.startProcess}</Link> : null}
+    </div>
   )
 }
 

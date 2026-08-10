@@ -23,8 +23,8 @@ interface WeatherInstrumentProps {
   labels: WeatherLabels
 }
 
-function WeatherGlyph({ code }: { code: number }) {
-  const props = { 'aria-hidden': true, className: 'text-warning', size: 18, strokeWidth: 1.8 }
+export function WeatherGlyph({ code, size = 18, className = 'text-warning' }: { code: number; size?: number; className?: string }) {
+  const props = { 'aria-hidden': true, className, size, strokeWidth: 1.8 }
   if (code === 0) return <Sun {...props} />
   if (code === 1 || code === 2) return <CloudSun {...props} />
   if (code === 3) return <Cloud {...props} />
@@ -42,7 +42,7 @@ function PressureTrendGlyph({ trend }: { trend: WeatherCurrent['pressureTrend'] 
   return <Minus aria-hidden="true" size={14} strokeWidth={2.5} />
 }
 
-function PressureBar({ current, labels }: { current: WeatherCurrent; labels: WeatherLabels }) {
+export function PressureBar({ current, labels }: { current: WeatherCurrent; labels: Pick<WeatherLabels, 'weatherPressureUp' | 'weatherPressureDown' | 'weatherPressureSteady'> }) {
   const position = Math.min(96, Math.max(4, ((current.pressure - 980) / 60) * 100))
   const trendLabel = current.pressureTrend === 'up' ? labels.weatherPressureUp : current.pressureTrend === 'down' ? labels.weatherPressureDown : labels.weatherPressureSteady
   return <div aria-label={`${Math.round(current.pressure)} hPa, ${trendLabel}`} className="mt-0">
@@ -59,7 +59,7 @@ function compassDirection(degrees: number) {
   return directions[Math.round(degrees / 45) % directions.length]
 }
 
-function WindDirection({ degrees, speed }: { degrees: number; speed: number }) {
+export function WindDirection({ degrees, speed }: { degrees: number; speed: number }) {
   const direction = compassDirection(degrees)
   return <div aria-label={`Windrichting ${direction}, ${Math.round(speed)} km/u`} className="flex flex-col items-center gap-0.5 [&>span:last-child]:hidden">
     <span className="grid size-8 place-items-center rounded-full border-2 border-foreground/50 bg-background/25 shadow-inner"><span style={{ transform: `rotate(${degrees}deg)` }}><ArrowUp aria-hidden="true" className="text-foreground" size={18} strokeWidth={2.4} /></span></span>

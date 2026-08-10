@@ -278,12 +278,14 @@ export default async function HrCalendarPage({ searchParams }: Props) {
         absencePeriods={data.absencePeriods}
         generalReminders={data.generalReminders}
         holidays={data.holidays}
+        companyActivities={data.companyActivities}
         labels={{
           noEvents: t('noEvents'),
           workHours: t('workHours'),
           nonWorking: t('nonWorking'),
           hoursPerWeek: t('hoursPerWeek'),
           holiday: t('holiday'),
+          companyActivity: t('companyActivity'),
           reminder: t('reminder'),
           generalReminders: t('generalReminders'),
           dayDetails: t('dayDetails'),

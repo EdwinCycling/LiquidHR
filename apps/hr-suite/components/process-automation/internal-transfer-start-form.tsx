@@ -83,9 +83,9 @@ function ChoicePicker({
   </div>
 }
 
-export function InternalTransferStartForm({ data, labels }: { readonly data: InternalTransferStartData; readonly labels: InternalTransferStartLabels }) {
+export function InternalTransferStartForm({ data, initialEmployeeId, labels }: { readonly data: InternalTransferStartData; readonly initialEmployeeId?: string; readonly labels: InternalTransferStartLabels }) {
   const router = useRouter()
-  const [employeeId, setEmployeeId] = useState<string | null>(data.employees.length === 1 ? data.employees[0]?.id ?? null : null)
+  const [employeeId, setEmployeeId] = useState<string | null>(data.employees.some((employee) => employee.id === initialEmployeeId) ? initialEmployeeId ?? null : data.employees.length === 1 ? data.employees[0]?.id ?? null : null)
   const [employmentId, setEmploymentId] = useState<string | null>(null)
   const [effectiveOn, setEffectiveOn] = useState('')
   const [error, setError] = useState<string | null>(null)

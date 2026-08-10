@@ -125,6 +125,7 @@ export interface ProcessWorkListInput {
   readonly status?: string
   readonly processDefinitionId?: string
   readonly subjectEmployeeId?: string
+  readonly subjectEmploymentId?: string
   readonly language: 'nl' | 'en'
   readonly sort?: ProcessWorkSort
   readonly limit?: number
@@ -182,19 +183,27 @@ async function authorizedClient(dependencies?: ProcessWorkDependencies) {
 
 export async function listProcessWork(input: ProcessWorkListInput, dependencies?: ProcessWorkDependencies): Promise<ProcessWorkList> {
   const { supabase, context } = await authorizedClient(dependencies)
-  const { data, error } = await supabase.rpc('get_process_work_projection_with_administration', {
+  const request = {
     requested_hr_group_id: input.hrGroupId ?? context.hrGroupId!,
     requested_administration_id: input.administrationId,
     requested_tab: input.tab ?? 'TODO',
     requested_search: input.search?.trim() || undefined,
     requested_status: input.status || undefined,
     requested_process_definition_id: input.processDefinitionId,
-    requested_subject_employee_id: input.subjectEmployeeId,
     requested_language: input.language,
     requested_sort: input.sort ?? 'NEEDS_ACTION',
     requested_limit: input.limit ?? 100,
     requested_offset: input.offset ?? 0,
-  })
+  }
+  const { data, error } = input.subjectEmploymentId
+    ? await supabase.rpc('get_process_work_projection_for_employment', {
+      ...request,
+      requested_employment_id: input.subjectEmploymentId,
+    })
+    : await supabase.rpc('get_process_work_projection_with_administration', {
+      ...request,
+      requested_subject_employee_id: input.subjectEmployeeId,
+    })
   if (error) throwRpcError(error.message)
   const parsed = workListSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)

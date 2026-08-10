@@ -46,16 +46,16 @@ export function EmployeeAvatarManager({ employeeId, avatarUrl, name, gender, can
   }
 
   const initials = name.split(' ').filter(Boolean).map((part) => part.slice(0, 1)).slice(0, 2).join('').toUpperCase()
-  const avatarClass = compact ? 'h-8 w-8 rounded-lg' : 'h-20 w-20 rounded-2xl'
+  const avatarClass = compact ? 'h-9 w-9 rounded-lg' : 'h-24 w-24 rounded-full sm:h-28 sm:w-28'
   const fallback = gender === 'OTHER' || gender === 'PREFER_NOT_TO_SAY'
-    ? <span aria-label={name} className={`flex ${avatarClass} items-center justify-center bg-primary ${compact ? 'text-[0.65rem]' : 'text-xl'} font-bold text-primary-foreground`}>{initials}</span>
-    : <span aria-label={name} className={`flex ${avatarClass} items-center justify-center text-primary-foreground shadow-sm ${gender === 'FEMALE' ? 'bg-chart-2' : 'bg-primary'}`}><UserRound aria-hidden="true" className={compact ? 'h-4 w-4' : 'h-10 w-10'} strokeWidth={1.6} /></span>
+    ? <span aria-label={name} className={`flex ${avatarClass} items-center justify-center bg-primary ${compact ? 'text-[0.65rem]' : 'text-2xl'} font-bold text-primary-foreground ${compact ? '' : 'ring-[6px] ring-primary-foreground shadow-lg'}`}>{initials}</span>
+    : <span aria-label={name} className={`flex ${avatarClass} items-center justify-center text-primary-foreground ${compact ? 'shadow-sm' : 'ring-[5px] ring-primary-foreground shadow-lg'} ${gender === 'FEMALE' ? 'bg-chart-2' : 'bg-primary'}`}><UserRound aria-hidden="true" className={compact ? 'h-4 w-4' : 'h-12 w-12'} strokeWidth={1.6} /></span>
   return <div className="flex flex-col items-center gap-2">
-    {avatarUrl ? <img src={avatarUrl} alt={name} className={`${avatarClass} object-cover shadow-sm`} /> : fallback}
+    {avatarUrl ? <img src={avatarUrl} alt={name} className={`${avatarClass} object-cover ${compact ? 'shadow-sm' : 'ring-[5px] ring-primary-foreground shadow-lg'}`} /> : fallback}
     {canManage && <div className="flex flex-wrap justify-center gap-2">
       <input ref={inputRef} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = '' }} />
-      <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" disabled={saving} onClick={() => inputRef.current?.click()}><Camera aria-hidden="true" className="h-3.5 w-3.5" />{avatarUrl ? labels.replace : labels.upload}</button>
-      {avatarUrl && <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-destructive hover:underline" disabled={saving} onClick={() => void remove()}><Trash2 aria-hidden="true" className="h-3.5 w-3.5" />{labels.remove}</button>}
+      <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary-foreground hover:text-primary-foreground/80 hover:underline" disabled={saving} onClick={() => inputRef.current?.click()}><Camera aria-hidden="true" className="h-3.5 w-3.5" />{avatarUrl ? labels.replace : labels.upload}</button>
+      {avatarUrl && <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary-foreground hover:text-primary-foreground/80 hover:underline" disabled={saving} onClick={() => void remove()}><Trash2 aria-hidden="true" className="h-3.5 w-3.5" />{labels.remove}</button>}
     </div>}
     {failed && <p className="text-xs text-destructive">{labels.failed}</p>}
   </div>

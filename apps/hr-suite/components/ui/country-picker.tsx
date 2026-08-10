@@ -7,12 +7,14 @@ const COUNTRY_CODES = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD 
 const emptySubscribe = () => () => undefined
 const getClientHydration = () => true
 const getServerHydration = () => false
+export type CountryPickerOption = { code: string; name: string }
 
-export function CountryPicker({ value, onChange, locale = 'nl', searchLabel, emptyLabel }: { value: string; onChange: (value: string) => void; locale?: string; searchLabel: string; emptyLabel: string }) {
+export function CountryPicker({ value, onChange, locale = 'nl', options, searchLabel, emptyLabel }: { value: string; onChange: (value: string) => void; locale?: string; options?: CountryPickerOption[]; searchLabel: string; emptyLabel: string }) {
   const hydrated = useSyncExternalStore(emptySubscribe, getClientHydration, getServerHydration)
   const countries = useMemo(() => {
     const displayNames = hydrated ? new Intl.DisplayNames([locale], { type: 'region' }) : null
-    return COUNTRY_CODES.map((code) => ({ code, label: displayNames?.of(code) ?? code })).sort((left, right) => left.code === 'NL' ? -1 : right.code === 'NL' ? 1 : left.label.localeCompare(right.label))
-  }, [hydrated, locale])
+    const source = options?.length ? options : COUNTRY_CODES.map((code) => ({ code, name: code }))
+    return source.map((country) => ({ code: country.code, label: displayNames?.of(country.code) ?? country.name })).sort((left, right) => left.code === 'NL' ? -1 : right.code === 'NL' ? 1 : left.label.localeCompare(right.label))
+  }, [hydrated, locale, options])
   return <DropdownSelect aria-label={searchLabel} emptyLabel={emptyLabel} onChange={(event) => onChange(event.target.value)} searchable searchPlaceholder={searchLabel} suppressHydrationWarning value={value}>{countries.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}</DropdownSelect>
 }

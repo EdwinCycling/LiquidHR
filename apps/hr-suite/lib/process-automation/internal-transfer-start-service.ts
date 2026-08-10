@@ -22,10 +22,24 @@ export interface InternalTransferStartData {
   readonly employments: readonly InternalTransferStartEmployment[]
 }
 
-export async function getInternalTransferStartData(): Promise<InternalTransferStartData> {
+export async function getInternalTransferStartData(departmentId?: string): Promise<InternalTransferStartData> {
   const context = await requireAnyPermission(['process-instance:start', 'self:process-instance:start'])
   const supabase = await createClient()
   const groupId = requireHrGroupId(context)
+  const today = new Date().toISOString().slice(0, 10)
+  let scopedEmployeeIds: string[] | null = null
+  if (departmentId) {
+    const query = supabase.from('employee_organizations').select('employee_id')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', groupId)
+      .eq('department_id', departmentId)
+      .lte('effective_from', today)
+      .or(`effective_to.is.null,effective_to.gte.${today}`)
+    if (context.administrationId) query.eq('administration_id', context.administrationId)
+    const { data, error } = await query.limit(2000)
+    if (error) throw new Error('INTERNAL_TRANSFER_START_DATA_FAILED')
+    scopedEmployeeIds = [...new Set((data ?? []).map((row) => row.employee_id))]
+  }
   const employeeQuery = supabase.from('employees')
     .select('id, employee_number, first_name, birth_name')
     .eq('tenant_id', context.tenantId)
@@ -36,6 +50,7 @@ export async function getInternalTransferStartData(): Promise<InternalTransferSt
     .order('employee_number')
     .limit(context.permissions.includes('process-instance:start') ? 500 : 1)
   if (!context.permissions.includes('process-instance:start') && context.employeeId) employeeQuery.eq('id', context.employeeId)
+  if (scopedEmployeeIds) employeeQuery.in('id', scopedEmployeeIds.length > 0 ? scopedEmployeeIds : ['00000000-0000-0000-0000-000000000000'])
 
   const [recipe, employeesResult, employmentsResult] = await Promise.all([
     getProcessRecipeStartContext(),

@@ -1,9 +1,9 @@
+import Link from 'next/link'
 import { Building2, ChevronRight, FolderTree } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { DepartmentCreateForm } from '@/components/organization/department-create-form'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
-import { AuthorizationError } from '@/lib/auth/permissions'
-import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 import type { Translator } from '@/lib/i18n/translator'
 import { createClient } from '@/lib/supabase/server'
@@ -32,10 +32,14 @@ function DepartmentIdentity({ node, translate }: { node: DepartmentNode; transla
 function DepartmentBranch({
   node,
   translate,
+  canStartProcess,
+  startProcessLabel,
   depth = 0,
 }: {
   node: DepartmentNode
   translate: Translator
+  canStartProcess: boolean
+  startProcessLabel: string
   depth?: number
 }) {
   const hasChildren = node.children.length > 0
@@ -52,14 +56,16 @@ function DepartmentBranch({
             <ChevronRight aria-hidden="true" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-90" size={18} />
           </summary>
           <ul className="relative ml-[1.85rem] space-y-1 border-l py-1 pl-5">
-            {node.children.map((child) => (
-              <DepartmentBranch depth={depth + 1} key={child.id} node={child} translate={translate} />
-            ))}
-          </ul>
-        </details>
-      ) : (
+              {node.children.map((child) => (
+              <DepartmentBranch canStartProcess={canStartProcess} depth={depth + 1} key={child.id} node={child} startProcessLabel={startProcessLabel} translate={translate} />
+              ))}
+            </ul>
+          {canStartProcess ? <Link className="ml-3 inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/10" href={`/work/new/internal-transfer?departmentId=${node.id}`}>{startProcessLabel}</Link> : null}
+          </details>
+        ) : (
         <div className="rounded-xl px-3 py-2.5 transition-colors hover:bg-muted">
           <DepartmentIdentity node={node} translate={translate} />
+          {canStartProcess ? <Link className="mt-2 ml-12 inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10" href={`/work/new/internal-transfer?departmentId=${node.id}`}>{startProcessLabel}</Link> : null}
         </div>
       )}
     </li>
@@ -83,6 +89,7 @@ export default async function DepartmentsPage() {
   let canWrite = true
   try { await requirePermission('department:write') }
   catch (error) { if (error instanceof AuthorizationError) canWrite = false; else throw error }
+  const canStartProcess = (await getRequestAuthorizationContext()).context.permissions.includes('process-instance:start')
   const flatDepartments = flattenDepartmentTree(roots)
 
   return (
@@ -110,7 +117,7 @@ export default async function DepartmentsPage() {
         {roots.length > 0 ? (
           <ul className="space-y-1 p-3 sm:p-5">
             {roots.map((node) => (
-              <DepartmentBranch key={node.id} node={node} translate={translate} />
+              <DepartmentBranch canStartProcess={canStartProcess} key={node.id} node={node} startProcessLabel={translate('processStart')} translate={translate} />
             ))}
           </ul>
         ) : (

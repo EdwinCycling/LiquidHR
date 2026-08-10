@@ -1,7 +1,7 @@
 import { Building2, CalendarDays, UsersRound } from 'lucide-react'
 import { OrganizationChartExplorer, type OrganizationChartExplorerLabels, type OrganizationChartExplorerQuery } from '@/components/organization-chart/organization-chart-explorer'
 import { DepartmentCreateForm } from '@/components/organization/department-create-form'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { createTranslator } from '@/lib/i18n/translator'
 import { organizationChartQuerySchema } from '@/lib/organization-chart/schemas'
@@ -66,6 +66,7 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
   }
   const query = organizationChartQuerySchema.parse(candidate)
   const graph = await getOrganizationChart(query)
+  const authContext = (await getRequestAuthorizationContext()).context
   const organizationTranslate = await getTranslator('organization')
   let canWrite = true
   try { await requirePermission('department:write') }
@@ -92,7 +93,7 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
     matchCount: translate('matchCount'), matchCountOne: translate('matchCountOne'), noMatchesTitle: translate('noMatchesTitle'), noMatchesBody: translate('noMatchesBody'), emptyTitle: translate('emptyTitle'), emptyBody: translate('emptyBody'),
     canvasLabel: translate('canvasLabel'), mobileTreeLabel: translate('mobileTreeLabel'), expandBranch: translate('expandBranch'),
     employees: translate('employees'), groupedEmployees: translate('groupedEmployees'), rootEmployees: translate('rootEmployees'), manager: translate('manager'), managerInherited: translate('managerInherited'), managerNone: translate('managerNone'), managerAmbiguous: translate('managerAmbiguous'),
-    jobUnknown: translate('jobUnknown'), moreBadges: translate('moreBadges'), openEmployee: translate('openEmployee'), administrationNode: translate('administrationNode'), departmentNode: translate('departmentNode'), employeeNode: translate('employeeNode'),
+    jobUnknown: translate('jobUnknown'), moreBadges: translate('moreBadges'), openEmployee: translate('openEmployee'), administrationNode: translate('administrationNode'), departmentNode: translate('departmentNode'), employeeNode: translate('employeeNode'), startProcess: translate('startProcess'), canStartProcess: authContext.permissions.includes('process-instance:start'), canStartSelfProcess: authContext.permissions.includes('self:process-instance:start'), currentEmployeeId: authContext.employeeId,
     groupNode: translate('groupNode'),
     zoomIn: translate('zoomIn'), zoomOut: translate('zoomOut'), fitView: translate('fitView'), legendRoute: translate('legendRoute'), legendMatch: translate('legendMatch'), legendContext: translate('legendContext'),
   }

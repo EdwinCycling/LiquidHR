@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildProcessOutputHtml,
   buildProcessOutputPdf,
+  databaseUuidSchema,
   processOutputFilename,
   processOutputStorageKey,
   sha256Hex,
@@ -46,5 +47,10 @@ describe('process output generation', () => {
     expect(processOutputStorageKey(source, '77777777-7777-4777-8777-777777777777')).toBe(
       '11111111-1111-4111-8111-111111111111/33333333-3333-4333-8333-333333333333/66666666-6666-4666-8666-666666666666/process-output/77777777-7777-4777-8777-777777777777.pdf',
     )
+  })
+
+  it('accepteert geldige PostgreSQL UUID-vormen zonder RFC-versiebeperking', () => {
+    expect(databaseUuidSchema.safeParse('8483abc9-f275-c80b-5a23-fedc54ce9f0a').success).toBe(true)
+    expect(databaseUuidSchema.safeParse('geen-uuid').success).toBe(false)
   })
 })

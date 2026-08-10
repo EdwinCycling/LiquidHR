@@ -47,14 +47,14 @@ export function EmployeeArchiveToggle({ employeeId, archived, hasActiveEmploymen
   }
 
   const buttonClass = headerStyle
-    ? 'inline-flex min-h-9 items-center gap-2 rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 px-3.5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-foreground/20'
+    ? 'inline-flex h-10 min-h-10 w-10 items-center justify-center rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 p-0 text-primary-foreground transition hover:bg-primary-foreground/20'
     : 'button-secondary inline-flex min-h-9 items-center gap-2'
 
   return (
     <>
-      <button type="button" className={buttonClass} onClick={() => setOpen(true)}>
-        {archived ? <ArchiveRestore aria-hidden="true" className="h-4 w-4" /> : <Archive aria-hidden="true" className="h-4 w-4" />}
-        {archived ? labels.unarchive : labels.archive}
+      <button type="button" aria-label={archived ? labels.unarchive : labels.archive} title={archived ? labels.unarchive : labels.archive} className={buttonClass} onClick={() => setOpen(true)}>
+        {archived ? <ArchiveRestore aria-hidden="true" className="h-5 w-5" /> : <Archive aria-hidden="true" className="h-5 w-5" />}
+        {!headerStyle && (archived ? labels.unarchive : labels.archive)}
       </button>
       {open && <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 p-4" role="presentation">
         <div className="w-full max-w-md rounded-2xl border bg-surface p-6 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="archive-dialog-title">

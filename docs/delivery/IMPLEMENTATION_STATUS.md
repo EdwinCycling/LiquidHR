@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Weerbericht verhuisd naar medewerkerheader 2026-08-10 — geverifieerd
+
+Het weerinstrument en de Compact-schakelaar zijn uit de startpagina-header verwijderd, evenals het daar getoonde logo. De medewerkerheader heeft nu een klein weericoon met een responsive drawer voor werktemperatuur, maximum, luchtvochtigheid, wind en luchtdruk. De privé-adresoptie wordt alleen voor de eigen medewerkerkaart geladen en getoond. Sluiten werkt via kruisje, Escape en klik buiten het venster. Strict TypeScript, gerichte ESLint, i18n-pariteit, `git diff --check` en desktop-/390px-browsercontrole zijn uitgevoerd. Geen schema-, API- of remotewijziging.
+
+## Medewerkerdashboard profielheader 2026-08-10 — geverifieerd
+
+De uitgebreide medewerkerheader heeft dezelfde gegevens en acties in een nieuwe responsive compositie: een compacte ronde avatar, prominente naam met personeelsnummer/status, foto-acties in dezelfde naamkleur, 40x40 weer- en compact/uitgebreid-iconen naast elkaar en de archiveeractie onderaan boven de contactonderregel. Op mobiel stapelt de header verticaal; de bestaande compacte variant blijft via dezelfde URL-state beschikbaar. Gerichte ESLint, strict TypeScript, `git diff --check` en desktopbrowsercontrole zijn gecontroleerd. Geen schema-, API- of remotewijziging.
+
 ## Actuele release-status 2026-08-09
 
 De mobiele Google-login hotfix is productie-live. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub `main`; Vercel Production-deployment `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`. De zichtbare appversie is `1.20260809.2`. De remote `NEXT_PUBLIC_APP_URL` bleef ongewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de code gebruikt bij actuele requestheaders de stale waarde niet langer als origin.
@@ -32,15 +40,15 @@ De lokale browsercontrole op poort 3000 bevestigde de nieuwe binding-editor voor
 
 ## P9/P10 — formulier- en procesproef 2026-08-10
 
-P9 is doorgezet met de typed form-builder/runtime en de interne-transfer-adapter. P10 implementeert de eerste geordende blueprint-recipe `documentkennisname`. De verticale slice bestaat uit de P10-tabel/RLS/grants/RPC's, catalogusdefinitie, typed document-acknowledgement-service, start-API/UI, secure document-API en de bestaande Work/detail-renderer. De acknowledgement schrijft via de bestaande domeinbron een gecontroleerde `employee_document_acknowledgements`-commit; de formuliertekst, documentmetadata en checksum zijn expliciet zichtbaar.
+P9 is uitgebreid met contextuele Work-ingangen: afzonderlijke `BLOCKED`-projectie op de startpagina, echte medewerker- en employment-proceskaarten/tabs, en geautoriseerde processtarts vanuit afdelingen en het organogram. De employment-RPC filtert server-side op `subjectEmploymentId`; de bestaande medewerkerfilter blijft beschikbaar.
 
-Remote zijn de P10-migratie en de additive security-/metadata-/variable-fixes toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; de P10-recipe is gepubliceerd. De drie testrollen zijn op localhost:3000 gecontroleerd: HR-admin startte, medewerker opende de secure documentroute en bevestigde naar `COMPLETED`, manager kreeg een gelokaliseerde rechtenmelding. Desktop en 390x844 zijn gecontroleerd. De fixture-cleanup is aantoonbaar groen: 15 exacte document/process/form/audit/output/job/storage-controles staan op 0; de vier tijdelijk uitgeschakelde append-only-triggers zijn vóór commit weer ingeschakeld. Remote advisors tonen geen nieuwe P10-specifieke waarschuwing.
+De gedeelde outputbrug gebruikt nu zowel compiled als top-level outputconfiguratie, accepteert database-UUID's zonder onjuiste RFC-versievariantbeperking, en heeft de live documentcategorie `process-internal-transfer`. De remote P9-compatibiliteitsmigraties, context-RPC/grants/schema-cache en categoriezaad zijn toegepast op `wnpfloqpjvaacobppbpk`; types zijn opnieuw gegenereerd.
 
-Lokale gate: 22/22 gerichte Process Automation-tests, strict TypeScript, i18n-pariteit, gerichte ESLint, `git diff --check` en `npx next build --webpack` met 185 pagina's zijn groen. De lokale server draait op poort 3000. De actuele browserconsole bevat oude pre-fix/date-rollovermeldingen; de schone manager-herhaling na de permissie-fix had geen nieuwe runtime-overlay. Dit wordt daarom niet als een volledig historische console-reset geclaimd.
+Live P10-bewijs: HR Admin draaide `/api/process-automation/jobs/run` met `claimed=1`, `succeeded=1`, `retried=0`, `errors=[]`. Remote zijn workflowjob `SUCCEEDED`, process output `AVAILABLE`, `employee_documents` `PROCESS_OUTPUT`/PDF en het storage-object aantoonbaar aanwezig. Work-detail toont het outputdocument, een downloadlink en `PROCESS_DOCUMENT_OUTPUT / SUCCEEDED`. Het algemene medewerkerdossier toont de PDF voor een HR-admin zonder employee-record nog niet: de bestaande audience is alleen de process-subject employee. Een uitbreiding naar actieve `TENANT_ADMIN`-audiences is als security-sensitive optie beschreven maar niet toegepast zonder expliciete doelgroepgoedkeuring.
 
-### P10 compatibiliteitsstatus
+De drie-rol-browsercontrole op poort 3000 is opnieuw uitgevoerd: HR Admin 20 afdelingsstarts/51 organogramstarts plus employment-work en outputdownload; Test Medewerker echte Workflows-kaart, medewerker-Processen-tab en employment-processen; Test Manager 0 afdelingsstarts. De actuele remote dataset had geen `BLOCKED`-workitem, dus de niet-lege startpagina-blockerprojectie blijft als open fixturebewijs gemarkeerd.
 
-De expliciet goedgekeurde compatibiliteitsfix bestaat uit `20260810062127_process_automation_form_binding_runtime_compatibility.sql` en `20260810063300_process_automation_output_content_compatibility.sql`. De eerste migration maakt additive binding-aware projection/save-wrappers met behoud van actor-, scope-, document- en concurrencychecks; de bestaande form-RPC's zijn ongewijzigd. De tweede past de gedeelde P7-outputtrigger en `process_output_source` gericht aan met `process_definition_content(...)`, zodat top-level en compiled `definition_json.content` beide werken. Een read-only remote proef op de bestaande compiled P9-versie retourneerde `transfer-dossier`, `PDF`, `process-internal-transfer` en de verwachte outputvelden. Een nieuwe terminalrun met een actief P10-form-item blijft open als aanvullend inhoudelijk HTML/PDF-bewijs omdat de behouden remote fixtures geen actief formulieritem bevatten. De code-, remote schema/grant-, advisor- en drie-rol-gates zijn groen; commit op `main` volgt na de volledige eindtests.
+Lokale eindgate: volledige hr-suite 147 bestanden/559 tests, gerichte output/worker-tests 7/7, strict TypeScript, i18n-pariteit, volledige ESLint, `git diff --check` en Webpack-productiebuild met 187 pagina's zijn groen. Supabase security- en performance-advisors zijn opnieuw uitgevoerd; bestaande baseline-meldingen zijn niet aan deze slice toegeschreven.
 
 ## P8 — proces- en formulierstudio 2026-08-09
 
@@ -946,7 +954,7 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 | Persoonlijke instellingen | GEÏMPLEMENTEERD | Afzonderlijke pagina voor taal, thema, Tijdhubklok, datumformaat (DMY/MDY/YMD) en tijdformaat (24H/12H) voor iedere ingelogde gebruiker; voorkeuren worden centraal toegepast op relevante datum- en tijdweergaven. Gedeelde knoppen gebruiken een iOS-geïnspireerde glasstijl; medewerker-tabs verbergen de native scrollbar met behoud van horizontale bediening. |
 | HR-admininstellingenhub | GEÏMPLEMENTEERD | Eén permission-gestuurde hub met standaard gesloten onderdelen. `/settings/administration` kiest administratiegebonden instellingen via kaartknoppen en onthoudt de laatste keuze. `/master-data` beheert Redenen uitdienst per land, documentcategorieën en tenant-relatietypen; functies en salarisschalen staan uitsluitend in hun eigen instellingenschermen. |
 | Actieve extra modules | GEÏMPLEMENTEERD | HeRa, documenten en reminders tenantbreed schakelbaar; serverguards en restrictieve RLS bewaren data maar blokkeren gebruik. |
-| Feestdagen | GEÏMPLEMENTEERD | Nager.Date-preview/import per actieve HR-groep, jaar en land, lokale feestdagen, uitsluiten en snapshot-herimport. |
+| Feestdagen en bedrijfsactiviteiten | GEÏMPLEMENTEERD | Nager.Date-preview/import per actieve HR-groep, jaar en land, lokale feestdagen, expliciet activeren/deactiveren, bedrijfsactiviteiten met naam/datum en weergave van eerstvolgende actieve kalenderitems in start- en medewerkerheader. Remote migratie, advisors en browserbewijs voor deze uitbreiding staan open. |
 
 ## Dashboard startpagina
 

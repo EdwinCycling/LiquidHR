@@ -59,6 +59,7 @@
   "nonWorking": "Not scheduled",
   "hoursPerWeek": "hours per week",
   "holiday": "Holiday",
+  "companyActivity": "Company activity",
   "reminder": "Reminder",
   "generalReminders": "General reminders",
   "dayDetails": "Day overview",

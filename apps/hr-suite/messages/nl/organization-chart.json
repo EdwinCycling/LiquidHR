@@ -65,6 +65,7 @@
   "departmentNode": "Afdeling",
   "groupNode": "Groep",
   "employeeNode": "Medewerker",
+  "startProcess": "Proces starten",
   "zoomIn": "Inzoomen",
   "zoomOut": "Uitzoomen",
   "fitView": "Organogram passend tonen",

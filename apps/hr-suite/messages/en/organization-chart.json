@@ -65,6 +65,7 @@
   "departmentNode": "Department",
   "groupNode": "Group",
   "employeeNode": "Employee",
+  "startProcess": "Start process",
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "fitView": "Fit organization chart to view",

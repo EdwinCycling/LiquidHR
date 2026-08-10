@@ -21,6 +21,7 @@ import type { HrChangeEvent, HrChangeEventType } from "@/lib/hr-events/types";
 import type {
   CalendarReminder,
   CalendarAbsencePeriod,
+  CalendarCompanyActivity,
   CalendarTypeEvent,
   CalendarWorkDay,
 } from "@/lib/hr-calendar/calendar-service";
@@ -55,6 +56,7 @@ interface Labels {
   nonWorking: string;
   hoursPerWeek: string;
   holiday: string;
+  companyActivity: string;
   reminder: string;
   generalReminders: string;
   dayDetails: string;
@@ -124,6 +126,7 @@ export function HrMonthCalendar({
   calendarEvents,
   absencePeriods,
   holidays,
+  companyActivities,
   reminders,
   generalReminders,
   showWeekendsAndHolidays,
@@ -143,6 +146,7 @@ export function HrMonthCalendar({
   calendarEvents: CalendarTypeEvent[];
   absencePeriods: CalendarAbsencePeriod[];
   holidays: Holiday[];
+  companyActivities: CalendarCompanyActivity[];
   reminders: CalendarReminder[];
   generalReminders: CalendarReminder[];
   showWeekendsAndHolidays: boolean;
@@ -179,6 +183,11 @@ export function HrMonthCalendar({
     () => new Map(holidays.map((holiday) => [holiday.holiday_date, holiday])),
     [holidays],
   );
+  const companyActivitiesByDate = useMemo(() => {
+    const result = new Map<string, CalendarCompanyActivity[]>();
+    for (const activity of companyActivities) result.set(activity.activity_date, [...(result.get(activity.activity_date) ?? []), activity]);
+    return result;
+  }, [companyActivities]);
   const remindersByEmployee = useMemo(() => {
     const result = new Map<string, Map<string, CalendarReminder[]>>();
     for (const reminder of reminders) {
@@ -221,6 +230,12 @@ export function HrMonthCalendar({
       : selection
         ? holidayByDate.get(selection.date)
         : undefined;
+  const selectedCompanyActivities =
+    selection?.type === "week" || selection?.type === "employee-summary"
+      ? []
+      : selection
+        ? companyActivitiesByDate.get(selection.date) ?? []
+        : [];
   const selectedDayEmployees =
     selection?.type === "day"
       ? employees.map((employee) => {
@@ -264,6 +279,7 @@ export function HrMonthCalendar({
         <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="calendar-type-marker calendar-type-marker-leave" /><Umbrella aria-hidden="true" size={13} />{labels.leaveType}</span>
         <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="calendar-type-marker calendar-type-marker-work" /><BriefcaseBusiness aria-hidden="true" size={13} />{labels.workHourType}</span>
         <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="calendar-type-marker calendar-type-marker-overtime" /><Timer aria-hidden="true" size={13} />{labels.overtimeType}</span>
+        <span className="inline-flex items-center gap-2"><CalendarDays aria-hidden="true" size={13} />{labels.companyActivity}</span>
       </div>
       <div
         className="overflow-auto rounded-2xl border bg-surface shadow-sm"
@@ -309,6 +325,7 @@ export function HrMonthCalendar({
               <div className="sticky left-0 z-30 border-b border-r bg-surface p-3" />
               {days.map((day) => {
                 const holiday = holidayByDate.get(day);
+                const dayCompanyActivities = companyActivitiesByDate.get(day) ?? [];
                 const isWeekend = isWeekendDay(day);
                 const isToday = day === todayDate;
                 return (
@@ -318,7 +335,7 @@ export function HrMonthCalendar({
                     data-calendar-today={isToday ? day : undefined}
                     key={day}
                     onClick={() => setSelection({ type: "day", date: day })}
-                    title={holiday?.display_name ?? holiday?.provider_name}
+                    title={[holiday?.display_name ?? holiday?.provider_name, ...dayCompanyActivities.map((activity) => `${labels.companyActivity}: ${activity.name}`)].filter(Boolean).join(" Â· ")}
                     type="button"
                   >
                     <span className="block text-[9px] uppercase text-muted-foreground">
@@ -366,6 +383,7 @@ export function HrMonthCalendar({
                   remindersByEmployee.get(employee.id)?.get(day) ?? [];
                 const work = employee.workDays[day];
                 const holiday = holidayByDate.get(day);
+                const dayCompanyActivities = companyActivitiesByDate.get(day) ?? [];
                 const isWeekend = isWeekendDay(day);
                 const isToday = day === todayDate;
                 const absence = absenceByEmployee.get(employee.id);
@@ -380,7 +398,7 @@ export function HrMonthCalendar({
                     onClick={() =>
                       setSelection({ type: "employee", date: day, employee })
                     }
-                    title={[isAbsenceDay ? `${labels.absence}${absence?.expectedRecoveryOn ? ` · ${labels.absenceExpectedRecovery}: ${absence.expectedRecoveryOn}` : ""}` : work?.isWorkingDay ? `${labels.workHours} ${work.scheduledMinutes / 60}h` : labels.nonWorking, ...typeTitles].join(" · ")}
+                    title={[isAbsenceDay ? `${labels.absence}${absence?.expectedRecoveryOn ? ` · ${labels.absenceExpectedRecovery}: ${absence.expectedRecoveryOn}` : ""}` : work?.isWorkingDay ? `${labels.workHours} ${work.scheduledMinutes / 60}h` : labels.nonWorking, ...typeTitles, ...dayCompanyActivities.map((activity) => `${labels.companyActivity}: ${activity.name}`)].join(" · ")}
                   >
                     {work && !work.isWorkingDay ? (
                       <span className="h-1.5 w-full rounded-full bg-muted-foreground/45" />
@@ -395,6 +413,7 @@ export function HrMonthCalendar({
                       ))}
                     </span>
                     {typeItems.length ? <span className="flex w-full flex-wrap justify-center gap-0.5" aria-label={labels.typeEventHours}>{typeItems.slice(0, 4).map((event) => <span className={`calendar-type-event calendar-type-event-${event.kind.toLowerCase()}`} key={event.id} style={{ "--calendar-event-color": colorCodeToCssValue(event.colorCode) } as CSSProperties} title={`${event.typeName} · ${event.hours.toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 })}u`}>{event.kind === "LEAVE" ? <Umbrella aria-hidden="true" size={10} /> : event.kind === "OVERTIME" ? <Timer aria-hidden="true" size={10} /> : <BriefcaseBusiness aria-hidden="true" size={10} />}</span>)}{typeItems.length > 4 ? <span className="text-[9px] font-semibold text-muted-foreground">+{typeItems.length - 4}</span> : null}</span> : null}
+                    {dayCompanyActivities.length ? <span aria-label={labels.companyActivity} className="inline-flex items-center text-accent-foreground"><CalendarDays aria-hidden="true" size={10} /></span> : null}
                     {showScheduledHours && work?.scheduledMinutes > 0 ? (
                       <span className="text-[9px] font-semibold text-muted-foreground">
                         {formatScheduledHours(work.scheduledMinutes)}
@@ -489,6 +508,12 @@ export function HrMonthCalendar({
               <p className="mt-1 font-semibold">
                 {selectedHoliday.display_name ?? selectedHoliday.provider_name}
               </p>
+            </div>
+          ) : null}
+          {selectedCompanyActivities.length ? (
+            <div className="mt-3 rounded-xl border border-accent/60 bg-accent/35 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-accent-foreground">{labels.companyActivity}</p>
+              <div className="mt-1 space-y-1 font-semibold">{selectedCompanyActivities.map((activity) => <p key={activity.id}>{activity.name}</p>)}</div>
             </div>
           ) : null}
           {selection.type === "employee-summary" ? (

@@ -9,5 +9,6 @@
   "code": "Code {code}",
   "expand": "Toon onderliggende afdelingen van {name}",
   "active": "Actief",
-  "inactive": "Inactief"
+  "inactive": "Inactief",
+  "processStart": "Proces starten"
 }

@@ -29,6 +29,8 @@ import { formatDate, formatDateTime } from "@/lib/preferences/formatters";
 import { seniorityDuration } from "@/lib/employment/seniority";
 import type { DateFormat } from "@/lib/preferences/user-preferences";
 import { listEmployeeHrEvents } from "@/lib/hr-events/service";
+import { getRequestAuthorizationContext } from "@/lib/auth/permissions";
+import { listProcessWork } from "@/lib/process-automation/work-service";
 
 interface PageProps {
   params: Promise<{ employeeId: string; employmentId: string }>;
@@ -42,6 +44,7 @@ const tabs = [
   "organization",
   "company-location",
   "costs",
+  "processes",
   "history",
 ] as const;
 type Tab = (typeof tabs)[number];
@@ -61,7 +64,7 @@ function periodLabel(
 async function loadPageData(employeeId: string, employmentId: string, tab: Tab) {
   try {
     return await Promise.all([
-      getEmploymentDetail(employeeId, employmentId, tab),
+      getEmploymentDetail(employeeId, employmentId, tab === "processes" ? "overview" : tab),
       getLocale(),
       getUserPreferences(),
       getTranslator("employment"),
@@ -82,14 +85,21 @@ export default async function EmploymentDetailPage({
     params,
     searchParams,
   ]);
-  const tab: Tab = tabs.includes(query.tab as Tab)
+  const authContext = (await getRequestAuthorizationContext()).context;
+  const canReadProcesses = authContext.permissions.includes('process-instance:read') || (authContext.permissions.includes('self:process-instance:read') && authContext.employeeId === employeeId);
+  const requestedTab: Tab = tabs.includes(query.tab as Tab)
     ? (query.tab as Tab)
     : "overview";
+  const tab: Tab = requestedTab === 'processes' && !canReadProcesses ? 'overview' : requestedTab;
   const [detail, locale, preferences, t, events] = await loadPageData(
     employeeId,
     employmentId,
     tab,
   );
+  const tProcess = await getTranslator('processAutomation');
+  const processWork = tab === 'processes' && canReadProcesses
+    ? await listProcessWork({ subjectEmploymentId: employmentId, administrationId: detail.administration.id, tab: 'ALL', language: locale }).catch(() => null)
+    : null;
   const expanded = query.view !== "compact";
   const today = new Date().toISOString().slice(0, 10);
   const seniority = seniorityDuration(detail.employment.seniority_date, today);
@@ -167,6 +177,7 @@ export default async function EmploymentDetailPage({
     organization: t("tabsOrganization"),
     "company-location": t("tabsCompanyLocation"),
     costs: t("tabsCosts"),
+    processes: tProcess("processesTab"),
     history: t("tabsHistory"),
   };
   const effectiveStatus =
@@ -293,7 +304,7 @@ export default async function EmploymentDetailPage({
         className="mt-5 overflow-x-auto rounded-2xl border bg-surface p-1.5 shadow-sm"
       >
         <div className="flex min-w-max gap-1">
-          {tabs.map((item) => (
+          {tabs.filter((item) => item !== 'processes' || canReadProcesses).map((item) => (
             <Link
               prefetch={false}
               key={item}
@@ -307,6 +318,20 @@ export default async function EmploymentDetailPage({
       </nav>
 
       <div className="mt-6">
+        {tab === "processes" && canReadProcesses && (
+          <section className="space-y-5">
+            <header>
+              <p className="eyebrow text-primary">{tProcess('processesTab')}</p>
+              <h2 className="mt-1 text-2xl font-semibold">{tProcess('workspaceTitle')}</h2>
+              <p className="mt-2 text-sm text-muted-foreground">{tProcess('workspaceDescription')}</p>
+            </header>
+            {!processWork ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{tProcess('readError')}</p> : processWork.items.length === 0 ? <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground" role="status">{tProcess('noItems')}</p> : <div className="grid gap-4">{processWork.items.map((item) => {
+              const status = item.instanceStatus === 'BLOCKED' ? 'BLOCKED' : item.status;
+              const statusLabel = ({ OPEN: tProcess('statusOpen'), CLAIMED: tProcess('statusClaimed'), BLOCKED: tProcess('statusBlocked'), COMPLETED: tProcess('statusCompleted'), CANCELLED: tProcess('statusCancelled'), EXPIRED: tProcess('statusExpired') } as Record<string, string>)[status] ?? tProcess('unknown');
+              return <article className="rounded-2xl border border-border bg-surface p-5" key={item.workItemId}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{item.processKey}</p><h3 className="mt-1 font-semibold">{item.processTitle}</h3></div><span className={`status-chip ${status === 'BLOCKED' ? 'bg-warning-surface text-warning' : 'bg-muted text-muted-foreground'}`}>{statusLabel}</span></div><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3"><div><dt className="text-xs text-muted-foreground">{tProcess('step')}</dt><dd className="mt-1">{item.stepTitle}</dd></div><div><dt className="text-xs text-muted-foreground">{tProcess('subject')}</dt><dd className="mt-1">{item.subjectName ?? tProcess('unknown')}</dd></div><div><dt className="text-xs text-muted-foreground">{tProcess('deadline')}</dt><dd className="mt-1">{item.deadlineAt ?? tProcess('unknown')}</dd></div></dl><Link prefetch={false} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href={`/work/${item.workItemId}`}>{tProcess('open')}</Link></article>
+            })}</div>}
+          </section>
+        )}
         {tab === "overview" && (
           <div className="space-y-5">
             <section aria-labelledby="employment-summary-title" className="rounded-2xl border bg-surface p-5 shadow-sm sm:p-6">

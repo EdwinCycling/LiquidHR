@@ -95,6 +95,7 @@ Het profielhoofd en de detailnavigatie zijn vast en niet versleepbaar of verberg
 - oorspronkelijke datum in dienst, wanneer vastgelegd;
 - actuele manager als link wanneer de manager binnen de scope van de kijker valt;
 - acties **Medewerkerdetails** en een beperkt actiemenu op basis van writepermissions.
+- een klein weericoon voor het weer op het werk; openen toont een drawer met temperatuur, luchtvochtigheid, wind en luchtdruk. De drawer sluit via het kruisje, Escape of een klik buiten het venster. De optie voor weer op het privé-adres wordt uitsluitend getoond wanneer de kijker zijn eigen medewerkerkaart opent; voor andere medewerkerkaarten wordt privéweer niet geladen of naar de browser gestuurd.
 
 ### 5.1 Avatarfallback
 

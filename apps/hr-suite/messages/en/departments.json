@@ -9,5 +9,6 @@
   "code": "Code {code}",
   "expand": "Show child departments of {name}",
   "active": "Active",
-  "inactive": "Inactive"
+  "inactive": "Inactive",
+  "processStart": "Start process"
 }

@@ -6,12 +6,12 @@ import { loadActiveContext } from '@/lib/context/server-context'
 import { listMyReminders, type ReminderItem } from '@/lib/reminders/reminder-service'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { createClient } from '@/lib/supabase/server'
-import { FALLBACK_WEATHER_LOCATION, getWorkWeather, type WorkWeather } from '@/lib/weather/open-meteo'
 import { getContinuousAppraisalSummary, type ContinuousAppraisalSummary } from '@/lib/continuous-appraisal/service'
 import type { ServerPerformanceTrace } from '@/lib/performance/server-trace'
 import type { Locale } from '@/lib/i18n/config'
 import { listProcessWork } from '@/lib/process-automation/work-service'
 import { loadTeamAvailability, type StartPageTeamAvailability } from './team-availability-service'
+import { getUpcomingCalendarItems, type CalendarHeaderItem } from '@/lib/company-activities/service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -38,10 +38,9 @@ export interface StartPageData {
   employeeCount: number | null
   recurringAbsenceCount: number | null
   longTermSickCount: number | null
-  workWeather: WorkWeather | null
-  homeWeather: WorkWeather | null
   nextLeaveInDays: number | null
   nextHolidayInDays: number | null
+  nextCompanyActivity: CalendarHeaderItem | null
   continuousAppraisal: ContinuousAppraisalSummary | null
   processWork: StartPageProcessWork | null
   teamAvailability: StartPageTeamAvailability | null
@@ -100,18 +99,22 @@ export interface StartPageProcessWorkItem {
   subjectName: string | null
   deadlineAt: string | null
   isOverdue: boolean
+  isBlocked: boolean
 }
 
 export interface StartPageProcessWork {
   total: number
   overdueCount: number
   dueTodayCount: number
+  blockedCount: number
   items: StartPageProcessWorkItem[]
+  blockers: StartPageProcessWorkItem[]
 }
 
 interface StartPageCountdowns {
   nextLeaveInDays: number | null
   nextHolidayInDays: number | null
+  nextCompanyActivity: CalendarHeaderItem | null
 }
 
 type StartPageEmployeeScope = string[] | null
@@ -144,22 +147,21 @@ function daysUntilDate(targetDate: string, baseDate: string): number | null {
 }
 
 async function getStartPageCountdowns(auth: AuthContext, supabase: SupabaseServerClient): Promise<StartPageCountdowns> {
-  const empty: StartPageCountdowns = { nextLeaveInDays: null, nextHolidayInDays: null }
+  const empty: StartPageCountdowns = { nextLeaveInDays: null, nextHolidayInDays: null, nextCompanyActivity: null }
   if (!auth.administrationId && !auth.hrGroupId) return empty
 
   const today = new Date().toISOString().slice(0, 10)
-  const [leaveResult, holidayResult] = await Promise.all([
+  const [leaveResult, calendarItems] = await Promise.all([
     auth.employeeId && auth.administrationId && auth.permissions.includes('leave:read')
       ? supabase.from('leave_requests').select('start_date').eq('tenant_id', auth.tenantId).eq('administration_id', auth.administrationId).eq('employee_id', auth.employeeId).eq('status', 'APPROVED').gte('start_date', today).order('start_date', { ascending: true }).limit(1).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
-    auth.permissions.includes('holidays:read') && auth.hrGroupId
-      ? supabase.from('holidays').select('holiday_date').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).eq('is_active', true).gte('holiday_date', today).order('holiday_date', { ascending: true }).limit(1).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    getUpcomingCalendarItems(auth, supabase),
   ])
 
   return {
     nextLeaveInDays: leaveResult.error || !leaveResult.data ? null : daysUntilDate(leaveResult.data.start_date, today),
-    nextHolidayInDays: holidayResult.error || !holidayResult.data ? null : daysUntilDate(holidayResult.data.holiday_date, today),
+    nextHolidayInDays: calendarItems.holiday ? daysUntilDate(calendarItems.holiday.date, today) : null,
+    nextCompanyActivity: calendarItems.companyActivity,
   }
 }
 
@@ -379,63 +381,6 @@ async function countLongTermSick(auth: AuthContext, employeeScope: StartPageEmpl
   return error ? null : count ?? 0
 }
 
-async function getStartPageWorkWeather(auth: AuthContext, supabase: SupabaseServerClient): Promise<WorkWeather | null> {
-  const fallbackWeather = () => getWorkWeather(FALLBACK_WEATHER_LOCATION)
-  const hrGroupId = auth.hrGroupId
-  if (!hrGroupId) return fallbackWeather()
-  const today = new Date().toISOString().slice(0, 10)
-  const [companyResult, assignmentResult] = await Promise.all([
-    supabase.from('administration_company_data').select('city, country_code').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).maybeSingle(),
-    auth.employeeId
-      ? supabase.from('employee_organizations').select('location_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('employee_id', auth.employeeId).lte('effective_from', today).or(`effective_to.is.null,effective_to.gte.${today}`).order('effective_from', { ascending: false }).limit(25)
-      : Promise.resolve({ data: [], error: null }),
-  ])
-  if (companyResult.error || assignmentResult.error) return fallbackWeather()
-
-  const currentAssignment = assignmentResult.data?.[0]
-  const locationId = currentAssignment?.location_id ?? null
-  const locationResult = locationId
-    ? await supabase.from('administration_locations').select('id, name, city, country_code').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('id', locationId).eq('is_active', true).maybeSingle()
-    : { data: null, error: null }
-  if (locationResult.error) return fallbackWeather()
-
-  const location = locationResult.data
-  const city = location?.city ?? companyResult.data?.city ?? null
-  const countryCode = location?.country_code ?? companyResult.data?.country_code ?? 'NL'
-  if (!city) return fallbackWeather()
-  return getWorkWeather({
-    name: location?.name ?? city,
-    city,
-    countryCode,
-    latitude: 0,
-    longitude: 0,
-  })
-}
-
-async function getStartPageHomeWeather(auth: AuthContext, supabase: SupabaseServerClient): Promise<WorkWeather | null> {
-  if (!auth.employeeId) return null
-  const today = new Date().toISOString().slice(0, 10)
-  const { data, error } = await supabase.from('employee_addresses')
-    .select('city, country_code')
-    .eq('tenant_id', auth.tenantId)
-    .eq('employee_id', auth.employeeId)
-    .eq('address_type', 'PRIMARY')
-    .lte('valid_from', today)
-    .or(`valid_until.is.null,valid_until.gte.${today}`)
-    .is('deleted_at', null)
-    .order('valid_from', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error || !data?.city) return null
-  return getWorkWeather({
-    name: data.city,
-    city: data.city,
-    countryCode: data.country_code,
-    latitude: 0,
-    longitude: 0,
-  })
-}
-
 async function getStartPageContinuousAppraisal(dependencies: { context: AuthContext; supabase: SupabaseServerClient }): Promise<ContinuousAppraisalSummary | null> {
   try {
     return await getContinuousAppraisalSummary(dependencies)
@@ -448,26 +393,28 @@ async function getStartPageContinuousAppraisal(dependencies: { context: AuthCont
 async function getStartPageProcessWork(auth: AuthContext, supabase: SupabaseServerClient, locale: Locale): Promise<StartPageProcessWork | null> {
   if (!auth.hrGroupId || !auth.permissions.some((permission) => ['process-task:read', 'self:process-task:read', 'process-instance:read', 'self:process-instance:read'].includes(permission))) return null
   try {
-    const work = await listProcessWork({
-      administrationId: auth.administrationId ?? undefined,
-      language: locale,
-      limit: 100,
-      sort: 'DEADLINE',
-      tab: 'TODO',
-    }, { context: auth, supabase })
+    const request = { administrationId: auth.administrationId ?? undefined, language: locale, limit: 100, sort: 'DEADLINE' as const }
+    const [work, blockedWork] = await Promise.all([
+      listProcessWork({ ...request, tab: 'TODO' }, { context: auth, supabase }),
+      listProcessWork({ ...request, tab: 'ALL', status: 'BLOCKED' }, { context: auth, supabase }),
+    ])
     const today = new Date().toISOString().slice(0, 10)
+    const mapItem = (item: Awaited<ReturnType<typeof listProcessWork>>['items'][number], isBlocked: boolean): StartPageProcessWorkItem => ({
+      workItemId: item.workItemId,
+      processTitle: item.processTitle,
+      stepTitle: item.stepTitle,
+      subjectName: item.subjectName,
+      deadlineAt: item.deadlineAt,
+      isOverdue: item.isOverdue,
+      isBlocked,
+    })
     return {
       total: work.total,
       overdueCount: work.items.filter((item) => item.isOverdue).length,
       dueTodayCount: work.items.filter((item) => item.deadlineAt?.slice(0, 10) === today && !item.isOverdue).length,
-      items: work.items.slice(0, 4).map((item) => ({
-        workItemId: item.workItemId,
-        processTitle: item.processTitle,
-        stepTitle: item.stepTitle,
-        subjectName: item.subjectName,
-        deadlineAt: item.deadlineAt,
-        isOverdue: item.isOverdue,
-      })),
+      blockedCount: blockedWork.total,
+      items: work.items.slice(0, 4).map((item) => mapItem(item, false)),
+      blockers: blockedWork.items.slice(0, 4).map((item) => mapItem(item, true)),
     }
   } catch {
     // Een ontbrekende procesrechten- of bronconfiguratie mag de startpagina niet breken.
@@ -501,7 +448,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, workWeather, homeWeather, countdowns, continuousAppraisal, processWork, teamAvailability] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, countdowns, continuousAppraisal, processWork, teamAvailability] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -511,8 +458,6 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     employeeScopePromise.then((employeeScope) => measure('employeeCount', () => countEmployees(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('recurringAbsence', () => countRecurringAbsence(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('longTermSick', () => countLongTermSick(auth, employeeScope, supabase))),
-    measure('workWeather', () => getStartPageWorkWeather(auth, supabase)),
-    measure('homeWeather', () => getStartPageHomeWeather(auth, supabase)),
     measure('countdowns', () => getStartPageCountdowns(auth, supabase)),
     measure('continuousAppraisal', () => getStartPageContinuousAppraisal({ context: auth, supabase })),
     measure('processWork', () => getStartPageProcessWork(auth, supabase, dependencies?.locale ?? 'nl')),
@@ -536,10 +481,9 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     employeeCount,
     recurringAbsenceCount,
     longTermSickCount,
-    workWeather,
-    homeWeather,
     nextLeaveInDays: countdowns.nextLeaveInDays,
     nextHolidayInDays: countdowns.nextHolidayInDays,
+    nextCompanyActivity: countdowns.nextCompanyActivity,
     continuousAppraisal,
     processWork,
     teamAvailability,

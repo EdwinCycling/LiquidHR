@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import {
   buildProcessOutputHtml,
   buildProcessOutputPdf,
+  databaseUuidSchema,
   processOutputBeginSchema,
   processOutputFilename,
   processOutputStorageKey,
@@ -15,23 +16,23 @@ import {
 } from './process-output'
 
 const claimedJobSchema = z.object({
-  id: z.string().uuid(),
+  id: databaseUuidSchema,
   jobType: z.enum(['PROCESS_REMINDER', 'PROCESS_DOCUMENT_OUTPUT']),
-  tenantId: z.string().uuid(),
-  hrGroupId: z.string().uuid(),
-  administrationId: z.string().uuid().nullable(),
-  processInstanceId: z.string().uuid(),
-  stepInstanceId: z.string().uuid().nullable(),
-  workItemId: z.string().uuid().nullable(),
+  tenantId: databaseUuidSchema,
+  hrGroupId: databaseUuidSchema,
+  administrationId: databaseUuidSchema.nullable(),
+  processInstanceId: databaseUuidSchema,
+  stepInstanceId: databaseUuidSchema.nullable(),
+  workItemId: databaseUuidSchema.nullable(),
   attempts: z.number().int().positive(),
   maxAttempts: z.number().int().positive(),
   payload: z.record(z.string(), z.unknown()),
-  correlationId: z.string().uuid().nullable(),
+  correlationId: databaseUuidSchema.nullable(),
 }).strict()
 
 const attachmentSchema = z.object({
-  outputId: z.string().uuid(),
-  documentId: z.string().uuid(),
+  outputId: databaseUuidSchema,
+  documentId: databaseUuidSchema,
   created: z.boolean(),
 }).strict()
 

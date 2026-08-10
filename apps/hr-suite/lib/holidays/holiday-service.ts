@@ -2,13 +2,14 @@ import type { Json } from '@scope/db'
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { fetchPublicHolidays } from './holiday-provider'
+import { fetchAvailableHolidayCountries, fetchPublicHolidays } from './holiday-provider'
 import type { HolidayImportInput, HolidayManualInput, HolidayUpdateInput } from './schemas'
 
 export class HolidayError extends Error { constructor(public readonly code: string, public readonly status: number) { super(code); this.name = 'HolidayError' } }
 function databaseError(message: string): never { const code = message.match(/HOLIDAY_[A-Z_]+/)?.[0] ?? 'HOLIDAY_OPERATION_FAILED'; throw new HolidayError(code, code.includes('NOT_FOUND') ? 404 : code.includes('FORBIDDEN') ? 403 : 400) }
 
 export async function previewHolidayImport(input: HolidayImportInput) { await requirePermission('holidays:read'); return fetchPublicHolidays(input.year, input.countryCode) }
+export async function listHolidayCountries() { await requirePermission('holidays:read'); return fetchAvailableHolidayCountries() }
 export async function listHolidays(year: number) {
   const auth = await requirePermission('holidays:read')
   const hrGroupId = requireHrGroupId(auth)

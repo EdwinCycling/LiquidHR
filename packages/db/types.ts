@@ -1217,6 +1217,56 @@ export type Database = {
           },
         ]
       }
+      company_activities: {
+        Row: {
+          activity_date: string
+          administration_id: string | null
+          created_at: string
+          created_by: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activity_date: string
+          administration_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activity_date?: string
+          administration_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_activities_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       company_documents: {
         Row: {
           administration_id: string | null
@@ -2494,6 +2544,94 @@ export type Database = {
           },
         ]
       }
+      employee_document_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          acknowledged_by_user_id: string
+          administration_id: string
+          created_at: string
+          document_checksum_sha256: string
+          document_id: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          process_instance_id: string
+          tenant_id: string
+          work_item_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          acknowledged_by_user_id?: string
+          administration_id: string
+          created_at?: string
+          document_checksum_sha256: string
+          document_id: string
+          employee_id: string
+          hr_group_id: string
+          id?: string
+          process_instance_id: string
+          tenant_id: string
+          work_item_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          acknowledged_by_user_id?: string
+          administration_id?: string
+          created_at?: string
+          document_checksum_sha256?: string
+          document_id?: string
+          employee_id?: string
+          hr_group_id?: string
+          id?: string
+          process_instance_id?: string
+          tenant_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_document_ack_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_document_ack_document_fkey"
+            columns: ["tenant_id", "administration_id", "document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_document_ack_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_document_ack_instance_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_document_ack_scope_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_document_ack_work_item_fkey"
+            columns: ["tenant_id", "hr_group_id", "work_item_id"]
+            isOneToOne: false
+            referencedRelation: "process_work_items"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
       employee_documents: {
         Row: {
           added_by_user_id: string
@@ -2595,94 +2733,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      employee_document_acknowledgements: {
-        Row: {
-          acknowledged_at: string
-          acknowledged_by_user_id: string
-          administration_id: string
-          created_at: string
-          document_checksum_sha256: string
-          document_id: string
-          employee_id: string
-          hr_group_id: string
-          id: string
-          process_instance_id: string
-          tenant_id: string
-          work_item_id: string
-        }
-        Insert: {
-          acknowledged_at?: string
-          acknowledged_by_user_id?: string
-          administration_id: string
-          created_at?: string
-          document_checksum_sha256: string
-          document_id: string
-          employee_id: string
-          hr_group_id: string
-          id?: string
-          process_instance_id: string
-          tenant_id: string
-          work_item_id: string
-        }
-        Update: {
-          acknowledged_at?: string
-          acknowledged_by_user_id?: string
-          administration_id?: string
-          created_at?: string
-          document_checksum_sha256?: string
-          document_id?: string
-          employee_id?: string
-          hr_group_id?: string
-          id?: string
-          process_instance_id?: string
-          tenant_id?: string
-          work_item_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_document_ack_administration_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "employee_document_ack_document_fkey"
-            columns: ["tenant_id", "administration_id", "document_id"]
-            isOneToOne: false
-            referencedRelation: "employee_documents"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
-          },
-          {
-            foreignKeyName: "employee_document_ack_employee_fkey"
-            columns: ["tenant_id", "hr_group_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "employee_document_ack_instance_fkey"
-            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
-            isOneToOne: false
-            referencedRelation: "process_instances"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "employee_document_ack_scope_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "employee_document_ack_work_item_fkey"
-            columns: ["tenant_id", "hr_group_id", "work_item_id"]
-            isOneToOne: false
-            referencedRelation: "process_work_items"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -8143,6 +8193,66 @@ export type Database = {
           },
         ]
       }
+      process_domain_commits: {
+        Row: {
+          adapter_key: string
+          correlation_id: string | null
+          created_at: string
+          created_by_user_id: string
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          organization_placement_id: string | null
+          process_instance_id: string
+          result: Json
+          tenant_id: string
+          work_item_id: string
+        }
+        Insert: {
+          adapter_key: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          organization_placement_id?: string | null
+          process_instance_id: string
+          result: Json
+          tenant_id: string
+          work_item_id: string
+        }
+        Update: {
+          adapter_key?: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          organization_placement_id?: string | null
+          process_instance_id?: string
+          result?: Json
+          tenant_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_domain_commits_process_instance_id_fkey"
+            columns: ["process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_domain_commits_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "process_work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_employee_subjects: {
         Row: {
           created_at: string
@@ -8703,6 +8813,87 @@ export type Database = {
           },
         ]
       }
+      process_recipe_activations: {
+        Row: {
+          activated_at: string
+          activated_by_user_id: string
+          hr_group_id: string
+          id: string
+          process_definition_id: string
+          process_recipe_id: string
+          tenant_id: string
+        }
+        Insert: {
+          activated_at?: string
+          activated_by_user_id?: string
+          hr_group_id: string
+          id?: string
+          process_definition_id: string
+          process_recipe_id: string
+          tenant_id: string
+        }
+        Update: {
+          activated_at?: string
+          activated_by_user_id?: string
+          hr_group_id?: string
+          id?: string
+          process_definition_id?: string
+          process_recipe_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_recipe_activations_process_definition_id_fkey"
+            columns: ["process_definition_id"]
+            isOneToOne: true
+            referencedRelation: "process_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_recipe_activations_process_recipe_id_fkey"
+            columns: ["process_recipe_id"]
+            isOneToOne: false
+            referencedRelation: "process_recipe_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_recipe_catalog: {
+        Row: {
+          adapter_key: string
+          created_at: string
+          definition_json: Json
+          description: Json
+          id: string
+          recipe_key: string
+          recipe_version: number
+          status: string
+          title: Json
+        }
+        Insert: {
+          adapter_key: string
+          created_at?: string
+          definition_json: Json
+          description: Json
+          id?: string
+          recipe_key: string
+          recipe_version: number
+          status?: string
+          title: Json
+        }
+        Update: {
+          adapter_key?: string
+          created_at?: string
+          definition_json?: Json
+          description?: Json
+          id?: string
+          recipe_key?: string
+          recipe_version?: number
+          status?: string
+          title?: Json
+        }
+        Relationships: []
+      }
       process_reminder_deliveries: {
         Row: {
           created_at: string
@@ -8989,6 +9180,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_work_items"
             referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      process_work_item_notes: {
+        Row: {
+          action: string
+          actor_user_id: string
+          body: string
+          correlation_id: string | null
+          created_at: string
+          hr_group_id: string
+          id: string
+          process_instance_id: string
+          tenant_id: string
+          work_item_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string
+          body: string
+          correlation_id?: string | null
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          process_instance_id: string
+          tenant_id: string
+          work_item_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          body?: string
+          correlation_id?: string | null
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          process_instance_id?: string
+          tenant_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_work_item_notes_process_instance_id_fkey"
+            columns: ["process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_work_item_notes_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "process_work_items"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12313,6 +12558,16 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      acknowledge_document_process_work_item: {
+        Args: {
+          requested_correlation_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+          requested_step_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
       activate_due_talent_review_campaigns: {
         Args: { requested_tenant_id: string }
         Returns: number
@@ -12329,16 +12584,6 @@ export type Database = {
           requested_recipe_id: string
           requested_scope_type: Database["public"]["Enums"]["access_scope_type"]
           requested_tenant_id: string
-        }
-        Returns: Json
-      }
-      acknowledge_document_process_work_item: {
-        Args: {
-          requested_correlation_id: string
-          requested_expected_version: number
-          requested_idempotency_key: string
-          requested_step_expected_version: number
-          requested_work_item_id: string
         }
         Returns: Json
       }
@@ -12487,6 +12732,16 @@ export type Database = {
         Args: { requested_campaign_id: string }
         Returns: string
       }
+      commit_internal_transfer: {
+        Args: {
+          requested_correlation_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+          requested_step_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
       commit_talent_import_batch: {
         Args: {
           requested_batch_id: string
@@ -12500,16 +12755,6 @@ export type Database = {
           requested_document_id: string
           requested_html_summary: string
           requested_output_id: string
-        }
-        Returns: Json
-      }
-      commit_internal_transfer: {
-        Args: {
-          requested_correlation_id: string
-          requested_expected_version: number
-          requested_idempotency_key: string
-          requested_step_expected_version: number
-          requested_work_item_id: string
         }
         Returns: Json
       }
@@ -12818,6 +13063,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_document_acknowledgement_document: {
+        Args: { requested_work_item_id: string }
+        Returns: Json
+      }
       get_employee_directory_access: {
         Args: {
           requested_administration_id: string
@@ -12839,6 +13088,10 @@ export type Database = {
           requested_administration_id: string
           requested_tenant_id: string
         }
+        Returns: Json
+      }
+      get_employee_document_acknowledgements: {
+        Args: { requested_employee_id: string }
         Returns: Json
       }
       get_internal_transfer_preview: {
@@ -12913,14 +13166,6 @@ export type Database = {
         Args: { requested_process_instance_id: string }
         Returns: Json
       }
-      get_document_acknowledgement_document: {
-        Args: { requested_work_item_id: string }
-        Returns: Json
-      }
-      get_employee_document_acknowledgements: {
-        Args: { requested_employee_id: string }
-        Returns: Json
-      }
       get_process_form_projection: {
         Args: { requested_language?: string; requested_work_item_id: string }
         Returns: Json
@@ -12947,10 +13192,7 @@ export type Database = {
         }
         Returns: Json
       }
-      get_process_recipe_catalog: {
-        Args: never
-        Returns: Json
-      }
+      get_process_recipe_catalog: { Args: never; Returns: Json }
       get_process_recipe_start_context: {
         Args: {
           requested_hr_group_id: string
@@ -12974,6 +13216,22 @@ export type Database = {
           requested_sort?: string
           requested_status?: string
           requested_subject_employee_id?: string
+          requested_tab?: string
+        }
+        Returns: Json
+      }
+      get_process_work_projection_for_employment: {
+        Args: {
+          requested_administration_id?: string
+          requested_employment_id: string
+          requested_hr_group_id: string
+          requested_language?: string
+          requested_limit?: number
+          requested_offset?: number
+          requested_process_definition_id?: string
+          requested_search?: string
+          requested_sort?: string
+          requested_status?: string
           requested_tab?: string
         }
         Returns: Json
@@ -13158,6 +13416,17 @@ export type Database = {
         }
         Returns: string
       }
+      request_process_work_item_changes: {
+        Args: {
+          requested_body: string
+          requested_correlation_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+          requested_step_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
       requeue_workflow_job: {
         Args: { requested_job_id: string }
         Returns: Json
@@ -13269,14 +13538,13 @@ export type Database = {
         }
         Returns: Json
       }
-      request_process_work_item_changes: {
+      start_document_acknowledgement: {
         Args: {
-          requested_body: string
           requested_correlation_id: string
-          requested_expected_version: number
+          requested_document_id: string
           requested_idempotency_key: string
-          requested_step_expected_version: number
-          requested_work_item_id: string
+          requested_process_definition_id: string
+          requested_subject_employee_id: string
         }
         Returns: Json
       }
@@ -13287,16 +13555,6 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: string
-      }
-      start_document_acknowledgement: {
-        Args: {
-          requested_correlation_id: string
-          requested_document_id: string
-          requested_idempotency_key: string
-          requested_process_definition_id: string
-          requested_subject_employee_id: string
-        }
-        Returns: Json
       }
       start_process: {
         Args: {

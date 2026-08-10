@@ -1,5 +1,25 @@
 # Actuele overdracht Liquid HR
 
+## Feestdagen en bedrijfsactiviteiten 2026-08-10
+
+- `/settings/holidays` heeft naast lokale feestdagen een HR-groepbrede invoer voor bedrijfsactiviteiten met naam en datum. De bestaande landelijke feestdagen kunnen per record expliciet worden geactiveerd of gedeactiveerd; gedeactiveerde dagen blijven buiten de kalender- en verlofselecties.
+- Het land voor de feestdagenimport wordt nu gekozen via een zoekbare dropdown. De opties worden via `/api/settings/holidays/countries` uit de Nager.Date-feestdagenprovider opgehaald; bij tijdelijke provideruitval blijft de bestaande ISO-landfallback beschikbaar.
+- De nieuwe `company_activities`-tabel heeft RLS, audit, een HR-adminschrijfpad en een leespad voor gekoppelde medewerkers van dezelfde HR-groep. Startpagina en medewerkerheader tonen de eerstvolgende actieve feestdag en bedrijfsactiviteit wanneer die bestaat.
+- De HR-kalender laadt actieve bedrijfsactiviteiten binnen de maand en toont per dag een subtiel kalendericoon; de dagdetailweergave toont de activiteit(en) naast een eventuele feestdag.
+- Lokaal gecontroleerd met strict TypeScript, i18n-pariteit en `git diff --check`. De migratie is nog niet remote toegepast; browsercontrole, Supabase-advisors, commit, push en deployment blijven open.
+
+## Weerbericht verhuisd naar medewerkerheader 2026-08-10
+
+- De startpagina toont geen bedrijfslogo meer in de startpagina-header en bevat daar geen weerinstrument of Compact-schakelaar meer. De volledige startpagina en de ordening van de vensters blijven behouden.
+- De medewerkerheader toont voor iedere geautoriseerde kijker een klein weericoon. De server bepaalt het werkweer uit de actieve werkcontext met Eindhoven als fallback; de drawer toont temperatuur, maximum, luchtvochtigheid, wind en luchtdruk.
+- De drawer sluit via het kruisje, Escape of een klik buiten het venster. Lokaal gecontroleerd op desktop en 390x844; geen schema-, API-, remote-, commit-, push- of deploymentwijziging.
+
+## Medewerkerdashboard profielheader 2026-08-10
+
+- De uitgebreide profielheader op `/employees/[employeeId]` volgt de nieuwe visuele opzet: compacte ronde avatar, duidelijke naam/status-hiërarchie, foto-acties in dezelfde naamkleur, weer- en compact/uitgebreid-iconen van 40x40 naast elkaar en de archiveeractie onderaan boven de contactstreep. De bestaande velden, autorisatie en compact/uitgebreid-URL-state zijn behouden.
+- De header stapelt op 390 px zonder horizontale overflow. Gerichte ESLint, strict TypeScript, `git diff --check`, desktop-/390px-browsercontrole, compact/uitgebreid-navigatie en browserconsole zijn groen.
+- Geen schema-, API-, remote-, commit-, push- of deploymentwijziging uitgevoerd. De wijziging staat naast bestaand Process Automation-werk in de dirty werkboom; dat werk is niet aangepast.
+
 ## Actuele release-status 2026-08-09
 
 - De mobiele Google-login hotfix is live op `main`. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub; Vercel Production `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`.
@@ -23,11 +43,13 @@
 
 ## P9/P10 — actuele overdracht 2026-08-10
 
-- P9 is lokaal/remote doorgezet voor de typed form-builder/runtime en interne-transfer-adapter. P10 kiest de eerste geordende blueprint-recipe `documentkennisname` en volgt `schema -> API -> UI`.
-- Remote P10-migratie en daaropvolgende security-, metadata- en variable-fixes zijn toegepast. HR-admin startte op localhost:3000; Test Medewerker opende de secure documentroute, zag checksum, bevestigde en eindigde op `COMPLETED`; Test Manager kreeg een nette rechtenmelding. Desktop en 390x844 zijn gecontroleerd.
-- Cleanup is groen: exact 15 document/process/form/audit/output/job/storage-controles staan op 0. Append-only-triggers zijn na de gecontroleerde cleanup weer enabled. Advisors tonen geen P10-specifieke melding.
-- Lokale checks zijn groen: 22/22 gerichte tests, strict TypeScript, i18n, gerichte ESLint, `git diff --check` en Webpack-build met 185 pagina's.
-- De gedeelde outputcompatibiliteit is na expliciete toestemming gericht opgelost. De bestaande form-RPC's zijn niet aangepast; de gedeelde P7-outputtrigger en `process_output_source` gebruiken nu de content-normalizer. Een read-only remote proef op de bestaande compiled P9-versie retourneerde `transfer-dossier`, `PDF`, `process-internal-transfer` en de verwachte outputvelden. Een nieuwe terminalrun met een actief P10-form-item is nog niet beschikbaar in de behouden remote fixture; daarom claimen we hiervoor geen nieuw HTML/PDF-bestand bovenop het bestaande P10-cleanupbewijs. De code-, remote schema/grant-, advisor- en drie-rol-gates voor deze wijziging zijn afgerond; commit op `main` volgt na de eindtests.
+- P9-contextingangen zijn aangesloten volgens `schema -> API -> UI`: aparte `BLOCKED`-projectie op de startpagina, een echte Workflows-kaart en Processen-tab op medewerkerdetail, een employment-gefilterde Processen-tab, en server-geautoriseerde startlinks vanuit afdelingen en het organogram.
+- De gedeelde outputbrug is compatibel gemaakt met compiled `definition_json.content.output`, niet-RFC-versiegebonden PostgreSQL UUID-vormen, ontbrekende `process-internal-transfer`-documentcategorieën en de benodigde PostgREST/grant/schema-cache-keten. De bestaande form-RPC's zijn niet aangepast.
+- Live P10-bewijs op poort 3000: de HR-admin-worker claimde 1 job en rondde die af met `succeeded=1`, zonder retry/fout. Remote staan de job en output op `SUCCEEDED`/`AVAILABLE`; het `employee-documents`-object bestaat als 908-byte `application/pdf`, documenttag `PROCESS_OUTPUT`, categorie `process-internal-transfer`. De Work-detailpagina toont `Dossier interne overplaatsing`, `Beschikbaar` en `PDF downloaden`; de technische status staat op `PROCESS_DOCUMENT_OUTPUT / SUCCEEDED`.
+- Browsermatrix op localhost:3000 is opnieuw gecontroleerd met de drie testrollen. HR Admin ziet 20 afdelingsstarts, 51 organogramstarts, employment-processen en de beschikbare PDF. Test Medewerker ziet de echte Workflows-kaart, medewerker-Processen-tab en employment-filter. Test Manager krijgt 0 afdelingsstarts; routeguards geven geen ongeautoriseerde content vrij.
+- De startpagina-code projecteert blokkades afzonderlijk, maar de actuele remote testdataset bevat op het controlemoment geen `BLOCKED`-workitem; daardoor is de gevulde blockerkaart live nog niet met een niet-lege fixture bewezen. De code- en UI-route zijn wel door build/typecheck en browser-statecontrole geraakt.
+- Open securitybesluit: het algemene medewerkerdossier toont de nieuwe PDF nog niet aan een HR-admin zonder medewerkerrecord, omdat de bestaande document-RLS alleen de onderwerp-audience ziet. Een voorgestelde audience-uitbreiding naar actieve `TENANT_ADMIN`-rollen is bewust niet remote toegepast; daarvoor is expliciete goedkeuring van de exacte doelgroep nodig. De subject-audience en de bestaande geautoriseerde Work/PDF-download blijven intact.
+- Lokale eindchecks zijn groen: volledige suite 147 bestanden/559 tests, gerichte output/worker-suite 7/7, strict TypeScript, NL/EN-i18n, volledige ESLint, `git diff --check` en Webpack-productiebuild met 187 pagina's. Supabase security- en performance-advisors zijn opnieuw uitgevoerd; bestaande projectbaseline-meldingen blijven afzonderlijk staan.
 
 ## Mobiele Google-login hotfix 2026-08-09
 

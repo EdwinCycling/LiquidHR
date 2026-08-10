@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, BriefcaseBusiness, Mail, Phone } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, CalendarDays, Mail, Maximize2, Minimize2, Phone } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
@@ -7,6 +7,7 @@ import { EmployeeDashboard } from '@/components/employees/employee-dashboard'
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
+import { EmployeeWeatherDrawer } from '@/components/employees/employee-weather-drawer'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
 import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
 import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
@@ -35,6 +36,8 @@ import { listEmployeeAbsence } from '@/lib/absence/service'
 import { canEmployeeSelfReportAbsence } from '@/lib/absence/settings-service'
 import { createClient } from '@/lib/supabase/server'
 import { listProcessWork } from '@/lib/process-automation/work-service'
+import { getUpcomingCalendarItems, type UpcomingCalendarItems } from '@/lib/company-activities/service'
+import { getPrivateWeatherForEmployee, getWorkWeatherForContext } from '@/lib/weather/work-weather'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -113,6 +116,13 @@ async function permissionAllowed(permissionCode: string, employeeId: string): Pr
   }
 }
 
+function EmployeeCalendarHeader({ items, locale, labels }: { items: UpcomingCalendarItems; locale: string; labels: { holiday: string; activity: string } }) {
+  if (!items.holiday && !items.companyActivity) return null
+  const dateLocale = locale === 'nl' ? 'nl-NL' : 'en-GB'
+  const formatItem = (template: string, item: { name: string; date: string }) => template.replace('{name}', item.name).replace('{date}', new Intl.DateTimeFormat(dateLocale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${item.date}T00:00:00Z`)))
+  return <div className="relative mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-primary-foreground/25 pt-4 text-xs text-primary-foreground/80"><CalendarDays aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{items.holiday ? <span>{formatItem(labels.holiday, items.holiday)}</span> : null}{items.companyActivity ? <span>{formatItem(labels.activity, items.companyActivity)}</span> : null}</div>
+}
+
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
   const { tab: requestedTab, edit, view, caseId, perf } = await searchParams
@@ -124,16 +134,25 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     const directTeamEmployeeIds = await performanceTrace.measure('auth.teamScope', () => listDirectTeamEmployeeIds(authContext, requestContext.supabase))
     if (!directTeamEmployeeIds.includes(employeeId)) redirect('/employees')
   }
-  const canReadProcesses = authContext.permissions.includes('process-instance:read') || authContext.permissions.includes('self:process-instance:read')
+  const canReadProcesses = authContext.permissions.includes('process-instance:read') || (authContext.permissions.includes('self:process-instance:read') && authContext.employeeId === employeeId)
   const tab = requestedTab === 'overview' || requestedTab === 'employments' || requestedTab === 'documents' || requestedTab === 'payslips' || requestedTab === 'reminders' || requestedTab === 'personal' || requestedTab === 'notes' || requestedTab === 'absence' || (requestedTab === 'processes' && canReadProcesses) ? requestedTab : 'overview'
-  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = await performanceTrace.measure('page.data', () => loadPageData(employeeId, tab, {
-    supabase: requestContext.supabase,
-    userId: authContext.userId,
-    performance: performanceTrace,
-  }))
+  const [pageData, workWeather, privateWeather, calendarHeader] = await performanceTrace.measure('page.data', () => Promise.all([
+    loadPageData(employeeId, tab, {
+      supabase: requestContext.supabase,
+      userId: authContext.userId,
+      performance: performanceTrace,
+    }),
+    getWorkWeatherForContext(authContext, requestContext.supabase),
+    getPrivateWeatherForEmployee(authContext, employeeId, requestContext.supabase),
+    getUpcomingCalendarItems(authContext, requestContext.supabase),
+  ]))
+  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = pageData
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
-  const processWork = tab === 'processes' && canReadProcesses
+  const tWeather = await getTranslator('startpage', locale)
+  const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherTodayMax: tWeather('weatherTodayMax'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
+  const canStartProcess = authContext.permissions.includes('process-instance:start') || (authContext.permissions.includes('self:process-instance:start') && authContext.employeeId === employeeId)
+  const processWork = (tab === 'overview' || tab === 'processes') && canReadProcesses
     ? await listProcessWork({ subjectEmployeeId: employeeId, tab: 'ALL', language: locale }).catch(() => null)
     : null
   const compact = view === 'compact'
@@ -152,28 +171,38 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         <Link href="/employees" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />{tEmployees('title')}
         </Link>
-        <div className={`relative mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-accent-foreground text-primary-foreground shadow-lg ${compact ? 'p-2.5' : 'p-5 sm:p-7'}`}>
-          <div aria-hidden="true" className="absolute -right-14 -top-16 h-44 w-44 rounded-full bg-primary-foreground/10" />
-          <div aria-hidden="true" className="absolute -bottom-24 left-1/3 h-48 w-48 rounded-full border border-primary-foreground/10" />
-          <div className={`relative flex items-center justify-between ${compact ? 'gap-3' : 'flex-col gap-5 sm:flex-row sm:items-center'}`}>
-            <div className="flex min-w-0 items-center gap-4">
-              <EmployeeAvatarManager compact={compact} employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
-              <div className="min-w-0">
-                {!compact && <div className="flex flex-wrap items-center gap-2"><p className="eyebrow text-primary-foreground/70">{detail.employee.employeeNumber}</p>{detail.employee.isArchived && <span className="status-chip bg-warning-surface text-warning">{tEmployees('archived')}</span>}<span className={`status-chip ${detail.employee.isActive ? 'bg-success-surface text-success' : 'bg-accent text-accent-foreground'}`}>{statusLabel}</span></div>}
-                <h1 className={`${compact ? '' : 'mt-1'} truncate font-semibold tracking-tight ${compact ? 'text-base' : 'text-3xl'}`}>{detail.employee.firstName} {detail.employee.birthName}</h1>
+        <div className={`relative mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-accent-foreground text-primary-foreground shadow-lg ${compact ? 'p-2.5 sm:px-4' : 'px-5 py-6 sm:px-8 sm:py-8'}`}>
+          <div aria-hidden="true" className="absolute -right-14 -top-20 h-52 w-52 rounded-full bg-primary-foreground/10" />
+          {!compact && <div aria-hidden="true" className="absolute -bottom-52 right-0 h-80 w-[70%] rotate-[-10deg] rounded-[50%] border border-primary-foreground/10 bg-primary-foreground/[0.035]" />}
+          {compact ? <><div className="relative flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <EmployeeAvatarManager compact employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
+              <h1 className="truncate text-base font-semibold tracking-tight">{detail.employee.firstName} {detail.employee.birthName}</h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('expand')} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} prefetch={false} title={tEmployees('expand')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition hover:bg-primary-foreground/20"><Maximize2 aria-hidden="true" size={18} /></Link></div>
+          </div><EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} /></> : <>
+            <div className="relative grid gap-x-8 gap-y-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-start">
+              <EmployeeAvatarManager employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
+              <div className="min-w-0 self-center text-center md:text-left">
+                <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                  <p className="eyebrow text-primary-foreground/70">{detail.employee.employeeNumber}</p>
+                  {detail.employee.isArchived && <span className="status-chip bg-warning-surface text-warning">{tEmployees('archived')}</span>}
+                  <span className={`status-chip ${detail.employee.isActive ? 'bg-success-surface text-success' : 'bg-accent text-accent-foreground'}`}>{statusLabel}</span>
+                </div>
+                <h1 className="mt-2 break-words text-4xl font-semibold leading-none tracking-[-0.04em] sm:text-5xl md:text-4xl xl:text-5xl">{detail.employee.firstName} {detail.employee.birthName}</h1>
+              </div>
+              <div className="flex flex-col items-center gap-3 md:self-stretch md:items-end md:justify-between">
+                <div className="flex items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition hover:bg-primary-foreground/20"><Minimize2 aria-hidden="true" size={18} /></Link></div>
+                <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
               </div>
             </div>
-            {!compact && <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
-              <Link prefetch={false} href={`/employees/${employeeId}?tab=${tab}&view=compact`} className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20">{tEmployees('compact')}</Link>
-              <EmployeeArchiveToggle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
-            </div>}
-            {compact && <Link prefetch={false} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20">{tEmployees('expand')}</Link>}
-          </div>
-          {!compact && <div className="relative mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-primary-foreground/20 pt-4 text-sm text-primary-foreground/80">
-            <span className="flex items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4" />{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink className="text-primary-foreground/85 hover:text-primary-foreground hover:underline" email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span>
-            {(detail.employee.workPhone ?? detail.employee.workMobile) && <a className="flex items-center gap-2 hover:text-primary-foreground" href={`tel:${detail.employee.workPhone ?? detail.employee.workMobile}`}><Phone aria-hidden="true" className="h-4 w-4" />{detail.employee.workPhone ?? detail.employee.workMobile}</a>}
-            <span className="flex items-center gap-2"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4" />{tEmployees('employmentCount', { count: detail.employments.length })}</span>
-          </div>}
+            <div className="relative mt-7 grid gap-3 border-t border-primary-foreground/35 pt-5 text-sm text-primary-foreground/85 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <span className="flex min-w-0 items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="min-w-0 truncate">{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink className="text-primary-foreground/90 hover:text-primary-foreground hover:underline" email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span></span>
+              {(detail.employee.workPhone ?? detail.employee.workMobile) && <a className="flex items-center gap-2 hover:text-primary-foreground" href={`tel:${detail.employee.workPhone ?? detail.employee.workMobile}`}><Phone aria-hidden="true" className="h-4 w-4 shrink-0" />{detail.employee.workPhone ?? detail.employee.workMobile}</a>}
+              <span className="flex items-center gap-2 sm:col-span-2 lg:col-span-1"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4 shrink-0" />{tEmployees('employmentCount', { count: detail.employments.length })}</span>
+            </div>
+            <EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} />
+          </>}
         </div>
 
         <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
@@ -184,14 +213,14 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           })}
         </nav>
 
-        {tab === 'overview' && <EmployeeDashboard selfReportAbsence={selfReport} canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{
+        {tab === 'overview' && <EmployeeDashboard selfReportAbsence={selfReport} canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} processWork={processWork} canReadProcesses={canReadProcesses} canStartProcess={canStartProcess} labels={{
           title: tEmployees('dashboardTitle'), subtitle: tEmployees('dashboardSubtitle'), openDetails: tEmployees('dashboardOpenDetails'), edit: tEmployees('editPersonal'), personal: tEmployees('dashboardPersonal'), contact: tEmployees('contactTitle'),
           workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'), noContact: tEmployees('noContact'), address: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), birthDate: tEmployees('birthDate'),
           nationality: tEmployees('nationality'), birthPlace: tEmployees('birthPlace'), gender: tEmployees('gender'), notRecorded: tEmployees('notRecorded'), customFields: tCustomFields('employeeTitle'), customFieldsEmpty: tEmployees('dashboardCustomFieldsEmpty'),
           employment: tEmployees('dashboardEmployment'), employmentEmpty: tEmployees('dashboardEmploymentEmpty'), department: tEmployees('department'), jobTitle: tEmployees('jobTitle'), manager: tEmployees('manager'), hoursPerWeek: tEmployees('hoursPerWeek'), salary: tEmployees('salary'),
           salaryHidden: tEmployees('salaryRevealHelp'), salaryNotAvailable: tEmployees('dashboardSalaryNotAvailable'), salaryMonthly: tEmployees('salaryMonthlySuffix'), salaryHourly: tEmployees('salaryHourlySuffix'), salaryLoading: tEmployees('dashboardSalaryLoading'), salaryFailed: tEmployees('dashboardSalaryFailed'), leave: tEmployees('dashboardLeave'), leaveDescription: tEmployees('dashboardLeaveDescription'),
           absence: tEmployees('dashboardAbsence'), budgets: tEmployees('dashboardBudgets'), budgetsDescription: tEmployees('dashboardBudgetsDescription'), contracts: tEmployees('dashboardContracts'), contractsDescription: tEmployees('dashboardContractsDescription'),
-          contractCount: tEmployees('dashboardContractCount'), employmentNumber: tEmployment('employmentNumber'), employmentPeriod: tEmployment('period'), employmentActive: tEmployment('active'), employmentFuture: tEmployment('future'), employmentEnded: tEmployment('ended'), employmentNoActive: tEmployment('dashboardNoActive'), employmentAdd: tEmployment('dashboardAddEmployment'), laborConditions: tEmployment('laborConditions'), workerType: tEmployment('workerType'), workerEmployee: tEmployment('workerEmployee'), workerStudentIntern: tEmployment('workerStudentIntern'), workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'), workerFreelancer: tEmployment('workerFreelancer'), workerVolunteer: tEmployment('workerVolunteer'), workerNoPayroll: tEmployment('workerNoPayroll'), activity: tEmployees('dashboardActivity'), activityDescription: tEmployees('dashboardActivityDescription'), activityEmpty: tEmployees('dashboardActivityEmpty'), activityAdd: tEmployees('dashboardActivityAdd'), activityPlaceholder: tEmployees('dashboardActivityPlaceholder'), activitySave: tEmployees('dashboardActivitySave'), activitySaving: tEmployees('dashboardActivitySaving'), activityFailed: tEmployees('dashboardActivityFailed'), reminders: tEmployees('tabReminders'), remindersEmpty: tEmployees('remindersEmpty'), workflows: tEmployees('dashboardWorkflows'), workflowsDescription: tEmployees('dashboardWorkflowsDescription'),
+          contractCount: tEmployees('dashboardContractCount'), employmentNumber: tEmployment('employmentNumber'), employmentPeriod: tEmployment('period'), employmentActive: tEmployment('active'), employmentFuture: tEmployment('future'), employmentEnded: tEmployment('ended'), employmentNoActive: tEmployment('dashboardNoActive'), employmentAdd: tEmployment('dashboardAddEmployment'), laborConditions: tEmployment('laborConditions'), workerType: tEmployment('workerType'), workerEmployee: tEmployment('workerEmployee'), workerStudentIntern: tEmployment('workerStudentIntern'), workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'), workerFreelancer: tEmployment('workerFreelancer'), workerVolunteer: tEmployment('workerVolunteer'), workerNoPayroll: tEmployment('workerNoPayroll'), activity: tEmployees('dashboardActivity'), activityDescription: tEmployees('dashboardActivityDescription'), activityEmpty: tEmployees('dashboardActivityEmpty'), activityAdd: tEmployees('dashboardActivityAdd'), activityPlaceholder: tEmployees('dashboardActivityPlaceholder'), activitySave: tEmployees('dashboardActivitySave'), activitySaving: tEmployees('dashboardActivitySaving'), activityFailed: tEmployees('dashboardActivityFailed'), reminders: tEmployees('tabReminders'), remindersEmpty: tEmployees('remindersEmpty'), workflows: tEmployees('dashboardWorkflows'), workflowsDescription: tEmployees('dashboardWorkflowsDescription'), workflowsOpen: tEmployees('dashboardWorkflowsOpen'), workflowsEmpty: tEmployees('dashboardWorkflowsEmpty'), workflowsUnavailable: tEmployees('dashboardWorkflowsUnavailable'), workflowsBlocked: tEmployees('dashboardWorkflowsBlocked'), workflowsOverdue: tEmployees('dashboardWorkflowsOverdue'), workflowsStart: tEmployees('dashboardWorkflowsStart'),
           assets: tEmployees('dashboardAssets'), assetsDescription: tEmployees('dashboardAssetsDescription'), vehicles: tEmployees('dashboardVehicles'), vehiclesDescription: tEmployees('dashboardVehiclesDescription'), software: tEmployees('dashboardSoftware'), softwareDescription: tEmployees('dashboardSoftwareDescription'),
           education: tEmployees('dashboardEducation'), educationDescription: tEmployees('dashboardEducationDescription'), documents: tEmployees('tabDocuments'), documentsEmpty: tEmployees('dashboardDocumentsEmpty'), performance: tEmployees('dashboardPerformance'),
           performanceDescription: tEmployees('dashboardPerformanceDescription'), futureModule: tEmployees('dashboardFutureModule'), futureModuleDescription: tEmployees('dashboardFutureModuleDescription'), viewContracts: tEmployees('tabEmployments'), viewDocuments: tEmployees('tabDocuments'), viewReminders: tEmployees('tabReminders'), moveUp: tEmployees('dashboardMoveUp'), moveDown: tEmployees('dashboardMoveDown'), drag: tEmployees('dashboardDrag'), layoutSaving: tEmployees('dashboardLayoutSaving'), layoutSaved: tEmployees('dashboardLayoutSaved'), layoutFailed: tEmployees('dashboardLayoutFailed'), profileLinks: tEmployees('profileLinks'), noProfileLinks: tEmployees('noProfileLinks'), addProfileLink: tEmployees('addProfileLink'), linkLabel: tEmployees('linkLabel'), linkUrl: tEmployees('linkUrl'), saveLink: tEmployees('saveLink'), linkFailed: tEmployees('linkFailed'), absenceReport: tEmployees('absenceReport'), absenceStartDate: tEmployees('absenceStartDate'), absencePercentage: tEmployees('absencePercentage'), absenceExpectedRecovery: tEmployees('absenceExpectedRecovery'), absenceHasSafetyNet: tEmployees('absenceHasSafetyNet'), absenceWorkAccident: tEmployees('absenceWorkAccident'), absenceThirdPartyAccident: tEmployees('absenceThirdPartyAccident'), absenceUnknown: tEmployees('absenceUnknown'), absenceYes: tEmployees('absenceYes'), absenceNo: tEmployees('absenceNo'), absenceSubmit: tEmployees('absenceSubmit'), absenceRecover: tEmployees('absenceRecover'), absenceRecoveredOn: tEmployees('absenceRecoveredOn'), absenceSaveFailed: tEmployees('absenceSaveFailed'), absenceNowSick: tEmployees('absenceNowSick'), absenceNowNotSick: tEmployees('absenceNowNotSick'), absenceLastReport: tEmployees('absenceLastReport'), absenceNoHistory: tEmployees('absenceNoHistory'), absenceActiveSince: tEmployees('absenceActiveSince'), absenceRecoveryWindow: tEmployees('absenceRecoveryWindow'), absenceOpenCase: tEmployees('absenceOpenCase'), absenceClose: tEmployees('absenceClose'), name: tEmployees('name'), age: tEmployees('age'), daysUntilBirthday: tEmployees('daysUntilBirthday'), workEmail: tEmployees('workEmail'), privateEmail: tEmployees('privateEmail'), workPhone: tEmployees('workPhone'), privatePhone: tEmployees('privatePhone'),

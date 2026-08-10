@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Feestdagen en bedrijfsactiviteiten 2026-08-10
+
+De feestdageninstellingen ondersteunen naast lokale feestdagen nu HR-groepbrede bedrijfsactiviteiten met naam en datum. Actieve feestdagen en de eerstvolgende bedrijfsactiviteit verschijnen in de startpagina- en medewerkerheader. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) voor de lokale verificatie en de nog openstaande remote/browser-gate.
+
 ## Actuele release-status 2026-08-09
 
 De mobiele Google-login hotfix staat live. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub `main`; Vercel Production-deployment `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` is `READY` op alias `liquid-hr-hr-suite.vercel.app`. De zichtbare appversie is `1.20260809.2`. De remote `NEXT_PUBLIC_APP_URL` bleef ongewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de code gebruikt die waarde niet langer als request-origin wanneer de actuele host beschikbaar is.
@@ -14,11 +18,13 @@ De binding-editor gebruikt nu een gesloten, getypeerde developerregistry: 1 proc
 
 ## P9/P10 — formulier- en procesproef 2026-08-10
 
-P9 is lokaal en remote doorgezet voor de typed form-builder/runtime en de interne-transfer-adapter. P10 gebruikt de eerste geordende blueprint-recipe `documentkennisname`: een HR-admin start een documentkennisname, de medewerker leest het document en bevestigt, en manager/medewerker krijgen geen startbevoegdheid. Schema, RLS, RPC's, typed adapter, startpagina, werkdetail, documentroute en NL/EN-UX zijn aangesloten volgens `schema -> API -> UI`.
+P9 is lokaal en remote doorgezet voor de typed form-builder/runtime en de interne-transfer-adapter. De contextingangen zijn aangevuld volgens `schema -> API -> UI`: aparte `BLOCKED`-projectie op de startpagina, echte medewerker- en employment-proceskaarten/tabs, en geautoriseerde processtarts vanuit afdelingen en het organogram.
 
-Bewijs: op poort 3000 zijn HR-admin, Test Manager en Test Medewerker doorlopen; de medewerker opende de beveiligde documentroute, zag de SHA-256-controle, bevestigde en eindigde op `COMPLETED`; manager kreeg een nette toegangsweigering; HR kreeg de responsive startflow op desktop en 390x844. Voor de nieuwe outputbrug is de HR-admin Forms-studio opnieuw geladen met 20 bindingkeuzes; de actieve en afgeronde work-itemroutes bereikten via de nieuwe wrapper de verwachte serverguards (`FORM_REQUIRED` en `STEP_NOT_ACTIVE`). De synthetische fixture is transactioneel opgeruimd: 15 exacte document/process/form/audit/output/job- en storage-controles staan op nul en de append-only-triggers zijn weer actief. Lokaal zijn 22/22 gerichte tests, strict TypeScript, i18n, gerichte lint en de Webpack-build met 185 pagina's groen.
+De gedeelde outputbrug leest compiled `definition_json.content.output` én top-level output, accepteert geldige PostgreSQL UUID-vormen zonder foutieve RFC-versiebeperking en gebruikt de live categorie `process-internal-transfer`. Live op poort 3000 claimde de HR-admin-worker één job en rondde die af (`succeeded=1`, zonder retry/fouten). Remote zijn job `SUCCEEDED`, output `AVAILABLE`, `PROCESS_OUTPUT`-document/PDF en storage-object aanwezig; de Work-detailpagina toont `Dossier interne overplaatsing`, `Beschikbaar` en `PDF downloaden`.
 
-De compatibiliteitsfix is uitgevoerd na expliciete toestemming: de binding-aware form-wrappers houden de bestaande form-RPC's ongemoeid, terwijl de gedeelde P7-outputbrug nu via `process_definition_content(...)` zowel top-level als compiled `definition_json.content` leest. De service gebruikt de binding-aware form-wrappers; forged writes op `DOMAIN_READ`/`COMPUTED` worden server-side geweigerd. Remote `process_output_source` retourneerde voor een bestaande compiled P9-versie weer `transfer-dossier` als PDF met de verwachte velden. De code is lokaal volledig gecontroleerd en wordt in deze afsluitende stap op `main` gecommit. Een echte terminalrun met een nieuw actief form-item blijft aparte bewijswaarde houden; de huidige remote fixtures zijn afgerond of niet-formulierstappen.
+De drie testrollen zijn opnieuw doorlopen: HR Admin zag 20 afdelingsstarts, 51 organogramstarts, employment-processen en outputdownload; Test Medewerker zag de echte Workflows-kaart, medewerker-Processen-tab en employment-filter; Test Manager kreeg 0 afdelingsstarts. De actuele remote dataset bevatte geen `BLOCKED`-workitem, dus de niet-lege startpagina-blockerkaart blijft als fixturebewijs open. Het algemene medewerkerdossier toont de PDF nog niet aan een HR-admin zonder employee-record; een gerichte audience-uitbreiding naar actieve `TENANT_ADMIN`-rollen is niet toegepast zonder expliciete doelgroepgoedkeuring.
+
+Lokale eindgate: volledige suite 147 bestanden/559 tests, gerichte output/worker-tests 7/7, strict TypeScript, NL/EN-i18n, volledige ESLint, `git diff --check` en Webpack-productiebuild met 187 pagina's zijn groen. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor het resterende securitybesluit en exact live bewijs.
 
 ## Mobiele Google-login hotfix 2026-08-09
 
@@ -232,9 +238,13 @@ Medewerkers mogen het volledige organogram van de actieve administratie lezen vi
 
 De voormalige Workforce-navigatie heet `Ontwikkeling`. Medewerkers zien op `/workforce` alleen de bestaande self-serviceonderdelen waarvoor zij rechten hebben, momenteel Doorlopende beoordeling en Talentprofielen; managers en HR Admins behouden hun gescopeerde Workforce-werkruimte. De Startpagina gebruikt dezelfde filtering.
 
+## Actuele update 2026-08-10: weerbericht naar medewerkerheader
+
+Het weerbericht is uit de startpagina-header gehaald. De medewerkerheader toont nu een klein weericoon; geautoriseerde kijkers kunnen daar een drawer openen met het weer op het werk. De drawer sluit via het kruisje, Escape of een klik buiten het venster. De bron blijft server-side bepaald op basis van de werkcontext; er is geen schemawijziging.
+
 ## Actuele update 2026-08-03: compacte startpagina en persoonlijke venstervolgorde
 
-De startpagina heeft nu in de header een Full/Compact-schakelaar. Full behoudt weer, komende dagen en de volledige vensters; Compact toont alleen de begroeting en naam en laat de vensterbediening weg. In Full kunnen de brede en smalle startpaginavensters met slepen of pijlen worden geordend. View mode en volgorde worden direct per gebruiker opgeslagen in `user_preferences.ui_state.startPage`, zonder schemawijziging of remote write. De aanpak volgt de bestaande medewerkerdashboardvoorkeuren.
+De startpagina toont één volledige modus met begroeting, komende dagen en de volledige vensters. De brede en smalle startpaginavensters kunnen met slepen of pijlen worden geordend; de volgorde wordt direct per gebruiker opgeslagen in `user_preferences.ui_state.startPage`, zonder schemawijziging of remote write.
 
 ## Actuele update 2026-08-03: managerstartacties en teamscope
 
@@ -380,7 +390,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | WvP Poortwachter | [`requirements/absence/WVP_POORTWACHTER_ENGINE.md`](requirements/absence/WVP_POORTWACHTER_ENGINE.md) | LEIDEND | GEDEELTELIJK — HR Admin kan eigen niet-wettelijke taaktemplates beheren; wettelijke milestone-engine, casustaken, dossier en signaleringen blijven open totdat de set inhoudelijk is bevestigd |
 | Verzuiminstellingen | [`requirements/absence/VERZUIM_INSTELLINGEN.md`](requirements/absence/VERZUIM_INSTELLINGEN.md) | LEIDEND | GEDEELTELIJK — drempel, geldige standaardcasemanager en eigen taaktemplates zijn administratiegebonden beschikbaar; contacttypen en documentcategorieën blijven open |
 | Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport |
-| Process Automation | [`requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`](requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) | LEIDEND | P2/P3 en P4 functioneel bewezen; P5/P6/P7 schema/API/UI/contractmatig uitgevoerd; P8 studio schema/API/UI gebouwd met remote/lokale en gedeeltelijke authenticated browserbewijslast — revision-conflict UI, volledige field/preview/accessmatrix-herhaling en P9-eindbewijs blijven open; geen 100%-gate |
+| Process Automation | [`requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`](requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) | LEIDEND | P2-P9 schema/API/UI en contextstarts zijn uitgevoerd; P10-outputbrug is live end-to-end bewezen. Open: niet-lege `BLOCKED`-startpaginafixture en expliciete doelgroepgoedkeuring voor HR-admin-dossierzichtbaarheid; daarom nog geen 100%-gate |
 | Formulierlabels en validatie | [`requirements/ux/FORMULIER_VALIDATIE_EN_LABELS.md`](requirements/ux/FORMULIER_VALIDATIE_EN_LABELS.md) | LEIDEND | NIEUW — sterretje alleen bij verplichte velden en veld-/blurvalidatie volgens het UX-contract |
 | Wizard UX-standaard | [`requirements/ux/WIZARD_UX_STANDARD.md`](requirements/ux/WIZARD_UX_STANDARD.md) | LEIDEND | NIEUW — vaste shellhoogte, scrollbaar middenstuk, compacte sticky onderbalk en contextuele scrollhint |
 | Core HR | [`requirements/core-hr/MEDEWERKER.md`](requirements/core-hr/MEDEWERKER.md) | LEIDEND | GEÏMPLEMENTEERD |

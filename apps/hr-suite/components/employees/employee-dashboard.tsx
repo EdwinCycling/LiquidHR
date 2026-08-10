@@ -35,13 +35,14 @@ import type { AbsenceCaseSummary } from '@/lib/absence/service'
 import type { LeaveEmploymentOption } from '@/lib/leave/employment-resolver'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { getEmploymentCardStatus, hasActiveEmployment } from '@/lib/employment/employment-card-state'
+import type { ProcessWorkList } from '@/lib/process-automation/work-service'
 import type { EmployeeDetailViewModel } from './types'
 
 export interface EmployeeDashboardDocument { id: string; title: string; expiresOn: string | null; createdAt: string }
 
 export interface EmployeeDashboardLabels extends EmployeeDashboardSummaryLabels {
   title: string; subtitle: string; openDetails: string; workContact: string; privateContact: string; birthDate: string; nationality: string; birthPlace: string; gender: string; customFields: string; customFieldsEmpty: string; employment: string; employmentEmpty: string; department: string; jobTitle: string; manager: string; hoursPerWeek: string; salary: string; salaryHidden: string; salaryNotAvailable: string; salaryMonthly: string; salaryHourly: string; salaryLoading: string; salaryFailed: string; leave: string; leaveDescription: string; absence: string; budgets: string; budgetsDescription: string; contracts: string; contractsDescription: string; contractCount: string; employmentNumber: string; employmentPeriod: string; employmentActive: string; employmentFuture: string; employmentEnded: string; employmentNoActive: string; employmentAdd: string; laborConditions: string; workerType: string; workerEmployee: string; workerStudentIntern: string; workerTemporaryAgency: string; workerExternal: string; workerFreelancer: string; workerVolunteer: string; workerNoPayroll: string; activity: string; activityDescription: string; activityEmpty: string; activityAdd: string; activityPlaceholder: string; activitySave: string; activitySaving: string; activityFailed: string; reminders: string; remindersEmpty: string; workflows: string; workflowsDescription: string; assets: string; assetsDescription: string; vehicles: string; vehiclesDescription: string; software: string; softwareDescription: string; education: string; educationDescription: string; documents: string; documentsEmpty: string; performance: string; performanceDescription: string; futureModule: string; futureModuleDescription: string; viewContracts: string; viewDocuments: string; viewReminders: string; moveUp: string; moveDown: string; drag: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; profileLinks: string; noProfileLinks: string; addProfileLink: string; linkLabel: string; linkUrl: string; saveLink: string; linkFailed: string; absenceReport: string; absenceStartDate: string; absencePercentage: string; absenceExpectedRecovery: string; absenceHasSafetyNet: string; absenceWorkAccident: string; absenceThirdPartyAccident: string; absenceUnknown: string; absenceYes: string; absenceNo: string; absenceSubmit: string; absenceRecover: string; absenceRecoveredOn: string; absenceSaveFailed: string; absenceNowSick: string; absenceNowNotSick: string; absenceLastReport: string; absenceNoHistory: string; absenceActiveSince: string; absenceRecoveryWindow: string; absenceClose: string
-  absenceOpenCase: string
+  absenceOpenCase: string; workflowsOpen: string; workflowsEmpty: string; workflowsUnavailable: string; workflowsBlocked: string; workflowsOverdue: string; workflowsStart: string
 }
 
 interface EmployeeDashboardProps {
@@ -60,9 +61,12 @@ interface EmployeeDashboardProps {
   absence?: AbsenceCaseSummary | null
   absenceEmploymentOptions?: LeaveEmploymentOption[]
   selfReportAbsence?: boolean
+  processWork: ProcessWorkList | null
+  canReadProcesses: boolean
+  canStartProcess: boolean
 }
 
-export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, processWork, canReadProcesses, canStartProcess }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
   const visibleFields = customFields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
@@ -79,7 +83,7 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
     { id: 'employment' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.employment} actionHref="?tab=employments" actionLabel={labels.viewContracts} compact><EmploymentDashboardSummary employeeId={employee.id} employments={detail.employments} cards={detail.employmentCards} currentSummary={summary} canReadSalary={detail.capabilities?.canReadSalary === true} labels={labels} locale={locale} /></DashboardCard> },
     { id: 'profileLinks' as const, node: <DashboardCard icon={<ExternalLink className="h-4 w-4" />} title={labels.profileLinks} compact>{detail.profileLinks?.length ? <ul className="space-y-2">{detail.profileLinks.map((link) => <li key={link.id}><a className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href={link.url} target="_blank" rel="noreferrer">{link.label}<ExternalLink aria-hidden="true" size={14} /></a></li>)}</ul> : <EmptyInline>{labels.noProfileLinks}</EmptyInline>}{detail.capabilities?.canEditEmployee && <ProfileLinkForm employeeId={employee.id} labels={{ add: labels.addProfileLink, label: labels.linkLabel, url: labels.linkUrl, save: labels.saveLink, failed: labels.linkFailed }} />}</DashboardCard> },
     { id: 'reminders' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.reminders} actionHref="?tab=reminders" actionLabel={labels.viewReminders} compact>{reminders.length ? <ul className="divide-y divide-border/70">{reminders.slice(0, 4).map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.recipientId}><p className="text-sm font-medium">{item.title}</p><time className="mt-1 block text-xs text-muted-foreground" dateTime={item.remindAt}>{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</time></li>)}</ul> : <EmptyInline>{labels.remindersEmpty}</EmptyInline>}</DashboardCard> },
-    { id: 'workflows' as const, node: <PlaceholderCard icon={<Workflow className="h-4 w-4" />} title={labels.workflows} description={labels.workflowsDescription} labels={labels} /> },
+    { id: 'workflows' as const, node: <EmployeeProcessCard employeeId={employee.id} processWork={processWork} canReadProcesses={canReadProcesses} canStartProcess={canStartProcess} labels={labels} /> },
     { id: 'assets' as const, node: <PlaceholderCard icon={<Package className="h-4 w-4" />} title={labels.assets} description={labels.assetsDescription} labels={labels} /> },
     { id: 'vehicles' as const, node: <PlaceholderCard icon={<CarFront className="h-4 w-4" />} title={labels.vehicles} description={labels.vehiclesDescription} labels={labels} /> },
     { id: 'software' as const, node: <PlaceholderCard icon={<Laptop2 className="h-4 w-4" />} title={labels.software} description={labels.softwareDescription} labels={labels} /> },
@@ -89,6 +93,18 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
   ]
 
   return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><header className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow text-primary">{labels.title}</p><h2 id="employee-dashboard-title" className="mt-1 text-2xl font-semibold tracking-tight">{labels.subtitle}</h2></div><Link prefetch={false} href={`/employees/${employee.id}?tab=personal&edit=1`} className="button-secondary inline-flex items-center gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.openDetails}</Link></header><EmployeeDashboardLayout wide={wide} narrow={narrow} initialLayout={initialLayout} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
+}
+
+function EmployeeProcessCard({ employeeId, processWork, canReadProcesses, canStartProcess, labels }: { employeeId: string; processWork: ProcessWorkList | null; canReadProcesses: boolean; canStartProcess: boolean; labels: EmployeeDashboardLabels }) {
+  const items = processWork?.items.slice(0, 3) ?? []
+  return <DashboardCard icon={<Workflow className="h-4 w-4" />} title={labels.workflows} actionHref="?tab=processes" actionLabel={labels.workflowsOpen} compact>
+    <p className="text-sm leading-6 text-muted-foreground">{canReadProcesses ? labels.workflowsDescription : labels.workflowsUnavailable}</p>
+    {items.length > 0 ? <ul className="mt-4 divide-y divide-border/70">{items.map((item) => {
+      const blocked = item.instanceStatus === 'BLOCKED' || item.status === 'BLOCKED'
+      return <li className="py-3 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}><span className="flex items-start justify-between gap-3"><span className="min-w-0 font-semibold leading-5">{item.processTitle}</span>{blocked ? <span className="status-chip shrink-0 bg-warning-surface text-warning">{labels.workflowsBlocked}</span> : item.isOverdue ? <span className="status-chip shrink-0 bg-destructive-surface text-destructive">{labels.workflowsOverdue}</span> : null}</span><span className="mt-1 block text-xs text-muted-foreground">{item.stepTitle}</span></Link></li>
+    })}</ul> : <p className="mt-4 rounded-xl border border-dashed bg-background p-4 text-sm leading-6 text-muted-foreground">{canReadProcesses ? labels.workflowsEmpty : labels.workflowsUnavailable}</p>}
+    {canStartProcess ? <Link className="button-secondary mt-4 inline-flex" href={`/work/new/internal-transfer?employeeId=${employeeId}`}>{labels.workflowsStart}</Link> : null}
+  </DashboardCard>
 }
 
 function EmploymentSummaryList({
