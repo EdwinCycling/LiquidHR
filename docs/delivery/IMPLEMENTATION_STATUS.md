@@ -2,7 +2,7 @@
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 
-De lokale `main`-basis bevat de bedrijfsactiviteiten/feestdagen- en employment-overzichtslice plus de gecontroleerde Liquid Flow UX-slice. De zichtbare appversie is verhoogd in `apps/hr-suite/lib/app-version.ts`; de technische npm-versie blijft ongewijzigd. De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. Remote schema, GitHub en Vercel worden pas daarna gecontroleerd.
+De lokale `main`-basis bevat de bedrijfsactiviteiten/feestdagen- en employment-overzichtslice plus de gecontroleerde Liquid Flow UX-slice. De zichtbare appversie is verhoogd in `apps/hr-suite/lib/app-version.ts`; de technische npm-versie blijft ongewijzigd. De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. GitHub `main` staat op `edf8de9`; Vercel Production `dpl_FtSAqLQqavF5JBg4ax1E6vWVJFme` is `READY` op exact deze commit, `/login` geeft HTTP 200 en de runtime-scan over het laatste uur is schoon.
 
 ## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
