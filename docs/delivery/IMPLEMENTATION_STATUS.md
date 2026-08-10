@@ -12,6 +12,36 @@ Bewijs: 7/7 gerichte auth-tests, volledige Vitest-suite 145/546, strict typechec
 
 De zichtbare productversie is voor deze release verhoogd naar `1.20260809.2` in `apps/hr-suite/lib/app-version.ts`; de unit-test verwacht dezelfde waarde.
 
+## Form Builder: volwassen veldtypen 2026-08-09
+
+Het formuliercontract bevatte al 16 volwassen invoertypen, maar de Form Builder bood er eerder slechts 5 aan. De nieuwe centrale catalogus exposeert nu alle 16 typen in drie herkenbare groepen: 9 invoervelden (`SHORT_TEXT`, `LONG_TEXT`, `INTEGER`, `DECIMAL`, `MONEY`, `DATE`, `TIME`, `DATETIME`, `BOOLEAN`), 2 keuzevelden (`SINGLE_SELECT`, `MULTI_SELECT`) en 5 referenties (`EMPLOYEE_REFERENCE`, `DEPARTMENT_REFERENCE`, `JOB_REFERENCE`, `EMPLOYMENT_REFERENCE`, `DOCUMENT_REFERENCE`).
+
+De studio heeft type-specifieke previews, stabiele technische veldsleutels en bindings, Nederlandse en Engelse labels/helptekst, keuzeopties met toevoegen/wijzigen/verwijderen en een read-only guard voor gepubliceerde definities. De runtime gebruikt voor document-/bijlagereferenties de bestaande `employee_documents`-leesweg met tenant-, administratie- en verwijderfilter; remote is read-only bevestigd dat de tabel bestaat, RLS aan heeft en authenticated policies voor lezen/schrijven gebruikt. Er was geen nieuwe Supabase-migratie nodig.
+
+Bewijs: de HR-admin test-draft `internal-transfer-mslq73xj-copy-mslqd4ax` bevat na reload alle 16 typen; de keuze-editor en NL/EN desktop/390px-preview zijn in de Codex-browser doorlopen. Manager en medewerker kregen bij directe toegang tot de studio `/geen-toegang`. Lokaal zijn 21/21 gerichte tests, strict TypeScript, i18n-pariteit, lint zonder warnings, `git diff --check` en de Webpack-productiebuild met 183 pagina's geslaagd. De blueprint houdt de herhaalbare groep expliciet aan als vervolgstap nadat de basis stabiel is; presentatieblokken zijn een aparte buildercategorie en vallen niet onder deze 16 invoertypen. Er is niets gecommit, gepusht of gedeployed.
+
+## Form Builder bindings 2026-08-10
+
+De vier contractcategorieën zijn uitgewerkt in een gesloten developerregistry: `PROCESS_ONLY` voor procesantwoorden, 11 getypeerde `DOMAIN_READ`-projecties voor subject/organisatie/dienstverband/documentcontext, de 3 bestaande `DOMAIN_PROPOSAL`-routes voor interne overplaatsing en 7 `COMPUTED`-formules voor veilige contextberekeningen. De builder filtert bindings op veldtype en toont categorie, registry key/formula en NL/EN beschrijving; administrators kiezen geen tabel, kolom, SQL of vrije formule.
+
+De compiler valideert registrybestaan, typecompatibiliteit en write-semantiek. `DOMAIN_READ` en `COMPUTED` zijn server-side read-only; `DOMAIN_PROPOSAL` vereist minimaal één schrijvende participant. De migratie `apps/hr-suite/supabase/migrations/20260810062127_process_automation_form_binding_runtime_compatibility.sql` bevat de private resolver en forged-write guard in aparte binding-aware projection/save-wrappers; de bestaande gedeelde RPC's blijven compatibel en ongewijzigd.
+
+Bewijs: de gerichte form-field/compiler-tests zijn 21/21 groen, strict TypeScript, NL/EN-i18n, gerichte ESLint en `git diff --check` zijn groen. De remote wrappermigratie is uitgevoerd via de gekoppelde CLI, als `20260810062127` geregistreerd en gecontroleerd met functiehashes, grants en het gegenereerde typecontract. Advisors zijn opnieuw uitgevoerd: security 38 totaal (1 INFO/37 bestaande WARN), performance 389 INFO; geen wrapper-specifieke bevinding.
+
+De lokale browsercontrole op poort 3000 bevestigde de nieuwe binding-editor voor HR Admin met 20 binding-selectors in de P9-draft en correcte studio-weigering voor manager en medewerker (`/geen-toegang`). Een schone HR-admin-herhaling van de workspace had geen nieuwe console-error. De actieve en afgeronde work-itemroutes bereikten via de nieuwe wrapper de verwachte serverguards `FORM_REQUIRED` en `STEP_NOT_ACTIVE`; daarmee is de service-route naar de compatibiliteitsbrug bewezen. Bij de eerdere client-side testrolwisseling verscheen alleen een Next development-only `ProcessAutomationSettingsPage`-negative-timestamp uit de performance-instrumentatie; er was geen Forms-modulefout.
+
+## P9/P10 — formulier- en procesproef 2026-08-10
+
+P9 is doorgezet met de typed form-builder/runtime en de interne-transfer-adapter. P10 implementeert de eerste geordende blueprint-recipe `documentkennisname`. De verticale slice bestaat uit de P10-tabel/RLS/grants/RPC's, catalogusdefinitie, typed document-acknowledgement-service, start-API/UI, secure document-API en de bestaande Work/detail-renderer. De acknowledgement schrijft via de bestaande domeinbron een gecontroleerde `employee_document_acknowledgements`-commit; de formuliertekst, documentmetadata en checksum zijn expliciet zichtbaar.
+
+Remote zijn de P10-migratie en de additive security-/metadata-/variable-fixes toegepast op Supabase-project `wnpfloqpjvaacobppbpk`; de P10-recipe is gepubliceerd. De drie testrollen zijn op localhost:3000 gecontroleerd: HR-admin startte, medewerker opende de secure documentroute en bevestigde naar `COMPLETED`, manager kreeg een gelokaliseerde rechtenmelding. Desktop en 390x844 zijn gecontroleerd. De fixture-cleanup is aantoonbaar groen: 15 exacte document/process/form/audit/output/job/storage-controles staan op 0; de vier tijdelijk uitgeschakelde append-only-triggers zijn vóór commit weer ingeschakeld. Remote advisors tonen geen nieuwe P10-specifieke waarschuwing.
+
+Lokale gate: 22/22 gerichte Process Automation-tests, strict TypeScript, i18n-pariteit, gerichte ESLint, `git diff --check` en `npx next build --webpack` met 185 pagina's zijn groen. De lokale server draait op poort 3000. De actuele browserconsole bevat oude pre-fix/date-rollovermeldingen; de schone manager-herhaling na de permissie-fix had geen nieuwe runtime-overlay. Dit wordt daarom niet als een volledig historische console-reset geclaimd.
+
+### P10 compatibiliteitsstatus
+
+De expliciet goedgekeurde compatibiliteitsfix bestaat uit `20260810062127_process_automation_form_binding_runtime_compatibility.sql` en `20260810063300_process_automation_output_content_compatibility.sql`. De eerste migration maakt additive binding-aware projection/save-wrappers met behoud van actor-, scope-, document- en concurrencychecks; de bestaande form-RPC's zijn ongewijzigd. De tweede past de gedeelde P7-outputtrigger en `process_output_source` gericht aan met `process_definition_content(...)`, zodat top-level en compiled `definition_json.content` beide werken. Een read-only remote proef op de bestaande compiled P9-versie retourneerde `transfer-dossier`, `PDF`, `process-internal-transfer` en de verwachte outputvelden. Een nieuwe terminalrun met een actief P10-form-item blijft open als aanvullend inhoudelijk HTML/PDF-bewijs omdat de behouden remote fixtures geen actief formulieritem bevatten. De code-, remote schema/grant-, advisor- en drie-rol-gates zijn groen; commit op `main` volgt na de volledige eindtests.
+
 ## P8 — proces- en formulierstudio 2026-08-09
 
 P8 is geïmplementeerd in de feature-worktree en lokaal samengevoegd naar `main` in mergecommit `2ff60c5`. `main` is nu de gecombineerde lokale testbasis; er is niets naar GitHub gepusht of gedeployed en er is geen down-scenario uitgevoerd. Alleen synthetische testdata en de drie bestaande interne testaccounts zijn gebruikt.

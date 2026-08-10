@@ -6,6 +6,7 @@ import {
   stableDefinitionHash,
 } from './definition-compiler'
 import { processDefinitionDraftSchema, type FieldDefinition, type ProcessDefinitionDraft } from './definition-schemas'
+import { documentAcknowledgementFixture } from './fixtures/document-acknowledgement'
 import { internalTransferFixture } from './fixtures/internal-transfer'
 
 function copyFixture(): ProcessDefinitionDraft {
@@ -61,6 +62,13 @@ describe('process definition compiler', () => {
     expect(stableDefinitionHash({ b: 2, a: 1 })).toBe(stableDefinitionHash({ a: 1, b: 2 }))
   })
 
+  it('compiles the document acknowledgement recipe with its document binding and PDF output', () => {
+    expect(processDefinitionDraftSchema.safeParse(documentAcknowledgementFixture).success).toBe(true)
+    const compiled = compileProcessDefinition(documentAcknowledgementFixture)
+    expect(compiled.content.steps.find((step) => step.key === 'acknowledge')?.type).toBe('ACKNOWLEDGEMENT')
+    expect(compiled.content.output?.dossierCategoryKey).toBe('process-document-acknowledgement')
+  })
+
   it('evaluates only the typed condition AST', () => {
     const condition = {
       operator: 'and' as const,
@@ -104,6 +112,29 @@ describe('process definition compiler', () => {
     const field = fieldByKey(definition, 'current-department')
     field.binding = { kind: 'DOMAIN_READ', key: 'employee.current.unknown' }
     compileFailure(definition, 'FIELD_BINDING_UNKNOWN', ['forms'])
+  })
+
+  it('accepts registered computed bindings when the field is read-only', () => {
+    const definition = copyFixture()
+    const field = fieldByKey(definition, 'reason')
+    field.type = 'SHORT_TEXT'
+    field.binding = { kind: 'COMPUTED', formulaKey: 'subject-display-name' }
+    field.access = field.access.map((rule) => ({ ...rule, mode: rule.mode === 'WRITE_OPTIONAL' ? 'READ' as const : rule.mode }))
+    expect(() => compileProcessDefinition(definition)).not.toThrow()
+  })
+
+  it('rejects writable access for read and computed bindings', () => {
+    const definition = copyFixture()
+    const field = fieldByKey(definition, 'current-department')
+    field.access = field.access.map((rule) => rule.participantKey === 'initiator' ? { ...rule, mode: 'WRITE_OPTIONAL' as const } : rule)
+    compileFailure(definition, 'FIELD_BINDING_WRITE_NOT_ALLOWED', ['forms'])
+  })
+
+  it('rejects a proposal without a writable participant', () => {
+    const definition = copyFixture()
+    const field = fieldByKey(definition, 'target-department')
+    field.access = field.access.map((rule) => ({ ...rule, mode: 'READ' as const }))
+    compileFailure(definition, 'FIELD_PROPOSAL_NOT_WRITABLE', ['forms'])
   })
 
   it('rejects a selector that points to an unknown field', () => {
@@ -155,6 +186,7 @@ describe('process definition compiler', () => {
     const definition = copyFixture()
     if (!definition.output) throw new Error('Fixture output not found')
     definition.output.format = 'PDF'
+    definition.output.dossierCategoryKey = undefined
     compileFailure(definition, 'OUTPUT_DOCUMENT_CATEGORY_REQUIRED', ['output'])
   })
 

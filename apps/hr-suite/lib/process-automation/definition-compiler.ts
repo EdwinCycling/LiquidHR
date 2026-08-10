@@ -14,6 +14,7 @@ import {
   processDefinitionDraftSchema,
 } from './definition-schemas'
 import { collectConditionFieldReferences, validateCondition } from './condition-evaluator'
+import { bindingAllowsWrite, bindingCatalogEntry } from './form-binding-catalog'
 
 export const PROCESS_DEFINITION_SCHEMA_VERSION = 1 as const
 export const PROCESS_DEFINITION_COMPILER_VERSION = '1.0.0' as const
@@ -138,14 +139,6 @@ interface IndexedField {
 interface FieldLikeForSecurity {
   readonly key: string
   readonly access: ReadonlyArray<{ readonly participantKey: string; readonly mode: FieldAccessMode }>
-}
-
-const knownDomainBindings: Readonly<Record<string, { readonly kind: 'DOMAIN_READ' | 'DOMAIN_PROPOSAL'; readonly type: FieldType }>> = {
-  'employee.current.department': { kind: 'DOMAIN_READ', type: 'DEPARTMENT_REFERENCE' },
-  'employee.current.job': { kind: 'DOMAIN_READ', type: 'JOB_REFERENCE' },
-  'employment.organizationChange.targetDepartment': { kind: 'DOMAIN_PROPOSAL', type: 'DEPARTMENT_REFERENCE' },
-  'employment.organizationChange.targetJob': { kind: 'DOMAIN_PROPOSAL', type: 'JOB_REFERENCE' },
-  'employment.organizationChange.effectiveOn': { kind: 'DOMAIN_PROPOSAL', type: 'DATE' },
 }
 
 const humanStepTypes: ReadonlySet<ProcessStepType> = new Set(['FORM', 'DECISION', 'ACKNOWLEDGEMENT'])
@@ -400,13 +393,29 @@ function accessRules(field: FieldDefinition, fieldPath: ReadonlyArray<string | n
 
 function validateBinding(field: FieldDefinition, fieldPath: ReadonlyArray<string | number>, issues: DefinitionCompileIssue[]): void {
   const binding = field.binding
-  if (binding.kind === 'DOMAIN_READ' || binding.kind === 'DOMAIN_PROPOSAL') {
-    const known = knownDomainBindings[binding.key]
-    if (!known) issue(issues, 'FIELD_BINDING_UNKNOWN', [...fieldPath, 'binding', 'key'], `Unknown domain binding: ${binding.key}`)
-    else {
-      if (known.kind !== binding.kind) issue(issues, 'FIELD_BINDING_KIND_MISMATCH', [...fieldPath, 'binding', 'kind'], `Binding ${binding.key} must use ${known.kind}`)
-      if (known.type !== field.type) issue(issues, 'FIELD_BINDING_TYPE_MISMATCH', [...fieldPath, 'type'], `Binding ${binding.key} requires ${known.type}`)
-    }
+  const entry = bindingCatalogEntry(binding)
+  const bindingIdentifier = binding.kind === 'PROCESS_ONLY'
+    ? 'PROCESS_ONLY'
+    : binding.kind === 'COMPUTED'
+      ? binding.formulaKey
+      : binding.key
+  const bindingPathKey = binding.kind === 'COMPUTED' ? 'formulaKey' : binding.kind === 'PROCESS_ONLY' ? 'kind' : 'key'
+  if (!entry) {
+    issue(issues, 'FIELD_BINDING_UNKNOWN', [...fieldPath, 'binding', bindingPathKey], `Unknown binding registry entry: ${bindingIdentifier}`)
+    return
+  }
+  if (entry.kind !== binding.kind) issue(issues, 'FIELD_BINDING_KIND_MISMATCH', [...fieldPath, 'binding', 'kind'], `Binding ${bindingIdentifier} must use ${entry.kind}`)
+  if (entry.type !== null && entry.type !== field.type) issue(issues, 'FIELD_BINDING_TYPE_MISMATCH', [...fieldPath, 'type'], `Binding ${bindingIdentifier} requires ${entry.type}`)
+
+  if (!bindingAllowsWrite(binding.kind)) {
+    field.access.forEach((rule, index) => {
+      if (rule.mode === 'WRITE_OPTIONAL' || rule.mode === 'WRITE_REQUIRED') {
+        issue(issues, 'FIELD_BINDING_WRITE_NOT_ALLOWED', [...fieldPath, 'access', index, 'mode'], `${binding.kind} bindings are read-only`)
+      }
+    })
+  }
+  if (binding.kind === 'DOMAIN_PROPOSAL' && !field.access.some((rule) => rule.mode === 'WRITE_OPTIONAL' || rule.mode === 'WRITE_REQUIRED')) {
+    issue(issues, 'FIELD_PROPOSAL_NOT_WRITABLE', [...fieldPath, 'access'], 'DOMAIN_PROPOSAL bindings require at least one writable access rule')
   }
 }
 

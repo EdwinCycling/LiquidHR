@@ -28,5 +28,9 @@ export default async function ProcessRuntimePage({ params }: Params) {
     noValue: t('noValue'),
     booleanTrue: t('booleanTrue'),
     booleanFalse: t('booleanFalse'),
+    referenceSearch: t('referenceSearch'),
+    referenceLoading: t('referenceLoading'),
+    referenceNoOptions: t('referenceNoOptions'),
+    scrollHint: t('scrollHint'),
   }} />
 }

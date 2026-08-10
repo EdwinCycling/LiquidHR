@@ -32,7 +32,7 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
       label: text('Nieuwe manager', 'New manager'),
       selector: {
         type: 'MANAGEMENT_ROLE_ON_SELECTED_DEPARTMENT',
-        roleCode: 'department-manager',
+        roleCode: 'DIRECT_MANAGER',
         departmentFieldKey: 'target-department',
         resolutionDatePolicy: 'BUSINESS_EFFECTIVE_DATE',
       },
@@ -79,6 +79,30 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
               label: text('Nieuwe afdeling', 'Target department'),
               type: 'DEPARTMENT_REFERENCE',
               binding: { kind: 'DOMAIN_PROPOSAL', key: 'employment.organizationChange.targetDepartment' },
+              access: [
+                access('initiator', 'WRITE_REQUIRED'),
+                access('source-manager', 'READ'),
+                access('target-manager', 'READ'),
+                access('hr-queue', 'WRITE_OPTIONAL'),
+              ],
+            },
+            {
+              key: 'current-job',
+              label: text('Huidige functie', 'Current job'),
+              type: 'JOB_REFERENCE',
+              binding: { kind: 'DOMAIN_READ', key: 'employee.current.job' },
+              access: [
+                access('initiator', 'READ'),
+                access('source-manager', 'READ'),
+                access('target-manager', 'READ'),
+                access('hr-queue', 'READ'),
+              ],
+            },
+            {
+              key: 'target-job',
+              label: text('Nieuwe functie', 'Target job'),
+              type: 'JOB_REFERENCE',
+              binding: { kind: 'DOMAIN_PROPOSAL', key: 'employment.organizationChange.targetJob' },
               access: [
                 access('initiator', 'WRITE_REQUIRED'),
                 access('source-manager', 'READ'),
@@ -194,9 +218,10 @@ export const internalTransferFixture: ProcessDefinitionDraft = {
     { key: 'hr-cancel', fromStepKey: 'hr-validation', toStepKey: 'cancelled', action: 'CANCEL', kind: 'FORWARD', label: text('Annuleer', 'Cancel') },
   ],
   output: {
-    key: 'transfer-summary',
+    key: 'transfer-dossier',
     title: text('Samenvatting interne overplaatsing', 'Internal transfer summary'),
-    format: 'JSON',
-    fieldKeys: ['current-department', 'target-department', 'effective-on', 'reason'],
+    format: 'PDF',
+    dossierCategoryKey: 'process-internal-transfer',
+    fieldKeys: ['current-department', 'current-job', 'target-department', 'target-job', 'effective-on', 'reason'],
   },
 }

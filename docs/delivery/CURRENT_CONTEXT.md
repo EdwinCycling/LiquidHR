@@ -5,6 +5,30 @@
 - De mobiele Google-login hotfix is live op `main`. Mergecommit `54f5f235c2523612008f5425586f72fc19ab0687` staat op GitHub; Vercel Production `dpl_3g6rdX6aK6imhbcAGsgPNV3M15L4` staat `READY` met alias `liquid-hr-hr-suite.vercel.app`.
 - De zichtbare productversie is `1.20260809.2`. `NEXT_PUBLIC_APP_URL` is remote niet gewijzigd omdat de beschikbare Vercel-sessie opnieuw login vroeg; de request-origin-fix maakt de stale waarde niet langer bepalend.
 
+## Form Builder veldtypen 2026-08-09
+
+- De studio-catalogus exposeert nu alle 16 volwassen contracttypen: invoer, keuzevelden en employee/department/job/employment/document-referenties.
+- De builder ondersteunt per type een passende preview; keuzevelden hebben een echte NL/EN-optie-editor; labels, helptekst, technische key/binding en gepubliceerde read-only status zijn zichtbaar en bewaakt.
+- De documentreferentie gebruikt de bestaande RLS-afgeschermde `employee_documents`-leesweg. Remote schema/policies zijn read-only gecontroleerd; er is geen migration nodig.
+- HR-admin browserbewijs: alle 16 typen toegevoegd aan de synthetische P8-clone, na reload behouden, NL/EN en desktop/390px gecontroleerd. Manager/medewerker kregen `/geen-toegang`. 21/21 gerichte tests, typecheck, i18n, lint, diff-check en Webpack-build zijn groen.
+- Open volgens blueprint: herhaalbare groepen zijn bewust nog uitgesteld tot na stabilisatie van de basis; presentatieblokken zijn een aparte toekomstige builderlaag.
+
+## Form Builder bindings 2026-08-10
+
+- De studio gebruikt een gesloten developerregistry met 22 keuzes: `PROCESS_ONLY`, 11 getypeerde `DOMAIN_READ`-projecties, de 3 bestaande P9-voorstelroutes en 7 serverformules onder `COMPUTED`.
+- De builder toont per veld de categorie, registry key/formula en NL/EN uitleg. Onbekende bindings, typeconflicten, write access op `DOMAIN_READ`/`COMPUTED` en niet-schrijfbare `DOMAIN_PROPOSAL`-velden worden door de compiler geblokkeerd. Bij het kiezen van read/computed wordt bestaande write access veilig naar read omgezet.
+- Lokaal bewijs: de gerichte form-field/compiler-suite is 21/21 groen; strict TypeScript, i18n, gerichte ESLint en `git diff --check` zijn groen.
+- Browserbewijs: HR Admin ziet de getypeerde binding-editor op poort 3000 met 20 selectors in de P9-draft; manager wordt naar `/geen-toegang` geweigerd en medewerker naar `/geen-toegang` geweigerd. Een schone HR-admin-herhaling van de Forms-workspace had geen nieuwe console-error. De actieve en afgeronde work-itemroutes bereikten via de nieuwe wrapper respectievelijk de verwachte serverguards `FORM_REQUIRED` en `STEP_NOT_ACTIVE`; er is geen oude output-RPC aangeroepen. Tijdens de eerdere client-side testrolwisseling logde Next development-only een `ProcessAutomationSettingsPage`-negative-timestamp uit zijn eigen performance-instrumentatie; dit is geen Forms-fout.
+- Remote compatibiliteit is toegepast in `20260810062127_process_automation_form_binding_runtime_compatibility.sql` en `20260810063300_process_automation_output_content_compatibility.sql`. De eerste migratie maakt aparte binding-aware projection/save-wrappers met dezelfde actor-, scope-, document- en concurrencychecks; de bestaande gedeelde form-RPC's zijn ongewijzigd gebleven. De tweede normaliseert de gedeelde P7-outputtrigger en `process_output_source` via `process_definition_content(...)`, zodat top-level en compiled `definition_json.content` werken. Remote functiehashes, wrapperbestaan, authenticated grants en het gegenereerde typecontract zijn gecontroleerd. Advisors zijn opnieuw uitgevoerd: 1 bestaande security-INFO, 37 projectbaseline-security-WARNs en 389 performance-INFO's; geen wrapper- of outputcompatibiliteitsbevinding.
+
+## P9/P10 — actuele overdracht 2026-08-10
+
+- P9 is lokaal/remote doorgezet voor de typed form-builder/runtime en interne-transfer-adapter. P10 kiest de eerste geordende blueprint-recipe `documentkennisname` en volgt `schema -> API -> UI`.
+- Remote P10-migratie en daaropvolgende security-, metadata- en variable-fixes zijn toegepast. HR-admin startte op localhost:3000; Test Medewerker opende de secure documentroute, zag checksum, bevestigde en eindigde op `COMPLETED`; Test Manager kreeg een nette rechtenmelding. Desktop en 390x844 zijn gecontroleerd.
+- Cleanup is groen: exact 15 document/process/form/audit/output/job/storage-controles staan op 0. Append-only-triggers zijn na de gecontroleerde cleanup weer enabled. Advisors tonen geen P10-specifieke melding.
+- Lokale checks zijn groen: 22/22 gerichte tests, strict TypeScript, i18n, gerichte ESLint, `git diff --check` en Webpack-build met 185 pagina's.
+- De gedeelde outputcompatibiliteit is na expliciete toestemming gericht opgelost. De bestaande form-RPC's zijn niet aangepast; de gedeelde P7-outputtrigger en `process_output_source` gebruiken nu de content-normalizer. Een read-only remote proef op de bestaande compiled P9-versie retourneerde `transfer-dossier`, `PDF`, `process-internal-transfer` en de verwachte outputvelden. Een nieuwe terminalrun met een actief P10-form-item is nog niet beschikbaar in de behouden remote fixture; daarom claimen we hiervoor geen nieuw HTML/PDF-bestand bovenop het bestaande P10-cleanupbewijs. De code-, remote schema/grant-, advisor- en drie-rol-gates voor deze wijziging zijn afgerond; commit op `main` volgt na de eindtests.
+
 ## Mobiele Google-login hotfix 2026-08-09
 
 - Oorzaak bewezen in de actuele productieflow: de OAuth-aanvraag bevatte `redirect_to=https://liquidhr.vercel.app/auth/callback?...`, afkomstig uit een verouderde `NEXT_PUBLIC_APP_URL`. Dit domein is geen actueel projectdomein en staat niet in de Supabase-redirectallowlist. Supabase verwerkte Google `/authorize` en `/callback` met 302, maar daarna volgde geen PKCE-tokenwisseling; de fallback naar de Site URL verklaart de terugkeer naar de startpagina zonder sessie.

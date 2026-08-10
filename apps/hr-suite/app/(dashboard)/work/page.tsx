@@ -1,5 +1,8 @@
+import Link from 'next/link'
 import { ProcessWorkWorkspace, type ProcessWorkspaceLabels } from '@/components/process-automation/process-workspace'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getDocumentAcknowledgementStartData } from '@/lib/process-automation/document-acknowledgement-service'
+import { getInternalTransferStartData } from '@/lib/process-automation/internal-transfer-start-service'
 import { listProcessWork, listProcessWorkFilterOptions, type ProcessWorkSort, type ProcessWorkTab, ProcessWorkError } from '@/lib/process-automation/work-service'
 
 interface WorkPageProps {
@@ -98,5 +101,13 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   }
 
   const options = await listProcessWorkFilterOptions().catch(() => ({ processes: [], administrations: [] }))
-  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} tab={currentTab} search={currentSearch} status={currentStatus} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} errorCode={errorCode} />
+  const canStartInternalTransfer = await getInternalTransferStartData().then(() => true).catch(() => false)
+  const canStartDocumentAcknowledgement = await getDocumentAcknowledgementStartData().then(() => true).catch(() => false)
+  return <>
+    {canStartInternalTransfer || canStartDocumentAcknowledgement ? <div className="mx-auto flex w-full max-w-[92rem] flex-wrap justify-end gap-2 px-4 pt-6 sm:px-6 lg:px-10">
+      {canStartDocumentAcknowledgement ? <Link className="button-secondary" href="/work/new/document-acknowledgement">{t('p10.startTitle')}</Link> : null}
+      {canStartInternalTransfer ? <Link className="button-primary" href="/work/new/internal-transfer">{t('p9.startTitle')}</Link> : null}
+    </div> : null}
+    <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} tab={currentTab} search={currentSearch} status={currentStatus} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} errorCode={errorCode} />
+  </>
 }

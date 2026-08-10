@@ -7,6 +7,7 @@ const bindingKeyPattern = /^[a-z][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*$/
 
 export const definitionSchemaVersion = z.literal(1)
 export const identifierSchema = z.string().trim().min(1).max(80).regex(identifierPattern)
+const roleCodeSchema = z.string().trim().min(1).max(80).regex(/^[A-Za-z][A-Za-z0-9]*(?:[-_][A-Za-z0-9]+)*$/)
 export const languageCodeSchema = z.string().trim().regex(languagePattern)
 export const permissionSchema = z.string().trim().regex(permissionPattern)
 export const localizedTextSchema = z.record(languageCodeSchema, z.string().trim().min(1).max(4000))
@@ -70,20 +71,20 @@ const directManagerSelectorSchema = z.object({
 }).strict()
 const subjectDepartmentManagementSelectorSchema = z.object({
   type: z.literal('MANAGEMENT_ROLE_ON_SUBJECT_DEPARTMENT'),
-  roleCode: identifierSchema,
+  roleCode: roleCodeSchema,
   resolutionDatePolicy: resolutionDatePolicySchema,
   fixedDateFieldKey: identifierSchema.optional(),
 }).strict()
 const selectedDepartmentManagementSelectorSchema = z.object({
   type: z.literal('MANAGEMENT_ROLE_ON_SELECTED_DEPARTMENT'),
-  roleCode: identifierSchema,
+  roleCode: roleCodeSchema,
   departmentFieldKey: identifierSchema,
   resolutionDatePolicy: resolutionDatePolicySchema,
   fixedDateFieldKey: identifierSchema.optional(),
 }).strict()
 const processDepartmentManagementSelectorSchema = z.object({
   type: z.literal('MANAGEMENT_ROLE_ON_PROCESS_DEPARTMENT'),
-  roleCode: identifierSchema,
+  roleCode: roleCodeSchema,
   resolutionDatePolicy: resolutionDatePolicySchema,
   fixedDateFieldKey: identifierSchema.optional(),
 }).strict()
@@ -131,7 +132,7 @@ export const participantDefinitionSchema = z.object({
 }).strict()
 export type ParticipantDefinition = z.infer<typeof participantDefinitionSchema>
 
-export const fieldTypeSchema = z.enum([
+export const fieldTypeValues = [
   'SHORT_TEXT',
   'LONG_TEXT',
   'INTEGER',
@@ -148,7 +149,8 @@ export const fieldTypeSchema = z.enum([
   'JOB_REFERENCE',
   'EMPLOYMENT_REFERENCE',
   'DOCUMENT_REFERENCE',
-])
+] as const
+export const fieldTypeSchema = z.enum(fieldTypeValues)
 export type FieldType = z.infer<typeof fieldTypeSchema>
 
 export const fieldBindingSchema = z.discriminatedUnion('kind', [

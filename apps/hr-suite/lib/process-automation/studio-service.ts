@@ -545,7 +545,16 @@ export async function runStudioTrial(definitionId: string, input: z.infer<typeof
     throw error
   }
 
+  const scopedActiveEmployeeIds = new Set(trialData.employees
+    .filter((employee) => employee.isActive && (context.administrationId === null || employee.administrationIds.includes(context.administrationId)))
+    .map((employee) => employee.employeeId))
   const fallbackSubject = trialData.employees.find((employee) => employee.employeeId === context.employeeId && employee.isActive)?.employeeId
+    ?? trialData.employees.find((employee) => employee.isActive
+      && employee.userId !== null
+      && scopedActiveEmployeeIds.has(employee.employeeId)
+      && trialData.placements.some((placement) => placement.employeeId === employee.employeeId
+        && placement.directManagerId !== null
+        && (context.administrationId === null || placement.administrationId === context.administrationId)))?.employeeId
     ?? trialData.employees.find((employee) => employee.isActive)?.employeeId
     ?? null
   const subjectEmployeeId = input.subjectEmployeeId ?? fallbackSubject
@@ -553,11 +562,17 @@ export async function runStudioTrial(definitionId: string, input: z.infer<typeof
   const blockers: StudioIssue[] = []
   if (!subjectEmployeeId) blockers.push(trialIssue('SUBJECT_EMPLOYEE_REQUIRED', ['subjectEmployeeId'], 'Kies een actieve synthetische medewerker voor de procesproef.'))
   const subjectPlacement = trialData.placements.find((placement) => placement.employeeId === subjectEmployeeId)
-  const targetDepartment = trialData.departments.find((department) => department.id !== subjectPlacement?.departmentId && department.isActive)?.id ?? subjectPlacement?.departmentId ?? null
+  const targetDepartment = trialData.departments.find((department) => department.id !== subjectPlacement?.departmentId
+    && department.isActive
+    && trialData.managementAssignments.some((assignment) => assignment.departmentId === department.id
+      && assignment.roleCode === 'DIRECT_MANAGER'
+      && scopedActiveEmployeeIds.has(assignment.employeeId)))?.id
+    ?? subjectPlacement?.departmentId
+    ?? null
   const resolverContext: AssignmentResolutionContext = {
     scope: { tenantId: context.tenantId, hrGroupId: requireHrGroupId(context), administrationId: context.administrationId },
     subjectEmployeeId: subjectEmployeeId ?? '',
-    initiatorEmployeeId: context.employeeId,
+    initiatorEmployeeId: context.employeeId ?? subjectEmployeeId,
     processStartedAt: `${input.date}T09:00:00Z`,
     stepActivatedAt: `${input.date}T09:00:00Z`,
     businessEffectiveDate: input.date,

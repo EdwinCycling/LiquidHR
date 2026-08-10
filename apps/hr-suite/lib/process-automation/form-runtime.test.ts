@@ -52,6 +52,27 @@ describe('process form runtime contract', () => {
     expect(isFormValueValid(projection.sections[0].fields[2], [])).toBe(true)
   })
 
+  it('accepts database UUIDs whose version nibble is not RFC-labelled', () => {
+    const referenceField = {
+      ...projection.sections[0].fields[0],
+      key: 'target-job',
+      type: 'JOB_REFERENCE',
+      required: true,
+    }
+    expect(isFormValueValid(referenceField, '2dd2e09e-b407-d4fa-ce24-092ca427a78c')).toBe(true)
+  })
+
+  it('validates document references through the same typed reference contract', () => {
+    const documentField = {
+      ...projection.sections[0].fields[0],
+      key: 'attachment',
+      type: 'DOCUMENT_REFERENCE',
+      required: true,
+    }
+    expect(isFormValueValid(documentField, '2dd2e09e-b407-d4fa-ce24-092ca427a78c')).toBe(true)
+    expect(isFormValueValid(documentField, 'not-a-document-id')).toBe(false)
+  })
+
   it('requires a changed value for a required field', () => {
     expect(() => buildVisibleFormPayload(projection, {}, new Set())).toThrow('FORM_FIELD_REQUIRED')
   })

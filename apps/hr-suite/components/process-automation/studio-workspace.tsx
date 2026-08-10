@@ -17,7 +17,21 @@ import {
   Send,
   Workflow,
 } from 'lucide-react'
-import type { ProcessDefinitionDraft, FieldAccessMode } from '@/lib/process-automation/definition-schemas'
+import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
+import {
+  defaultOptionsForFieldType,
+  formFieldCatalog,
+  formFieldGroups,
+  type FormFieldGroup,
+} from '@/lib/process-automation/form-field-catalog'
+import {
+  bindingAllowsWrite,
+  bindingCatalogEntry,
+  bindingCatalogForFieldType,
+  formBindingCatalog,
+  formBindingKindValues,
+  type FormBindingKind,
+} from '@/lib/process-automation/form-binding-catalog'
 import type {
   StudioCatalogItem,
   StudioDefinition,
@@ -109,7 +123,33 @@ export interface StudioLabels {
   readonly sla: string
   readonly fieldKey: string
   readonly fieldType: string
+  readonly fieldTypeLabels: Readonly<Record<FieldType, string>>
+  readonly fieldTypeLabelsNl: Readonly<Record<FieldType, string>>
+  readonly fieldTypeLabelsEn: Readonly<Record<FieldType, string>>
+  readonly fieldTypeGroups: Readonly<Record<FormFieldGroup, string>>
+  readonly bindingKindLabels: Readonly<Record<FormBindingKind, string>>
+  readonly bindingKindDescriptions: Readonly<Record<FormBindingKind, string>>
+  readonly bindingEntryLabels: Readonly<Record<string, string>>
+  readonly bindingEntryDescriptions: Readonly<Record<string, string>>
   readonly fieldLabel: string
+  readonly fieldHelp: string
+  readonly fieldHelpNl: string
+  readonly fieldHelpEn: string
+  readonly fieldProperties: string
+  readonly fieldKeyHelp: string
+  readonly fieldBinding: string
+  readonly bindingKind: string
+  readonly bindingRegistryKey: string
+  readonly bindingFormulaKey: string
+  readonly bindingSelectionHelp: string
+  readonly bindingUnknown: string
+  readonly fieldOptions: string
+  readonly optionValue: string
+  readonly optionLabelNl: string
+  readonly optionLabelEn: string
+  readonly addOption: string
+  readonly removeOption: string
+  readonly noOptions: string
   readonly version: string
   readonly formsCount: string
 }
@@ -123,15 +163,23 @@ interface StudioWorkspaceProps {
   readonly labels: StudioLabels
 }
 
-const fieldLibrary = [
-  { key: 'short-text', type: 'SHORT_TEXT' },
-  { key: 'long-text', type: 'LONG_TEXT' },
-  { key: 'date', type: 'DATE' },
-  { key: 'employee', type: 'EMPLOYEE_REFERENCE' },
-  { key: 'department', type: 'DEPARTMENT_REFERENCE' },
-] as const
-
 const accessModes: readonly FieldAccessMode[] = ['HIDDEN', 'READ', 'WRITE_OPTIONAL', 'WRITE_REQUIRED']
+
+const referenceFieldTypes: ReadonlySet<FieldType> = new Set([
+  'EMPLOYEE_REFERENCE',
+  'DEPARTMENT_REFERENCE',
+  'JOB_REFERENCE',
+  'EMPLOYMENT_REFERENCE',
+  'DOCUMENT_REFERENCE',
+])
+
+function isReferenceFieldType(type: FieldType): boolean {
+  return referenceFieldTypes.has(type)
+}
+
+function isChoiceFieldType(type: FieldType): boolean {
+  return type === 'SINGLE_SELECT' || type === 'MULTI_SELECT'
+}
 
 function titleFor(value: unknown, language: 'nl' | 'en' = 'nl'): string {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return ''
@@ -151,6 +199,16 @@ function statusClasses(status: string): string {
   if (status === 'PUBLISHED') return 'bg-emerald-100 text-emerald-800'
   if (status === 'RETIRED') return 'bg-slate-100 text-slate-700'
   return 'bg-amber-100 text-amber-900'
+}
+
+function bindingTechnicalValue(binding: FieldBinding): string {
+  if (binding.kind === 'PROCESS_ONLY') return 'PROCESS_ONLY'
+  return binding.kind === 'COMPUTED' ? binding.formulaKey : binding.key
+}
+
+function bindingEntryLabel(binding: FieldBinding, labels: StudioLabels): string {
+  const entry = bindingCatalogEntry(binding)
+  return entry ? labels.bindingEntryLabels[entry.id] ?? bindingTechnicalValue(binding) : bindingTechnicalValue(binding)
 }
 
 function issuePath(issue: StudioIssue): string {
@@ -174,6 +232,61 @@ function IssueList({ issues, labels }: { issues: readonly StudioIssue[]; labels:
   )
 }
 
+function BindingEditor({
+  field,
+  labels,
+  onChange,
+}: {
+  readonly field: FieldDefinition
+  readonly labels: StudioLabels
+  readonly onChange: (entryId: string) => void
+}) {
+  const selectedEntry = bindingCatalogEntry(field.binding)
+  const entries = bindingCatalogForFieldType(field.type)
+  return (
+    <div className="rounded-xl border bg-muted/20 p-3 text-xs md:col-span-2">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+        <label className="font-semibold">
+          {labels.fieldBinding}
+          <select
+            aria-label={labels.fieldBinding}
+            className="mt-1 w-full rounded-lg border bg-background px-2 py-1.5 text-sm font-normal"
+            onChange={(event) => onChange(event.target.value)}
+            value={selectedEntry?.id ?? ''}
+          >
+            {!selectedEntry ? <option disabled value="">{labels.bindingUnknown}</option> : null}
+            {formBindingKindValues.map((kind) => {
+              const kindEntries = entries.filter((entry) => entry.kind === kind)
+              if (kindEntries.length === 0) return null
+              return (
+                <optgroup key={kind} label={labels.bindingKindLabels[kind]}>
+                  {kindEntries.map((entry) => <option key={entry.id} value={entry.id}>{labels.bindingEntryLabels[entry.id] ?? entry.id}</option>)}
+                </optgroup>
+              )
+            })}
+          </select>
+        </label>
+        <div>
+          <p className="font-semibold">{labels.bindingKind}</p>
+          <p className="mt-1 font-medium">{selectedEntry ? labels.bindingKindLabels[selectedEntry.kind] : labels.bindingUnknown}</p>
+          <p className="mt-1 text-muted-foreground">{selectedEntry ? labels.bindingEntryDescriptions[selectedEntry.id] : labels.bindingSelectionHelp}</p>
+        </div>
+      </div>
+      {selectedEntry ? <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div>
+          <dt className="text-muted-foreground">{selectedEntry.kind === 'COMPUTED' ? labels.bindingFormulaKey : selectedEntry.kind === 'PROCESS_ONLY' ? labels.bindingKind : labels.bindingRegistryKey}</dt>
+          <dd className="mt-1 font-mono">{selectedEntry.kind === 'COMPUTED' ? selectedEntry.formulaKey : selectedEntry.kind === 'PROCESS_ONLY' ? 'PROCESS_ONLY' : selectedEntry.key}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{labels.bindingKind}</dt>
+          <dd className="mt-1 font-mono">{selectedEntry.kind}</dd>
+        </div>
+      </dl> : null}
+      <p className="mt-3 text-muted-foreground">{labels.bindingKindDescriptions[field.binding.kind]}</p>
+    </div>
+  )
+}
+
 function statusMessage(state: SaveState, labels: StudioLabels): string {
   if (state === 'saving') return labels.saving
   if (state === 'saved') return labels.saved
@@ -181,10 +294,23 @@ function statusMessage(state: SaveState, labels: StudioLabels): string {
   return ''
 }
 
+function PreviewFieldControl({ field, language, labels, id, labelId }: { readonly field: FieldDefinition; readonly language: 'nl' | 'en'; readonly labels: StudioLabels; readonly id: string; readonly labelId: string }) {
+  const inputClass = 'mt-1 w-full rounded-xl border bg-surface px-3 py-2 font-normal disabled:cursor-default disabled:opacity-100'
+  const typeLabel = (language === 'en' ? labels.fieldTypeLabelsEn : labels.fieldTypeLabelsNl)[field.type]
+  if (field.type === 'LONG_TEXT') return <textarea aria-labelledby={labelId} className={`${inputClass} min-h-24`} disabled id={id} placeholder={typeLabel} />
+  if (field.type === 'BOOLEAN') return <label className="mt-1 flex items-center gap-3 rounded-xl border bg-surface px-3 py-2 font-normal"><input aria-labelledby={labelId} disabled id={id} type="checkbox" /><span>{typeLabel}</span></label>
+  if (field.type === 'SINGLE_SELECT') return <select aria-labelledby={labelId} className={inputClass} disabled id={id}><option>{labels.noValue}</option>{(field.options ?? []).map((option) => <option key={option.value}>{titleFor(option.label, language)}</option>)}</select>
+  if (field.type === 'MULTI_SELECT') return <fieldset aria-labelledby={labelId} className="mt-1 grid gap-2 rounded-xl border bg-surface p-3" id={id}><legend className="sr-only">{typeLabel}</legend>{(field.options ?? []).map((option, optionIndex) => { const optionId = `${id}-${optionIndex}`; return <label className="flex items-center gap-3 font-normal" htmlFor={optionId} key={option.value}><input disabled id={optionId} type="checkbox" />{titleFor(option.label, language)}</label> })}</fieldset>
+  if (isReferenceFieldType(field.type)) return <div aria-labelledby={labelId} className="mt-1 rounded-xl border bg-surface px-3 py-2 text-sm font-normal text-muted-foreground" id={id} role="status">{typeLabel} · {labels.syntheticData}</div>
+  const inputType = field.type === 'DATE' ? 'date' : field.type === 'TIME' ? 'time' : field.type === 'DATETIME' ? 'datetime-local' : field.type === 'INTEGER' || field.type === 'DECIMAL' || field.type === 'MONEY' ? 'number' : 'text'
+  const step = field.type === 'INTEGER' ? '1' : field.type === 'DECIMAL' || field.type === 'MONEY' ? '0.01' : undefined
+  return <input aria-labelledby={labelId} className={inputClass} disabled id={id} placeholder={typeLabel} step={step} type={inputType} />
+}
+
 export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, canWrite, canPublish, labels }: StudioWorkspaceProps) {
   const router = useRouter()
-  const [catalog] = useState(initialCatalog)
-  const [selected] = useState(initialSelection)
+  const catalog = initialCatalog
+  const selected = initialSelection
   const [tab, setTab] = useState<StudioTab>(initialTab)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -317,14 +443,53 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     updateDraft((current) => ({ ...current, steps: current.steps.map((step) => step.key === selectedStep.key ? { ...step, title: { ...step.title, [language]: value } } : step) }))
   }
 
-  function updateFieldLabel(formKey: string, sectionKey: string, fieldKey: string, language: 'nl' | 'en', value: string) {
+  function updateFieldText(formKey: string, sectionKey: string, fieldKey: string, property: 'label' | 'helpText', language: 'nl' | 'en', value: string) {
     updateDraft((current) => ({
       ...current,
       forms: current.forms.map((form) => form.key !== formKey ? form : {
         ...form,
         sections: form.sections.map((section) => section.key !== sectionKey ? section : {
           ...section,
-          fields: section.fields.map((field) => field.key === fieldKey ? { ...field, label: { ...field.label, [language]: value } } : field),
+          fields: section.fields.map((field) => {
+            if (field.key !== fieldKey) return field
+            if (property === 'label') return { ...field, label: { ...field.label, [language]: value } }
+            const nextHelpText = { ...(field.helpText ?? {}), [language]: value }
+            return {
+              ...field,
+              helpText: Object.values(nextHelpText).some((item) => typeof item === 'string' && item.trim() !== '') ? nextHelpText : undefined,
+            }
+          }),
+        }),
+      }),
+    }))
+  }
+
+  function updateFieldLabel(formKey: string, sectionKey: string, fieldKey: string, language: 'nl' | 'en', value: string) {
+    updateFieldText(formKey, sectionKey, fieldKey, 'label', language, value)
+  }
+
+  function updateFieldHelp(formKey: string, sectionKey: string, fieldKey: string, language: 'nl' | 'en', value: string) {
+    updateFieldText(formKey, sectionKey, fieldKey, 'helpText', language, value)
+  }
+
+  function updateFieldBinding(formKey: string, sectionKey: string, fieldKey: string, entryId: string) {
+    const entry = formBindingCatalog.find((candidate) => candidate.id === entryId)
+    if (!entry) return
+    updateDraft((current) => ({
+      ...current,
+      forms: current.forms.map((form) => form.key !== formKey ? form : {
+        ...form,
+        sections: form.sections.map((section) => section.key !== sectionKey ? section : {
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.key !== fieldKey) return field
+            const nextAccess = bindingAllowsWrite(entry.kind)
+              ? field.access
+              : field.access.map((rule) => rule.mode === 'WRITE_OPTIONAL' || rule.mode === 'WRITE_REQUIRED'
+                ? { ...rule, mode: 'READ' as const }
+                : rule)
+            return { ...field, binding: entry.value, access: nextAccess }
+          }),
         }),
       }),
     }))
@@ -348,17 +513,87 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     }))
   }
 
-  function addField(type: (typeof fieldLibrary)[number]['type']) {
+  function updateFieldOption(
+    formKey: string,
+    sectionKey: string,
+    fieldKey: string,
+    optionIndex: number,
+    property: 'value' | 'nl' | 'en',
+    value: string,
+  ) {
+    updateDraft((current) => ({
+      ...current,
+      forms: current.forms.map((form) => form.key !== formKey ? form : {
+        ...form,
+        sections: form.sections.map((section) => section.key !== sectionKey ? section : {
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.key !== fieldKey || !field.options) return field
+            return {
+              ...field,
+              options: field.options.map((option, index) => index !== optionIndex ? option : property === 'value'
+                ? { ...option, value }
+                : { ...option, label: { ...option.label, [property]: value } }),
+            }
+          }),
+        }),
+      }),
+    }))
+  }
+
+  function addFieldOption(formKey: string, sectionKey: string, fieldKey: string) {
+    updateDraft((current) => ({
+      ...current,
+      forms: current.forms.map((form) => form.key !== formKey ? form : {
+        ...form,
+        sections: form.sections.map((section) => section.key !== sectionKey ? section : {
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.key !== fieldKey || !isChoiceFieldType(field.type)) return field
+            const options = field.options ?? []
+            const optionNumber = options.length + 1
+            return {
+              ...field,
+              options: [...options, {
+                value: `option-${optionNumber}`,
+                label: { nl: `Optie ${optionNumber}`, en: `Option ${optionNumber}` },
+              }],
+            }
+          }),
+        }),
+      }),
+    }))
+  }
+
+  function removeFieldOption(formKey: string, sectionKey: string, fieldKey: string, optionIndex: number) {
+    updateDraft((current) => ({
+      ...current,
+      forms: current.forms.map((form) => form.key !== formKey ? form : {
+        ...form,
+        sections: form.sections.map((section) => section.key !== sectionKey ? section : {
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.key !== fieldKey || !field.options || field.options.length <= 1 || !isChoiceFieldType(field.type)) return field
+            return { ...field, options: field.options.filter((_, index) => index !== optionIndex) }
+          }),
+        }),
+      }),
+    }))
+  }
+
+  function addField(type: FieldType) {
     if (!selectedForm || selectedForm.sections.length === 0 || !draft?.participants[0]) return
-    const baseKey = fieldLibrary.find((item) => item.type === type)?.key ?? 'field'
+    const baseKey = formFieldCatalog.find((item) => item.type === type)?.key ?? 'field'
     const fieldCount = draft.forms.reduce((total, form) => total + form.sections.reduce((sectionTotal, section) => sectionTotal + section.fields.length, 0), 0)
     const fieldKey = `${baseKey}-${fieldCount + 1}`
-    const newField = {
+    const options = defaultOptionsForFieldType(type)
+    const newField: FieldDefinition = {
       key: fieldKey,
       label: { nl: 'Nieuw veld', en: 'New field' },
       type,
       binding: { kind: 'PROCESS_ONLY' as const },
       access: [{ participantKey: draft.participants[0].key, mode: 'WRITE_OPTIONAL' as const }],
+      ...(options ? { options } : {}),
     }
     const sectionKey = selectedForm.sections[0].key
     updateDraft((current) => ({
@@ -479,8 +714,60 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
                 {selectedForm ? <>
                   <div className="mt-4 flex flex-wrap gap-2">{draft.forms.map((form) => <button className={`rounded-xl border px-3 py-2 text-sm font-semibold ${form.key === selectedForm.key ? 'border-primary bg-accent/50' : ''}`} key={form.key} onClick={() => setActiveFormKey(form.key)} type="button">{titleFor(form.title)} · {labels.version} {form.version}</button>)}</div>
                   <div className="mt-5 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)]">
-                    <aside className="rounded-2xl border bg-background p-3"><h4 className="text-sm font-semibold">{labels.fieldLibrary}</h4><div className="mt-3 space-y-2">{fieldLibrary.map((field) => <button className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:border-primary" key={field.type} onClick={() => addField(field.type)} type="button"><Plus size={13} />{field.type}</button>)}</div><p className="mt-3 text-xs text-muted-foreground">{labels.addField}</p></aside>
-                    <div className="space-y-4">{selectedForm.sections.map((section) => <div className="rounded-2xl border bg-background p-4" key={section.key}><h4 className="font-semibold">{titleFor(section.title)}</h4><div className="mt-3 space-y-3">{section.fields.map((field) => <article className="rounded-xl border p-3" key={field.key}><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="font-semibold">{titleFor(field.label)}</span><span className="ml-2 rounded-full bg-muted px-2 py-1 text-[11px] font-semibold">{field.type}</span><p className="mt-1 font-mono text-[11px] text-muted-foreground">{field.key}</p></div><span className="text-xs text-muted-foreground">{field.binding.kind}</span></div>{editing ? <div className="mt-3 grid gap-3 md:grid-cols-2"><label className="text-xs font-semibold">{labels.titleNl}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldLabel(selectedForm.key, section.key, field.key, 'nl', event.target.value)} value={field.label.nl ?? ''} /></label><label className="text-xs font-semibold">{labels.titleEn}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldLabel(selectedForm.key, section.key, field.key, 'en', event.target.value)} value={field.label.en ?? ''} /></label></div> : null}<div className="mt-4 overflow-x-auto"><table className="min-w-full text-left text-xs"><caption className="mb-2 text-left font-semibold">{labels.accessMatrix}</caption><thead><tr className="border-b text-muted-foreground"><th className="px-2 py-2">{labels.participant}</th><th className="px-2 py-2">{labels.status}</th></tr></thead><tbody>{draft.participants.map((participant) => { const access = field.access.find((rule) => rule.participantKey === participant.key)?.mode ?? 'HIDDEN'; return <tr className="border-b last:border-0" key={participant.key}><td className="px-2 py-2 font-medium">{titleFor(participant.label)}</td><td className="px-2 py-2">{editing ? <select aria-label={`${labels.accessMatrix} ${participant.key}`} className="rounded-lg border bg-background px-2 py-1" onChange={(event) => updateFieldAccess(selectedForm.key, section.key, field.key, participant.key, event.target.value as FieldAccessMode)} value={access}>{accessModes.map((mode) => <option key={mode} value={mode}>{mode === 'HIDDEN' ? labels.hidden : mode === 'READ' ? labels.read : mode === 'WRITE_OPTIONAL' ? labels.writeOptional : labels.writeRequired}</option>)}</select> : <span>{access}</span>}</td></tr> })}</tbody></table></div></article>)}</div></div>)}</div>
+                    <aside className="rounded-2xl border bg-background p-3"><h4 className="text-sm font-semibold">{labels.fieldLibrary}</h4><div className="mt-3 space-y-4">{formFieldGroups.map((group) => <div key={group}><p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{labels.fieldTypeGroups[group]}</p><div className="mt-2 space-y-2">{formFieldCatalog.filter((field) => field.group === group).map((field) => <button className="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:border-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!editing || selected.definition.status === 'RETIRED'} key={field.type} onClick={() => addField(field.type)} type="button"><Plus size={13} />{labels.fieldTypeLabels[field.type]}</button>)}</div></div>)}</div><p className="mt-3 text-xs text-muted-foreground">{labels.addField}</p></aside>
+                     <div className="space-y-4">
+                       {selectedForm.sections.map((section) => (
+                         <div className="rounded-2xl border bg-background p-4" key={section.key}>
+                           <h4 className="font-semibold">{titleFor(section.title)}</h4>
+                           <div className="mt-3 space-y-3">
+                             {section.fields.map((field) => {
+                               const selectedBinding = bindingCatalogEntry(field.binding)
+                               return (
+                                 <article className="rounded-xl border p-3" key={field.key}>
+                                   <div className="flex flex-wrap items-start justify-between gap-3">
+                                     <div>
+                                       <span className="font-semibold">{titleFor(field.label)}</span>
+                                       <span className="ml-2 rounded-full bg-muted px-2 py-1 text-[11px] font-semibold">{labels.fieldTypeLabels[field.type]}</span>
+                                       <p className="mt-1 font-mono text-[11px] text-muted-foreground">{field.key}</p>
+                                     </div>
+                                     <span className="text-xs text-muted-foreground">{bindingEntryLabel(field.binding, labels)}</span>
+                                   </div>
+                                   {editing ? <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                     <label className="text-xs font-semibold">{labels.titleNl}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldLabel(selectedForm.key, section.key, field.key, 'nl', event.target.value)} value={field.label.nl ?? ''} /></label>
+                                     <label className="text-xs font-semibold">{labels.titleEn}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldLabel(selectedForm.key, section.key, field.key, 'en', event.target.value)} value={field.label.en ?? ''} /></label>
+                                     <label className="text-xs font-semibold md:col-span-2">{labels.fieldHelpNl}<textarea className="mt-1 min-h-16 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldHelp(selectedForm.key, section.key, field.key, 'nl', event.target.value)} value={field.helpText?.nl ?? ''} /></label>
+                                     <label className="text-xs font-semibold md:col-span-2">{labels.fieldHelpEn}<textarea className="mt-1 min-h-16 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldHelp(selectedForm.key, section.key, field.key, 'en', event.target.value)} value={field.helpText?.en ?? ''} /></label>
+                                     <BindingEditor field={field} labels={labels} onChange={(entryId) => updateFieldBinding(selectedForm.key, section.key, field.key, entryId)} />
+                                     <div className="rounded-lg bg-muted/50 p-3 text-xs md:col-span-2">
+                                       <p className="font-semibold">{labels.fieldProperties}</p>
+                                       <dl className="mt-2 grid gap-2 sm:grid-cols-4">
+                                         <div><dt className="text-muted-foreground">{labels.fieldKey}</dt><dd className="mt-1 font-mono">{field.key}</dd></div>
+                                         <div><dt className="text-muted-foreground">{labels.fieldType}</dt><dd className="mt-1 font-semibold">{labels.fieldTypeLabels[field.type]}</dd></div>
+                                         <div><dt className="text-muted-foreground">{labels.bindingKind}</dt><dd className="mt-1 font-semibold">{selectedBinding ? labels.bindingKindLabels[selectedBinding.kind] : labels.bindingUnknown}</dd></div>
+                                         <div><dt className="text-muted-foreground">{labels.fieldBinding}</dt><dd className="mt-1 font-mono">{bindingTechnicalValue(field.binding)}</dd></div>
+                                       </dl>
+                                       <p className="mt-2 text-muted-foreground">{labels.fieldKeyHelp}</p>
+                                     </div>
+                                   </div> : null}
+                                   {editing && isChoiceFieldType(field.type) ? <div className="mt-4 rounded-xl border bg-muted/20 p-3">
+                                     <div className="flex flex-wrap items-center justify-between gap-2"><h5 className="text-xs font-semibold">{labels.fieldOptions}</h5><button className="rounded-lg border px-2 py-1 text-xs font-semibold hover:border-primary" onClick={() => addFieldOption(selectedForm.key, section.key, field.key)} type="button"><Plus size={13} />{labels.addOption}</button></div>
+                                     <div className="mt-3 space-y-3">{(field.options ?? []).map((option, optionIndex) => <div className="grid gap-2 rounded-lg border bg-background p-3 md:grid-cols-[minmax(110px,0.8fr)_minmax(150px,1fr)_minmax(150px,1fr)_auto]" key={`${field.key}-${optionIndex}`}><label className="text-xs font-semibold">{labels.optionValue}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldOption(selectedForm.key, section.key, field.key, optionIndex, 'value', event.target.value)} value={option.value} /></label><label className="text-xs font-semibold">{labels.optionLabelNl}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldOption(selectedForm.key, section.key, field.key, optionIndex, 'nl', event.target.value)} value={option.label.nl ?? ''} /></label><label className="text-xs font-semibold">{labels.optionLabelEn}<input className="mt-1 w-full rounded-lg border px-2 py-1.5 text-sm font-normal" onChange={(event) => updateFieldOption(selectedForm.key, section.key, field.key, optionIndex, 'en', event.target.value)} value={option.label.en ?? ''} /></label><button aria-label={`${labels.removeOption} ${optionIndex + 1}`} className="self-end rounded-lg border border-destructive/30 px-2 py-1.5 text-xs font-semibold text-destructive disabled:opacity-50" disabled={(field.options?.length ?? 0) <= 1} onClick={() => removeFieldOption(selectedForm.key, section.key, field.key, optionIndex)} type="button">×</button></div>)}</div>
+                                     {(field.options ?? []).length === 0 ? <p className="mt-3 text-xs text-destructive">{labels.noOptions}</p> : null}
+                                   </div> : null}
+                                   <div className="mt-4 overflow-x-auto">
+                                     <table className="min-w-full text-left text-xs">
+                                       <caption className="mb-2 text-left font-semibold">{labels.accessMatrix}</caption>
+                                       <thead><tr className="border-b text-muted-foreground"><th className="px-2 py-2">{labels.participant}</th><th className="px-2 py-2">{labels.status}</th></tr></thead>
+                                       <tbody>{draft.participants.map((participant) => { const access = field.access.find((rule) => rule.participantKey === participant.key)?.mode ?? 'HIDDEN'; return <tr className="border-b last:border-0" key={participant.key}><td className="px-2 py-2 font-medium">{titleFor(participant.label)}</td><td className="px-2 py-2">{editing ? <select aria-label={`${labels.accessMatrix} ${participant.key}`} className="rounded-lg border bg-background px-2 py-1" onChange={(event) => updateFieldAccess(selectedForm.key, section.key, field.key, participant.key, event.target.value as FieldAccessMode)} value={access}>{accessModes.map((mode) => <option key={mode} value={mode}>{mode === 'HIDDEN' ? labels.hidden : mode === 'READ' ? labels.read : mode === 'WRITE_OPTIONAL' ? labels.writeOptional : labels.writeRequired}</option>)}</select> : <span>{access}</span>}</td></tr> })}</tbody>
+                                     </table>
+                                   </div>
+                                 </article>
+                               )
+                             })}
+                           </div>
+                         </div>
+                       ))}
+                     </div>
                   </div>
                 </> : <p className="mt-4 text-sm text-muted-foreground">{labels.noValue}</p>}
               </section>
@@ -488,7 +775,7 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
               <section className="rounded-3xl border bg-surface p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-xl font-semibold">{selectedForm ? titleFor(selectedForm.title, previewLanguage) : labels.noValue}</h3></div><Languages className="text-primary" size={22} /></div>
                 <div className="mt-4 grid gap-3 md:grid-cols-3"><label className="text-xs font-semibold">{labels.previewParticipant}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewParticipant(event.target.value)} value={previewParticipant}>{draft.participants.map((participant) => <option key={participant.key} value={participant.key}>{titleFor(participant.label)}</option>)}</select></label><label className="text-xs font-semibold">{labels.language}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewLanguage(event.target.value as 'nl' | 'en')} value={previewLanguage}><option value="nl">{labels.dutch}</option><option value="en">{labels.english}</option></select></label><label className="text-xs font-semibold">{labels.viewport}<select className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm" onChange={(event) => setPreviewViewport(event.target.value as 'desktop' | 'mobile')} value={previewViewport}><option value="desktop">{labels.desktop}</option><option value="mobile">{labels.mobile} · 390px</option></select></label></div>
-                <div className={`mt-4 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}><p className="mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs font-semibold text-primary">{labels.syntheticData}</p>{previewFields.length ? <div className="space-y-4">{previewFields.map(({ section, field }) => <label className="block text-sm font-semibold" key={`${section.key}-${field.key}`}>{titleFor(field.label, previewLanguage)}<input className="mt-1 w-full rounded-xl border bg-surface px-3 py-2 font-normal" placeholder={field.type} readOnly /></label>)}</div> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
+                <div className={`mt-4 rounded-2xl border bg-background p-4 ${previewViewport === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl'}`}><p className="mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs font-semibold text-primary">{labels.syntheticData}</p>{previewFields.length ? <div className="space-y-4">{previewFields.map(({ section, field }) => { const previewFieldId = `studio-preview-${field.key}`; const previewLabelId = `${previewFieldId}-label`; return <div className="text-sm font-semibold" key={`${section.key}-${field.key}`}><p id={previewLabelId}>{titleFor(field.label, previewLanguage)}{field.access.some((rule) => rule.participantKey === previewParticipantDefinition?.key && rule.mode === 'WRITE_REQUIRED') ? <span aria-hidden="true" className="ml-1 text-destructive">*</span> : null}</p>{field.helpText ? <p className="mt-1 text-xs font-normal text-muted-foreground">{titleFor(field.helpText, previewLanguage)}</p> : null}<PreviewFieldControl field={field} id={previewFieldId} labelId={previewLabelId} labels={labels} language={previewLanguage} /></div> })}</div> : <p className="text-sm text-muted-foreground">{labels.noFields}</p>}</div>
               </section>
 
               <section className="rounded-3xl border bg-surface p-5 shadow-sm">

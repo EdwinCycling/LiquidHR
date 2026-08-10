@@ -8,6 +8,7 @@ import type { FormProjection } from '@/lib/process-automation/form-runtime'
 import type { ProcessAutomationOperations, ProcessOutputProjection } from '@/lib/process-automation/output-service'
 import type { ProcessWorkDetail } from '@/lib/process-automation/work-service'
 import { FormRuntimeRenderer } from './form-runtime-renderer'
+import { InternalTransferCommitPanel } from './internal-transfer-commit-panel'
 
 export interface ProcessWorkDetailLabels {
   readonly process: string
@@ -72,6 +73,37 @@ export interface ProcessWorkDetailLabels {
   readonly formNoValue: string
   readonly formBooleanTrue: string
   readonly formBooleanFalse: string
+  readonly formReferenceSearch: string
+  readonly formReferenceLoading: string
+  readonly formReferenceNoOptions: string
+  readonly formScrollHint: string
+  readonly documentDownload: string
+  readonly documentChecksum: string
+  readonly documentAcknowledgementRequired: string
+  readonly confirmAction: string
+  readonly requestChangesReason: string
+  readonly requestChangesReasonRequired: string
+  readonly requestChangesSubmit: string
+  readonly internalTransferPreview: string
+  readonly internalTransferPreviewDescription: string
+  readonly internalTransferCurrent: string
+  readonly internalTransferProposed: string
+  readonly internalTransferDepartment: string
+  readonly internalTransferJob: string
+  readonly internalTransferManager: string
+  readonly internalTransferBlockers: string
+  readonly internalTransferWarnings: string
+  readonly internalTransferPreviewSuccess: string
+  readonly internalTransferPreviewWarning: string
+  readonly internalTransferPreviewBlocking: string
+  readonly internalTransferCommit: string
+  readonly internalTransferCommitConfirm: string
+  readonly internalTransferCommitting: string
+  readonly internalTransferCommitFailed: string
+  readonly internalTransferChanged: string
+  readonly internalTransferNoSalary: string
+  readonly internalTransferLoading: string
+  readonly internalTransferFailed: string
 }
 
 interface ProcessWorkDetailProps {
@@ -106,6 +138,7 @@ function errorLabel(code: string, labels: ProcessWorkDetailLabels): string {
   if (code === 'STALE_ASSIGNMENT' || code === 'STALE_STATE') return labels.errorStale
   if (code === 'FORBIDDEN' || code === 'FORBIDDEN_ACTION') return labels.errorDenied
   if (code === 'WORK_ITEM_NOT_BLOCKED') return labels.errorBlocked
+  if (code === 'DOCUMENT_ACKNOWLEDGEMENT_CONFIRMATION_REQUIRED') return labels.documentAcknowledgementRequired
   return labels.errorGeneric
 }
 
@@ -119,6 +152,8 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [requestChangesOpen, setRequestChangesOpen] = useState(false)
+  const [requestChangesReason, setRequestChangesReason] = useState('')
 
   async function post(path: string, body: Record<string, unknown>, actionKey: string): Promise<void> {
     setBusy(actionKey)
@@ -141,7 +176,38 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
   }
 
   const expected = { expectedVersion: detail.expectedVersion }
-  const actionButtons = detail.canAct && detail.status !== 'BLOCKED' ? detail.allowedActions.map((action) => ({ action, label: actionLabel(action, labels) })) : []
+  const isInternalTransferValidation = detail.processKey.startsWith('internal-transfer') && detail.stepKey === 'hr-validation'
+  const isDocumentAcknowledgement = detail.processKey.startsWith('document-acknowledgement') && detail.stepKey === 'acknowledge'
+  const actionButtons = detail.canAct && detail.status !== 'BLOCKED' && detail.status !== 'COMPLETED' && detail.status !== 'CANCELLED' ? detail.allowedActions.filter((action) => !(isInternalTransferValidation && action === 'APPROVE')).map((action) => ({ action, label: actionLabel(action, labels) })) : []
+  const documentField = form?.sections.flatMap((section) => section.fields).find((field) => field.type === 'DOCUMENT_REFERENCE')
+  const documentValue = documentField?.currentValue ?? documentField?.newValue
+  const documentId = typeof documentValue === 'string' ? documentValue : typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.id === 'string' ? documentValue.id : null
+  const documentLabel = typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.label === 'string' ? documentValue.label : documentId
+
+  function runAction(action: string): void {
+    if (action === 'REQUEST_CHANGES') {
+      setRequestChangesOpen(true)
+      setFeedback(null)
+      return
+    }
+    if ((action === 'REJECT' || action === 'CANCEL') && !window.confirm(labels.confirmAction)) return
+    const path = isDocumentAcknowledgement && action === 'ACKNOWLEDGE' ? `/api/process-work-items/${detail.workItemId}/document-acknowledgement` : `/api/process-work-items/${detail.workItemId}/action`
+    const body = isDocumentAcknowledgement && action === 'ACKNOWLEDGE'
+      ? { ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }
+      : { action, ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }
+    void post(path, body, action)
+  }
+
+  async function submitRequestChanges(): Promise<void> {
+    const reason = requestChangesReason.trim()
+    if (!reason) {
+      setFeedback(labels.requestChangesReasonRequired)
+      return
+    }
+    setRequestChangesOpen(false)
+    setRequestChangesReason('')
+    await post(`/api/process-work-items/${detail.workItemId}/request-changes`, { ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId, reason }, 'request-changes')
+  }
 
   return (
     <section className="mx-auto w-full max-w-[92rem] px-4 py-8 sm:px-6 lg:px-10">
@@ -162,15 +228,18 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
         {detail.canClaim ? <button className="min-h-10 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/claim`, expected, 'claim') }} type="button">{labels.claim}</button> : null}
         {detail.canRelease ? <button className="min-h-10 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/release`, expected, 'release') }} type="button">{labels.release}</button> : null}
         {detail.canReassign ? <button className="min-h-10 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/re-resolve`, expected, 'reassign') }} type="button">{labels.reassign}</button> : null}
-        {actionButtons.map(({ action, label }) => <button className="min-h-10 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-semibold text-primary disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} key={action} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/action`, { action, ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }, action) }} type="button">{label}</button>)}
+        {actionButtons.map(({ action, label }) => <button className="min-h-10 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-semibold text-primary disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} key={action} onClick={() => runAction(action)} type="button">{label}</button>)}
+        {requestChangesOpen ? <div className="basis-full rounded-xl border border-border bg-surface p-4"><label className="grid gap-2 text-sm font-semibold" htmlFor="request-changes-reason">{labels.requestChangesReason}<textarea className="form-field min-h-24 font-normal" id="request-changes-reason" onChange={(event) => setRequestChangesReason(event.target.value)} value={requestChangesReason} /></label><div className="mt-3 flex flex-wrap justify-end gap-2"><button className="button-secondary" disabled={busy !== null} onClick={() => { setRequestChangesOpen(false); setRequestChangesReason('') }} type="button">{labels.actionCancel}</button><button className="button-primary" disabled={busy !== null} onClick={() => { void submitRequestChanges() }} type="button">{labels.requestChangesSubmit}</button></div></div> : null}
         {feedback ? <p aria-live="polite" className="basis-full text-sm font-medium text-muted-foreground">{feedback}</p> : null}
       </div>
       {detail.status === 'BLOCKED' ? <p className="mt-3 rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-warning" role="status">{labels.blocked}</p> : null}
+      {isInternalTransferValidation && detail.canAct ? <div className="mt-6"><InternalTransferCommitPanel correlationId={detail.correlationId} expectedVersion={detail.expectedVersion} labels={{ preview: labels.internalTransferPreview, previewDescription: labels.internalTransferPreviewDescription, current: labels.internalTransferCurrent, proposed: labels.internalTransferProposed, department: labels.internalTransferDepartment, job: labels.internalTransferJob, manager: labels.internalTransferManager, blockers: labels.internalTransferBlockers, warnings: labels.internalTransferWarnings, previewSuccess: labels.internalTransferPreviewSuccess, previewWarning: labels.internalTransferPreviewWarning, previewBlocking: labels.internalTransferPreviewBlocking, commit: labels.internalTransferCommit, commitConfirm: labels.internalTransferCommitConfirm, committing: labels.internalTransferCommitting, commitFailed: labels.internalTransferCommitFailed, changed: labels.internalTransferChanged, noSalary: labels.internalTransferNoSalary, loading: labels.internalTransferLoading, failed: labels.internalTransferFailed, cancel: labels.actionCancel, noValue: labels.formNoValue }} stepExpectedVersion={detail.stepExpectedVersion} workItemId={detail.workItemId} /></div> : null}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-6">
           <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.assignment}</h2><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">{labels.assignmentMode}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.assignmentMode ?? detail.assignmentMode}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentSource}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.source ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentDate}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.resolutionDate ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentRole}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.roleCode ?? detail.participantKey}</dd></div></dl><p className="mt-4 text-sm text-muted-foreground">{detail.claimedByUserId ? labels.claimedBy : labels.unassigned}: {detail.claimedByUserId ?? labels.unassigned}</p></section>
-          {form ? <section aria-label={labels.form} className="rounded-2xl border border-border bg-surface"><FormRuntimeRenderer initialProjection={form} locale={locale} labels={{ currentValue: labels.formCurrentValue, newValue: labels.formNewValue, saving: labels.formSaving, saved: labels.formSaved, saveError: labels.formSaveError, stale: labels.formStale, save: labels.formSave, errorSummary: labels.formErrorSummary, required: labels.formRequired, invalid: labels.formInvalid, readOnly: labels.formReadOnly, noValue: labels.formNoValue, booleanTrue: labels.formBooleanTrue, booleanFalse: labels.formBooleanFalse }} /></section> : null}
+          {form ? <section aria-label={labels.form} className="rounded-2xl border border-border bg-surface"><FormRuntimeRenderer initialProjection={form} locale={locale} labels={{ currentValue: labels.formCurrentValue, newValue: labels.formNewValue, saving: labels.formSaving, saved: labels.formSaved, saveError: labels.formSaveError, stale: labels.formStale, save: labels.formSave, errorSummary: labels.formErrorSummary, required: labels.formRequired, invalid: labels.formInvalid, readOnly: labels.formReadOnly, noValue: labels.formNoValue, booleanTrue: labels.formBooleanTrue, booleanFalse: labels.formBooleanFalse, referenceSearch: labels.formReferenceSearch, referenceLoading: labels.formReferenceLoading, referenceNoOptions: labels.formReferenceNoOptions, scrollHint: labels.formScrollHint }} /></section> : null}
+          {isDocumentAcknowledgement && documentId ? <section className="rounded-2xl border border-border bg-surface p-5" aria-labelledby="document-acknowledgement-document"><h2 className="text-xl font-semibold" id="document-acknowledgement-document">{labels.documentDownload}</h2><p className="mt-2 text-sm font-medium">{documentLabel ?? labels.formNoValue}</p><p className="mt-2 break-all text-xs text-muted-foreground">{labels.documentChecksum}: {typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.checksumSha256 === 'string' ? documentValue.checksumSha256 : labels.formNoValue}</p><Link className="button-secondary mt-4 inline-flex" href={`/api/process-work-items/${detail.workItemId}/document`}>{labels.documentDownload}</Link></section> : null}
           {outputs ? <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.output}</h2><div className="mt-4 grid gap-4">{outputs.outputs.length === 0 ? <p className="text-sm text-muted-foreground">{labels.downloadUnavailable}</p> : outputs.outputs.map((output) => <article className="rounded-xl border border-border p-4" key={output.id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{output.title}</h3><p className="mt-1 text-xs text-muted-foreground">{outputStatusLabel(output.status, labels)}</p></div>{output.documentId && output.status === 'AVAILABLE' ? <Link className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-primary" href={`/api/process-instances/${detail.processInstanceId}/outputs/${output.id}/download`}>{labels.download}</Link> : null}</div>{output.htmlSummary && output.status === 'AVAILABLE' ? <div className="prose prose-sm mt-4 max-w-none border-t border-border pt-4" dangerouslySetInnerHTML={{ __html: output.htmlSummary }} /> : null}</article>)}</div></section> : null}
         </div>
         <aside className="grid content-start gap-6">

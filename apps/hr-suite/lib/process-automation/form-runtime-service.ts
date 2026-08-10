@@ -90,7 +90,7 @@ export interface SaveProcessFormResponseCommand {
 export async function getProcessFormProjection(workItemId: string, language: 'nl' | 'en'): Promise<FormProjection> {
   const supabase = await createClient()
   await requireAuthContext(supabase)
-  const { data, error } = await supabase.rpc('get_process_form_projection', {
+  const { data, error } = await supabase.rpc('get_process_form_projection_with_bindings', {
     requested_work_item_id: workItemId,
     requested_language: language,
   })
@@ -104,7 +104,7 @@ export async function saveProcessFormResponse(command: SaveProcessFormResponseCo
   const supabase = await createClient()
   await requireAuthContext(supabase)
   const values = formValuesSchema.parse(command.values)
-  const { data, error } = await supabase.rpc('save_process_form_response', {
+  const { data, error } = await supabase.rpc('save_process_form_response_with_bindings', {
     requested_work_item_id: command.workItemId,
     requested_expected_revision: command.expectedRevision,
     requested_expected_version: command.expectedVersion,

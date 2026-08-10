@@ -117,7 +117,7 @@ export function isFormValueValid(field: FormFieldProjection, value: FormJsonValu
     case 'EMPLOYMENT_REFERENCE':
     case 'DOCUMENT_REFERENCE': {
       const candidate = typeof value === 'string' ? value : typeof value === 'object' && value !== null && !Array.isArray(value) && typeof value.id === 'string' ? value.id : null
-      return candidate !== null && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+      return candidate !== null && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidate)
     }
     default:
       return false
@@ -161,6 +161,6 @@ export function displayFormValue(value: FormJsonValue, labels: FormValueLabels):
   if (value === null) return labels.noValue
   if (typeof value === 'boolean') return value ? labels.booleanTrue : labels.booleanFalse
   if (Array.isArray(value)) return value.map((item) => displayFormValue(item, labels)).join(', ')
-  if (typeof value === 'object') return typeof value.id === 'string' ? value.id : JSON.stringify(value)
+  if (typeof value === 'object') return typeof value.label === 'string' ? value.label : typeof value.id === 'string' ? value.id : JSON.stringify(value)
   return String(value)
 }

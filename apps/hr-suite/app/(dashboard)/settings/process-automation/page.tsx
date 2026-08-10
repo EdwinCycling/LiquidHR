@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { CertifiedRecipePanel } from '@/components/process-automation/certified-recipe-panel'
 import { StudioWorkspace, type StudioLabels } from '@/components/process-automation/studio-workspace'
 import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
 import {
@@ -7,6 +8,15 @@ import {
   listStudioCatalog,
   studioDefinitionIdSchema,
 } from '@/lib/process-automation/studio-service'
+import { fieldTypeValues } from '@/lib/process-automation/definition-schemas'
+import type { FieldType } from '@/lib/process-automation/definition-schemas'
+import type { FormFieldGroup } from '@/lib/process-automation/form-field-catalog'
+import {
+  formBindingCatalog,
+  formBindingKindValues,
+  type FormBindingKind,
+} from '@/lib/process-automation/form-binding-catalog'
+import { listCertifiedRecipes } from '@/lib/process-automation/recipe-service'
 import { getTranslator } from '@/lib/i18n/server'
 
 async function can(permission: string): Promise<boolean> {
@@ -31,10 +41,13 @@ export default async function ProcessAutomationSettingsPage({
     throw error
   }
 
-  const [{ definition: requestedDefinition, tab: requestedTab }, messages, catalog, canWrite, canPublish] = await Promise.all([
+  const [{ definition: requestedDefinition, tab: requestedTab }, messages, messagesNl, messagesEn, catalog, recipes, canWrite, canPublish] = await Promise.all([
     searchParams,
     getTranslator('processAutomation'),
+    getTranslator('processAutomation', 'nl'),
+    getTranslator('processAutomation', 'en'),
     listStudioCatalog(),
+    listCertifiedRecipes(),
     can('process-definition:write'),
     can('process-definition:publish'),
   ])
@@ -45,6 +58,39 @@ export default async function ProcessAutomationSettingsPage({
     ? requestedId.data
     : catalog[0]?.id
   const initialSelection = selectedId ? await getStudioDefinition(selectedId) : null
+  const fieldTypeLabels = fieldTypeValues.reduce<Record<FieldType, string>>((result, fieldType) => {
+    result[fieldType] = messages(`studio.fieldTypeLabels.${fieldType}`)
+    return result
+  }, {} as Record<FieldType, string>)
+  const fieldTypeLabelsNl = fieldTypeValues.reduce<Record<FieldType, string>>((result, fieldType) => {
+    result[fieldType] = messagesNl(`studio.fieldTypeLabels.${fieldType}`)
+    return result
+  }, {} as Record<FieldType, string>)
+  const fieldTypeLabelsEn = fieldTypeValues.reduce<Record<FieldType, string>>((result, fieldType) => {
+    result[fieldType] = messagesEn(`studio.fieldTypeLabels.${fieldType}`)
+    return result
+  }, {} as Record<FieldType, string>)
+  const fieldTypeGroups: Record<FormFieldGroup, string> = {
+    INPUT: messages('studio.fieldTypeGroups.INPUT'),
+    CHOICE: messages('studio.fieldTypeGroups.CHOICE'),
+    REFERENCE: messages('studio.fieldTypeGroups.REFERENCE'),
+  }
+  const bindingKindLabels = formBindingKindValues.reduce<Record<FormBindingKind, string>>((result, bindingKind) => {
+    result[bindingKind] = messages(`studio.bindingKindLabels.${bindingKind}`)
+    return result
+  }, {} as Record<FormBindingKind, string>)
+  const bindingKindDescriptions = formBindingKindValues.reduce<Record<FormBindingKind, string>>((result, bindingKind) => {
+    result[bindingKind] = messages(`studio.bindingKindDescriptions.${bindingKind}`)
+    return result
+  }, {} as Record<FormBindingKind, string>)
+  const bindingEntryLabels = formBindingCatalog.reduce<Record<string, string>>((result, entry) => {
+    result[entry.id] = messages(`studio.bindingEntryLabels.${entry.id}`)
+    return result
+  }, {})
+  const bindingEntryDescriptions = formBindingCatalog.reduce<Record<string, string>>((result, entry) => {
+    result[entry.id] = messages(`studio.bindingEntryDescriptions.${entry.id}`)
+    return result
+  }, {})
 
   const labels: StudioLabels = {
     title: messages('studio.title'),
@@ -121,7 +167,33 @@ export default async function ProcessAutomationSettingsPage({
     noFields: messages('studio.noFields'),
     fieldKey: messages('studio.fieldKey'),
     fieldType: messages('studio.fieldType'),
+    fieldTypeLabels,
+    fieldTypeLabelsNl,
+    fieldTypeLabelsEn,
+    fieldTypeGroups,
+    bindingKindLabels,
+    bindingKindDescriptions,
+    bindingEntryLabels,
+    bindingEntryDescriptions,
     fieldLabel: messages('studio.fieldLabel'),
+    fieldHelp: messages('studio.fieldHelp'),
+    fieldHelpNl: messages('studio.fieldHelpNl'),
+    fieldHelpEn: messages('studio.fieldHelpEn'),
+    fieldProperties: messages('studio.fieldProperties'),
+    fieldKeyHelp: messages('studio.fieldKeyHelp'),
+    fieldBinding: messages('studio.fieldBinding'),
+    bindingKind: messages('studio.bindingKind'),
+    bindingRegistryKey: messages('studio.bindingRegistryKey'),
+    bindingFormulaKey: messages('studio.bindingFormulaKey'),
+    bindingSelectionHelp: messages('studio.bindingSelectionHelp'),
+    bindingUnknown: messages('studio.bindingUnknown'),
+    fieldOptions: messages('studio.fieldOptions'),
+    optionValue: messages('studio.optionValue'),
+    optionLabelNl: messages('studio.optionLabelNl'),
+    optionLabelEn: messages('studio.optionLabelEn'),
+    addOption: messages('studio.addOption'),
+    removeOption: messages('studio.removeOption'),
+    noOptions: messages('studio.noOptions'),
     version: messages('studio.version'),
     formsCount: messages('studio.formsCount'),
     language: messages('studio.language'),
@@ -140,6 +212,18 @@ export default async function ProcessAutomationSettingsPage({
         subtitle={messages('studio.description')}
         title={messages('studio.title')}
       />
+      <CertifiedRecipePanel
+        canWrite={canWrite}
+        labels={{
+          eyebrow: messages('p9.catalogEyebrow'),
+          title: messages('p9.catalogTitle'),
+          description: messages('p9.catalogDescription'),
+          activate: messages('p9.activate'),
+          activated: messages('p9.activated'),
+          activationFailed: messages('p9.activationFailed'),
+        }}
+        recipes={recipes}
+      />
       <StudioWorkspace
         canPublish={canPublish}
         canWrite={canWrite}
@@ -147,6 +231,7 @@ export default async function ProcessAutomationSettingsPage({
         initialSelection={initialSelection}
         initialTab={initialTab}
         labels={labels}
+        key={`${selectedId ?? 'none'}:${initialTab}`}
       />
     </div>
   )
