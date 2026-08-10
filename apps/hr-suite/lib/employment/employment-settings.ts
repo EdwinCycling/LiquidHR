@@ -74,7 +74,7 @@ export async function getEmploymentSettings() {
   }
 }
 
-export async function createEmploymentRegulation(input: { name: string; validFrom: string; standardHoursPerWeek: number }): Promise<void> {
+export async function createEmploymentRegulation(input: { name: string; validFrom: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }): Promise<void> {
   const context = await requirePermission('contract:write')
   const adminId = administrationId(context.administrationId)
   const groupId = requireHrGroupId(context)
@@ -87,14 +87,30 @@ export async function createEmploymentRegulation(input: { name: string; validFro
     code,
     name: input.name,
     standard_hours_per_week: input.standardHoursPerWeek,
+    probation_maximum_months: input.probationMaximumMonths,
     valid_from: input.validFrom,
     predecessor_id: null,
     is_active: true,
   })
+  if (result.error?.message.includes('probation_maximum_months')) {
+    const fallback = await supabase.from('labor_condition_sets').insert({
+      tenant_id: context.tenantId,
+      administration_id: adminId,
+      hr_group_id: groupId,
+      code,
+      name: input.name,
+      standard_hours_per_week: input.standardHoursPerWeek,
+      valid_from: input.validFrom,
+      predecessor_id: null,
+      is_active: true,
+    })
+    if (fallback.error) throw mapRegulationMutationError(fallback.error.message)
+    return
+  }
   if (result.error) throw mapRegulationMutationError(result.error.message)
 }
 
-export async function updateEmploymentRegulation(id: string, input: { name: string; validFrom: string; standardHoursPerWeek: number }): Promise<void> {
+export async function updateEmploymentRegulation(id: string, input: { name: string; validFrom: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }): Promise<void> {
   const context = await requirePermission('contract:write')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
@@ -102,15 +118,25 @@ export async function updateEmploymentRegulation(id: string, input: { name: stri
     name: input.name,
     valid_from: input.validFrom,
     standard_hours_per_week: input.standardHoursPerWeek,
+    probation_maximum_months: input.probationMaximumMonths,
   }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+  if (result.error?.message.includes('probation_maximum_months')) {
+    const fallback = await supabase.from('labor_condition_sets').update({
+      name: input.name,
+      valid_from: input.validFrom,
+      standard_hours_per_week: input.standardHoursPerWeek,
+    }).eq('id', id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+    if (fallback.error) throw mapRegulationMutationError(fallback.error.message)
+    return
+  }
   if (result.error) throw mapRegulationMutationError(result.error.message)
 }
 
-export async function createEmploymentRegulationSuccessor(input: { predecessorId: string; name: string; validFrom: string; standardHoursPerWeek: number }): Promise<void> {
+export async function createEmploymentRegulationSuccessor(input: { predecessorId: string; name: string; validFrom: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }): Promise<void> {
   const context = await requirePermission('contract:write')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
-  const { error } = await supabase.rpc('create_labor_condition_successor', {
+  const { data, error } = await supabase.rpc('create_labor_condition_successor', {
     requested_tenant_id: context.tenantId,
     requested_administration_id: adminId,
     requested_predecessor_id: input.predecessorId,
@@ -119,6 +145,11 @@ export async function createEmploymentRegulationSuccessor(input: { predecessorId
     requested_standard_hours_per_week: input.standardHoursPerWeek,
   })
   if (error) throw mapRegulationMutationError(error.message)
+  if (data?.id) {
+    const update = await supabase.from('labor_condition_sets').update({ probation_maximum_months: input.probationMaximumMonths })
+      .eq('id', data.id).eq('tenant_id', context.tenantId).eq('administration_id', adminId)
+    if (update.error && !update.error.message.includes('probation_maximum_months')) throw mapRegulationMutationError(update.error.message)
+  }
 }
 
 export async function updateDefaultEmploymentCountry(countryCode: string): Promise<void> {

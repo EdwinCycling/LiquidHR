@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const nullableNumber = z.number().nonnegative().nullish()
@@ -39,7 +40,7 @@ const salaryPayload = z.object({
   fulltimeAmount: nullableNumber,
   hourlyRate: nullableNumber,
   currencyCode: z.string().regex(/^[A-Z]{3}$/).default('EUR'),
-  salaryScaleStepId: z.string().uuid().nullish(),
+  salaryScaleStepId: databaseUuid.nullish(),
   caoScaleName: z.string().trim().min(1).max(100).nullish(),
   caoStepName: z.string().trim().min(1).max(100).nullish(),
 }).strict().superRefine((value, context) => {
@@ -68,8 +69,8 @@ const costAllocationMutation = z.object({
   ...commonMutation,
   payload: z.object({
     allocations: z.array(z.object({
-      costCenterId: z.string().uuid(),
-      costCarrierId: z.string().uuid(),
+      costCenterId: databaseUuid,
+      costCarrierId: databaseUuid,
       percentage: z.number().gt(0).max(100),
     }).strict()).min(1).max(50),
   }).strict().superRefine((value, context) => {
@@ -124,7 +125,7 @@ export const chainAssessmentRequestSchema = z.object({
   proposed: z.object({
     startsOn: dateOnly,
     endsOn: dateOnly.nullish(),
-    contractType: z.enum(['INDEFINITE', 'DEFINITE', 'ON_CALL', 'TEMPORARY_AGENCY', 'EXTERNAL']),
+    contractType: z.enum(['INDEFINITE', 'DEFINITE', 'TEMPORARY_NO_END', 'ON_CALL', 'TEMPORARY_AGENCY', 'EXTERNAL']),
   }).strict(),
   historyComplete: z.boolean().default(true),
   exceptionCode: z.string().trim().min(1).max(100).nullish(),

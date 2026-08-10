@@ -186,7 +186,7 @@ export default async function EmploymentDetailPage({
       : detail.employment.ends_on && detail.employment.ends_on < today
         ? t("ended")
         : t("active");
-  const contractTypeLabel = detail.employment.contract_type === 'INDEFINITE' ? t('indefinite') : t('definite');
+  const contractTypeLabel = detail.employment.contract_type === 'INDEFINITE' ? t('indefinite') : detail.employment.contract_type === 'DEFINITE' ? t('definite') : t('temporaryWithoutEnd');
   const workerTypeLabel = detail.employment.employment_type === 'EMPLOYEE'
     ? t('workerEmployee')
     : detail.employment.employment_type === 'INTERN' || detail.employment.employment_type === 'APPRENTICE'
@@ -401,7 +401,7 @@ export default async function EmploymentDetailPage({
                 probationEndsOn: contract.probation_ends_on,
               }))}
               options={{
-                laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: item.standard_hours_per_week })),
+                laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: item.standard_hours_per_week, probationMaximumMonths: item.probation_maximum_months === 2 ? 2 : 1 })),
                 flexPhases: [...detail.options.flexPhases],
               }}
               labels={{
@@ -411,9 +411,9 @@ export default async function EmploymentDetailPage({
                 laborConditions: t("laborConditions"), fulltimeReference: t("fulltimeReference"), duration: t("duration"),
                 startDate: t("startDate"), endDate: t("endsOn"),
                 probation: t("probation"), probationEnd: t("probationEnd"),
-                indefinite: t("indefinite"), definite: t("definite"),
+                indefinite: t("indefinite"), definite: t("definite"), temporaryWithoutEnd: t("temporaryWithoutEnd"),
                 yes: t("yes"), no: t("no"), active: t("active"),
-                failed: t("changeFailed"), addBlocked: t("contractAddBlocked"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
+                failed: t("changeFailed"), addBlocked: t("contractAddBlocked"), probationCaoMaximum: t("probationCaoMaximum"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
               }}
             />
             <article className="rounded-2xl border bg-surface p-5 shadow-sm">

@@ -36,7 +36,7 @@ export default async function NewEmploymentContractPage({ params }: { params: Pr
           initialContractEmployeeId={employeeId}
           initialContractEmploymentId={employmentId}
           initialContractOptions={{
-            laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: item.standard_hours_per_week })),
+            laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: item.standard_hours_per_week, probationMaximumMonths: item.probation_maximum_months === 2 ? 2 : 1 })),
             flexPhases: detail.options.flexPhases.map((item) => ({ id: item.id, name: item.name })),
           }}
           initialContractEmploymentStartsOn={detail.employment.starts_on}

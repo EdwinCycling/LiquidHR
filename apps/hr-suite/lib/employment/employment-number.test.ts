@@ -6,8 +6,12 @@ describe('nextAvailableEmploymentNumber', () => {
     expect(nextAvailableEmploymentNumber([])).toBe('1')
   })
 
-  it('skips numbers already used in the administration', () => {
-    expect(nextAvailableEmploymentNumber(['1', '3', 'EMP-DEMO-006-A'])).toBe('2')
-    expect(nextAvailableEmploymentNumber(['1', '2', '3'])).toBe('4')
+  it('takes the highest numeric number for the employee and adds one', () => {
+    expect(nextAvailableEmploymentNumber(['1', '3', 'EMP-DEMO-006-A'])).toBe('4')
+    expect(nextAvailableEmploymentNumber(['0', '2', '-4', 'ABC'])).toBe('3')
+  })
+
+  it('does not overflow when existing numbers are large', () => {
+    expect(nextAvailableEmploymentNumber(['9007199254740993'])).toBe('9007199254740994')
   })
 })

@@ -18,7 +18,29 @@
 
 - De uitgebreide profielheader op `/employees/[employeeId]` volgt de nieuwe visuele opzet: compacte ronde avatar, duidelijke naam/status-hiërarchie, foto-acties in dezelfde naamkleur, weer- en compact/uitgebreid-iconen van 40x40 naast elkaar en de archiveeractie onderaan boven de contactstreep. De bestaande velden, autorisatie en compact/uitgebreid-URL-state zijn behouden.
 - De header stapelt op 390 px zonder horizontale overflow. Gerichte ESLint, strict TypeScript, `git diff --check`, desktop-/390px-browsercontrole, compact/uitgebreid-navigatie en browserconsole zijn groen.
-- Geen schema-, API-, remote-, commit-, push- of deploymentwijziging uitgevoerd. De wijziging staat naast bestaand Process Automation-werk in de dirty werkboom; dat werk is niet aangepast.
+- Geen schema-, API- of remote-wijziging buiten de nieuwe lokale migraties uitgevoerd. De wijzigingen zijn nu lokaal opgenomen in `main`; push en deployment blijven apart open.
+## Dienstverbandwizard: nummering, contractregels en aanmaakflow 2026-08-10
+
+Deze verticale slice is lokaal samengevoegd in `main` vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes`. De remote migratie, push en deployment zijn nog niet uitgevoerd.
+
+### Gedaan
+
+- Schema/API/UI volgen `schema -> API -> UI`: dienstverbandnummers zijn niet-negatieve numerieke volgnummers per medewerker; het IKV-nummer is alleen per medewerker uniek. De nieuwe contractduur `TEMPORARY_NO_END` is toegevoegd aan het lokale typecontract.
+- Proeftijdregels zijn gedeeld tussen wizard, contractroute en servervalidatie. Er zijn kalendermaandknoppen en einddatumknoppen voor 1/3/6/12 maanden; oproepuren worden bij een lege keuze op 0 gezet. De roosterverplichte ster staat alleen bij de titel.
+- De wizard gaat na **Overige** naar **Controleren** en bewaart pas via **Dienstverband aanmaken**. Annuleren en een viewport-veilige footer zijn toegevoegd. Administratiedetails tonen over de volle breedte administratiegegevens, actieve/gearchiveerde medewerkers en beschikbare CAO's.
+- Getallen accepteren `,`, `.` en Nederlandse duizendscheiding in invoervelden. Gangbaar vervolgontwerp is een persoonlijke locale-/nummernotatievoorkeur; een nieuwe voorkeur is in deze slice nog niet toegevoegd.
+- De gemelde POST-400 is gereproduceerd met de exacte browserpayload. De oorzaak was `z.string().uuid()` op geldige PostgreSQL-UUID-opmaak met niet-RFC-variant/version-nibbles; de employment-envelope en relevante nested IDs gebruiken nu een database-UUID-validator. De exacte full-on-call-payload heeft een regressietest.
+
+### Verificatie
+
+- Volledige hr-suite: 149 testbestanden en 569 tests groen; strict TypeScript, i18n-pariteit (29 namespaces), `git diff --check` en Webpack-productiebuild met 185 pagina's groen.
+- Browser op `127.0.0.1:3000`: administratie-informatie, oplopend nummer/IKV, tijdelijk-zonder-einddatum, einddatumknoppen, proeftijdmeldingen, roosterster, oproep-0-uren, review-vóór-save en Annuleren gecontroleerd. De knop **Dienstverband aanmaken** is niet aangeklikt; er is geen persistent testdienstverband aangemaakt.
+- Gerichte ESLint blijft geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`); dit is geen inhoudelijke wizardfout.
+
+### Open / geblokkeerd
+
+- De drie lokale Supabase-migraties voor tijdelijk-zonder-einddatum, nummer/IKV/proeftijd en de configureerbare CAO-proeftijdgrens zijn niet remote toegepast. Een read-only controle van Supabase-project `wnpfloqpjvaacobppbpk` vond één historische dubbele IKV 9 voor dezelfde medewerker over een afgesloten en een open relatie. Daarom is een expliciete cleanup-/indexbeslissing nodig vóór toepassing van de strikte unieke index; er is geen data gemuteerd.
+- Tot die expliciete remote migratie blijven de live database-indexen de oude organisatiebrede nummer-/IKV-semantiek volgen. De lokale code/API-fix voor de 400 en de wizard-UX zijn wel klaar en lokaal bewezen.
 
 ## Actuele release-status 2026-08-09
 

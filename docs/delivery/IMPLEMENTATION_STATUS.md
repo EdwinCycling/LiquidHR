@@ -7,6 +7,13 @@ Het weerinstrument en de Compact-schakelaar zijn uit de startpagina-header verwi
 ## Medewerkerdashboard profielheader 2026-08-10 — geverifieerd
 
 De uitgebreide medewerkerheader heeft dezelfde gegevens en acties in een nieuwe responsive compositie: een compacte ronde avatar, prominente naam met personeelsnummer/status, foto-acties in dezelfde naamkleur, 40x40 weer- en compact/uitgebreid-iconen naast elkaar en de archiveeractie onderaan boven de contactonderregel. Op mobiel stapelt de header verticaal; de bestaande compacte variant blijft via dezelfde URL-state beschikbaar. Gerichte ESLint, strict TypeScript, `git diff --check` en desktopbrowsercontrole zijn gecontroleerd. Geen schema-, API- of remotewijziging.
+## Dienstverbandwizard: onderhoud en contractregels 2026-08-10
+
+**Status: lokaal gedaan, geverifieerd en samengevoegd in `main`; remote migratie open.** Vanuit worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` zijn de wizard, employment API-validatie, contract-/detailroutes, i18n, lokale migraties en regressietests samengevoegd. Er is nog geen push, deployment of remote write voor deze slice uitgevoerd.
+
+De wizard gebruikt per medewerker het hoogste numerieke dienstverbandnummer plus één en behandelt het IKV-nummer als uniek per medewerker, niet organisatiebreed. Contracten zonder einddatum, proeftijdregels, kalendermaand-snelkeuzes, Nederlandse decimale invoer, nuluren voor oproepkrachten, review-vóór-save, Annuleren, administratie-informatie en de footerfix zijn aangesloten. De POST-400 is opgelost door de te strenge RFC-UUID-check in de employmentpayload te vervangen door PostgreSQL-UUID-opmaakvalidatie; een exacte browserpayload-regressietest dekt dit af.
+
+Bewijs: 149/569 Vitest, strict typecheck, 29 NL/EN-namespaces, `git diff --check`, Webpack-build met 185 pagina's en gerichte localhost-browsercontrole zijn groen. De remote migratie is bewust open: de read-only controle vond één bestaande dubbele IKV 9 voor dezelfde medewerker in een gesloten en een open relatie. Eerst is een expliciete keuze nodig voor historische cleanup/index-toepassing. De bestaande ESLint 10/`eslint-plugin-react`-fout blijft een niet-inhoudelijke repo-blokkade.
 
 ## Actuele release-status 2026-08-09
 

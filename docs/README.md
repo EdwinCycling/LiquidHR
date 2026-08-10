@@ -3,6 +3,9 @@
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 
 De feestdageninstellingen ondersteunen naast lokale feestdagen nu HR-groepbrede bedrijfsactiviteiten met naam en datum. Actieve feestdagen en de eerstvolgende bedrijfsactiviteit verschijnen in de startpagina- en medewerkerheader. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) voor de lokale verificatie en de nog openstaande remote/browser-gate.
+## Dienstverbandwizard: onderhoud en aanmaakregels 2026-08-10
+
+De lokale feature-slice voor de dienstverbandwizard staat in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-wizard-fixes` op branch `codex/employment-wizard-fixes`. De implementatie bevat per-medewerker nummering voor dienstverband en IKV, contracten zonder einddatum, proeftijdvalidatie, einddatum-snelkeuzes, review-vóór-save, annuleren, administratie-informatie, Nederlandse decimale invoer en de fix voor de POST-400 door PostgreSQL-UUID-validatie. Lokaal zijn 149/569 tests, typecheck, i18n, diff-check, Webpack-build en browsercontrole groen. Remote migratie en release zijn nog niet uitgevoerd; zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de duplicate-IKV-preconditie en resterende actie.
 
 ## Actuele release-status 2026-08-09
 

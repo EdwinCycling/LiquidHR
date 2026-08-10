@@ -6113,6 +6113,7 @@ export type Database = {
           is_active: boolean
           name: string
           predecessor_id: string | null
+          probation_maximum_months: number
           standard_hours_per_week: number
           tenant_id: string
           updated_at: string
@@ -6127,6 +6128,7 @@ export type Database = {
           is_active?: boolean
           name: string
           predecessor_id?: string | null
+          probation_maximum_months?: number
           standard_hours_per_week?: number
           tenant_id: string
           updated_at?: string
@@ -6141,6 +6143,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           predecessor_id?: string | null
+          probation_maximum_months?: number
           standard_hours_per_week?: number
           tenant_id?: string
           updated_at?: string
@@ -12936,6 +12939,7 @@ export type Database = {
           is_active: boolean
           name: string
           predecessor_id: string | null
+          probation_maximum_months: number
           standard_hours_per_week: number
           tenant_id: string
           updated_at: string
@@ -13629,10 +13633,11 @@ export type Database = {
       ai_message_role: "USER" | "ASSISTANT" | "TOOL"
       analog_clock_style: "CLASSIC" | "MINIMAL" | "LIQUID"
       clock_mode: "ANALOG" | "DIGITAL" | "HIDDEN"
-      contract_duration_type: "INDEFINITE" | "DEFINITE"
+      contract_duration_type: "INDEFINITE" | "DEFINITE" | "TEMPORARY_NO_END"
       contract_type:
         | "INDEFINITE"
         | "DEFINITE"
+        | "TEMPORARY_NO_END"
         | "ON_CALL"
         | "TEMPORARY_AGENCY"
         | "EXTERNAL"
@@ -13967,10 +13972,11 @@ export const Constants = {
       ai_message_role: ["USER", "ASSISTANT", "TOOL"],
       analog_clock_style: ["CLASSIC", "MINIMAL", "LIQUID"],
       clock_mode: ["ANALOG", "DIGITAL", "HIDDEN"],
-      contract_duration_type: ["INDEFINITE", "DEFINITE"],
+      contract_duration_type: ["INDEFINITE", "DEFINITE", "TEMPORARY_NO_END"],
       contract_type: [
         "INDEFINITE",
         "DEFINITE",
+        "TEMPORARY_NO_END",
         "ON_CALL",
         "TEMPORARY_AGENCY",
         "EXTERNAL",
