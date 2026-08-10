@@ -4,7 +4,7 @@
 
 - `main` bevat de lokale commits `f907eb8` (bedrijfsactiviteiten, feestdagen en employment-overzicht) en `5077aa0` (Liquid Flow applicatiebrede UX). De bronwerkmap `codex/liquid-flow-appwide` is gecontroleerd vastgelegd als `4d2e262`; gegenereerde `next-env.d.ts`-wijzigingen zijn bewust niet meegenomen.
 - De zichtbare appversie is verhoogd van `1.20260810.2` naar `1.20260810.3` in `apps/hr-suite/lib/app-version.ts`; de unit-test verwacht dezelfde waarde. De packageversie blijft technische metadata.
-- De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. GitHub `main` staat op `edf8de9`; Vercel Production `dpl_FtSAqLQqavF5JBg4ax1E6vWVJFme` is `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200 en de runtime-scan over het laatste uur meldt geen fouten.
+- De lokale releasegate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. De releasecode staat op `edf8de9`; `main` bevat daarna docs-only verificatiecommit `f185a58`. Vercel Production `dpl_FtSAqLQqavF5JBg4ax1E6vWVJFme` en de daaropvolgende docs-only deployment zijn `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200 en de runtime-scan over het laatste uur meldt geen fouten.
 
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10 — lokaal bijgewerkt
 

@@ -2,7 +2,7 @@
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 
-De hoofdworkspace `main` bevat nu de gecontroleerde lokale employment-/bedrijfsactiviteiten-slice en de Liquid Flow UX-slice uit `codex/liquid-flow-appwide`. De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie; packageversie `0.1.2` blijft technische metadata. De lokale gate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. GitHub `main` staat op `edf8de9`; Vercel Production `dpl_FtSAqLQqavF5JBg4ax1E6vWVJFme` is `READY`, alias `/login` geeft HTTP 200 en de runtime-scan meldt geen fouten.
+De hoofdworkspace `main` bevat nu de gecontroleerde lokale employment-/bedrijfsactiviteiten-slice en de Liquid Flow UX-slice uit `codex/liquid-flow-appwide`. De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie; packageversie `0.1.2` blijft technische metadata. De lokale gate is groen: 151 testbestanden/575 tests, strict TypeScript, 29 NL/EN-namespaces, volledige ESLint, diff-check en Webpack-productiebuild met 187 pagina's. De releasecode staat op `edf8de9`; `main` bevat daarna docs-only verificatiecommit `f185a58`. Vercel Production `dpl_FtSAqLQqavF5JBg4ax1E6vWVJFme` en de daaropvolgende docs-only deployment zijn `READY`; alias `/login` geeft HTTP 200 en de runtime-scan meldt geen fouten.
 
 ## Release 2026-08-10: productversie 1.20260810.2 — remote schema toegepast
 
