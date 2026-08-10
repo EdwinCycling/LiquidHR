@@ -50,6 +50,8 @@
   "summaryTitle": "Employment summary",
   "summaryAdministration": "Admin.",
   "summaryLaborConditions": "CBA",
+  "contractDetails": "Contract details",
+  "noActiveContract": "No active contract for this employment",
   "changeActionsTitle": "Adjust payroll contract",
   "changeHoursSchedule": "Hours / Schedule",
   "changeHoursScheduleSalary": "Hours / Schedule / Salary",

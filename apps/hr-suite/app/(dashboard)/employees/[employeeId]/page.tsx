@@ -302,6 +302,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 employmentNumber: tEmployment('employmentNumber'),
                 editDetail: tEmployment('editDetail'),
                 status: tEmployment('status'),
+                contractDetails: tEmployment('contractDetails'),
+                contractType: tEmployment('contractType'),
                 indefinite: tEmployment('indefinite'),
                 definite: tEmployment('definite'),
                 temporaryWithoutEnd: tEmployment('temporaryWithoutEnd'),
@@ -310,7 +312,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                  department: tEmployment('department'), jobTitle: tEmployment('jobTitle'), hoursPerWeek: tEmployment('weeklyHours'),
                 laborConditions: tEmployment('laborConditions'), workerType: tEmployment('workerType'),
                 workerEmployee: tEmployment('workerEmployee'), workerStudentIntern: tEmployment('workerStudentIntern'),
-                 workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'), workerFreelancer: tEmployment('workerFreelancer'), workerVolunteer: tEmployment('workerVolunteer'), workerNoPayroll: tEmployment('workerNoPayroll'),
+                workerTemporaryAgency: tEmployment('workerTemporaryAgency'), workerExternal: tEmployment('workerExternal'), workerFreelancer: tEmployment('workerFreelancer'), workerVolunteer: tEmployment('workerVolunteer'), workerNoPayroll: tEmployment('workerNoPayroll'),
+                hoursPerWeekSuffix: tEmployment('hoursPerWeek'),
+                noActiveContract: tEmployment('noActiveContract'),
                 notRecorded: tEmployment('notRecorded'),
               }}
             />

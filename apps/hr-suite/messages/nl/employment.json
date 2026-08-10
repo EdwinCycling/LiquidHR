@@ -50,6 +50,8 @@
   "summaryTitle": "Samenvatting dienstverband",
   "summaryAdministration": "Adm.",
   "summaryLaborConditions": "CAO",
+  "contractDetails": "Contractgegevens",
+  "noActiveContract": "Geen actief contract bij dit dienstverband",
   "changeActionsTitle": "Looncontract aanpassen",
   "changeHoursSchedule": "Uren / Rooster",
   "changeHoursScheduleSalary": "Uren / Rooster / Salaris",

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse, requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import type { CompanyActivityInput } from './schemas'
+import type { CompanyActivityInput, CompanyActivityUpdateInput } from './schemas'
+import { mapCompanyActivityDatabaseError } from './errors'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -30,8 +31,8 @@ export class CompanyActivityError extends Error {
 }
 
 function databaseError(message: string): never {
-  const code = message.match(/COMPANY_ACTIVITY_[A-Z_]+/)?.[0] ?? 'COMPANY_ACTIVITY_OPERATION_FAILED'
-  throw new CompanyActivityError(code, code.includes('NOT_FOUND') ? 404 : code.includes('FORBIDDEN') ? 403 : 400)
+  const mapped = mapCompanyActivityDatabaseError(message)
+  throw new CompanyActivityError(mapped.code, mapped.status)
 }
 
 export async function listCompanyActivities(year: number): Promise<CompanyActivityItem[]> {
@@ -70,6 +71,22 @@ export async function createCompanyActivity(input: CompanyActivityInput): Promis
   }).select('id').single()
   if (error || !data) databaseError(error?.message ?? 'COMPANY_ACTIVITY_OPERATION_FAILED')
   return data.id
+}
+
+export async function updateCompanyActivity(id: string, input: CompanyActivityUpdateInput): Promise<CompanyActivityItem> {
+  const auth = await requirePermission('holidays:write')
+  const hrGroupId = requireHrGroupId(auth)
+  const supabase = await createClient()
+  const updates = {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.date !== undefined ? { activity_date: input.date } : {}),
+    ...(input.isActive !== undefined ? { is_active: input.isActive } : {}),
+    updated_by: auth.userId,
+  }
+  const { data, error } = await supabase.from('company_activities').update(updates).eq('id', id).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).select('id,name,activity_date,is_active').maybeSingle()
+  if (error) databaseError(error.message)
+  if (!data) throw new CompanyActivityError('COMPANY_ACTIVITY_NOT_FOUND', 404)
+  return data
 }
 
 export async function getUpcomingCalendarItems(auth: AuthContext, supabase: SupabaseServerClient): Promise<UpcomingCalendarItems> {

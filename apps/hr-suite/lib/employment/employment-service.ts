@@ -204,6 +204,8 @@ export interface EmployeeEmploymentDetail {
     hoursPerWeek: number | null
     laborConditionName: string | null
     employmentType: Database['public']['Enums']['employment_type'] | null
+    workerType: Database['public']['Enums']['employment_worker_type'] | null
+    contractType: Database['public']['Enums']['contract_duration_type'] | null
   }>
   status: EmploymentStatus
   addresses: Array<{
@@ -1003,7 +1005,7 @@ export async function getEmployeeEmploymentDetail(
     })()
     : Promise.resolve({ data: [], error: null })
   const contractsQuery = includeOverviewData
-    ? supabase.from('employment_contracts').select('employment_id, worker_type, starts_on, ends_on, labor_condition_sets!employment_contracts_labor_condition_set_fkey(name)')
+    ? supabase.from('employment_contracts').select('employment_id, worker_type, duration_type, starts_on, ends_on, labor_condition_sets!employment_contracts_labor_condition_set_fkey(name)')
       .eq('tenant_id', context.tenantId).eq('employee_id', employeeId).lte('starts_on', today)
       .or(`ends_on.is.null,ends_on.gte.${today}`).order('starts_on', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
@@ -1128,6 +1130,8 @@ export async function getEmployeeEmploymentDetail(
         hoursPerWeek: schedule?.average_hours_per_week ?? null,
         laborConditionName: contract?.labor_condition_sets?.name ?? null,
         employmentType: employment.employment_type ?? null,
+        workerType: contract?.worker_type ?? null,
+        contractType: contract?.duration_type ?? null,
       }
     }),
     status: deriveEmploymentStatus(

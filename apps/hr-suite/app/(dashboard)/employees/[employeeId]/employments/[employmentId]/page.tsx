@@ -3,13 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  BriefcaseBusiness,
   CalendarDays,
   Mail,
   MapPin,
   Phone,
-  Sparkles,
-  UserRound,
 } from "lucide-react";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
@@ -103,7 +100,10 @@ export default async function EmploymentDetailPage({
   const expanded = query.view !== "compact";
   const today = new Date().toISOString().slice(0, 10);
   const seniority = seniorityDuration(detail.employment.seniority_date, today);
-  const currentContract = detail.contracts.find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on >= today)) ?? detail.contracts[0];
+  const currentContract = detail.contracts.find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on >= today));
+  const currentSchedule = detail.schedules.find((schedule) => schedule.valid_from <= today && (!schedule.valid_until || schedule.valid_until >= today));
+  const currentOrganization = detail.organizations.find((organization) => organization.effective_from <= today && (!organization.effective_to || organization.effective_to >= today));
+  const contractHours = currentSchedule?.average_hours_per_week ?? currentContract?.fulltime_hours_per_week ?? null;
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? "")
     ? query.date!
     : today;
@@ -186,21 +186,15 @@ export default async function EmploymentDetailPage({
       : detail.employment.ends_on && detail.employment.ends_on < today
         ? t("ended")
         : t("active");
-  const contractTypeLabel = detail.employment.contract_type === 'INDEFINITE' ? t('indefinite') : detail.employment.contract_type === 'DEFINITE' ? t('definite') : t('temporaryWithoutEnd');
-  const workerTypeLabel = detail.employment.employment_type === 'EMPLOYEE'
+  const contractTypeLabel = currentContract?.duration_type === 'INDEFINITE' ? t('indefinite') : currentContract?.duration_type === 'DEFINITE' ? t('definite') : currentContract?.duration_type === 'TEMPORARY_NO_END' ? t('temporaryWithoutEnd') : t('notRecorded');
+  const workerTypeLabel = currentContract?.worker_type === 'EMPLOYEE'
     ? t('workerEmployee')
-    : detail.employment.employment_type === 'INTERN' || detail.employment.employment_type === 'APPRENTICE'
+    : currentContract?.worker_type === 'STUDENT_INTERN'
       ? t('workerStudentIntern')
-      : detail.employment.employment_type === 'TEMPORARY_AGENCY'
+      : currentContract?.worker_type === 'TEMPORARY_AGENCY'
         ? t('workerTemporaryAgency')
-        : detail.employment.employment_type === 'FREELANCER'
-          ? t('workerFreelancer')
-          : detail.employment.employment_type === 'VOLUNTEER'
-            ? t('workerVolunteer')
-            : detail.employment.employment_type === 'NO_PAYROLL'
-              ? t('workerNoPayroll')
-              : detail.employment.employment_type === 'CONTRACTOR'
-                ? t('workerExternal')
+        : currentContract?.worker_type === 'EXTERNAL_NO_PAYROLL'
+          ? t('workerExternal')
           : t('notRecorded');
   const timelineListLabels = {
     current: t("currentValue"),
@@ -245,10 +239,6 @@ export default async function EmploymentDetailPage({
               <h1 className={`${expanded ? 'mt-1 text-2xl sm:text-3xl' : 'text-base'} truncate font-semibold tracking-tight`}>{name}</h1>
               {expanded && <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-primary-foreground/80">
                 <span className="inline-flex items-center gap-1.5">
-                  <BriefcaseBusiness className="h-4 w-4" />
-                  {contractTypeLabel}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
                   <MapPin className="h-4 w-4" />
                   {detail.administration.name}
                 </span>
@@ -259,10 +249,6 @@ export default async function EmploymentDetailPage({
             {expanded && <>
               <span className="status-chip bg-success-surface text-success">{t("employmentContext")}</span>
               <span className="status-chip bg-accent text-accent-foreground">{effectiveStatus}</span>
-              <span className="status-chip bg-primary-foreground/15 text-primary-foreground">
-                <UserRound aria-hidden="true" className="h-3.5 w-3.5" />
-                {workerTypeLabel}
-              </span>
             </>}
             <Link
               prefetch={false}
@@ -342,18 +328,10 @@ export default async function EmploymentDetailPage({
                 </div>
                 <span className="status-chip bg-muted text-muted-foreground">{detail.employment.employment_number}</span>
               </div>
-              <dl className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <dl className="mt-5 grid gap-5 sm:grid-cols-2">
                 <div>
                   <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("summaryAdministration")}</dt>
                   <dd className="mt-2 font-semibold">{detail.administration.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("summaryLaborConditions")}</dt>
-                  <dd className="mt-2 font-semibold">{currentContract?.labor_condition_sets?.name ?? t("notRecorded")}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("workerType")}</dt>
-                  <dd className="mt-2 font-semibold">{workerTypeLabel}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("seniorityDate")}</dt>
@@ -365,8 +343,21 @@ export default async function EmploymentDetailPage({
                   </dd>
                 </div>
               </dl>
+              <div className="mt-6 border-t pt-5">
+                {currentContract ? <>
+                  <h3 className="text-sm font-semibold">{t("contractDetails")}</h3>
+                  <dl className="mt-4 grid gap-5 text-sm sm:grid-cols-2 xl:grid-cols-3">
+                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("contractType")}</dt><dd className="mt-1 font-semibold">{contractTypeLabel}</dd></div>
+                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("laborConditions")}</dt><dd className="mt-1 font-semibold">{currentContract.labor_condition_sets?.name ?? t("notRecorded")}</dd></div>
+                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("weeklyHours")}</dt><dd className="mt-1 font-semibold">{contractHours === null ? t("notRecorded") : `${contractHours} ${t("hoursPerWeek")}`}</dd></div>
+                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("department")}</dt><dd className="mt-1 font-semibold">{currentOrganization?.departments?.name ?? t("notRecorded")}</dd></div>
+                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("jobTitle")}</dt><dd className="mt-1 font-semibold">{currentOrganization?.job_title ?? t("notRecorded")}</dd></div>
+                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("workerType")}</dt><dd className="mt-1 font-semibold">{workerTypeLabel}</dd></div>
+                  </dl>
+                </> : <p className="text-sm text-muted-foreground">{t("noActiveContract")}</p>}
+              </div>
             </section>
-            <EmploymentOverviewActions
+            {currentContract && <EmploymentOverviewActions
               labels={{
                 sectionTitle: t("changeActionsTitle"),
                 hoursSchedule: t("changeHoursSchedule"),
@@ -379,7 +370,7 @@ export default async function EmploymentDetailPage({
                 modalTitle: t("changeModalTitle"),
                 cancel: t("cancel"),
               }}
-            />
+            />}
             <EmploymentContractTimeline
               employeeId={employeeId}
               employmentId={employmentId}
@@ -416,17 +407,6 @@ export default async function EmploymentDetailPage({
                 failed: t("changeFailed"), addBlocked: t("contractAddBlocked"), probationCaoMaximum: t("probationCaoMaximum"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
               }}
             />
-            <article className="rounded-2xl border bg-surface p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-foreground">
-                  <Sparkles className="h-5 w-5" />
-                </span>
-                <h2 className="text-lg font-semibold">{t("aiSummary")}</h2>
-              </div>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
-                {t("aiSummaryPlaceholder")}
-              </p>
-            </article>
           </div>
         )}
         {tab === "schedule" && (

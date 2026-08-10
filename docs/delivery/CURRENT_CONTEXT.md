@@ -1,5 +1,19 @@
 # Actuele overdracht Liquid HR
 
+## Feestdagen en bedrijfsactiviteiten 2026-08-10 — lokaal bijgewerkt
+
+- `/settings/holidays` toont lokale feestdagen en bedrijfsactiviteiten nu als volle, onder elkaar gestapelde instellingenvensters. Beide typen staan samen in één datumlijst; bedrijfsactiviteiten hebben een afwijkende primaire kleurset en een wijzigingsmodal met naam, datum en actieve status.
+- Activeren/deactiveren van feestdagen geeft een toast. Een dubbele bedrijfsactiviteit geeft voortaan een specifieke conflictmelding; de nieuwe PATCH-route ondersteunt gecontroleerd wijzigen en behoudt de bestaande tenant-/HR-groepautorisatie.
+- De instellingen- en schermtitels zijn in NL/EN hernoemd naar Feestdagen en Bedrijfsactiviteiten / Holidays and Company Activities. De modal is hydration-safe gemaakt met een stabiele server/client-mountgrens.
+- Lokaal bewijs: volledige hr-suite 151 testbestanden en 575 tests groen; strict TypeScript, i18n-pariteit, volledige ESLint en `git diff --check` groen. De browsercontrole bereikte zonder sessie alleen `/login`; daar was geen error-overlay zichtbaar. Geen remote wijziging, commit, push of deployment uitgevoerd.
+
+## Dienstverbandoverzicht en contractweergave 2026-08-10
+
+- Op `/employees/[employeeId]?tab=employments` toont een dienstverbandkaart geen contractvorm meer. De kaart toont nummer, periode/status, anciënniteitsdatum met duur eronder en administratie; actuele contractgegevens staan onder een dunne scheidingslijn.
+- Contractgegevens tonen alleen wanneer er een vandaag geldig contract is. Zonder geldig contract verschijnt `Geen actief contract bij dit dienstverband`; toekomstige contracten worden niet als actueel gekozen.
+- Op het dienstverbanddetail staan contractvorm, CAO, uren, afdeling, functie en medewerkertype in het contractblok. De losse wijzigingsacties verschijnen alleen bij een geldig contract. De AI-samenvatting-placeholder is verwijderd.
+- Verificatie: employment-card-state/seniority 6/6 tests groen, strict TypeScript, volledige ESLint, `git diff --check`, browsercontrole op poort 3000 voor overzicht en detail groen; NL/EN `employment.json` 391/391 sleutels gelijk en de volledige i18n-check meldt 29 namespaces met gelijke sleutels. Geen schema-, API-, remote-, commit-, push- of deploymentwijziging.
+
 ## Release 2026-08-10: productversie 1.20260810.2
 
 - De zichtbare productversie is verhoogd naar `1.20260810.2` volgens de centrale `X.datum.volgnummer`-conventie.
