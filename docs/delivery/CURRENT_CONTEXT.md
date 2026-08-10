@@ -1,9 +1,11 @@
 # Actuele overdracht Liquid HR
 
-## Lokale release candidate 2026-08-10
+## Release 2026-08-10: productversie 1.20260810.1
 
 - De zichtbare productversie is verhoogd naar `1.20260810.1` volgens de centrale `X.datum.volgnummer`-conventie.
-- `main` bevat de lokale consolidatie en employment-merge (`7b8bee2`). Tests, push en deployment volgen; er is nog geen publicatie van deze versie uitgevoerd.
+- `main` bevat de lokale consolidatie en employment-merge (`7b8bee2`) en staat op GitHub op `ae48a0a1358613f95de0525e8d910443bbf7d046`.
+- Vercel Production `dpl_ACrvPmcSc6va4sbZoj7vXXceeuih` is `READY` met alias `liquid-hr-hr-suite.vercel.app`; `/login` geeft HTTP 200 en de runtime-errorscan van het afgelopen uur is leeg.
+- De drie employment-migraties zijn niet remote toegepast: de read-only controle vond de bestaande dubbele IKV-preconditie. Geen remote databasewijziging is zonder aparte goedkeuring uitgevoerd.
 
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 

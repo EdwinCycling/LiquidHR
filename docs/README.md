@@ -1,8 +1,8 @@
 # Liquid HR documentatie-index
 
-## Lokale release candidate 2026-08-10: productversie 1.20260810.1
+## Release 2026-08-10: productversie 1.20260810.1 — productie READY
 
-De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De gecombineerde lokale `main` bevat de HR-, Process Automation-, bedrijfsactiviteiten-, weer- en dienstverbandwijzigingen; tests en publicatie volgen na deze versiecheck.
+De zichtbare appversie is verhoogd volgens de centrale `X.datum.volgnummer`-conventie. De gecombineerde `main` is getest en staat op GitHub op commit `ae48a0a1358613f95de0525e8d910443bbf7d046`. Vercel Production-deployment `dpl_ACrvPmcSc6va4sbZoj7vXXceeuih` is `READY`, alias `liquid-hr-hr-suite.vercel.app` geeft `/login` HTTP 200 en de runtime-errorscan van het afgelopen uur is leeg. De drie employment-migraties blijven remote open wegens de duplicate-IKV-preconditie.
 
 ## Feestdagen en bedrijfsactiviteiten 2026-08-10
 
