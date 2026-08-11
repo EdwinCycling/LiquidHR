@@ -1,13 +1,13 @@
 # Actuele overdracht Liquid HR
 
-## Release 2026-08-11 — lokaal gereed, publicatie volgt
+## Release 2026-08-11 — productie geverifieerd
 
 - `main` bevat alle actuele lokale featurecommits voor Process Automation-redesign, Surveys/eNPS, research-draftflows en Teamkompas. Alle featurebranches zijn voorouders van `main`; er ontbreken geen featurecommits.
 - De zichtbare appversie en unit-test staan op `1.20260811.1`. De lokale releasegate is groen: 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, `git diff --check` en `next build --webpack` met 200 pagina's.
 - Remote is `research_wrapper_execution_grants` toegepast. De vier publieke researchwrappers zijn afgeschermde `SECURITY DEFINER`-functies met lege `search_path`, alleen `authenticated` execute en bestaande kernelguards. De vier interne kernels blijven voor `authenticated` en `anon` afgesloten. Een transactionele dummy-aanroep bereikt de inhoudelijke validator en het volledige research-SQL-contract is groen.
 - Officiële remote typegeneratie is opnieuw uitgevoerd; de privilegewijziging verandert geen TypeScript-contract. Advisors: security 47 totaal (1 INFO/46 WARN), inclusief vier bewuste research-wrappermeldingen en vijf bestaande Teamkompas-RPC-meldingen; performance 405 INFO. De relevante remediatiepagina is <https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable>.
 - De build heeft `apps/hr-suite/next-env.d.ts` niet inhoudelijk gewijzigd. De oude OAuth-worktree had alleen verouderde Git-indexmetadata voor hetzelfde bestand; die metadata is ververst en de worktree is schoon.
-- GitHub-push en Vercel Production-controle volgen na de releasecommit. `.codex-worktrees/` blijft een lokale, niet te publiceren worktreecontainer.
+- Releasecommit `0598548a218433d1b2ed42db5a317b40f9347d00` staat op GitHub `main`. Vercel Production `dpl_7W8AKP7nAASxrfaiQz4SjbLUQj3F` is `READY` op exact deze SHA; alias `/login` geeft HTTP 200, de research-API-route is bereikbaar en de runtime-error-/error-fatal-scan over het controlevelster is schoon. `.codex-worktrees/` blijft een lokale, niet te publiceren worktreecontainer.
 
 ## Surveys en eNPS — follow-up 2026-08-11
 

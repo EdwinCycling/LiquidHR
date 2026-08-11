@@ -1,10 +1,10 @@
 # Implementatiestatus Liquid HR
 
-## Release 2026-08-11 — lokaal gereed
+## Release 2026-08-11 — productie geverifieerd
 
 Alle actuele featurecommits staan op lokaal `main`; de zichtbare versie is `1.20260811.1`. De releasegate is groen met 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, diff-check en een Webpack-productiebuild met 200 pagina's.
 
-De aangetroffen research-wrapperpermissionfout is schema-eerst remote hersteld via `research_wrapper_execution_grants`. Publieke wrappers zijn afgeschermde `SECURITY DEFINER`-functies met lege `search_path` en alleen `authenticated` execute; interne kernels blijven voor `authenticated` en `anon` afgesloten en behouden de bestaande autorisatiechecks. Het remote researchcontract is groen. De vier bijbehorende advisor-WARNs zijn bewust en gedocumenteerd. GitHub-push en Vercel-verificatie volgen na de releasecommit.
+De aangetroffen research-wrapperpermissionfout is schema-eerst remote hersteld via `research_wrapper_execution_grants`. Publieke wrappers zijn afgeschermde `SECURITY DEFINER`-functies met lege `search_path` en alleen `authenticated` execute; interne kernels blijven voor `authenticated` en `anon` afgesloten en behouden de bestaande autorisatiechecks. Het remote researchcontract is groen. De vier bijbehorende advisor-WARNs zijn bewust en gedocumenteerd. Releasecommit `0598548a218433d1b2ed42db5a317b40f9347d00` staat op GitHub `main`; Vercel Production `dpl_7W8AKP7nAASxrfaiQz4SjbLUQj3F` is `READY` op die SHA, `/login` geeft HTTP 200 en de runtimecontroles zijn schoon.
 
 ## Surveys en eNPS — follow-up 2026-08-11
 
