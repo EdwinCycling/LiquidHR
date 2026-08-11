@@ -20,6 +20,37 @@ export interface ResearchCampaignSummary {
   submitted: number
 }
 
+export interface SurveyDraftData {
+  id: string
+  title: string
+  description: string
+  startsAt: string
+  endsAt: string
+  isAnonymous: boolean
+  targetMode: ResearchTargetMode
+  targetIds: string[]
+  questions: Array<{
+    id: string
+    text: string
+    type: SurveyInput['questions'][number]['type']
+    required: boolean
+    options: string[]
+    rows: Array<{ label: string; required: boolean }>
+  }>
+}
+
+export interface EnpsDraftData {
+  id: string
+  title: string
+  startsAt: string
+  endsAt: string
+  scaleType: EnpsCampaignInput['scaleType']
+  reminderIntervalDays: number
+  targetMode: ResearchTargetMode
+  targetIds: string[]
+  questions: Array<{ bankQuestionId: string; order: number; type: EnpsCampaignInput['questions'][number]['type']; mandatory: boolean; enabled: boolean }>
+}
+
 export async function listResearchSettingsData() {
   const context = await requirePermission('research:write')
   const hrGroupId = requireHrGroupId(context)
@@ -109,6 +140,37 @@ export async function createSurvey(input: SurveyInput): Promise<string> {
   }
 }
 
+export async function getSurveyDraft(id: string): Promise<SurveyDraftData> {
+  const { campaign, supabase } = await loadCampaign('survey', id)
+  if (campaign.status !== 'DRAFT') throw new ResearchError('RESEARCH_CAMPAIGN_NOT_DRAFT', 409)
+  const survey = campaign as SurveyRow
+  const research = asResearchClient(supabase)
+  const [questions, options, rows] = await Promise.all([
+    research.from('survey_questions').select('*').eq('survey_id', id).order('order_index'),
+    research.from('survey_question_options').select('*').eq('survey_id', id).order('order_index'),
+    research.from('survey_matrix_rows').select('*').eq('survey_id', id).order('order_index'),
+  ])
+  if (questions.error || options.error || rows.error) throw new ResearchError('RESEARCH_CAMPAIGN_READ_FAILED', 500)
+  return {
+    id: survey.id,
+    title: survey.title,
+    description: survey.description,
+    startsAt: survey.starts_at,
+    endsAt: survey.ends_at,
+    isAnonymous: survey.is_anonymous,
+    targetMode: survey.target_mode,
+    targetIds: survey.target_ids,
+    questions: (questions.data ?? []).map((question) => ({
+      id: question.id,
+      text: question.question_text,
+      type: question.question_type as SurveyInput['questions'][number]['type'],
+      required: question.is_required,
+      options: (options.data ?? []).filter((option) => option.question_id === question.id).sort((left, right) => left.order_index - right.order_index).map((option) => option.option_label),
+      rows: (rows.data ?? []).filter((row) => row.question_id === question.id).sort((left, right) => left.order_index - right.order_index).map((row) => ({ label: row.row_label, required: row.is_required })),
+    })),
+  }
+}
+
 export async function createEnpsCampaign(input: EnpsCampaignInput): Promise<string> {
   await requireTenantModule('ENPS')
   const parsed = enpsCampaignInputSchema.parse(input)
@@ -162,6 +224,70 @@ export async function createEnpsCampaign(input: EnpsCampaignInput): Promise<stri
     throw new ResearchError('ENPS_QUESTIONS_CREATE_FAILED', 500)
   }
   return created.data.id
+}
+
+export async function getEnpsDraft(id: string): Promise<EnpsDraftData> {
+  const { campaign, supabase } = await loadCampaign('enps', id)
+  if (campaign.status !== 'DRAFT') throw new ResearchError('RESEARCH_CAMPAIGN_NOT_DRAFT', 409)
+  const enps = campaign as EnpsCampaignRow
+  const research = asResearchClient(supabase)
+  const questions = await research.from('enps_questions').select('*').eq('campaign_id', id).order('order_index')
+  if (questions.error) throw new ResearchError('RESEARCH_CAMPAIGN_READ_FAILED', 500)
+  return {
+    id: enps.id,
+    title: enps.title,
+    startsAt: enps.starts_at,
+    endsAt: enps.ends_at,
+    scaleType: enps.scale_type as EnpsCampaignInput['scaleType'],
+    reminderIntervalDays: enps.reminder_interval_days,
+    targetMode: enps.target_mode,
+    targetIds: enps.target_ids,
+    questions: (questions.data ?? []).map((question) => ({ bankQuestionId: question.bank_question_id ?? '', order: question.order_index, type: question.question_type as EnpsCampaignInput['questions'][number]['type'], mandatory: question.is_mandatory, enabled: question.is_enabled })),
+  }
+}
+
+export async function updateSurveyDraft(id: string, input: SurveyInput): Promise<string> {
+  await requireTenantModule('SURVEYS')
+  const parsed = surveyInputSchema.parse(input)
+  const { campaign, supabase } = await loadCampaign('survey', id)
+  if (campaign.status !== 'DRAFT') throw new ResearchError('RESEARCH_CAMPAIGN_NOT_DRAFT', 409)
+  const result = await asResearchClient(supabase).rpc('update_survey_draft', {
+    p_campaign_id: id,
+    p_payload: {
+      title: parsed.title,
+      description: parsed.description,
+      startsAt: parsed.startsAt,
+      endsAt: parsed.endsAt,
+      isAnonymous: parsed.isAnonymous,
+      targetMode: parsed.target.mode,
+      targetIds: parsed.target.ids,
+      questions: parsed.questions.map((question) => ({ text: question.text, type: question.type, required: question.required, options: question.options, rows: question.rows })),
+    },
+  })
+  if (result.error) throw new ResearchError(result.error.message.includes('NOT_DRAFT') ? 'RESEARCH_CAMPAIGN_NOT_DRAFT' : 'SURVEY_UPDATE_FAILED', result.error.message.includes('NOT_DRAFT') ? 409 : 500)
+  return result.data
+}
+
+export async function updateEnpsDraft(id: string, input: EnpsCampaignInput): Promise<string> {
+  await requireTenantModule('ENPS')
+  const parsed = enpsCampaignInputSchema.parse(input)
+  const { campaign, supabase } = await loadCampaign('enps', id)
+  if (campaign.status !== 'DRAFT') throw new ResearchError('RESEARCH_CAMPAIGN_NOT_DRAFT', 409)
+  const result = await asResearchClient(supabase).rpc('update_enps_draft', {
+    p_campaign_id: id,
+    p_payload: {
+      title: parsed.title,
+      startsAt: parsed.startsAt,
+      endsAt: parsed.endsAt,
+      scaleType: parsed.scaleType,
+      reminderIntervalDays: parsed.reminderIntervalDays,
+      targetMode: parsed.target.mode,
+      targetIds: parsed.target.ids,
+      questions: parsed.questions,
+    },
+  })
+  if (result.error) throw new ResearchError(result.error.message.includes('NOT_DRAFT') ? 'RESEARCH_CAMPAIGN_NOT_DRAFT' : 'ENPS_UPDATE_FAILED', result.error.message.includes('NOT_DRAFT') ? 409 : 500)
+  return result.data
 }
 
 async function loadCampaign(kind: ResearchKind, id: string): Promise<{ campaign: SurveyRow | EnpsCampaignRow; context: Awaited<ReturnType<typeof requirePermission>>; supabase: Awaited<ReturnType<typeof createClient>> }> {

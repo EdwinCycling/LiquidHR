@@ -63,6 +63,7 @@
     "working": "Working…",
     "actionFailed": "The action could not be completed.",
     "actionDone": "The campaign was updated.",
+    "editDraft": "Edit draft",
     "openMonitor": "Open monitor",
     "manageQuestionBank": "Manage question bank"
   },
@@ -97,8 +98,12 @@
   "builder": {
     "surveyTitle": "New survey",
     "surveySubtitle": "Build a clear questionnaire. The campaign is saved as a draft first.",
+    "surveyEditTitle": "Edit survey draft",
+    "surveyEditSubtitle": "Update the campaign and questions while it is still a draft.",
     "enpsTitle": "New eNPS pulse",
     "enpsSubtitle": "Combine the fixed eNPS question with targeted drivers from the question bank.",
+    "enpsEditTitle": "Edit eNPS draft",
+    "enpsEditSubtitle": "Update the pulse and questions while it is still a draft.",
     "back": "Back to surveys",
     "campaign": "1. Campaign",
     "title": "Title",
@@ -157,6 +162,7 @@
     "addCustomQuestion": "Add",
     "addingCustomQuestion": "Adding…",
     "saveDraft": "Save draft",
+    "saveChanges": "Save changes",
     "saving": "Saving draft…",
     "saveFailed": "The draft could not be saved. Check all fields.",
     "saveSuccess": "Draft saved."

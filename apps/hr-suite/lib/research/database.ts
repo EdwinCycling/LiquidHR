@@ -195,6 +195,8 @@ export type ResearchDatabase = Omit<BaseDatabase, 'public'> & {
     Functions: BaseDatabase['public']['Functions'] & {
       submit_survey_response: { Args: { p_invitation_id: string; p_answers: unknown }; Returns: string }
       submit_enps_response: { Args: { p_invitation_id: string; p_answers: unknown }; Returns: string }
+      update_survey_draft: { Args: { p_campaign_id: string; p_payload: unknown }; Returns: string }
+      update_enps_draft: { Args: { p_campaign_id: string; p_payload: unknown }; Returns: string }
     }
   }
 }
