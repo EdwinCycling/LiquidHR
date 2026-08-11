@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import type { ResearchTargetOptions } from '@/lib/research/target-service'
 import type { ResearchTargetMode, SurveyQuestionType } from '@/lib/research/schemas'
+import type { SurveyDraftData } from '@/lib/research/admin-service'
 import { ResearchTargetPicker } from './research-target-picker'
 
 type SurveyQuestionDraft = { key: string; text: string; type: SurveyQuestionType; required: boolean; options: string; rows: string }
@@ -20,17 +21,23 @@ function questionLabel(template: string, number: number) {
 
 const initialQuestion: SurveyQuestionDraft = { key: '1', text: '', type: 'TEXT_MULTI', required: true, options: '', rows: '' }
 
-export function SurveyBuilder({ labels, targets }: { labels: BuilderLabels; targets: ResearchTargetOptions }) {
+function toDateTimeLocal(value: string) {
+  const date = new Date(value)
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export function SurveyBuilder({ labels, targets, draft }: { labels: BuilderLabels; targets: ResearchTargetOptions; draft?: SurveyDraftData }) {
   const router = useRouter()
-  const nextKey = useRef(2)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [startsAt, setStartsAt] = useState('')
-  const [endsAt, setEndsAt] = useState('')
-  const [anonymous, setAnonymous] = useState(true)
-  const [mode, setMode] = useState<ResearchTargetMode>('ALL')
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [questions, setQuestions] = useState<SurveyQuestionDraft[]>([initialQuestion])
+  const nextKey = useRef(draft ? draft.questions.length + 1 : 2)
+  const [title, setTitle] = useState(draft?.title ?? '')
+  const [description, setDescription] = useState(draft?.description ?? '')
+  const [startsAt, setStartsAt] = useState(draft ? toDateTimeLocal(draft.startsAt) : '')
+  const [endsAt, setEndsAt] = useState(draft ? toDateTimeLocal(draft.endsAt) : '')
+  const [anonymous, setAnonymous] = useState(draft?.isAnonymous ?? true)
+  const [mode, setMode] = useState<ResearchTargetMode>(draft?.targetMode ?? 'ALL')
+  const [selectedIds, setSelectedIds] = useState<string[]>(draft?.targetIds ?? [])
+  const [questions, setQuestions] = useState<SurveyQuestionDraft[]>(draft?.questions.map((question) => ({ key: question.id, text: question.text, type: question.type, required: question.required, options: question.options.join('\n'), rows: question.rows.map((row) => row.label).join('\n') })) ?? [{ ...initialQuestion }])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,7 +48,7 @@ export function SurveyBuilder({ labels, targets }: { labels: BuilderLabels; targ
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(null); setSaving(true)
     try {
-      const response = await fetch('/api/research/surveys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), isAnonymous: anonymous, target: { mode, ids: mode === 'ALL' ? [] : selectedIds }, questions: questions.map((question) => ({ text: question.text, type: question.type, required: question.required, options: question.options.split('\n').map((value) => value.trim()).filter(Boolean), rows: question.rows.split('\n').map((value) => value.trim()).filter(Boolean).map((label) => ({ label, required: question.required })) })) }) })
+      const response = await fetch(draft ? `/api/research/surveys/${draft.id}` : '/api/research/surveys', { method: draft ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), isAnonymous: anonymous, target: { mode, ids: mode === 'ALL' ? [] : selectedIds }, questions: questions.map((question) => ({ text: question.text, type: question.type, required: question.required, options: question.options.split('\n').map((value) => value.trim()).filter(Boolean), rows: question.rows.split('\n').map((value) => value.trim()).filter(Boolean).map((label) => ({ label, required: question.required })) })) }) })
       if (!response.ok) throw new Error('save')
       router.push('/settings/research')
       router.refresh()

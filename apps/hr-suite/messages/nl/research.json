@@ -63,6 +63,7 @@
     "working": "Bezig…",
     "actionFailed": "De actie kon niet worden uitgevoerd.",
     "actionDone": "De campagne is bijgewerkt.",
+    "editDraft": "Concept wijzigen",
     "openMonitor": "Open monitor",
     "manageQuestionBank": "Vragenbank beheren"
   },
@@ -97,8 +98,12 @@
   "builder": {
     "surveyTitle": "Nieuwe survey",
     "surveySubtitle": "Bouw een heldere vragenlijst. De campagne blijft eerst een concept.",
+    "surveyEditTitle": "Surveyconcept wijzigen",
+    "surveyEditSubtitle": "Werk de campagne en vragen bij zolang deze nog een concept is.",
     "enpsTitle": "Nieuwe eNPS-pulse",
     "enpsSubtitle": "Combineer de vaste eNPS-vraag met gerichte drivers uit de vragenbank.",
+    "enpsEditTitle": "eNPS-concept wijzigen",
+    "enpsEditSubtitle": "Werk de pulse en vragen bij zolang deze nog een concept is.",
     "back": "Terug naar onderzoeken",
     "campaign": "1. Campagne",
     "title": "Titel",
@@ -157,6 +162,7 @@
     "addCustomQuestion": "Toevoegen",
     "addingCustomQuestion": "Toevoegen…",
     "saveDraft": "Concept opslaan",
+    "saveChanges": "Wijzigingen opslaan",
     "saving": "Concept opslaan…",
     "saveFailed": "Het concept kon niet worden opgeslagen. Controleer alle velden.",
     "saveSuccess": "Concept opgeslagen."

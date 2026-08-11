@@ -5,25 +5,32 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import type { EnpsBankQuestionRow, EnpsCategoryRow } from '@/lib/research/database'
+import type { EnpsDraftData } from '@/lib/research/admin-service'
 import type { ResearchTargetOptions } from '@/lib/research/target-service'
 import type { EnpsQuestionType, ResearchTargetMode } from '@/lib/research/schemas'
 import { ResearchTargetPicker } from './research-target-picker'
 
 interface EnpsLabels { campaign: string; title: string; startsAt: string; endsAt: string; target: string; targetMode: string; targetAll: string; targetDepartments: string; targetLocations: string; targetEntities: string; targetEmployees: string; targetSearch: string; targetEmpty: string; selected: string; questions: string; scale: string; scale10: string; likert5: string; likert4: string; openText: string; yesNo: string; reminderInterval: string; mandatoryEnps: string; mandatoryDescription: string; questionBank: string; questionBankSearch: string; categoryAll: string; addBankQuestion: string; added: string; selectedQuestions: string; remove: string; moveUp: string; moveDown: string; enabled: string; disabled: string; customQuestion: string; customQuestionPlaceholder: string; addCustomQuestion: string; addingCustomQuestion: string; saveDraft: string; saving: string; saveFailed: string }
 
-export function EnpsBuilder({ labels, targets, categories, bank }: { labels: EnpsLabels; targets: ResearchTargetOptions; categories: EnpsCategoryRow[]; bank: EnpsBankQuestionRow[] }) {
+function toDateTimeLocal(value: string) {
+  const date = new Date(value)
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export function EnpsBuilder({ labels, targets, categories, bank, draft }: { labels: EnpsLabels; targets: ResearchTargetOptions; categories: EnpsCategoryRow[]; bank: EnpsBankQuestionRow[]; draft?: EnpsDraftData }) {
   const router = useRouter()
   const mandatory = bank.find((question) => question.is_mandatory_enps)
   const [availableQuestions, setAvailableQuestions] = useState(bank)
-  const [title, setTitle] = useState('')
-  const [startsAt, setStartsAt] = useState('')
-  const [endsAt, setEndsAt] = useState('')
-  const [scale, setScale] = useState<'LIKERT_5' | 'LIKERT_4' | 'SCALE_10'>('LIKERT_5')
-  const [reminderInterval, setReminderInterval] = useState(7)
-  const [mode, setMode] = useState<ResearchTargetMode>('ALL')
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(mandatory ? [mandatory.id] : [])
-  const [disabledQuestions, setDisabledQuestions] = useState<string[]>([])
+  const [title, setTitle] = useState(draft?.title ?? '')
+  const [startsAt, setStartsAt] = useState(draft ? toDateTimeLocal(draft.startsAt) : '')
+  const [endsAt, setEndsAt] = useState(draft ? toDateTimeLocal(draft.endsAt) : '')
+  const [scale, setScale] = useState<'LIKERT_5' | 'LIKERT_4' | 'SCALE_10'>(draft?.scaleType ?? 'LIKERT_5')
+  const [reminderInterval, setReminderInterval] = useState(draft?.reminderIntervalDays ?? 7)
+  const [mode, setMode] = useState<ResearchTargetMode>(draft?.targetMode ?? 'ALL')
+  const [selectedIds, setSelectedIds] = useState<string[]>(draft?.targetIds ?? [])
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(draft ? [...draft.questions].sort((left, right) => left.order - right.order).map((question) => question.bankQuestionId) : (mandatory ? [mandatory.id] : []))
+  const [disabledQuestions, setDisabledQuestions] = useState<string[]>(draft?.questions.filter((question) => !question.enabled).map((question) => question.bankQuestionId) ?? [])
   const [customQuestion, setCustomQuestion] = useState('')
   const [customCategoryId, setCustomCategoryId] = useState(categories[0]?.id ?? '')
   const [customType, setCustomType] = useState<EnpsQuestionType>('LIKERT_5')
@@ -55,7 +62,7 @@ export function EnpsBuilder({ labels, targets, categories, bank }: { labels: Enp
     event.preventDefault(); setError(null); setSaving(true)
     try {
       const questions = selectedRows.map((question, index) => ({ bankQuestionId: question.id, order: index + 1, type: (question.is_mandatory_enps ? 'SCALE_10' : question.default_type === 'OPEN_TEXT' || question.default_type === 'YES_NO' ? question.default_type : scale) as EnpsQuestionType, mandatory: question.is_mandatory_enps, enabled: !disabledQuestions.includes(question.id) }))
-      const response = await fetch('/api/research/enps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), scaleType: scale, reminderIntervalDays: reminderInterval, target: { mode, ids: mode === 'ALL' ? [] : selectedIds }, questions }) })
+      const response = await fetch(draft ? `/api/research/enps/${draft.id}` : '/api/research/enps', { method: draft ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), scaleType: scale, reminderIntervalDays: reminderInterval, target: { mode, ids: mode === 'ALL' ? [] : selectedIds }, questions }) })
       if (!response.ok) throw new Error('save')
       router.push('/settings/research'); router.refresh()
     } catch { setError(labels.saveFailed) } finally { setSaving(false) }
