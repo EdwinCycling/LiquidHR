@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
+  Compass,
   HeartPulse,
   Database,
   FileSliders,
@@ -146,6 +147,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('talent:manage'),
       allowed('hr-group:read'),
       allowed('process-definition:read'),
+      allowed('team-compass:manage'),
     ]),
   ])
 
@@ -166,6 +168,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     talentManage,
     hrGroups,
     processDefinitions,
+    teamCompassManage,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -264,6 +267,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.processAutomation'),
           description: messages('admin.tiles.processAutomationDescription'),
           visible: processDefinitions,
+        },
+        {
+          kind: 'link',
+          href: '/settings/team-compass',
+          icon: Compass,
+          title: messages('admin.tiles.teamCompass'),
+          description: messages('admin.tiles.teamCompassDescription'),
+          visible: teamCompassManage,
         },
         {
           kind: 'link',

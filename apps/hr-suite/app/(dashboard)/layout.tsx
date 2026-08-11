@@ -43,6 +43,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     || (authContext.employeeId !== null && authContext.permissions.includes('self:employee:read'))
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
   const canReadSettings = authContext.permissions.includes('settings:read')
+  const hasTeamCompassPermission = authContext.permissions.some((permission) => ['team-compass:manage', 'team-compass:read', 'self:team-compass:read'].includes(permission))
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, reminders, enabledModules, productUpdates, profile] = await Promise.all([
@@ -99,6 +100,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
         canReadInsights={insightPermissions.some(Boolean)}
+        canReadTeamCompass={enabledModules.includes('TEAM_COMPASS') && hasTeamCompassPermission}
         labels={{
           appName: common('appName'),
           dashboard: navigation('dashboard'),
@@ -122,6 +124,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           switchHrGroupFailed: navigation('switchHrGroupFailed'),
           timeHub: navigation('timeHub'),
           productUpdates: navigation('productUpdates'),
+          teamCompass: navigation('teamCompass'),
           signOut: auth('signOut'),
         }}
         preferences={preferences}
