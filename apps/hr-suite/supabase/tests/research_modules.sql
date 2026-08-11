@@ -50,32 +50,53 @@ begin
   ) then
     raise exception 'enps_invitations mag geen responsmoment of responskoppeling bevatten.';
   end if;
-  if not exists (
-    select 1 from information_schema.routine_privileges
-    where specific_schema = 'public'
-      and routine_name = 'submit_enps_response'
-      and grantee = 'authenticated'
-      and privilege_type = 'EXECUTE'
-  ) then
-    raise exception 'Authenticated execute ontbreekt op submit_enps_response.';
-  end if;
   if exists (
-    select 1 from information_schema.routine_privileges
-    where specific_schema = 'internal_security'
-      and routine_name in ('submit_survey_response', 'submit_enps_response')
-      and grantee = 'authenticated'
-      and privilege_type = 'EXECUTE'
+    select 1 from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'public'
+      and procedure.proname in (
+        'update_survey_draft', 'update_enps_draft',
+        'submit_survey_response', 'submit_enps_response'
+      )
+      and not procedure.prosecdef
   ) then
-    raise exception 'Authenticated mag de interne inzendfuncties niet rechtstreeks uitvoeren.';
+    raise exception 'De publieke researchfuncties moeten als afgeschermde security-definer wrappers draaien.';
   end if;
   if exists (
     select 1 from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
     where namespace.nspname = 'public'
-      and procedure.proname in ('submit_survey_response', 'submit_enps_response')
-      and not procedure.prosecdef
+      and procedure.proname in (
+        'update_survey_draft', 'update_enps_draft',
+        'submit_survey_response', 'submit_enps_response'
+      )
+      and not has_function_privilege('authenticated', procedure.oid, 'execute')
   ) then
-    raise exception 'De publieke inzendfuncties moeten als gecontroleerde security-definer wrappers draaien.';
+    raise exception 'Authenticated execute ontbreekt op een publieke researchwrapper.';
+  end if;
+  if exists (
+    select 1 from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'internal_security'
+      and procedure.proname in (
+        'update_survey_draft', 'update_enps_draft',
+        'submit_survey_response', 'submit_enps_response'
+      )
+      and has_function_privilege('authenticated', procedure.oid, 'execute')
+  ) then
+    raise exception 'Authenticated mag de interne researchkern niet rechtstreeks uitvoeren.';
+  end if;
+  if exists (
+    select 1 from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname in ('public', 'internal_security')
+      and procedure.proname in (
+        'update_survey_draft', 'update_enps_draft',
+        'submit_survey_response', 'submit_enps_response'
+      )
+      and has_function_privilege('anon', procedure.oid, 'execute')
+  ) then
+    raise exception 'Anon mag de researchfuncties niet uitvoeren.';
   end if;
   if not exists (
     select 1 from pg_policies

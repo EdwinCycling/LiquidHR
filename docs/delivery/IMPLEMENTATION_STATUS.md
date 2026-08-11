@@ -1,10 +1,16 @@
 # Implementatiestatus Liquid HR
 
+## Release 2026-08-11 — lokaal gereed
+
+Alle actuele featurecommits staan op lokaal `main`; de zichtbare versie is `1.20260811.1`. De releasegate is groen met 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, diff-check en een Webpack-productiebuild met 200 pagina's.
+
+De aangetroffen research-wrapperpermissionfout is schema-eerst remote hersteld via `research_wrapper_execution_grants`. Publieke wrappers zijn afgeschermde `SECURITY DEFINER`-functies met lege `search_path` en alleen `authenticated` execute; interne kernels blijven voor `authenticated` en `anon` afgesloten en behouden de bestaande autorisatiechecks. Het remote researchcontract is groen. De vier bijbehorende advisor-WARNs zijn bewust en gedocumenteerd. GitHub-push en Vercel-verificatie volgen na de releasecommit.
+
 ## Surveys en eNPS — follow-up 2026-08-11
 
-Conceptcampagnes zijn nu wijzigbaar zolang zij `DRAFT` zijn. De PUT-routes, edit-links, transactionele RPC's en invoker-only wrappers zijn lokaal en remote gecontroleerd. Een geautoriseerde fixtureproef activeerde een survey en eNPS-campagne, liet één medewerker beide antwoorden insturen en bevestigde in de HR-monitor `1 van 3` respons; surveyresultaten waren zichtbaar en eNPS-resultaten bleven door de vijf-responsdrempel verborgen. De campagnehoofdrijen en alle twaalf bijbehorende tabellen zijn daarna verwijderd; de cleanup-query retourneerde overal nul.
+Conceptcampagnes zijn nu wijzigbaar zolang zij `DRAFT` zijn. De PUT-routes, edit-links, transactionele RPC's en afgeschermde publieke wrappers zijn lokaal en remote gecontroleerd. Een geautoriseerde fixtureproef activeerde een survey en eNPS-campagne, liet één medewerker beide antwoorden insturen en bevestigde in de HR-monitor `1 van 3` respons; surveyresultaten waren zichtbaar en eNPS-resultaten bleven door de vijf-responsdrempel verborgen. De campagnehoofdrijen en alle twaalf bijbehorende tabellen zijn daarna verwijderd; de cleanup-query retourneerde overal nul.
 
-De status blijft `GEDEELTELIJK` uitsluitend omdat automatische e-mailherinneringen en de scheduler bewust zijn uitgesteld. Segmentatie van kleine groepen blijft afhankelijk van een apart privacybesluit. Supabase-types zijn opnieuw gegenereerd; na wrapper-hardening melden security-advisors geen research-specifieke bevindingen. Push en deployment zijn niet uitgevoerd.
+De status blijft `GEDEELTELIJK` uitsluitend omdat automatische e-mailherinneringen en de scheduler bewust zijn uitgesteld. Segmentatie van kleine groepen blijft afhankelijk van een apart privacybesluit. Supabase-types zijn opnieuw gegenereerd; de advisor meldt vier bewuste research-wrapper-WARNs voor de afgeschermde publieke `SECURITY DEFINER`-grens. Push en deployment zijn nog niet uitgevoerd.
 
 ## Surveys en eNPS 2026-08-10 — GEDEELTELIJK / main browsergeverifieerd
 

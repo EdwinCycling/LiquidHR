@@ -1,15 +1,24 @@
 # Actuele overdracht Liquid HR
 
+## Release 2026-08-11 — lokaal gereed, publicatie volgt
+
+- `main` bevat alle actuele lokale featurecommits voor Process Automation-redesign, Surveys/eNPS, research-draftflows en Teamkompas. Alle featurebranches zijn voorouders van `main`; er ontbreken geen featurecommits.
+- De zichtbare appversie en unit-test staan op `1.20260811.1`. De lokale releasegate is groen: 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, `git diff --check` en `next build --webpack` met 200 pagina's.
+- Remote is `research_wrapper_execution_grants` toegepast. De vier publieke researchwrappers zijn afgeschermde `SECURITY DEFINER`-functies met lege `search_path`, alleen `authenticated` execute en bestaande kernelguards. De vier interne kernels blijven voor `authenticated` en `anon` afgesloten. Een transactionele dummy-aanroep bereikt de inhoudelijke validator en het volledige research-SQL-contract is groen.
+- Officiële remote typegeneratie is opnieuw uitgevoerd; de privilegewijziging verandert geen TypeScript-contract. Advisors: security 47 totaal (1 INFO/46 WARN), inclusief vier bewuste research-wrappermeldingen en vijf bestaande Teamkompas-RPC-meldingen; performance 405 INFO. De relevante remediatiepagina is <https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable>.
+- De build heeft `apps/hr-suite/next-env.d.ts` niet inhoudelijk gewijzigd. De oude OAuth-worktree had alleen verouderde Git-indexmetadata voor hetzelfde bestand; die metadata is ververst en de worktree is schoon.
+- GitHub-push en Vercel Production-controle volgen na de releasecommit. `.codex-worktrees/` blijft een lokale, niet te publiceren worktreecontainer.
+
 ## Surveys en eNPS — follow-up 2026-08-11
 
-De draft-edit slice is lokaal samengevoegd in `main` en de twee RPC-migraties plus security-hardening zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De lokale `main`-versie draait op poort 3000; er is niets gepusht of gedeployed.
+De draft-edit slice is lokaal samengevoegd in `main` en de RPC-migraties plus wrapper-hardening en de aanvullende execution-correctie zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De lokale `main`-versie draait op poort 3000; er is niets gepusht of gedeployed.
 
 ### Afgerond
 
-- Conceptcampagnes zijn wijzigbaar zolang hun status `DRAFT` is. De transactionele interne RPC's behouden tenant-, HR-groep-, permission- en statusguards; de publieke wrappers zijn invoker-only met alleen `authenticated` execute. De PUT-routes, edit-links en survey/eNPS-builders laden en bewaren bestaande concepten.
+- Conceptcampagnes zijn wijzigbaar zolang hun status `DRAFT` is. De transactionele interne RPC's behouden tenant-, HR-groep-, permission- en statusguards; de publieke wrappers zijn afgeschermde `SECURITY DEFINER`-functies met alleen `authenticated` execute en de interne kernels zijn niet rechtstreeks uitvoerbaar. De PUT-routes, edit-links en survey/eNPS-builders laden en bewaren bestaande concepten.
 - De geautoriseerde E2E-proef gebruikte synthetische survey- en eNPS-campagnes met drie uitnodigingen per campagne. Beide campagnes zijn geactiveerd, via `employee.fixture@liquidhr.test` één keer beantwoord en in de HR-monitor gecontroleerd op `1 van 3` (33%). De surveyrespons verscheen in de resultaten; de eNPS-inhoud bleef verborgen onder de privacydrempel van vijf.
 - Cleanup is transactioneel uitgevoerd door beide campagnehoofdrijen te verwijderen. Nacontrole gaf `0` resterende rijen in surveys, survey_questions, survey_question_options, survey_matrix_rows, survey_invitations, survey_responses, survey_answers, enps_campaigns, enps_questions, enps_invitations, enps_responses en enps_answers. De bestaande audittrail is append-only en is niet verwijderd.
-- Na de RPC-hardening geven de security-advisors geen research-specifieke bevindingen meer. Typegeneratie is opnieuw uitgevoerd; performance geeft alleen de verwachte INFO-meldingen voor indexen op kleine/nieuwe tabellen.
+- Na de execution-correctie geeft de security-advisor vier bewuste research-wrapper-WARNs voor de gecontroleerde publieke `SECURITY DEFINER`-grens. Typegeneratie is opnieuw uitgevoerd; performance geeft alleen de verwachte INFO-meldingen voor indexen op kleine/nieuwe tabellen.
 
 ### Open / bewust uitgesteld
 

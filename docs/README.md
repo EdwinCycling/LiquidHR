@@ -1,8 +1,14 @@
 # Liquid HR documentatie-index
 
+## Release 2026-08-11: productversie 1.20260811.1 — lokale releasegate
+
+Alle actuele lokale featurecommits voor Process Automation-redesign, Surveys/eNPS, research-draftflows en Teamkompas zijn opgenomen in `main`. De zichtbare appversie staat op `1.20260811.1`. De volledige lokale gate is groen: 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, `git diff --check` en de Webpack-productiebuild met 200 pagina's.
+
+Vóór publicatie is remote een research-wrapperfout hersteld: de vier publieke wrappers zijn afgeschermde `SECURITY DEFINER`-functies met lege `search_path`, alleen `authenticated` execute en bestaande tenant-/HR-groep-/permission-/statusguards; de interne kernels blijven voor `authenticated` en `anon` afgesloten. Het transactionele researchcontract en officiële typegeneratie zijn groen. De advisor toont hiervoor vier bewuste WARNs naast de bestaande projectbaseline. GitHub-push en Vercel-controle volgen na de releasecommit.
+
 ## Teamkompas actuele status 2026-08-11
 
-De volledige niet-lege testcyclus is geverifieerd in de feature-worktree: HR Admin maakte en startte één tijdelijke campagne met 14 deelnames; de medewerker vulde 40 dual-ratings in en zag het eigen resultaat; consentvarianten outer-only, outer+inner en anoniem zijn getest; HR en manager zagen de drempelprojectie met drie named outer-profielen; cross-user toegang tot het persoonlijke resultaat werd geweigerd. De campagne, targets, deelnames, 200 antwoorden en vijf profielen zijn na afloop exact verwijderd. De Teamkompas-validator gebruikt `z.guid()` voor bestaande deterministische database-GUIDs en de regressietests zijn 4/4 groen. Nog niet gecommit, gepusht, samengevoegd of gedeployed.
+De volledige niet-lege testcyclus is geverifieerd in de feature-worktree: HR Admin maakte en startte één tijdelijke campagne met 14 deelnames; de medewerker vulde 40 dual-ratings in en zag het eigen resultaat; consentvarianten outer-only, outer+inner en anoniem zijn getest; HR en manager zagen de drempelprojectie met drie named outer-profielen; cross-user toegang tot het persoonlijke resultaat werd geweigerd. De campagne, targets, deelnames, 200 antwoorden en vijf profielen zijn na afloop exact verwijderd. De Teamkompas-validator gebruikt `z.guid()` voor bestaande deterministische database-GUIDs en de regressietests zijn 4/4 groen. De feature is lokaal gecommit en in `main` samengevoegd; GitHub-push en deployment vallen onder release `1.20260811.1`.
 
 ## Teamkompas 2026-08-10 — historische uitgangssituatie vóór geautoriseerde testdata
 
