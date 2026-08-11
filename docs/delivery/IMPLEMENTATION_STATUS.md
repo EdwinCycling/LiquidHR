@@ -13,6 +13,19 @@ De verticale slice bevat lokaal de volledige basis van beide tenantmodules: sche
 Verificatie is groen voor de volledige hr-suite (154 testbestanden/591 tests), 10 gerichte testbestanden/31 tests, strict TypeScript, 30 gelijke NL/EN-namespaces, volledige ESLint, Webpack-productiebuild met 197 routes en diff-check. De researchmigraties staan remote; het remote SQL-contract is groen. De Supabase-advisors melden na wrapper-hardening geen research-specifieke securitybevinding en geen performance-WARN, en de officiële types zijn opnieuw gegenereerd met behoud van de lokaal al bestaande `company_activities`-typedefinitie.
 
 Authenticated browserbewijs op de samengevoegde `main`-versie is groen voor HR Admin, manager en medewerker: beheer/monitor/bouwers/vragenbank voor HR, persoonlijke hub voor manager en medewerker en `/geen-toegang` op hun verboden routes. Desktop, 390x844, browserconsole, responseflow en cleanup zijn gecontroleerd. Alleen de automatische e-mailherinnering/scheduler blijft bewust uitgesteld; er is lokaal gemerged, maar niet gepusht of gedeployed.
+## Teamkompas 2026-08-11
+
+### Actuele niet-lege gate
+
+De volledige campagnecyclus is op 2026-08-11 in de testomgeving doorlopen: HR Admin maakte en startte één tijdelijke campagne met 14 deelnames; de testmedewerker vulde alle 40 dual-ratings in, zag het eigen resultaat en diende `share_outer=true`/`share_inner=false` in. Vier bestaande directe teammedewerkers kregen gecontroleerde synthetische antwoorden/profielen met anonimiteit, outer-only en outer+inner. HR en manager zagen boven drempel vijf een veilige projectie met drie named outer-profielen; een manager kreeg op een cross-user resultaat `/geen-toegang`. Daarna zijn campagne, targets, deelnames, 200 antwoorden en vijf profielen exact verwijderd; de cleanup-query geeft voor het tijdelijke campagne-ID overal nul.
+
+De Teamkompas-schema-validator gebruikt nu `z.guid()` in plaats van RFC-versie/variantstrikte `z.uuid()`, met een regressietest voor bestaande deterministische database-GUIDs. De gerichte schematests zijn 4/4 groen. Er is niet gecommit, gepusht, samengevoegd of gedeployed.
+
+### Baseline vóór geautoriseerde testdata
+
+**Status: remote schema en lege-toestand-browsermatrix geverifieerd; niet-lege campagnegate open.** De feature-worktree `codex/teamkompas-module` bevat de leidende requirement/FDR, zeven RLS-tabellen, expliciete Data-API-grants, atomaire RPC's, permissions en module-toggle. De service/API-laag dwingt actieve HR-groep, managementscope, self-only antwoorden/resultaten, optimistic concurrency, minimaal vijf deelnemers en afzonderlijke deeltoestemming af. De UI levert HR Admin-campagnebeheer, HR-/managerteamprojectie, medewerkersinvoer en persoonlijk resultaat in NL/EN.
+
+Bewijs: volledige hr-suite 153 testbestanden/584 tests, Webpack-build met 190 pagina's en volledige ESLint waren groen; na remote aansluiting zijn 12/12 gerichte tests, strict TypeScript, 30 gelijke NL/EN-namespaces, gerichte ESLint en diff-check opnieuw geslaagd. De drie Teamkompas-migraties, SQL-contractproef, officiële scopezuivere typegeneratie en advisors zijn uitgevoerd. Er is geen ontbrekende Teamkompas-RLS of foreign-key-index; vijf bewuste authenticated SECURITY DEFINER-meldingen en twaalf nog ongebruikte nieuwe indexen zijn verklaard. De drie testrollen, beide beheer-denies, 390px-dialoog, Escape/focuslus/focus-teruggave en vier gerichte axe-scans (0 violations, 1–2 `incomplete` controles per weergave) zijn live bewezen. Open: de niet-lege campagnecyclus met uitnodiging, submit, resultaat, toestemming en teamprojectie; daarvoor is nog geen testdata goedgekeurd. Er is niet gecommit, gepusht, samengevoegd of gedeployed.
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 

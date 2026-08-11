@@ -40,6 +40,39 @@ De nieuwe modules zijn vanuit branch `codex/survey-enps-modules` lokaal met `mai
 
 - De beschreven automatische eNPS-herinneringsmail vereist nog een gekozen mailprovider en geplande worker/cron. De huidige werkende herinnering is een HR-actie die het signaal in de medewerkerhub toont; er is geen externe e-mailbezorging geclaimd.
 - Dit historische open-punt is opgevolgd in de follow-up van 2026-08-11: DRAFT-campagnes zijn wijzigbaar en de geautoriseerde campagne-/responseproef plus cleanup is afgerond.
+## Teamkompas 2026-08-11 — feature-worktree, remote schema toegepast
+
+### Gedaan
+
+- Werk uitsluitend verder in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\teamkompas-module` op branch `codex/teamkompas-module`; de bestaande Survey/eNPS-werkboom en dirty hoofdworkspace zijn niet gewijzigd.
+- De slice volgt `schema -> API -> UI`: zeven Teamkompas-tabellen, RLS, expliciete grants/revokes, vier permissions, module-toggle, atomaire campagne-/lifecycle-/antwoord-RPC's en een veilige teamprojectie. De productvragenlijst bevat veertig NL/EN-stellingen en is immutable.
+- HR Admin heeft lijst-eerst campagnebeheer met zoeken, statusfilter, klikrij en dialoog; manager en HR zien uitsluitend scopegebonden aggregaten boven de anonimiteitsdrempel; medewerker heeft een mobiele dual-ratingflow, volledig eigen resultaat en afzonderlijke toestemming voor buitenrol/binnenstijl.
+- Teamkompas is nadrukkelijk een samenwerkingstool en geen klinische of gevalideerde Jung/DISC/MBTI-diagnose. Ruwe antwoorden en volledige profielen blijven self-only.
+- De API-schema's gebruiken PostgreSQL-GUID-vormvalidatie zodat bestaande deterministische testrecords zonder RFC-versie/variantbits niet ten onrechte worden geweigerd; hiervoor is een regressietest toegevoegd.
+
+### Geverifieerd
+
+- Volledige hr-suite: 153 testbestanden/584 tests groen; de Teamkompas-/modulecatalogusselectie is daarin 10/10 gericht groen.
+- Strict TypeScript, i18n-pariteit (30 namespaces), volledige ESLint 9.39.5, `git diff --check` en `next build --webpack` met 190 pagina's groen.
+- De nieuwe routes staan in het buildmanifest: `/team-compass`, assessment/resultaat, `/settings/team-compass` en drie Teamkompas-API-routes.
+- Remote zijn `add_team_compass_module`, `optimize_team_compass_foreign_keys` en `align_team_compass_campaign_rpc` op Supabase-project `wnpfloqpjvaacobppbpk` toegepast. De SQL-contracttest slaagt, alle zeven tabellen hebben RLS, de veertig vragen zijn 10/10/10/10 verdeeld, vier permissions en vijf publieke RPC's bestaan, anon is geweigerd en de gevoelige directe writes zijn niet verleend.
+- Officiële remote typegeneratie is uitgevoerd. Vanwege al aanwezige, nog niet in deze branch samengevoegde Survey/eNPS- en andere remotewijzigingen zijn alleen de exact gegenereerde zeven Teamkompas-tabellen en vijf RPC-contracten scopebewust in `packages/db/types.ts` opgenomen. De volledige remote typefile liet `tsc` boven 2 GB vastlopen; met de scopezuivere contracten eindigt strict TypeScript weer groen in circa 32 seconden.
+- De herhaalde advisors tonen geen ontbrekende Teamkompas-RLS en geen ontbrekende foreign-key-index. De vijf security-WARNs zijn de bewust aan `authenticated` verleende SECURITY DEFINER-RPC-grenzen, die intern tenant-/HR-groep-/permissionchecks afdwingen. De twaalf performance-INFO's zijn pas aangelegde en daarom nog ongebruikte Teamkompas-indexen.
+- Na de remote aansluiting zijn 12/12 gerichte tests, strict TypeScript, 30 NL/EN-namespaces, gerichte ESLint en `git diff --check` opnieuw groen.
+- Geauthentiseerde browsermatrix op `localhost:3100`: HR Admin ziet `/team-compass` en `/settings/team-compass`, lijst-eerst beheer en de nieuwe-campagnedialoog; manager ziet uitsluitend het scopegebonden campagneoverzicht; medewerker ziet `Mijn kompas` en de lege uitnodigingstoestand. Manager en medewerker landen bij directe beheerroute op `/geen-toegang`.
+- De volledige niet-lege proef is op 2026-08-11 in de testomgeving uitgevoerd met één tijdelijke campagne, veertien vaste deelnames en vijf inzendingen. De medewerkerflow vulde 40 dual-ratings in, toonde het eigen resultaat en sloeg `outer=true`/`inner=false` op. Vier extra bestaande testmedewerkers kregen gecontroleerde synthetische antwoorden/profielen met de varianten anonimiteit, outer-only en outer+inner; HR en manager zagen een beschikbare projectie vanaf drempel vijf met drie named outer-profielen.
+- De manager kon het persoonlijke resultaat van een andere medewerker niet openen en werd naar `/geen-toegang` gestuurd. Na de browserproef zijn campagne, targets, deelnames, 200 antwoorden en vijf profielen verwijderd; de cleanup-assertie en losse naverificatie geven voor het tijdelijke ID overal nul inhoudelijke Teamkompas-rijen.
+- De HR Admin-dialoog is op 390x844 visueel gecontroleerd. Escape sluit, de focus blijft binnen de dialoog en keert terug naar `Nieuwe campagne`; de horizontale campagneregio is toetsenbordfocusbaar. Een gerichte axe-scan van HR Admin, mobiele dialoog, manager en medewerker geeft 0 violations; per weergave bleven 1–2 `incomplete` controles voor handmatige beoordeling over.
+
+### Resultaat van de niet-lege gate
+
+- De niet-lege Teamkompas-campagnegate is gesloten: uitnodigingen, invullen, indienen, eigen resultaat, consentvarianten, HR-projectie, manager-projectie en deny van een cross-user resultaat zijn live bewezen. De tijdelijke inhoud is opgeruimd; append-only auditmetadata blijft volgens het auditcontract behouden.
+- Er is niet gecommit, gepusht, samengevoegd, gedeployed of productieconfiguratie gewijzigd. De feature-worktree blijft dirty met de volledige Teamkompas-slice en de GUID-validatorfix.
+
+### Open / geblokkeerd — historische uitgangssituatie
+
+- Er is geen synthetische campagne/deelnemer/antwoordfixture toegestaan of aangemaakt; een volledige niet-lege campagnecyclus met uitnodiging, submit, eigen resultaat, toestemmingsvarianten en teamprojectie blijft daarom open totdat Edwin expliciet testdata goedkeurt of geschikte bestaande data beschikbaar is.
+- Geen synthetische deelnemers of antwoorden aangemaakt; geen commit, push, merge, deployment of productieconfiguratie gewijzigd.
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 

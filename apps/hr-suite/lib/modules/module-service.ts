@@ -41,7 +41,7 @@ export async function saveTenantModules(input: ModuleSelectionInput): Promise<vo
   const enabled = new Set(input.enabled)
   const now = new Date().toISOString()
   const supabase = await createClient()
-  const rows = (['HERA', 'DOCUMENTS', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS'] as const).map((moduleCode) => ({
+  const rows = (['HERA', 'DOCUMENTS', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS'] as const).map((moduleCode) => ({
     tenant_id: auth.tenantId,
     module_code: moduleCode,
     is_enabled: enabled.has(moduleCode),

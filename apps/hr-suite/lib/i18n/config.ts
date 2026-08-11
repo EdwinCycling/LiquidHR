@@ -34,6 +34,7 @@ export const MESSAGE_NAMESPACES = [
   'support',
   'processAutomation',
   'research',
+  'teamCompass',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

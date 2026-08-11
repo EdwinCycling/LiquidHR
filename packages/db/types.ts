@@ -12520,6 +12520,411 @@ export type Database = {
           },
         ]
       }
+      team_compass_answers: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          inner_score: number
+          outer_score: number
+          participation_id: string
+          question_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          inner_score: number
+          outer_score: number
+          participation_id: string
+          question_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          inner_score?: number
+          outer_score?: number
+          participation_id?: string
+          question_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compass_answers_participation_fkey"
+            columns: ["tenant_id", "hr_group_id", "participation_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_participations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "team_compass_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_compass_campaign_targets: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          department_id: string
+          hr_group_id: string
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          department_id: string
+          hr_group_id: string
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          department_id?: string
+          hr_group_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compass_campaign_targets_campaign_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_campaigns"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "team_compass_campaign_targets_department_fkey"
+            columns: ["tenant_id", "hr_group_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      team_compass_campaigns: {
+        Row: {
+          anonymity_threshold: number
+          archived_at: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          ends_on: string
+          hr_group_id: string
+          id: string
+          name: string
+          personal_message: string | null
+          questionnaire_version_id: string
+          started_at: string | null
+          starts_on: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          anonymity_threshold?: number
+          archived_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          ends_on: string
+          hr_group_id: string
+          id?: string
+          name: string
+          personal_message?: string | null
+          questionnaire_version_id: string
+          started_at?: string | null
+          starts_on?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          anonymity_threshold?: number
+          archived_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          ends_on?: string
+          hr_group_id?: string
+          id?: string
+          name?: string
+          personal_message?: string | null
+          questionnaire_version_id?: string
+          started_at?: string | null
+          starts_on?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compass_campaigns_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "team_compass_campaigns_questionnaire_version_id_fkey"
+            columns: ["questionnaire_version_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_questionnaire_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_compass_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_compass_participations: {
+        Row: {
+          campaign_id: string
+          completed_at: string | null
+          created_at: string
+          department_id: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          invited_at: string
+          share_inner_profile: boolean
+          share_outer_profile: boolean
+          started_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          completed_at?: string | null
+          created_at?: string
+          department_id: string
+          employee_id: string
+          hr_group_id: string
+          id?: string
+          invited_at?: string
+          share_inner_profile?: boolean
+          share_outer_profile?: boolean
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          completed_at?: string | null
+          created_at?: string
+          department_id?: string
+          employee_id?: string
+          hr_group_id?: string
+          id?: string
+          invited_at?: string
+          share_inner_profile?: boolean
+          share_outer_profile?: boolean
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compass_participations_campaign_fkey"
+            columns: ["tenant_id", "hr_group_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_campaigns"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "team_compass_participations_department_fkey"
+            columns: ["tenant_id", "hr_group_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "team_compass_participations_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      team_compass_profiles: {
+        Row: {
+          calculated_at: string
+          hr_group_id: string
+          id: string
+          inner_action: number
+          inner_harmony: number
+          inner_logic: number
+          inner_vision: number
+          inner_x: number
+          inner_y: number
+          outer_action: number
+          outer_harmony: number
+          outer_logic: number
+          outer_vision: number
+          outer_x: number
+          outer_y: number
+          participation_id: string
+          primary_dimension: string
+          secondary_dimension: string
+          shift_band: string
+          shift_distance: number
+          tenant_id: string
+        }
+        Insert: {
+          calculated_at?: string
+          hr_group_id: string
+          id?: string
+          inner_action: number
+          inner_harmony: number
+          inner_logic: number
+          inner_vision: number
+          inner_x: number
+          inner_y: number
+          outer_action: number
+          outer_harmony: number
+          outer_logic: number
+          outer_vision: number
+          outer_x: number
+          outer_y: number
+          participation_id: string
+          primary_dimension: string
+          secondary_dimension: string
+          shift_band: string
+          shift_distance: number
+          tenant_id: string
+        }
+        Update: {
+          calculated_at?: string
+          hr_group_id?: string
+          id?: string
+          inner_action?: number
+          inner_harmony?: number
+          inner_logic?: number
+          inner_vision?: number
+          inner_x?: number
+          inner_y?: number
+          outer_action?: number
+          outer_harmony?: number
+          outer_logic?: number
+          outer_vision?: number
+          outer_x?: number
+          outer_y?: number
+          participation_id?: string
+          primary_dimension?: string
+          secondary_dimension?: string
+          shift_band?: string
+          shift_distance?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compass_profiles_participation_fkey"
+            columns: ["tenant_id", "hr_group_id", "participation_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_participations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      team_compass_questionnaire_versions: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name_en: string
+          name_nl: string
+          status: string
+          version: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name_en: string
+          name_nl: string
+          status?: string
+          version: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name_en?: string
+          name_nl?: string
+          status?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      team_compass_questions: {
+        Row: {
+          code: string
+          created_at: string
+          dimension: string
+          id: string
+          prompt_en: string
+          prompt_nl: string
+          questionnaire_version_id: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          dimension: string
+          id?: string
+          prompt_en: string
+          prompt_nl: string
+          questionnaire_version_id: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          dimension?: string
+          id?: string
+          prompt_en?: string
+          prompt_nl?: string
+          questionnaire_version_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compass_questions_questionnaire_version_id_fkey"
+            columns: ["questionnaire_version_id"]
+            isOneToOne: false
+            referencedRelation: "team_compass_questionnaire_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_anniversary_rules: {
         Row: {
           created_at: string
@@ -13266,6 +13671,49 @@ export type Database = {
       }
     }
     Functions: {
+      get_team_compass_team_projection: {
+        Args: {
+          requested_campaign_id: string
+          requested_department_id?: string
+        }
+        Returns: Json
+      }
+      save_team_compass_campaign: {
+        Args: {
+          requested_campaign_id?: string
+          requested_expected_version?: number
+          requested_hr_group_id: string
+          requested_payload: Json
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      save_team_compass_response: {
+        Args: {
+          requested_answers: Json
+          requested_expected_version: number
+          requested_participation_id: string
+          requested_share_inner?: boolean
+          requested_share_outer?: boolean
+          requested_submit: boolean
+        }
+        Returns: Json
+      }
+      start_team_compass_campaign: {
+        Args: {
+          requested_campaign_id: string
+          requested_expected_version: number
+        }
+        Returns: Json
+      }
+      transition_team_compass_campaign: {
+        Args: {
+          requested_campaign_id: string
+          requested_expected_version: number
+          requested_status: string
+        }
+        Returns: string
+      }
       accept_user_invitation: {
         Args: {
           accepted_email: string

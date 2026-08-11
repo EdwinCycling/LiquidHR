@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
+  Compass,
   HeartPulse,
   Database,
   FileSliders,
@@ -148,6 +149,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('hr-group:read'),
       allowed('process-definition:read'),
       allowed('research:write'),
+      allowed('team-compass:manage'),
     ]),
   ])
 
@@ -169,6 +171,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     hrGroups,
     processDefinitions,
     research,
+    teamCompassManage,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -275,6 +278,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.research'),
           description: messages('admin.tiles.researchDescription'),
           visible: research,
+        },
+        {
+          kind: 'link',
+          href: '/settings/team-compass',
+          icon: Compass,
+          title: messages('admin.tiles.teamCompass'),
+          description: messages('admin.tiles.teamCompassDescription'),
+          visible: teamCompassManage,
         },
         {
           kind: 'link',
