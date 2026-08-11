@@ -28,6 +28,7 @@ export interface SurveyResponseForm {
   endsAt: string
   status: 'DRAFT' | 'ACTIVE' | 'CLOSED'
   submitted: boolean
+  available: boolean
   questions: SurveyQuestionRow[]
   options: SurveyOptionRow[]
   rows: SurveyMatrixRow[]
@@ -42,6 +43,7 @@ export interface EnpsResponseForm {
   endsAt: string
   status: 'DRAFT' | 'ACTIVE' | 'CLOSED'
   submitted: boolean
+  available: boolean
   questions: EnpsQuestionRow[]
 }
 
@@ -112,6 +114,7 @@ export async function getResearchResponseForm(kind: ResearchKind, invitationId: 
       research.from('survey_matrix_rows').select('*').eq('survey_id', invitation.data.survey_id).order('order_index').limit(3000),
     ])
     if (survey.error || questions.error || options.error || rows.error) throw new ResearchError('RESEARCH_FORM_READ_FAILED', 500)
+    const available = isResponseAvailable(survey.data.status, survey.data.starts_at, survey.data.ends_at, invitation.data.has_submitted)
     return {
       kind,
       invitationId,
@@ -122,6 +125,7 @@ export async function getResearchResponseForm(kind: ResearchKind, invitationId: 
       endsAt: survey.data.ends_at,
       status: survey.data.status,
       submitted: invitation.data.has_submitted,
+      available,
       questions: questions.data ?? [],
       options: options.data ?? [],
       rows: rows.data ?? [],
@@ -136,6 +140,7 @@ export async function getResearchResponseForm(kind: ResearchKind, invitationId: 
     research.from('enps_questions').select('*').eq('campaign_id', invitation.data.campaign_id).eq('is_enabled', true).order('order_index').limit(150),
   ])
   if (campaign.error || questions.error) throw new ResearchError('RESEARCH_FORM_READ_FAILED', 500)
+  const available = isResponseAvailable(campaign.data.status, campaign.data.starts_at, campaign.data.ends_at, invitation.data.has_submitted)
   return {
     kind,
     invitationId,
@@ -145,8 +150,14 @@ export async function getResearchResponseForm(kind: ResearchKind, invitationId: 
     endsAt: campaign.data.ends_at,
     status: campaign.data.status,
     submitted: invitation.data.has_submitted,
+    available,
     questions: questions.data ?? [],
   }
+}
+
+function isResponseAvailable(status: ResearchResponseForm['status'], startsAt: string, endsAt: string, submitted: boolean): boolean {
+  const now = Date.now()
+  return status === 'ACTIVE' && Date.parse(startsAt) <= now && Date.parse(endsAt) >= now && !submitted
 }
 
 export async function submitResearchResponse(kind: ResearchKind, invitationId: string, input: ResearchSubmission): Promise<string> {

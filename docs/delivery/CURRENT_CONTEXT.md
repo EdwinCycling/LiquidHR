@@ -1,5 +1,21 @@
 # Actuele overdracht Liquid HR
 
+## Surveys en eNPS — follow-up 2026-08-11
+
+De draft-edit slice is lokaal samengevoegd in `main` en de twee RPC-migraties plus security-hardening zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De lokale `main`-versie draait op poort 3000; er is niets gepusht of gedeployed.
+
+### Afgerond
+
+- Conceptcampagnes zijn wijzigbaar zolang hun status `DRAFT` is. De transactionele interne RPC's behouden tenant-, HR-groep-, permission- en statusguards; de publieke wrappers zijn invoker-only met alleen `authenticated` execute. De PUT-routes, edit-links en survey/eNPS-builders laden en bewaren bestaande concepten.
+- De geautoriseerde E2E-proef gebruikte synthetische survey- en eNPS-campagnes met drie uitnodigingen per campagne. Beide campagnes zijn geactiveerd, via `employee.fixture@liquidhr.test` één keer beantwoord en in de HR-monitor gecontroleerd op `1 van 3` (33%). De surveyrespons verscheen in de resultaten; de eNPS-inhoud bleef verborgen onder de privacydrempel van vijf.
+- Cleanup is transactioneel uitgevoerd door beide campagnehoofdrijen te verwijderen. Nacontrole gaf `0` resterende rijen in surveys, survey_questions, survey_question_options, survey_matrix_rows, survey_invitations, survey_responses, survey_answers, enps_campaigns, enps_questions, enps_invitations, enps_responses en enps_answers. De bestaande audittrail is append-only en is niet verwijderd.
+- Na de RPC-hardening geven de security-advisors geen research-specifieke bevindingen meer. Typegeneratie is opnieuw uitgevoerd; performance geeft alleen de verwachte INFO-meldingen voor indexen op kleine/nieuwe tabellen.
+
+### Open / bewust uitgesteld
+
+- Automatische e-mailherinneringen en de scheduler zijn op verzoek uitgesteld. De bestaande handmatige HR-herinnering en het in-app signaal blijven beschikbaar; er is geen externe e-mailbezorging geclaimd.
+- Segmentatie van resultaten op kleine groepen blijft afhankelijk van een afzonderlijk privacybesluit.
+
 ## Surveys en eNPS 2026-08-10 — samengevoegd en browsergeverifieerd
 
 De nieuwe modules zijn vanuit branch `codex/survey-enps-modules` lokaal met `main` samengevoegd. De twee migraties zijn remote toegepast op Supabase-project `wnpfloqpjvaacobppbpk`. De lokale `main`-versie draait voor handmatige controle op poort 3000; er is niets gepusht of gedeployed.
@@ -23,7 +39,7 @@ De nieuwe modules zijn vanuit branch `codex/survey-enps-modules` lokaal met `mai
 ### Open / geblokkeerd
 
 - De beschreven automatische eNPS-herinneringsmail vereist nog een gekozen mailprovider en geplande worker/cron. De huidige werkende herinnering is een HR-actie die het signaal in de medewerkerhub toont; er is geen externe e-mailbezorging geclaimd.
-- Conceptcampagnes na creatie wijzigen en een volledige live campagne-/responseproef blijven open. Er is bewust geen synthetische campagne of response aangemaakt zonder afzonderlijke fixturetoestemming.
+- Dit historische open-punt is opgevolgd in de follow-up van 2026-08-11: DRAFT-campagnes zijn wijzigbaar en de geautoriseerde campagne-/responseproef plus cleanup is afgerond.
 
 ## Release 2026-08-10: productversie 1.20260810.3 — lokale samenvoeging
 

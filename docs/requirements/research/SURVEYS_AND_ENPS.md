@@ -45,7 +45,7 @@ Autorisatie wordt zowel server-side als via RLS afgedwongen. Modulecodes `SURVEY
 
 ## Open voor de volledige productgate
 
-- E-mailbezorging en geplande achtergrondtaken voor automatische eNPS-herinneringen; de huidige handmatige herinnering is een zichtbaar in-app signaal.
-- Concepten wijzigen nadat ze zijn geactiveerd.
+- E-mailbezorging en geplande achtergrondtaken voor automatische eNPS-herinneringen; de huidige handmatige herinnering is een zichtbaar in-app signaal. Dit is bewust uitgesteld.
+- Conceptcampagnes wijzigen zolang de status `DRAFT` is: geïmplementeerd met transactionele update-RPC's, PUT-routes en builder-editflow.
 - Resultaten segmenteren op kleine groepen; dit vereist een afzonderlijk privacybesluit.
-- Geautoriseerde end-to-end campagne-/responseproef met exacte cleanup.
+- Geautoriseerde end-to-end campagne-/responseproef met exacte cleanup: uitgevoerd en vastgelegd in `docs/delivery/CURRENT_CONTEXT.md`.

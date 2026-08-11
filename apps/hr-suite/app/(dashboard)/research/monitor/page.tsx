@@ -4,7 +4,6 @@ import { notFound, redirect } from 'next/navigation'
 import { AuthorizationError } from '@/lib/auth/permissions'
 import { ParticipantReminderButton } from '@/components/research/participant-reminder-button'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
-import type { ResearchKind } from '@/lib/research/admin-service'
 import { ResearchError } from '@/lib/research/errors'
 import { getResearchMonitorDetail, listResearchMonitor } from '@/lib/research/results-service'
 
@@ -61,8 +60,11 @@ function ResultBars({ values }: { values: Array<{ label: string; count: number; 
 const chartColors = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--destructive)', 'var(--muted-foreground)', 'var(--accent-foreground)']
 
 function ResultPie({ label, values }: { label: string; values: Array<{ label: string; count: number; percentage: number }> }) {
-  let offset = 0
-  const segments = values.map((value, index) => { const start = offset; offset += value.percentage; return `${chartColors[index % chartColors.length]} ${start}% ${offset}%` })
+  const segments = values.map((value, index) => {
+    const start = values.slice(0, index).reduce((total, current) => total + current.percentage, 0)
+    const end = start + value.percentage
+    return `${chartColors[index % chartColors.length]} ${start}% ${end}%`
+  })
   return <div aria-label={`${label}: ${values.map((value) => `${value.label} ${value.percentage}%`).join(', ')}`} className="mx-auto grid size-40 place-items-center rounded-full" role="img" style={{ background: segments.length ? `conic-gradient(${segments.join(', ')})` : 'var(--muted)' }}><div className="size-20 rounded-full bg-background" /></div>
 }
 

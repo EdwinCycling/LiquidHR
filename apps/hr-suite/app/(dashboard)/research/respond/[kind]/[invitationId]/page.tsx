@@ -21,8 +21,6 @@ export default async function ResearchResponsePage({ params }: { params: Promise
     throw error
   }
   const [t, locale] = await Promise.all([getTranslator('research'), getLocale()])
-  const now = Date.now()
-  const available = form.status === 'ACTIVE' && Date.parse(form.startsAt) <= now && Date.parse(form.endsAt) >= now && !form.submitted
   const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' })
 
   return <main className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
@@ -33,6 +31,6 @@ export default async function ResearchResponsePage({ params }: { params: Promise
       {form.kind === 'survey' && form.description ? <p className="mt-3 text-base leading-7 text-muted-foreground">{form.description}</p> : null}
       <p className="mt-3 text-sm font-medium text-muted-foreground">{dateFormatter.format(new Date(form.startsAt))} – {dateFormatter.format(new Date(form.endsAt))}</p>
     </header>
-    {available ? <ResearchResponseForm form={form} labels={{ privacyAnonymous: t('response.privacyAnonymous'), privacyNamed: t('response.privacyNamed'), required: t('response.required'), optional: t('response.optional'), select: t('response.select'), selectMultiple: t('response.selectMultiple'), yes: t('response.yes'), no: t('response.no'), scaleLow: t('response.scaleLow'), scaleHigh: t('response.scaleHigh'), submit: t('response.submit'), submitting: t('response.submitting'), error: t('response.error'), completedTitle: t('response.completedTitle'), completedDescription: t('response.completedDescription') }} /> : <section className="rounded-3xl border border-dashed bg-surface p-8 text-center"><CircleAlert aria-hidden="true" className="mx-auto text-primary" size={34} /><h2 className="mt-5 text-xl font-semibold">{t('response.unavailableTitle')}</h2><p className="mt-2 text-sm text-muted-foreground">{t('response.unavailableDescription')}</p></section>}
+    {form.available ? <ResearchResponseForm form={form} labels={{ privacyAnonymous: t('response.privacyAnonymous'), privacyNamed: t('response.privacyNamed'), required: t('response.required'), optional: t('response.optional'), select: t('response.select'), selectMultiple: t('response.selectMultiple'), yes: t('response.yes'), no: t('response.no'), scaleLow: t('response.scaleLow'), scaleHigh: t('response.scaleHigh'), submit: t('response.submit'), submitting: t('response.submitting'), error: t('response.error'), completedTitle: t('response.completedTitle'), completedDescription: t('response.completedDescription') }} /> : <section className="rounded-3xl border border-dashed bg-surface p-8 text-center"><CircleAlert aria-hidden="true" className="mx-auto text-primary" size={34} /><h2 className="mt-5 text-xl font-semibold">{t('response.unavailableTitle')}</h2><p className="mt-2 text-sm text-muted-foreground">{t('response.unavailableDescription')}</p></section>}
   </main>
 }
