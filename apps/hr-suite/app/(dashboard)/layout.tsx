@@ -138,6 +138,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         reminderLabels={{
           timeHub: reminderMessages('timeHub'),
           openManagement: reminderMessages('openManagement'),
+          openAction: reminderMessages('openAction'),
           pendingCount: reminderMessages('pendingCount', { count: '{count}' }),
           moreReminders: reminderMessages('moreReminders'),
           empty: reminderMessages('empty'),

@@ -14,6 +14,7 @@ import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 export interface TimeHubLabels {
   timeHub: string
   openManagement: string
+  openAction: string
   pendingCount: string
   moreReminders: string
   empty: string
@@ -301,7 +302,10 @@ function ReminderDetailDialog({
             <button className="button-primary min-h-11 w-full justify-center gap-2" disabled={busy} onClick={() => void onAction(item, 'COMPLETE')} type="button"><Check aria-hidden="true" size={16} />{labels.saveComplete}</button>
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <Link className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/reminders#${item.reminderId}`} onClick={onClose}><ExternalLink aria-hidden="true" size={16} />{labels.openManagement}</Link>
+            <div className="flex flex-wrap gap-3">
+              {item.actionUrl ? <Link className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={item.actionUrl} onClick={onClose}><ExternalLink aria-hidden="true" size={16} />{labels.openAction}</Link> : null}
+              <Link className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/reminders#${item.reminderId}`} onClick={onClose}><ExternalLink aria-hidden="true" size={16} />{labels.openManagement}</Link>
+            </div>
             <div className="flex flex-wrap gap-2">
               <button className="button-secondary min-h-10" disabled={busy} onClick={() => void onAction(item, 'DISMISS')} type="button">{labels.dismiss}</button>
               <button className="button-secondary min-h-10" disabled={busy} onClick={onClose} type="button">{labels.cancel}</button>

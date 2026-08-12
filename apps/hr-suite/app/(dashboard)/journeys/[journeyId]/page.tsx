@@ -2,16 +2,30 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CalendarDays, Circle, Users } from 'lucide-react'
 import { JourneyDetailActions } from '@/components/journeys/journey-detail-actions'
-import { journeyRuntime, JourneyRuntimeServiceError } from '@/lib/journeys'
+import { JourneyParticipantDetail } from '@/components/journeys/journey-participant-detail'
+import { getJourneyProjection, journeyRuntime, JourneyProjectionServiceError, JourneyRuntimeServiceError } from '@/lib/journeys'
 import { getJourneyLabels } from '@/lib/journeys/labels'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
 import { getLocale } from '@/lib/i18n/server'
 
 export default async function JourneyDetailPage({ params }: { params: Promise<{ journeyId: string }> }) {
   const journeyId = (await params).journeyId
+  const requestContext = await getRequestAuthorizationContext()
+  const [labels, locale] = await Promise.all([getJourneyLabels(), getLocale()])
+  if (!requestContext.context.permissions.includes('journey:read')) {
+    let projection: Awaited<ReturnType<typeof getJourneyProjection>> | null = null
+    try {
+      projection = await getJourneyProjection(journeyId)
+    } catch (error) {
+      if (error instanceof JourneyProjectionServiceError && error.status === 404) notFound()
+      throw error
+    }
+    if (!projection) notFound()
+    return <JourneyParticipantDetail locale={locale} projection={projection} labels={{ back: labels.back, participantTitle: labels.participantTitle, participantSubtitle: labels.participantSubtitle, progress: labels.progress, nextAction: labels.nextAction, available: labels.available, upcomingTopic: labels.upcomingTopic, completeTopic: labels.completeTopic, skipTopic: labels.skipTopic, topicDetails: labels.topicDetails, openTopicAction: labels.openTopicAction, outcomeSaved: labels.outcomeSaved, topicActionFailed: labels.topicActionFailed, timeline: labels.timeline, participantsLabel: labels.participantsLabel, active: labels.active, planned: labels.planned, paused: labels.paused, completed: labels.completed, cancelled: labels.cancelled, topicPending: labels.topicPending, topicCompleted: labels.topicCompleted, topicSkipped: labels.topicSkipped, topicTypes: labels.topicTypes }} />
+  }
   let detail
   try { detail = await journeyRuntime.get(journeyId) } catch (error) { if (error instanceof JourneyRuntimeServiceError && error.status === 404) notFound(); throw error }
-  const [labels, options, locale] = await Promise.all([getJourneyLabels(), requirePermission('journey:write').then(() => journeyRuntime.startOptions()).catch((error: unknown) => { if (error instanceof AuthorizationError) return null; throw error }), getLocale()])
+  const options = await requirePermission('journey:write').then(() => journeyRuntime.startOptions()).catch((error: unknown) => { if (error instanceof AuthorizationError) return null; throw error })
   const journeyStatus = { PLANNED: labels.planned, ACTIVE: labels.active, PAUSED: labels.paused, COMPLETED: labels.completed, CANCELLED: labels.cancelled }
   const participantStatus = { ASSIGNED: labels.participantAssigned, ACTIVE: labels.participantActive, REPLACED: labels.participantReplaced, REMOVED: labels.participantRemoved }
   const topicStatus = { PENDING: labels.topicPending, COMPLETED: labels.topicCompleted, SKIPPED: labels.topicSkipped }

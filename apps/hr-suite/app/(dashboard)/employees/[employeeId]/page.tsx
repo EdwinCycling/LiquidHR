@@ -38,6 +38,8 @@ import { createClient } from '@/lib/supabase/server'
 import { listProcessWork } from '@/lib/process-automation/work-service'
 import { getUpcomingCalendarItems, type UpcomingCalendarItems } from '@/lib/company-activities/service'
 import { getPrivateWeatherForEmployee, getWorkWeatherForContext } from '@/lib/weather/work-weather'
+import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service'
+import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -85,13 +87,14 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
     ]) : [[], null]
     const canReadPayslips = tab === 'payslips' ? await permissionAllowed('payslip:read', employeeId) : false
     const payslips = tab === 'payslips' && canReadPayslips ? await listEmployeePayslips(employeeId) : []
-    const [dashboardDocuments, absenceCases, selfReport, canReadNotes] = await performance.measure('overview.parallel', () => Promise.all([
+    const [dashboardDocuments, absenceCases, selfReport, journeys, canReadNotes] = await performance.measure('overview.parallel', () => Promise.all([
       tab === 'overview' && canReadDashboardDocuments ? listEmployeeDashboardDocuments(employeeId) : Promise.resolve([]),
       tab === 'overview' || tab === 'absence' ? listEmployeeAbsence(employeeId).catch(() => []) : Promise.resolve([]),
       tab === 'overview' ? canEmployeeSelfReportAbsence(employeeId).catch(() => false) : Promise.resolve(false),
+      tab === 'overview' ? getEmployeeJourneyProjections(employeeId).catch((): JourneyProjectionList => []) : Promise.resolve<JourneyProjectionList>([]),
       tab === 'notes' ? employeeNotesPermissionAllowed(employeeId) : Promise.resolve(false),
     ]))
-    const base = [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport] as const
+    const base = [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys] as const
     const [canWriteNotes, canDeleteNotes, notes] = canReadNotes
       ? await performance.measure('notes.parallel', () => Promise.all([
         permissionAllowed('employee-note:write', employeeId),
@@ -146,7 +149,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     getPrivateWeatherForEmployee(authContext, employeeId, requestContext.supabase),
     getUpcomingCalendarItems(authContext, requestContext.supabase),
   ]))
-  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, notes, canReadNotes, canWriteNotes, canDeleteNotes] = pageData
+  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes] = pageData
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
   const tWeather = await getTranslator('startpage', locale)
@@ -213,7 +216,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           })}
         </nav>
 
-        {tab === 'overview' && <EmployeeDashboard selfReportAbsence={selfReport} canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} processWork={processWork} canReadProcesses={canReadProcesses} canStartProcess={canStartProcess} labels={{
+        {tab === 'overview' && <EmployeeDashboard journeys={journeys} journeyLabels={{ journeys: tEmployees('journeys'), journeysDescription: tEmployees('journeysDescription'), journeysEmpty: tEmployees('journeysEmpty'), journeysOpen: tEmployees('journeysOpen'), journeyProgress: tEmployees('journeyProgress') }} selfReportAbsence={selfReport} canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} processWork={processWork} canReadProcesses={canReadProcesses} canStartProcess={canStartProcess} labels={{
           title: tEmployees('dashboardTitle'), subtitle: tEmployees('dashboardSubtitle'), openDetails: tEmployees('dashboardOpenDetails'), edit: tEmployees('editPersonal'), personal: tEmployees('dashboardPersonal'), contact: tEmployees('contactTitle'),
           workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'), noContact: tEmployees('noContact'), address: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), birthDate: tEmployees('birthDate'),
           nationality: tEmployees('nationality'), birthPlace: tEmployees('birthPlace'), gender: tEmployees('gender'), notRecorded: tEmployees('notRecorded'), customFields: tCustomFields('employeeTitle'), customFieldsEmpty: tEmployees('dashboardCustomFieldsEmpty'),

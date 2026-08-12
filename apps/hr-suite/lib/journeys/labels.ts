@@ -23,7 +23,8 @@ export async function getJourneyLabels() {
     'detailTitle', 'timeline', 'topicsLabel', 'pause', 'resume', 'complete', 'cancelJourney', 'replaceParticipant',
     'replacement', 'replacementReason', 'saveReplacement', 'history', 'noHistory', 'operationFailed', 'overdueTopics',
     'participantAssigned', 'participantActive', 'participantReplaced', 'participantRemoved',
-    'topicPending', 'topicCompleted', 'topicSkipped',
+    'topicPending', 'topicCompleted', 'topicSkipped', 'participantTitle', 'participantSubtitle', 'progress', 'nextAction', 'available', 'upcomingTopic',
+    'completeTopic', 'skipTopic', 'topicDetails', 'openTopicAction', 'outcomeSaved', 'topicActionFailed',
   ] as const
   return {
     ...Object.fromEntries(keys.map((key) => [key, t(key)])) as Record<(typeof keys)[number], string>,

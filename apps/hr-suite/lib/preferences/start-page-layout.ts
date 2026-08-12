@@ -1,7 +1,7 @@
 import type { Json } from '@scope/db'
 
 export const START_PAGE_WIDE_WINDOWS = ['teamAvailability', 'documents', 'continuousAppraisal', 'leave', 'absenceCases', 'events', 'kpis'] as const
-export const START_PAGE_NARROW_WINDOWS = ['reminders', 'workInProgress'] as const
+export const START_PAGE_NARROW_WINDOWS = ['reminders', 'journeys', 'workInProgress'] as const
 export type StartPageWideWindow = (typeof START_PAGE_WIDE_WINDOWS)[number]
 export type StartPageNarrowWindow = (typeof START_PAGE_NARROW_WINDOWS)[number]
 export interface StartPageWindowLayout {

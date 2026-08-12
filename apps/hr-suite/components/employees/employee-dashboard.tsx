@@ -17,6 +17,7 @@ import {
   Pencil,
   Plus,
   Sparkles,
+  UsersRound,
   Workflow,
 } from 'lucide-react'
 import type { Json } from '@scope/db'
@@ -37,6 +38,7 @@ import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { getEmploymentCardStatus, hasActiveEmployment } from '@/lib/employment/employment-card-state'
 import type { ProcessWorkList } from '@/lib/process-automation/work-service'
 import type { EmployeeDetailViewModel } from './types'
+import { journeyProgressPercent, localizedValue, type JourneyProjectionList } from '@/lib/journeys/projection-domain'
 
 export interface EmployeeDashboardDocument { id: string; title: string; expiresOn: string | null; createdAt: string }
 
@@ -64,9 +66,11 @@ interface EmployeeDashboardProps {
   processWork: ProcessWorkList | null
   canReadProcesses: boolean
   canStartProcess: boolean
+  journeys: JourneyProjectionList
+  journeyLabels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string }
 }
 
-export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, processWork, canReadProcesses, canStartProcess }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
   const visibleFields = customFields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
@@ -83,6 +87,7 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
     { id: 'employment' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.employment} actionHref="?tab=employments" actionLabel={labels.viewContracts} compact><EmploymentDashboardSummary employeeId={employee.id} employments={detail.employments} cards={detail.employmentCards} currentSummary={summary} canReadSalary={detail.capabilities?.canReadSalary === true} labels={labels} locale={locale} /></DashboardCard> },
     { id: 'profileLinks' as const, node: <DashboardCard icon={<ExternalLink className="h-4 w-4" />} title={labels.profileLinks} compact>{detail.profileLinks?.length ? <ul className="space-y-2">{detail.profileLinks.map((link) => <li key={link.id}><a className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href={link.url} target="_blank" rel="noreferrer">{link.label}<ExternalLink aria-hidden="true" size={14} /></a></li>)}</ul> : <EmptyInline>{labels.noProfileLinks}</EmptyInline>}{detail.capabilities?.canEditEmployee && <ProfileLinkForm employeeId={employee.id} labels={{ add: labels.addProfileLink, label: labels.linkLabel, url: labels.linkUrl, save: labels.saveLink, failed: labels.linkFailed }} />}</DashboardCard> },
     { id: 'reminders' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.reminders} actionHref="?tab=reminders" actionLabel={labels.viewReminders} compact>{reminders.length ? <ul className="divide-y divide-border/70">{reminders.slice(0, 4).map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.recipientId}><p className="text-sm font-medium">{item.title}</p><time className="mt-1 block text-xs text-muted-foreground" dateTime={item.remindAt}>{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</time></li>)}</ul> : <EmptyInline>{labels.remindersEmpty}</EmptyInline>}</DashboardCard> },
+    { id: 'journeys' as const, node: <JourneyDashboardCard journeys={journeys} locale={locale} labels={journeyLabels} /> },
     { id: 'workflows' as const, node: <EmployeeProcessCard employeeId={employee.id} processWork={processWork} canReadProcesses={canReadProcesses} canStartProcess={canStartProcess} labels={labels} /> },
     { id: 'assets' as const, node: <PlaceholderCard icon={<Package className="h-4 w-4" />} title={labels.assets} description={labels.assetsDescription} labels={labels} /> },
     { id: 'vehicles' as const, node: <PlaceholderCard icon={<CarFront className="h-4 w-4" />} title={labels.vehicles} description={labels.vehiclesDescription} labels={labels} /> },
@@ -93,6 +98,10 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
   ]
 
   return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><header className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow text-primary">{labels.title}</p><h2 id="employee-dashboard-title" className="mt-1 text-2xl font-semibold tracking-tight">{labels.subtitle}</h2></div><Link prefetch={false} href={`/employees/${employee.id}?tab=personal&edit=1`} className="button-secondary inline-flex items-center gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.openDetails}</Link></header><EmployeeDashboardLayout wide={wide} narrow={narrow} initialLayout={initialLayout} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
+}
+
+function JourneyDashboardCard({ journeys, locale, labels }: { journeys: JourneyProjectionList; locale: string; labels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string } }) {
+  return <DashboardCard icon={<UsersRound className="h-4 w-4" />} title={labels.journeys} compact><p className="text-sm leading-6 text-muted-foreground">{labels.journeysDescription}</p>{journeys.length > 0 ? <ul className="mt-4 divide-y divide-border/70">{journeys.slice(0, 3).map((journey) => { const progress = journeyProgressPercent(journey.progress); return <li className="py-3 first:pt-0 last:pb-0" key={journey.id}><Link className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/journeys/${journey.id}`}><span className="flex items-start justify-between gap-3"><span className="min-w-0 truncate font-semibold">{localizedValue(journey.templateName, locale)}</span><span className="shrink-0 text-xs font-semibold tabular-nums text-accent-foreground">{progress}%</span></span><span className="mt-1 block text-xs text-muted-foreground">{labels.journeyProgress}: {journey.progress.completed}/{journey.progress.total}</span></Link></li> })}</ul> : <EmptyInline>{labels.journeysEmpty}</EmptyInline>}<Link className="button-secondary mt-4 inline-flex" href="/journeys">{labels.journeysOpen}</Link></DashboardCard>
 }
 
 function EmployeeProcessCard({ employeeId, processWork, canReadProcesses, canStartProcess, labels }: { employeeId: string; processWork: ProcessWorkList | null; canReadProcesses: boolean; canStartProcess: boolean; labels: EmployeeDashboardLabels }) {

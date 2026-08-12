@@ -134,5 +134,17 @@
   "participantRemoved": "Verwijderd",
   "topicPending": "Openstaand",
   "topicCompleted": "Afgerond",
-  "topicSkipped": "Overgeslagen"
+  "topicSkipped": "Overgeslagen",
+  "participantTitle": "Jouw Journey",
+  "participantSubtitle": "Een rustige tijdlijn met alleen de momenten en topics die voor jou beschikbaar zijn.",
+  "progress": "Voortgang",
+  "nextAction": "Volgende actie",
+  "available": "Beschikbaar",
+  "upcomingTopic": "Binnenkort beschikbaar",
+  "completeTopic": "Afronden",
+  "skipTopic": "Overslaan",
+  "topicDetails": "Topicdetails",
+  "openTopicAction": "Open actie",
+  "outcomeSaved": "Opgeslagen",
+  "topicActionFailed": "De topicactie kon niet worden opgeslagen."
 }

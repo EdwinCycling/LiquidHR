@@ -92,5 +92,17 @@
   "participantRemoved": "Removed",
   "topicPending": "Pending",
   "topicCompleted": "Completed",
-  "topicSkipped": "Skipped"
+  "topicSkipped": "Skipped",
+  "participantTitle": "Your Journey",
+  "participantSubtitle": "A calm timeline with only the moments and topics available to you.",
+  "progress": "Progress",
+  "nextAction": "Next action",
+  "available": "Available",
+  "upcomingTopic": "Available soon",
+  "completeTopic": "Complete",
+  "skipTopic": "Skip",
+  "topicDetails": "Topic details",
+  "openTopicAction": "Open action",
+  "outcomeSaved": "Saved",
+  "topicActionFailed": "The topic action could not be saved."
 }

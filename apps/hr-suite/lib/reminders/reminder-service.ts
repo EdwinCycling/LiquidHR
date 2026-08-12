@@ -72,6 +72,12 @@ export interface ReminderItem {
   recipientStatus: 'PENDING' | 'COMPLETED' | 'DISMISSED'
   reminderStatus: 'DRAFT' | 'PUBLISHED' | 'CANCELLED'
   createdByUserId: string
+  actionUrl?: string
+}
+
+export function reminderActionUrl(description: string | null): string | undefined {
+  const match = description?.match(/(?:open|openen)\s+(\/journeys\/[0-9a-f-]+#moment-[0-9a-f-]+)/i)
+  return match?.[1]
 }
 
 export interface ManagedReminder {
@@ -90,6 +96,7 @@ export interface ReminderTargetOptions {
 }
 
 export function toReminderItem(row: ReminderRecipientResult): ReminderItem {
+  const actionUrl = reminderActionUrl(row.reminders.description)
   return {
     recipientId: row.id,
     employeeId: row.employee_id ?? row.employees?.id ?? null,
@@ -104,6 +111,7 @@ export function toReminderItem(row: ReminderRecipientResult): ReminderItem {
     recipientStatus: row.status,
     reminderStatus: row.reminders.status,
     createdByUserId: row.reminders.created_by_user_id,
+    ...(actionUrl ? { actionUrl } : {}),
   }
 }
 

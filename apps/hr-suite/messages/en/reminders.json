@@ -3,6 +3,7 @@
   "subtitle": "Schedule something for yourself or send a reminder to colleagues.",
   "timeHub": "Time Hub",
   "openManagement": "Reminder management",
+  "openAction": "Open action",
   "pendingCount": "{count} pending",
   "moreReminders": "more reminders",
   "empty": "There are no reminders waiting.",

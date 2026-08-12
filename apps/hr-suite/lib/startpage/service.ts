@@ -12,6 +12,8 @@ import type { Locale } from '@/lib/i18n/config'
 import { listProcessWork } from '@/lib/process-automation/work-service'
 import { loadTeamAvailability, type StartPageTeamAvailability } from './team-availability-service'
 import { getUpcomingCalendarItems, type CalendarHeaderItem } from '@/lib/company-activities/service'
+import { listJourneyProjectionsForContext } from '@/lib/journeys/projection-service'
+import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -51,6 +53,7 @@ export interface StartPageData {
   canSwitchScope: boolean
   scope: StartPageScope
   canReportAbsence: boolean
+  journeys: JourneyProjectionList
 }
 
 export type StartPageScope = 'team' | 'company'
@@ -448,7 +451,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, countdowns, continuousAppraisal, processWork, teamAvailability] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -464,6 +467,9 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     isManager && scope === 'team'
       ? managerTeamEmployeeIdsPromise.then((managerTeamEmployeeIds) => measure('teamAvailability', () => loadTeamAvailability(auth, managerTeamEmployeeIds, supabase)))
       : Promise.resolve(null),
+    measure('journeys', () => auth.hrGroupId
+      ? listJourneyProjectionsForContext(supabase, auth).catch((): JourneyProjectionList => [])
+      : Promise.resolve<JourneyProjectionList>([])),
   ]))
 
   return {
@@ -494,5 +500,6 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     canSwitchScope,
     scope,
     canReportAbsence: auth.permissions.includes('absence:write'),
+    journeys,
   }
 }

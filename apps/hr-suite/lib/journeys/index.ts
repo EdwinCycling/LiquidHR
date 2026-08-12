@@ -8,6 +8,23 @@ import { createJourneyRuntimeService } from './runtime-service'
 export { calculateJourneyDate, resolveJourneyRole, type JourneyRoleResolution, type JourneyTemplateDraft } from './domain'
 export { JourneyTemplateServiceError, type JourneyTemplateCatalogItem, type JourneyTemplateDetail } from './template-service'
 export { JourneyRuntimeServiceError, type JourneyRuntimeDetail, type JourneyRuntimeListItem, type JourneyStartOptions } from './runtime-service'
+export {
+  getEmployeeJourneyProjections,
+  getJourneyProjection,
+  listJourneyProjections,
+  listJourneyProjectionsForContext,
+  recordJourneyTopicOutcome,
+  JourneyProjectionServiceError,
+} from './projection-service'
+export {
+  journeyProgressPercent,
+  localizedValue,
+  type JourneyProjection,
+  type JourneyProjectionList,
+  type JourneyProjectionNextAction,
+  type JourneyProjectionTopic,
+  type JourneyTopicOutcomeResult,
+} from './projection-domain'
 
 export const journeyTemplates = createJourneyTemplateService({
   repository: supabaseJourneyTemplateRepository,

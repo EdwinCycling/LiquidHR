@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reminderDatabaseError, toReminderItem } from './reminder-service'
+import { reminderActionUrl, reminderDatabaseError, toReminderItem } from './reminder-service'
 
 describe('reminderDatabaseError', () => {
   it.each([
@@ -33,5 +33,12 @@ describe('toReminderItem', () => {
       type: 'HR', targetType: 'EVERYONE', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED',
       createdByUserId: 'user-1',
     })
+  })
+})
+
+describe('reminderActionUrl', () => {
+  it('extracts protected Journey deep links from reminder descriptions', () => {
+    expect(reminderActionUrl('Open /journeys/11111111-1111-4111-8111-111111111111#moment/22222222-2222-4222-8222-222222222222')).toBeUndefined()
+    expect(reminderActionUrl('Open /journeys/11111111-1111-4111-8111-111111111111#moment-22222222-2222-4222-8222-222222222222')).toBe('/journeys/11111111-1111-4111-8111-111111111111#moment-22222222-2222-4222-8222-222222222222')
   })
 })

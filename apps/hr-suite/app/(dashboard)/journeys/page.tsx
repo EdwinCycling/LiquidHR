@@ -1,14 +1,21 @@
 import Link from 'next/link'
 import { AlertTriangle, CalendarDays, Plus, Users } from 'lucide-react'
-import { journeyRuntime } from '@/lib/journeys'
+import { journeyRuntime, listJourneyProjections } from '@/lib/journeys'
 import { deriveJourneyAttention } from '@/lib/journeys/runtime-domain'
 import { getJourneyLabels } from '@/lib/journeys/labels'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
 import { getLocale } from '@/lib/i18n/server'
+import { journeyProgressPercent, localizedValue } from '@/lib/journeys/projection-domain'
 
 const statuses = ['ALL', 'PLANNED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'] as const
 
 export default async function JourneyLivePage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
+  const requestContext = await getRequestAuthorizationContext()
+  const [participantLabels, participantLocale] = await Promise.all([getJourneyLabels(), getLocale()])
+  if (!requestContext.context.permissions.includes('journey:read')) {
+    const projections = await listJourneyProjections()
+    return <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-10"><header><p className="eyebrow">{participantLabels.eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{participantLabels.participantTitle}</h1><p className="mt-3 text-muted-foreground">{participantLabels.participantSubtitle}</p></header><div className="mt-6 space-y-3">{projections.length === 0 ? <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">{participantLabels.noJourneys}</div> : projections.map((journey) => <Link className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-surface p-5 transition hover:border-primary/40 hover:shadow-sm" href={`/journeys/${journey.id}`} key={journey.id}><div><h2 className="font-semibold">{localizedValue(journey.templateName, participantLocale)}</h2><p className="mt-1 text-sm text-muted-foreground">{journey.targetEmployeeName ?? ''}</p></div><span className="text-sm font-semibold tabular-nums text-accent-foreground">{journeyProgressPercent(journey.progress)}%</span></Link>)}</div></div>
+  }
   const [items, labels, query, canWrite, locale] = await Promise.all([journeyRuntime.list(), getJourneyLabels(), searchParams, requirePermission('journey:write').then(() => true).catch((error: unknown) => { if (error instanceof AuthorizationError) return false; throw error }), getLocale()])
   const q = query.q?.trim().toLocaleLowerCase() ?? ''
   const selectedStatus: (typeof statuses)[number] = statuses.includes(query.status as (typeof statuses)[number]) ? query.status as (typeof statuses)[number] : 'ALL'

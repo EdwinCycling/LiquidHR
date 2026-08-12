@@ -1,7 +1,7 @@
 # LiquidHR Journeys
 
 Status: **LEIDEND VOOR ANALYSE EN IMPLEMENTATIE**  
-Implementatie: **BOUWSTAP 1 LOKAAL GEREED EN GEVERIFIEERD — stap 2 en 3 niet gestart**
+Implementatie: **BOUWSTAP 3 PARTICIPANT/MANAGER-AUTORISATIE EN BROWSERFLOW GEREED — preboardingfixture ontbreekt**
 Datum: **2026-08-12**
 
 ## Bronnen en voorrang
@@ -15,6 +15,14 @@ Dit document verwerkt de volgende aangeleverde bronnen:
 5. de aanvullende opdracht **LiquidHR Journeys — analyse en implementatievoorbereiding**.
 
 Bij strijdigheid geldt: veiligheid en bestaande LiquidHR-architectuur → productontwerp → definitief Stitch-scherm → designerbrief → Stitch `DESIGN.md` → Stitch HTML. De Stitch HTML is uitsluitend visuele en interactionele referentie en wordt niet als applicatiearchitectuur overgenomen. De volledige bronreview staat in [`references/STITCH_REVIEW_2026-08-12.md`](references/STITCH_REVIEW_2026-08-12.md).
+
+### UX-interpretatie van Stitch
+
+Stitch-schermen zijn richtinggevend, niet letterlijk bindend. Zij bepalen de gewenste visuele richting, informatiehiërarchie, interactie-intentie, componentcompositie, density, tone of voice en responsive intent. Een scherm wordt alleen letterlijk overgenomen wanneer dit logisch past binnen de bestaande LiquidHR-shell, reusable components, permissions/security, beschikbare data, routing, accessibility, i18n en onderhoudbare technische structuur.
+
+Daarom blijven de bestaande LiquidHR-shell, navigatie, design tokens, Lucide-iconen, forms, tables, cards, drawers, URL-state en layoutvoorkeuren leidend. Een functioneel gelijkwaardig LiquidHR-component wordt hergebruikt met behoud van de Stitch-intentie; er worden geen parallelle shells, tokens of kunstmatige 1-op-1 patronen toegevoegd. Het resultaat moet herkenbaar zijn als Stitch-design én natuurlijk aanvoelen als LiquidHR.
+
+De afzonderlijke aangeleverde `screen.png`/`code.html`-assets konden in de actuele repository- en attachmentmount niet opnieuw worden gevonden. De schermrichting is daarom lokaal getoetst aan de aanwezige Stitch-review in `references/STITCH_REVIEW_2026-08-12.md`; exacte asset-hercontrole blijft open wanneer de bronbestanden opnieuw beschikbaar zijn.
 
 ## Productdoel en harde grenzen
 
@@ -46,7 +54,7 @@ Een Journey-moment mag later via een expliciete integratie een workflow starten.
 5. **Immutable publicatie.** Een gepubliceerd template wordt niet in-place gewijzigd. Een nieuwe publicatie maakt een nieuwe immutable versie; een Journey pint exact de geactiveerde versie en bewaart gegenereerde planning en deelnemers als historie.
 6. **Template bepaalt regels, activatie concrete personen.** Rolregels leveren voorstellen. HR bevestigt of vervangt ze vóór activatie. De geactiveerde participant bewaart concrete `employee_id`, bron, resolutiebewijs en vervangingshistorie.
 7. **Bestaande managerresolver als adapter.** Automatische manager-/afdelingsrolresolutie gebruikt de actuele `employee_organizations`, `department_management` en `resolveManagerForEmployee`-patronen. Ambiguïteit wordt zichtbaar en typed afgehandeld; nooit stil de eerste kandidaat kiezen.
-8. **Eigen autorisatiecontract.** Journey-rechten staan los van Core HR. Buddy of participant zijn verleent geen `employee:read`. Serverprojecties en RLS vereisen zowel deelname/HR-recht als topic-audience; niet-zichtbare content bereikt browser of RSC-payload niet.
+8. **Eigen autorisatiecontract.** Journey-rechten staan los van Core HR. Buddy of participant zijn verleent geen `employee:read`. De Journey-shell vereist HR-recht, target/self-scope of concrete actieve/assigned runtime-participatie; topic- en outcome-data blijven daarnaast topic-audience-gebonden. Niet-zichtbare content bereikt browser of RSC-payload niet.
 9. **Preboarding als beperkte access-state.** Dezelfde Employee en accountkoppeling worden gebruikt. Toegang ontstaat alleen via een actieve/planned Journey, expliciete selfpermissions en een geldige groepscontext. Journeys verleent nooit impliciet adres-, bank-, contract-, salaris- of dossierwrite.
 10. **Operationeel versus configuratie.** HR werkt op `/journeys`; configuratie staat uitsluitend onder `/settings/journeys`. De bestaande LiquidHR-sidebar, settingshub, contextswitching en accountfooter blijven intact.
 11. **Persoonlijke ingang via de bestaande startpagina.** Medewerker, preboarder, manager en buddy zien alleen hun geprojecteerde Journey-widget op `/dashboard/start` en openen dezelfde detailroute met een actor-specifieke projectie. Er komt geen aparte mobiele shell.
@@ -140,7 +148,7 @@ Voorgestelde canonieke permissions, definitief te seeden via migratie:
 | `journey-participation:read` | Journeys lezen waarin actor concreet participant is, beperkt tot audience |
 | `journey-participation:write` | eigen toegewezen acties/outcomes uitvoeren, beperkt tot topicassignment |
 
-RLS toetst altijd `tenant_id`, `hr_group_id`, actieve account-/Employee-koppeling, exacte permission, Journey-deelname/target en topic-audience. `journey:read` zonder geldige scope is onvoldoende. Een participantprojectie bevat alleen minimale subjectcontext die het Journey-contract toestaat; voor aanvullende Employee-velden blijft de afzonderlijke bronpermission vereist.
+RLS toetst altijd `tenant_id`, `hr_group_id`, actieve account-/Employee-koppeling en de exacte Journey-scope. De shell-check accepteert HR-recht, target/self-scope of concrete actieve/assigned runtime-participatie; topic-lezen en outcomes vereisen aanvullend een zichtbare assignment en passende status/datum. `journey:read` zonder geldige scope is onvoldoende. Een participantprojectie bevat alleen minimale subjectcontext die het Journey-contract toestaat; voor aanvullende Employee-velden blijft de afzonderlijke bronpermission vereist.
 
 ## Preboarding access-state
 
@@ -235,8 +243,8 @@ Lever target-/Employmentselectie, write-free activatiepreview, concrete particip
 
 ### Stap 3 — Medewerker + preboarding + participants
 
-Lever de beperkte preboarding access-state, startpaginawidgets, self-/participantdetail, eigen topicoutcomes, medewerkerdashboardwidget en responsive/mobile hardening. Sluit af met de volledige zes-rollen RLS-/browsermatrix, negatieve payloadcontroles, Employee/Employment-/herintredingsregressies, i18n/a11y/performance en de relevante releasegate. Journeys gebruikt eventuele nieuwe algemene designtokens als eerste, maar wijzigt buiten deze module alleen de vooraf goedgekeurde generieke token/componentimplementatie.
+Lever de beperkte preboarding access-state, startpaginawidgets, self-/participantdetail, eigen topicoutcomes, medewerkerdashboardwidget en responsive/mobile hardening. Sluit af met de volledige zes-rollen RLS-/browsermatrix, negatieve payloadcontroles, Employee/Employment-/herintredingsregressies, i18n/a11y/performance en de relevante releasegate. Journeys gebruikt eventuele nieuwe algemene designtokens als eerste, maar wijzigt buiten deze module alleen de vooraf goedgekeurde generieke token/componentimplementatie. De eerste slice bevat nu de actor-filtered projection-RPC-contracten, outcomes, startpagina-/medewerkerwidgets, participantdetail en reminderdeep-link; remote schema, FK-indexes, advisors en typegeneratie zijn uitgevoerd. De participant/manager-scope is zonder globale `DIRECT_MANAGER`-grant gesloten: concrete actieve/assigned runtime-participatie opent de Journey-shell, terwijl topics/outcomes assignment-gebonden blijven. De preboardingmatrix blijft alleen als testdatacoverage open, omdat de gekoppelde devomgeving geen `PREBOARDING`-Journey bevat.
 
 ## Uitvoeringsstatus
 
-Bouwstap 1 en 2 zijn na expliciete goedkeuring afgerond op `feature/journeys`, de enige featurebranch voor alle drie bouwstappen. Configuratie én gepinde HR-runtime zijn remote toegepast en geverifieerd met RLS/grants, tenant-/HR-groepisolatie, pgTAP, advisors, officiële typen, volledige lokale gate en een geauthenticeerde HR-browserflow. De testomgeving bevat verwijderbare, herkenbare `JY-S1`- en `JY-S2`-development/test datasets voor configuratie, statussen, teamresolutie, handmatige buddy, replacementhistorie, reminder en blokkerende validatie. Geen code of test heeft een functionele afhankelijkheid van deze records. Push, merge en deployment blijven verboden. Bouwstap 3 start pas na een nieuwe expliciete opdracht.
+Bouwstap 1 en 2 zijn na expliciete goedkeuring afgerond op `feature/journeys`, de enige featurebranch voor alle drie bouwstappen. Bouwstap 3 is in dezelfde worktree geïmplementeerd met additive projection/outcome-migraties, actor-veilige RPC’s, NL/EN-widgets op de bestaande startpagina en medewerkerdashboard, participantdetail en reminderdeep-link. Remote schema/FK-indexes zijn toegepast, RLS en wrapper-execute zijn gecontroleerd en officiële typen zijn gegenereerd. De oorzaak van de DIRECT_MANAGER-blocker was een te strenge Journey-shellkoppeling aan zichtbare topicassignments; die is vervangen door de bestaande Journey-specifieke runtime-participantcheck. Er is geen globale `DIRECT_MANAGER`-grant toegevoegd. Manager- en buddy/participant-browserflows zijn desktop en 390x844 met network-/consolecontrole doorlopen. De gekoppelde devomgeving bevat alleen `ONBOARDING`-Journeys; preboardingbrowserbewijs blijft daarom als expliciet data-open punt staan. Push, merge en deployment blijven verboden.

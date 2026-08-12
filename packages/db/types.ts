@@ -7246,6 +7246,77 @@ export type Database = {
           },
         ]
       }
+      journey_topic_outcomes: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          journey_id: string
+          note: string | null
+          outcome_type: Database["public"]["Enums"]["journey_topic_outcome_type"]
+          participant_id: string | null
+          tenant_id: string
+          topic_id: string
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          journey_id: string
+          note?: string | null
+          outcome_type: Database["public"]["Enums"]["journey_topic_outcome_type"]
+          participant_id?: string | null
+          tenant_id: string
+          topic_id: string
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          journey_id?: string
+          note?: string | null
+          outcome_type?: Database["public"]["Enums"]["journey_topic_outcome_type"]
+          participant_id?: string | null
+          tenant_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_topic_outcomes_actor_employee_id_fkey"
+            columns: ["actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_topic_outcomes_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_topic_outcomes_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_topic_outcomes_tenant_id_hr_group_id_journey_id_to_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id", "topic_id"]
+            isOneToOne: false
+            referencedRelation: "journey_topics"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+        ]
+      }
       journey_topic_assignments: {
         Row: {
           created_at: string
@@ -15284,6 +15355,31 @@ export type Database = {
         Args: { requested_employee_id: string }
         Returns: Json
       }
+      get_employee_journey_projection: {
+        Args: {
+          requested_employee_id: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_journey_projection: {
+        Args: { requested_journey_id: string }
+        Returns: Json
+      }
+      list_journey_projections: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: Json
+      }
+      record_journey_topic_outcome: {
+        Args: {
+          requested_journey_id: string
+          requested_note?: string
+          requested_outcome_type: string
+          requested_topic_id: string
+        }
+        Returns: Json
+      }
       get_internal_transfer_preview: {
         Args: { requested_work_item_id: string }
         Returns: Json
@@ -15991,6 +16087,7 @@ export type Database = {
         | "CANCELLED"
       journey_template_lifecycle: "DRAFT" | "PUBLISHED" | "RETIRED"
       journey_template_version_status: "DRAFT" | "PUBLISHED"
+      journey_topic_outcome_type: "COMPLETE" | "SKIP" | "CHECK_IN"
       journey_topic_status: "PENDING" | "COMPLETED" | "SKIPPED"
       journey_topic_type: "INFORMATION" | "ACTION" | "CHECK_IN" | "DOCUMENT"
       journey_type:
@@ -16372,6 +16469,7 @@ export const Constants = {
       journey_status: ["PLANNED", "ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"],
       journey_template_lifecycle: ["DRAFT", "PUBLISHED", "RETIRED"],
       journey_template_version_status: ["DRAFT", "PUBLISHED"],
+      journey_topic_outcome_type: ["COMPLETE", "SKIP", "CHECK_IN"],
       journey_topic_status: ["PENDING", "COMPLETED", "SKIPPED"],
       journey_topic_type: ["INFORMATION", "ACTION", "CHECK_IN", "DOCUMENT"],
       journey_type: [
