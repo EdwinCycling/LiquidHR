@@ -6,6 +6,8 @@ import { getRequestUserPreferences } from '@/lib/preferences/server'
 import { getStartPagePreferences } from '@/lib/preferences/start-page'
 import { createServerPerformanceTrace } from '@/lib/performance/server-trace'
 import { getStartPageData, type StartPageScope } from '@/lib/startpage/service'
+import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service'
+import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 
 interface StartPageRouteProps {
   searchParams: Promise<{ scope?: string; perf?: string }>
@@ -16,11 +18,17 @@ export default async function StartPageRoute({ searchParams }: StartPageRoutePro
   const performanceTrace = createServerPerformanceTrace('/dashboard/start', perf === '1')
   const requestContext = await performanceTrace.measure('auth.context', getRequestAuthorizationContext)
   const authContext = requestContext.context
+  let journeyOnly = false
+  let journeyOnlyJourneys: JourneyProjectionList | undefined
   if (!authContext.permissions.includes('start-page:read')) {
-    if (authContext.employeeId && authContext.permissions.includes('self:employee:read')) {
+    if (authContext.employeeId && (authContext.permissions.includes('self:journey:read') || authContext.permissions.includes('journey-participation:read'))) {
+      journeyOnlyJourneys = await performanceTrace.measure('journey-only.projection', () => getEmployeeJourneyProjections(authContext.employeeId!)).catch(() => [])
+      journeyOnly = journeyOnlyJourneys.length > 0
+    }
+    if (!journeyOnly && authContext.employeeId && authContext.permissions.includes('self:employee:read')) {
       redirect(`/employees/${authContext.employeeId}`)
     }
-    redirect('/geen-toegang')
+    if (!journeyOnly) redirect('/geen-toegang')
   }
 
   const scope: StartPageScope | undefined = requestedScope === 'company' || requestedScope === 'team' ? requestedScope : undefined
@@ -31,6 +39,8 @@ export default async function StartPageRoute({ searchParams }: StartPageRoutePro
     activeContext: requestContext.activeContext,
     locale,
     performance: performanceTrace,
+    journeyOnly,
+    journeys: journeyOnlyJourneys,
   })
   const [data, preferences, translate, startPagePreferences] = await performanceTrace.measure('page.parallel', () => Promise.all([
     dataPromise,

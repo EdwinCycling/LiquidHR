@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260812122500_journeys_step2_runtime.sql'), 'utf8')
 const reminderFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260812143000_fix_journey_reminder_administration.sql'), 'utf8')
 const reminderPublishFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260812143500_fix_journey_reminder_publish_sequence.sql'), 'utf8')
+const participantProjectionFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260812153435_journeys_step3_employee_projection_participants.sql'), 'utf8')
 
 describe('Journeys stap 2 migratiecontract', () => {
   const tables = [
@@ -41,5 +42,13 @@ describe('Journeys stap 2 migratiecontract', () => {
     expect(reminderFix).toContain('if administration_id_value is null then return; end if;')
     expect(reminderPublishFix).toContain("'DRAFT',null")
     expect(reminderPublishFix).toContain("set status='PUBLISHED'")
+  })
+
+  it('neemt concrete actieve of toegewezen deelnemers mee in de bestaande medewerkerprojectie', () => {
+    expect(participantProjectionFix).toContain('public.get_employee_journey_projection')
+    expect(participantProjectionFix).toContain('journey.target_employee_id = $3')
+    expect(participantProjectionFix).toContain('participant.employee_id = $3')
+    expect(participantProjectionFix).toContain("participant.status in ('ASSIGNED', 'ACTIVE')")
+    expect(participantProjectionFix).toContain('internal_security.journey_actor_can_read(journey.id)')
   })
 })

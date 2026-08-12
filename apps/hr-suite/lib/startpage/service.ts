@@ -23,6 +23,8 @@ export interface StartPageDependencies {
   activeContext: ActiveContext
   locale?: Locale
   performance?: ServerPerformanceTrace
+  journeyOnly?: boolean
+  journeys?: JourneyProjectionList
 }
 
 export interface StartPageData {
@@ -54,6 +56,7 @@ export interface StartPageData {
   scope: StartPageScope
   canReportAbsence: boolean
   journeys: JourneyProjectionList
+  journeyOnly: boolean
 }
 
 export type StartPageScope = 'team' | 'company'
@@ -429,6 +432,42 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
   const supabase = dependencies?.supabase ?? await createClient()
   const auth = dependencies?.auth ?? await requireAuthContext(supabase)
   const context = dependencies?.activeContext ?? await loadActiveContext(auth.userId, supabase)
+  if (dependencies?.journeyOnly) {
+    const employee = auth.employeeId
+      ? await supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle()
+      : { data: null }
+    return {
+      employeeId: auth.employeeId,
+      firstName: employee.data?.first_name?.trim() || null,
+      tenantName: context.tenant.name,
+      administrationName: context.activeAdministration?.name ?? null,
+      isEmployeeOnly: true,
+      companyDocuments: null,
+      reminders: [],
+      leaveAbsences: { today: [], tomorrow: [] },
+      activeAbsenceItems: [],
+      activeAbsenceTotal: 0,
+      upcomingEvents: [],
+      employeeCount: null,
+      recurringAbsenceCount: null,
+      longTermSickCount: null,
+      nextLeaveInDays: null,
+      nextHolidayInDays: null,
+      nextCompanyActivity: null,
+      continuousAppraisal: null,
+      processWork: null,
+      teamAvailability: null,
+      canReadWorkforce: false,
+      workforceLinks: [],
+      isManager: false,
+      isHrAdmin: false,
+      canSwitchScope: false,
+      scope: 'company',
+      canReportAbsence: false,
+      journeys: dependencies.journeys ?? [],
+      journeyOnly: true,
+    }
+  }
   const performanceTrace = dependencies?.performance
   const measure = <T>(label: string, operation: () => Promise<T>): Promise<T> => performanceTrace ? performanceTrace.measure(label, operation) : operation()
   const isEmployeeOnly = !auth.permissions.includes('start-page:read')
@@ -501,5 +540,6 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     scope,
     canReportAbsence: auth.permissions.includes('absence:write'),
     journeys,
+    journeyOnly: false,
   }
 }
