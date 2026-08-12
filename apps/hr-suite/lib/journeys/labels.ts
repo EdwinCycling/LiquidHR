@@ -15,7 +15,15 @@ export async function getJourneyLabels() {
     'roles', 'moments', 'topics', 'audience', 'addPhase', 'addRole', 'addMoment', 'addTopic', 'remove', 'required',
     'moveUp', 'moveDown', 'optional', 'sortOrder', 'phase', 'moment', 'ownerRole', 'resolver', 'cardinality', 'resolverRole', 'specificEmployee',
     'dateOffset', 'availabilityOffset', 'topicType', 'body', 'actionUrl', 'one', 'many', 'languageHint', 'immutableHint',
-    'moduleDisabled',
+    'moduleDisabled', 'liveTitle', 'liveSubtitle', 'startJourney', 'searchJourneys', 'allStatuses', 'noJourneys',
+    'targetEmployee', 'participantsLabel', 'anchorDate', 'nextMoment', 'attention', 'planned', 'active', 'paused',
+    'completed', 'cancelled', 'upcoming', 'newTitle', 'newSubtitle', 'selectTemplate', 'selectEmployee',
+    'selectEmployment', 'noEmployment', 'continue', 'back', 'resolveTeam', 'preview', 'activate', 'activating',
+    'automatic', 'manualSelection', 'missingRequired', 'missingOptional', 'ambiguous', 'activationBlocked',
+    'detailTitle', 'timeline', 'topicsLabel', 'pause', 'resume', 'complete', 'cancelJourney', 'replaceParticipant',
+    'replacement', 'replacementReason', 'saveReplacement', 'history', 'noHistory', 'operationFailed', 'overdueTopics',
+    'participantAssigned', 'participantActive', 'participantReplaced', 'participantRemoved',
+    'topicPending', 'topicCompleted', 'topicSkipped',
   ] as const
   return {
     ...Object.fromEntries(keys.map((key) => [key, t(key)])) as Record<(typeof keys)[number], string>,

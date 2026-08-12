@@ -2,9 +2,12 @@ import { requireAnyPermission } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { supabaseJourneyTemplateRepository } from './template-repository'
 import { createJourneyTemplateService } from './template-service'
+import { supabaseJourneyRuntimeRepository } from './runtime-repository'
+import { createJourneyRuntimeService } from './runtime-service'
 
 export { calculateJourneyDate, resolveJourneyRole, type JourneyRoleResolution, type JourneyTemplateDraft } from './domain'
 export { JourneyTemplateServiceError, type JourneyTemplateCatalogItem, type JourneyTemplateDetail } from './template-service'
+export { JourneyRuntimeServiceError, type JourneyRuntimeDetail, type JourneyRuntimeListItem, type JourneyStartOptions } from './runtime-service'
 
 export const journeyTemplates = createJourneyTemplateService({
   repository: supabaseJourneyTemplateRepository,
@@ -13,3 +16,9 @@ export const journeyTemplates = createJourneyTemplateService({
 })
 
 export const publishJourneyTemplate = journeyTemplates.publishJourneyTemplate
+
+export const journeyRuntime = createJourneyRuntimeService({
+  repository: supabaseJourneyRuntimeRepository,
+  authorize: (permissions) => requireAnyPermission([...permissions]),
+  requireModule: requireTenantModule,
+})

@@ -1,6 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema public;
+set local search_path = public, extensions;
 select plan(18);
 
 insert into auth.users (id) values
@@ -36,6 +37,23 @@ insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, manage
   ('10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000002'),
   ('10000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000003'),
   ('10000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000004');
+
+-- Eigen record in tenant B maakt de isolatiecontrole betekenisvol: zien we alleen
+-- het eigen record, in plaats van nul records omdat daar toevallig geen data stond?
+insert into public.journey_templates (
+  id, tenant_id, hr_group_id, key, name, description, journey_type,
+  created_by_user_id, updated_by_user_id
+) values (
+  '50000000-0000-0000-0000-000000000002',
+  '20000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000003',
+  'tenant-b-template',
+  '{"nl":"Tenant B template","en":"Tenant B template"}',
+  '{"nl":"Isolatiecontrole","en":"Isolation check"}',
+  'CUSTOM',
+  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000004'
+);
 
 select is((select count(*)::integer from public.permissions where code like '%journey%'), 9, 'alle canonieke Journey-permissions zijn geseed');
 select is((select count(*)::integer from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname='public' and c.relname like 'journey_template%' and c.relrowsecurity), 7, 'RLS staat aan op alle zeven configuratietabellen');
@@ -84,7 +102,7 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000004', true);
-select is((select count(*)::integer from public.journey_templates), 0, 'andere tenant ziet geen template');
+select is((select count(*)::integer from public.journey_templates), 1, 'andere tenant ziet alleen de eigen template');
 reset role;
 
 select throws_ok(

@@ -102,6 +102,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadHrCalendar={canReadHrCalendar}
         canReadInsights={insightPermissions.some(Boolean)}
         canOpenResearch={researchAccess.canOpenHub && (enabledModules.includes('SURVEYS') || enabledModules.includes('ENPS'))}
+        canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
         labels={{
           appName: common('appName'),
           dashboard: navigation('dashboard'),
@@ -116,6 +117,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           workforce: navigation('workforce'),
           work: navigation('work'),
           research: navigation('research'),
+          journeys: navigation('journeys'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

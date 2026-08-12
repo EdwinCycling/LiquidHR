@@ -1,0 +1,20 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import type { JourneyLabels } from '@/lib/journeys/labels'
+
+export function JourneyDetailActions({ journeyId, version, status, participants, employees, labels, locale }: { journeyId: string; version: number; status: string; participants: readonly { id: string; employeeId: string; employeeName: string; roleName: { nl: string; en: string }; status: string }[]; employees: readonly { id: string; name: string }[]; labels: JourneyLabels; locale: 'nl' | 'en' }) {
+  const router = useRouter(); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
+  const [participantId, setParticipantId] = useState(participants.find((participant) => participant.status === 'ACTIVE' || participant.status === 'ASSIGNED')?.id ?? '')
+  const [replacementId, setReplacementId] = useState(''); const [reason, setReason] = useState('')
+  async function post(url: string, body: object): Promise<void> { setBusy(true); setError(''); try { const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); if (!response.ok) throw new Error(); router.refresh() } catch { setError(labels.operationFailed) } finally { setBusy(false) } }
+  const transition = (action: 'PAUSE' | 'RESUME' | 'CANCEL' | 'COMPLETE') => post(`/api/journeys/${journeyId}/transition`, { expectedVersion: version, action })
+  const activeParticipants = participants.filter((participant) => participant.status === 'ACTIVE' || participant.status === 'ASSIGNED')
+  return <div className="space-y-5">
+    <div className="flex flex-wrap gap-2">{status === 'ACTIVE' ? <><button className="button-secondary" disabled={busy} onClick={() => transition('PAUSE')} type="button">{labels.pause}</button><button className="button-secondary" disabled={busy} onClick={() => transition('COMPLETE')} type="button">{labels.complete}</button></> : status === 'PAUSED' ? <button className="button-secondary" disabled={busy} onClick={() => transition('RESUME')} type="button">{labels.resume}</button> : null}{status !== 'COMPLETED' && status !== 'CANCELLED' ? <button className="button-secondary text-destructive" disabled={busy} onClick={() => transition('CANCEL')} type="button">{labels.cancelJourney}</button> : null}</div>
+    {activeParticipants.length > 0 && status !== 'COMPLETED' && status !== 'CANCELLED' ? <section className="rounded-2xl border p-4"><h2 className="font-semibold">{labels.replaceParticipant}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2"><DropdownSelect searchable searchPlaceholder={labels.search} value={participantId} onChange={(event) => setParticipantId(event.target.value)}>{activeParticipants.map((participant) => <option key={participant.id} value={participant.id}>{participant.roleName[locale]} · {participant.employeeName}</option>)}</DropdownSelect><DropdownSelect searchable searchPlaceholder={labels.search} value={replacementId} onChange={(event) => setReplacementId(event.target.value)}><option value="">{labels.replacement}</option>{employees.filter((employee) => employee.id !== activeParticipants.find((participant) => participant.id === participantId)?.employeeId).map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</DropdownSelect><input className="form-field sm:col-span-2" placeholder={labels.replacementReason} value={reason} onChange={(event) => setReason(event.target.value)} /><button className="button-primary sm:col-span-2 sm:justify-self-end" disabled={busy || !participantId || !replacementId || !reason.trim()} onClick={() => post(`/api/journeys/${journeyId}/participants/${participantId}/replace`, { replacementEmployeeId: replacementId, expectedVersion: version, reason })} type="button">{labels.saveReplacement}</button></div></section> : null}
+    {error ? <p className="text-sm text-destructive" role="alert">{error}</p> : null}
+  </div>
+}

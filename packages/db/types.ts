@@ -6460,6 +6460,341 @@ export type Database = {
           },
         ]
       }
+      journey_moments: {
+        Row: {
+          availability_offset_days: number
+          available_on: string
+          date_offset_days: number
+          hr_group_id: string
+          id: string
+          journey_id: string
+          key: string
+          name: Json
+          phase_id: string
+          scheduled_on: string
+          sort_order: number
+          template_moment_id: string
+          tenant_id: string
+        }
+        Insert: {
+          availability_offset_days: number
+          available_on: string
+          date_offset_days: number
+          hr_group_id: string
+          id?: string
+          journey_id: string
+          key: string
+          name: Json
+          phase_id: string
+          scheduled_on: string
+          sort_order: number
+          template_moment_id: string
+          tenant_id: string
+        }
+        Update: {
+          availability_offset_days?: number
+          available_on?: string
+          date_offset_days?: number
+          hr_group_id?: string
+          id?: string
+          journey_id?: string
+          key?: string
+          name?: Json
+          phase_id?: string
+          scheduled_on?: string
+          sort_order?: number
+          template_moment_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_moments_template_moment_id_fkey"
+            columns: ["template_moment_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_moments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_moments_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_moments_tenant_id_hr_group_id_journey_id_phase_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id", "phase_id"]
+            isOneToOne: false
+            referencedRelation: "journey_phases"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+        ]
+      }
+      journey_participant_changes: {
+        Row: {
+          changed_at: string
+          changed_by_user_id: string
+          hr_group_id: string
+          id: string
+          journey_id: string
+          previous_participant_id: string
+          reason: string
+          replacement_participant_id: string
+          tenant_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_user_id: string
+          hr_group_id: string
+          id?: string
+          journey_id: string
+          previous_participant_id: string
+          reason: string
+          replacement_participant_id: string
+          tenant_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by_user_id?: string
+          hr_group_id?: string
+          id?: string
+          journey_id?: string
+          previous_participant_id?: string
+          reason?: string
+          replacement_participant_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_participant_changes_previous_participant_id_fkey"
+            columns: ["previous_participant_id"]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_participant_changes_replacement_participant_id_fkey"
+            columns: ["replacement_participant_id"]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_participant_changes_tenant_id_hr_group_id_journey__fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_participants: {
+        Row: {
+          assigned_at: string
+          created_at: string
+          employee_id: string
+          ended_at: string | null
+          hr_group_id: string
+          id: string
+          journey_id: string
+          replaced_by_participant_id: string | null
+          resolution_note: string | null
+          resolver_role_code: string | null
+          role_key: string
+          role_name: Json
+          source: Database["public"]["Enums"]["journey_participant_source"]
+          status: Database["public"]["Enums"]["journey_participant_status"]
+          template_role_id: string
+          tenant_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          created_at?: string
+          employee_id: string
+          ended_at?: string | null
+          hr_group_id: string
+          id?: string
+          journey_id: string
+          replaced_by_participant_id?: string | null
+          resolution_note?: string | null
+          resolver_role_code?: string | null
+          role_key: string
+          role_name: Json
+          source: Database["public"]["Enums"]["journey_participant_source"]
+          status?: Database["public"]["Enums"]["journey_participant_status"]
+          template_role_id: string
+          tenant_id: string
+        }
+        Update: {
+          assigned_at?: string
+          created_at?: string
+          employee_id?: string
+          ended_at?: string | null
+          hr_group_id?: string
+          id?: string
+          journey_id?: string
+          replaced_by_participant_id?: string | null
+          resolution_note?: string | null
+          resolver_role_code?: string | null
+          role_key?: string
+          role_name?: Json
+          source?: Database["public"]["Enums"]["journey_participant_source"]
+          status?: Database["public"]["Enums"]["journey_participant_status"]
+          template_role_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_participants_replaced_by_participant_id_fkey"
+            columns: ["replaced_by_participant_id"]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_participants_template_role_id_fkey"
+            columns: ["template_role_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_participants_tenant_id_hr_group_id_employee_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_participants_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_phases: {
+        Row: {
+          hr_group_id: string
+          id: string
+          journey_id: string
+          key: string
+          name: Json
+          sort_order: number
+          template_phase_id: string
+          tenant_id: string
+        }
+        Insert: {
+          hr_group_id: string
+          id?: string
+          journey_id: string
+          key: string
+          name: Json
+          sort_order: number
+          template_phase_id: string
+          tenant_id: string
+        }
+        Update: {
+          hr_group_id?: string
+          id?: string
+          journey_id?: string
+          key?: string
+          name?: Json
+          sort_order?: number
+          template_phase_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_phases_template_phase_id_fkey"
+            columns: ["template_phase_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_phases_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_reminder_links: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          journey_id: string
+          moment_id: string
+          participant_id: string
+          reminder_id: string
+          status: Database["public"]["Enums"]["journey_reminder_link_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          journey_id: string
+          moment_id: string
+          participant_id: string
+          reminder_id: string
+          status?: Database["public"]["Enums"]["journey_reminder_link_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          journey_id?: string
+          moment_id?: string
+          participant_id?: string
+          reminder_id?: string
+          status?: Database["public"]["Enums"]["journey_reminder_link_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_reminder_links_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: true
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_reminder_links_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_reminder_links_tenant_id_hr_group_id_journey_id_mo_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id", "moment_id"]
+            isOneToOne: false
+            referencedRelation: "journey_moments"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_reminder_links_tenant_id_hr_group_id_journey_id_pa_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "journey_id",
+              "participant_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+        ]
+      }
       journey_template_moments: {
         Row: {
           availability_offset_days: number
@@ -6908,6 +7243,263 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      journey_topic_assignments: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_owner: boolean
+          is_visible: boolean
+          journey_id: string
+          participant_id: string
+          tenant_id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          is_owner?: boolean
+          is_visible?: boolean
+          journey_id: string
+          participant_id: string
+          tenant_id: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          is_owner?: boolean
+          is_visible?: boolean
+          journey_id?: string
+          participant_id?: string
+          tenant_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_i_fkey1"
+            columns: ["tenant_id", "hr_group_id", "journey_id", "topic_id"]
+            isOneToOne: false
+            referencedRelation: "journey_topics"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_i_fkey2"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "journey_id",
+              "participant_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_topics: {
+        Row: {
+          action_url: string | null
+          body: Json
+          completed_at: string | null
+          hr_group_id: string
+          id: string
+          is_required: boolean
+          journey_id: string
+          key: string
+          moment_id: string
+          owner_role_key: string
+          sort_order: number
+          status: Database["public"]["Enums"]["journey_topic_status"]
+          template_topic_id: string
+          tenant_id: string
+          title: Json
+          topic_type: Database["public"]["Enums"]["journey_topic_type"]
+        }
+        Insert: {
+          action_url?: string | null
+          body: Json
+          completed_at?: string | null
+          hr_group_id: string
+          id?: string
+          is_required: boolean
+          journey_id: string
+          key: string
+          moment_id: string
+          owner_role_key: string
+          sort_order: number
+          status?: Database["public"]["Enums"]["journey_topic_status"]
+          template_topic_id: string
+          tenant_id: string
+          title: Json
+          topic_type: Database["public"]["Enums"]["journey_topic_type"]
+        }
+        Update: {
+          action_url?: string | null
+          body?: Json
+          completed_at?: string | null
+          hr_group_id?: string
+          id?: string
+          is_required?: boolean
+          journey_id?: string
+          key?: string
+          moment_id?: string
+          owner_role_key?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["journey_topic_status"]
+          template_topic_id?: string
+          tenant_id?: string
+          title?: Json
+          topic_type?: Database["public"]["Enums"]["journey_topic_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_topics_template_topic_id_fkey"
+            columns: ["template_topic_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_topics_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_topics_tenant_id_hr_group_id_journey_id_moment_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id", "moment_id"]
+            isOneToOne: false
+            referencedRelation: "journey_moments"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+        ]
+      }
+      journeys: {
+        Row: {
+          activated_at: string
+          anchor_date: string
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string
+          employment_id: string | null
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          paused_at: string | null
+          status: Database["public"]["Enums"]["journey_status"]
+          target_employee_id: string
+          template_id: string
+          template_name: Json
+          template_version_id: string
+          template_version_number: number
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+          version: number
+        }
+        Insert: {
+          activated_at?: string
+          anchor_date: string
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id: string
+          employment_id?: string | null
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          paused_at?: string | null
+          status: Database["public"]["Enums"]["journey_status"]
+          target_employee_id: string
+          template_id: string
+          template_name: Json
+          template_version_id: string
+          template_version_number: number
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+          version?: number
+        }
+        Update: {
+          activated_at?: string
+          anchor_date?: string
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          employment_id?: string | null
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          paused_at?: string | null
+          status?: Database["public"]["Enums"]["journey_status"]
+          target_employee_id?: string
+          template_id?: string
+          template_name?: Json
+          template_version_id?: string
+          template_version_number?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journeys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journeys_tenant_id_hr_group_id_employment_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journeys_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "journeys_tenant_id_hr_group_id_target_employee_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journeys_tenant_id_hr_group_id_template_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "journey_templates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journeys_tenant_id_hr_group_id_template_version_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -14151,6 +14743,19 @@ export type Database = {
         Args: { requested_tenant_id: string; requested_version_id: string }
         Returns: string
       }
+      activate_journey: {
+        Args: {
+          requested_anchor_date: string
+          requested_employment_id: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_participants: Json
+          requested_target_employee_id: string
+          requested_template_version_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       activate_process_recipe: {
         Args: {
           requested_administration_id: string
@@ -14630,7 +15235,6 @@ export type Database = {
         }
         Returns: string
       }
-      dearmor: { Args: { "": string }; Returns: string }
       end_platform_support_session: {
         Args: { requested_session_id: string }
         Returns: boolean
@@ -14649,8 +15253,6 @@ export type Database = {
         }
         Returns: Json
       }
-      gen_random_uuid: { Args: never; Returns: string }
-      gen_salt: { Args: { "": string }; Returns: string }
       get_document_acknowledgement_document: {
         Args: { requested_work_item_id: string }
         Returns: Json
@@ -14929,10 +15531,6 @@ export type Database = {
         }
         Returns: Json
       }
-      pgp_armor_headers: {
-        Args: { "": string }
-        Returns: Record<string, unknown>[]
-      }
       publish_complete_employment: {
         Args: {
           requested_administration_id: string
@@ -15005,6 +15603,16 @@ export type Database = {
       reopen_talent_review_campaign: {
         Args: { requested_campaign_id: string }
         Returns: string
+      }
+      replace_journey_participant: {
+        Args: {
+          requested_expected_version: number
+          requested_journey_id: string
+          requested_participant_id: string
+          requested_reason: string
+          requested_replacement_employee_id: string
+        }
+        Returns: Json
       }
       report_absence: {
         Args: {
@@ -15177,8 +15785,6 @@ export type Database = {
         }
         Returns: Json
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       start_document_acknowledgement: {
         Args: {
           requested_correlation_id: string
@@ -15226,6 +15832,14 @@ export type Database = {
       submit_survey_response: {
         Args: { p_answers: Json; p_invitation_id: string }
         Returns: string
+      }
+      transition_journey: {
+        Args: {
+          requested_action: string
+          requested_expected_version: number
+          requested_journey_id: string
+        }
+        Returns: Json
       }
       transition_team_compass_campaign: {
         Args: {
@@ -15354,6 +15968,14 @@ export type Database = {
       invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
       journey_anchor_rule: "EMPLOYMENT_START_DATE" | "MANUAL_DATE"
+      journey_participant_source:
+        | "TARGET_EMPLOYEE"
+        | "DIRECT_MANAGER"
+        | "DEPARTMENT_MANAGER"
+        | "SPECIFIC_EMPLOYEE"
+        | "MANUAL"
+      journey_participant_status: "ASSIGNED" | "ACTIVE" | "REPLACED" | "REMOVED"
+      journey_reminder_link_status: "ACTIVE" | "SUSPENDED" | "CANCELLED"
       journey_role_cardinality: "ONE" | "MANY"
       journey_role_resolver_type:
         | "TARGET_EMPLOYEE"
@@ -15361,8 +15983,15 @@ export type Database = {
         | "DEPARTMENT_MANAGER"
         | "SPECIFIC_EMPLOYEE"
         | "MANUAL"
+      journey_status:
+        | "PLANNED"
+        | "ACTIVE"
+        | "PAUSED"
+        | "COMPLETED"
+        | "CANCELLED"
       journey_template_lifecycle: "DRAFT" | "PUBLISHED" | "RETIRED"
       journey_template_version_status: "DRAFT" | "PUBLISHED"
+      journey_topic_status: "PENDING" | "COMPLETED" | "SKIPPED"
       journey_topic_type: "INFORMATION" | "ACTION" | "CHECK_IN" | "DOCUMENT"
       journey_type:
         | "PREBOARDING"
@@ -15723,6 +16352,15 @@ export const Constants = {
       invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
       journey_anchor_rule: ["EMPLOYMENT_START_DATE", "MANUAL_DATE"],
+      journey_participant_source: [
+        "TARGET_EMPLOYEE",
+        "DIRECT_MANAGER",
+        "DEPARTMENT_MANAGER",
+        "SPECIFIC_EMPLOYEE",
+        "MANUAL",
+      ],
+      journey_participant_status: ["ASSIGNED", "ACTIVE", "REPLACED", "REMOVED"],
+      journey_reminder_link_status: ["ACTIVE", "SUSPENDED", "CANCELLED"],
       journey_role_cardinality: ["ONE", "MANY"],
       journey_role_resolver_type: [
         "TARGET_EMPLOYEE",
@@ -15731,8 +16369,10 @@ export const Constants = {
         "SPECIFIC_EMPLOYEE",
         "MANUAL",
       ],
+      journey_status: ["PLANNED", "ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"],
       journey_template_lifecycle: ["DRAFT", "PUBLISHED", "RETIRED"],
       journey_template_version_status: ["DRAFT", "PUBLISHED"],
+      journey_topic_status: ["PENDING", "COMPLETED", "SKIPPED"],
       journey_topic_type: ["INFORMATION", "ACTION", "CHECK_IN", "DOCUMENT"],
       journey_type: [
         "PREBOARDING",
