@@ -21,6 +21,7 @@ import {
   UsersRound,
   Workflow,
   ClipboardList,
+  Route,
   type LucideIcon,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -28,6 +29,7 @@ import { EmployeeSettingsPlaceholderDialog } from '@/components/settings/employe
 import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
+import { getEnabledTenantModules } from '@/lib/modules/module-service'
 
 async function allowed(permission: string) {
   try {
@@ -128,7 +130,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     throw error
   }
 
-  const [{ section }, messages, capabilities] = await Promise.all([
+  const [{ section }, messages, capabilities, enabledModules] = await Promise.all([
     searchParams,
     getTranslator('settings'),
     Promise.all([
@@ -150,7 +152,9 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('process-definition:read'),
       allowed('research:write'),
       allowed('team-compass:manage'),
+      allowed('journey-template:read'),
     ]),
+    getEnabledTenantModules(),
   ])
 
   const [
@@ -172,6 +176,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     processDefinitions,
     research,
     teamCompassManage,
+    journeyTemplateRead,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -286,6 +291,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.teamCompass'),
           description: messages('admin.tiles.teamCompassDescription'),
           visible: teamCompassManage,
+        },
+        {
+          kind: 'link',
+          href: '/settings/journeys',
+          icon: Route,
+          title: messages('admin.tiles.journeys'),
+          description: messages('admin.tiles.journeysDescription'),
+          visible: journeyTemplateRead && enabledModules.includes('JOURNEYS'),
         },
         {
           kind: 'link',

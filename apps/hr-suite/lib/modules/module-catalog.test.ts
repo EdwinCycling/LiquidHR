@@ -11,11 +11,12 @@ describe('module catalog', () => {
       'SURVEYS',
       'ENPS',
       'TEAM_COMPASS',
+      'JOURNEYS',
     ])
     expect(catalog.filter((module) => module.status === 'COMING_SOON').every((module) => !module.toggleable)).toBe(true)
   })
 
   it('negeert onbekende en toekomstige modules bij opslaan', () => {
-    expect(normalizeModuleSelection(['HERA', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA'])
+    expect(normalizeModuleSelection(['HERA', 'JOURNEYS', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA', 'JOURNEYS'])
   })
 })

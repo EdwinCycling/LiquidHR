@@ -1,0 +1,39 @@
+{
+  "eyebrow": "Journeys · HR configuration",
+  "catalogTitle": "Journey templates",
+  "catalogSubtitle": "Design time-bound guidance per HR group and publish immutable versions.",
+  "designerTitle": "Template Designer",
+  "designerSubtitle": "Configure phases, roles, moments, topics and their explicit audiences.",
+  "backToSettings": "Back to settings",
+  "backToCatalog": "Back to templates",
+  "search": "Search templates",
+  "newTemplate": "New template",
+  "noTemplates": "No templates found yet.",
+  "name": "Name", "description": "Description", "key": "Technical key", "type": "Journey type", "anchor": "Anchor date",
+  "status": "Status", "version": "Version", "draftRevision": "Draft revision", "updated": "Updated",
+  "draft": "Draft", "published": "Published", "retired": "Retired",
+  "create": "Create template", "cancel": "Cancel", "save": "Save draft", "saving": "Saving…", "saved": "Draft saved.",
+  "publish": "Publish version", "publishConfirm": "Publish a new immutable version of this draft?", "publishing": "Publishing…",
+  "publishedMessage": "New version published.", "retire": "Retire template", "failed": "The operation failed.",
+  "invalid": "Review the highlighted template details.", "nl": "Dutch", "en": "English",
+  "phases": "Phases", "roles": "Roles", "moments": "Moments", "topics": "Topics", "audience": "Audience",
+  "addPhase": "Add phase", "addRole": "Add role", "addMoment": "Add moment", "addTopic": "Add topic", "remove": "Remove", "moveUp": "Move up", "moveDown": "Move down",
+  "required": "Required", "optional": "Optional", "sortOrder": "Order", "phase": "Phase", "moment": "Moment",
+  "ownerRole": "Owner role", "resolver": "Resolver", "cardinality": "Participants", "resolverRole": "Organisation role",
+  "specificEmployee": "Specific employee", "dateOffset": "Day offset from anchor", "availabilityOffset": "Available from day offset",
+  "topicType": "Topic type", "body": "Content", "actionUrl": "Action link", "one": "One", "many": "Multiple",
+  "types": {
+    "PREBOARDING": "Preboarding", "ONBOARDING": "Onboarding", "REBOARDING": "Reboarding",
+    "INTERNAL_TRANSFER": "Internal transfer", "PROMOTION": "Promotion", "RETURN": "Return",
+    "OFFBOARDING": "Offboarding", "CUSTOM": "Organisation-specific"
+  },
+  "anchors": { "EMPLOYMENT_START_DATE": "Employment start date", "MANUAL_DATE": "Manually selected date" },
+  "resolvers": {
+    "TARGET_EMPLOYEE": "Target employee", "DIRECT_MANAGER": "Direct manager",
+    "DEPARTMENT_MANAGER": "Management role on department", "SPECIFIC_EMPLOYEE": "Specific employee", "MANUAL": "Manual on activation"
+  },
+  "topicTypes": { "INFORMATION": "Information", "ACTION": "Action", "CHECK_IN": "Check-in", "DOCUMENT": "Document reference" },
+  "languageHint": "Dutch and English are both required.",
+  "immutableHint": "Publishing creates a new immutable version; the draft remains editable.",
+  "moduleDisabled": "The Journeys module is not active for this tenant. Enable Journeys under Active modules first."
+}

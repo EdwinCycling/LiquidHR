@@ -30,6 +30,7 @@ import supportEn from '@/messages/en/support.json'
 import processAutomationEn from '@/messages/en/processAutomation.json'
 import researchEn from '@/messages/en/research.json'
 import teamCompassEn from '@/messages/en/teamCompass.json'
+import journeysEn from '@/messages/en/journeys.json'
 import authNl from '@/messages/nl/auth.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
@@ -60,6 +61,7 @@ import supportNl from '@/messages/nl/support.json'
 import processAutomationNl from '@/messages/nl/processAutomation.json'
 import researchNl from '@/messages/nl/research.json'
 import teamCompassNl from '@/messages/nl/teamCompass.json'
+import journeysNl from '@/messages/nl/journeys.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -99,6 +101,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     processAutomation: processAutomationNl,
     research: researchNl,
     teamCompass: teamCompassNl,
+    journeys: journeysNl,
   },
   en: {
     auth: authEn,
@@ -131,6 +134,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     processAutomation: processAutomationEn,
     research: researchEn,
     teamCompass: teamCompassEn,
+    journeys: journeysEn,
   },
 }
 

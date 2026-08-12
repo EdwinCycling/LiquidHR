@@ -1,7 +1,7 @@
 # LiquidHR Journeys
 
 Status: **LEIDEND VOOR ANALYSE EN IMPLEMENTATIE**  
-Implementatie: **NIET GESTART — expliciete goedkeuring vereist vóór stap 1**  
+Implementatie: **BOUWSTAP 1 LOKAAL GEREED EN GEVERIFIEERD — stap 2 en 3 niet gestart**
 Datum: **2026-08-12**
 
 ## Bronnen en voorrang
@@ -237,6 +237,6 @@ Lever target-/Employmentselectie, write-free activatiepreview, concrete particip
 
 Lever de beperkte preboarding access-state, startpaginawidgets, self-/participantdetail, eigen topicoutcomes, medewerkerdashboardwidget en responsive/mobile hardening. Sluit af met de volledige zes-rollen RLS-/browsermatrix, negatieve payloadcontroles, Employee/Employment-/herintredingsregressies, i18n/a11y/performance en de relevante releasegate. Journeys gebruikt eventuele nieuwe algemene designtokens als eerste, maar wijzigt buiten deze module alleen de vooraf goedgekeurde generieke token/componentimplementatie.
 
-## Stopregel
+## Uitvoeringsstatus
 
-Deze documentatieslice bouwt niets. Er zijn geen database-, migratie-, API-, UI-, modulecatalogus-, permission-, commit-, push- of deploymentacties voor Journeys uitgevoerd. Start stap 1 pas na expliciete goedkeuring van dit document en het drie-stappenplan.
+Bouwstap 1 is na expliciete goedkeuring afgerond op `feature/journeys`, de enige featurebranch voor alle drie bouwstappen. De configuratiemigraties en indexcorrectie zijn remote toegepast op de gekoppelde Supabase-testomgeving; RLS/grants/permissions, 18/18 pgTAP, advisors, officiële types, volledige lokale gate en de geauthenticeerde configuratieflow zijn groen. De testomgeving bevat een verwijderbare, herkenbare `JY-S1` development/test dataset voor concept, gepubliceerd, gepubliceerd met draft r2 en uitgefaseerd, plus bestaande resolvermedewerkers. Geen code of test heeft een functionele afhankelijkheid van deze records. Push, merge en deployment blijven verboden. Bouwstap 2 start aansluitend op dezelfde branch; bouwstap 3 blijft buiten scope totdat stap 2 is afgerond.

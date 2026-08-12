@@ -6460,6 +6460,457 @@ export type Database = {
           },
         ]
       }
+      journey_template_moments: {
+        Row: {
+          availability_offset_days: number
+          date_offset_days: number
+          hr_group_id: string
+          id: string
+          key: string
+          name: Json
+          phase_id: string
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          availability_offset_days: number
+          date_offset_days: number
+          hr_group_id: string
+          id?: string
+          key: string
+          name: Json
+          phase_id: string
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          availability_offset_days?: number
+          date_offset_days?: number
+          hr_group_id?: string
+          id?: string
+          key?: string
+          name?: Json
+          phase_id?: string
+          sort_order?: number
+          template_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_template_moments_tenant_id_hr_group_id_template_v_fkey1"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "phase_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_template_phases"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "journey_template_moments_tenant_id_hr_group_id_template_ve_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_template_phases: {
+        Row: {
+          hr_group_id: string
+          id: string
+          key: string
+          name: Json
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          hr_group_id: string
+          id?: string
+          key: string
+          name: Json
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          hr_group_id?: string
+          id?: string
+          key?: string
+          name?: Json
+          sort_order?: number
+          template_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_template_phases_tenant_id_hr_group_id_template_ver_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_template_roles: {
+        Row: {
+          cardinality: Database["public"]["Enums"]["journey_role_cardinality"]
+          hr_group_id: string
+          id: string
+          is_required: boolean
+          key: string
+          name: Json
+          resolver_employee_id: string | null
+          resolver_role_code: string | null
+          resolver_type: Database["public"]["Enums"]["journey_role_resolver_type"]
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          cardinality: Database["public"]["Enums"]["journey_role_cardinality"]
+          hr_group_id: string
+          id?: string
+          is_required?: boolean
+          key: string
+          name: Json
+          resolver_employee_id?: string | null
+          resolver_role_code?: string | null
+          resolver_type: Database["public"]["Enums"]["journey_role_resolver_type"]
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          cardinality?: Database["public"]["Enums"]["journey_role_cardinality"]
+          hr_group_id?: string
+          id?: string
+          is_required?: boolean
+          key?: string
+          name?: Json
+          resolver_employee_id?: string | null
+          resolver_role_code?: string | null
+          resolver_type?: Database["public"]["Enums"]["journey_role_resolver_type"]
+          sort_order?: number
+          template_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_template_roles_tenant_id_hr_group_id_resolver_empl_fkey"
+            columns: ["tenant_id", "hr_group_id", "resolver_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_template_roles_tenant_id_hr_group_id_template_vers_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_template_topic_audiences: {
+        Row: {
+          hr_group_id: string
+          role_id: string
+          template_version_id: string
+          tenant_id: string
+          topic_id: string
+        }
+        Insert: {
+          hr_group_id: string
+          role_id: string
+          template_version_id: string
+          tenant_id: string
+          topic_id: string
+        }
+        Update: {
+          hr_group_id?: string
+          role_id?: string
+          template_version_id?: string
+          tenant_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_template_topic_audie_tenant_id_hr_group_id_templa_fkey1"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "topic_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_template_topics"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "journey_template_topic_audie_tenant_id_hr_group_id_templa_fkey2"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "role_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_template_roles"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "journey_template_topic_audien_tenant_id_hr_group_id_templa_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_template_topics: {
+        Row: {
+          action_url: string | null
+          body: Json
+          hr_group_id: string
+          id: string
+          is_required: boolean
+          key: string
+          moment_id: string
+          owner_role_id: string
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+          title: Json
+          topic_type: Database["public"]["Enums"]["journey_topic_type"]
+        }
+        Insert: {
+          action_url?: string | null
+          body: Json
+          hr_group_id: string
+          id?: string
+          is_required?: boolean
+          key: string
+          moment_id: string
+          owner_role_id: string
+          sort_order: number
+          template_version_id: string
+          tenant_id: string
+          title: Json
+          topic_type: Database["public"]["Enums"]["journey_topic_type"]
+        }
+        Update: {
+          action_url?: string | null
+          body?: Json
+          hr_group_id?: string
+          id?: string
+          is_required?: boolean
+          key?: string
+          moment_id?: string
+          owner_role_id?: string
+          sort_order?: number
+          template_version_id?: string
+          tenant_id?: string
+          title?: Json
+          topic_type?: Database["public"]["Enums"]["journey_topic_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_template_topics_tenant_id_hr_group_id_template_ve_fkey1"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "moment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_template_moments"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "journey_template_topics_tenant_id_hr_group_id_template_ve_fkey2"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "owner_role_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_template_roles"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "template_version_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "journey_template_topics_tenant_id_hr_group_id_template_ver_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_template_versions: {
+        Row: {
+          anchor_rule: Database["public"]["Enums"]["journey_anchor_rule"]
+          created_at: string
+          created_by_user_id: string
+          hr_group_id: string
+          id: string
+          published_at: string | null
+          published_by_user_id: string | null
+          revision: number
+          status: Database["public"]["Enums"]["journey_template_version_status"]
+          template_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+          version_number: number | null
+        }
+        Insert: {
+          anchor_rule: Database["public"]["Enums"]["journey_anchor_rule"]
+          created_at?: string
+          created_by_user_id: string
+          hr_group_id: string
+          id?: string
+          published_at?: string | null
+          published_by_user_id?: string | null
+          revision?: number
+          status?: Database["public"]["Enums"]["journey_template_version_status"]
+          template_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+          version_number?: number | null
+        }
+        Update: {
+          anchor_rule?: Database["public"]["Enums"]["journey_anchor_rule"]
+          created_at?: string
+          created_by_user_id?: string
+          hr_group_id?: string
+          id?: string
+          published_at?: string | null
+          published_by_user_id?: string | null
+          revision?: number
+          status?: Database["public"]["Enums"]["journey_template_version_status"]
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_template_versions_tenant_id_hr_group_id_template_i_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "journey_templates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      journey_templates: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          current_published_version_id: string | null
+          description: Json
+          hr_group_id: string
+          id: string
+          journey_type: Database["public"]["Enums"]["journey_type"]
+          key: string
+          lifecycle: Database["public"]["Enums"]["journey_template_lifecycle"]
+          name: Json
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          current_published_version_id?: string | null
+          description: Json
+          hr_group_id: string
+          id?: string
+          journey_type: Database["public"]["Enums"]["journey_type"]
+          key: string
+          lifecycle?: Database["public"]["Enums"]["journey_template_lifecycle"]
+          name: Json
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          current_published_version_id?: string | null
+          description?: Json
+          hr_group_id?: string
+          id?: string
+          journey_type?: Database["public"]["Enums"]["journey_type"]
+          key?: string
+          lifecycle?: Database["public"]["Enums"]["journey_template_lifecycle"]
+          name?: Json
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_templates_current_version_fk"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "current_published_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_templates_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       labor_condition_sets: {
         Row: {
           administration_id: string
@@ -13671,49 +14122,6 @@ export type Database = {
       }
     }
     Functions: {
-      get_team_compass_team_projection: {
-        Args: {
-          requested_campaign_id: string
-          requested_department_id?: string
-        }
-        Returns: Json
-      }
-      save_team_compass_campaign: {
-        Args: {
-          requested_campaign_id?: string
-          requested_expected_version?: number
-          requested_hr_group_id: string
-          requested_payload: Json
-          requested_tenant_id: string
-        }
-        Returns: Json
-      }
-      save_team_compass_response: {
-        Args: {
-          requested_answers: Json
-          requested_expected_version: number
-          requested_participation_id: string
-          requested_share_inner?: boolean
-          requested_share_outer?: boolean
-          requested_submit: boolean
-        }
-        Returns: Json
-      }
-      start_team_compass_campaign: {
-        Args: {
-          requested_campaign_id: string
-          requested_expected_version: number
-        }
-        Returns: Json
-      }
-      transition_team_compass_campaign: {
-        Args: {
-          requested_campaign_id: string
-          requested_expected_version: number
-          requested_status: string
-        }
-        Returns: string
-      }
       accept_user_invitation: {
         Args: {
           accepted_email: string
@@ -14085,6 +14493,15 @@ export type Database = {
         }
         Returns: string
       }
+      create_journey_template_draft: {
+        Args: {
+          requested_draft: Json
+          requested_hr_group_id: string
+          requested_key: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       create_labor_condition_successor: {
         Args: {
           requested_administration_id: string
@@ -14213,6 +14630,7 @@ export type Database = {
         }
         Returns: string
       }
+      dearmor: { Args: { "": string }; Returns: string }
       end_platform_support_session: {
         Args: { requested_session_id: string }
         Returns: boolean
@@ -14231,6 +14649,8 @@ export type Database = {
         }
         Returns: Json
       }
+      gen_random_uuid: { Args: never; Returns: string }
+      gen_salt: { Args: { "": string }; Returns: string }
       get_document_acknowledgement_document: {
         Args: { requested_work_item_id: string }
         Returns: Json
@@ -14420,6 +14840,13 @@ export type Database = {
         }
         Returns: Json
       }
+      get_team_compass_team_projection: {
+        Args: {
+          requested_campaign_id: string
+          requested_department_id?: string
+        }
+        Returns: Json
+      }
       import_holiday_snapshot: {
         Args: {
           requested_calendar_year: number
@@ -14502,6 +14929,10 @@ export type Database = {
         }
         Returns: Json
       }
+      pgp_armor_headers: {
+        Args: { "": string }
+        Returns: Record<string, unknown>[]
+      }
       publish_complete_employment: {
         Args: {
           requested_administration_id: string
@@ -14513,6 +14944,13 @@ export type Database = {
       publish_employment_work_pattern: {
         Args: { requested_employment_id: string; requested_payload: Json }
         Returns: string
+      }
+      publish_journey_template: {
+        Args: {
+          requested_draft_id: string
+          requested_expected_revision: number
+        }
+        Returns: Json
       }
       publish_process_definition_draft: {
         Args: {
@@ -14631,6 +15069,10 @@ export type Database = {
         }
         Returns: string
       }
+      retire_journey_template: {
+        Args: { requested_template_id: string }
+        Returns: Json
+      }
       retire_process_definition: {
         Args: { requested_definition_id: string; requested_reason: string }
         Returns: Json
@@ -14673,6 +15115,14 @@ export type Database = {
         }
         Returns: string
       }
+      save_journey_template_draft: {
+        Args: {
+          requested_draft: Json
+          requested_draft_id: string
+          requested_expected_revision: number
+        }
+        Returns: Json
+      }
       save_process_definition_draft: {
         Args: {
           requested_definition: Json
@@ -14706,6 +15156,29 @@ export type Database = {
         }
         Returns: Json
       }
+      save_team_compass_campaign: {
+        Args: {
+          requested_campaign_id?: string
+          requested_expected_version?: number
+          requested_hr_group_id: string
+          requested_payload: Json
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      save_team_compass_response: {
+        Args: {
+          requested_answers: Json
+          requested_expected_version: number
+          requested_participation_id: string
+          requested_share_inner?: boolean
+          requested_share_outer?: boolean
+          requested_submit: boolean
+        }
+        Returns: Json
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       start_document_acknowledgement: {
         Args: {
           requested_correlation_id: string
@@ -14739,12 +15212,31 @@ export type Database = {
         Args: { requested_campaign_id: string }
         Returns: string
       }
+      start_team_compass_campaign: {
+        Args: {
+          requested_campaign_id: string
+          requested_expected_version: number
+        }
+        Returns: Json
+      }
       submit_enps_response: {
         Args: { p_answers: Json; p_invitation_id: string }
         Returns: string
       }
       submit_survey_response: {
         Args: { p_answers: Json; p_invitation_id: string }
+        Returns: string
+      }
+      transition_team_compass_campaign: {
+        Args: {
+          requested_campaign_id: string
+          requested_expected_version: number
+          requested_status: string
+        }
+        Returns: string
+      }
+      update_enps_draft: {
+        Args: { p_campaign_id: string; p_payload: Json }
         Returns: string
       }
       update_group_leave_accrual_rule: {
@@ -14781,6 +15273,10 @@ export type Database = {
           requested_remind_at?: string
         }
         Returns: undefined
+      }
+      update_survey_draft: {
+        Args: { p_campaign_id: string; p_payload: Json }
+        Returns: string
       }
       upsert_star_performer_assessment: {
         Args: { requested_administration_id: string; requested_payload: Json }
@@ -14857,6 +15353,26 @@ export type Database = {
       invitation_email_kind: "PRIVATE" | "BUSINESS"
       invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
+      journey_anchor_rule: "EMPLOYMENT_START_DATE" | "MANUAL_DATE"
+      journey_role_cardinality: "ONE" | "MANY"
+      journey_role_resolver_type:
+        | "TARGET_EMPLOYEE"
+        | "DIRECT_MANAGER"
+        | "DEPARTMENT_MANAGER"
+        | "SPECIFIC_EMPLOYEE"
+        | "MANUAL"
+      journey_template_lifecycle: "DRAFT" | "PUBLISHED" | "RETIRED"
+      journey_template_version_status: "DRAFT" | "PUBLISHED"
+      journey_topic_type: "INFORMATION" | "ACTION" | "CHECK_IN" | "DOCUMENT"
+      journey_type:
+        | "PREBOARDING"
+        | "ONBOARDING"
+        | "REBOARDING"
+        | "INTERNAL_TRANSFER"
+        | "PROMOTION"
+        | "RETURN"
+        | "OFFBOARDING"
+        | "CUSTOM"
       leave_accrual_basis: "CONTRACT_HOURS" | "WORKED_HOURS" | "AGE_SENIORITY"
       leave_accrual_frequency:
         | "PAYROLL_PERIOD"
@@ -15206,6 +15722,28 @@ export const Constants = {
       invitation_email_kind: ["PRIVATE", "BUSINESS"],
       invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
+      journey_anchor_rule: ["EMPLOYMENT_START_DATE", "MANUAL_DATE"],
+      journey_role_cardinality: ["ONE", "MANY"],
+      journey_role_resolver_type: [
+        "TARGET_EMPLOYEE",
+        "DIRECT_MANAGER",
+        "DEPARTMENT_MANAGER",
+        "SPECIFIC_EMPLOYEE",
+        "MANUAL",
+      ],
+      journey_template_lifecycle: ["DRAFT", "PUBLISHED", "RETIRED"],
+      journey_template_version_status: ["DRAFT", "PUBLISHED"],
+      journey_topic_type: ["INFORMATION", "ACTION", "CHECK_IN", "DOCUMENT"],
+      journey_type: [
+        "PREBOARDING",
+        "ONBOARDING",
+        "REBOARDING",
+        "INTERNAL_TRANSFER",
+        "PROMOTION",
+        "RETURN",
+        "OFFBOARDING",
+        "CUSTOM",
+      ],
       leave_accrual_basis: ["CONTRACT_HOURS", "WORKED_HOURS", "AGE_SENIORITY"],
       leave_accrual_frequency: [
         "PAYROLL_PERIOD",

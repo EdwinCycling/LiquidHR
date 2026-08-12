@@ -1,12 +1,12 @@
 # Implementatiestatus Liquid HR
 
-## LiquidHR Journeys 2026-08-12 — NIET GESTART / ontwerp voorbereid
+## LiquidHR Journeys 2026-08-12 — BOUWSTAP 1 AFGEROND
 
 De leidende requirements staan in `docs/requirements/journeys/JOURNEYS.md`. Vastgelegd zijn: zelfstandige domeingrens, HR-groepownership, blijvende Employee-identiteit, optionele expliciete Employment-context, immutable templateversies, concrete participant snapshots, eigen permission-/RLS-contract, preboarding-access, actor-specifieke projecties, applicatiekaart, conceptueel datamodel, testmatrix en exact drie verticale bouwstappen.
 
-De definitieve Stitch-ZIP is als visuele referentie beoordeeld in `docs/requirements/journeys/references/STITCH_REVIEW_2026-08-12.md`. De bron bevat 14 van de 16 gevraagde schermvarianten. De bestaande LiquidHR-shell en architectuur hebben voorrang; contractdetails, externe HRIS-fictie, chat/messages, eigen sidebar/topbar, Material Symbols en workflowachtige blocking moments zijn expliciet afgewezen. De algemene, gecontroleerde design-systemvoorstellen staan als concept in `docs/architecture/DESIGN_SYSTEM_EVOLUTION.md` en voeren geen app-brede restyling uit.
+Gebouwd zijn uitsluitend de configuratieslice uit stap 1: modulecode `JOURNEYS`; negen canonieke permissions; zeven HR-groep-owned configuratietabellen; expliciete grants en RLS; audit zonder topicinhoud; draftrevisionering en immutable publicatie/retire; datum- en resolverdomeinlogica; diepe repository/service-interface; vijf API-routes; NL/EN-catalogus en full-page Template Designer voor fases, rollen, momenten, topics en audiences. Er zijn geen runtime-Journeys, participants, activatie, HR-livepagina's, reminders, self/preboarding of widgets uit stap 2/3 toegevoegd.
 
-Status: documentatie gereed voor review. Geen implementatie of remote wijziging. Open: expliciete goedkeuring van analyse en drie-stappenplan; daarna pas stap 1 volgens `schema → API → UI`.
+Bewijs: de gekoppelde Supabase-testomgeving `wnpfloqpjvaacobppbpk` bevat migraties `20260812081325` en `20260812100445`. Alle zeven tabellen hebben RLS; `anon` heeft geen tabelrechten, `authenticated` alleen `SELECT`, publieke wrappers zijn uitsluitend voor `authenticated` uitvoerbaar en interne kernels blijven afgesloten. Remote pgTAP is 18/18 groen; officiële types zijn gegenereerd. Advisors tonen geen Journeys-securitybevinding en geen ontbrekende foreign-key-index. Lokaal zijn 19/19 gerichte en 622/622 volledige Vitest-tests, strict TypeScript, volledige ESLint, 32 gelijke NL/EN-namespaces, `git diff --check` en de Webpack-productiebuild met 202 pagina's groen. De geauthenticeerde HR-adminbrowserflow tegen de gekoppelde omgeving toont de vier remote statussen. De verwijderbare development/test dataset bestaat uit vier `JY-S1`-templates; bestaande medewerkers Noah Hendriks en Yara Meijer zijn resolverkeuzes en zijn niet gewijzigd. Tests zijn onafhankelijk van deze records. Branch is `feature/journeys`; zichtbare versie `1.20260812.1`. Geen push, merge of deployment.
 
 ## Looncontract aanpassen: vier flows 2026-08-12
 
