@@ -1,18 +1,23 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Banknote,
-  BriefcaseBusiness,
   Building2,
   Clock3,
   FilePenLine,
   Scale,
   Trash2,
 } from 'lucide-react'
+import {
+  EmploymentContractChangeDialog,
+  type EmploymentContractChangeLabels,
+  type EmploymentOverviewActionKey,
+  type EmploymentOverviewChangeData,
+} from './employment-contract-change-dialog'
 
-interface EmploymentOverviewActionLabels {
+interface EmploymentOverviewActionLabels extends EmploymentContractChangeLabels {
   sectionTitle: string
   hoursSchedule: string
   hoursScheduleSalary: string
@@ -25,14 +30,7 @@ interface EmploymentOverviewActionLabels {
   cancel: string
 }
 
-type ActionKey =
-  | 'hoursSchedule'
-  | 'hoursScheduleSalary'
-  | 'functionDepartmentCostCenter'
-  | 'salary'
-  | 'laborConditions'
-  | 'contractTypeStartDate'
-  | 'deleteContract'
+type ActionKey = EmploymentOverviewActionKey
 
 interface ActionDefinition {
   key: ActionKey
@@ -41,9 +39,8 @@ interface ActionDefinition {
   destructive?: boolean
 }
 
-export function EmploymentOverviewActions({ labels }: { labels: EmploymentOverviewActionLabels }) {
+export function EmploymentOverviewActions({ labels, employmentId, today, locale, data, dayLabels }: { labels: EmploymentOverviewActionLabels; employmentId: string; today: string; locale: string; data: EmploymentOverviewChangeData; dayLabels: string[] }) {
   const [activeAction, setActiveAction] = useState<ActionDefinition | null>(null)
-  const cancelRef = useRef<HTMLButtonElement>(null)
 
   const actions: ActionDefinition[] = [
     { key: 'hoursSchedule', title: labels.hoursSchedule, icon: Clock3 },
@@ -54,16 +51,6 @@ export function EmploymentOverviewActions({ labels }: { labels: EmploymentOvervi
     { key: 'contractTypeStartDate', title: labels.contractTypeStartDate, icon: FilePenLine },
     { key: 'deleteContract', title: labels.deleteContract, icon: Trash2, destructive: true },
   ]
-
-  useEffect(() => {
-    if (!activeAction) return
-    cancelRef.current?.focus()
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActiveAction(null)
-    }
-    document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
-  }, [activeAction])
 
   return (
     <section aria-labelledby="employment-change-actions-title" className="space-y-3">
@@ -89,36 +76,7 @@ export function EmploymentOverviewActions({ labels }: { labels: EmploymentOvervi
         })}
       </div>
 
-      {activeAction ? (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-foreground/35 p-4"
-          onMouseDown={() => setActiveAction(null)}
-          role="presentation"
-        >
-          <section
-            aria-labelledby="employment-change-modal-title"
-            aria-modal="true"
-            className="w-full max-w-lg rounded-2xl border bg-surface p-6 shadow-2xl"
-            onMouseDown={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
-                <BriefcaseBusiness aria-hidden="true" className="size-5" />
-              </span>
-              <h2 className="pt-2 text-xl font-semibold" id="employment-change-modal-title">
-                {labels.modalTitle} — {activeAction.title}
-              </h2>
-            </div>
-            <div className="min-h-16" />
-            <div className="border-t pt-5">
-              <button ref={cancelRef} className="button-secondary" onClick={() => setActiveAction(null)} type="button">
-                {labels.cancel}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      {activeAction ? <EmploymentContractChangeDialog actionKey={activeAction.key} actionTitle={activeAction.title} employmentId={employmentId} today={today} locale={locale} data={data} labels={labels} dayLabels={dayLabels} onClose={() => setActiveAction(null)} /> : null}
     </section>
   )
 }

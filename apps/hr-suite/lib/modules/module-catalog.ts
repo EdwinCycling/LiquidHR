@@ -1,4 +1,4 @@
-export type ToggleableModuleCode = 'HERA' | 'DOCUMENTS' | 'REMINDERS' | 'TALENT' | 'SURVEYS' | 'ENPS' | 'TEAM_COMPASS'
+export type ToggleableModuleCode = 'HERA' | 'REMINDERS' | 'TALENT' | 'SURVEYS' | 'ENPS' | 'TEAM_COMPASS'
 export type FutureModuleCode = 'LEAVE' | 'ABSENCE' | 'ASSETS' | 'WORKFLOWS' | 'TRAINING'
 
 export type ModuleDefinition = {
@@ -9,7 +9,6 @@ export type ModuleDefinition = {
 
 const MODULE_CATALOG: readonly ModuleDefinition[] = [
   { code: 'HERA', status: 'AVAILABLE', toggleable: true },
-  { code: 'DOCUMENTS', status: 'AVAILABLE', toggleable: true },
   { code: 'REMINDERS', status: 'AVAILABLE', toggleable: true },
   { code: 'TALENT', status: 'AVAILABLE', toggleable: true },
   { code: 'SURVEYS', status: 'AVAILABLE', toggleable: true },
@@ -22,7 +21,7 @@ const MODULE_CATALOG: readonly ModuleDefinition[] = [
   { code: 'TRAINING', status: 'COMING_SOON', toggleable: false },
 ]
 
-const TOGGLEABLE_MODULES = new Set<ToggleableModuleCode>(['HERA', 'DOCUMENTS', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS'])
+const TOGGLEABLE_MODULES = new Set<ToggleableModuleCode>(['HERA', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS'])
 
 export function getModuleCatalog(): readonly ModuleDefinition[] {
   return MODULE_CATALOG

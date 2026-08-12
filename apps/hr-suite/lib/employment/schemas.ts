@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { normalizeBsn } from '@/lib/security/bsn-fingerprint'
 import { databaseUuid } from '@/lib/validation/database-uuid'
-import { validateProbation } from './probation-rules'
+import { isBlockingProbationValidation, validateProbation } from './probation-rules'
 
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
@@ -97,15 +97,9 @@ const completeContractSchema = z.object({
   if (value.probationApplies && (!value.probationEndsOn || value.probationEndsOn < value.startsOn)) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_INVALID' })
   }
-  if (value.probationApplies && value.durationType === 'DEFINITE' && value.probationEndsOn && value.endsOn && value.probationEndsOn > value.endsOn) {
-    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_OUTSIDE_CONTRACT' })
-  }
-  if (!value.probationApplies && value.probationEndsOn) {
-    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_NOT_ALLOWED' })
-  }
   // De client mag de gekozen CAO-afwijking meesturen; de service en database controleren deze server-side opnieuw.
   const probationError = validateProbation({ ...value, caoAllowsTwoMonths: value.caoAllowsTwoMonths === true })
-  if (probationError && probationError !== 'PROBATION_DATE_OUTSIDE_CONTRACT' && probationError !== 'PROBATION_DATE_NOT_ALLOWED') {
+  if (isBlockingProbationValidation(probationError)) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: probationError })
   }
 })

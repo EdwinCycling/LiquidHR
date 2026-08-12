@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 import {
   EmploymentDetailError,
   manageEmploymentOrganization,
@@ -9,10 +10,11 @@ import {
 interface RouteContext { params: Promise<{ employmentId: string }> }
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const inputSchema = z.object({
+  contractId: databaseUuid.nullish(),
   effectiveOn: dateOnly,
-  departmentId: z.string().uuid(),
-  jobId: z.string().uuid(),
-  placementId: z.string().uuid().nullish(),
+  departmentId: databaseUuid,
+  jobId: databaseUuid,
+  placementId: databaseUuid.nullish(),
 }).strict()
 
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {

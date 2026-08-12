@@ -11,7 +11,7 @@ import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './e
 import { listDirectTeamEmployeeIds, type EmployeeScope } from '@/lib/organization/team-scope'
 import { mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
 import { nextAvailableEmploymentNumber } from './employment-number'
-import { validateProbation } from './probation-rules'
+import { isBlockingProbationValidation, validateProbation } from './probation-rules'
 import type {
   CompleteEmploymentCreateInput,
   CreateEmploymentInput,
@@ -568,7 +568,7 @@ export async function publishCompleteEmployment(
       ...input.contract,
       caoAllowsTwoMonths: laborCondition.probation_maximum_months === 2,
     })
-    if (probationError) throw new EmploymentServiceError(probationError, 400)
+    if (isBlockingProbationValidation(probationError)) throw new EmploymentServiceError(probationError, 400)
   }
   await ensureEmployeeAdministrationAssignment(employeeId, input.employment.startsOn, administrationId)
 

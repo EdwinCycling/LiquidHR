@@ -6,7 +6,6 @@ describe('module catalog', () => {
     const catalog = getModuleCatalog()
     expect(catalog.filter((module) => module.toggleable).map((module) => module.code)).toEqual([
       'HERA',
-      'DOCUMENTS',
       'REMINDERS',
       'TALENT',
       'SURVEYS',
@@ -17,6 +16,6 @@ describe('module catalog', () => {
   })
 
   it('negeert onbekende en toekomstige modules bij opslaan', () => {
-    expect(normalizeModuleSelection(['HERA', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA'])
+    expect(normalizeModuleSelection(['HERA', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA'])
   })
 })

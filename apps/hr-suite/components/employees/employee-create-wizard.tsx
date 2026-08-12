@@ -1,11 +1,13 @@
 'use client'
 
-import { AlertTriangle, ArrowDown, Check, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle, MapPin, Save, Search, ShieldCheck, UserRoundPlus } from 'lucide-react'
+/* eslint-disable @next/next/no-img-element -- the selected photo is a local object URL preview. */
+
+import { AlertTriangle, ArrowDown, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle, MapPin, Save, Search, ShieldCheck, UserRoundPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type ChangeEventHandler, type FocusEvent, type FocusEventHandler, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
-import { EmploymentCreateForm, type EmploymentCreateFormProps } from '@/components/employment/employment-create-form'
+import { EmploymentCreateForm, type EmploymentCreateFormProps, type EmploymentWizardEmployeeSummary } from '@/components/employment/employment-create-form'
 import { EmploymentContractCreateForm, type EmploymentContractWizardDraft, type EmploymentContractWizardOptions } from '@/components/employment/employment-contract-create-form'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
@@ -246,6 +248,13 @@ export interface EmployeeCreateWizardLabels {
   additionalHelp: string
   moreDataAvailable: string
   optionalExtraDetails: string
+  photoTitle: string
+  photoHelp: string
+  photoUpload: string
+  photoRemove: string
+  photoInvalid: string
+  photoSaveFailed: string
+  photoSelected: string
   freeFields: string
   freeFieldsHelp: string
   freeFieldsEmpty: string
@@ -359,6 +368,7 @@ interface EmployeeCreateWizardProps {
   initialContractIsFirst?: boolean
   initialContractDraft?: EmploymentContractWizardDraft
   initialContractSubmitLabel?: string
+  initialEmployeeSummary?: EmploymentWizardEmployeeSummary
 }
 
 const EMPTY_IDENTITY: IdentityDraft = { bsn: '', birthDate: '', birthName: '', privateEmail: '' }
@@ -374,6 +384,9 @@ const EMPTY_CONTACT: ContactDraft = {
   privateEmail: '', privateMobile: '', workEmail: '', workMobile: '', street: '', houseNumber: '',
   addition: '', postalCode: '', city: '', countryCode: 'NL',
 }
+
+const EMPLOYEE_AVATAR_MAX_INPUT_BYTES = 5 * 1024 * 1024
+const EMPLOYEE_AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 const ADDRESS_DEFAULT_VALID_FROM = '1900-01-01'
 
@@ -397,7 +410,7 @@ function isValidBsn(input: string): boolean {
   return (checksum - digits[8]) % 11 === 0
 }
 
-export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployeeId, initialEmploymentOptions, initialContractEmployeeId, initialContractEmploymentId, initialContractOptions, initialContractEmploymentStartsOn, initialContractIsFirst, initialContractDraft, initialContractSubmitLabel }: EmployeeCreateWizardProps) {
+export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployeeId, initialEmploymentOptions, initialContractEmployeeId, initialContractEmploymentId, initialContractOptions, initialContractEmploymentStartsOn, initialContractIsFirst, initialContractDraft, initialContractSubmitLabel, initialEmployeeSummary }: EmployeeCreateWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [identity, setIdentity] = useState<IdentityDraft>(EMPTY_IDENTITY)
@@ -405,6 +418,10 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
   const [namePreview, setNamePreview] = useState<Pick<CoreDraft, 'firstName' | 'birthNamePrefix' | 'birthName' | 'partnerNamePrefix' | 'partnerName' | 'nameUsage'>>({ firstName: '', birthNamePrefix: '', birthName: '', partnerNamePrefix: '', partnerName: '', nameUsage: EMPTY_CORE.nameUsage })
   const [additional, setAdditional] = useState<AdditionalDraft>(EMPTY_ADDITIONAL)
   const [contact, setContact] = useState<ContactDraft>(EMPTY_CONTACT)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [photoSaveFailed, setPhotoSaveFailed] = useState(false)
   const [nameUsage, setNameUsage] = useState<CoreDraft['nameUsage']>(EMPTY_CORE.nameUsage)
   const [candidates, setCandidates] = useState<Candidate[] | null>(null)
   const [state, setState] = useState<'idle' | 'checking' | 'loading-number' | 'loading-rehire' | 'checking-number' | 'saving-draft' | 'creating'>('idle')
@@ -438,6 +455,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
   const [customFieldDefinitions, setCustomFieldDefinitions] = useState<CustomFieldDefinition[]>([])
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string | number | boolean | string[] | null>>({})
   const wizardScrollRef = useRef<HTMLDivElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [canScrollDown, setCanScrollDown] = useState(false)
 
   useEffect(() => {
@@ -453,6 +471,49 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
     const timer = setInterval(() => setEmploymentCreateProgress((current) => Math.min(current + 1, 3)), 700)
     return () => clearInterval(timer)
   }, [employmentSaving, state])
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    }
+  }, [photoPreviewUrl])
+
+  function selectPhoto(file: File | undefined): void {
+    setPhotoError(null)
+    if (!file) return
+    if (!EMPLOYEE_AVATAR_TYPES.has(file.type) || file.size > EMPLOYEE_AVATAR_MAX_INPUT_BYTES) {
+      setPhotoError(labels.photoInvalid)
+      return
+    }
+    setPhotoFile(file)
+    setPhotoPreviewUrl(URL.createObjectURL(file))
+  }
+
+  function removePhoto(): void {
+    setPhotoFile(null)
+    setPhotoPreviewUrl(null)
+    setPhotoError(null)
+    if (photoInputRef.current) photoInputRef.current.value = ''
+  }
+
+  async function uploadPendingPhoto(employeeId: string): Promise<boolean> {
+    if (!photoFile) return true
+    try {
+      const body = new FormData()
+      body.set('file', photoFile)
+      const response = await fetch(`/api/employees/${employeeId}/avatar`, { method: 'POST', body })
+      if (!response.ok) {
+        setPhotoSaveFailed(true)
+        return false
+      }
+      setPhotoFile(null)
+      return true
+    } catch {
+      setPhotoSaveFailed(true)
+      return false
+    }
+  }
+
   const [addressQuery, setAddressQuery] = useState('')
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([])
   const [addressSearchState, setAddressSearchState] = useState<'idle' | 'loading' | 'empty' | 'failed'>('idle')
@@ -820,6 +881,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
       if (!response.ok || !payload.data) throw new Error(payload.error ?? 'EMPLOYEE_DRAFT_SAVE_FAILED')
       setDraftEmployeeId(payload.data.id)
       setDraftEmployeeUpdatedAt(payload.data.updatedAt)
+      if (!await uploadPendingPhoto(payload.data.id)) setError(labels.photoSaveFailed)
     } catch {
       setError(labels.genericError)
     } finally {
@@ -954,6 +1016,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
     if (!employeeResponse.ok || !employeePayloadResult.data) throw new Error(employeePayloadResult.error ?? 'REHIRE_EMPLOYEE_SAVE_FAILED')
     setRehireEmployeeUpdatedAt(employeePayloadResult.data.updatedAt)
     setDraftEmployeeUpdatedAt(employeePayloadResult.data.updatedAt)
+    await uploadPendingPhoto(rehireEmployeeId)
 
     if (Object.keys(customFieldValues).length > 0) {
       const customFieldsResponse = await fetch(`/api/employees/${rehireEmployeeId}/custom-fields`, {
@@ -985,6 +1048,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
 
   async function createEmployee(destination: 'employee' | 'employment'): Promise<void> {
     setError(null)
+    setPhotoSaveFailed(false)
     setEmploymentCreateProgress(0)
     setState('creating')
     try {
@@ -1050,6 +1114,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
         })
         if (!customFieldsResponse.ok) throw new Error('CUSTOM_FIELDS_SAVE_FAILED')
       }
+      await uploadPendingPhoto(employeeId)
       const hasAddress = contact.street || contact.houseNumber || contact.postalCode || contact.city
       let addressFailed = false
       if (hasAddress) {
@@ -1114,6 +1179,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
   const activeStep = contractOnlyFlow ? contractStep : employmentOnlyFlow ? employmentStep : employmentFlow ? labels.steps.length + employmentStep : step
   const displayedNumberCheck = step === 1 && numberInput.trim() ? numberCheck : 'idle'
   const previewParts = getNamePreviewParts(namePreview)
+  const employeeSummary: EmploymentWizardEmployeeSummary | undefined = initialEmployeeSummary ?? (core.firstName || core.birthName ? { name: previewParts.displayName, birthDate: core.birthDate || null, gender: core.gender } : undefined)
   const additionalReviewLines = [additional.title, additional.initials, additional.birthPlace, additional.birthCountry, additional.nationality, additional.maritalStatus, additional.educationLevel, additional.privatePhone, additional.workPhone, additional.originalHireDate]
 
   return (
@@ -1154,8 +1220,9 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
         <div ref={wizardScrollRef} className="min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto pr-1">
         {createdEmployeeId && createDestination === 'employment' && (
           <div className="flex min-h-full flex-col gap-5">
-            {employmentSaving && <EmploymentCreateProgress labels={labels} progress={employmentCreateProgress} />}
-            {addressSaveFailed && <p role="alert" className="rounded-xl bg-warning-surface p-4 text-sm text-warning">{labels.addressSaveFailed}</p>}
+             {employmentSaving && <EmploymentCreateProgress labels={labels} progress={employmentCreateProgress} />}
+             {addressSaveFailed && <p role="alert" className="rounded-xl bg-warning-surface p-4 text-sm text-warning">{labels.addressSaveFailed}</p>}
+             {photoSaveFailed && <p role="alert" className="rounded-xl bg-warning-surface p-4 text-sm text-warning">{labels.photoSaveFailed}</p>}
             {employmentLoading && <div className="flex items-center gap-3 rounded-2xl border bg-background p-6 text-sm text-muted-foreground"><LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" />{labels.employmentLoading}</div>}
             {!employmentLoading && employmentOptions && !createdEmploymentId && rehireEmployeeId && rehireCopyChoice === 'pending' && <RehireCopyDialog labels={labels} onChoice={setRehireCopyChoice} />}
             {!employmentLoading && employmentOptions && !createdEmploymentId && rehireCopyChoice !== 'pending' && <EmploymentCreateForm
@@ -1168,7 +1235,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               showPayrollChoice
               copyPreviousData={rehireCopyChoice === 'yes'}
               onStepChange={setEmploymentStep}
-              onPayrollChoiceChange={setEmploymentPayrollDetails}
+               onPayrollChoiceChange={setEmploymentPayrollDetails}
+               employeeSummary={employeeSummary}
               onCancel={() => router.push(`/employees/${createdEmployeeId}?tab=employments`)}
               onSaving={() => { setEmploymentSaving(true); setEmploymentCreateProgress(0) }}
               onSaveFailed={() => setEmploymentSaving(false)}
@@ -1197,7 +1265,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               options={initialContractOptions}
               employmentStartsOn={initialContractEmploymentStartsOn ?? initialContractDraft.startsOn}
               isFirstContract={initialContractIsFirst ?? false}
-              initialDraft={initialContractDraft}
+               initialDraft={initialContractDraft}
+               employeeSummary={employeeSummary}
               labels={labels.employment}
               submitLabel={initialContractSubmitLabel ?? labels.employment.submit}
               onStepChange={setContractStep}
@@ -1210,7 +1279,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
           <div className="rounded-2xl border border-success/30 bg-success-surface p-6">
             <p className="eyebrow text-success">{labels.creationComplete}</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">{labels.creationComplete}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{addressSaveFailed ? labels.addressSaveFailed : labels.creationCompleteHelp}</p>
+             <p className="mt-2 text-sm leading-6 text-muted-foreground">{addressSaveFailed ? labels.addressSaveFailed : photoSaveFailed ? labels.photoSaveFailed : labels.creationCompleteHelp}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href={`/employees/${createdEmployeeId}`} className="button-primary">{labels.openEmployee}</Link>
               <Link href={`/employees/${createdEmployeeId}/employments/new`} className="button-secondary">{labels.createAndEmployment}</Link>
@@ -1449,6 +1518,21 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               <TextField name="workPhone" defaultValue={additional.workPhone} label={labels.workPhone} labels={labels} type="tel" />
               <TextField name="workPhoneExt" defaultValue={additional.workPhoneExt} label={labels.workPhoneExtension} labels={labels} />
               <TextField name="originalHireDate" defaultValue={additional.originalHireDate} label={labels.originalHireDate} labels={labels} type="date" />
+                </div>
+              </details>
+              <details className="group rounded-2xl border bg-background">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 font-semibold [&::-webkit-details-marker]:hidden"><span className="inline-flex items-center gap-2"><Camera aria-hidden="true" className="h-4 w-4 text-primary" />{labels.photoTitle}</span><ChevronRight aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-90" /></summary>
+                <div className="border-t p-4">
+                  <p className="text-sm text-muted-foreground">{labels.photoHelp}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
+                    {photoPreviewUrl && <img src={photoPreviewUrl} alt={previewParts.displayName || labels.photoTitle} className="h-24 w-24 rounded-full object-cover ring-4 ring-primary/10" />}
+                    <div className="grid gap-2">
+                      <input ref={photoInputRef} id="employee-photo-upload" className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { selectPhoto(event.target.files?.[0]); event.currentTarget.value = '' }} />
+                      <label htmlFor="employee-photo-upload" className="button-secondary inline-flex cursor-pointer items-center justify-center gap-2"><Camera aria-hidden="true" className="h-4 w-4" />{labels.photoUpload}</label>
+                      {photoFile && <><p className="text-xs text-muted-foreground">{labels.photoSelected}: {photoFile.name}</p><button type="button" className="text-left text-xs font-semibold text-primary hover:underline" onClick={removePhoto}>{labels.photoRemove}</button></>}
+                      {photoError && <p role="alert" className="text-xs text-destructive">{photoError}</p>}
+                    </div>
+                  </div>
                 </div>
               </details>
               {customFieldDefinitions.length > 0 && <details className="group rounded-2xl border bg-background">

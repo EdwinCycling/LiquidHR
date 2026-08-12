@@ -29,9 +29,10 @@ export default async function NewEmploymentPage({ params }: { params: Promise<{ 
       <div className="mt-5 min-w-0 max-w-full">
         <EmployeeCreateWizard
           locale={locale}
-          initialEmploymentEmployeeId={employeeId}
-          initialEmploymentOptions={options}
-          labels={createEmployeeCreateWizardLabels(tEmployees, tErrors, tValidation, tEmployment)}
+           initialEmploymentEmployeeId={employeeId}
+           initialEmploymentOptions={options}
+           initialEmployeeSummary={{ name: composeEmployeeName(detail.employee), birthDate: detail.employee.birthDate, gender: detail.employee.gender }}
+           labels={createEmployeeCreateWizardLabels(tEmployees, tErrors, tValidation, tEmployment)}
         />
       </div>
     </main>

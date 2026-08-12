@@ -93,6 +93,12 @@ Twee lagen, altijd allebei toepassen — nooit UI-only:
 
 **Typografie**: `Inter`-achtig sans-serif als hoofdfont voor de suite; een systeem-font + `tabular-nums` voor cijfer-zware, dichte tabelweergaven (financieel/rapportage-achtige schermen) — bewust géén monospace-font daar, dat oogt "code-achtig" in plaats van "spreadsheet-achtig".
 
+### 5.1 Gecontroleerde design-systemevolutie
+
+Nieuwe modules mogen een algemeen token of UI-atoom als eerste gebruiken, maar mogen geen eigen design language of app-brede restyling introduceren. Een kandidaat wordt eerst als themabewust algemeen contract in `globals.css` of `components/ui/` vastgelegd, met behoud van bestaande callers. Adoptie door andere schermen gebeurt later per scherm en met visuele regressiecontrole.
+
+De actuele conceptset voor typografie, surfaces, semantische statussen, spacing, compacte cards, menscontext, drawers en contentbreedte staat in [`DESIGN_SYSTEM_EVOLUTION.md`](DESIGN_SYSTEM_EVOLUTION.md). LiquidHR Journeys is de eerste beoogde gebruiker. De bestaande sidebar, topbar/contextswitching, accountfooter, Lucide-iconen, Tailwind-v4-configuratie en persoonlijke thema's blijven leidend; Stitch- of andere exports vervangen de applicatieshell niet.
+
 ---
 
 ## 6. Formulier Logica

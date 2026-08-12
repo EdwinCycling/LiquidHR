@@ -173,26 +173,26 @@ describe('completeEmploymentCreateSchema', () => {
     }).success).toBe(false)
   })
 
-  it('weigert een proeftijd die buiten een tijdelijk contract valt', () => {
+  it('laat een proeftijd buiten het tijdelijke contract als waarschuwing door', () => {
     expect(completeEmploymentCreateSchema.safeParse({
       ...valid,
       employment: { ...valid.employment, startsOn: '2026-08-01', seniorityDate: '2026-08-01' },
       contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2026-09-01', probationApplies: true, probationEndsOn: '2026-09-02' },
-    }).success).toBe(false)
+    }).success).toBe(true)
   })
 
-  it('weigert een proeftijd bij een contract van zes maanden of korter', () => {
+  it('laat een niet-toegestane proeftijd als waarschuwing door', () => {
     expect(completeEmploymentCreateSchema.safeParse({
       ...valid,
-      contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2027-02-01', probationApplies: true, probationEndsOn: '2026-09-01' },
-    }).success).toBe(false)
+      contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2027-01-31', probationApplies: true, probationEndsOn: '2026-09-01' },
+    }).success).toBe(true)
   })
 
-  it('beperkt een middel-lang tijdelijk contract tot maximaal een maand proeftijd', () => {
+  it('laat een te lange proeftijd als waarschuwing door', () => {
     expect(completeEmploymentCreateSchema.safeParse({
       ...valid,
       contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2027-08-01', probationApplies: true, probationEndsOn: '2026-10-01' },
-    }).success).toBe(false)
+    }).success).toBe(true)
   })
 
   it('accepteert de volledige on-call inzending uit de wizard', () => {

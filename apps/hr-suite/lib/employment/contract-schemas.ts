@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { databaseUuid } from '@/lib/validation/database-uuid'
-import { validateProbation } from './probation-rules'
+import { isBlockingProbationValidation, validateProbation } from './probation-rules'
 
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
@@ -30,12 +30,9 @@ export const employmentContractMutationSchema = z.object({
   if (value.probationApplies && (!value.probationEndsOn || value.probationEndsOn < value.startsOn)) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_INVALID' })
   }
-  if (!value.probationApplies && value.probationEndsOn) {
-    context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: 'PROBATION_DATE_NOT_ALLOWED' })
-  }
   // De route valideert de CAO-afwijking na het ophalen van de gekozen regeling.
   const probationError = validateProbation({ ...value, caoAllowsTwoMonths: value.caoAllowsTwoMonths === true })
-  if (probationError && probationError !== 'PROBATION_DATE_OUTSIDE_CONTRACT' && probationError !== 'PROBATION_DATE_NOT_ALLOWED') {
+  if (isBlockingProbationValidation(probationError)) {
     context.addIssue({ code: 'custom', path: ['probationEndsOn'], message: probationError })
   }
 })
@@ -49,4 +46,12 @@ export function isEmploymentContractStartDateValid(
 ): boolean {
   if (!startsOn || !employmentStartsOn || startsOn < employmentStartsOn) return false
   return !isFirstContract || startsOn === employmentStartsOn
+}
+
+export function isEmploymentContractEffectiveDateValid(
+  effectiveOn: string,
+  startsOn: string,
+  endsOn: string | null,
+): boolean {
+  return Boolean(effectiveOn && startsOn && effectiveOn >= startsOn && (!endsOn || effectiveOn <= endsOn))
 }

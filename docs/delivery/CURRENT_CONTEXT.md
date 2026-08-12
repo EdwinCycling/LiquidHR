@@ -1,5 +1,34 @@
 # Actuele overdracht Liquid HR
 
+## LiquidHR Journeys — analyse en documentatie 2026-08-12
+
+- De leidende modulevoorbereiding staat in `docs/requirements/journeys/JOURNEYS.md`. Journeys is HR-groep-owned, gebruikt dezelfde blijvende Employee-identiteit en optioneel één expliciet Employment als context, pint een immutable templateversie en materialiseert concrete deelnemers en datums bij activatie.
+- De module blijft technisch gescheiden van Process Automation, Recruitment, contract/salaris, dossier en chat. Bestaande organisatie-/managerresolutie, reminders, documenten, startpagina, medewerkerdashboard, audit, modules en i18n worden via kleine seams hergebruikt; zij worden niet gekopieerd.
+- De Stitch-ZIP is tijdelijk uitgepakt en volledig geïnventariseerd: 14 `screen.png`/`code.html`-paren voor JY-001 t/m JY-013 en JY-016. Afzonderlijke exports voor JY-014 medewerkerdashboardwidget en JY-015 notificatie ontbreken. De review en SHA-256 staan in `docs/requirements/journeys/references/STITCH_REVIEW_2026-08-12.md`.
+- Correcties op Stitch: bestaande LiquidHR-shell/Lucide/Tailwind v4 blijven; contractdetails, Workday/HRIS/shared inbox, chat/messages, Material Symbols en workflowachtige blocking moments worden niet gebouwd. Participantcontent wordt server-side geprojecteerd en niet alleen in de UI verborgen.
+- `docs/architecture/DESIGN_SYSTEM_EVOLUTION.md` bevat acht voorgestelde algemene tokens/componenten voor typografie, surfaces, status, spacing, cards, person identity, drawers en contentbreedte. Journeys mag eerste gebruiker zijn; er is geen app-brede restyling geautoriseerd.
+- Status: uitsluitend documentatie. Er is geen Journeys-schema, migratie, permissionseed, API, UI, modulecataloguswijziging, remote write, commit, push of deployment uitgevoerd. Het plan blijft exact drie stappen en stap 1 wacht op expliciete goedkeuring.
+
+## Looncontract aanpassen: vier gedeelde flows 2026-08-12
+
+- Op de dienstverbanddetails gebruiken `hoursSchedule`, `hoursScheduleSalary`, `functionDepartmentCostCenter` en `salary` een gedeelde contractwijzigingswizard. Eerst wordt het contract gekozen (één contract wordt automatisch geselecteerd), daarna worden contractgegevens en de bestaande tijdlijn getoond. De gebruiker kiest een ingangsdatum via contractstart, begin huidige maand, begin volgende maand of een aangepaste datum.
+- De detailstap ondersteunt het medewerkerwizard-principe: afleiding voltijd/deeltijd, uren, deeltijdfactor, één- of tweeweekse roosters met daguren en tijd-voor-tijd; daarnaast salarisvelden, organisatiekeuzes en 100%-kostenverdeling. De review bevat `Dat contract gaan we aanpassen.` en een verplichte reden.
+- De bestaande API's blijven de schrijfgrens. `contractId` wordt server-side gecontroleerd op medewerker en contractperiode voordat schedule-, salary-, combined- of organization-wijzigingen worden toegepast. Een roosterwijziging publiceert aansluitend via de bestaande work-pattern-API de één- of tweeweekse cyclus; organisatie/kostenplaats doet eveneens twee bestaande writes, omdat er geen gecombineerde endpoints bestaan.
+- Verificatie: hr-suite 156 testbestanden/606 tests, strict TypeScript, volledige ESLint, 31 gelijke NL/EN-namespaces, Webpack-build met 200 pagina's en `git diff --check` groen. De lokale browsercontrole bereikte `/login` met HTTP 200; authenticated detail-/saveflow en remote/deploymentbewijs zijn nog open. Er is geen migratie aangemaakt of remote wijziging uitgevoerd.
+
+## Nieuwe medewerker- en dienstverbandwizard 2026-08-12
+
+- De nieuwe medewerkerwizard heeft op `Extra gegevens` een accordion voor profielfoto-upload met lokale preview, type-/5 MB-validatie en opslag via de bestaande avatarroute bij het aanmaken of tussentijds opslaan.
+- De snelkeuzes voor contract- en proeftijd-einddatums gebruiken nu de laatste dag van de gekozen periode: 1 september plus 1/3/6/12 maanden eindigt op respectievelijk 30 september, 30 november, 28 februari en 31 augustus. De wettelijke proeftijdregels worden als waarschuwingen getoond; alleen ontbrekende of chronologisch ongeldige datums blokkeren.
+- Op `Rooster en uren` wordt deeltijd/voltijd afgeleid uit weekuren versus de fulltime-referentie; handmatig kiezen is verwijderd. De laatste `Controleren`-tab toont naam, geboortedatum en geslacht over de volledige breedte. De overgang naar die tab doet geen POST; alleen `Dienstverband aanmaken` bewaart, met een in-flight guard tegen dubbele submits.
+- Verificatie: volledige hr-suite 156 testbestanden/605 tests, strict TypeScript, volledige ESLint en NL/EN-i18n-pariteit met 31 namespaces zijn groen. De proeftijdconstraint-migratie `20260812110000_probation_rule_warnings.sql` is lokaal aanwezig en niet remote toegepast of gedeployed. Authenticated browserbewijs is niet uitgevoerd omdat een blijvende poort-3000-server in de beheerde omgeving niet beschikbaar bleef.
+
+## Navigatie en module-instellingen 2026-08-12
+
+- Teamkompas staat niet meer als zelfstandig sidebar-item of menuvolgorde-item. Rollen met een actieve `TEAM_COMPASS`-module en een bestaande Teamkompas-permission krijgen het als venster op `/workforce` (Ontwikkeling); de route, serviceautorisatie en instellingenbeheer blijven ongewijzigd.
+- De actieve-modulencatalogus bevat nu uitsluitend werkelijk schakelbare uitbreidingen: HeRa, Reminders, Talent, Surveys, eNPS en Teamkompas. Documentdossiers zijn uit UI, schema-validatie en save-payload verwijderd; de lokale migratie `20260812054853_documents_always_on.sql` zet bestaande/nieuwe tenantregels aan, legt `DOCUMENTS` altijd actief vast en laat de centrale database-modulefunctie deze code niet meer blokkeren.
+- Verificatie in deze beurt: gerichte modulecatalogus-/schemasuite 2 bestanden/3 tests groen, strict TypeScript, volledige ESLint, i18n-pariteit (31 NL/EN-namespaces) en `git diff --check` groen. Poort 3000 had geen listener, dus er is geen nieuwe authenticated browsercontrole uitgevoerd. De migratie is lokaal aangemaakt maar niet remote toegepast; read-only advisors en typegeneratie zijn wel tegen de bestaande remote toestand uitgevoerd, waardoor post-migratie advisors/typevalidatie nog bij een geautoriseerde schema-/releasebeurt horen.
+
 ## Release 2026-08-11 — productie geverifieerd
 
 - `main` bevat alle actuele lokale featurecommits voor Process Automation-redesign, Surveys/eNPS, research-draftflows en Teamkompas. Alle featurebranches zijn voorouders van `main`; er ontbreken geen featurecommits.

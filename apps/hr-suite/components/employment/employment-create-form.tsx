@@ -6,9 +6,9 @@ import { ArrowDown } from 'lucide-react'
 import { CountryPicker } from '@/components/ui/country-picker'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
-import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
+import { calculateCappedPartTimeFactor, deriveEmploymentWorkScope } from '@/lib/employment/fulltime-reference'
 import { isNewEmployeeBirthDateValid } from '@/lib/employees/age-validation'
-import { validateProbation } from '@/lib/employment/probation-rules'
+import { addCalendarMonths, addContractPeriodEnd, validateProbation } from '@/lib/employment/probation-rules'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
 import { canSubmitEmploymentWizard, hasMissingEmploymentPrerequisites, isEmploymentWizardStepValid, type EmploymentWizardStep } from './employment-wizard-validation'
 
@@ -29,6 +29,7 @@ export interface EmploymentCreateFormProps {
   onSaving?: () => void
   onSaveFailed?: () => void
   onSaved?: (employmentId: string) => void
+  employeeSummary?: EmploymentWizardEmployeeSummary
   copyPreviousData?: boolean
   canScrollDown?: boolean
   moreDataAvailable?: string
@@ -60,7 +61,15 @@ export interface EmploymentCreateFormProps {
     jobGroup: string; department: string; job: string; manager: string; managerDerived: string; noManager: string; noConfiguredManager: string; costCenter: string; costCarrier: string
     splitCostCenter: string; addAllocation: string; removeAllocation: string; allocationPercentage: string; allocationTotal: string; allocationMismatch: string
     completeSummary: string; reviewMissingFields: string; reviewEditStep: string; createHint: string; optionsLoading: string
+    employeeSummaryTitle: string; employeeSummaryName: string; employeeSummaryBirthDate: string; employeeSummaryGender: string
+    employmentNumberConflict: string
   }
+}
+
+export interface EmploymentWizardEmployeeSummary {
+  name: string
+  birthDate: string | null
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
 }
 
 interface AllocationDraft { costCenterId: string; costCarrierId: string; percentage: string }
@@ -88,18 +97,7 @@ function addToDate(value: string, mode: 'FOUR_WEEKS' | 'ONE_MONTH' | 'TWO_MONTHS
   const [year, month, day] = value.split('-').map(Number)
   const date = new Date(Date.UTC(year, month - 1, day))
   if (mode === 'FOUR_WEEKS') date.setUTCDate(date.getUTCDate() + 28)
-  else return addMonths(value, mode === 'ONE_MONTH' ? 1 : 2)
-  return date.toISOString().slice(0, 10)
-}
-
-function addMonths(value: string, months: number): string {
-  if (!value) return ''
-  const [year, month, day] = value.split('-').map(Number)
-  const date = new Date(Date.UTC(year, month - 1, day))
-  date.setUTCDate(1)
-  date.setUTCMonth(date.getUTCMonth() + months)
-  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate()
-  date.setUTCDate(Math.min(day, lastDay))
+  else return addContractPeriodEnd(value, mode === 'ONE_MONTH' ? 1 : 2)
   return date.toISOString().slice(0, 10)
 }
 
@@ -207,6 +205,7 @@ function defaultDraft(options: EmploymentCreationOptions, copyPreviousData = fal
     draft.weeklyHours = String(previous.schedule.weeklyHours)
     draft.partTimeFactor = String(previous.schedule.partTimeFactor)
     draft.days = Object.fromEntries(dayKeys.map((day) => [day, String(previous.schedule?.days[day] ?? 0)])) as Draft['days']
+    draft.workScope = deriveEmploymentWorkScope(draft.weeklyHours ? parseDecimalInput(draft.weeklyHours) : 0, options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40)
   }
   if (previous.salary && options.canWriteSalary) {
     const hasFrequency = options.salaryFrequencies.some((item) => item.id === previous.salary?.salaryFrequencyId)
@@ -241,7 +240,7 @@ function sameEmploymentPrerequisites(left: EmploymentPrerequisiteValues, right: 
     && (left.gender?.trim() || null) === (right.gender?.trim() || null)
 }
 
-export function EmploymentCreateForm({ employeeId, options: initialOptions, showNavigation = true, showPayrollChoice = false, onStepChange, onPayrollChoiceChange, onCancel, onSaving, onSaveFailed, onSaved, copyPreviousData = false, canScrollDown = false, moreDataAvailable, labels }: EmploymentCreateFormProps) {
+export function EmploymentCreateForm({ employeeId, options: initialOptions, showNavigation = true, showPayrollChoice = false, onStepChange, onPayrollChoiceChange, onCancel, onSaving, onSaveFailed, onSaved, employeeSummary, copyPreviousData = false, canScrollDown = false, moreDataAvailable, labels }: EmploymentCreateFormProps) {
   const router = useRouter()
   const [options, setOptions] = useState(initialOptions)
   const missingPrerequisites = !options.prerequisites.nationality || !options.prerequisites.birthDate || !options.prerequisites.gender
@@ -255,6 +254,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
   const [payrollDetails, setPayrollDetails] = useState<boolean | null>(showPayrollChoice ? null : true)
   const [draft, setDraft] = useState<Draft>(() => defaultDraft(initialOptions, copyPreviousData))
   const prerequisitesSavingRef = useRef(false)
+  const submitInFlightRef = useRef(false)
 
   const stepKeys: StepKey[] = showPayrollChoice
     ? payrollDetails === true ? ['administration', 'employment', 'payrollChoice', 'contract', 'schedule', 'salary', 'other', 'review'] : ['administration', 'employment', 'payrollChoice', 'review']
@@ -279,9 +279,9 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
   const rosterMatches = Math.abs(rosterAverage - parseDecimalInput(draft.weeklyHours)) < 0.0001
   const rosterHasNegativeHours = rosterWeeks.some((week) => dayKeys.some((day) => parseDecimalInput(week[day]) < 0))
   const rosterHasInvalidHours = rosterWeeks.some((week) => dayKeys.some((day) => week[day].trim() === '' || !Number.isFinite(parseDecimalInput(week[day])) || parseDecimalInput(week[day]) > 24))
-  const contractTooShort = draft.durationType === 'DEFINITE' && Boolean(draft.endsOn) && draft.endsOn < addMonths(draft.startsOn, 1)
-  const startDateIsTooFarInPast = Boolean(draft.startsOn) && draft.startsOn < addMonths(todayDateOnly(), -1)
-  const startDateIsTooFarInFuture = Boolean(draft.startsOn) && draft.startsOn > addMonths(todayDateOnly(), 2)
+  const contractTooShort = draft.durationType === 'DEFINITE' && Boolean(draft.endsOn) && draft.endsOn < addContractPeriodEnd(draft.startsOn, 1)
+  const startDateIsTooFarInPast = Boolean(draft.startsOn) && draft.startsOn < addCalendarMonths(todayDateOnly(), -1)
+  const startDateIsTooFarInFuture = Boolean(draft.startsOn) && draft.startsOn > addCalendarMonths(todayDateOnly(), 2)
   const caoAllowsTwoMonths = selectedLaborSet?.probationMaximumMonths === 2
   const probationValidationCode = validateProbation({ durationType: draft.durationType, startsOn: draft.startsOn, endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null, probationApplies: draft.probationApplies, probationEndsOn: draft.probationEndsOn, caoAllowsTwoMonths })
   const probationTooLong = probationValidationCode === 'PROBATION_MAXIMUM_EXCEEDED'
@@ -296,7 +296,9 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
       const next = { ...current, [key]: value }
       if (key === 'laborConditionSetId') {
         const laborSet = options.laborConditionSets.find((item) => item.id === String(value))
-        next.partTimeFactor = String(calculateCappedPartTimeFactor(parseDecimalInput(current.weeklyHours), laborSet?.standardHoursPerWeek ?? 40))
+        const standardHours = laborSet?.standardHoursPerWeek ?? 40
+        next.partTimeFactor = String(calculateCappedPartTimeFactor(parseDecimalInput(current.weeklyHours), standardHours))
+        next.workScope = deriveEmploymentWorkScope(parseDecimalInput(current.weeklyHours), standardHours)
       }
       if (key === 'jobGroupId') {
         next.jobId = options.jobs.find((job) => job.jobGroupId === String(value))?.id ?? ''
@@ -328,7 +330,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
   function distributeHours(hours: string): void {
     const weekly = parseDecimalInput(hours) || 0
     const daily = weekly / 5
-    setDraft((current) => ({ ...current, weeklyHours: hours, days: { monday: String(daily), tuesday: String(daily), wednesday: String(daily), thursday: String(daily), friday: String(daily), saturday: '0', sunday: '0' }, partTimeFactor: String(calculateCappedPartTimeFactor(weekly, selectedFulltimeHours)) }))
+    setDraft((current) => ({ ...current, weeklyHours: hours, workScope: deriveEmploymentWorkScope(weekly, selectedFulltimeHours), days: { monday: String(daily), tuesday: String(daily), wednesday: String(daily), thursday: String(daily), friday: String(daily), saturday: '0', sunday: '0' }, partTimeFactor: String(calculateCappedPartTimeFactor(weekly, selectedFulltimeHours)) }))
   }
 
   async function changeAdministration(administrationId: string): Promise<void> {
@@ -434,63 +436,73 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
       next()
       return
     }
-    const firstInvalidStepIndex = stepKeys.findIndex((key) => key !== 'review' && !valid(key))
-    if (firstInvalidStepIndex >= 0) {
-      setStep(firstInvalidStepIndex)
-      setErrorCode('')
-      setState('idle')
-      return
-    }
-    setState('saving')
-    onSaving?.()
-    if (draft.countryCode === 'NL' && !bsnSaved && draft.bsn) {
-      const bsnResponse = await fetch(`/api/employees/${employeeId}/bsn`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ bsn: draft.bsn }) })
-      if (!bsnResponse.ok) { const result = await bsnResponse.json().catch(() => ({ error: '' })) as { error?: string }; setErrorCode(bsnResponse.status === 400 ? REQUIRED_FIELDS_ERROR : result.error ?? GENERIC_ERROR); onSaveFailed?.(); setState('failed'); return }
-      setBsnSaved(true)
-    }
-    const fulltimeAmount = selectedScale?.fulltimeAmount ?? parseDecimalInput(draft.fulltimeAmount)
-    const standardHours = selectedLaborSet?.standardHoursPerWeek ?? 40
-    const factor = draft.isOnCall ? 0 : calculateCappedPartTimeFactor(parseDecimalInput(draft.weeklyHours), standardHours)
-    const workScope = draft.isOnCall ? null : parseDecimalInput(draft.weeklyHours) >= standardHours ? 'FULL_TIME' : 'PART_TIME'
-    const scheduleWeeks = draft.twoWeekRoster ? [draft.days, draft.secondWeekDays] : [draft.days]
-    const scheduleDayHours = averageDayHours(scheduleWeeks)
-    const payload = payrollDetails ? {
-      employment: { employmentNumber: draft.employmentNumber, employmentType: draft.employmentType, startsOn: draft.startsOn, seniorityDate: draft.seniorityDate, countryCode: draft.countryCode, isPrimary: draft.isPrimary },
-      incomeRelationship: { payrollTaxSubnumber: '0001', ikvNumber: Number(draft.ikvNumber), validFrom: draft.startsOn },
-      contract: { workerType: workerTypeForEmployment(draft.employmentType), flexPhaseId: draft.employmentType === 'TEMPORARY_AGENCY' ? draft.flexPhaseId : null, laborConditionSetId: draft.laborConditionSetId, durationType: draft.durationType, startsOn: draft.startsOn, endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null, probationApplies: draft.probationApplies, probationEndsOn: draft.probationApplies ? draft.probationEndsOn : null, caoAllowsTwoMonths },
-      schedule: { scheduleType: 'HOURS_PER_DAY', startWeek: 1, averageDaysPerWeek: scheduleWeeks.reduce((sum, week) => sum + dayKeys.filter((day) => parseDecimalInput(week[day]) > 0).length, 0) / scheduleWeeks.length, averageHoursPerWeek: parseDecimalInput(draft.weeklyHours), partTimeFactor: factor, timeForTimeAccrual: 0, mondayHours: scheduleDayHours.monday, tuesdayHours: scheduleDayHours.tuesday, wednesdayHours: scheduleDayHours.wednesday, thursdayHours: scheduleDayHours.thursday, fridayHours: scheduleDayHours.friday, saturdayHours: scheduleDayHours.saturday, sundayHours: scheduleDayHours.sunday, isOnCall: draft.isOnCall, onCallObligation: draft.isOnCall ? draft.onCallObligation : null, workScope, validFrom: draft.startsOn },
-      salary: options.canWriteSalary ? { paymentType: draft.salaryBasis === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED', paymentFrequency: options.salaryFrequencies.find((item) => item.id === draft.salaryFrequencyId)?.code ?? 'MONTHLY', salaryFrequencyId: draft.salaryFrequencyId, salaryBasis: draft.salaryBasis, fulltimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : fulltimeAmount, parttimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : (parseDecimalInput(draft.parttimeAmount) || fulltimeAmount * factor), hourlyRate: draft.salaryBasis === 'MINIMUM_WAGE' ? minimumRate?.hourlyAmount ?? null : null, currencyCode: 'EUR', salaryScaleStepId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleStepId : null, validFrom: draft.startsOn } : undefined,
-      organization: { departmentId: draft.departmentId, jobId: draft.jobId, jobTitle: selectedJob?.name ?? '', managerEmployeeId: departmentManagers[0]?.id ?? null, effectiveFrom: draft.startsOn },
-      costAllocation: { validFrom: draft.startsOn, allocations: draft.allocations.map((allocation) => ({ costCenterId: allocation.costCenterId, costCarrierId: draft.allocations[0]?.costCarrierId ?? allocation.costCarrierId, percentage: parseDecimalInput(allocation.percentage) })) },
-    } : {
-      employment: { employmentNumber: draft.employmentNumber, employmentType: draft.employmentType, startsOn: draft.startsOn, seniorityDate: draft.seniorityDate, countryCode: draft.countryCode, isPrimary: draft.isPrimary },
-    }
-    const response = await fetch(`/api/employees/${employeeId}/employments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ administrationId: draft.administrationId, input: payload }) })
-    const result = await response.json() as { data?: { employmentId: string }; code?: string }
-    if (!response.ok || !result.data) { setErrorCode(result.code ?? (response.status === 400 ? REQUIRED_FIELDS_ERROR : GENERIC_ERROR)); onSaveFailed?.(); setState('failed'); return }
-    if (draft.twoWeekRoster) {
-      const workPatternResponse = await fetch(`/api/employments/${result.data.employmentId}/work-patterns`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          name: `${labels.roster} · ${labels.weekOne}/${labels.weekTwo}`,
-          cycleWeeks: 2,
-          anchorDate: toMonday(draft.startsOn),
-          validFrom: draft.startsOn,
-          validUntil: draft.durationType === 'DEFINITE' && draft.endsOn > draft.startsOn ? draft.endsOn : null,
-          days: workPatternDays(scheduleWeeks),
-        }),
-      })
-      if (!workPatternResponse.ok) {
-        const workPatternResult = await workPatternResponse.json().catch(() => ({})) as { error?: string }
-        setErrorCode(workPatternResult.error ?? 'WORK_PATTERN_OPERATION_FAILED')
-        onSaveFailed?.()
-        setState('failed')
+    if (submitInFlightRef.current) return
+    submitInFlightRef.current = true
+    try {
+      const firstInvalidStepIndex = stepKeys.findIndex((key) => key !== 'review' && !valid(key))
+      if (firstInvalidStepIndex >= 0) {
+        setStep(firstInvalidStepIndex)
+        setErrorCode('')
+        setState('idle')
         return
       }
+      setState('saving')
+      onSaving?.()
+      if (draft.countryCode === 'NL' && !bsnSaved && draft.bsn) {
+        const bsnResponse = await fetch(`/api/employees/${employeeId}/bsn`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ bsn: draft.bsn }) })
+        if (!bsnResponse.ok) { const result = await bsnResponse.json().catch(() => ({ error: '' })) as { error?: string }; setErrorCode(bsnResponse.status === 400 ? REQUIRED_FIELDS_ERROR : result.error ?? GENERIC_ERROR); onSaveFailed?.(); setState('failed'); return }
+        setBsnSaved(true)
+      }
+      const fulltimeAmount = selectedScale?.fulltimeAmount ?? parseDecimalInput(draft.fulltimeAmount)
+      const standardHours = selectedLaborSet?.standardHoursPerWeek ?? 40
+      const factor = draft.isOnCall ? 0 : calculateCappedPartTimeFactor(parseDecimalInput(draft.weeklyHours), standardHours)
+      const workScope = draft.isOnCall ? null : deriveEmploymentWorkScope(parseDecimalInput(draft.weeklyHours), standardHours)
+      const scheduleWeeks = draft.twoWeekRoster ? [draft.days, draft.secondWeekDays] : [draft.days]
+      const scheduleDayHours = averageDayHours(scheduleWeeks)
+      const payload = payrollDetails ? {
+        employment: { employmentNumber: draft.employmentNumber, employmentType: draft.employmentType, startsOn: draft.startsOn, seniorityDate: draft.seniorityDate, countryCode: draft.countryCode, isPrimary: draft.isPrimary },
+        incomeRelationship: { payrollTaxSubnumber: '0001', ikvNumber: Number(draft.ikvNumber), validFrom: draft.startsOn },
+        contract: { workerType: workerTypeForEmployment(draft.employmentType), flexPhaseId: draft.employmentType === 'TEMPORARY_AGENCY' ? draft.flexPhaseId : null, laborConditionSetId: draft.laborConditionSetId, durationType: draft.durationType, startsOn: draft.startsOn, endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null, probationApplies: draft.probationApplies, probationEndsOn: draft.probationApplies ? draft.probationEndsOn : null, caoAllowsTwoMonths },
+        schedule: { scheduleType: 'HOURS_PER_DAY', startWeek: 1, averageDaysPerWeek: scheduleWeeks.reduce((sum, week) => sum + dayKeys.filter((day) => parseDecimalInput(week[day]) > 0).length, 0) / scheduleWeeks.length, averageHoursPerWeek: parseDecimalInput(draft.weeklyHours), partTimeFactor: factor, timeForTimeAccrual: 0, mondayHours: scheduleDayHours.monday, tuesdayHours: scheduleDayHours.tuesday, wednesdayHours: scheduleDayHours.wednesday, thursdayHours: scheduleDayHours.thursday, fridayHours: scheduleDayHours.friday, saturdayHours: scheduleDayHours.saturday, sundayHours: scheduleDayHours.sunday, isOnCall: draft.isOnCall, onCallObligation: draft.isOnCall ? draft.onCallObligation : null, workScope, validFrom: draft.startsOn },
+        salary: options.canWriteSalary ? { paymentType: draft.salaryBasis === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED', paymentFrequency: options.salaryFrequencies.find((item) => item.id === draft.salaryFrequencyId)?.code ?? 'MONTHLY', salaryFrequencyId: draft.salaryFrequencyId, salaryBasis: draft.salaryBasis, fulltimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : fulltimeAmount, parttimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : (parseDecimalInput(draft.parttimeAmount) || fulltimeAmount * factor), hourlyRate: draft.salaryBasis === 'MINIMUM_WAGE' ? minimumRate?.hourlyAmount ?? null : null, currencyCode: 'EUR', salaryScaleStepId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleStepId : null, validFrom: draft.startsOn } : undefined,
+        organization: { departmentId: draft.departmentId, jobId: draft.jobId, jobTitle: selectedJob?.name ?? '', managerEmployeeId: departmentManagers[0]?.id ?? null, effectiveFrom: draft.startsOn },
+        costAllocation: { validFrom: draft.startsOn, allocations: draft.allocations.map((allocation) => ({ costCenterId: allocation.costCenterId, costCarrierId: draft.allocations[0]?.costCarrierId ?? allocation.costCarrierId, percentage: parseDecimalInput(allocation.percentage) })) },
+      } : {
+        employment: { employmentNumber: draft.employmentNumber, employmentType: draft.employmentType, startsOn: draft.startsOn, seniorityDate: draft.seniorityDate, countryCode: draft.countryCode, isPrimary: draft.isPrimary },
+      }
+      const response = await fetch(`/api/employees/${employeeId}/employments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ administrationId: draft.administrationId, input: payload }) })
+      const result = await response.json().catch(() => ({})) as { data?: { employmentId: string }; code?: string }
+      if (!response.ok || !result.data) { setErrorCode(result.code ?? (response.status === 400 ? REQUIRED_FIELDS_ERROR : GENERIC_ERROR)); onSaveFailed?.(); setState('failed'); return }
+      if (draft.twoWeekRoster) {
+        const workPatternResponse = await fetch(`/api/employments/${result.data.employmentId}/work-patterns`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            name: `${labels.roster} · ${labels.weekOne}/${labels.weekTwo}`,
+            cycleWeeks: 2,
+            anchorDate: toMonday(draft.startsOn),
+            validFrom: draft.startsOn,
+            validUntil: draft.durationType === 'DEFINITE' && draft.endsOn > draft.startsOn ? draft.endsOn : null,
+            days: workPatternDays(scheduleWeeks),
+          }),
+        })
+        if (!workPatternResponse.ok) {
+          const workPatternResult = await workPatternResponse.json().catch(() => ({})) as { error?: string }
+          setErrorCode(workPatternResult.error ?? 'WORK_PATTERN_OPERATION_FAILED')
+          onSaveFailed?.()
+          setState('failed')
+          return
+        }
+      }
+      setState('saved')
+      if (onSaved) onSaved(result.data.employmentId)
+      else { router.push(`/employees/${employeeId}/employments/${result.data.employmentId}`); router.refresh() }
+    } catch {
+      setErrorCode(GENERIC_ERROR)
+      onSaveFailed?.()
+      setState('failed')
+    } finally {
+      submitInFlightRef.current = false
     }
-    setState('saved')
-    if (onSaved) onSaved(result.data.employmentId)
-    else { router.push(`/employees/${employeeId}/employments/${result.data.employmentId}`); router.refresh() }
   }
 
   const inputClass = 'form-field'
@@ -517,9 +529,9 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
         </Field>
         {draft.employmentType === 'TEMPORARY_AGENCY' && <Field required label={labels.flexPhase}><DropdownSelect value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</DropdownSelect></Field>}
         <Field required label={labels.duration}><select className={inputClass} value={draft.durationType} onChange={(event) => { const durationType = event.target.value as DurationType; update('durationType', durationType); if (durationType !== 'DEFINITE') update('endsOn', '') }}>{/* Het tijdelijke contract zonder einddatum heeft bewust geen datumveld. */}<option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option><option value="TEMPORARY_NO_END">{labels.temporaryWithoutEnd}</option></select></Field>
-        <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
-          <Field label={labels.startDate}><input type="date" readOnly className={`${inputClass} bg-muted/40`} value={draft.startsOn} /><span className="text-xs font-normal text-muted-foreground">{labels.firstContractStartDateHelp}</span></Field>
-          {draft.durationType === 'DEFINITE' && <Field required label={labels.endDate}><input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /><span className="flex flex-wrap gap-2"><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 1))}>{labels.addOneMonth}</SmallButton><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 3))}>{labels.addThreeMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 6))}>{labels.addSixMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 12))}>{labels.addTwelveMonths}</SmallButton></span></Field>}
+         <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+           <Field label={labels.startDate}><input type="date" readOnly className={`${inputClass} bg-muted/40`} value={draft.startsOn} /><span className="text-xs font-normal text-muted-foreground">{labels.firstContractStartDateHelp}</span></Field>
+           {draft.durationType === 'DEFINITE' && <Field required label={labels.endDate}><input type="date" min={draft.startsOn} className={inputClass} value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /><span className="flex flex-wrap gap-2"><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 1))}>{labels.addOneMonth}</SmallButton><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 3))}>{labels.addThreeMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 6))}>{labels.addSixMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 12))}>{labels.addTwelveMonths}</SmallButton></span></Field>}
         </div>
         <Field required label={labels.probation}><select className={inputClass} value={String(draft.probationApplies)} onChange={(event) => { const applies = event.target.value === 'true'; update('probationApplies', applies); if (!applies) update('probationEndsOn', '') }}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></Field>
         {draft.probationApplies && <Field required label={labels.probationEnd}><input type="date" min={draft.startsOn} className={inputClass} value={draft.probationEndsOn} onChange={(event) => update('probationEndsOn', event.target.value)} /><span className="flex flex-wrap gap-2"><SmallButton onClick={() => update('probationEndsOn', addToDate(draft.startsOn, 'FOUR_WEEKS'))}>{labels.addFourWeeks}</SmallButton><SmallButton onClick={() => update('probationEndsOn', addToDate(draft.startsOn, 'ONE_MONTH'))}>{labels.addOneMonth}</SmallButton><SmallButton onClick={() => update('probationEndsOn', addToDate(draft.startsOn, 'TWO_MONTHS'))}>{labels.addTwoMonths}</SmallButton></span></Field>}
@@ -528,16 +540,16 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
         {startDateIsTooFarInPast && <p className="text-warning">{labels.startDatePastWarning}</p>}
         {startDateIsTooFarInFuture && <p className="text-warning">{labels.startDateFutureWarning}</p>}
         {contractTooShort && <p className="text-warning">{labels.contractShortWarning}</p>}
-        {probationNotAllowed && <p role="alert" className="text-destructive">{labels.probationNotAllowed}</p>}
-        {probationTooLong && <p role="alert" className="text-destructive">{labels.probationMaximumExceeded}</p>}
-        {draft.probationApplies && draft.durationType === 'DEFINITE' && draft.probationEndsOn && draft.endsOn && draft.probationEndsOn > draft.endsOn && <p role="alert" className="text-destructive">{labels.probationOutsideContract}</p>}
+         {probationNotAllowed && <p role="status" className="text-warning">{labels.probationNotAllowed}</p>}
+         {probationTooLong && <p role="status" className="text-warning">{labels.probationMaximumExceeded}</p>}
+         {probationValidationCode === 'PROBATION_DATE_OUTSIDE_CONTRACT' && <p role="status" className="text-warning">{labels.probationOutsideContract}</p>}
       </div>
     </WizardStep>}
 
     {currentStep === 'schedule' && <WizardStep title={labels.stepSchedule}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field required label={labels.onCallEmployee}><select className={inputClass} value={String(draft.isOnCall)} onChange={(event) => { const isOnCall = event.target.value === 'true'; update('isOnCall', isOnCall); if (isOnCall) distributeHours('0') }}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></Field>
-        {draft.isOnCall ? <Field required label={labels.onCallObligation}><select className={inputClass} value={String(draft.onCallObligation)} onChange={(event) => update('onCallObligation', event.target.value === 'true')}><option value="true">{labels.yes}</option><option value="false">{labels.no}</option></select></Field> : <Field required label={labels.employmentScope}><select className={inputClass} value={draft.workScope} onChange={(event) => update('workScope', event.target.value as Draft['workScope'])}><option value="FULL_TIME">{labels.fullTime}</option><option value="PART_TIME">{labels.partTime}</option></select></Field>}
+         {draft.isOnCall ? <Field required label={labels.onCallObligation}><select className={inputClass} value={String(draft.onCallObligation)} onChange={(event) => update('onCallObligation', event.target.value === 'true')}><option value="true">{labels.yes}</option><option value="false">{labels.no}</option></select></Field> : <Field required label={labels.employmentScope}><div className={`${inputClass} flex items-center bg-muted/40`} aria-live="polite">{deriveEmploymentWorkScope(parseDecimalInput(draft.weeklyHours), selectedFulltimeHours) === 'FULL_TIME' ? labels.fullTime : labels.partTime}</div></Field>}
         <Field required label={labels.weeklyHours}><input type="text" inputMode="decimal" min="0" max="50" className={inputClass} value={draft.weeklyHours} onChange={(event) => distributeHours(event.target.value)} /><span className="text-xs font-normal text-muted-foreground">{labels.fulltimeReference}: {selectedFulltimeHours} {labels.hoursPerWeek}</span></Field>
         {!draft.isOnCall && <Field label={labels.partTimeFactor}><input readOnly className={`${inputClass} bg-muted/40`} value={`${Math.round(parseDecimalInput(draft.partTimeFactor) * 10000) / 100}%`} /></Field>}
       </div>
@@ -567,7 +579,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
       <p className={`mt-3 text-sm ${allocationsMatch ? 'text-muted-foreground' : 'text-destructive'}`}>{labels.allocationTotal}: {allocationTotal.toFixed(2)}%{!allocationsMatch ? ` · ${labels.allocationMismatch}` : ''}</p><p className="mt-2 text-xs text-muted-foreground">{labels.splitCostCenter}</p>
     </WizardStep>}
 
-    {currentStep === 'review' && <WizardStep title={labels.completeSummary}><p className="text-sm text-muted-foreground">{labels.createHint}</p>{invalidStepKeys.length > 0 && <div role="alert" className="mt-4 rounded-xl border border-warning/40 bg-warning-surface p-4 text-sm"><p className="font-semibold">{labels.reviewMissingFields}</p><div className="mt-2 flex flex-wrap gap-2">{invalidStepKeys.map((key) => <button type="button" className="button-secondary text-xs" key={key} onClick={() => setStep(stepKeys.indexOf(key))}>{labels.reviewEditStep}: {stepLabels[key]}</button>)}</div></div>}<dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Summary label={labels.administration} value={options.administrations.find((item) => item.id === draft.administrationId)?.name ?? ''} /><Summary label={labels.employmentNumber} value={draft.employmentNumber} /><Summary label={labels.workerType} value={draft.employmentType} /><Summary label={labels.startDate} value={draft.startsOn} />{payrollDetails && <><Summary label={labels.laborConditions} value={selectedLaborSet?.name ?? ''} /><Summary label={labels.weeklyHours} value={draft.weeklyHours} /><Summary label={labels.department} value={options.departments.find((item) => item.id === draft.departmentId)?.name ?? ''} /><Summary label={labels.job} value={selectedJob?.name ?? ''} />{options.canWriteSalary && <Summary label={parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? labels.fulltimeSalary : labels.parttimeSalary} value={draft.salaryBasis === 'MINIMUM_WAGE' ? (minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '') : `€ ${money(parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? draft.fulltimeAmount : draft.parttimeAmount)}`} />}</>}</dl></WizardStep>}
+    {currentStep === 'review' && <WizardStep title={labels.completeSummary}>{employeeSummary && <EmployeeSummaryCard summary={employeeSummary} labels={labels} />}<p className="text-sm text-muted-foreground">{labels.createHint}</p>{invalidStepKeys.length > 0 && <div role="alert" className="mt-4 rounded-xl border border-warning/40 bg-warning-surface p-4 text-sm"><p className="font-semibold">{labels.reviewMissingFields}</p><div className="mt-2 flex flex-wrap gap-2">{invalidStepKeys.map((key) => <button type="button" className="button-secondary text-xs" key={key} onClick={() => setStep(stepKeys.indexOf(key))}>{labels.reviewEditStep}: {stepLabels[key]}</button>)}</div></div>}<dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Summary label={labels.administration} value={options.administrations.find((item) => item.id === draft.administrationId)?.name ?? ''} /><Summary label={labels.employmentNumber} value={draft.employmentNumber} /><Summary label={labels.workerType} value={draft.employmentType} /><Summary label={labels.startDate} value={draft.startsOn} />{payrollDetails && <><Summary label={labels.laborConditions} value={selectedLaborSet?.name ?? ''} /><Summary label={labels.weeklyHours} value={draft.weeklyHours} /><Summary label={labels.department} value={options.departments.find((item) => item.id === draft.departmentId)?.name ?? ''} /><Summary label={labels.job} value={selectedJob?.name ?? ''} />{options.canWriteSalary && <Summary label={parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? labels.fulltimeSalary : labels.parttimeSalary} value={draft.salaryBasis === 'MINIMUM_WAGE' ? (minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '') : `€ ${money(parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? draft.fulltimeAmount : draft.parttimeAmount)}`} />}</>}</dl></WizardStep>}
 
     {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{errorMessage(errorCode, labels)}</p>}{state === 'saved' && <p className="mt-4 text-sm text-success">{labels.saved}</p>}<div className="sticky bottom-0 z-10 mt-8 flex items-center justify-between gap-3 border-t border-border/70 bg-surface/95 py-3 backdrop-blur-sm"><div className="flex min-w-0 items-center gap-2">{onCancel && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving'} onClick={onCancel}>{labels.cancel}</button>}{step > 0 && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving' || optionsLoading} onClick={() => setStep((current) => Math.max(0, current - 1))}>{labels.previous}</button>}</div><EmploymentScrollHint label={moreDataAvailable} visible={canScrollDown} />{step < stepKeys.length - 1 ? <button type="button" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading || payrollChoicePending} onClick={next}>{labels.next}</button> : <button type="submit" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading}>{labels.submit}</button>}</div>
   </form></employmentFieldLabelsContext.Provider>
@@ -580,6 +592,8 @@ function EmploymentScrollHint({ label, visible }: { label?: string; visible: boo
 
 function errorMessage(code: string, labels: EmploymentCreateFormProps['labels']): string {
   if (code === REQUIRED_FIELDS_ERROR || code === 'EMPLOYEE_CONCURRENCY_CONFLICT') return code === 'EMPLOYEE_CONCURRENCY_CONFLICT' ? labels.employeeConflict : labels.requiredFields
+  if (code === 'EMPLOYMENT_NUMBER_OR_IKV_CONFLICT') return labels.employmentNumberConflict
+  if (code === 'EMPLOYEE_ADMINISTRATION_MISMATCH') return labels.employeeConflict
   if (code === 'ROSTER_HOURS_MISMATCH' || code === 'WEEKLY_HOURS_INVALID' || code.startsWith('WORK_PATTERN_')) return labels.rosterMismatch
   if (code === 'COST_ALLOCATION_TOTAL_INVALID') return labels.allocationMismatch
   if (code === 'PROBATION_DATE_OUTSIDE_CONTRACT') return labels.probationOutsideContract
@@ -601,4 +615,9 @@ function Field({ label, children, required = false, className = '', labelClassNa
 function WizardStep({ title, children }: { title: string; children: ReactNode }) { return <section className="mt-6"><h3 className="mb-5 text-xl font-semibold">{title}</h3>{children}</section> }
 function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) { return <button type="button" className="rounded-lg border px-2.5 py-1 text-xs font-semibold hover:bg-muted" onClick={onClick}>{children}</button> }
 function Summary({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border bg-muted/20 p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value || '—'}</dd></div> }
+function EmployeeSummaryCard({ summary, labels }: { summary: EmploymentWizardEmployeeSummary; labels: EmploymentCreateFormProps['labels'] }) {
+  const gender = summary.gender === 'MALE' ? labels.genderMale : summary.gender === 'FEMALE' ? labels.genderFemale : summary.gender === 'OTHER' ? labels.genderOther : labels.genderUndisclosed
+  return <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-primary">{labels.employeeSummaryTitle}</p><dl className="mt-3 grid gap-3 sm:grid-cols-3"><Summary label={labels.employeeSummaryName} value={summary.name} /><Summary label={labels.employeeSummaryBirthDate} value={summary.birthDate ?? ''} /><Summary label={labels.employeeSummaryGender} value={gender} /></dl></div>
+}
+
 function ageOn(birthDate: string, date: string): number { if (!birthDate || !date) return 21; const [birthYear, birthMonth, birthDay] = birthDate.split('-').map(Number); const [year, month, day] = date.split('-').map(Number); return year - birthYear - (month < birthMonth || (month === birthMonth && day < birthDay) ? 1 : 0) }

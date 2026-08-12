@@ -59,7 +59,7 @@ describe('employment wizard validation', () => {
     expect(isEmploymentWizardStepValid('schedule', { ...validInput, days: { ...validInput.days, monday: '-1' } }, validOptions)).toBe(false)
   })
 
-  it('does not allow probation to outlive a fixed-term contract', () => {
+  it('keeps probation outside the contract as a warning', () => {
     expect(isEmploymentWizardStepValid('contract', {
       ...validInput,
       durationType: 'DEFINITE',
@@ -67,6 +67,17 @@ describe('employment wizard validation', () => {
       endsOn: '2026-09-08',
       probationApplies: true,
       probationEndsOn: '2026-09-09',
-    }, validOptions)).toBe(false)
+    }, validOptions)).toBe(true)
+  })
+
+  it('keeps legal probation warnings non-blocking during review', () => {
+    expect(isEmploymentWizardStepValid('contract', {
+      ...validInput,
+      durationType: 'DEFINITE',
+      startsOn: '2026-08-08',
+      endsOn: '2027-02-07',
+      probationApplies: true,
+      probationEndsOn: '2026-09-08',
+    }, validOptions)).toBe(true)
   })
 })

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { getModuleCatalog, type ToggleableModuleCode } from './module-catalog'
+import { getModuleCatalog, isToggleableModuleCode, type ToggleableModuleCode } from './module-catalog'
 import type { ModuleSelectionInput } from './schemas'
 
 export class ModuleError extends Error {
@@ -22,7 +22,7 @@ export async function getEnabledTenantModules(dependencies?: ModuleReadDependenc
   const { data, error } = await supabase.from('tenant_modules').select('module_code')
     .eq('tenant_id', auth.tenantId).eq('is_enabled', true)
   if (error) throw new ModuleError('MODULES_READ_FAILED', 500)
-  return (data ?? []).map((module) => module.module_code as ToggleableModuleCode)
+  return (data ?? []).map((module) => module.module_code).filter(isToggleableModuleCode)
 }
 
 export async function listTenantModules() {
@@ -41,14 +41,14 @@ export async function saveTenantModules(input: ModuleSelectionInput): Promise<vo
   const enabled = new Set(input.enabled)
   const now = new Date().toISOString()
   const supabase = await createClient()
-  const rows = (['HERA', 'DOCUMENTS', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS'] as const).map((moduleCode) => ({
+  const rows = (['HERA', 'REMINDERS', 'TALENT', 'SURVEYS', 'ENPS', 'TEAM_COMPASS', 'DOCUMENTS'] as const).map((moduleCode) => ({
     tenant_id: auth.tenantId,
     module_code: moduleCode,
-    is_enabled: enabled.has(moduleCode),
-    enabled_at: enabled.has(moduleCode) ? now : null,
-    enabled_by: enabled.has(moduleCode) ? auth.userId : null,
-    disabled_at: enabled.has(moduleCode) ? null : now,
-    disabled_by: enabled.has(moduleCode) ? null : auth.userId,
+    is_enabled: moduleCode === 'DOCUMENTS' || enabled.has(moduleCode),
+    enabled_at: moduleCode === 'DOCUMENTS' || enabled.has(moduleCode) ? now : null,
+    enabled_by: moduleCode === 'DOCUMENTS' || enabled.has(moduleCode) ? auth.userId : null,
+    disabled_at: moduleCode === 'DOCUMENTS' || enabled.has(moduleCode) ? null : now,
+    disabled_by: moduleCode === 'DOCUMENTS' || enabled.has(moduleCode) ? null : auth.userId,
   }))
   const { error } = await supabase.from('tenant_modules').upsert(rows, { onConflict: 'tenant_id,module_code' })
   if (error) throw new ModuleError('MODULES_SAVE_FAILED', 500)

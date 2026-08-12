@@ -5,6 +5,7 @@ const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const nullableNumber = z.number().nonnegative().nullish()
 
 const commonMutation = {
+  contractId: databaseUuid.nullish(),
   effectiveOn: dateOnly,
   reason: z.string().trim().min(1).max(500),
   warningCodes: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
@@ -97,6 +98,7 @@ const combinedTimelineMutationItemSchema = z.discriminatedUnion('timeline', [
 ])
 
 export const combinedTimelineMutationSchema = z.object({
+  contractId: databaseUuid.nullish(),
   effectiveOn: dateOnly,
   reason: z.string().trim().min(1).max(500),
   mutations: z.array(combinedTimelineMutationItemSchema).min(2).max(4).superRefine((items, context) => {

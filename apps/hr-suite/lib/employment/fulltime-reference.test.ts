@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateCappedPartTimeFactor, capPartTimeFactor } from './fulltime-reference'
+import { calculateCappedPartTimeFactor, capPartTimeFactor, deriveEmploymentWorkScope } from './fulltime-reference'
 
 describe('fulltime reference', () => {
   it('berekent de verloffactor op basis van contracturen en de fulltime-norm', () => {
@@ -16,5 +16,11 @@ describe('fulltime reference', () => {
   it('geeft geen factor terug bij een onbruikbare fulltime-norm', () => {
     expect(calculateCappedPartTimeFactor(32, 0)).toBe(0)
     expect(calculateCappedPartTimeFactor(Number.NaN, 40)).toBe(0)
+  })
+
+  it('leidt voltijd of deeltijd uitsluitend af uit de uren en de fulltime-norm', () => {
+    expect(deriveEmploymentWorkScope(40, 40)).toBe('FULL_TIME')
+    expect(deriveEmploymentWorkScope(32, 40)).toBe('PART_TIME')
+    expect(deriveEmploymentWorkScope(48, 40)).toBe('PART_TIME')
   })
 })

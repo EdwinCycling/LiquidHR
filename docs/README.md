@@ -1,5 +1,25 @@
 # Liquid HR documentatie-index
 
+## LiquidHR Journeys — requirements en implementatievoorbereiding 2026-08-12
+
+De leidende requirements voor de nieuwe zelfstandige module staan in [`requirements/journeys/JOURNEYS.md`](requirements/journeys/JOURNEYS.md). Het document legt HR-groepownership, blijvende Employee-identiteit, gepinde templateversies, concrete participants, actor-specifieke projecties, eigen permissions/RLS, preboarding-access, routes, het conceptuele datamodel, de 16-schermkaart en exact drie bouwstappen vast. Journeys blijft gescheiden van Process Automation, Recruitment, contract/salaris, dossier en chat.
+
+De extra Stitch-ZIP is volledig geïnventariseerd in [`requirements/journeys/references/STITCH_REVIEW_2026-08-12.md`](requirements/journeys/references/STITCH_REVIEW_2026-08-12.md): 14 scherm-/HTML-paren voor 16 ontwerp-ID's; JY-014 en JY-015 ontbreken als afzonderlijke exports. Contractdetails, Workday/HRIS, chat/messages, een eigen shell, Material Symbols en blocking moments worden niet overgenomen. Acht gecontroleerde algemene design-systemvoorstellen staan in [`architecture/DESIGN_SYSTEM_EVOLUTION.md`](architecture/DESIGN_SYSTEM_EVOLUTION.md). Er is geen Journeys-code, schema, migratie, commit, push of deployment uitgevoerd; stap 1 wacht op expliciete goedkeuring.
+
+## Looncontract aanpassen: contractkeuze en vier wijzigingsflows 2026-08-12
+
+Op de dienstverbanddetails openen de eerste vier tegels onder `Looncontract aanpassen` nu een gedeelde wizard voor urenrooster, urenrooster + salaris, functie/afdeling/kostenplaats en salaris. De wizard toont eerst de contracten en de tijdlijn van het geselecteerde contract, laat de ingangsdatum kiezen via contractstart, huidige maand, volgende maand of een aangepaste datum en gebruikt daarna de rooster-, salaris-, keuze- en verdelingsvelden uit de medewerkerwizard. Een tweeweekse roosterkeuze wordt via de bestaande work-pattern-API als cyclus opgeslagen. De review toont expliciet `Dat contract gaan we aanpassen.` voordat opslaan mogelijk is. De server valideert contract en ingangsdatum opnieuw voordat bestaande timeline-/organisatie-API's worden aangeroepen.
+
+De wijziging is lokaal geïmplementeerd en geverifieerd; er was geen nieuwe migratie, remote schemawijziging, push of deployment. De drie overige tegels tonen na contractkeuze bewust de bestaande niet-beschikbaarkoppeling. Authenticated browserbewijs van de detailpagina blijft open; de lokale browsercontrole bereikte wel `/login` met HTTP 200.
+
+## Nieuwe medewerker- en dienstverbandwizard 2026-08-12
+
+De wizard bevat nu profielfoto-upload onder `Optionele extra gegevens`, correcte periode-einddatums, niet-blokkerende proeftijdwaarschuwingen, automatische deeltijd/voltijd-afleiding en een read-only `Controleren`-tab die pas na `Dienstverband aanmaken` naar de database schrijft. De lokale wijziging is groen op de volledige suite, strict TypeScript, ESLint en i18n-pariteit; de proeftijdmigratie is nog niet remote toegepast en authenticated browserbewijs/deployment blijven open.
+
+## Navigatie en module-instellingen 2026-08-12
+
+Teamkompas is verplaatst uit de linker navigatie naar een modulevenster op `Ontwikkeling` (`/workforce`). De actieve-modulencatalogus toont geen Documentdossiers meer: documentdossiers zijn altijd actief en worden door de lokale migratie `20260812054853_documents_always_on.sql` ook op databaseniveau niet uitschakelbaar gemaakt. De wijziging is lokaal geïmplementeerd en gericht gecontroleerd; remote migratie, advisors, typegeneratie, browsercontrole en deployment zijn nog niet uitgevoerd.
+
 ## Release 2026-08-11: productversie 1.20260811.1 — lokale releasegate
 
 Alle actuele lokale featurecommits voor Process Automation-redesign, Surveys/eNPS, research-draftflows en Teamkompas zijn opgenomen in `main`. De zichtbare appversie staat op `1.20260811.1`. De volledige lokale gate is groen: 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, `git diff --check` en de Webpack-productiebuild met 200 pagina's.
@@ -401,6 +421,7 @@ Deze index is de verplichte startpagina voor architectuur- en featurewerk. Hij b
 | [`architecture/ENVIRONMENT_AND_AI_RULES.md`](architecture/ENVIRONMENT_AND_AI_RULES.md) | LEIDEND | Omgeving, secrets, Supabase, deployment, packages en agentregels |
 | [`architecture/LOGIC_AND_WORKFLOW.md`](architecture/LOGIC_AND_WORKFLOW.md) | LEIDEND | Businesslogica, state, validatie, foutafhandeling en workflows |
 | [`architecture/UI_FLOW_BLUEPRINT.md`](architecture/UI_FLOW_BLUEPRINT.md) | LEIDEND | Pagina's, layouts, formulieren, navigatie en RBAC-zichtbaarheid |
+| [`architecture/DESIGN_SYSTEM_EVOLUTION.md`](architecture/DESIGN_SYSTEM_EVOLUTION.md) | CONCEPT | Nieuwe algemene tokens/componenten of gecontroleerde visuele adoptie |
 | [`architecture/LIQUID_DISPLAY_DOCUMENTATIE.md`](architecture/LIQUID_DISPLAY_DOCUMENTATIE.md) | LEIDEND | Alleen volledig bij Liquid Display, AI-querying, widgets of contextmanagement |
 | [`architecture/API_LANDSCHAP_EN_EXTERN_INTEGRATIE.md`](architecture/API_LANDSCHAP_EN_EXTERN_INTEGRATIE.md) | INVENTARISATIE | Bij externe koppelingen, API-ontsluiting, webhooks of AI-providerbeleid |
 
@@ -419,6 +440,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport |
 | Surveys en eNPS | [`requirements/research/SURVEYS_AND_ENPS.md`](requirements/research/SURVEYS_AND_ENPS.md) | LEIDEND | GEDEELTELIJK — tenantmodules, schema/RLS, draft-campagnebeheer, medewerkerhub, respondentflow, HR-instellingen, monitor, privacydrempel, grafieken, CSV en rolgebonden widgets zijn remote en op main/browser geverifieerd. Automatische e-mail-/schedulerbezorging voor eNPS-herinneringen is bewust uitgesteld; segmentprivacy blijft een apart besluit |
 | Process Automation | [`requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`](requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) | LEIDEND | P2-P9 schema/API/UI en contextstarts zijn uitgevoerd; P10-outputbrug is live end-to-end bewezen. Open: niet-lege `BLOCKED`-startpaginafixture en expliciete doelgroepgoedkeuring voor HR-admin-dossierzichtbaarheid; daarom nog geen 100%-gate |
+| Journeys | [`requirements/journeys/JOURNEYS.md`](requirements/journeys/JOURNEYS.md) | LEIDEND | NIET GESTART — architectuur, Stitch-review, schermkaart en maximaal drie bouwstappen zijn voorbereid; expliciete goedkeuring vereist vóór schema/API/UI |
 | Formulierlabels en validatie | [`requirements/ux/FORMULIER_VALIDATIE_EN_LABELS.md`](requirements/ux/FORMULIER_VALIDATIE_EN_LABELS.md) | LEIDEND | NIEUW — sterretje alleen bij verplichte velden en veld-/blurvalidatie volgens het UX-contract |
 | Wizard UX-standaard | [`requirements/ux/WIZARD_UX_STANDARD.md`](requirements/ux/WIZARD_UX_STANDARD.md) | LEIDEND | NIEUW — vaste shellhoogte, scrollbaar middenstuk, compacte sticky onderbalk en contextuele scrollhint |
 | Core HR | [`requirements/core-hr/MEDEWERKER.md`](requirements/core-hr/MEDEWERKER.md) | LEIDEND | GEÏMPLEMENTEERD |

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import {
   CalendarRange,
   ChartColumn,
-  Compass,
   ChevronDown,
   ChevronUp,
   House,
@@ -63,7 +62,6 @@ interface SidebarLabels {
   switchHrGroupFailed: string
   timeHub: string
   productUpdates: string
-  teamCompass: string
   signOut: string
 }
 
@@ -78,7 +76,6 @@ interface SidebarProps {
   canReadHrCalendar: boolean
   canReadInsights: boolean
   canOpenResearch: boolean
-  canReadTeamCompass: boolean
   labels: SidebarLabels
   preferences: UserPreferences
   profileFirstName: string
@@ -113,7 +110,6 @@ export function Sidebar({
   canReadHrCalendar,
   canReadInsights,
   canOpenResearch,
-  canReadTeamCompass,
   labels,
   preferences,
   profileFirstName,
@@ -144,7 +140,6 @@ export function Sidebar({
     { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
     { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce, nested: false },
-    { href: '/team-compass', label: labels.teamCompass, icon: Compass, visible: canReadTeamCompass, nested: false },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false, exact: true },
   ]
   useEffect(() => {
@@ -152,7 +147,7 @@ export function Sidebar({
       try {
         const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]')
         if (!Array.isArray(saved)) return
-        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/work', '/research', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/team-compass', '/settings'])
+        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/work', '/research', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/settings'])
         const normalized = saved.filter((value): value is string => typeof value === 'string' && allowedMenuHrefs.has(value))
         if (canReadStartPage && !normalized.includes('/dashboard/start')) {
           const dashboardIndex = normalized.indexOf('/dashboard')
@@ -162,17 +157,13 @@ export function Sidebar({
           const settingsIndex = normalized.indexOf('/settings')
           normalized.splice(settingsIndex < 0 ? normalized.length : settingsIndex, 0, '/workforce')
         }
-        if (canReadTeamCompass && !normalized.includes('/team-compass')) {
-          const settingsIndex = normalized.indexOf('/settings')
-          normalized.splice(settingsIndex < 0 ? normalized.length : settingsIndex, 0, '/team-compass')
-        }
         setMenuOrder(normalized)
       } catch { setMenuOrder([]) }
     }
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
-  }, [canOpenResearch, canReadProcessWork, canReadStartPage, canReadTeamCompass, canReadWorkforce])
+  }, [canOpenResearch, canReadProcessWork, canReadStartPage, canReadWorkforce])
   const orderedLinks = [...links].sort((left, right) => {
     const leftIndex = menuOrder.indexOf(left.href)
     const rightIndex = menuOrder.indexOf(right.href)

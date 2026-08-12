@@ -2,8 +2,8 @@
 
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { employmentContractMutationSchema, isEmploymentContractStartDateValid, type EmploymentContractMutationInput } from '@/lib/employment/contract-schemas'
-import { validateProbation } from '@/lib/employment/probation-rules'
-import type { EmploymentCreateFormProps } from './employment-create-form'
+import { addContractPeriodEnd, validateProbation } from '@/lib/employment/probation-rules'
+import type { EmploymentCreateFormProps, EmploymentWizardEmployeeSummary } from './employment-create-form'
 
 export type EmploymentContractWizardWorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
 export type EmploymentContractWizardDurationType = 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
@@ -32,13 +32,14 @@ interface Props {
   isFirstContract: boolean
   labels: EmploymentCreateFormProps['labels']
   submitLabel: string
+  employeeSummary?: EmploymentWizardEmployeeSummary
   onStepChange?: (step: number) => void
   onSaved?: () => void
 }
 
 type State = 'idle' | 'saving' | 'saved' | 'failed'
 
-export function EmploymentContractCreateForm({ employmentId, options, initialDraft, employmentStartsOn, isFirstContract, labels, submitLabel, onStepChange, onSaved }: Props) {
+export function EmploymentContractCreateForm({ employmentId, options, initialDraft, employmentStartsOn, isFirstContract, labels, submitLabel, employeeSummary, onStepChange, onSaved }: Props) {
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState(() => ({ ...initialDraft, startsOn: isFirstContract ? employmentStartsOn : initialDraft.startsOn }))
   const [state, setState] = useState<State>('idle')
@@ -112,15 +113,16 @@ export function EmploymentContractCreateForm({ employmentId, options, initialDra
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.fulltimeReference}</span><input className="form-field bg-muted/40" type="number" value={selectedLaborConditionSet?.standardHoursPerWeek ?? 40} readOnly /></label>
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.duration}</span><select className="form-field" value={draft.durationType} onChange={(event) => { const durationType = event.target.value as EmploymentContractWizardDurationType; update('durationType', durationType); if (durationType !== 'DEFINITE') update('endsOn', '') }}><option value="INDEFINITE">{labels.indefinite}</option><option value="DEFINITE">{labels.definite}</option><option value="TEMPORARY_NO_END">{labels.temporaryWithoutEnd}</option></select></label>
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.startDate}</span><input type="date" min={employmentStartsOn} readOnly={isFirstContract} className={`form-field${isFirstContract ? ' bg-muted/40' : ''}`} value={draft.startsOn} onChange={(event) => update('startsOn', event.target.value)} /><span className="text-xs font-normal text-muted-foreground">{isFirstContract ? labels.firstContractStartDateHelp : labels.contractStartDateMinimumHelp}</span></label>
-        {draft.durationType === 'DEFINITE' && <label className="grid gap-1.5 text-sm font-medium"><span>{labels.endDate}</span><input type="date" min={draft.startsOn} className="form-field" value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /><span className="flex flex-wrap gap-2"><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 1))}>{labels.addOneMonth}</SmallButton><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 3))}>{labels.addThreeMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 6))}>{labels.addSixMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addMonths(draft.startsOn, 12))}>{labels.addTwelveMonths}</SmallButton></span></label>}
+        {draft.durationType === 'DEFINITE' && <label className="grid gap-1.5 text-sm font-medium"><span>{labels.endDate}</span><input type="date" min={draft.startsOn} className="form-field" value={draft.endsOn} onChange={(event) => update('endsOn', event.target.value)} /><span className="flex flex-wrap gap-2"><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 1))}>{labels.addOneMonth}</SmallButton><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 3))}>{labels.addThreeMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 6))}>{labels.addSixMonths}</SmallButton><SmallButton onClick={() => update('endsOn', addContractPeriodEnd(draft.startsOn, 12))}>{labels.addTwelveMonths}</SmallButton></span></label>}
         <label className="grid gap-1.5 text-sm font-medium"><span>{labels.probation}</span><select className="form-field" value={String(draft.probationApplies)} onChange={(event) => { const applies = event.target.value === 'true'; update('probationApplies', applies); if (!applies) update('probationEndsOn', '') }}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></label>
-        {draft.probationApplies && <label className="grid gap-1.5 text-sm font-medium"><span>{labels.probationEnd}</span><input type="date" min={draft.startsOn} className="form-field" value={draft.probationEndsOn} onChange={(event) => update('probationEndsOn', event.target.value)} />{probationError === 'PROBATION_NOT_ALLOWED' && <span className="text-xs font-normal text-destructive">{labels.probationNotAllowed}</span>}{probationError === 'PROBATION_MAXIMUM_EXCEEDED' && <span className="text-xs font-normal text-destructive">{labels.probationMaximumExceeded}</span>}</label>}
+        {draft.probationApplies && <label className="grid gap-1.5 text-sm font-medium"><span>{labels.probationEnd}</span><input type="date" min={draft.startsOn} className="form-field" value={draft.probationEndsOn} onChange={(event) => update('probationEndsOn', event.target.value)} />{probationError === 'PROBATION_NOT_ALLOWED' && <span role="status" className="text-xs font-normal text-warning">{labels.probationNotAllowed}</span>}{probationError === 'PROBATION_MAXIMUM_EXCEEDED' && <span role="status" className="text-xs font-normal text-warning">{labels.probationMaximumExceeded}</span>}{probationError === 'PROBATION_DATE_OUTSIDE_CONTRACT' && <span role="status" className="text-xs font-normal text-warning">{labels.probationOutsideContract}</span>}</label>}
         {draft.workerType === 'TEMPORARY_AGENCY' && <label className="grid gap-1.5 text-sm font-medium"><span>{labels.flexPhase}</span><select className="form-field" value={draft.flexPhaseId} onChange={(event) => update('flexPhaseId', event.target.value)}>{options.flexPhases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
       </div>
     </section>}
 
     {step === 1 && <section className="flex min-h-0 flex-1 flex-col">
       <h2 className="text-xl font-semibold">{labels.completeSummary}</h2>
+      {employeeSummary && <EmployeeSummaryCard summary={employeeSummary} labels={labels} />}
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{labels.createHint}</p>
       <dl className="mt-5 grid gap-3 sm:grid-cols-2">
         <Summary label={labels.laborConditions} value={selectedLaborConditionSet?.name ?? ''} />
@@ -145,17 +147,11 @@ function Summary({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl border p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>
 }
 
-function addMonths(value: string, months: number): string {
-  if (!value) return ''
-  const [year, month, day] = value.split('-').map(Number)
-  const date = new Date(Date.UTC(year, month - 1, day))
-  date.setUTCDate(1)
-  date.setUTCMonth(date.getUTCMonth() + months)
-  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate()
-  date.setUTCDate(Math.min(day, lastDay))
-  return date.toISOString().slice(0, 10)
-}
-
 function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return <button type="button" className="rounded-lg border px-2.5 py-1 text-xs font-semibold hover:bg-muted" onClick={onClick}>{children}</button>
+}
+
+function EmployeeSummaryCard({ summary, labels }: { summary: EmploymentWizardEmployeeSummary; labels: EmploymentCreateFormProps['labels'] }) {
+  const gender = summary.gender === 'MALE' ? labels.genderMale : summary.gender === 'FEMALE' ? labels.genderFemale : summary.gender === 'OTHER' ? labels.genderOther : labels.genderUndisclosed
+  return <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-primary">{labels.employeeSummaryTitle}</p><dl className="mt-3 grid gap-3 sm:grid-cols-3"><Summary label={labels.employeeSummaryName} value={summary.name} /><Summary label={labels.employeeSummaryBirthDate} value={summary.birthDate ?? ''} /><Summary label={labels.employeeSummaryGender} value={gender} /></dl></div>
 }

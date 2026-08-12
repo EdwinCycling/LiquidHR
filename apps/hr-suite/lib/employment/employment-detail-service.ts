@@ -10,8 +10,8 @@ import type {
 } from './detail-schemas'
 import { assessEmploymentChain } from './chain-assessment'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
-import type { EmploymentContractMutationInput } from './contract-schemas'
-import { validateProbation } from './probation-rules'
+import { isEmploymentContractEffectiveDateValid, type EmploymentContractMutationInput } from './contract-schemas'
+import { isBlockingProbationValidation, validateProbation } from './probation-rules'
 import type { CompanyLocationMutationInput } from './company-location-schemas'
 
 type Tables = Database['public']['Tables']
@@ -44,6 +44,24 @@ async function loadEmploymentForAction(employmentId: string, permission: string)
     throw new EmploymentDetailError('EMPLOYMENT_NOT_FOUND', 404)
   }
   return data
+}
+
+async function validateSelectedContract(
+  employmentId: string,
+  contractId: string | null | undefined,
+  effectiveOn: string,
+): Promise<void> {
+  if (!contractId) return
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('employment_contracts')
+    .select('id, starts_on, ends_on')
+    .eq('id', contractId)
+    .eq('employment_id', employmentId)
+    .maybeSingle()
+  if (error || !data) throw new EmploymentDetailError('CONTRACT_NOT_FOUND', 404)
+  if (!isEmploymentContractEffectiveDateValid(effectiveOn, data.starts_on, data.ends_on)) {
+    throw new EmploymentDetailError('CONTRACT_DATE_OUTSIDE_CONTRACT', 400)
+  }
 }
 
 export type EmploymentDetailLoadScope =
@@ -105,7 +123,7 @@ export async function getEmploymentDetail(
   const canWriteCompanyLocationPromise = includeCompanyLocation
     ? permissionAllowed('organization-placement:write', employeeId)
     : Promise.resolve(false)
-  const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, work_email, work_phone, work_mobile, avatar_url')
+  const employeeQuery = supabase.from('employees').select('id, employee_number, first_name, birth_name, birth_date, gender, work_email, work_phone, work_mobile, avatar_url')
     .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).eq('id', employeeId).maybeSingle()
   const administrationQuery = supabase.from('administrations').select('id, code, name')
     .eq('id', employment.administration_id).maybeSingle()
@@ -275,6 +293,7 @@ export async function getEmploymentDetail(
 export async function applyTimelineMutation(employmentId: string, input: TimelineMutationInput): Promise<string> {
   const permission = input.timeline === 'SALARY' ? 'salary:write' : 'contract:write'
   await loadEmploymentForAction(employmentId, permission)
+  await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
   const supabase = await createClient()
   const { data, error } = input.timeline === 'COST_ALLOCATION'
     ? await supabase.rpc('apply_employment_cost_allocation', {
@@ -305,6 +324,7 @@ export async function applyCombinedTimelineMutation(
   const requiresSalaryWrite = input.mutations.some((mutation) => mutation.timeline === 'SALARY')
   await loadEmploymentForAction(employmentId, 'contract:write')
   if (requiresSalaryWrite) await loadEmploymentForAction(employmentId, 'salary:write')
+  await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('apply_combined_employment_timeline_mutation', {
     requested_employment_id: employmentId,
@@ -337,7 +357,7 @@ export async function manageEmploymentContract(
     ...input,
     caoAllowsTwoMonths: laborCondition.probation_maximum_months === 2,
   })
-  if (probationError) throw new EmploymentDetailError(probationError, 400)
+  if (isBlockingProbationValidation(probationError)) throw new EmploymentDetailError(probationError, 400)
   const { data, error } = await supabase.rpc('manage_employment_contract', {
     requested_employment_id: employmentId,
     requested_contract_id: contractId as string,
@@ -350,10 +370,11 @@ export async function manageEmploymentContract(
 export async function manageEmploymentOrganization(
   employmentId: string,
   placementId: string | null,
-  input: { effectiveOn: string; departmentId: string; jobId: string },
+  input: { contractId?: string | null; effectiveOn: string; departmentId: string; jobId: string },
 ): Promise<string> {
   const employment = await loadEmploymentForAction(employmentId, 'contract:read')
   await requirePermission('organization-placement:write', employment.employee_id)
+  await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('manage_employment_organization_timeline', {
     requested_employment_id: employmentId,

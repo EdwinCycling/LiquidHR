@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { BriefcaseBusiness, Grid2X2, MessageSquareText, Sparkles, Star, Tags } from 'lucide-react'
+import { BriefcaseBusiness, Compass, Grid2X2, MessageSquareText, Sparkles, Star, Tags } from 'lucide-react'
 import { requireAuthContext } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
+import { getEnabledTenantModules } from '@/lib/modules/module-service'
 
 export default async function WorkforcePage() {
   const authContext = await requireAuthContext()
@@ -13,7 +14,7 @@ export default async function WorkforcePage() {
   if (!canReadManagementWorkspace && !canReadPersonalWorkspace) redirect('/geen-toegang')
   const personalOnly = !canReadManagementWorkspace
 
-  const [t, star] = await Promise.all([getTranslator('workforce'), getTranslator('starPerformers')])
+  const [t, star, enabledModules] = await Promise.all([getTranslator('workforce'), getTranslator('starPerformers'), getEnabledTenantModules()])
   const canReadStarPerformers = !personalOnly && authContext.permissions.includes('star-performer:read')
   const canReadTalentProfiles = personalOnly
     ? authContext.permissions.includes('self:talent:read')
@@ -22,6 +23,7 @@ export default async function WorkforcePage() {
   const canReadContinuousAppraisal = personalOnly
     ? authContext.permissions.includes('self:continuous-appraisal:read')
     : authContext.permissions.includes('continuous-appraisal:read')
+  const canReadTeamCompass = enabledModules.includes('TEAM_COMPASS') && authContext.permissions.some((permission) => ['team-compass:manage', 'team-compass:read', 'self:team-compass:read'].includes(permission))
 
   const windows = [
     ...(canReadTalentReview ? [
@@ -35,6 +37,9 @@ export default async function WorkforcePage() {
     }] : []),
     ...(canReadTalentProfiles ? [
       { icon: Sparkles, title: t('talentProfilesTitle'), description: t('talentProfilesDescription'), href: personalOnly ? '/my-talent' : '/workforce/talent', status: t('available'), footer: t('openWorkspace') },
+    ] : []),
+    ...(canReadTeamCompass ? [
+      { icon: Compass, title: t('teamCompassTitle'), description: t('teamCompassDescription'), href: '/team-compass', status: t('available'), footer: t('openWorkspace') },
     ] : []),
     ...(canReadStarPerformers ? [
       { icon: Star, title: star('title'), description: star('subtitle'), href: '/workforce/star-performers', status: t('available'), footer: t('openWorkspace') },

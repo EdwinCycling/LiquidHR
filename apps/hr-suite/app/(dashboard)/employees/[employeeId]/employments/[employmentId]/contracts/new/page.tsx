@@ -33,9 +33,10 @@ export default async function NewEmploymentContractPage({ params }: { params: Pr
       <div className="mt-5 min-w-0 max-w-full">
         <EmployeeCreateWizard
           locale={locale}
-          initialContractEmployeeId={employeeId}
-          initialContractEmploymentId={employmentId}
-          initialContractOptions={{
+           initialContractEmployeeId={employeeId}
+           initialContractEmploymentId={employmentId}
+           initialEmployeeSummary={{ name: `${detail.employee.first_name} ${detail.employee.birth_name}`, birthDate: detail.employee.birth_date, gender: detail.employee.gender }}
+           initialContractOptions={{
             laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: item.standard_hours_per_week, probationMaximumMonths: item.probation_maximum_months === 2 ? 2 : 1 })),
             flexPhases: detail.options.flexPhases.map((item) => ({ id: item.id, name: item.name })),
           }}

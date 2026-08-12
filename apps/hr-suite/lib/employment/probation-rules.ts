@@ -24,6 +24,14 @@ export function addCalendarMonths(value: string, months: number): string {
   return date.toISOString().slice(0, 10)
 }
 
+export function addContractPeriodEnd(value: string, months: number): string {
+  const boundary = addCalendarMonths(value, months)
+  if (!boundary) return ''
+  const [year, month, day] = boundary.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day - 1))
+  return date.toISOString().slice(0, 10)
+}
+
 export function getProbationRule(input: ProbationRuleInput): ProbationRule {
   if (input.durationType === 'INDEFINITE') {
     return { allowed: true, maximumMonths: 2, reason: 'INDEFINITE' }
@@ -33,11 +41,11 @@ export function getProbationRule(input: ProbationRuleInput): ProbationRule {
     return { allowed: true, maximumMonths: 1, reason: 'TEMPORARY_WITHOUT_END' }
   }
 
-  if (input.endsOn <= addCalendarMonths(input.startsOn, 6)) {
+  if (input.endsOn <= addContractPeriodEnd(input.startsOn, 6)) {
     return { allowed: false, maximumMonths: 0, reason: 'SHORT_FIXED_TERM' }
   }
 
-  if (input.endsOn < addCalendarMonths(input.startsOn, 24)) {
+  if (input.endsOn < addContractPeriodEnd(input.startsOn, 24)) {
     return {
       allowed: true,
       maximumMonths: input.caoAllowsTwoMonths === true ? 2 : 1,
@@ -69,11 +77,15 @@ export function validateProbation(input: ProbationRuleInput & {
 
   const rule = getProbationRule(input)
   if (!rule.allowed) return 'PROBATION_NOT_ALLOWED'
-  if (input.probationEndsOn > addCalendarMonths(input.startsOn, rule.maximumMonths)) {
+  if (input.probationEndsOn > addContractPeriodEnd(input.startsOn, rule.maximumMonths)) {
     return 'PROBATION_MAXIMUM_EXCEEDED'
   }
   if (input.endsOn && input.probationEndsOn > input.endsOn) {
     return 'PROBATION_DATE_OUTSIDE_CONTRACT'
   }
   return null
+}
+
+export function isBlockingProbationValidation(code: ProbationValidationCode | null): code is 'PROBATION_DATE_INVALID' {
+  return code === 'PROBATION_DATE_INVALID'
 }

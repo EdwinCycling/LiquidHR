@@ -9,7 +9,7 @@ export default async function MenuOrderPage() {
     { href: '/research', label: navigation('research') },
     { href: '/organization-chart', label: navigation('organizationChart') }, { href: '/hr-calendar', label: navigation('hrCalendar') },
     { href: '/insights', label: navigation('insights') }, { href: '/workforce', label: navigation('workforce') },
-    { href: '/team-compass', label: navigation('teamCompass') }, { href: '/settings', label: navigation('settings') },
+    { href: '/settings', label: navigation('settings') },
   ]
   return <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-10"><p className="eyebrow">{settings('admin.sections.platform')}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{settings('admin.menuOrderTitle')}</h1><p className="mt-2 max-w-2xl text-muted-foreground">{settings('admin.menuOrderDescription')}</p><MenuOrderForm items={items} moveDownLabel={settings('admin.menuOrderMoveDown')} moveUpLabel={settings('admin.menuOrderMoveUp')} saveLabel={settings('admin.menuOrderSave')} savedLabel={settings('admin.menuOrderSaved')} /></div>
 }

@@ -1,5 +1,37 @@
 # Implementatiestatus Liquid HR
 
+## LiquidHR Journeys 2026-08-12 — NIET GESTART / ontwerp voorbereid
+
+De leidende requirements staan in `docs/requirements/journeys/JOURNEYS.md`. Vastgelegd zijn: zelfstandige domeingrens, HR-groepownership, blijvende Employee-identiteit, optionele expliciete Employment-context, immutable templateversies, concrete participant snapshots, eigen permission-/RLS-contract, preboarding-access, actor-specifieke projecties, applicatiekaart, conceptueel datamodel, testmatrix en exact drie verticale bouwstappen.
+
+De definitieve Stitch-ZIP is als visuele referentie beoordeeld in `docs/requirements/journeys/references/STITCH_REVIEW_2026-08-12.md`. De bron bevat 14 van de 16 gevraagde schermvarianten. De bestaande LiquidHR-shell en architectuur hebben voorrang; contractdetails, externe HRIS-fictie, chat/messages, eigen sidebar/topbar, Material Symbols en workflowachtige blocking moments zijn expliciet afgewezen. De algemene, gecontroleerde design-systemvoorstellen staan als concept in `docs/architecture/DESIGN_SYSTEM_EVOLUTION.md` en voeren geen app-brede restyling uit.
+
+Status: documentatie gereed voor review. Geen implementatie of remote wijziging. Open: expliciete goedkeuring van analyse en drie-stappenplan; daarna pas stap 1 volgens `schema → API → UI`.
+
+## Looncontract aanpassen: vier flows 2026-08-12
+
+De eerste vier acties op de dienstverbanddetailpagina zijn lokaal aangesloten op één gedeelde wizard. De contractselectie toont bij ieder contract de relevante periode-, arbeidsvoorwaarde-, werkvorm- en fulltimegegevens; na selectie staat expliciet `Dat contract gaan we aanpassen.`. Voor iedere flow worden de relevante historische waarden vóór de wijziging getoond en kan de ingangsdatum snel worden gekozen als contractstart, begin huidige maand, begin volgende maand of als aangepaste datum.
+
+De flows ondersteunen urenrooster, urenrooster + salaris, functie/afdeling/kostenplaats en salaris. De roostereditor volgt de medewerkerwizard met voltijd/deeltijd-afleiding, weekuren, factor, daguren, tweede roosterweek en tijd-voor-tijd. Een één- of tweeweekse keuze wordt na de schedule-write ook gepubliceerd via de bestaande work-pattern-API. De salaris-, keuze- en kostenverdelingsvelden zijn in dezelfde detail/review/save-cyclus opgenomen. De service controleert de gekozen `contractId` en ingangsdatum server-side; bestaande API's en RLS blijven de schrijfgrens. De overige drie actietegels geven na contractkeuze nog een bewuste niet-beschikbaarmelding.
+
+Status: lokaal geïmplementeerd en statisch geverifieerd met 156 testbestanden/606 tests, strict TypeScript, volledige ESLint, 31 gelijke NL/EN-namespaces, `git diff --check` en `next build --webpack` met 200 pagina's. De lokale browsercontrole bevestigt `/login` HTTP 200, maar authenticated detail-, contractkeuze- en savebewijs is niet uitgevoerd. Geen migratie, remote wijziging, commit, push of deployment.
+
+## Nieuwe medewerker- en dienstverbandwizard 2026-08-12
+
+De foto-upload staat als nieuw harmonica-venster onder `Optionele extra gegevens` in de nieuwe medewerkerwizard. Contract- en proeftijdsnelkeuzes rekenen de periode-einddatum inclusief laatste dag uit. Proeftijdregels voor wel/niet toegestaan en maximale duur zijn waarschuwingen; de lokale migratie `20260812110000_probation_rule_warnings.sql` laat alleen ontbrekende of chronologisch ongeldige datums blokkeren. De roosterband bepaalt `FULL_TIME` uitsluitend bij exact gelijke weekuren met de fulltime-referentie.
+
+De dienstverbandwizard blijft read-only bij de overgang van `Overige` naar `Controleren`. De review toont naam, geboortedatum en geslacht; de POST naar `/api/employees/:employeeId/employments` gebeurt uitsluitend na `Dienstverband aanmaken` en dubbele eindacties worden client-side afgevangen. De 409-responsen voor nummer/IKV-conflicten krijgen een gerichte melding.
+
+Status: lokaal geïmplementeerd en geverifieerd met 156 testbestanden/605 tests, strict TypeScript, volledige ESLint en 31 gelijke NL/EN-namespaces. De nieuwe Supabase-migratie is niet remote toegepast; deployment en authenticated browserbewijs zijn open omdat poort 3000 in deze beheerde sessie niet blijvend kon worden gestart.
+
+## Navigatie en module-instellingen 2026-08-12
+
+De standalone sidebar-link voor Teamkompas en de bijbehorende menuvolgorde-optie zijn verwijderd. Teamkompas verschijnt nu als permission- en modulegestuurd venster op `/workforce` (Ontwikkeling), naast de bestaande ontwikkelonderdelen. De NL/EN-teksten zijn toegevoegd.
+
+Documentdossiers zijn geen optionele module meer in de instellingenpagina: de catalogus, Zod-selectie en save-payload accepteren alleen de zes werkelijk schakelbare uitbreidingen. Migratie `20260812054853_documents_always_on.sql` zet bestaande en toekomstige `DOCUMENTS`-tenantregels aan, voegt een database-check constraint toe en maakt de centrale `tenant_module_enabled`-helper voor deze code altijd positief na tenanttoegangscontrole.
+
+Status: lokaal geïmplementeerd en gericht geverifieerd. 2 gerichte testbestanden/3 tests, strict TypeScript, volledige ESLint, 31 gelijke NL/EN-namespaces en `git diff --check` zijn groen. Niet remote toegepast, niet gedeployed. Read-only advisors en typegeneratie zijn tegen de bestaande remote toestand uitgevoerd; post-migratie advisors/typevalidatie en authenticated browserbewijs volgen alleen bij expliciete schema-/releaseverificatie.
+
 ## Release 2026-08-11 — productie geverifieerd
 
 Alle actuele featurecommits staan op lokaal `main`; de zichtbare versie is `1.20260811.1`. De releasegate is groen met 156 testbestanden/601 tests, strict TypeScript, 31 gelijke NL/EN-namespaces, volledige ESLint, diff-check en een Webpack-productiebuild met 200 pagina's.

@@ -1,4 +1,4 @@
-import { validateProbation } from '@/lib/employment/probation-rules'
+import { isBlockingProbationValidation, validateProbation } from '@/lib/employment/probation-rules'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
 
 export type EmploymentWizardStep = 'administration' | 'employment' | 'payrollChoice' | 'contract' | 'schedule' | 'salary' | 'other' | 'review'
@@ -70,8 +70,7 @@ export function isEmploymentWizardStepValid(
       && (input.employmentType !== 'TEMPORARY_AGENCY' || input.flexPhaseId)
       && (input.durationType !== 'DEFINITE' || (input.endsOn && input.endsOn >= input.startsOn))
       && (!input.probationApplies || (input.probationEndsOn && input.probationEndsOn >= input.startsOn
-        && (input.durationType !== 'DEFINITE' || !input.endsOn || input.probationEndsOn <= input.endsOn)))
-      && !probationError)
+        && !isBlockingProbationValidation(probationError))))
   }
   if (step === 'schedule') {
     const weeklyHours = parseDecimalInput(input.weeklyHours)
