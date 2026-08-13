@@ -1,5 +1,12 @@
 # Actuele overdracht Liquid HR
 
+## Guided Recruitment — lokaal geconsolideerde testrelease 2026-08-13
+
+- De volledige Guided Recruitment-feature is vanuit `feature/recruitment` lokaal samengevoegd naar `main`. De feature-afrondingscommit is `fd367ff`; de normale mergecommit was `98fc2f0`; de daaropvolgende versie-/lintfixcommits zijn onderdeel van de nog te publiceren release.
+- Zichtbare productversie: `1.20260813.1`. De definitieve lokale gate is groen: 182 testbestanden/687 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, ESLint zonder warnings, `git diff --check` en Webpack-build met 223 pagina's.
+- De Recruitment-migrations, contracttests, fixture, requirements, i18n en generated DB-types zijn lokaal behouden en gecommit; bestaande remote migrationclaims uit de Recruitment-handoff zijn niet opnieuw uitgevoerd. De lokale worktree was niet aan Supabase gelinkt, daarom is geen ongerichte remote write of `db push` uitgevoerd.
+- De publieke securityconfiguratie blijft bewust geparkeerd: Turnstile, rate-limit-pepper en malware-scanner ontbreken; publieke submit/upload blijft fail-closed. Zie [`docs/requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md`](../requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md).
+
 ## Guided Recruitment — publieke securityconfiguratie geparkeerd 2026-08-13
 
 - Het dossier staat in [`docs/requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md`](../requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md) en is bewust bewaard als uitbreidbaar security-werkpunt.

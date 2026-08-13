@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Guided Recruitment — lokaal geconsolideerde testrelease 2026-08-13
+
+Guided Recruitment is lokaal samengevoegd naar `main` en staat op zichtbare productversie `1.20260813.1`. De volledige lokale gate is groen: 182 testbestanden/687 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, ESLint zonder warnings, `git diff --check` en Webpack-build met 223 pagina's. De publieke Turnstile-, rate-limit- en malware-scanconfiguratie blijft bewust geparkeerd; publieke submit/upload blijft fail-closed.
+
 ## Guided Recruitment — publieke securityconfiguratie geparkeerd 2026-08-13
 
 De publieke Recruitment-securityconfiguratie is bewust geparkeerd voor de development/testfase. De bestaande flow blijft fail-closed zolang Turnstile, rate limiting en malwarecontrole niet zijn geconfigureerd. Het volledige dossier en de latere releasegate staan in [`requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md`](requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md). Geen bypass, dummy scanner of productiecredentials toevoegen voordat Guided Recruitment richting productie gaat.
