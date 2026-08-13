@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## Guided Recruitment — publieke securityconfiguratie geparkeerd 2026-08-13
+
+- Het dossier staat in [`docs/requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md`](../requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md) en is bewust bewaard als uitbreidbaar security-werkpunt.
+- De publieke Recruitment-submit/upload blijft fail-closed zolang Turnstile, `RECRUITMENT_RATE_LIMIT_PEPPER` en malware-scanconfiguratie ontbreken. Geen bypass, dummy scanner of hardcoded testsecret toevoegen.
+- Heropenen bij productievoorbereiding, externe bereikbaarheid, echte kandidaatuploads of een gedeelde public-ingestion security service. Er is in deze parkeeractie geen remote wijziging, deployment of credentialactie uitgevoerd.
+
 ## Journeys bouwstap 3 — volledig afgerond
 
 - De globale `DIRECT_MANAGER`-grant is niet toegevoegd. De oorzaak van de blocker was dat Journey-shelltoegang ten onrechte aan een zichtbare topicassignment was gekoppeld. De minimale oplossing gebruikt de bestaande `journey-participation:read`-route plus concrete `journey_participants` met status `ASSIGNED` of `ACTIVE`; dit verleent geen algemene `employee:read` en geen brede Journey-scope.

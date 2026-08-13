@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Guided Recruitment — publieke securityconfiguratie geparkeerd 2026-08-13
+
+De publieke Recruitment-securityconfiguratie is bewust geparkeerd voor de development/testfase. De bestaande flow blijft fail-closed zolang Turnstile, rate limiting en malwarecontrole niet zijn geconfigureerd. Het volledige dossier en de latere releasegate staan in [`requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md`](requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md). Geen bypass, dummy scanner of productiecredentials toevoegen voordat Guided Recruitment richting productie gaat.
+
 ## LiquidHR Journeys — bouwstap 1 t/m 3 afgerond 2026-08-12
 
 De leidende requirements voor de nieuwe zelfstandige module staan in [`requirements/journeys/JOURNEYS.md`](requirements/journeys/JOURNEYS.md). Het document legt HR-groepownership, blijvende Employee-identiteit, gepinde templateversies, concrete participants, actor-specifieke projecties, eigen permissions/RLS, preboarding-access, routes, het conceptuele datamodel, de 16-schermkaart en exact drie bouwstappen vast. Journeys blijft gescheiden van Process Automation, Recruitment, contract/salaris, dossier en chat.

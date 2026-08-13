@@ -1,5 +1,9 @@
 # Implementatiestatus Liquid HR
 
+## Guided Recruitment — publieke securityconfiguratie geparkeerd 2026-08-13
+
+De publieke Recruitment-securityboundary is bewust geparkeerd voor development/test. Zonder Turnstile, rate-limit-pepper en malware-scanconfiguratie blijft publieke submit/upload fail-closed; vacatureweergave en interne Recruitment-functionaliteit mogen blijven werken. Het volledige, later uitbreidbare dossier staat in `docs/requirements/recruitment/LIQUIDHR_RECRUITMENT_PUBLIC_SECURITY_PARKED.md`. Er is geen bypass, dummy scanner, productiecredential, remote wijziging of deployment toegevoegd.
+
 ## LiquidHR Journeys 2026-08-12 — BOUWSTAP 3 VOLLEDIG AFGEROND
 
 De leidende requirements staan in `docs/requirements/journeys/JOURNEYS.md`. Vastgelegd zijn: zelfstandige domeingrens, HR-groepownership, blijvende Employee-identiteit, optionele expliciete Employment-context, immutable templateversies, concrete participant snapshots, eigen permission-/RLS-contract, preboarding-access, actor-specifieke projecties, applicatiekaart, conceptueel datamodel, testmatrix en exact drie verticale bouwstappen.
