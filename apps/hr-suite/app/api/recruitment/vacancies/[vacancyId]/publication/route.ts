@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRequestAuthorizationContext, permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
+import { permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { RecruitmentError } from '@/lib/recruitment/errors'
 import { updateRecruitmentPublication } from '@/lib/recruitment/vacancy-service'

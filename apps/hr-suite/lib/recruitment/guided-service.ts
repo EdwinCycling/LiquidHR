@@ -1,4 +1,4 @@
-import type { Database, Json } from '@scope/db'
+import type { Database } from '@scope/db'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
@@ -99,14 +99,6 @@ function rpc(client: SupabaseServerClient): RpcClient {
 function parseObject(result: { readonly data: unknown; readonly error: { readonly message: string } | null }): Record<string, unknown> {
   if (result.error) throw recruitmentDatabaseError(result.error)
   return objectResultSchema.parse(result.data)
-}
-
-function parseJsonRecord(value: Json): Record<string, unknown> {
-  return recordSchema.parse(value)
-}
-
-function parseJsonArray(value: Json): readonly unknown[] {
-  return jsonArraySchema.parse(value)
 }
 
 export function scope(context: Pick<AuthContext, 'tenantId' | 'hrGroupId'>): { readonly tenantId: string; readonly hrGroupId: string } {

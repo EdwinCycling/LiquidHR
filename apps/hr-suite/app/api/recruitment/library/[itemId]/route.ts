@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
+import { requirePermission } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import { setGuidedLibraryItemEnabled, updateGuidedLibraryItem } from '@/lib/recruitment/guided-service'
