@@ -4,7 +4,7 @@ import { z } from 'zod'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { recruitmentDatabaseError, RecruitmentError } from './errors'
-import { assessmentInputSchema } from './assessment-service'
+import { assessmentInputSchema, toAssessmentRpcScores } from './assessment-service'
 import { interviewInputSchema } from './interview-service'
 import { libraryItemInputSchema } from './library-service'
 import { retentionSettingsSchema } from './retention-service'
@@ -208,7 +208,7 @@ export async function createGuidedInterview(input: unknown, client: SupabaseServ
 
 export async function upsertAssessmentDraft(input: unknown, client: SupabaseServerClient) {
   const parsed = assessmentInputSchema.parse(input)
-  return parseObject(await rpc(client).rpc('upsert_recruitment_assessment_draft', { requested_interview_id: parsed.interviewId, requested_scores: parsed.scores }))
+  return parseObject(await rpc(client).rpc('upsert_recruitment_assessment_draft', { requested_interview_id: parsed.interviewId, requested_scores: toAssessmentRpcScores(parsed.scores) }))
 }
 
 export async function submitAssessment(assessmentId: string, expectedVersion: number, client: SupabaseServerClient) {
@@ -217,7 +217,7 @@ export async function submitAssessment(assessmentId: string, expectedVersion: nu
 
 export async function correctAssessment(assessmentId: string, reason: string, scores: unknown, client: SupabaseServerClient) {
   const parsed = assessmentInputSchema.shape.scores.parse(scores)
-  return parseObject(await rpc(client).rpc('correct_recruitment_assessment', { requested_assessment_id: guid.parse(assessmentId), requested_reason: reason, requested_scores: parsed }))
+  return parseObject(await rpc(client).rpc('correct_recruitment_assessment', { requested_assessment_id: guid.parse(assessmentId), requested_reason: reason, requested_scores: toAssessmentRpcScores(parsed) }))
 }
 
 export async function updateRecruitmentSettings(context: Pick<AuthContext, 'tenantId' | 'hrGroupId'>, input: { readonly retentionDays: number; readonly publicBranding: Record<string, unknown>; readonly publicationDefaults: Record<string, unknown>; readonly expectedVersion: number }, client: SupabaseServerClient) {

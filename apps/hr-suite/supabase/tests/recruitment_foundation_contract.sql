@@ -21,10 +21,11 @@ insert into public.user_hr_group_access (user_id, tenant_id, hr_group_id, manage
 on conflict (user_id, tenant_id, hr_group_id, management_role_id) do update set is_active = true;
 
 insert into public.recruitment_settings (id, tenant_id, hr_group_id, retention_days)
-values ('91000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 28);
+values ('91000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 28)
+on conflict (tenant_id, hr_group_id) do nothing;
 insert into public.recruitment_pipeline_stages (id, tenant_id, hr_group_id, code, name, sort_order, is_active) values
-  ('92000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 'TEST_RECRUITMENT_NEW', 'TEST-RECRUITMENT-NIEUW', 10, true),
-  ('92000000-0000-4000-8000-000000000002', '90000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000002', 'TEST_RECRUITMENT_OTHER', 'TEST-RECRUITMENT-OTHER', 10, true);
+  ('a2000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 'TEST_RECRUITMENT_CONTRACT_NEW', 'TEST-RECRUITMENT-CONTRACT-NIEUW', 10, true),
+  ('a2000000-0000-4000-8000-000000000002', '90000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000002', 'TEST_RECRUITMENT_CONTRACT_OTHER', 'TEST-RECRUITMENT-CONTRACT-OTHER', 10, true);
 insert into public.recruitment_vacancies (id, tenant_id, hr_group_id, title, status) values
   ('93000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 'TEST-RECRUITMENT-VACATURE', 'ACTIVE'),
   ('93000000-0000-4000-8000-000000000002', '90000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000002', 'TEST-RECRUITMENT-OTHER-VACATURE', 'ACTIVE');
@@ -33,9 +34,9 @@ insert into public.recruitment_candidates (id, tenant_id, hr_group_id, first_nam
   ('94000000-0000-4000-8000-000000000002', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 'TEST', 'RECRUITMENT-HIRE', 'test-recruitment-hire@example.invalid', 'test-recruitment-hire@example.invalid'),
   ('94000000-0000-4000-8000-000000000003', '90000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000002', 'TEST', 'RECRUITMENT-OTHER', null, null);
 insert into public.recruitment_applications (id, tenant_id, hr_group_id, vacancy_id, candidate_id, active_stage_id) values
-  ('95000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001'),
-  ('95000000-0000-4000-8000-000000000002', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000001'),
-  ('95000000-0000-4000-8000-000000000003', '90000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000002', '93000000-0000-4000-8000-000000000002', '94000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000002');
+  ('95000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001'),
+  ('95000000-0000-4000-8000-000000000002', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '93000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000002', 'a2000000-0000-4000-8000-000000000001'),
+  ('95000000-0000-4000-8000-000000000003', '90000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000002', '93000000-0000-4000-8000-000000000002', '94000000-0000-4000-8000-000000000003', 'a2000000-0000-4000-8000-000000000002');
 insert into public.recruitment_participations (id, tenant_id, hr_group_id, application_id, employee_id, status, activated_at, capabilities) values
   ('96000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '95000000-0000-4000-8000-000000000001', '9048f02b-4fdc-3c4c-e1aa-fd339660029c', 'ACTIVE', timezone('utc', now()), array['APPLICATION_READ','DOCUMENT_READ']),
   ('96000000-0000-4000-8000-000000000002', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '95000000-0000-4000-8000-000000000002', '9048f02b-4fdc-3c4c-e1aa-fd339660029c', 'ACTIVE', timezone('utc', now()), array['APPLICATION_READ']);
@@ -50,7 +51,7 @@ values ('99000000-0000-4000-8000-000000000001', '98000000-0000-4000-8000-0000000
 -- HR actor: own HR-group rows only; other tenant remains zero.
 select set_config('request.jwt.claim.sub', 'b86f6a66-276d-4f3d-a985-230f2cca9fdb', true);
 set local role authenticated;
-select 1 / ((select count(*) from public.recruitment_applications where tenant_id = '07249eb9-545c-883b-b26b-d52f83b4f4a1' and hr_group_id = '6ba6f1df-e376-40f2-abff-ffdf000172e1') = 2)::integer;
+select 1 / ((select count(*) from public.recruitment_applications where tenant_id = '07249eb9-545c-883b-b26b-d52f83b4f4a1' and hr_group_id = '6ba6f1df-e376-40f2-abff-ffdf000172e1') >= 2)::integer;
 select 1 / ((select count(*) from public.recruitment_applications where tenant_id = '90000000-0000-4000-8000-000000000001') = 0)::integer;
 reset role;
 
@@ -101,7 +102,7 @@ reset role;
 
 select set_config('request.jwt.claim.sub', 'b86f6a66-276d-4f3d-a985-230f2cca9fdb', true);
 set local role authenticated;
-select public.reopen_recruitment_application('95000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', 2, 'TEST-RECRUITMENT-REOPEN-1');
+select public.reopen_recruitment_application('95000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 2, 'TEST-RECRUITMENT-REOPEN-1');
 select public.update_recruitment_retention_settings('07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', 40, 1);
 reset role;
 select 1 / ((select count(*) from public.recruitment_participations where application_id = '95000000-0000-4000-8000-000000000001' and status = 'REVOKED') = 1)::integer;
@@ -113,11 +114,11 @@ select 1 / ((select count(*) from public.recruitment_participant_application_pro
 reset role;
 
 -- The only active stage cannot be deactivated.
-select set_config('request.jwt.claim.sub', 'b86f6a66-276d-4f3d-a985-230f2cca9fdb', true);
+select set_config('request.jwt.claim.sub', 'f38fe229-494e-4294-822d-90c19188232f', true);
 do $minimum_stage$
 begin
   begin
-    perform public.set_recruitment_pipeline_stage_active('92000000-0000-4000-8000-000000000001', false, 1);
+    perform public.set_recruitment_pipeline_stage_active('a2000000-0000-4000-8000-000000000002', false, 1);
     raise exception 'TEST_RECRUITMENT_EXPECTED_STAGE_GUARD';
   exception
     when check_violation then

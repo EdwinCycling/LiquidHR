@@ -1217,6 +1217,7 @@ export type Database = {
           },
         ]
       }
+      // Local compatibility type: this table exists in the application rollout but not in remote dev/test schema introspection.
       company_activities: {
         Row: {
           activity_date: string
@@ -12274,10 +12275,10 @@ export type Database = {
           hr_group_id: string
           id: string
           is_visible: boolean
-          title: string
           section_type: string
           sort_order: number
           tenant_id: string
+          title: string
           updated_at: string
           vacancy_id: string
           version: number
@@ -12288,10 +12289,10 @@ export type Database = {
           hr_group_id: string
           id?: string
           is_visible?: boolean
-          title?: string
           section_type: string
           sort_order: number
           tenant_id: string
+          title?: string
           updated_at?: string
           vacancy_id: string
           version?: number
@@ -12302,10 +12303,10 @@ export type Database = {
           hr_group_id?: string
           id?: string
           is_visible?: boolean
-          title?: string
           section_type?: string
           sort_order?: number
           tenant_id?: string
+          title?: string
           updated_at?: string
           vacancy_id?: string
           version?: number
@@ -16396,6 +16397,14 @@ export type Database = {
         }
         Returns: string
       }
+      correct_recruitment_assessment: {
+        Args: {
+          requested_assessment_id: string
+          requested_reason: string
+          requested_scores: Json
+        }
+        Returns: Json
+      }
       create_employee_address_change_reminders: {
         Args: {
           requested_action: string
@@ -16631,6 +16640,77 @@ export type Database = {
           requested_tenant_id: string
           requested_title: Json
           requested_validation_report?: Json
+        }
+        Returns: Json
+      }
+      create_recruitment_application: {
+        Args: {
+          requested_first_name: string
+          requested_last_name: string
+          requested_motivation: string
+          requested_phone: string
+          requested_private_email: string
+          requested_source: string
+          requested_vacancy_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_interview: {
+        Args: {
+          requested_application_id: string
+          requested_participant_employee_ids: Json
+          requested_scheduled_at: string
+          requested_set_id: string
+          requested_title: string
+        }
+        Returns: Json
+      }
+      create_recruitment_library_item: {
+        Args: {
+          requested_content: Json
+          requested_hr_group_id: string
+          requested_item_type: string
+          requested_stable_code: string
+          requested_tenant_id: string
+          requested_title: string
+        }
+        Returns: Json
+      }
+      create_recruitment_pipeline_stage: {
+        Args: {
+          requested_code: string
+          requested_hr_group_id: string
+          requested_name: string
+          requested_sort_order: number
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_set: {
+        Args: {
+          requested_description: string
+          requested_hr_group_id: string
+          requested_item_ids: Json
+          requested_name: string
+          requested_stable_code: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_vacancy: {
+        Args: {
+          requested_hr_group_id: string
+          requested_job_id: string
+          requested_location_label: string
+          requested_max_hours: number
+          requested_min_hours: number
+          requested_salary_max: number
+          requested_salary_min: number
+          requested_salary_visible: boolean
+          requested_sections: Json
+          requested_tenant_id: string
+          requested_title: string
+          requested_work_mode: string
         }
         Returns: Json
       }
@@ -16871,6 +16951,17 @@ export type Database = {
         }
         Returns: Json
       }
+      hire_recruitment_application: {
+        Args: {
+          requested_administration_id: string
+          requested_application_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+        }
+        Returns: Json
+      }
       import_holiday_snapshot: {
         Args: {
           requested_calendar_year: number
@@ -16988,6 +17079,15 @@ export type Database = {
         }
         Returns: Json
       }
+      publish_recruitment_vacancy: {
+        Args: {
+          requested_payload: Json
+          requested_slug: string
+          requested_status: string
+          requested_vacancy_id: string
+        }
+        Returns: Json
+      }
       publish_reminder: {
         Args: { requested_reminder_id: string }
         Returns: number
@@ -17028,6 +17128,14 @@ export type Database = {
         }
         Returns: string
       }
+      recruitment_analytics_projection: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: Json
+      }
+      recruitment_anonymize_application: {
+        Args: { requested_application_id: string }
+        Returns: Json
+      }
       recruitment_document_download_claim: {
         Args: { requested_document_id: string }
         Returns: {
@@ -17050,6 +17158,14 @@ export type Database = {
           version: number
         }[]
       }
+      recruitment_participant_assigned_applications: {
+        Args: never
+        Returns: Json[]
+      }
+      recruitment_participant_detail_projection: {
+        Args: { requested_application_id: string }
+        Returns: Json[]
+      }
       recruitment_public_vacancy: {
         Args: { requested_publication_id: string; requested_slug: string }
         Returns: {
@@ -17063,12 +17179,16 @@ export type Database = {
       recruitment_public_vacancy_state: {
         Args: { requested_publication_id: string; requested_slug: string }
         Returns: {
-          location: string | null
+          location: string
           publication_id: string
           slug: string
           status: string
           title: string
         }[]
+      }
+      recruitment_run_retention: {
+        Args: { requested_limit?: number }
+        Returns: Json
       }
       recruitment_submit_public_application: {
         Args: {
@@ -17078,72 +17198,6 @@ export type Database = {
           requested_slug: string
         }
         Returns: string
-      }
-      create_recruitment_application: {
-        Args: {
-          requested_first_name: string
-          requested_last_name: string
-          requested_motivation: string
-          requested_phone: string
-          requested_private_email: string
-          requested_source: string
-          requested_vacancy_id: string
-        }
-        Returns: Json
-      }
-      create_recruitment_vacancy: {
-        Args: {
-          requested_hr_group_id: string
-          requested_job_id: string
-          requested_location_label: string
-          requested_max_hours: number
-          requested_min_hours: number
-          requested_salary_max: number
-          requested_salary_min: number
-          requested_salary_visible: boolean
-          requested_sections: Json
-          requested_tenant_id: string
-          requested_title: string
-          requested_work_mode: string
-        }
-        Returns: Json
-      }
-      hire_recruitment_application: {
-        Args: {
-          requested_administration_id: string
-          requested_application_id: string
-          requested_employee_id: string
-          requested_employment_id: string
-          requested_expected_version: number
-          requested_idempotency_key: string
-        }
-        Returns: Json
-      }
-      publish_recruitment_vacancy: {
-        Args: {
-          requested_payload: Json
-          requested_slug: string
-          requested_status: string
-          requested_vacancy_id: string
-        }
-        Returns: Json
-      }
-      update_recruitment_vacancy: {
-        Args: {
-          requested_expected_version: number
-          requested_job_id: string
-          requested_location_label: string
-          requested_max_hours: number
-          requested_min_hours: number
-          requested_salary_max: number
-          requested_salary_min: number
-          requested_salary_visible: boolean
-          requested_sections: Json
-          requested_title: string
-          requested_vacancy_id: string
-          requested_work_mode: string
-        }
-        Returns: Json
       }
       release_process_work_item: {
         Args: {
@@ -17346,6 +17400,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_recruitment_library_item_enabled: {
+        Args: { requested_is_enabled: boolean; requested_item_id: string }
+        Returns: Json
+      }
       set_recruitment_pipeline_stage_active: {
         Args: {
           expected_version: number
@@ -17397,6 +17455,13 @@ export type Database = {
       submit_enps_response: {
         Args: { p_answers: Json; p_invitation_id: string }
         Returns: string
+      }
+      submit_recruitment_assessment: {
+        Args: {
+          requested_assessment_id: string
+          requested_expected_version: number
+        }
+        Returns: Json
       }
       submit_survey_response: {
         Args: { p_answers: Json; p_invitation_id: string }
@@ -17468,12 +17533,71 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_recruitment_library_item: {
+        Args: {
+          requested_content: Json
+          requested_expected_version: number
+          requested_is_active: boolean
+          requested_item_id: string
+          requested_title: string
+        }
+        Returns: Json
+      }
+      update_recruitment_pipeline_stage: {
+        Args: {
+          requested_expected_version: number
+          requested_is_active: boolean
+          requested_name: string
+          requested_sort_order: number
+          requested_stage_id: string
+        }
+        Returns: Json
+      }
       update_recruitment_retention_settings: {
         Args: {
           expected_version: number
           requested_hr_group_id: string
           requested_retention_days: number
           requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_set: {
+        Args: {
+          requested_description: string
+          requested_expected_version: number
+          requested_is_active: boolean
+          requested_item_ids: Json
+          requested_name: string
+          requested_set_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_settings: {
+        Args: {
+          requested_expected_version: number
+          requested_hr_group_id: string
+          requested_public_branding: Json
+          requested_publication_defaults: Json
+          requested_retention_days: number
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_vacancy: {
+        Args: {
+          requested_expected_version: number
+          requested_job_id: string
+          requested_location_label: string
+          requested_max_hours: number
+          requested_min_hours: number
+          requested_salary_max: number
+          requested_salary_min: number
+          requested_salary_visible: boolean
+          requested_sections: Json
+          requested_title: string
+          requested_vacancy_id: string
+          requested_work_mode: string
         }
         Returns: Json
       }
@@ -17488,6 +17612,10 @@ export type Database = {
       update_survey_draft: {
         Args: { p_campaign_id: string; p_payload: Json }
         Returns: string
+      }
+      upsert_recruitment_assessment_draft: {
+        Args: { requested_interview_id: string; requested_scores: Json }
+        Returns: Json
       }
       upsert_star_performer_assessment: {
         Args: { requested_administration_id: string; requested_payload: Json }

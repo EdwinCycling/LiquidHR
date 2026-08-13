@@ -43,32 +43,32 @@ on conflict (tenant_id, hr_group_id, stable_code) do update
 set name = excluded.name, description = excluded.description, is_active = true;
 
 insert into public.recruitment_library_items (tenant_id, hr_group_id, owner_type, item_type, stable_code, title, content)
-select groups.tenant_id, groups.id, 'SYSTEM', 'APPLICATION_QUESTION', format('SYSTEM_APPLICATION_QUESTION_%s', lpad(series.value::text, 2, '0')),
-  format('Sollicitatievraag %s', lpad(series.value::text, 2, '0')),
-  jsonb_build_object('prompt', format('Wat spreekt je aan in deze functie en waarom?', series.value), 'inputType', 'TEXTAREA')
+select groups.tenant_id, groups.id, 'SYSTEM', 'APPLICATION_QUESTION', format('SYSTEM_APPLICATION_QUESTION_%s', lpad(series::text, 2, '0')),
+  format('Sollicitatievraag %s', lpad(series::text, 2, '0')),
+  jsonb_build_object('prompt', format('Wat spreekt je aan in deze functie en waarom?', series), 'inputType', 'TEXTAREA')
 from public.hr_groups groups cross join generate_series(1, 25) series
 on conflict (tenant_id, hr_group_id, stable_code, version) do nothing;
 
 insert into public.recruitment_library_items (tenant_id, hr_group_id, owner_type, item_type, stable_code, title, content)
-select groups.tenant_id, groups.id, 'SYSTEM', 'INTERVIEW_QUESTION', format('SYSTEM_INTERVIEW_QUESTION_%s', lpad(series.value::text, 3, '0')),
-  format('Gespreksvraag %s', lpad(series.value::text, 3, '0')),
-  jsonb_build_object('prompt', format('Kun je een concreet voorbeeld geven van je aanpak in een vergelijkbare situatie? (%s)', series.value), 'answerMode', 'NOTE')
+select groups.tenant_id, groups.id, 'SYSTEM', 'INTERVIEW_QUESTION', format('SYSTEM_INTERVIEW_QUESTION_%s', lpad(series::text, 3, '0')),
+  format('Gespreksvraag %s', lpad(series::text, 3, '0')),
+  jsonb_build_object('prompt', format('Kun je een concreet voorbeeld geven van je aanpak in een vergelijkbare situatie? (%s)', series), 'answerMode', 'NOTE')
 from public.hr_groups groups cross join generate_series(1, 84) series
 on conflict (tenant_id, hr_group_id, stable_code, version) do nothing;
 
 insert into public.recruitment_library_items (tenant_id, hr_group_id, owner_type, item_type, stable_code, title, content)
-select groups.tenant_id, groups.id, 'SYSTEM', 'CRITERION', format('SYSTEM_CRITERION_%s', lpad(series.value::text, 2, '0')),
-  format('Beoordelingscriterium %s', lpad(series.value::text, 2, '0')),
+select groups.tenant_id, groups.id, 'SYSTEM', 'CRITERION', format('SYSTEM_CRITERION_%s', lpad(series::text, 2, '0')),
+  format('Beoordelingscriterium %s', lpad(series::text, 2, '0')),
   jsonb_build_object(
-    'characteristicCode', (array['COMMUNICATION','OWNERSHIP','COLLABORATION','ANALYTICAL_ABILITY','CUSTOMER_FOCUS','LEARNING_AGILITY','LEADERSHIP','ADAPTABILITY'])[((series.value - 1) % 8) + 1],
+    'characteristicCode', (array['COMMUNICATION','OWNERSHIP','COLLABORATION','ANALYTICAL_ABILITY','CUSTOMER_FOCUS','LEARNING_AGILITY','LEADERSHIP','ADAPTABILITY'])[((series - 1) % 8) + 1],
     'anchors', jsonb_build_object('1', 'Onvoldoende zichtbaar', '2', 'Beperkt zichtbaar', '3', 'Passend zichtbaar', '4', 'Sterk zichtbaar', '5', 'Uitmuntend zichtbaar')
   )
 from public.hr_groups groups cross join generate_series(1, 45) series
 on conflict (tenant_id, hr_group_id, stable_code, version) do nothing;
 
 insert into public.recruitment_library_items (tenant_id, hr_group_id, owner_type, item_type, stable_code, title, content)
-select groups.tenant_id, groups.id, 'SYSTEM', 'PREPARATION', format('SYSTEM_PREPARATION_%s', lpad(series.value::text, 2, '0')),
-  format('Voorbereidingsitem %s', lpad(series.value::text, 2, '0')),
+select groups.tenant_id, groups.id, 'SYSTEM', 'PREPARATION', format('SYSTEM_PREPARATION_%s', lpad(series::text, 2, '0')),
+  format('Voorbereidingsitem %s', lpad(series::text, 2, '0')),
   jsonb_build_object('prompt', 'Bereid een concreet voorbeeld voor dat je tijdens het gesprek kunt toelichten.', 'answerMode', 'EXTERNAL_COPY')
 from public.hr_groups groups cross join generate_series(1, 35) series
 on conflict (tenant_id, hr_group_id, stable_code, version) do nothing;

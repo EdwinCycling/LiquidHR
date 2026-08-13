@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Guided Recruitment 2026-08-13 - STEP 3 RELEASE VERIFICATION: PUBLIC GATE BLOCKED
+
+De drie pending Step-3 migrations zijn individueel en in volgorde op remote Supabase toegepast: `20260813142035_guided_recruitment_guided_content`, `20260813142057_guided_recruitment_retention_and_analytics` en `20260813144216_guided_recruitment_retention_anonymize_ambiguity_fix`. De remote Recruitment-contracten zijn groen; de bestaande `TEST-RECRUITMENT-*` fixtures zijn geladen en behouden. Officiele remote types zijn opnieuw gegenereerd. De advisors tonen geen nieuwe actionable Recruitment security- of performancebevinding: alleen de begrensde SECURITY DEFINER-wrappers en Recruitment unused-index-info blijven.
+
+Authenticated browserbewijs is groen voor NL desktop/390x844 voor HR Admin, reviewer A/B, isolatie, andere HR-groep, revoked URL, settings/library/sets/privacy en non-identifiable analytics. Aanvullend is EN gecontroleerd voor HR Admin Recruitmentlijst/vacature-/sollicitatiedetail, library, interviewsets, privacy, analytics, reviewer A scorecard en 390x844 Recruitment zonder overflow. Publieke securityconfiguratie ontbreekt volledig; de public submit blijft aantoonbaar fail-closed met `RECRUITMENT_PUBLIC_INPUT_INVALID` en upload happy path is niet bewezen.
+
+Volledige hr-suite-tests zijn `182 bestanden / 687 tests` groen, i18n, strict TypeScript met ruime heap, Webpack-build met 223 pagina's en diff-check zijn groen. Repo- en Recruitment-lint stoppen voor analyse op de bestaande ESLint 10/`eslint-plugin-react`-compatibiliteitsfout. Productversie en `finish-feature.ps1` zijn niet uitgevoerd. Eindstatus: **IMPLEMENTATION COMPLETE, RELEASE VERIFICATION INCOMPLETE**; alleen de publieke securityconfiguratie en daarmee de publieke happy path ontbreken.
+
 ## Guided Recruitment 2026-08-13 — STEP 3 LOKAAL GEBOUWD, RELEASE GATE BLOCKED
 
 Stap 3 levert lokaal de begeleide bibliotheek en immutable systemcontent, HR-groepbeheer van eigen content en sets, interviews/participants/assessment-adapters, actor-safe assigned participantflow, scorecard, pipeline/privacy/retention/analytics en de dagelijkse retention-cronroute. De twee migrations en de `TEST-RECRUITMENT-*` fixture staan in de recruitment-worktree; systemcontent telt 25 application questions, 84 interview questions, 45 criteria, 35 preparation items en 12 sets. Application questions worden niet in sets toegelaten; peer assessments zijn vóór eigen submit niet in de participantprojection aanwezig; terminale applications blijven uitgesloten.

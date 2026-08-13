@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assessmentInputSchema, canSeeAssessment, computeCharacteristicAverages, correctionRevision } from './assessment-service'
+import { assessmentInputSchema, canSeeAssessment, computeCharacteristicAverages, correctionRevision, toAssessmentRpcScores } from './assessment-service'
 
 describe('guided recruitment assessment service', () => {
   it('valideert scores 1 tot en met 5 en verbergt peerdata voor submit', () => {
@@ -7,6 +7,10 @@ describe('guided recruitment assessment service', () => {
     expect(canSeeAssessment({ status: 'DRAFT', reviewerEmployeeId: 'a' }, 'b')).toBe(false)
     expect(canSeeAssessment({ status: 'DRAFT', reviewerEmployeeId: 'a' }, 'a')).toBe(true)
     expect(canSeeAssessment({ status: 'SUBMITTED', reviewerEmployeeId: 'a' }, 'b')).toBe(true)
+  })
+
+  it('maps API camelCase scores to the database RPC shape', () => {
+    expect(toAssessmentRpcScores([{ characteristicId: 'c1', score: 4, note: 'note' }])).toEqual([{ characteristic_id: 'c1', score: 4, note: 'note' }])
   })
 
   it('berekent transparante gemiddelden per kenmerk en maakt correction revisions', () => {

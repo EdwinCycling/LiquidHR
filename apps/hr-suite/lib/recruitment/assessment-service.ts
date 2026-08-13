@@ -6,6 +6,10 @@ export const assessmentInputSchema = z.object({
   scores: z.array(z.object({ characteristicId: recruitmentGuidSchema, score: z.number().int().min(1).max(5), note: z.string().max(2_000).nullable().default(null) }).strict()).max(100),
 }).strict()
 
+export function toAssessmentRpcScores(scores: readonly { readonly characteristicId: string; readonly score: number; readonly note: string | null }[]): readonly { readonly characteristic_id: string; readonly score: number; readonly note: string | null }[] {
+  return scores.map((score) => ({ characteristic_id: score.characteristicId, score: score.score, note: score.note }))
+}
+
 export function canSeeAssessment(assessment: { readonly status: 'DRAFT' | 'SUBMITTED' | 'CORRECTED'; readonly reviewerEmployeeId: string }, viewerEmployeeId: string): boolean {
   return assessment.reviewerEmployeeId === viewerEmployeeId || assessment.status !== 'DRAFT'
 }
