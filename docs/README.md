@@ -2,7 +2,7 @@
 
 ## Guided Recruitment — lokaal geconsolideerde testrelease 2026-08-13
 
-Guided Recruitment is lokaal samengevoegd naar `main` en staat op zichtbare productversie `1.20260813.1`. De volledige lokale gate is groen: 182 testbestanden/687 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, ESLint zonder warnings, `git diff --check` en Webpack-build met 223 pagina's. De publieke Turnstile-, rate-limit- en malware-scanconfiguratie blijft bewust geparkeerd; publieke submit/upload blijft fail-closed.
+Guided Recruitment is samengevoegd naar `main` en gepubliceerd als zichtbare productversie `1.20260813.1`. De volledige lokale gate is groen: 182 testbestanden/687 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, ESLint zonder warnings, `git diff --check` en Webpack-build met 223 pagina's. GitHub `origin/main` en Vercel Production draaien op release-SHA `446a8f8ecef7b7c06f1c6910a990ecbe3bf84046`; deployment `dpl_JDCAbJkkTy9YDLWCB1UGLxvc7kKd` staat `READY`. De publieke Turnstile-, rate-limit- en malware-scanconfiguratie blijft bewust geparkeerd; publieke submit/upload blijft fail-closed.
 
 ## Guided Recruitment — publieke securityconfiguratie geparkeerd 2026-08-13
 
