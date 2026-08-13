@@ -8,6 +8,34 @@ export const recruitmentEmployeeMatchInputSchema = z.object({
   phone: z.string().trim().max(40).nullable(),
 }).strict()
 
+export const hireChoiceSchema = z.object({
+  choice: z.enum(['EXISTING', 'NEW', 'REHIRE']),
+  employeeId: z.guid().nullable(),
+}).strict()
+
+export type HireChoice = z.infer<typeof hireChoiceSchema>
+
+export function requireHumanHireChoice(input: HireChoice): HireChoice {
+  if (input.choice !== 'NEW' && !input.employeeId) throw new RecruitmentError('RECRUITMENT_EMPLOYEE_CHOICE_REQUIRED', 409)
+  return input
+}
+
+export function buildMinimalEmployeeTransfer(input: { readonly firstName: string; readonly middleName?: string | null; readonly lastName: string; readonly privateEmail: string | null; readonly phone: string | null } & Record<string, unknown>): {
+  readonly firstName: string
+  readonly middleName?: string | null
+  readonly lastName: string
+  readonly privateEmail: string | null
+  readonly phone: string | null
+} {
+  return {
+    firstName: input.firstName,
+    ...(input.middleName !== undefined ? { middleName: input.middleName } : {}),
+    lastName: input.lastName,
+    privateEmail: input.privateEmail,
+    phone: input.phone,
+  }
+}
+
 export interface RecruitmentEmployeeMatch {
   readonly employeeId: string
   readonly employeeNumber: string

@@ -3,5 +3,130 @@
   "foundationTitle": "Applications",
   "foundationDescription": "The secure recruitment foundation is available to authorized HR users.",
   "foundationReadyTitle": "Foundation ready",
-  "foundationReadyDescription": "Vacancies and applications will be connected to this protected foundation in the next build step."
+  "foundationReadyDescription": "Vacancies and applications will be connected to this protected foundation in the next build step.",
+  "overview": {
+    "title": "Recruitment",
+    "description": "Manage vacancies, candidates, and application progress from one calm workspace.",
+    "newVacancy": "New vacancy",
+    "vacancies": "Vacancies",
+    "applications": "Applications",
+    "open": "Open",
+    "draft": "Draft",
+    "closed": "Closed",
+    "empty": "There are no vacancies in this HR group yet.",
+    "openApplications": "open applications",
+    "view": "View"
+  },
+  "vacancy": {
+    "newTitle": "New vacancy",
+    "editTitle": "Edit vacancy",
+    "title": "Job title",
+    "location": "Location",
+    "workMode": "Work mode",
+    "onSite": "On site",
+    "hybrid": "Hybrid",
+    "remote": "Remote",
+    "hours": "Hours per week",
+    "hours": "Hours per week",
+    "salary": "Salary",
+    "salaryVisible": "Show salary on the public page",
+    "visible": "Visible",
+    "save": "Save vacancy",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "sections": "Vacancy content",
+    "sectionHint": "The six fixed blocks stay visible and in this order.",
+    "publication": "Publication",
+    "publish": "Publish",
+    "close": "Close",
+    "archive": "Archive",
+    "saved": "Vacancy saved.",
+    "required": "Enter a job title.",
+    "invalid": "Check the entered details."
+    ,"formTitle": "Application form"
+    ,"phone": "Phone"
+    ,"cv": "CV"
+    ,"motivation": "Motivation"
+    ,"hidden": "Hidden"
+    ,"optional": "Optional"
+    ,"required": "Required"
+    ,"save": "Save form"
+    ,"slug": "Public slug"
+    ,"publicLink": "Open public vacancy"
+    ,"error": "Publication could not be updated."
+  },
+  "manual": {
+    "title": "Add application manually",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "phone": "Phone number",
+    "motivation": "Motivation",
+    "save": "Add application",
+    "saving": "Adding…",
+    "saved": "Application added.",
+    "error": "The application could not be added."
+  },
+  "detail": {
+    "back": "Back to vacancy",
+    "candidate": "Candidate",
+    "contact": "Contact",
+    "motivation": "Motivation",
+    "documents": "Documents",
+    "timeline": "Timeline",
+    "otherApplications": "Other applications",
+    "hireTitle": "Hire",
+    "hireDescription": "Explicitly choose an existing employee. Create a new employee through Core HR.",
+    "administrationId": "Administration ID",
+    "employeeId": "Employee ID",
+    "employmentId": "Employment ID (optional)",
+    "confirmHire": "Confirm hire",
+    "hireSaved": "The candidate was hired and active participations were revoked.",
+    "hireError": "Hiring failed. Check the selected employee.",
+    "securityNotice": "Personal data is visible only within the authorized HR context."
+  },
+  "pipeline": {
+    "title": "Applications",
+    "allStages": "All stages",
+    "empty": "There are no applications in this selection.",
+    "newApplication": "Add manually",
+    "candidate": "Candidate",
+    "stage": "Stage",
+    "source": "Source",
+    "possibleDuplicate": "Possible duplicate candidate",
+    "move": "Change stage",
+    "reject": "Reject",
+    "reopen": "Reopen",
+    "hire": "Hire"
+  },
+  "public": {
+    "eyebrow": "Careers",
+    "brandLine": "A vacancy from LiquidHR",
+    "hybrid": "A flexible work setup",
+    "quickFacts": "At a glance",
+    "quickFactsDescription": "Read about the role and leave your details. We will be in touch if there is a good match.",
+    "apply": "Apply now",
+    "noAccount": "No account needed",
+    "noAccountDescription": "Apply without creating a profile. Your details are used only for this application.",
+    "emptySection": "More information will follow soon.",
+    "closed": "This vacancy is no longer available.",
+    "applyEyebrow": "Your next step",
+    "applyTitle": "Apply for this vacancy",
+    "applyDescription": "A few details are enough to get started.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email address",
+    "phone": "Phone number",
+    "motivation": "Short motivation",
+    "cv": "CV (optional)",
+    "privacy": "We use your details only to process this application.",
+    "privacyLink": "Read more about privacy",
+    "submit": "Send application",
+    "submitting": "Sending securely…",
+    "securityBlocked": "We cannot safely process this application right now.",
+    "confirmed": "Thank you for your application.",
+    "confirmedDescription": "We received your details successfully.",
+    "error": "Something went wrong. Please try again later.",
+    "footer": "LiquidHR recruitment"
+  }
 }

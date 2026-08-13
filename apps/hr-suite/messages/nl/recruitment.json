@@ -3,5 +3,130 @@
   "foundationTitle": "Sollicitaties",
   "foundationDescription": "De beveiligde recruitmentbasis is beschikbaar voor geautoriseerde HR-gebruikers.",
   "foundationReadyTitle": "Basis gereed",
-  "foundationReadyDescription": "Vacatures en sollicitaties worden in de volgende bouwstap op deze afgeschermde basis aangesloten."
+  "foundationReadyDescription": "Vacatures en sollicitaties worden in de volgende bouwstap op deze afgeschermde basis aangesloten.",
+  "overview": {
+    "title": "Recruitment",
+    "description": "Beheer vacatures, kandidaten en de voortgang van sollicitaties vanuit één rustige werkplek.",
+    "newVacancy": "Nieuwe vacature",
+    "vacancies": "Vacatures",
+    "applications": "Sollicitaties",
+    "open": "Open",
+    "draft": "Concept",
+    "closed": "Gesloten",
+    "empty": "Er zijn nog geen vacatures in deze HR-groep.",
+    "openApplications": "open sollicitaties",
+    "view": "Bekijken"
+  },
+  "vacancy": {
+    "newTitle": "Nieuwe vacature",
+    "editTitle": "Vacature bewerken",
+    "title": "Functietitel",
+    "location": "Locatie",
+    "workMode": "Werkvorm",
+    "onSite": "Op locatie",
+    "hybrid": "Hybride",
+    "remote": "Op afstand",
+    "hours": "Uren per week",
+    "hours": "Uren per week",
+    "salary": "Salaris",
+    "salaryVisible": "Toon salaris op de publieke pagina",
+    "visible": "Zichtbaar",
+    "save": "Vacature opslaan",
+    "saving": "Opslaan…",
+    "cancel": "Annuleren",
+    "sections": "Inhoud van de vacature",
+    "sectionHint": "De zes vaste blokken blijven zichtbaar en in deze volgorde.",
+    "publication": "Publicatie",
+    "publish": "Publiceren",
+    "close": "Sluiten",
+    "archive": "Archiveren",
+    "saved": "Vacature opgeslagen.",
+    "required": "Vul de functietitel in.",
+    "invalid": "Controleer de ingevulde gegevens."
+    ,"formTitle": "Sollicitatieformulier"
+    ,"phone": "Telefoonnummer"
+    ,"cv": "CV"
+    ,"motivation": "Motivatie"
+    ,"hidden": "Verborgen"
+    ,"optional": "Optioneel"
+    ,"required": "Verplicht"
+    ,"save": "Formulier opslaan"
+    ,"slug": "Publieke slug"
+    ,"publicLink": "Openbare vacature openen"
+    ,"error": "Publicatie kon niet worden bijgewerkt."
+  },
+  "manual": {
+    "title": "Sollicitatie handmatig toevoegen",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "email": "E-mailadres",
+    "phone": "Telefoonnummer",
+    "motivation": "Motivatie",
+    "save": "Sollicitatie toevoegen",
+    "saving": "Toevoegen…",
+    "saved": "Sollicitatie toegevoegd.",
+    "error": "De sollicitatie kon niet worden toegevoegd."
+  },
+  "detail": {
+    "back": "Terug naar vacature",
+    "candidate": "Kandidaat",
+    "contact": "Contact",
+    "motivation": "Motivatie",
+    "documents": "Documenten",
+    "timeline": "Tijdlijn",
+    "otherApplications": "Andere sollicitaties",
+    "hireTitle": "Aannemen",
+    "hireDescription": "Kies expliciet een bestaande medewerker. Een nieuwe medewerker maak je aan via Core HR.",
+    "administrationId": "Administratie-ID",
+    "employeeId": "Medewerker-ID",
+    "employmentId": "Dienstverband-ID (optioneel)",
+    "confirmHire": "Aannemen bevestigen",
+    "hireSaved": "De kandidaat is aangenomen en de actieve participaties zijn ingetrokken.",
+    "hireError": "Aannemen is niet gelukt. Controleer de gekozen medewerker.",
+    "securityNotice": "Persoonsgegevens zijn alleen zichtbaar binnen de geautoriseerde HR-context."
+  },
+  "pipeline": {
+    "title": "Sollicitaties",
+    "allStages": "Alle fases",
+    "empty": "Er zijn geen sollicitaties in deze selectie.",
+    "newApplication": "Handmatig toevoegen",
+    "candidate": "Kandidaat",
+    "stage": "Fase",
+    "source": "Bron",
+    "possibleDuplicate": "Mogelijke dubbele kandidaat",
+    "move": "Fase wijzigen",
+    "reject": "Afwijzen",
+    "reopen": "Heropenen",
+    "hire": "Aannemen"
+  },
+  "public": {
+    "eyebrow": "Werken bij",
+    "brandLine": "Een vacature van LiquidHR",
+    "hybrid": "Een passende werkvorm",
+    "quickFacts": "In het kort",
+    "quickFactsDescription": "Bekijk de rol en laat je gegevens achter. We nemen contact op als er een goede match is.",
+    "apply": "Solliciteer direct",
+    "noAccount": "Geen account nodig",
+    "noAccountDescription": "Je solliciteert zonder profiel aan te maken. Je gegevens worden alleen voor deze sollicitatie gebruikt.",
+    "emptySection": "Meer informatie volgt binnenkort.",
+    "closed": "Deze vacature is niet meer beschikbaar.",
+    "applyEyebrow": "Jouw volgende stap",
+    "applyTitle": "Solliciteer op deze vacature",
+    "applyDescription": "Een paar gegevens zijn genoeg om te beginnen.",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "email": "E-mailadres",
+    "phone": "Telefoonnummer",
+    "motivation": "Korte motivatie",
+    "cv": "CV (optioneel)",
+    "privacy": "We gebruiken je gegevens alleen voor de behandeling van deze sollicitatie.",
+    "privacyLink": "Lees meer over privacy",
+    "submit": "Sollicitatie versturen",
+    "submitting": "Beveiligd versturen…",
+    "securityBlocked": "We kunnen deze sollicitatie nu niet veilig verwerken.",
+    "confirmed": "Bedankt voor je sollicitatie.",
+    "confirmedDescription": "We hebben je gegevens goed ontvangen.",
+    "error": "Er ging iets mis. Probeer het later opnieuw.",
+    "footer": "LiquidHR recruitment"
+  }
 }

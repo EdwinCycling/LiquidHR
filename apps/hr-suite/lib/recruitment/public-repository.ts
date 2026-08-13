@@ -13,6 +13,10 @@ type PublicRecruitmentDatabase = {
         Args: { requested_publication_id: string; requested_slug: string }
         Returns: Array<{ publication_id: string; slug: string; title: string; location: string | null; content: unknown }>
       }
+      recruitment_public_vacancy_state: {
+        Args: { requested_publication_id: string; requested_slug: string }
+        Returns: Array<{ publication_id: string; slug: string; status: string; title: string; location: string | null }>
+      }
     }
     Enums: Record<never, never>
     CompositeTypes: Record<never, never>
@@ -44,4 +48,13 @@ export async function getPublicVacancy(publicationId: string, slug: string): Pro
     location: parsed.location,
     content: parsed.content,
   }
+}
+
+export async function getPublicVacancyState(publicationId: string, slug: string): Promise<{ readonly status: 'OPEN' | 'CLOSED'; readonly title: string; readonly location: string | null } | null> {
+  const client = await createClient() as unknown as SupabaseClient<PublicRecruitmentDatabase>
+  const result = await client.rpc('recruitment_public_vacancy_state', { requested_publication_id: publicationId, requested_slug: slug })
+  if (result.error) throw recruitmentDatabaseError(result.error)
+  const row = result.data?.[0]
+  if (!row || !['OPEN', 'CLOSED'].includes(row.status)) return null
+  return { status: row.status as 'OPEN' | 'CLOSED', title: row.title, location: row.location }
 }

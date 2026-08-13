@@ -12274,6 +12274,7 @@ export type Database = {
           hr_group_id: string
           id: string
           is_visible: boolean
+          title: string
           section_type: string
           sort_order: number
           tenant_id: string
@@ -12287,6 +12288,7 @@ export type Database = {
           hr_group_id: string
           id?: string
           is_visible?: boolean
+          title?: string
           section_type: string
           sort_order: number
           tenant_id: string
@@ -12300,6 +12302,7 @@ export type Database = {
           hr_group_id?: string
           id?: string
           is_visible?: boolean
+          title?: string
           section_type?: string
           sort_order?: number
           tenant_id?: string
@@ -17057,6 +17060,16 @@ export type Database = {
           title: string
         }[]
       }
+      recruitment_public_vacancy_state: {
+        Args: { requested_publication_id: string; requested_slug: string }
+        Returns: {
+          location: string | null
+          publication_id: string
+          slug: string
+          status: string
+          title: string
+        }[]
+      }
       recruitment_submit_public_application: {
         Args: {
           requested_intake_proof: string
@@ -17065,6 +17078,72 @@ export type Database = {
           requested_slug: string
         }
         Returns: string
+      }
+      create_recruitment_application: {
+        Args: {
+          requested_first_name: string
+          requested_last_name: string
+          requested_motivation: string
+          requested_phone: string
+          requested_private_email: string
+          requested_source: string
+          requested_vacancy_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_vacancy: {
+        Args: {
+          requested_hr_group_id: string
+          requested_job_id: string
+          requested_location_label: string
+          requested_max_hours: number
+          requested_min_hours: number
+          requested_salary_max: number
+          requested_salary_min: number
+          requested_salary_visible: boolean
+          requested_sections: Json
+          requested_tenant_id: string
+          requested_title: string
+          requested_work_mode: string
+        }
+        Returns: Json
+      }
+      hire_recruitment_application: {
+        Args: {
+          requested_administration_id: string
+          requested_application_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+        }
+        Returns: Json
+      }
+      publish_recruitment_vacancy: {
+        Args: {
+          requested_payload: Json
+          requested_slug: string
+          requested_status: string
+          requested_vacancy_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_vacancy: {
+        Args: {
+          requested_expected_version: number
+          requested_job_id: string
+          requested_location_label: string
+          requested_max_hours: number
+          requested_min_hours: number
+          requested_salary_max: number
+          requested_salary_min: number
+          requested_salary_visible: boolean
+          requested_sections: Json
+          requested_title: string
+          requested_vacancy_id: string
+          requested_work_mode: string
+        }
+        Returns: Json
       }
       release_process_work_item: {
         Args: {
