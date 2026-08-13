@@ -12,11 +12,12 @@ describe('module catalog', () => {
       'ENPS',
       'TEAM_COMPASS',
       'JOURNEYS',
+      'RECRUITMENT',
     ])
     expect(catalog.filter((module) => module.status === 'COMING_SOON').every((module) => !module.toggleable)).toBe(true)
   })
 
   it('negeert onbekende en toekomstige modules bij opslaan', () => {
-    expect(normalizeModuleSelection(['HERA', 'JOURNEYS', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA', 'JOURNEYS'])
+    expect(normalizeModuleSelection(['HERA', 'JOURNEYS', 'RECRUITMENT', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA', 'JOURNEYS', 'RECRUITMENT'])
   })
 })

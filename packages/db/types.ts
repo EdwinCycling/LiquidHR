@@ -1217,6 +1217,7 @@ export type Database = {
           },
         ]
       }
+      // Local compatibility type: this table exists in the application rollout but not in remote dev/test schema introspection.
       company_activities: {
         Row: {
           activity_date: string
@@ -7246,6 +7247,69 @@ export type Database = {
           },
         ]
       }
+      journey_topic_assignments: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_owner: boolean
+          is_visible: boolean
+          journey_id: string
+          participant_id: string
+          tenant_id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          is_owner?: boolean
+          is_visible?: boolean
+          journey_id: string
+          participant_id: string
+          tenant_id: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          is_owner?: boolean
+          is_visible?: boolean
+          journey_id?: string
+          participant_id?: string
+          tenant_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_i_fkey1"
+            columns: ["tenant_id", "hr_group_id", "journey_id", "topic_id"]
+            isOneToOne: false
+            referencedRelation: "journey_topics"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_i_fkey2"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "journey_id",
+              "participant_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "journey_participants"
+            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
+          },
+          {
+            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
       journey_topic_outcomes: {
         Row: {
           actor_employee_id: string | null
@@ -7314,69 +7378,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journey_topics"
             referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
-          },
-        ]
-      }
-      journey_topic_assignments: {
-        Row: {
-          created_at: string
-          hr_group_id: string
-          id: string
-          is_owner: boolean
-          is_visible: boolean
-          journey_id: string
-          participant_id: string
-          tenant_id: string
-          topic_id: string
-        }
-        Insert: {
-          created_at?: string
-          hr_group_id: string
-          id?: string
-          is_owner?: boolean
-          is_visible?: boolean
-          journey_id: string
-          participant_id: string
-          tenant_id: string
-          topic_id: string
-        }
-        Update: {
-          created_at?: string
-          hr_group_id?: string
-          id?: string
-          is_owner?: boolean
-          is_visible?: boolean
-          journey_id?: string
-          participant_id?: string
-          tenant_id?: string
-          topic_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_i_fkey1"
-            columns: ["tenant_id", "hr_group_id", "journey_id", "topic_id"]
-            isOneToOne: false
-            referencedRelation: "journey_topics"
-            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
-          },
-          {
-            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_i_fkey2"
-            columns: [
-              "tenant_id",
-              "hr_group_id",
-              "journey_id",
-              "participant_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "journey_participants"
-            referencedColumns: ["tenant_id", "hr_group_id", "journey_id", "id"]
-          },
-          {
-            foreignKeyName: "journey_topic_assignments_tenant_id_hr_group_id_journey_id_fkey"
-            columns: ["tenant_id", "hr_group_id", "journey_id"]
-            isOneToOne: false
-            referencedRelation: "journeys"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -10978,6 +10979,1345 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_application_answers: {
+        Row: {
+          application_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          label_snapshot: string
+          options_snapshot: Json
+          tenant_id: string
+          type_snapshot: Database["public"]["Enums"]["custom_field_type"]
+          vacancy_question_id: string
+          validation_snapshot: Json
+          value: Json
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          label_snapshot: string
+          options_snapshot?: Json
+          tenant_id: string
+          type_snapshot: Database["public"]["Enums"]["custom_field_type"]
+          vacancy_question_id: string
+          validation_snapshot?: Json
+          value: Json
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          label_snapshot?: string
+          options_snapshot?: Json
+          tenant_id?: string
+          type_snapshot?: Database["public"]["Enums"]["custom_field_type"]
+          vacancy_question_id?: string
+          validation_snapshot?: Json
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_application_answe_tenant_id_hr_group_id_applic_fkey"
+            columns: ["tenant_id", "hr_group_id", "application_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_applications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_application_answe_tenant_id_hr_group_id_vacanc_fkey"
+            columns: ["tenant_id", "hr_group_id", "vacancy_question_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_vacancy_questions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_applications: {
+        Row: {
+          active_stage_id: string | null
+          administration_id: string | null
+          anonymized_at: string | null
+          candidate_id: string
+          converted_at: string | null
+          converted_by_user_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          employee_id: string | null
+          employment_id: string | null
+          hr_group_id: string
+          id: string
+          motivation: string | null
+          retention_due_at: string | null
+          source: string
+          tenant_id: string
+          terminal_at: string | null
+          terminal_note: string | null
+          terminal_outcome: string | null
+          terminal_reason: string | null
+          updated_at: string
+          updated_by_user_id: string | null
+          vacancy_id: string
+          version: number
+        }
+        Insert: {
+          active_stage_id?: string | null
+          administration_id?: string | null
+          anonymized_at?: string | null
+          candidate_id: string
+          converted_at?: string | null
+          converted_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          employee_id?: string | null
+          employment_id?: string | null
+          hr_group_id: string
+          id?: string
+          motivation?: string | null
+          retention_due_at?: string | null
+          source?: string
+          tenant_id: string
+          terminal_at?: string | null
+          terminal_note?: string | null
+          terminal_outcome?: string | null
+          terminal_reason?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
+          vacancy_id: string
+          version?: number
+        }
+        Update: {
+          active_stage_id?: string | null
+          administration_id?: string | null
+          anonymized_at?: string | null
+          candidate_id?: string
+          converted_at?: string | null
+          converted_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          employee_id?: string | null
+          employment_id?: string | null
+          hr_group_id?: string
+          id?: string
+          motivation?: string | null
+          retention_due_at?: string | null
+          source?: string
+          tenant_id?: string
+          terminal_at?: string | null
+          terminal_note?: string | null
+          terminal_outcome?: string | null
+          terminal_reason?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
+          vacancy_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_applications_tenant_id_administration_id_emplo_fkey"
+            columns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "employment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: [
+              "tenant_id",
+              "administration_id",
+              "employee_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "recruitment_applications_tenant_id_administration_id_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_applications_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_applications_tenant_id_hr_group_id_active_stag_fkey"
+            columns: ["tenant_id", "hr_group_id", "active_stage_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_pipeline_stages"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_applications_tenant_id_hr_group_id_candidate_i_fkey"
+            columns: ["tenant_id", "hr_group_id", "candidate_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_candidates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_applications_tenant_id_hr_group_id_vacancy_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_vacancies"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_assessment_scores: {
+        Row: {
+          anchor_snapshot: Json
+          assessment_id: string
+          characteristic_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          note: string | null
+          score: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          anchor_snapshot?: Json
+          assessment_id: string
+          characteristic_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          note?: string | null
+          score: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          anchor_snapshot?: Json
+          assessment_id?: string
+          characteristic_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          note?: string | null
+          score?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_assessment_scores_tenant_id_hr_group_id_assess_fkey"
+            columns: ["tenant_id", "hr_group_id", "assessment_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_assessments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_assessment_scores_tenant_id_hr_group_id_charac_fkey"
+            columns: ["tenant_id", "hr_group_id", "characteristic_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_characteristics"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_assessments: {
+        Row: {
+          application_id: string
+          corrected_from_assessment_id: string | null
+          correction_reason: string | null
+          created_at: string
+          hr_group_id: string
+          id: string
+          interview_id: string
+          participation_id: string
+          reviewer_employee_id: string
+          revision: number
+          status: string
+          submitted_at: string | null
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          application_id: string
+          corrected_from_assessment_id?: string | null
+          correction_reason?: string | null
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          interview_id: string
+          participation_id: string
+          reviewer_employee_id: string
+          revision?: number
+          status?: string
+          submitted_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          application_id?: string
+          corrected_from_assessment_id?: string | null
+          correction_reason?: string | null
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          interview_id?: string
+          participation_id?: string
+          reviewer_employee_id?: string
+          revision?: number
+          status?: string
+          submitted_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_assessments_tenant_id_hr_group_id_application__fkey"
+            columns: ["tenant_id", "hr_group_id", "application_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_applications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_assessments_tenant_id_hr_group_id_corrected_fr_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "corrected_from_assessment_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "recruitment_assessments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_assessments_tenant_id_hr_group_id_interview_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "interview_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_interviews"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_assessments_tenant_id_hr_group_id_participatio_fkey"
+            columns: ["tenant_id", "hr_group_id", "participation_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_participations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_assessments_tenant_id_reviewer_employee_id_fkey"
+            columns: ["tenant_id", "reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_candidates: {
+        Row: {
+          anonymized_at: string | null
+          created_at: string
+          first_name: string
+          hr_group_id: string
+          id: string
+          last_name: string
+          normalized_email: string | null
+          phone: string | null
+          possible_duplicate: boolean
+          private_email: string | null
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          anonymized_at?: string | null
+          created_at?: string
+          first_name: string
+          hr_group_id: string
+          id?: string
+          last_name: string
+          normalized_email?: string | null
+          phone?: string | null
+          possible_duplicate?: boolean
+          private_email?: string | null
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          anonymized_at?: string | null
+          created_at?: string
+          first_name?: string
+          hr_group_id?: string
+          id?: string
+          last_name?: string
+          normalized_email?: string | null
+          phone?: string | null
+          possible_duplicate?: boolean
+          private_email?: string | null
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_candidates_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_characteristics: {
+        Row: {
+          created_at: string
+          description: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          stable_code: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          stable_code: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          stable_code?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_characteristics_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_documents: {
+        Row: {
+          application_id: string
+          checksum_sha256: string
+          created_at: string
+          deleted_at: string | null
+          file_size: number
+          hr_group_id: string
+          id: string
+          mime_type: string
+          original_filename: string
+          scan_status: string
+          scanned_at: string | null
+          scanner_reference: string | null
+          scanner_result: Json
+          storage_key: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          application_id: string
+          checksum_sha256: string
+          created_at?: string
+          deleted_at?: string | null
+          file_size: number
+          hr_group_id: string
+          id?: string
+          mime_type: string
+          original_filename: string
+          scan_status?: string
+          scanned_at?: string | null
+          scanner_reference?: string | null
+          scanner_result?: Json
+          storage_key: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          application_id?: string
+          checksum_sha256?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_size?: number
+          hr_group_id?: string
+          id?: string
+          mime_type?: string
+          original_filename?: string
+          scan_status?: string
+          scanned_at?: string | null
+          scanner_reference?: string | null
+          scanner_result?: Json
+          storage_key?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_documents_tenant_id_hr_group_id_application_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "application_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_applications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_events: {
+        Row: {
+          actor_user_id: string | null
+          application_id: string | null
+          created_at: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          idempotency_key: string | null
+          payload: Json
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_events_tenant_id_hr_group_id_application_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "application_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_applications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_interview_participants: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          interview_id: string
+          participation_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          interview_id: string
+          participation_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          interview_id?: string
+          participation_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_interview_partici_tenant_id_hr_group_id_interv_fkey"
+            columns: ["tenant_id", "hr_group_id", "interview_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_interviews"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_interview_partici_tenant_id_hr_group_id_partic_fkey"
+            columns: ["tenant_id", "hr_group_id", "participation_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_participations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_interviews: {
+        Row: {
+          application_id: string
+          created_at: string
+          criteria_snapshot: Json
+          hr_group_id: string
+          id: string
+          preparation_snapshot: Json
+          questions_snapshot: Json
+          scheduled_at: string | null
+          set_id: string | null
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          criteria_snapshot?: Json
+          hr_group_id: string
+          id?: string
+          preparation_snapshot?: Json
+          questions_snapshot?: Json
+          scheduled_at?: string | null
+          set_id?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          criteria_snapshot?: Json
+          hr_group_id?: string
+          id?: string
+          preparation_snapshot?: Json
+          questions_snapshot?: Json
+          scheduled_at?: string | null
+          set_id?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_interviews_tenant_id_hr_group_id_application_i_fkey"
+            columns: ["tenant_id", "hr_group_id", "application_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_applications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_interviews_tenant_id_hr_group_id_set_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "set_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_sets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_library_item_states: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_enabled: boolean
+          library_item_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          is_enabled?: boolean
+          library_item_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          is_enabled?: boolean
+          library_item_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_library_item_stat_tenant_id_hr_group_id_librar_fkey"
+            columns: ["tenant_id", "hr_group_id", "library_item_id"]
+            isOneToOne: true
+            referencedRelation: "recruitment_library_items"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_library_items: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by_user_id: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          item_type: string
+          owner_type: string
+          stable_code: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          item_type: string
+          owner_type?: string
+          stable_code: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          item_type?: string
+          owner_type?: string
+          stable_code?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_library_items_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_participations: {
+        Row: {
+          activated_at: string | null
+          application_id: string
+          assigned_at: string
+          capabilities: string[]
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          interview_id: string | null
+          revoked_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          activated_at?: string | null
+          application_id: string
+          assigned_at?: string
+          capabilities?: string[]
+          created_at?: string
+          employee_id: string
+          hr_group_id: string
+          id?: string
+          interview_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          activated_at?: string | null
+          application_id?: string
+          assigned_at?: string
+          capabilities?: string[]
+          created_at?: string
+          employee_id?: string
+          hr_group_id?: string
+          id?: string
+          interview_id?: string | null
+          revoked_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_participations_tenant_id_employee_id_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_participations_tenant_id_hr_group_id_applicati_fkey"
+            columns: ["tenant_id", "hr_group_id", "application_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_applications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_participations_tenant_id_hr_group_id_interview_fkey"
+            columns: ["tenant_id", "hr_group_id", "interview_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_interviews"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_pipeline_stages: {
+        Row: {
+          code: string
+          created_at: string
+          created_by_user_id: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_pipeline_stages_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_public_intake_limits: {
+        Row: {
+          bucket_key_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          hr_group_id: string
+          id: string
+          proof_hash: string | null
+          publication_id: string
+          request_count: number
+          tenant_id: string
+          verified_at: string | null
+          window_started_at: string
+        }
+        Insert: {
+          bucket_key_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          hr_group_id: string
+          id?: string
+          proof_hash?: string | null
+          publication_id: string
+          request_count?: number
+          tenant_id: string
+          verified_at?: string | null
+          window_started_at: string
+        }
+        Update: {
+          bucket_key_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          hr_group_id?: string
+          id?: string
+          proof_hash?: string | null
+          publication_id?: string
+          request_count?: number
+          tenant_id?: string
+          verified_at?: string | null
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_public_intake_lim_tenant_id_hr_group_id_public_fkey"
+            columns: ["tenant_id", "hr_group_id", "publication_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_publications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_publications: {
+        Row: {
+          archived_at: string | null
+          closed_at: string | null
+          created_at: string
+          hr_group_id: string
+          id: string
+          opened_at: string | null
+          published_location: string | null
+          published_payload: Json
+          published_title: string
+          slug: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          vacancy_id: string
+          version: number
+        }
+        Insert: {
+          archived_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          opened_at?: string | null
+          published_location?: string | null
+          published_payload?: Json
+          published_title: string
+          slug: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          vacancy_id: string
+          version?: number
+        }
+        Update: {
+          archived_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          opened_at?: string | null
+          published_location?: string | null
+          published_payload?: Json
+          published_title?: string
+          slug?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          vacancy_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_publications_tenant_id_hr_group_id_vacancy_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_vacancies"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_set_items: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          library_item_id: string
+          set_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          library_item_id: string
+          set_id: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          library_item_id?: string
+          set_id?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_set_items_tenant_id_hr_group_id_library_item_i_fkey"
+            columns: ["tenant_id", "hr_group_id", "library_item_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_library_items"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_set_items_tenant_id_hr_group_id_set_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "set_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_sets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_sets: {
+        Row: {
+          created_at: string
+          description: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          owner_type: string
+          stable_code: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_type?: string
+          stable_code: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_type?: string
+          stable_code?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_sets_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_settings: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          hr_group_id: string
+          id: string
+          public_branding: Json
+          publication_defaults: Json
+          retention_days: number
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id: string
+          id?: string
+          public_branding?: Json
+          publication_defaults?: Json
+          retention_days?: number
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id?: string
+          id?: string
+          public_branding?: Json
+          publication_defaults?: Json
+          retention_days?: number
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_settings_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: true
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      recruitment_vacancies: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          hr_group_id: string
+          id: string
+          job_id: string | null
+          location_label: string | null
+          max_hours: number | null
+          min_hours: number | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_visible: boolean
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by_user_id: string | null
+          version: number
+          work_mode: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id: string
+          id?: string
+          job_id?: string | null
+          location_label?: string | null
+          max_hours?: number | null
+          min_hours?: number | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_visible?: boolean
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+          work_mode?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id?: string
+          id?: string
+          job_id?: string | null
+          location_label?: string | null
+          max_hours?: number | null
+          min_hours?: number | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_visible?: boolean
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          version?: number
+          work_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_vacancies_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_vacancies_tenant_id_hr_group_id_job_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_vacancy_questions: {
+        Row: {
+          created_at: string
+          definition_id: string
+          hr_group_id: string
+          id: string
+          is_required: boolean
+          label_snapshot: string
+          options_snapshot: Json
+          sort_order: number
+          tenant_id: string
+          type_snapshot: Database["public"]["Enums"]["custom_field_type"]
+          updated_at: string
+          vacancy_id: string
+          validation_snapshot: Json
+        }
+        Insert: {
+          created_at?: string
+          definition_id: string
+          hr_group_id: string
+          id?: string
+          is_required?: boolean
+          label_snapshot: string
+          options_snapshot?: Json
+          sort_order?: number
+          tenant_id: string
+          type_snapshot: Database["public"]["Enums"]["custom_field_type"]
+          updated_at?: string
+          vacancy_id: string
+          validation_snapshot?: Json
+        }
+        Update: {
+          created_at?: string
+          definition_id?: string
+          hr_group_id?: string
+          id?: string
+          is_required?: boolean
+          label_snapshot?: string
+          options_snapshot?: Json
+          sort_order?: number
+          tenant_id?: string
+          type_snapshot?: Database["public"]["Enums"]["custom_field_type"]
+          updated_at?: string
+          vacancy_id?: string
+          validation_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_vacancy_questions_tenant_id_hr_group_id_defini_fkey"
+            columns: ["tenant_id", "hr_group_id", "definition_id"]
+            isOneToOne: false
+            referencedRelation: "custom_field_definitions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "recruitment_vacancy_questions_tenant_id_hr_group_id_vacanc_fkey"
+            columns: ["tenant_id", "hr_group_id", "vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_vacancies"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_vacancy_sections: {
+        Row: {
+          content: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          is_visible: boolean
+          section_type: string
+          sort_order: number
+          tenant_id: string
+          title: string
+          updated_at: string
+          vacancy_id: string
+          version: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          is_visible?: boolean
+          section_type: string
+          sort_order: number
+          tenant_id: string
+          title?: string
+          updated_at?: string
+          vacancy_id: string
+          version?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          is_visible?: boolean
+          section_type?: string
+          sort_order?: number
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          vacancy_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_vacancy_sections_tenant_id_hr_group_id_vacancy_fkey"
+            columns: ["tenant_id", "hr_group_id", "vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_vacancies"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -15057,6 +16397,14 @@ export type Database = {
         }
         Returns: string
       }
+      correct_recruitment_assessment: {
+        Args: {
+          requested_assessment_id: string
+          requested_reason: string
+          requested_scores: Json
+        }
+        Returns: Json
+      }
       create_employee_address_change_reminders: {
         Args: {
           requested_action: string
@@ -15295,6 +16643,77 @@ export type Database = {
         }
         Returns: Json
       }
+      create_recruitment_application: {
+        Args: {
+          requested_first_name: string
+          requested_last_name: string
+          requested_motivation: string
+          requested_phone: string
+          requested_private_email: string
+          requested_source: string
+          requested_vacancy_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_interview: {
+        Args: {
+          requested_application_id: string
+          requested_participant_employee_ids: Json
+          requested_scheduled_at: string
+          requested_set_id: string
+          requested_title: string
+        }
+        Returns: Json
+      }
+      create_recruitment_library_item: {
+        Args: {
+          requested_content: Json
+          requested_hr_group_id: string
+          requested_item_type: string
+          requested_stable_code: string
+          requested_tenant_id: string
+          requested_title: string
+        }
+        Returns: Json
+      }
+      create_recruitment_pipeline_stage: {
+        Args: {
+          requested_code: string
+          requested_hr_group_id: string
+          requested_name: string
+          requested_sort_order: number
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_set: {
+        Args: {
+          requested_description: string
+          requested_hr_group_id: string
+          requested_item_ids: Json
+          requested_name: string
+          requested_stable_code: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_recruitment_vacancy: {
+        Args: {
+          requested_hr_group_id: string
+          requested_job_id: string
+          requested_location_label: string
+          requested_max_hours: number
+          requested_min_hours: number
+          requested_salary_max: number
+          requested_salary_min: number
+          requested_salary_visible: boolean
+          requested_sections: Json
+          requested_tenant_id: string
+          requested_title: string
+          requested_work_mode: string
+        }
+        Returns: Json
+      }
       create_talent_notification: {
         Args: {
           requested_event_type: string
@@ -15363,25 +16782,12 @@ export type Database = {
         }
         Returns: Json
       }
-      get_journey_projection: {
-        Args: { requested_journey_id: string }
-        Returns: Json
-      }
-      list_journey_projections: {
-        Args: { requested_hr_group_id: string; requested_tenant_id: string }
-        Returns: Json
-      }
-      record_journey_topic_outcome: {
-        Args: {
-          requested_journey_id: string
-          requested_note?: string
-          requested_outcome_type: string
-          requested_topic_id: string
-        }
-        Returns: Json
-      }
       get_internal_transfer_preview: {
         Args: { requested_work_item_id: string }
+        Returns: Json
+      }
+      get_journey_projection: {
+        Args: { requested_journey_id: string }
         Returns: Json
       }
       get_my_talent_profile: {
@@ -15545,6 +16951,17 @@ export type Database = {
         }
         Returns: Json
       }
+      hire_recruitment_application: {
+        Args: {
+          requested_administration_id: string
+          requested_application_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+        }
+        Returns: Json
+      }
       import_holiday_snapshot: {
         Args: {
           requested_calendar_year: number
@@ -15574,6 +16991,10 @@ export type Database = {
           job_title: string
           work_email: string
         }[]
+      }
+      list_journey_projections: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: Json
       }
       manage_employment_company_location: {
         Args: {
@@ -15658,6 +17079,15 @@ export type Database = {
         }
         Returns: Json
       }
+      publish_recruitment_vacancy: {
+        Args: {
+          requested_payload: Json
+          requested_slug: string
+          requested_status: string
+          requested_vacancy_id: string
+        }
+        Returns: Json
+      }
       publish_reminder: {
         Args: { requested_reminder_id: string }
         Returns: number
@@ -15681,6 +17111,15 @@ export type Database = {
         }
         Returns: Json
       }
+      record_journey_topic_outcome: {
+        Args: {
+          requested_journey_id: string
+          requested_note?: string
+          requested_outcome_type: string
+          requested_topic_id: string
+        }
+        Returns: Json
+      }
       recover_absence: {
         Args: {
           requested_case_id: string
@@ -15689,10 +17128,90 @@ export type Database = {
         }
         Returns: string
       }
+      recruitment_analytics_projection: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: Json
+      }
+      recruitment_anonymize_application: {
+        Args: { requested_application_id: string }
+        Returns: Json
+      }
+      recruitment_document_download_claim: {
+        Args: { requested_document_id: string }
+        Returns: {
+          document_id: string
+        }[]
+      }
+      recruitment_participant_application_projection: {
+        Args: { requested_application_id: string }
+        Returns: {
+          application_id: string
+          candidate_first_name: string
+          candidate_last_name: string
+          capabilities: string[]
+          interview_id: string
+          interview_scheduled_at: string
+          interview_title: string
+          stage_id: string
+          stage_name: string
+          vacancy_title: string
+          version: number
+        }[]
+      }
+      recruitment_participant_assigned_applications: {
+        Args: never
+        Returns: Json[]
+      }
+      recruitment_participant_detail_projection: {
+        Args: { requested_application_id: string }
+        Returns: Json[]
+      }
+      recruitment_public_vacancy: {
+        Args: { requested_publication_id: string; requested_slug: string }
+        Returns: {
+          content: Json
+          location: string
+          publication_id: string
+          slug: string
+          title: string
+        }[]
+      }
+      recruitment_public_vacancy_state: {
+        Args: { requested_publication_id: string; requested_slug: string }
+        Returns: {
+          location: string
+          publication_id: string
+          slug: string
+          status: string
+          title: string
+        }[]
+      }
+      recruitment_run_retention: {
+        Args: { requested_limit?: number }
+        Returns: Json
+      }
+      recruitment_submit_public_application: {
+        Args: {
+          requested_intake_proof: string
+          requested_payload: Json
+          requested_publication_id: string
+          requested_slug: string
+        }
+        Returns: string
+      }
       release_process_work_item: {
         Args: {
           requested_expected_version: number
           requested_work_item_id: string
+        }
+        Returns: Json
+      }
+      reopen_recruitment_application: {
+        Args: {
+          expected_version: number
+          requested_application_id: string
+          requested_idempotency_key: string
+          requested_stage_id: string
         }
         Returns: Json
       }
@@ -15881,6 +17400,18 @@ export type Database = {
         }
         Returns: Json
       }
+      set_recruitment_library_item_enabled: {
+        Args: { requested_is_enabled: boolean; requested_item_id: string }
+        Returns: Json
+      }
+      set_recruitment_pipeline_stage_active: {
+        Args: {
+          expected_version: number
+          requested_is_active: boolean
+          requested_stage_id: string
+        }
+        Returns: Json
+      }
       start_document_acknowledgement: {
         Args: {
           requested_correlation_id: string
@@ -15925,15 +17456,41 @@ export type Database = {
         Args: { p_answers: Json; p_invitation_id: string }
         Returns: string
       }
+      submit_recruitment_assessment: {
+        Args: {
+          requested_assessment_id: string
+          requested_expected_version: number
+        }
+        Returns: Json
+      }
       submit_survey_response: {
         Args: { p_answers: Json; p_invitation_id: string }
         Returns: string
+      }
+      terminal_transition_recruitment_application: {
+        Args: {
+          expected_version: number
+          requested_application_id: string
+          requested_idempotency_key: string
+          requested_outcome: string
+          requested_reason: string
+        }
+        Returns: Json
       }
       transition_journey: {
         Args: {
           requested_action: string
           requested_expected_version: number
           requested_journey_id: string
+        }
+        Returns: Json
+      }
+      transition_recruitment_application: {
+        Args: {
+          expected_version: number
+          requested_application_id: string
+          requested_idempotency_key: string
+          requested_stage_id: string
         }
         Returns: Json
       }
@@ -15976,6 +17533,74 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_recruitment_library_item: {
+        Args: {
+          requested_content: Json
+          requested_expected_version: number
+          requested_is_active: boolean
+          requested_item_id: string
+          requested_title: string
+        }
+        Returns: Json
+      }
+      update_recruitment_pipeline_stage: {
+        Args: {
+          requested_expected_version: number
+          requested_is_active: boolean
+          requested_name: string
+          requested_sort_order: number
+          requested_stage_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_retention_settings: {
+        Args: {
+          expected_version: number
+          requested_hr_group_id: string
+          requested_retention_days: number
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_set: {
+        Args: {
+          requested_description: string
+          requested_expected_version: number
+          requested_is_active: boolean
+          requested_item_ids: Json
+          requested_name: string
+          requested_set_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_settings: {
+        Args: {
+          requested_expected_version: number
+          requested_hr_group_id: string
+          requested_public_branding: Json
+          requested_publication_defaults: Json
+          requested_retention_days: number
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_recruitment_vacancy: {
+        Args: {
+          requested_expected_version: number
+          requested_job_id: string
+          requested_location_label: string
+          requested_max_hours: number
+          requested_min_hours: number
+          requested_salary_max: number
+          requested_salary_min: number
+          requested_salary_visible: boolean
+          requested_sections: Json
+          requested_title: string
+          requested_vacancy_id: string
+          requested_work_mode: string
+        }
+        Returns: Json
+      }
       update_reminder_recipient: {
         Args: {
           requested_action: string
@@ -15987,6 +17612,10 @@ export type Database = {
       update_survey_draft: {
         Args: { p_campaign_id: string; p_payload: Json }
         Returns: string
+      }
+      upsert_recruitment_assessment_draft: {
+        Args: { requested_interview_id: string; requested_scores: Json }
+        Returns: Json
       }
       upsert_star_performer_assessment: {
         Args: { requested_administration_id: string; requested_payload: Json }
@@ -16020,7 +17649,10 @@ export type Database = {
         | "EXTERNAL"
         | "TEMPORARY_NO_END"
       custom_field_audience_access: "HIDDEN" | "READ" | "WRITE"
-      custom_field_entity_type: "EMPLOYEE" | "DOCUMENT"
+      custom_field_entity_type:
+        | "EMPLOYEE"
+        | "DOCUMENT"
+        | "RECRUITMENT_APPLICATION"
       custom_field_type:
         | "TEXT"
         | "TEXTAREA"
@@ -16396,7 +18028,11 @@ export const Constants = {
         "TEMPORARY_NO_END",
       ],
       custom_field_audience_access: ["HIDDEN", "READ", "WRITE"],
-      custom_field_entity_type: ["EMPLOYEE", "DOCUMENT"],
+      custom_field_entity_type: [
+        "EMPLOYEE",
+        "DOCUMENT",
+        "RECRUITMENT_APPLICATION",
+      ],
       custom_field_type: [
         "TEXT",
         "TEXTAREA",

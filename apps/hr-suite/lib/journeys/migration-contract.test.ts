@@ -37,6 +37,8 @@ describe('Journeys stap 1 migratiecontract', () => {
       'journey-participation:read', 'journey-participation:write',
     ]) expect(migration).toContain(`'${permission}'`)
     expect(migration).toContain("module_code in ('HERA','REMINDERS','TALENT','SURVEYS','ENPS','TEAM_COMPASS','JOURNEYS','DOCUMENTS')")
+    const recruitmentMigration = readFileSync(join(process.cwd(), 'supabase/migrations/20260813102722_guided_recruitment_foundation.sql'), 'utf8')
+    expect(recruitmentMigration).toContain("module_code in ('HERA','REMINDERS','TALENT','SURVEYS','ENPS','TEAM_COMPASS','JOURNEYS','RECRUITMENT','DOCUMENTS')")
   })
 
   it('publiceert atomair, audit en beschermt gepubliceerde rijen tegen mutatie', () => {

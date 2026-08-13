@@ -1,4 +1,4 @@
-const publicPrefixes = ['/login', '/invite', '/auth', '/api', '/geen-toegang'] as const
+const publicPrefixes = ['/login', '/invite', '/auth', '/api', '/geen-toegang', '/vacancies'] as const
 
 export function isProtectedApplicationPath(pathname: string): boolean {
   if (pathname === '/') return false

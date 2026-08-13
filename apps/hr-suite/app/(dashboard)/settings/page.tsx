@@ -21,6 +21,7 @@ import {
   UsersRound,
   Workflow,
   ClipboardList,
+  ClipboardCheck,
   Route,
   type LucideIcon,
 } from 'lucide-react'
@@ -153,6 +154,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('research:write'),
       allowed('team-compass:manage'),
       allowed('journey-template:read'),
+      allowed('recruitment-settings:manage'),
     ]),
     getEnabledTenantModules(),
   ])
@@ -177,6 +179,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     research,
     teamCompassManage,
     journeyTemplateRead,
+    recruitmentSettings,
   ] = capabilities
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
@@ -299,6 +302,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.journeys'),
           description: messages('admin.tiles.journeysDescription'),
           visible: journeyTemplateRead && enabledModules.includes('JOURNEYS'),
+        },
+        {
+          kind: 'link',
+          href: '/settings/recruitment',
+          icon: ClipboardCheck,
+          title: messages('admin.tiles.recruitment'),
+          description: messages('admin.tiles.recruitmentDescription'),
+          visible: recruitmentSettings && enabledModules.includes('RECRUITMENT'),
         },
         {
           kind: 'link',

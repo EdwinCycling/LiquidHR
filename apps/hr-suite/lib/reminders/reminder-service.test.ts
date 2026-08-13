@@ -41,4 +41,8 @@ describe('reminderActionUrl', () => {
     expect(reminderActionUrl('Open /journeys/11111111-1111-4111-8111-111111111111#moment/22222222-2222-4222-8222-222222222222')).toBeUndefined()
     expect(reminderActionUrl('Open /journeys/11111111-1111-4111-8111-111111111111#moment-22222222-2222-4222-8222-222222222222')).toBe('/journeys/11111111-1111-4111-8111-111111111111#moment-22222222-2222-4222-8222-222222222222')
   })
+
+  it('extracts protected recruitment application deep links', () => {
+    expect(reminderActionUrl('Openen /recruitment/applications/11111111-1111-4111-8111-111111111111')).toBe('/recruitment/applications/11111111-1111-4111-8111-111111111111')
+  })
 })
