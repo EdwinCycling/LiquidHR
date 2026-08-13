@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Actuele implementatiegrens
+
+Guided Recruitment Stap 3 is lokaal gebouwd in `feature/recruitment` en staat beschreven in [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md). De migrations zijn nog niet remote toegepast; de releasegate blijft daarom geblokkeerd voor remote advisors/types, authenticated browser/securitybewijs, version bump en releaseworkflow.
+
 ## Guided Recruitment — Stap 2 core experience 2026-08-13
 
 Stap 2 is lokaal gebouwd in de bestaande feature-worktree op de Step 1-foundation. De slice bevat de HR-vacatureflow, zes vaste vacatureblokken, publicatie en configureerbare intake, kandidaat-/sollicitatiebeheer, pipeline-detail, afwijzen/heropenen, hire-keuze, veilige publieke vacatureweergave en proof-/scanner-gebonden publieke inzending. De schema-eerst wijziging staat lokaal in `20260813115443_guided_recruitment_core_experience.sql` en is als `guided_recruitment_core_experience` remote toegepast op dev/test `wnpfloqpjvaacobppbpk`; officiële remote types zijn opnieuw gegenereerd. Remote blijven synthetische inspectie-fixtures beschikbaar: 3 vacatures, 18 secties, 2 publicaties en 4 sollicitaties onder tenant `Planeten`/HR-groep `Planeten Recruitment`. Er zijn geen echte kandidaat- of CV-gegevens gebruikt.

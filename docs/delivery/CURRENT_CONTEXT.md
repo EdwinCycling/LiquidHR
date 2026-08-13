@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Guided Recruitment — Stap 3 handoff 2026-08-13
+
+- **Branch/worktree:** `feature/recruitment` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.worktrees\recruitment`, HEAD `07c5ca6` vóór deze lokale slice. Alleen deze worktree is gewijzigd; `main` is niet aangepast, er is niet gemerged, gepusht of gedeployed en de productversie bleef `1.20260812.3`.
+- **Gebouwd:** Guided content- en setservices, seeded systembibliotheek (25 sollicitatievragen, 84 gespreksvragen, 45 criteria, 35 voorbereidingsitems, 12 sets), HR-groep CRUD/toggles, interview/assessment-RPC-adapters, actor-safe assigned participantprojecties, scorecard met autosave/submit, pipeline/privacy-instellingen, analyticsprojection, HR-delete/retentionkernel, storage cleanup via dagelijkse `/api/cron/recruitment-retention` (`0 3 * * *`), NL/EN UI en synthetische fixture/contracttest.
+- **Lokale migrations:** `20260813131401_guided_recruitment_guided_content.sql` en `20260813131411_guided_recruitment_retention_and_analytics.sql`. De criterion-snapshot bevat de characteristic-ID naast de 1–5-anchorinhoud. De officiële `packages/db/types.ts` is nog niet opnieuw gegenereerd omdat de nieuwe migrations niet remote zijn toegepast; de serverservice gebruikt tijdelijk een smalle getypeerde RPC-adapter.
+- **Remote:** project `wnpfloqpjvaacobppbpk` is read-only gecontroleerd. De connector wees de remote migratie-write af wegens expliciete projecttoestemming; er is geen workaround of herhaalde write uitgevoerd. De twee Stap 3 migrations, fixture en contracttest staan dus lokaal en zijn **niet remote toegepast**. Post-migration advisors, remote contracttest, remote fixture en remote types zijn daardoor open.
+- **Verificatie:** 182 testbestanden/686 tests groen, strict TypeScript groen, `check:i18n` groen (33 gelijke NL/EN-namespaces), `git diff --check` groen en `next build --webpack` groen. Repo-lint blijft geblokkeerd door de bestaande ESLint 10/Next-pluginfout `contextOrFilename.getFilename is not a function` op een ongewijzigde absence-pagina.
+- **Browser/security:** authenticated HR-, participant- en 390×844-browserbewijs is niet uitgevoerd; de worktree heeft volgens de Stap 2-handoff geen Supabase runtime/securityconfiguratie. Publieke intake blijft fail-closed zonder Turnstile/malwarescannerconfiguratie. HTTP-bereikbaarheid mag niet als authenticated bewijs worden geteld.
+- **Testdata/release:** de nieuwe `recruitment_demo.sql` is niet toegepast; er is geen nieuwe remote testdata aangemaakt. Geen versie-update en geen `finish-feature.ps1` zolang remote, advisors, types, securityconfiguratie en browsermatrix niet groen zijn. Eindstatus: **IMPLEMENTATION COMPLETE — RELEASE GATE BLOCKED**.
+
 ## Guided Recruitment — Stap 2 handoff
 
 - **Branch/worktree:** `feature/recruitment` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.worktrees\recruitment`, voortbouwend op foundationcommit `8b4d9f4430e564a787fb1aa66c260747469dff07`. Alleen deze worktree is gewijzigd. Er is niet naar `main` geschreven, niet gemerged, niet gepusht, niet gedeployed en de productversie is niet aangepast.

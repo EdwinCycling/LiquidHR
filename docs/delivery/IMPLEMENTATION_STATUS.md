@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## Guided Recruitment 2026-08-13 — STEP 3 LOKAAL GEBOUWD, RELEASE GATE BLOCKED
+
+Stap 3 levert lokaal de begeleide bibliotheek en immutable systemcontent, HR-groepbeheer van eigen content en sets, interviews/participants/assessment-adapters, actor-safe assigned participantflow, scorecard, pipeline/privacy/retention/analytics en de dagelijkse retention-cronroute. De twee migrations en de `TEST-RECRUITMENT-*` fixture staan in de recruitment-worktree; systemcontent telt 25 application questions, 84 interview questions, 45 criteria, 35 preparation items en 12 sets. Application questions worden niet in sets toegelaten; peer assessments zijn vóór eigen submit niet in de participantprojection aanwezig; terminale applications blijven uitgesloten.
+
+Lokaal bewijs: 182 testbestanden/686 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, `git diff --check` en `next build --webpack` groen. Repo-lint is geblokkeerd door de bestaande ESLint 10/Next-pluginfout op een ongewijzigde absence-pagina. De Stap 3 migrations zijn nog niet remote toegepast: de Supabase-connector heeft de specifieke remote write afgewezen wegens ontbrekende expliciete bevestiging. Daarom zijn remote migrationstatus, post-migration advisors, officiële typegeneratie, SQL-contracttest, fixtureproef, authenticated browsermatrix en securityconfiguratie open. Productversie, merge, push, deployment en `finish-feature.ps1` zijn bewust niet uitgevoerd.
+
 ## Guided Recruitment 2026-08-13 — STEP 2 CORE EXPERIENCE GEBOUWD, AUTHENTICATED BROWSER OPEN
 
 De Step 2-slice is gebouwd op branch `feature/recruitment` in `.worktrees/recruitment`; Step 1 is niet opnieuw ontworpen. De HR-flow ondersteunt vacaturelijst/detail, aanmaken en wijzigen als server-side gevalideerde schrijfgrens, zes vaste inhoudsblokken, vacaturepublicatie, configuratie voor telefoon/motivatie/CV, kandidaat- en sollicitatielijst/detail, handmatige invoer, pipeline-fase, afwijzen/heropenen en expliciete hire-keuze. De publieke route toont uitsluitend een open vacatureprojectie, houdt een gesloten vacature veilig gesloten en verwerkt inzendingen pas na server-side honeypot-, configuratie-, proof-, rate-limit-, bestandstype/-grootte-, magic-byte- en malware-scancontroles. CLEAN-documenten blijven in de private quarantinebucket.

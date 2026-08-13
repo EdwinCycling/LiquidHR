@@ -4,5 +4,8 @@
   "regions": ["cdg1"],
   "installCommand": "npm install",
   "buildCommand": "npm run build --workspace @liquid-hr/hr-suite",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    { "path": "/api/cron/recruitment-retention", "schedule": "0 3 * * *" }
+  ]
 }
