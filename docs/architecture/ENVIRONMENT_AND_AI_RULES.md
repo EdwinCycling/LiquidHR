@@ -64,6 +64,8 @@ De bron-app gebruikt een `CLAUDE.md`-bestand (project-instructies, gelezen bij e
 | `TURNSTILE_SECRET_KEY` | Server-side verificatie-secret |
 | `UNSUBSCRIBE_SECRET` | Ondertekenen van unsubscribe-links |
 | `WEBSITE_LEAD_SECRET` | Verificatie van binnenkomende leads vanaf een publieke marketingsite |
+| `RECRUITMENT_MALWARE_SCAN_URL` | Server-side endpoint van de goedgekeurde remote malwarescanner voor publieke recruitmentdocumenten |
+| `RECRUITMENT_MALWARE_SCAN_API_KEY` | Server-only API-key voor de remote recruitmentmalwarescanner; nooit naar de browser sturen of loggen |
 
 ### Admin / super-admin
 | Variabele | Doel |

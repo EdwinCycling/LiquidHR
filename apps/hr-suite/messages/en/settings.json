@@ -130,6 +130,7 @@
       "ENPS": { "name": "eNPS & employee research", "description": "Fully anonymous engagement surveys with a fixed eNPS question and privacy threshold." },
       "TEAM_COMPASS": { "name": "Team Compass", "description": "Safe team assessments, personal compasses and anonymised group insights." },
       "JOURNEYS": { "name": "Journeys", "description": "Time-bound guidance with configurable phases, roles, moments and topics." },
+      "RECRUITMENT": { "name": "Applications", "description": "Secure vacancy, application and guided recruitment flows per HR group." },
       "LEAVE": { "name": "Leave", "description": "Leave registration and balances in the employee calendar." },
       "ABSENCE": { "name": "Absence", "description": "Absence cases and calendar indicators." },
       "ASSETS": { "name": "Assets", "description": "Issue and return company assets per employee." },

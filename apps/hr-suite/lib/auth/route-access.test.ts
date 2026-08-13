@@ -6,7 +6,7 @@ describe('isProtectedApplicationPath', () => {
     expect(isProtectedApplicationPath(path)).toBe(true)
   })
 
-  it.each(['/login', '/invite/accept', '/auth/callback', '/geen-toegang'])('laat %s publiek bereikbaar', (path) => {
+  it.each(['/login', '/invite/accept', '/auth/callback', '/geen-toegang', '/vacancies/11111111-1111-4111-8111-111111111111/test'])('laat %s publiek bereikbaar', (path) => {
     expect(isProtectedApplicationPath(path)).toBe(false)
   })
 })

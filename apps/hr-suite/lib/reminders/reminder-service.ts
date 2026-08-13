@@ -76,7 +76,7 @@ export interface ReminderItem {
 }
 
 export function reminderActionUrl(description: string | null): string | undefined {
-  const match = description?.match(/(?:open|openen)\s+(\/journeys\/[0-9a-f-]+#moment-[0-9a-f-]+)/i)
+  const match = description?.match(/(?:open|openen)\s+(\/(?:journeys\/[0-9a-f-]+#moment-[0-9a-f-]+|recruitment\/applications\/[0-9a-f-]+))/i)
   return match?.[1]
 }
 

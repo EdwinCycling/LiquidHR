@@ -130,6 +130,7 @@
       "ENPS": { "name": "eNPS & medewerkersonderzoek", "description": "Volledig anonieme betrokkenheidsmetingen met vaste eNPS-vraag en privacydrempel." },
       "TEAM_COMPASS": { "name": "Teamkompas", "description": "Veilige teammetingen, persoonlijke kompassen en geanonimiseerde groepsinzichten." },
       "JOURNEYS": { "name": "Journeys", "description": "Tijdgebonden begeleiding met configureerbare fases, rollen, momenten en topics." },
+      "RECRUITMENT": { "name": "Sollicitaties", "description": "Veilige vacature-, sollicitatie- en guided recruitmentflows per HR-groep." },
       "LEAVE": { "name": "Verlof", "description": "Verlofregistratie en verlofsaldi in de medewerkerskalender." },
       "ABSENCE": { "name": "Verzuim", "description": "Verzuimdossiers en signalering in de kalender." },
       "ASSETS": { "name": "Bedrijfsmiddelen", "description": "Uitgifte en inname van middelen per medewerker." },
