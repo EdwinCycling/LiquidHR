@@ -1,5 +1,55 @@
 # Implementatiestatus Liquid HR
 
+## Phase 2 Salary Structures + Salary Application — GREEN 2026-08-14
+
+**Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN / CHECKPOINT BASELINE**
+
+De resterende ESLint-blocker is eerst op de feature-base/baseline gereproduceerd: root ESLint 10 botste met `eslint-plugin-react@7.37.5` en de Next ESLint-integratie (`contextOrFilename.getFilename is not a function`). De oorzaak was baseline-tooling, niet Salary Structures of Salary Application. Root ESLint is daarom compatibel vastgezet op `9.39.5`; er is geen suppression of configverlaging gebruikt.
+
+De vier bevindingen na die toolingfix zijn systematisch herleid en minimaal opgelost: twee werkelijk ongebruikte dubbele salarisberekeningen in `employment-create-form.tsx` verwijderd; de ongebruikte `employmentById` in `salary-exceptions.ts` verwijderd; en `react-hooks/set-state-in-effect` in `salary-band-percentage-control.tsx` opgelost door source-keyed draft/display-state zonder synchroniserend effect. De control heeft een regressietest voor transient lege invoer en herafleiding bij gewijzigde salaris/band-bron.
+
+Volledige lokale fase-2-verificatie is groen: `195` testbestanden en `741` tests, strict TypeScript, ESLint met `--max-warnings=0` op `0 errors / 0 warnings`, i18n met `33` gelijke NL/EN-namespaces, Webpack productiebuild met `224` statische pagina's en `git diff --check`.
+
+De remote Supabase gate is na identity-verificatie opnieuw uitgevoerd op `wnpfloqpjvaacobppbpk`: migrations, RLS/CRUD-policies, grants, tenant/HR-group isolation, administration x CAO filtering, historische schaal/trede- en salarisband-resolutie, exceptions, audit en advisors zijn gecontroleerd. De ene ontbrekende dev/test settings-fixture voor `TEST-BOUNDARY-ADMIN` is uitsluitend daar toegevoegd. Er is geen salary-specifieke security-advisorbevinding; bredere bestaande advisor-INFO/WARNs zijn behouden en gedocumenteerd.
+
+De twee resterende browserdeviations zijn daarna op root cause onderzocht en opgelost. De employment-detailmapping gebruikt nu `salaryApplication.salaryBand` via een centrale sleutelresolver met regressietest. De Employee-directory rendert voor peers geen protected avatar-route meer; de bestaande avatarautorisatie is niet verruimd. HR Admin employment detail, Manager dashboard/teamavatar en Employee directory zijn op 390×844 opnieuw geladen zonder runtime- of consolefouten.
+
+De actuele eindgate is groen: `195` testbestanden en `741` tests, strict TypeScript, ESLint met `--max-warnings=0` op `0 errors / 0 warnings`, i18n met `33` gelijke NL/EN-namespaces, Webpack productiebuild met `224` statische pagina's en `git diff --check`.
+
+Deze groene baseline is de afgesproken lokale checkpoint voor Salary Structures + Salary Application. Geen push, merge, deploy, PR of version bump.
+
+## Salaristoepassing - vervolgslice 2026-08-14
+
+**Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN; vervangen door de actuele status hierboven**
+
+De bestaande Salary Structures-fundering is aangevuld met de administration×CAO-intersectie inclusief expliciete nul-linkfallback, een centrale datumgebonden resolver voor gepubliceerde scale-/step- en bandrevisies, en HR-uitzonderingen in het bestaande Insights-patroon. Het salarisbedrag blijft geldig bij een verdwenen band; een ongeldige schaal/trede levert geen verondersteld bedrag op en verwijst HR naar de bestaande Salaris aanpassen-flow. De strikte bandvoorwaarde is `minimum < midpoint < maximum`.
+
+De vervolgslice is opgenomen in de groene Phase 2-baseline; de actuele eindgate hierboven bevat de volledige 195 testbestanden/741 tests, strict TypeScript, volledige ESLint, i18n-pariteit, Webpack-build en diff-check.
+
+Remote dev/test `wnpfloqpjvaacobppbpk` is geverifieerd en bevat de vier salary-applicationmigrations: domain, resolution/exceptions, anon-grant hardening en samengestelde FK-indexen. De gegenereerde types zijn gecontroleerd; 11 salary-tabellen hebben RLS, anon heeft nul tabelgrants en de salary application RPC's zijn alleen uitvoerbaar door `authenticated`. De security-advisor heeft geen salary-specifieke bevindingen. Twee settings-policy performance-WARNs blijven bewust staan om `contract:*` en `salary:*` niet tot één bredere autorisatiepolicy samen te voegen.
+
+Authenticated browserbewijs is uitgevoerd voor HR Admin, manager en employee op desktop en 390×844. De salary administration- en exceptions-reportflows zijn bereikbaar; manager en employee zien geen salarydata en krijgen op directe salary-settingsroutes de bestaande no-access-ervaring. Er is geen commit, push, merge, deployment, PR of version bump uitgevoerd. Zie [`requirements/salary-application/SALARY_APPLICATION.md`](../requirements/salary-application/SALARY_APPLICATION.md) en [`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md).
+
+## Salarisstructuren - Stap 2
+
+**Status: Historische tussenstand — vervangen door Phase 2 GREEN hierboven**
+
+Stap 2 levert de definitieve SS-001 t/m SS-011 HR Admin-UX zonder de Step 1-architectuur opnieuw te bouwen. De nieuwe manager gebruikt de bestaande `salary_structures`/revision API's en berekeningservice, toont twee aparte structuurtypen, meerdere revisies en CAO-beschikbaarheid, en houdt gepubliceerde revisies read-only. Bandmetrics zijn centraal en decimal-safe; validatie maakt alleen echte ongeldige ankers blokkerend en laat spread/progression/overlap/gap als waarschuwing staan. De migration-conflict-actie wordt server-side opgeslagen met tenant- en HR-groepfiltering.
+
+Lokaal: 186 testbestanden/710 tests, strict TypeScript, i18n-pariteit, gerichte ESLint, Webpack-build en `git diff --check` waren groen. Dit is de historische tussenstand vóór de latere runtime-, browser- en releaseverificatie; zie de actuele Phase 2 GREEN-sectie hierboven.
+
+## Salarisstructuren — Stap 1 GREEN 2026-08-14
+
+De verouderde requirements en UX-reference zijn vóór implementatie vervangen door het canonieke pakket. De Product Requirements zijn volledig en aaneengesloten SSR-001 t/m SSR-069; de UX Reference is volledig en aaneengesloten SS-001 t/m SS-011. De herlezing en scopecheck zijn uitgevoerd in de opgegeven volgorde: Product Requirements → UX Reference → testdataset README → testdataset JSON → implementatieplan → Stitch uitsluitend visueel. Het enige niet-blokkerende bronverschil is dat de losse ready-to-paste prompt onderaan het plan README/JSON omdraait; de hoofdroute en deze uitvoering gebruiken de expliciet opgedragen volgorde. Verouderde Stitch-termen en voorbeeldwaarden zijn niet als productcontract gebruikt.
+
+Stap 1 is schema-eerst uitgevoerd in `feature/salary-structures`. Het model is HR-groepbreed en ondersteunt meerdere benoemde structuren, twee vaste structuurtypen, effectieve revisies, immutable publicatie, stabiele schaal-/bandidentiteiten, concrete revision content, decimal-safe berekeningen, vrije tredelabels, progressionmetadata zonder automatisering, CAO ↔ logische structuur many-to-many en expliciete migratieconflicten. De bestaande administratiegebonden schaaldata is gemigreerd met behoud van alle concrete step-ID's: 60 bestaande `employment_salaries.salary_scale_step_id`-verwijzingen blijven geldig en orphan count is nul. Bestaande salarisinserts mogen `hr_group_id` blijven weglaten; een gecontroleerde BEFORE-trigger leidt dit actor-onafhankelijk af uit het Employment en valideert mismatches.
+
+Remote dev/test `wnpfloqpjvaacobppbpk` bevat alle negen migrations. De databasecontrole bevestigt 9/9 RLS-tabellen, per tabel precies één SELECT/INSERT/UPDATE/DELETE-policy, expliciete authenticated grants en nul anon-tabelgrants. Aangemaakt zijn getypeerde root/draft/publish/CAO-RPC's en Next API-routes. Transactioneel bewijs is groen voor create → draft → publish, optimistic lock, duplicate effective-date blokkade, immutable published content, CAO met twee structuren, cross-HR-group relation deny en employment-salary HR-groepafleiding. De security-advisor bevat geen Salary Structures-bevinding; de performance-advisor toont uitsluitend verwachte `unused_index`-INFO voor nieuwe indexen.
+
+De canonieke JSON is via een deterministische, productie-afwijzende generator in de bestaande lege dev/test-HR-groep geladen: 5 structuren (2 schaal/3 band), 7 revisies (5 gepubliceerd/2 concept), 20 logische schalen, 38 schaalwaarden, 403 stappen, 13 logische banden, 19 bandwaarden, 3 CAO-relaties en 1 migratieconflict. De officiële Rijkrevisie bevat exact 18 schalen/198 stappen en de regressiewaarde schaal 8/trede 5 is €3.741,48. Alle canonieke bandmetrics en de vier legacy regressiemodi worden door tests afgedekt.
+
+Verificatie: 4 gerichte testbestanden/21 tests groen, strict TypeScript groen, gerichte ESLint zonder warnings en `git diff --check` groen. Officiële remote types zijn gegenereerd met behoud van de reeds gedocumenteerde lokale `company_activities`-compatibiliteit, omdat die bestaande lokale migration nog niet in remote dev/test staat. Stap 2, volledige UX SS-001 t/m SS-011, NL/EN-i18n, browser-/responsive-/accessibilitybewijs, build/releasegate, push, merge, deployment, PR en version bump zijn nog niet uitgevoerd. **DO NOT recreate previous-step architecture.**
+
 ## Guided Recruitment — lokaal geconsolideerde testrelease 2026-08-13
 
 Guided Recruitment is samengevoegd naar `main` en gepubliceerd met zichtbare productversie `1.20260813.1`. De definitieve lokale gate is groen: 182 testbestanden/687 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, ESLint zonder warnings, `git diff --check` en Webpack-build met 223 pagina's. De Recruitment-migrations, tests, fixture, i18n, requirements en generated DB-types zijn gecommit; er zijn in deze releaseprocedure geen migrations opnieuw uitgevoerd of via `db push` toegepast. GitHub `origin/main` en Vercel Production zijn geverifieerd op SHA `446a8f8ecef7b7c06f1c6910a990ecbe3bf84046`; deployment `dpl_JDCAbJkkTy9YDLWCB1UGLxvc7kKd` staat `READY`. `/login` gaf 200, de beschermde Recruitment-settingsroute bereikte de loginlaag en een onbekende publieke vacancy gaf veilig 404. Runtime error/fatal-logs waren leeg. De publieke Turnstile-, rate-limit- en malware-scanconfiguratie blijft bewust geparkeerd en publieke submit/upload blijft fail-closed.

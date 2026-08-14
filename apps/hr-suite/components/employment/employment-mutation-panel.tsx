@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useMemo, useState } from 'react'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
+import { SalaryBandPositionCard } from '@/components/salary/salary-band-position-card'
+import { SalaryBandPercentageControl } from '@/components/salary/salary-band-percentage-control'
 import { ConfirmationDialog } from './confirmation-dialog'
 
 type Timeline = 'LABOR_CONDITIONS' | 'SCHEDULE' | 'SALARY' | 'COST_ALLOCATION'
@@ -11,6 +13,9 @@ interface Option { id: string; code: string; name: string }
 interface Allocation { costCenterId: string; costCarrierId: string; percentage: number }
 interface ImpactChoice { key: string; label: string; directTimeline?: Timeline; choice: 'DIRECT' | 'NOT_APPLICABLE' }
 interface ImpactDefinition { key: string; label: string; directTimeline?: Timeline }
+interface SalaryScale { id: string; structureId: string; code: string; name: string }
+interface SalaryScaleStep { id: string; salaryScaleId: string; stepCode: string; label: string; fulltimeAmount: number }
+interface SalaryBand { id: string; structureId: string; code: string; name: string; minimumAmount: number; midpointAmount: number; maximumAmount: number | null }
 interface EmploymentMutationPanelProps {
   employmentId: string
   timeline: Timeline
@@ -20,11 +25,17 @@ interface EmploymentMutationPanelProps {
   costCenters?: Option[]
   costCarriers?: Option[]
   fulltimeHoursPerWeek?: number
+  salaryRoutes?: Array<'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'>
+  salaryScales?: SalaryScale[]
+  salaryScaleSteps?: SalaryScaleStep[]
+  salaryBands?: SalaryBand[]
+  salaryBandLocale?: string
+  salaryBandLabels?: { preview: string; currentSalary: string; minimum: string; midpoint: string; maximum: string; compaRatio: string; rangePenetration: string; status: string; underMinimum: string; withinRange: string; aboveMaximum: string; noValidBand: string; openEnded: string }
   directPayloads?: Partial<Record<Timeline, object>>
   labels: Record<string, string>
 }
 
-export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], fulltimeHoursPerWeek = 40, directPayloads = {}, labels }: EmploymentMutationPanelProps) {
+export function EmploymentMutationPanel({ employmentId, timeline, canWrite, blockCount, latestEffectiveOn, costCenters = [], costCarriers = [], fulltimeHoursPerWeek = 40, salaryRoutes = ['MANUAL', 'MINIMUM_WAGE'], salaryScales = [], salaryScaleSteps = [], salaryBands = [], salaryBandLocale = 'nl-NL', salaryBandLabels, directPayloads = {}, labels }: EmploymentMutationPanelProps) {
   const router = useRouter()
   const today = new Date().toISOString().slice(0, 10)
   const [dialog, setDialog] = useState<'change' | 'rollback' | null>(null)
@@ -32,6 +43,9 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
   const [status, setStatus] = useState<'idle' | 'saved' | 'failed'>('idle')
   const [pending, setPending] = useState<Record<string, FormDataEntryValue> | null>(null)
   const [rollbackReason, setRollbackReason] = useState('')
+  const [selectedSalaryRoute, setSelectedSalaryRoute] = useState<'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'>(salaryRoutes[0] ?? 'MANUAL')
+  const [selectedSalaryBandId, setSelectedSalaryBandId] = useState(salaryBands[0]?.id ?? '')
+  const [salaryBandAmount, setSalaryBandAmount] = useState('')
   const [allocations, setAllocations] = useState<Allocation[]>([{ costCenterId: costCenters[0]?.id ?? '', costCarrierId: costCarriers[0]?.id ?? '', percentage: 100 }])
   const impactDefinitions: ImpactDefinition[] = timeline === 'SCHEDULE'
     ? [{ key: 'salary', label: labels.impactScheduleSalary, directTimeline: 'SALARY' }, { key: 'leave', label: labels.impactScheduleLeave }, { key: 'pension', label: labels.impactSchedulePension }, { key: 'payroll', label: labels.impactSchedulePayroll }]
@@ -61,11 +75,28 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
       mondayHours: null, tuesdayHours: null, wednesdayHours: null, thursdayHours: null,
       fridayHours: null, saturdayHours: null, sundayHours: null,
     }
-    if (timeline === 'SALARY') return {
-      paymentType: String(values.paymentType), paymentFrequency: String(values.paymentFrequency), salaryBasis: 'MANUAL',
-      fulltimeAmount: values.paymentType === 'PERIODIC_FIXED' ? Number(values.amount) : null,
-      hourlyRate: values.paymentType === 'HOURLY_VARIABLE' ? Number(values.amount) : null,
-      currencyCode: 'EUR', salaryScaleStepId: null, caoScaleName: null, caoStepName: null,
+    if (timeline === 'SALARY') {
+      const salaryRoute = String(values.salaryRoute) as 'MANUAL' | 'MINIMUM_WAGE' | 'SCALE_WITH_STEPS' | 'SALARY_BAND'
+      const selectedStep = salaryScaleSteps.find((step) => step.id === String(values.salaryScaleStepId))
+      const selectedScale = salaryScales.find((scale) => scale.id === String(values.salaryScaleId))
+      const selectedBand = salaryBands.find((band) => band.id === String(values.salaryBandId))
+      return {
+        paymentType: salaryRoute === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : String(values.paymentType),
+        paymentFrequency: String(values.paymentFrequency),
+        salaryBasis: salaryRoute === 'SCALE_WITH_STEPS' ? 'CUSTOM_SCALE' : salaryRoute === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : salaryRoute === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL',
+        salaryRoute,
+        minimumWageScheme: salaryRoute === 'MINIMUM_WAGE' ? String(values.minimumWageScheme) : null,
+        fulltimeAmount: salaryRoute === 'MINIMUM_WAGE' || String(values.paymentType) === 'HOURLY_VARIABLE' ? null : salaryRoute === 'SCALE_WITH_STEPS' ? selectedStep?.fulltimeAmount ?? null : Number(values.amount),
+        parttimeAmount: salaryRoute === 'MINIMUM_WAGE' || String(values.paymentType) === 'HOURLY_VARIABLE' ? null : salaryRoute === 'SCALE_WITH_STEPS' ? selectedStep?.fulltimeAmount ?? null : Number(values.amount),
+        hourlyRate: salaryRoute === 'MINIMUM_WAGE' ? null : String(values.paymentType) === 'HOURLY_VARIABLE' ? Number(values.amount) : null,
+        currencyCode: 'EUR',
+        salaryScaleStepId: salaryRoute === 'SCALE_WITH_STEPS' ? String(values.salaryScaleStepId) : null,
+        salaryStructureId: salaryRoute === 'SCALE_WITH_STEPS' ? selectedScale?.structureId ?? null : salaryRoute === 'SALARY_BAND' ? selectedBand?.structureId ?? null : null,
+        salaryScaleId: salaryRoute === 'SCALE_WITH_STEPS' ? String(values.salaryScaleId) : null,
+        salaryStepCode: salaryRoute === 'SCALE_WITH_STEPS' ? selectedStep?.stepCode ?? null : null,
+        salaryBandId: salaryRoute === 'SALARY_BAND' ? String(values.salaryBandId) : null,
+        caoScaleName: null, caoStepName: null,
+      }
     }
     return { allocations }
   }
@@ -81,9 +112,12 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
       warningCodes: String(pending.effectiveOn) < today ? ['RETROACTIVE_CHANGE'] : [],
       acknowledgements: { confirmed: true, retroactive: String(pending.effectiveOn) < today },
     }
-    const response = await fetch(directMutations.length > 0 ? `/api/employments/${employmentId}/changes` : `/api/employments/${employmentId}/timeline/${timeline}`, {
+    const usesSalaryApplicationRoute = timeline === 'SALARY' && directMutations.length === 0
+    const response = await fetch(usesSalaryApplicationRoute ? `/api/employments/${employmentId}/salary` : directMutations.length > 0 ? `/api/employments/${employmentId}/changes` : `/api/employments/${employmentId}/timeline/${timeline}`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(directMutations.length > 0
+      body: JSON.stringify(usesSalaryApplicationRoute
+        ? { ...requestBody, ...payload(pending) }
+        : directMutations.length > 0
         ? { ...requestBody, mutations: [{ timeline, payload: payload(pending) }, ...directMutations] }
         : { ...requestBody, payload: payload(pending) }),
     })
@@ -125,9 +159,18 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
           <label className="grid gap-1.5 text-sm font-medium">{labels.timeForTime}<input className="form-field" name="timeForTimeAccrual" type="number" min="0" step="0.01" defaultValue="0" required /></label>
         </>}
         {timeline === 'SALARY' && <>
-          <label className="grid gap-1.5 text-sm font-medium">{labels.paymentType}<select className="form-field" name="paymentType"><option value="PERIODIC_FIXED">{labels.periodicFixed}</option><option value="HOURLY_VARIABLE">{labels.hourlyVariable}</option></select></label>
+          <label className="grid gap-1.5 text-sm font-medium">{labels.salaryCalculation}<select className="form-field" name="salaryRoute" value={selectedSalaryRoute} onChange={(event) => setSelectedSalaryRoute(event.target.value as typeof selectedSalaryRoute)}><option value="MANUAL">{labels.salaryManual}</option>{salaryRoutes.includes('MINIMUM_WAGE') && <option value="MINIMUM_WAGE">{labels.salaryMinimum}</option>}{salaryRoutes.includes('SCALE_WITH_STEPS') && <option value="SCALE_WITH_STEPS">{labels.salaryTable}</option>}{salaryRoutes.includes('SALARY_BAND') && <option value="SALARY_BAND">{labels.salaryBand}</option>}</select></label>
           <label className="grid gap-1.5 text-sm font-medium">{labels.paymentFrequency}<select className="form-field" name="paymentFrequency"><option value="MONTHLY">{labels.monthly}</option><option value="FOUR_WEEKLY">{labels.fourWeekly}</option></select></label>
-          <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeAmount} / {labels.hourlyRate}<input className="form-field" name="amount" type="number" min="0" step="0.01" required /></label>
+          {selectedSalaryRoute !== 'MINIMUM_WAGE' && <label className="grid gap-1.5 text-sm font-medium">{labels.paymentType}<select className="form-field" name="paymentType"><option value="PERIODIC_FIXED">{labels.periodicFixed}</option><option value="HOURLY_VARIABLE">{labels.hourlyVariable}</option></select></label>}
+          {selectedSalaryRoute === 'MINIMUM_WAGE' && <label className="grid gap-1.5 text-sm font-medium">{labels.salaryMinimumScheme ?? labels.salaryMinimum}<select className="form-field" name="minimumWageScheme" defaultValue="REGULAR"><option value="REGULAR">{labels.salaryRegular ?? 'REGULAR'}</option><option value="BBL">{labels.salaryBbl ?? 'BBL'}</option></select></label>}
+          {selectedSalaryRoute === 'SCALE_WITH_STEPS' && <>
+            <label className="grid gap-1.5 text-sm font-medium">{labels.salaryScale}<select className="form-field" name="salaryScaleId" defaultValue={salaryScales[0]?.id ?? ''}>{salaryScales.map((scale) => <option key={scale.id} value={scale.id}>{scale.code} · {scale.name}</option>)}</select></label>
+            <label className="grid gap-1.5 text-sm font-medium">{labels.salaryScaleStep}<select className="form-field" name="salaryScaleStepId" defaultValue={salaryScaleSteps[0]?.id ?? ''}>{salaryScaleSteps.map((step) => <option key={step.id} value={step.id}>{step.label}</option>)}</select></label>
+          </>}
+          {selectedSalaryRoute === 'SALARY_BAND' && <label className="grid gap-1.5 text-sm font-medium">{labels.salaryBand}<select className="form-field" name="salaryBandId" value={selectedSalaryBandId} onChange={(event) => setSelectedSalaryBandId(event.target.value)}>{salaryBands.map((band) => <option key={band.id} value={band.id}>{band.code} · {band.name}</option>)}</select></label>}
+          {selectedSalaryRoute === 'MANUAL' || selectedSalaryRoute === 'SALARY_BAND' ? <label className="grid gap-1.5 text-sm font-medium">{labels.fulltimeAmount}<input className="form-field" name="amount" type="number" min="0" step="0.01" required value={salaryBandAmount} onChange={(event) => setSalaryBandAmount(event.target.value)} /></label> : null}
+          {selectedSalaryRoute === 'MINIMUM_WAGE' && <p className="self-end text-sm text-muted-foreground">{labels.salaryApplicationExternalAmount ?? labels.notRecorded}</p>}
+          {selectedSalaryRoute === 'SALARY_BAND' && salaryBandLabels && salaryBands.find((band) => band.id === selectedSalaryBandId) && <div className="sm:col-span-2">{(() => { const selectedBand = salaryBands.find((band) => band.id === selectedSalaryBandId); if (!selectedBand) return null; const band = { minimum: selectedBand.minimumAmount.toFixed(2), midpoint: selectedBand.midpointAmount.toFixed(2), maximum: selectedBand.maximumAmount === null ? null : selectedBand.maximumAmount.toFixed(2) }; return <><SalaryBandPositionCard salaryAmount={salaryBandAmount || String(selectedBand.midpointAmount)} band={band} locale={salaryBandLocale} currencyCode="EUR" labels={salaryBandLabels} /><div className="mt-3"><SalaryBandPercentageControl band={band} labels={{ percentage: labels.salaryBandMidpoint ?? labels.salaryBand, percentageHelp: labels.rangePenetration ?? labels.salaryBand }} salaryAmount={salaryBandAmount || String(selectedBand.midpointAmount)} onSalaryAmountChange={setSalaryBandAmount} /></div></> })()}</div>}
         </>}
         {timeline === 'COST_ALLOCATION' && <div className="sm:col-span-2 space-y-3">
           {allocations.map((allocation, index) => <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_8rem_auto]">

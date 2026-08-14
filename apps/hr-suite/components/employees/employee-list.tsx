@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { EmployeeOverview } from '@/lib/employment/employment-service'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import type { EmployeeListView } from '@/lib/preferences/employee-list-state'
+import { getEmployeeListAvatarUrl } from '@/lib/employees/employee-avatar-visibility'
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeDirectoryTrigger } from './employee-directory-trigger'
 import { EmployeePhotoAvatar } from './employee-photo-avatar'
@@ -84,6 +85,7 @@ export function EmployeeList({
             viewProfileLabel={viewProfileLabel}
             directoryMode={directoryMode}
             currentEmployeeId={currentEmployeeId}
+            avatarUrl={getEmployeeListAvatarUrl(employee, directoryMode, currentEmployeeId)}
             directoryVisibility={directoryVisibility}
             limitedDetailEmployeeIds={limitedDetailEmployeeIds}
             directoryLabels={directoryLabels}
@@ -111,14 +113,15 @@ export function EmployeeList({
   return (
     <section className="overflow-hidden rounded-2xl border bg-surface shadow-sm">
       <ul className="divide-y">
-        {employees.map((employee, index) => (
-          <li key={employee.id} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
+        {employees.map((employee, index) => {
+          const avatarUrl = getEmployeeListAvatarUrl(employee, directoryMode, currentEmployeeId)
+          return <li key={employee.id} className={index % 2 === 1 ? 'bg-muted/20' : ''}>
             <div className={`group relative grid cursor-pointer px-4 transition-colors hover:bg-accent/45 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 ${view === 'compact' ? 'gap-3 py-2.5' : 'gap-4 py-4 sm:py-5'}`}>
               {directoryLabels && employee.id !== currentEmployeeId && (directoryMode || limitedDetailEmployeeIds.includes(employee.id)) ? <EmployeeDirectoryTrigger employeeId={employee.id} ariaLabel={[employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')} labels={directoryLabels} /> : <Link aria-label={[employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')} className="absolute inset-0 z-0 rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary" href={`/employees/${employee.id}`} prefetch={false} />}
               <div className="relative z-10 min-w-0 pointer-events-none">
                 <div className={`flex min-w-0 items-center ${view === 'compact' ? 'gap-2.5' : 'gap-3.5'}`}>
                   {view === 'detail' ? (
-                    employee.avatarUrl ? <img src={employee.avatarUrl} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wide text-primary-foreground shadow-sm">{employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}</span>
+                    avatarUrl ? <img src={avatarUrl} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wide text-primary-foreground shadow-sm">{employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}</span>
                   ) : null}
                   <div className="min-w-0">
                     {(!directoryMode && !limitedDetailEmployeeIds.includes(employee.id)) ? <p className="truncate text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -153,7 +156,7 @@ export function EmployeeList({
               </div>
             </div>
           </li>
-        ))}
+        })}
       </ul>
     </section>
   )
@@ -171,6 +174,7 @@ interface EmployeeCardProps {
   viewProfileLabel: string
   directoryMode: boolean
   currentEmployeeId: string | null
+  avatarUrl: string | null
   directoryVisibility: { showJobDepartment: boolean; showWorkEmail: boolean }
   limitedDetailEmployeeIds: string[]
   directoryLabels?: React.ComponentProps<typeof EmployeeDirectoryTrigger>['labels']
@@ -188,6 +192,7 @@ function EmployeeCard({
   viewProfileLabel,
   directoryMode,
   currentEmployeeId,
+  avatarUrl,
   directoryVisibility,
   limitedDetailEmployeeIds,
   directoryLabels,
@@ -200,8 +205,8 @@ function EmployeeCard({
   const cardContent = (
     <>
       <div className="relative z-10 flex items-end justify-between gap-3 px-5 pt-0 pointer-events-none">
-        {employee.avatarUrl ? (
-          <img src={employee.avatarUrl} alt="" className="-mt-11 h-[5.5rem] w-[5.5rem] rounded-full border-4 border-surface object-cover shadow-lg" />
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="-mt-11 h-[5.5rem] w-[5.5rem] rounded-full border-4 border-surface object-cover shadow-lg" />
         ) : (
           <span className="-mt-11 flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full border-4 border-surface bg-primary text-lg font-bold tracking-wide text-primary-foreground shadow-lg">
             {employee.firstName.slice(0, 1)}{employee.birthName.slice(0, 1)}
@@ -311,6 +316,7 @@ function EmployeePhotoTile({ employee, size, directoryMode, currentEmployeeId, l
   const opensDirectory = Boolean(directoryLabels && employee.id !== currentEmployeeId && (directoryMode || limitedDetailEmployeeIds.includes(employee.id)))
   const photoOnly = size === 'only' || size === 'collage'
   const photoCollage = size === 'collage'
+  const avatarUrl = getEmployeeListAvatarUrl(employee, directoryMode, currentEmployeeId)
   const contentClass = size === 'large'
     ? 'min-h-60 px-3 py-6'
     : size === 'small'
@@ -320,7 +326,7 @@ function EmployeePhotoTile({ employee, size, directoryMode, currentEmployeeId, l
         : 'min-h-36 px-2 py-4 sm:min-h-40 sm:px-2.5 sm:py-5'
   const content = (
     <div className={`relative z-10 flex flex-col items-center justify-center text-center pointer-events-none ${contentClass}`}>
-      <EmployeePhotoAvatar src={employee.avatarUrl} initials={`${employee.firstName.slice(0, 1)}${employee.birthName.slice(0, 1)}`} size={size} square={photoOnly} collage={photoCollage} />
+      <EmployeePhotoAvatar src={avatarUrl} initials={`${employee.firstName.slice(0, 1)}${employee.birthName.slice(0, 1)}`} size={size} square={photoOnly} collage={photoCollage} />
       {!photoOnly ? <h2 className={`mt-2 max-w-full truncate font-semibold tracking-tight text-foreground ${size === 'large' ? 'text-base' : size === 'small' ? 'text-xs' : 'text-sm'}`}>{employee.firstName}</h2> : null}
     </div>
   )

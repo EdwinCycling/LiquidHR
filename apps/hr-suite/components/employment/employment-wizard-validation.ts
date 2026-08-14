@@ -29,10 +29,12 @@ export interface EmploymentWizardValidationInput {
   days: Readonly<Record<string, string>>
   secondWeekDays: Readonly<Record<string, string>>
   twoWeekRoster: boolean
-  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE'
+  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'SALARY_BAND'
+  minimumWageScheme?: 'REGULAR' | 'BBL'
   salaryFrequencyId: string
   fulltimeAmount: string
   salaryScaleStepId: string
+  salaryBandId?: string
   jobGroupId: string
   jobId: string
   departmentId: string
@@ -84,8 +86,9 @@ export function isEmploymentWizardStepValid(
   if (step === 'salary') {
     if (!options.canWriteSalary) return true
     if (!input.salaryFrequencyId) return false
-    if (input.salaryBasis === 'MINIMUM_WAGE') return options.minimumRateAvailable
+    if (input.salaryBasis === 'MINIMUM_WAGE') return Boolean(input.minimumWageScheme)
     if (input.salaryBasis === 'CUSTOM_SCALE') return Boolean(input.salaryScaleStepId)
+    if (input.salaryBasis === 'SALARY_BAND') return Boolean(input.salaryBandId) && Number(input.fulltimeAmount) > 0
     return Boolean(input.fulltimeAmount)
   }
   return Boolean(input.jobGroupId && input.jobId && input.departmentId

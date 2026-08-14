@@ -1,6 +1,6 @@
 import type { EmployeeInsightReportId } from './types'
 
-export type InsightReportId = EmployeeInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcomingEvents'
+export type InsightReportId = EmployeeInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'salary-exceptions' | 'provision' | 'wvp' | 'upcomingEvents'
 export type InsightReportCategory = 'employees' | 'leave' | 'absence' | 'other'
 
 export interface InsightReportDefinition {
@@ -20,6 +20,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'absence', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-bradford', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-frequent', category: 'absence', permission: 'report-absence:read', available: true },
+  { id: 'salary-exceptions', category: 'other', permission: 'salary:write', available: true },
   { id: 'provision', category: 'other', permission: 'report-leave-provision:read', available: false },
   { id: 'wvp', category: 'other', permission: 'report-wvp:read', available: false },
 ] as const

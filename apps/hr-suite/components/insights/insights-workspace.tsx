@@ -20,16 +20,24 @@ import { FrequentAbsenceReportView } from '@/components/insights/frequent-absenc
 import type { FrequentAbsenceQuery } from '@/lib/insights/frequent-absence-query'
 import type { FrequentAbsenceReport } from '@/lib/insights/frequent-absence-report'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { SalaryExceptionsReport } from '@/components/insights/salary-exceptions-report'
+import type { SalaryExceptionReport } from '@/lib/insights/salary-exceptions'
 
 export interface InsightsLabels { [key: string]: string }
 
-const employeeReportIds = new Set<EmployeeInsightReportId>(['employee-department', 'employee-gender', 'employee-age', 'terminations'])
+type InsightVisualReportId = EmployeeInsightReportId | 'salary-exceptions'
+type InsightVisualReport = EmployeeInsightReport | SalaryExceptionReport
+const employeeReportIds = new Set<InsightVisualReportId>(['employee-department', 'employee-gender', 'employee-age', 'terminations', 'salary-exceptions'])
 const chartColors = ['bg-chart-1', 'bg-chart-2', 'bg-chart-3', 'bg-chart-4', 'bg-chart-5']
 const icons = { employees: UsersRound, leave: BriefcaseBusiness, absence: HeartPulse, other: BarChart3 } as const
 const emptySelection: string[] = []
 
-function isEmployeeReport(id: InsightReportId): id is EmployeeInsightReportId {
-  return employeeReportIds.has(id as EmployeeInsightReportId)
+function isEmployeeReport(id: InsightReportId): id is InsightVisualReportId {
+  return employeeReportIds.has(id as InsightVisualReportId)
+}
+
+function isPersistedEmployeeReport(id: InsightReportId): id is EmployeeInsightReportId {
+  return id !== 'salary-exceptions' && isEmployeeReport(id)
 }
 
 function reportDefaults(report: InsightReportId): StoredInsightFilters {
@@ -103,7 +111,8 @@ function SelectControl({ label, value, onChange, children }: { label: string; va
   return <label className="flex min-w-36 flex-1 flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span><DropdownSelect aria-label={label} onChange={(event) => onChange(event.target.value)} value={value}>{children}</DropdownSelect></label>
 }
 
-function EmployeeReportVisual({ data, labels, display, locale, dateFormat }: { data: EmployeeInsightReport; labels: InsightsLabels; display: 'distribution' | 'trend'; locale: string; dateFormat: DateFormat }) {
+function EmployeeReportVisual({ data, labels, display, locale, dateFormat }: { data: InsightVisualReport; labels: InsightsLabels; display: 'distribution' | 'trend'; locale: string; dateFormat: DateFormat }) {
+  if (data.report === 'salary-exceptions') return <SalaryExceptionsReport locale={locale} report={data} labels={{ employee: labels.employee, administration: labels.salaryExceptionsAdministration, employment: labels.salaryExceptionsEmployment, route: labels.salaryExceptionsRoute, structure: labels.salaryExceptionsStructure, band: labels.salaryExceptionsBand, scaleStep: labels.salaryExceptionsScaleStep, invalidFrom: labels.salaryExceptionsInvalidFrom, severity: labels.salaryExceptionsSeverity, status: labels.salaryExceptionsStatus, action: labels.salaryExceptionsAction, adjustSalary: labels.salaryExceptionsAdjustSalary, informative: labels.salaryExceptionsInformative, high: labels.salaryExceptionsHigh, open: labels.salaryExceptionsOpen, bandInvalid: labels.salaryExceptionsBandInvalid, scaleStepInvalid: labels.salaryExceptionsScaleStepInvalid, noResults: labels.noResults, search: labels.search, total: labels.salaryExceptionsTotal, salaryRemainsValid: labels.salaryExceptionsSalaryRemainsValid, manualAction: labels.salaryExceptionsManualAction }} />
   const largest = Math.max(...data.groups.map((group) => group.count), 1)
   const displayDate = (value: string | null) => value ? formatDate(value, { locale, dateFormat }) : labels.unknown
   return <>
@@ -137,14 +146,15 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'employee-age') return 'employeesAge'
   if (id === 'absence-bradford') return 'absenceBradford'
   if (id === 'absence-frequent') return 'absenceFrequent'
+  if (id === 'salary-exceptions') return 'salaryExceptions'
   return id
 }
 
-export function InsightsWorkspace({ labels, reports, reportData, upcomingReport, upcomingQuery, absenceReport, absenceQuery, bradfordReport, bradfordQuery, frequentReport, frequentQuery, preferences, locale, dateFormat }: { labels: InsightsLabels; reports: readonly InsightReportDefinition[]; reportData: EmployeeInsightReport | null; upcomingReport: UpcomingEventsReport | null; upcomingQuery: UpcomingEventsQuery; absenceReport: AbsenceInsightReport | null; absenceQuery: AbsenceInsightQuery | null; bradfordReport: BradfordInsightReport | null; bradfordQuery: BradfordInsightQuery | null; frequentReport: FrequentAbsenceReport | null; frequentQuery: FrequentAbsenceQuery | null; preferences: InsightsPreferences; locale: string; dateFormat: DateFormat }) {
+export function InsightsWorkspace({ labels, reports, reportData, upcomingReport, upcomingQuery, absenceReport, absenceQuery, bradfordReport, bradfordQuery, frequentReport, frequentQuery, preferences, locale, dateFormat }: { labels: InsightsLabels; reports: readonly InsightReportDefinition[]; reportData: InsightVisualReport | null; upcomingReport: UpcomingEventsReport | null; upcomingQuery: UpcomingEventsQuery; absenceReport: AbsenceInsightReport | null; absenceQuery: AbsenceInsightQuery | null; bradfordReport: BradfordInsightReport | null; bradfordQuery: BradfordInsightQuery | null; frequentReport: FrequentAbsenceReport | null; frequentQuery: FrequentAbsenceQuery | null; preferences: InsightsPreferences; locale: string; dateFormat: DateFormat }) {
   const router = useRouter(); const pathname = usePathname(); const searchParams = useSearchParams()
   const requested = searchParams.get('report'); const initialReport = reports.some((report) => report.id === requested) ? requested as InsightReportId : null
   const [openReport, setOpenReport] = useState<InsightReportId | null>(initialReport)
-  const initial = initialReport && isEmployeeReport(initialReport) && preferences.preserveFilters ? { ...reportDefaults(initialReport), ...preferences.filters[initialReport] } : reportDefaults(initialReport ?? 'employee-department')
+  const initial = initialReport && isPersistedEmployeeReport(initialReport) && preferences.preserveFilters ? { ...reportDefaults(initialReport), ...preferences.filters[initialReport] } : reportDefaults(initialReport ?? 'employee-department')
   const [filters, setFilters] = useState<StoredInsightFilters>(initial)
   const [preserveFilters, setPreserveFilters] = useState(preferences.preserveFilters)
   const [selectionPanelOpen, setSelectionPanelOpen] = useState(preferences.selectionPanelOpen)
@@ -157,7 +167,7 @@ export function InsightsWorkspace({ labels, reports, reportData, upcomingReport,
   useEffect(() => { if (!initialReport) return; requestAnimationFrame(() => document.getElementById(`report-card-${initialReport}`)?.scrollIntoView({ block: 'start' })) }, [initialReport])
   useEffect(() => () => { if (toastTimeout.current !== null) window.clearTimeout(toastTimeout.current) }, [])
   useEffect(() => { const params = new URLSearchParams(searchParams.toString()); const set = (key: string, value: string | null) => value ? params.set(key, value) : params.delete(key); set('report', openReport); set('view', display === 'trend' ? 'trend' : null); if (openReport && isEmployeeReport(openReport)) { set('group', groupBy === 'person' ? null : groupBy); set('year', String(year)); set('month', String(month)); set('fullYear', fullYear ? '1' : null); set('years', yearSpan > 1 ? String(yearSpan) : null); set('sort', sortBy === 'total' ? null : sortBy); set('teams', teams.join(',')); set('segments', segments.join(',')); set('reasons', reasons.join(',')); set('employeeStatus', employeeStatus === 'all' ? null : employeeStatus) } const next = params.toString(); if (next !== searchParams.toString()) router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false }) }, [display, employeeStatus, fullYear, groupBy, month, openReport, pathname, reasons, router, searchParams, segments, sortBy, teams, year, yearSpan])
-  useEffect(() => { if (!preserveFilters || !openReport || !isEmployeeReport(openReport)) return; void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters, selectionPanelOpen, report: openReport, filters }) }) }, [filters, openReport, preserveFilters, selectionPanelOpen])
+  useEffect(() => { if (!preserveFilters || !openReport || !isPersistedEmployeeReport(openReport)) return; void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters, selectionPanelOpen, report: openReport, filters }) }) }, [filters, openReport, preserveFilters, selectionPanelOpen])
   function updateFilters(next: Partial<StoredInsightFilters>) { setFilters((current) => ({ ...current, ...next })) }
   function togglePanel() { const next = !selectionPanelOpen; setSelectionPanelOpen(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters, selectionPanelOpen: next }) }) }
   function showToast(message: string): void {
@@ -182,8 +192,8 @@ export function InsightsWorkspace({ labels, reports, reportData, upcomingReport,
       showToast(labels.exportFailed)
     }
   }
-  function togglePreservation() { const next = !preserveFilters; setPreserveFilters(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters: next, selectionPanelOpen, ...(next && openReport && isEmployeeReport(openReport) ? { report: openReport, filters } : {}) }) }) }
-  function open(id: InsightReportId) { const next = openReport === id ? null : id; setOpenReport(next); setOpenFilter(null); if (next && isEmployeeReport(next)) setFilters(preserveFilters ? { ...reportDefaults(next), ...preferences.filters[next] } : reportDefaults(next)); if (next) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`report-card-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))) }
+  function togglePreservation() { const next = !preserveFilters; setPreserveFilters(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters: next, selectionPanelOpen, ...(next && openReport && isPersistedEmployeeReport(openReport) ? { report: openReport, filters } : {}) }) }) }
+  function open(id: InsightReportId) { const next = openReport === id ? null : id; setOpenReport(next); setOpenFilter(null); if (next && isPersistedEmployeeReport(next)) setFilters(preserveFilters ? { ...reportDefaults(next), ...preferences.filters[next] } : reportDefaults(next)); if (next) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`report-card-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))) }
   const periodLabel = yearSpan > 1 ? `${year - yearSpan + 1} → ${year}` : fullYear ? String(year) : `${[labels.jan, labels.feb, labels.mar, labels.apr, labels.may, labels.jun, labels.jul, labels.aug, labels.sep, labels.oct, labels.nov, labels.dec][month - 1]} ${year}`
   const exportParams = new URLSearchParams({ report: openReport ?? '', format: 'csv', year: String(year), month: String(month), group: groupBy, sort: sortBy }); if (fullYear) exportParams.set('fullYear', '1'); if (yearSpan > 1) exportParams.set('years', String(yearSpan)); if (teams.length) exportParams.set('teams', teams.join(',')); if (segments.length) exportParams.set('segments', segments.join(',')); if (reasons.length) exportParams.set('reasons', reasons.join(',')); if (employeeStatus !== 'all') exportParams.set('employeeStatus', employeeStatus)
 

@@ -5,17 +5,19 @@ import { createContext, type FormEvent, type ReactNode, useContext, useEffect, u
 import { ArrowDown } from 'lucide-react'
 import { CountryPicker } from '@/components/ui/country-picker'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { SalaryBandPercentageControl } from '@/components/salary/salary-band-percentage-control'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
 import { calculateCappedPartTimeFactor, deriveEmploymentWorkScope } from '@/lib/employment/fulltime-reference'
 import { isNewEmployeeBirthDateValid } from '@/lib/employees/age-validation'
 import { addCalendarMonths, addContractPeriodEnd, validateProbation } from '@/lib/employment/probation-rules'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
+import { resolveSalaryStructureIntersection } from '@/lib/salary-application/availability'
 import { canSubmitEmploymentWizard, hasMissingEmploymentPrerequisites, isEmploymentWizardStepValid, type EmploymentWizardStep } from './employment-wizard-validation'
 
 type EmploymentType = 'EMPLOYEE' | 'INTERN' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
 type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
 type DurationType = 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
-type SalaryBasis = 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE'
+type SalaryBasis = 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'SALARY_BAND'
 type StepKey = EmploymentWizardStep
 
 export interface EmploymentCreateFormProps {
@@ -55,7 +57,9 @@ export interface EmploymentCreateFormProps {
     weekOne: string; weekTwo: string; addSecondWeek: string; removeSecondWeek: string; rosterAverage: string
     contractShortWarning: string; startDatePastWarning: string; startDateFutureWarning: string; probationLongWarning: string; probationOutsideContract: string; probationNotAllowed: string; probationMaximumExceeded: string; probationCaoMaximum: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
     weeklyHoursInvalid: string; negativeHoursInvalid: string
-    salaryCalculation: string; salaryManual: string; salaryMinimum: string; salaryTable: string
+    salaryCalculation: string; salaryManual: string; salaryMinimum: string; salaryTable: string; salaryBand: string
+    minimumWageScheme: string; minimumWageRegular: string; minimumWageBbl: string; minimumWageExternalAmount: string
+    salaryBandPercentage: string; salaryBandPercentageHelp: string
     frequency: string; frequencySingleHelp: string; frequencyNone: string; fulltimeSalary: string; parttimeSalary: string
     salaryScale: string; salaryScaleStep: string; salaryScaleAmount: string; minimumHourlyRate: string
     jobGroup: string; department: string; job: string; manager: string; managerDerived: string; noManager: string; noConfiguredManager: string; costCenter: string; costCarrier: string
@@ -80,7 +84,7 @@ interface Draft {
   countryCode: string; ikvNumber: string; flexPhaseId: string; laborConditionSetId: string; durationType: DurationType; endsOn: string
   probationApplies: boolean; probationEndsOn: string; isOnCall: boolean; onCallObligation: boolean
   workScope: 'FULL_TIME' | 'PART_TIME'; weeklyHours: string; partTimeFactor: string; days: Record<DayKey, string>; secondWeekDays: Record<DayKey, string>; twoWeekRoster: boolean
-  salaryBasis: SalaryBasis; salaryFrequencyId: string; fulltimeAmount: string; parttimeAmount: string; salaryScaleId: string; salaryScaleStepId: string
+  salaryBasis: SalaryBasis; minimumWageScheme: 'REGULAR' | 'BBL'; salaryFrequencyId: string; fulltimeAmount: string; parttimeAmount: string; salaryScaleId: string; salaryScaleStepId: string; salaryBandId: string
   jobGroupId: string; departmentId: string; jobId: string; managerEmployeeId: string; allocations: AllocationDraft[]
 }
 
@@ -165,7 +169,10 @@ function workerTypeForEmployment(type: EmploymentType): WorkerType {
 function defaultDraft(options: EmploymentCreationOptions, copyPreviousData = false): Draft {
   const firstGroup = options.jobGroups[0]?.id ?? ''
   const firstJob = options.jobs.find((job) => job.jobGroupId === firstGroup) ?? options.jobs[0]
-  const firstScale = options.salaryScales[0]?.id ?? ''
+  const firstLaborConditionId = options.laborConditionSets[0]?.id ?? ''
+  const firstStructureIds = new Set(resolveSalaryStructureIntersection(options.salaryStructureIds, options.laborConditionSalaryStructureIds[firstLaborConditionId]))
+  const firstScale = options.salaryScales.find((scale) => firstStructureIds.has(scale.structureId))?.id ?? ''
+  const firstBand = options.salaryBands.find((band) => firstStructureIds.has(band.structureId))
   const draft: Draft = {
     administrationId: options.selectedAdministrationId,
     nationality: normalizeNationalityCode(options.prerequisites.nationality), bsn: '', birthDate: options.prerequisites.birthDate ?? '', gender: options.prerequisites.gender ?? '',
@@ -175,8 +182,8 @@ function defaultDraft(options: EmploymentCreationOptions, copyPreviousData = fal
     isOnCall: false, onCallObligation: true, workScope: 'FULL_TIME', weeklyHours: String(options.laborConditionSets[0]?.standardHoursPerWeek ?? 40), partTimeFactor: '1',
     days: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' },
     secondWeekDays: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' }, twoWeekRoster: false,
-    salaryBasis: 'MANUAL', salaryFrequencyId: options.salaryFrequencies[0]?.id ?? '', fulltimeAmount: '', parttimeAmount: '', salaryScaleId: firstScale,
-    salaryScaleStepId: options.salaryScaleSteps.find((step) => step.salaryScaleId === firstScale)?.id ?? '', jobGroupId: firstGroup,
+    salaryBasis: 'MANUAL', minimumWageScheme: 'REGULAR', salaryFrequencyId: options.salaryFrequencies[0]?.id ?? '', fulltimeAmount: '', parttimeAmount: '', salaryScaleId: firstScale,
+     salaryScaleStepId: options.salaryScaleSteps.find((step) => step.salaryScaleId === firstScale)?.id ?? '', salaryBandId: firstBand?.id ?? '', jobGroupId: firstGroup,
     departmentId: options.departments[0]?.id ?? '', jobId: firstJob?.id ?? '', managerEmployeeId: '',
     allocations: [{ costCenterId: options.costCenters[0]?.id ?? '', costCarrierId: options.costCarriers[0]?.id ?? '', percentage: '100' }],
   }
@@ -208,12 +215,17 @@ function defaultDraft(options: EmploymentCreationOptions, copyPreviousData = fal
     draft.workScope = deriveEmploymentWorkScope(draft.weeklyHours ? parseDecimalInput(draft.weeklyHours) : 0, options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40)
   }
   if (previous.salary && options.canWriteSalary) {
+    const previousStructureIds = new Set(resolveSalaryStructureIntersection(options.salaryStructureIds, options.laborConditionSalaryStructureIds[draft.laborConditionSetId]))
+    const previousScaleStepIds = new Set(options.salaryScaleSteps.filter((item) => options.salaryScales.some((scale) => scale.id === item.salaryScaleId && previousStructureIds.has(scale.structureId))).map((item) => item.id))
+    const previousBandIds = new Set(options.salaryBands.filter((item) => previousStructureIds.has(item.structureId)).map((item) => item.id))
     const hasFrequency = options.salaryFrequencies.some((item) => item.id === previous.salary?.salaryFrequencyId)
     if (hasFrequency) draft.salaryFrequencyId = previous.salary.salaryFrequencyId
-    draft.salaryBasis = previous.salary.salaryBasis === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : previous.salary.salaryBasis === 'CUSTOM_SCALE' && previous.salary.salaryScaleStepId && options.salaryScaleSteps.some((item) => item.id === previous.salary?.salaryScaleStepId) ? 'CUSTOM_SCALE' : 'MANUAL'
+    draft.salaryBasis = previous.salary.salaryBasis === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : previous.salary.salaryBasis === 'SALARY_BAND' && previous.salary.salaryBandId && previousBandIds.has(previous.salary.salaryBandId) ? 'SALARY_BAND' : previous.salary.salaryBasis === 'CUSTOM_SCALE' && previous.salary.salaryScaleStepId && previousScaleStepIds.has(previous.salary.salaryScaleStepId) ? 'CUSTOM_SCALE' : 'MANUAL'
+    if (previous.salary.minimumWageScheme === 'BBL') draft.minimumWageScheme = 'BBL'
     draft.fulltimeAmount = previous.salary.fulltimeAmount == null ? '' : String(previous.salary.fulltimeAmount)
     draft.parttimeAmount = previous.salary.parttimeAmount == null ? '' : String(previous.salary.parttimeAmount)
-    if (previous.salary.salaryScaleStepId && options.salaryScaleSteps.some((item) => item.id === previous.salary?.salaryScaleStepId)) draft.salaryScaleStepId = previous.salary.salaryScaleStepId
+    if (previous.salary.salaryScaleStepId && previousScaleStepIds.has(previous.salary.salaryScaleStepId)) draft.salaryScaleStepId = previous.salary.salaryScaleStepId
+    if (previous.salary.salaryBandId && previousBandIds.has(previous.salary.salaryBandId)) draft.salaryBandId = previous.salary.salaryBandId
   }
   if (previous.organization) {
     if (options.departments.some((item) => item.id === previous.organization?.departmentId)) draft.departmentId = previous.organization.departmentId
@@ -226,6 +238,18 @@ function defaultDraft(options: EmploymentCreationOptions, copyPreviousData = fal
   const validAllocations = previous.allocations.filter((allocation) => options.costCenters.some((item) => item.id === allocation.costCenterId) && options.costCarriers.some((item) => item.id === allocation.costCarrierId))
   if (validAllocations.length > 0) draft.allocations = validAllocations.map((allocation) => ({ ...allocation, percentage: String(allocation.percentage) }))
   return draft
+}
+
+function salaryOptionsForLaborCondition(options: EmploymentCreationOptions, laborConditionSetId: string): EmploymentCreationOptions {
+  const structureIds = new Set(resolveSalaryStructureIntersection(options.salaryStructureIds, options.laborConditionSalaryStructureIds[laborConditionSetId]))
+  const salaryScales = options.salaryScales.filter((scale) => structureIds.has(scale.structureId))
+  const salaryScaleIds = new Set(salaryScales.map((scale) => scale.id))
+  return {
+    ...options,
+    salaryScales,
+    salaryScaleSteps: options.salaryScaleSteps.filter((step) => salaryScaleIds.has(step.salaryScaleId)),
+    salaryBands: options.salaryBands.filter((band) => structureIds.has(band.structureId)),
+  }
 }
 
 type EmploymentPrerequisiteValues = {
@@ -242,7 +266,8 @@ function sameEmploymentPrerequisites(left: EmploymentPrerequisiteValues, right: 
 
 export function EmploymentCreateForm({ employeeId, options: initialOptions, showNavigation = true, showPayrollChoice = false, onStepChange, onPayrollChoiceChange, onCancel, onSaving, onSaveFailed, onSaved, employeeSummary, copyPreviousData = false, canScrollDown = false, moreDataAvailable, labels }: EmploymentCreateFormProps) {
   const router = useRouter()
-  const [options, setOptions] = useState(initialOptions)
+  const initialDraft = defaultDraft(initialOptions, copyPreviousData)
+  const [options, setOptions] = useState(() => salaryOptionsForLaborCondition(initialOptions, initialDraft.laborConditionSetId))
   const missingPrerequisites = !options.prerequisites.nationality || !options.prerequisites.birthDate || !options.prerequisites.gender
     || !isNewEmployeeBirthDateValid(options.prerequisites.birthDate ?? '')
   const [prerequisitesComplete, setPrerequisitesComplete] = useState(!missingPrerequisites)
@@ -252,7 +277,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
   const [errorCode, setErrorCode] = useState('')
   const [optionsLoading, setOptionsLoading] = useState(false)
   const [payrollDetails, setPayrollDetails] = useState<boolean | null>(showPayrollChoice ? null : true)
-  const [draft, setDraft] = useState<Draft>(() => defaultDraft(initialOptions, copyPreviousData))
+  const [draft, setDraft] = useState<Draft>(() => initialDraft)
   const prerequisitesSavingRef = useRef(false)
   const submitInFlightRef = useRef(false)
 
@@ -270,9 +295,12 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
   const filteredJobs = useMemo(() => options.jobs.filter((job) => !draft.jobGroupId || job.jobGroupId === draft.jobGroupId), [draft.jobGroupId, options.jobs])
   const selectedJob = options.jobs.find((item) => item.id === draft.jobId)
   const selectedScale = options.salaryScaleSteps.find((item) => item.id === draft.salaryScaleStepId)
+  const selectedBand = options.salaryBands.find((item) => item.id === draft.salaryBandId)
   const departmentManagers = options.departmentManagers[draft.departmentId] ?? []
   const employeeAge = ageOn(draft.birthDate, draft.startsOn)
-  const minimumRate = options.minimumWageRates.find((rate) => rate.minimumAge === Math.min(Math.max(employeeAge, 15), 21) && rate.validFrom <= draft.startsOn && (!rate.validUntil || rate.validUntil > draft.startsOn))
+  const minimumRate = draft.minimumWageScheme === 'REGULAR'
+    ? options.minimumWageRates.find((rate) => rate.minimumAge === Math.min(Math.max(employeeAge, 15), 21) && rate.validFrom <= draft.startsOn && (!rate.validUntil || rate.validUntil > draft.startsOn))
+    : undefined
   const rosterWeeks = draft.twoWeekRoster ? [draft.days, draft.secondWeekDays] : [draft.days]
   const rosterWeekTotals = rosterWeeks.map((week) => dayKeys.reduce((sum, day) => sum + (parseDecimalInput(week[day]) || 0), 0))
   const rosterAverage = rosterWeekTotals.reduce((sum, total) => sum + total, 0) / rosterWeekTotals.length
@@ -299,6 +327,12 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
         const standardHours = laborSet?.standardHoursPerWeek ?? 40
         next.partTimeFactor = String(calculateCappedPartTimeFactor(parseDecimalInput(current.weeklyHours), standardHours))
         next.workScope = deriveEmploymentWorkScope(parseDecimalInput(current.weeklyHours), standardHours)
+        const structureIds = new Set(resolveSalaryStructureIntersection(options.salaryStructureIds, options.laborConditionSalaryStructureIds[String(value)]))
+        const firstScaleForCondition = options.salaryScales.find((scale) => structureIds.has(scale.structureId))
+        const firstBandForCondition = options.salaryBands.find((band) => structureIds.has(band.structureId))
+        next.salaryScaleId = firstScaleForCondition?.id ?? ''
+        next.salaryScaleStepId = options.salaryScaleSteps.find((step) => step.salaryScaleId === firstScaleForCondition?.id)?.id ?? ''
+        next.salaryBandId = firstBandForCondition?.id ?? ''
       }
       if (key === 'jobGroupId') {
         next.jobId = options.jobs.find((job) => job.jobGroupId === String(value))?.id ?? ''
@@ -311,6 +345,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
       }
       return next
     })
+    if (key === 'laborConditionSetId') setOptions(() => salaryOptionsForLaborCondition(initialOptions, String(value)))
     setState('idle'); setErrorCode('')
   }
 
@@ -418,7 +453,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
 
   function valid(key: StepKey): boolean {
     return isEmploymentWizardStepValid(key, { ...draft, caoAllowsTwoMonths }, {
-      optionsLoading, payrollDetails, canWriteSalary: options.canWriteSalary, minimumRateAvailable: Boolean(minimumRate), rosterMatches, allocationsMatch,
+      optionsLoading, payrollDetails, canWriteSalary: options.canWriteSalary, minimumRateAvailable: true, rosterMatches, allocationsMatch,
     })
   }
 
@@ -464,7 +499,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
         incomeRelationship: { payrollTaxSubnumber: '0001', ikvNumber: Number(draft.ikvNumber), validFrom: draft.startsOn },
         contract: { workerType: workerTypeForEmployment(draft.employmentType), flexPhaseId: draft.employmentType === 'TEMPORARY_AGENCY' ? draft.flexPhaseId : null, laborConditionSetId: draft.laborConditionSetId, durationType: draft.durationType, startsOn: draft.startsOn, endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null, probationApplies: draft.probationApplies, probationEndsOn: draft.probationApplies ? draft.probationEndsOn : null, caoAllowsTwoMonths },
         schedule: { scheduleType: 'HOURS_PER_DAY', startWeek: 1, averageDaysPerWeek: scheduleWeeks.reduce((sum, week) => sum + dayKeys.filter((day) => parseDecimalInput(week[day]) > 0).length, 0) / scheduleWeeks.length, averageHoursPerWeek: parseDecimalInput(draft.weeklyHours), partTimeFactor: factor, timeForTimeAccrual: 0, mondayHours: scheduleDayHours.monday, tuesdayHours: scheduleDayHours.tuesday, wednesdayHours: scheduleDayHours.wednesday, thursdayHours: scheduleDayHours.thursday, fridayHours: scheduleDayHours.friday, saturdayHours: scheduleDayHours.saturday, sundayHours: scheduleDayHours.sunday, isOnCall: draft.isOnCall, onCallObligation: draft.isOnCall ? draft.onCallObligation : null, workScope, validFrom: draft.startsOn },
-        salary: options.canWriteSalary ? { paymentType: draft.salaryBasis === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED', paymentFrequency: options.salaryFrequencies.find((item) => item.id === draft.salaryFrequencyId)?.code ?? 'MONTHLY', salaryFrequencyId: draft.salaryFrequencyId, salaryBasis: draft.salaryBasis, fulltimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : fulltimeAmount, parttimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : (parseDecimalInput(draft.parttimeAmount) || fulltimeAmount * factor), hourlyRate: draft.salaryBasis === 'MINIMUM_WAGE' ? minimumRate?.hourlyAmount ?? null : null, currencyCode: 'EUR', salaryScaleStepId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleStepId : null, validFrom: draft.startsOn } : undefined,
+         salary: options.canWriteSalary ? { paymentType: draft.salaryBasis === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED', paymentFrequency: options.salaryFrequencies.find((item) => item.id === draft.salaryFrequencyId)?.code ?? 'MONTHLY', salaryFrequencyId: draft.salaryFrequencyId, salaryBasis: draft.salaryBasis, salaryRoute: draft.salaryBasis === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : draft.salaryBasis === 'CUSTOM_SCALE' ? 'SCALE_WITH_STEPS' : draft.salaryBasis === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL', minimumWageScheme: draft.salaryBasis === 'MINIMUM_WAGE' ? draft.minimumWageScheme : null, fulltimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : fulltimeAmount, parttimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : (parseDecimalInput(draft.parttimeAmount) || fulltimeAmount * factor), hourlyRate: null, currencyCode: 'EUR', salaryStructureId: draft.salaryBasis === 'CUSTOM_SCALE' ? options.salaryScales.find((item) => item.id === draft.salaryScaleId)?.structureId ?? null : draft.salaryBasis === 'SALARY_BAND' ? options.salaryBands.find((item) => item.id === draft.salaryBandId)?.structureId ?? null : null, salaryScaleId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleId : null, salaryStepCode: draft.salaryBasis === 'CUSTOM_SCALE' ? selectedScale?.stepCode ?? null : null, salaryScaleStepId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleStepId : null, salaryBandId: draft.salaryBasis === 'SALARY_BAND' ? draft.salaryBandId : null, validFrom: draft.startsOn } : undefined,
         organization: { departmentId: draft.departmentId, jobId: draft.jobId, jobTitle: selectedJob?.name ?? '', managerEmployeeId: departmentManagers[0]?.id ?? null, effectiveFrom: draft.startsOn },
         costAllocation: { validFrom: draft.startsOn, allocations: draft.allocations.map((allocation) => ({ costCenterId: allocation.costCenterId, costCarrierId: draft.allocations[0]?.costCarrierId ?? allocation.costCarrierId, percentage: parseDecimalInput(allocation.percentage) })) },
       } : {
@@ -544,7 +579,11 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
          {probationTooLong && <p role="status" className="text-warning">{labels.probationMaximumExceeded}</p>}
          {probationValidationCode === 'PROBATION_DATE_OUTSIDE_CONTRACT' && <p role="status" className="text-warning">{labels.probationOutsideContract}</p>}
       </div>
-    </WizardStep>}
+     </WizardStep>}
+
+     {currentStep === 'salary' && draft.salaryBasis === 'MINIMUM_WAGE' && <section className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="grid gap-4 sm:grid-cols-2"><Field required label={labels.minimumWageScheme}><select className={inputClass} value={draft.minimumWageScheme} onChange={(event) => update('minimumWageScheme', event.target.value as Draft['minimumWageScheme'])}><option value="REGULAR">{labels.minimumWageRegular}</option><option value="BBL">{labels.minimumWageBbl}</option></select></Field><p className="self-end text-sm text-muted-foreground">{labels.minimumWageExternalAmount}</p></div></section>}
+
+     {currentStep === 'salary' && draft.salaryBasis === 'SALARY_BAND' && selectedBand && <SalaryBandPercentageControl band={{ minimum: selectedBand.minimumAmount.toFixed(2), midpoint: selectedBand.midpointAmount.toFixed(2), maximum: selectedBand.maximumAmount === null ? null : selectedBand.maximumAmount.toFixed(2) }} labels={{ percentage: labels.salaryBandPercentage, percentageHelp: labels.salaryBandPercentageHelp }} salaryAmount={draft.fulltimeAmount || String(selectedBand.midpointAmount)} onSalaryAmountChange={(value) => { update('fulltimeAmount', value); const factor = parseDecimalInput(draft.weeklyHours) / selectedFulltimeHours; update('parttimeAmount', moneyInput(String(parseDecimalInput(value) * factor))) }} />}
 
     {currentStep === 'schedule' && <WizardStep title={labels.stepSchedule}>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -564,7 +603,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
       </div>
     </WizardStep>}
 
-    {currentStep === 'salary' && <WizardStep title={labels.stepSalary}>{!options.canWriteSalary ? <p className="text-sm text-muted-foreground">{labels.frequencyNone}</p> : <div className="grid gap-4 sm:grid-cols-2"><Field required label={labels.salaryCalculation}><select className={inputClass} value={draft.salaryBasis} onChange={(event) => update('salaryBasis', event.target.value as SalaryBasis)}><option value="MANUAL">{labels.salaryManual}</option><option value="MINIMUM_WAGE">{labels.salaryMinimum}</option><option value="CUSTOM_SCALE">{labels.salaryTable}</option></select></Field><Field required label={labels.frequency}>{options.salaryFrequencies.length === 1 ? <><input readOnly className={`${inputClass} bg-muted/40`} value={options.salaryFrequencies[0]?.name ?? ''} /><span className="text-xs font-normal text-muted-foreground">{labels.frequencySingleHelp}</span></> : options.salaryFrequencies.length > 1 ? <DropdownSelect value={draft.salaryFrequencyId} onChange={(event) => update('salaryFrequencyId', event.target.value)}>{options.salaryFrequencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</DropdownSelect> : <span className="text-sm text-destructive">{labels.frequencyNone}</span>}</Field>{draft.salaryBasis === 'CUSTOM_SCALE' && <><Field required label={labels.salaryScale}><DropdownSelect value={draft.salaryScaleId} onChange={(event) => update('salaryScaleId', event.target.value)} searchable searchPlaceholder={labels.salaryScale} emptyLabel={labels.frequencyNone}>{options.salaryScales.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field><Field required label={labels.salaryScaleStep}><DropdownSelect value={draft.salaryScaleStepId} onChange={(event) => update('salaryScaleStepId', event.target.value)} searchable searchPlaceholder={labels.salaryScaleStep} emptyLabel={labels.frequencyNone}>{options.salaryScaleSteps.filter((item) => item.salaryScaleId === draft.salaryScaleId).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleAmount}><input readOnly className={`${inputClass} bg-muted/40`} value={selectedScale ? `€ ${money(selectedScale.fulltimeAmount)}` : '—'} /></Field></>}{draft.salaryBasis === 'MINIMUM_WAGE' && <Field label={labels.minimumHourlyRate}><input readOnly className={`${inputClass} bg-muted/40`} value={minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '—'} /></Field>}{draft.salaryBasis === 'MANUAL' && <><Field required label={labels.fulltimeSalary}><input type="text" inputMode="decimal" min="0" className={inputClass} value={draft.fulltimeAmount} onBlur={() => update('fulltimeAmount', moneyInput(draft.fulltimeAmount))} onChange={(event) => { update('fulltimeAmount', event.target.value); const factor = parseDecimalInput(draft.weeklyHours) / selectedFulltimeHours; update('parttimeAmount', moneyInput(String(parseDecimalInput(event.target.value) * factor))) }} /></Field>{parseDecimalInput(draft.weeklyHours) !== selectedFulltimeHours && <Field required label={labels.parttimeSalary}><input type="text" inputMode="decimal" min="0" className={inputClass} value={draft.parttimeAmount} onBlur={() => update('parttimeAmount', moneyInput(draft.parttimeAmount))} onChange={(event) => { update('parttimeAmount', event.target.value); const factor = parseDecimalInput(draft.weeklyHours) / selectedFulltimeHours; if (factor > 0) update('fulltimeAmount', moneyInput(String(parseDecimalInput(event.target.value) / factor))) }} /></Field>}</>}</div>}</WizardStep>}
+     {currentStep === 'salary' && <WizardStep title={labels.stepSalary}>{!options.canWriteSalary ? <p className="text-sm text-muted-foreground">{labels.frequencyNone}</p> : <div className="grid gap-4 sm:grid-cols-2"><Field required label={labels.salaryCalculation}><select className={inputClass} value={draft.salaryBasis} onChange={(event) => update('salaryBasis', event.target.value as SalaryBasis)}><option value="MANUAL">{labels.salaryManual}</option>{options.salaryRoutes.includes('MINIMUM_WAGE') && <option value="MINIMUM_WAGE">{labels.salaryMinimum}</option>}{options.salaryRoutes.includes('SCALE_WITH_STEPS') && <option value="CUSTOM_SCALE">{labels.salaryTable}</option>}{options.salaryRoutes.includes('SALARY_BAND') && <option value="SALARY_BAND">{labels.salaryBand}</option>}</select></Field><Field required label={labels.frequency}>{options.salaryFrequencies.length === 1 ? <><input readOnly className={`${inputClass} bg-muted/40`} value={options.salaryFrequencies[0]?.name ?? ''} /><span className="text-xs font-normal text-muted-foreground">{labels.frequencySingleHelp}</span></> : options.salaryFrequencies.length > 1 ? <DropdownSelect value={draft.salaryFrequencyId} onChange={(event) => update('salaryFrequencyId', event.target.value)}>{options.salaryFrequencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</DropdownSelect> : <span className="text-sm text-destructive">{labels.frequencyNone}</span>}</Field>{draft.salaryBasis === 'CUSTOM_SCALE' && <><Field required label={labels.salaryScale}><DropdownSelect value={draft.salaryScaleId} onChange={(event) => update('salaryScaleId', event.target.value)} searchable searchPlaceholder={labels.salaryScale} emptyLabel={labels.frequencyNone}>{options.salaryScales.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field><Field required label={labels.salaryScaleStep}><DropdownSelect value={draft.salaryScaleStepId} onChange={(event) => update('salaryScaleStepId', event.target.value)} searchable searchPlaceholder={labels.salaryScaleStep} emptyLabel={labels.frequencyNone}>{options.salaryScaleSteps.filter((item) => item.salaryScaleId === draft.salaryScaleId).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</DropdownSelect></Field><Field label={labels.salaryScaleAmount}><input readOnly className={`${inputClass} bg-muted/40`} value={selectedScale ? `€ ${money(selectedScale.fulltimeAmount)}` : '—'} /></Field></>}{draft.salaryBasis === 'SALARY_BAND' && <Field required label={labels.salaryBand}><DropdownSelect value={draft.salaryBandId} onChange={(event) => update('salaryBandId', event.target.value)} searchable searchPlaceholder={labels.salaryBand} emptyLabel={labels.frequencyNone}>{options.salaryBands.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect></Field>}{draft.salaryBasis === 'MINIMUM_WAGE' && <Field label={labels.minimumHourlyRate}><input readOnly className={`${inputClass} bg-muted/40`} value={minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '—'} /></Field>}{(draft.salaryBasis === 'MANUAL' || draft.salaryBasis === 'SALARY_BAND') && <><Field required label={labels.fulltimeSalary}><input type="text" inputMode="decimal" min="0" className={inputClass} value={draft.fulltimeAmount} onBlur={() => update('fulltimeAmount', moneyInput(draft.fulltimeAmount))} onChange={(event) => { update('fulltimeAmount', event.target.value); const factor = parseDecimalInput(draft.weeklyHours) / selectedFulltimeHours; update('parttimeAmount', moneyInput(String(parseDecimalInput(event.target.value) * factor))) }} /></Field>{parseDecimalInput(draft.weeklyHours) !== selectedFulltimeHours && <Field required label={labels.parttimeSalary}><input type="text" inputMode="decimal" min="0" className={inputClass} value={draft.parttimeAmount} onBlur={() => update('parttimeAmount', moneyInput(draft.parttimeAmount))} onChange={(event) => { update('parttimeAmount', event.target.value); const factor = parseDecimalInput(draft.weeklyHours) / selectedFulltimeHours; if (factor > 0) update('fulltimeAmount', moneyInput(String(parseDecimalInput(event.target.value) / factor))) }} /></Field>}</>}</div>}</WizardStep>}
 
     {currentStep === 'other' && <WizardStep title={labels.stepOther}>
       <div className="grid gap-4 sm:grid-cols-2">

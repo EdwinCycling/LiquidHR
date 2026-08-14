@@ -1,16 +1,16 @@
 import type { Database, Json } from '@scope/db'
 import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import {
+  createSalaryStructure,
+  createSalaryStructureDraft,
+  listSalaryStructureCatalog,
+  publishSalaryStructureRevision,
+} from '@/lib/salary-structures/service'
 import { createClient } from '@/lib/supabase/server'
 import type { JobCreateInput, JobGroupCreateInput, JobGroupUpdateInput, JobUpdateInput, SalaryRevisionInput, SalaryScaleCreateInput } from './schemas'
 
 export class MasterDataError extends Error {
   constructor(public readonly code: string, public readonly status: number) { super(code); this.name = 'MasterDataError' }
-}
-
-async function context(permission: string) {
-  const result = await requirePermission(permission)
-  if (!result.administrationId) throw new MasterDataError('ADMINISTRATION_REQUIRED', 400)
-  return { ...result, administrationId: result.administrationId }
 }
 
 async function tenantContext(permission: string) {
@@ -161,38 +161,70 @@ export async function deleteJob(jobId: string): Promise<void> {
 }
 
 export async function listSalaryStructures() {
-  const auth = await context('salary-structure:read')
-  const canReadAmounts = await allowed('salary:read')
-  const supabase = await createClient()
-  const scales = await supabase.from('salary_scales').select('id, code, name, description, is_active')
-    .eq('administration_id', auth.administrationId).order('code').limit(500)
-  const revisions = await supabase.from('salary_scale_revisions').select('id, salary_scale_id, revision_number, status, description, valid_from, valid_until, published_at')
-    .eq('administration_id', auth.administrationId).order('valid_from', { ascending: false }).limit(1000)
-  const steps = canReadAmounts
-    ? await supabase.from('salary_scale_steps').select('id, salary_scale_revision_id, step_code, step_name, sequence_number, step_kind, fulltime_amount, hourly_amount, currency_code').eq('administration_id', auth.administrationId).order('sequence_number').limit(5000)
-    : await supabase.from('salary_scale_steps').select('id, salary_scale_revision_id, step_code, step_name, sequence_number, step_kind, currency_code').eq('administration_id', auth.administrationId).order('sequence_number').limit(5000)
-  if (scales.error || revisions.error || steps.error) databaseError(scales.error?.message ?? revisions.error?.message ?? steps.error?.message ?? 'SALARY_STRUCTURE_FAILED')
-  return { scales: scales.data ?? [], revisions: revisions.data ?? [], steps: steps.data ?? [], canReadAmounts }
+  const catalog = await listSalaryStructureCatalog()
+  return {
+    scales: catalog.structures
+      .filter((structure) => structure.structure_type === 'SCALE_WITH_STEPS')
+      .map((structure) => ({ ...structure, code: structure.code ?? '' })),
+    revisions: catalog.revisions
+      .filter((revision) => catalog.structures.some((structure) => structure.id === revision.salary_structure_id && structure.structure_type === 'SCALE_WITH_STEPS'))
+      .map((revision) => ({
+        id: revision.id,
+        salary_scale_id: revision.salary_structure_id,
+        revision_number: revision.revision_number,
+        status: revision.status,
+        description: revision.description,
+        valid_from: revision.effective_from,
+        valid_until: null,
+        published_at: revision.published_at,
+      })),
+    steps: catalog.steps.map((step) => ({
+      ...step,
+      salary_scale_revision_id: step.salary_structure_revision_id,
+    })),
+    canReadAmounts: catalog.canReadAmounts,
+  }
 }
 
 export async function createSalaryScale(input: SalaryScaleCreateInput) {
-  const auth = await context('salary-structure:write')
-  const supabase = await createClient()
-  const { data, error } = await supabase.from('salary_scales').insert({
-    tenant_id: auth.tenantId, administration_id: auth.administrationId, code: input.code.toUpperCase(),
-    name: input.name, description: input.description ?? null,
-  }).select('id').single()
-  if (error || !data) databaseError(error?.message ?? 'SALARY_SCALE_CREATE_FAILED')
-  return data.id
+  return createSalaryStructure({
+    structureType: 'SCALE_WITH_STEPS',
+    code: input.code.toUpperCase(),
+    name: input.name,
+    description: input.description ?? null,
+  })
 }
 
 export async function publishSalaryRevision(input: SalaryRevisionInput) {
-  const auth = await context('salary-structure:write')
-  await requirePermission('salary:write')
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc('publish_salary_scale_revision', {
-    requested_administration_id: auth.administrationId, requested_payload: input as Json,
+  const catalog = await listSalaryStructureCatalog()
+  const structure = catalog.structures.find((candidate) => candidate.id === input.scaleId && candidate.structure_type === 'SCALE_WITH_STEPS')
+  if (!structure) databaseError('SALARY_STRUCTURE_NOT_FOUND')
+  const logicalScale = catalog.scales.find((scale) => scale.salary_structure_id === input.scaleId)
+  const draft = await createSalaryStructureDraft(input.scaleId, {
+    structureType: 'SCALE_WITH_STEPS',
+    effectiveFrom: input.validFrom,
+    salaryBasis: 'MONTHLY_BASE',
+    currencyCode: 'EUR',
+    description: input.description ?? null,
+    scales: [{
+      ...(logicalScale ? { logicalScaleId: logicalScale.id } : {}),
+      code: logicalScale?.code ?? structure.code ?? 'SCHAAL',
+      name: logicalScale?.name ?? structure.name,
+      description: logicalScale?.description ?? structure.description,
+      sortOrder: 0,
+      progressionType: 'MANUAL',
+      defaultMonthsToNextStep: null,
+      steps: input.steps.map((step) => ({
+        stepCode: step.stepCode,
+        stepName: step.stepName,
+        sequenceNumber: step.sequenceNumber,
+        fulltimeAmount: step.fulltimeAmount.toFixed(2),
+        hourlyAmount: step.hourlyAmount === null || step.hourlyAmount === undefined ? null : step.hourlyAmount.toFixed(4),
+        progressionType: 'MANUAL',
+        monthsToNextStep: null,
+        stepKind: step.stepKind,
+      })),
+    }],
   })
-  if (error || !data) databaseError(error?.message ?? 'SALARY_REVISION_CREATE_FAILED')
-  return data
+  return publishSalaryStructureRevision(draft.id, draft.lockVersion)
 }
