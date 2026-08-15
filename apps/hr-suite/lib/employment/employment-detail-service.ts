@@ -13,6 +13,8 @@ import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { isEmploymentContractEffectiveDateValid, type EmploymentContractMutationInput } from './contract-schemas'
 import { isBlockingProbationValidation, validateProbation } from './probation-rules'
 import type { CompanyLocationMutationInput } from './company-location-schemas'
+import { applySalaryApplicationChange as applySalaryApplicationRouteChange } from '@/lib/salary-application/service'
+import { resolveSalaryStructureIntersection } from '@/lib/salary-application/availability'
 
 type Tables = Database['public']['Tables']
 type Employment = Tables['employments']['Row']
@@ -184,10 +186,150 @@ export async function getEmploymentDetail(
       .eq('administration_id', employment.administration_id)
       .eq('is_active', true).order('code').limit(500)
     : Promise.resolve({ data: [], error: null })
-  const scalesQuery = canReadSalaryPromise.then(async (canReadSalary) => canReadSalary && includeSalary
-    ? await supabase.from('salary_scale_steps').select('id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
-      .eq('administration_id', employment.administration_id).order('valid_from', { ascending: false }).limit(500)
-    : Promise.resolve({ data: [], error: null }))
+  const scalesQuery = canReadSalaryPromise.then(async (canReadSalary) => {
+    const emptyResult = { data: [], bandValues: [], salaryScales: [], salaryBands: [], salaryRoutes: [], revisions: [], scaleValues: [], resolutionSteps: [], resolutionBandValues: [], laborConditionSalaryStructureIds: {}, salaryStructureIds: [], error: null }
+    if (!canReadSalary || !includeSalary) return emptyResult
+    const today = new Date().toISOString().slice(0, 10)
+    const settingsResult = await supabase.from('administration_hr_settings')
+      .select('salary_routes, salary_structure_ids')
+      .eq('tenant_id', employment.tenant_id)
+      .eq('administration_id', employment.administration_id)
+      .maybeSingle()
+    if (settingsResult.error) return { ...emptyResult, error: settingsResult.error }
+    const configuredStructureIds = new Set(settingsResult.data?.salary_structure_ids ?? [])
+    const salaryRoutes = settingsResult.data?.salary_routes ?? ['MANUAL', 'MINIMUM_WAGE']
+    const revisionsResult = await supabase.from('salary_structure_revisions')
+      .select('id, salary_structure_id, effective_from, revision_number, status')
+      .eq('tenant_id', employment.tenant_id)
+      .eq('hr_group_id', employment.hr_group_id)
+      .eq('status', 'PUBLISHED')
+      .order('effective_from', { ascending: false })
+      .order('revision_number', { ascending: false })
+      .limit(5_000)
+    if (revisionsResult.error) return { ...emptyResult, salaryRoutes, error: revisionsResult.error }
+
+    const seenSalaryStructures = new Set<string>()
+    const allRevisionIds = (revisionsResult.data ?? []).map((revision) => revision.id)
+    const revisionIds = (revisionsResult.data ?? []).filter((revision) => revision.effective_from <= today).filter((revision) => {
+      if (seenSalaryStructures.has(revision.salary_structure_id)) return false
+      seenSalaryStructures.add(revision.salary_structure_id)
+      return true
+    }).map((revision) => revision.id)
+    if (allRevisionIds.length === 0) return { ...emptyResult, salaryRoutes, salaryStructureIds: [...configuredStructureIds] }
+
+    const [salaryContractsResult, laborConditionRelationsResult] = await Promise.all([
+      supabase.from('employment_contracts').select('labor_condition_set_id, starts_on, ends_on')
+        .eq('employment_id', employmentId).order('starts_on', { ascending: false }).limit(100),
+      supabase.from('labor_condition_salary_structures').select('labor_condition_set_id, salary_structure_id')
+        .eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).limit(5_000),
+    ])
+    if (salaryContractsResult.error) return { ...emptyResult, salaryRoutes, error: salaryContractsResult.error }
+    if (laborConditionRelationsResult.error) return { ...emptyResult, salaryRoutes, error: laborConditionRelationsResult.error }
+    const currentContract = (salaryContractsResult.data ?? []).find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on >= today))
+    const laborConditionSalaryStructureIds = (laborConditionRelationsResult.data ?? []).reduce<Record<string, string[]>>((result, row) => {
+      const current = result[row.labor_condition_set_id] ?? []
+      if (!current.includes(row.salary_structure_id)) result[row.labor_condition_set_id] = [...current, row.salary_structure_id]
+      return result
+    }, {})
+    const availableStructureIds = new Set(resolveSalaryStructureIntersection(
+      [...configuredStructureIds],
+      currentContract?.labor_condition_set_id ? laborConditionSalaryStructureIds[currentContract.labor_condition_set_id] : undefined,
+    ))
+
+    const [stepsResult, scalesResult, bandValuesResult, scalesCatalogResult, bandsCatalogResult] = await Promise.all([
+      supabase.from('salary_scale_steps')
+        .select('id, salary_structure_revision_id, salary_scale_id, step_code, step_name, fulltime_amount')
+        .eq('tenant_id', employment.tenant_id)
+        .eq('hr_group_id', employment.hr_group_id)
+        .in('salary_structure_revision_id', allRevisionIds)
+        .order('sequence_number')
+        .limit(10_000),
+      supabase.from('salary_scale_revision_values')
+        .select('salary_structure_revision_id, salary_scale_id, code, name')
+        .eq('tenant_id', employment.tenant_id)
+        .eq('hr_group_id', employment.hr_group_id)
+        .in('salary_structure_revision_id', allRevisionIds)
+        .limit(5_000),
+      supabase.from('salary_band_values')
+        .select('id, salary_structure_revision_id, salary_band_id, code, name, minimum_amount, midpoint_amount, maximum_amount')
+        .eq('tenant_id', employment.tenant_id)
+        .eq('hr_group_id', employment.hr_group_id)
+        .in('salary_structure_revision_id', allRevisionIds)
+        .order('sort_order')
+        .limit(10_000),
+      supabase.from('salary_scales')
+        .select('id, salary_structure_id, code, name')
+        .eq('tenant_id', employment.tenant_id)
+        .eq('hr_group_id', employment.hr_group_id)
+        .eq('is_active', true)
+        .limit(1_000),
+      supabase.from('salary_bands')
+        .select('id, salary_structure_id')
+        .eq('tenant_id', employment.tenant_id)
+        .eq('hr_group_id', employment.hr_group_id)
+        .limit(1_000),
+    ])
+    if (stepsResult.error) return { ...emptyResult, salaryRoutes, error: stepsResult.error }
+    if (scalesResult.error) return { ...emptyResult, salaryRoutes, error: scalesResult.error }
+    if (bandValuesResult.error) return { ...emptyResult, salaryRoutes, error: bandValuesResult.error }
+    if (scalesCatalogResult.error) return { ...emptyResult, salaryRoutes, error: scalesCatalogResult.error }
+    if (bandsCatalogResult.error) return { ...emptyResult, salaryRoutes, error: bandsCatalogResult.error }
+    const currentRevisionIds = new Set(revisionIds)
+    const scaleLabels = new Map((scalesResult.data ?? []).filter((scale) => currentRevisionIds.has(scale.salary_structure_revision_id)).map((scale) => [scale.salary_scale_id, scale]))
+    const revisionDates = new Map((revisionsResult.data ?? []).map((revision) => [revision.id, revision.effective_from]))
+    const scaleCatalog = (scalesCatalogResult.data ?? [])
+      .filter((scale) => availableStructureIds.has(scale.salary_structure_id) && salaryRoutes.includes('SCALE_WITH_STEPS'))
+      .map((scale) => ({ id: scale.id, structureId: scale.salary_structure_id, code: scale.code, name: scale.name }))
+    const bandStructureById = new Map((bandsCatalogResult.data ?? []).map((band) => [band.id, band.salary_structure_id]))
+    const latestBands = new Map<string, { id: string; structureId: string; code: string; name: string; minimumAmount: number; midpointAmount: number; maximumAmount: number | null; effectiveFrom: string }>()
+    for (const band of bandValuesResult.data ?? []) {
+      const structureId = bandStructureById.get(band.salary_band_id)
+      const effectiveFrom = revisionDates.get(band.salary_structure_revision_id)
+      if (!structureId || !availableStructureIds.has(structureId) || !salaryRoutes.includes('SALARY_BAND') || !effectiveFrom || effectiveFrom > today) continue
+      const current = latestBands.get(band.salary_band_id)
+      if (!current || effectiveFrom > current.effectiveFrom) latestBands.set(band.salary_band_id, {
+        id: band.salary_band_id,
+        structureId,
+        code: band.code,
+        name: band.name,
+        minimumAmount: Number(band.minimum_amount),
+        midpointAmount: Number(band.midpoint_amount),
+        maximumAmount: band.maximum_amount === null ? null : Number(band.maximum_amount),
+        effectiveFrom,
+      })
+    }
+    return {
+       data: (stepsResult.data ?? []).filter((step) => currentRevisionIds.has(step.salary_structure_revision_id) && (scaleCatalog.some((scale) => scale.id === step.salary_scale_id))).map((step) => ({
+         id: step.id,
+         salary_structure_revision_id: step.salary_structure_revision_id,
+        salary_scale_id: step.salary_scale_id,
+        step_code: step.step_code,
+        step_name: step.step_name,
+        fulltime_amount: step.fulltime_amount,
+          salary_scales: scaleLabels.get(step.salary_scale_id) ?? null,
+      })),
+      bandValues: (bandValuesResult.data ?? []).map((band) => ({
+        id: band.id,
+        salary_band_id: band.salary_band_id,
+        code: band.code,
+        name: band.name,
+        minimum_amount: band.minimum_amount,
+        midpoint_amount: band.midpoint_amount,
+        maximum_amount: band.maximum_amount,
+        effective_from: revisionDates.get(band.salary_structure_revision_id) ?? null,
+      })),
+      salaryScales: scaleCatalog,
+      salaryBands: [...latestBands.values()],
+      salaryRoutes,
+      revisions: (revisionsResult.data ?? []).map((revision) => ({ id: revision.id, salary_structure_id: revision.salary_structure_id, effective_from: revision.effective_from, revision_number: revision.revision_number, status: revision.status })),
+      scaleValues: (scalesResult.data ?? []).map((scale) => ({ salary_structure_revision_id: scale.salary_structure_revision_id, salary_scale_id: scale.salary_scale_id, code: scale.code, name: scale.name })),
+      resolutionSteps: (stepsResult.data ?? []).map((step) => ({ id: step.id, salary_structure_revision_id: step.salary_structure_revision_id, salary_scale_id: step.salary_scale_id, step_code: step.step_code, step_name: step.step_name, fulltime_amount: step.fulltime_amount })),
+      resolutionBandValues: (bandValuesResult.data ?? []).map((band) => ({ id: band.id, salary_structure_revision_id: band.salary_structure_revision_id, salary_band_id: band.salary_band_id, code: band.code, name: band.name, minimum_amount: band.minimum_amount, midpoint_amount: band.midpoint_amount, maximum_amount: band.maximum_amount })),
+      laborConditionSalaryStructureIds,
+      salaryStructureIds: [...configuredStructureIds],
+      error: null,
+    }
+  })
   const contractOptionsQuery = includeOverview
     ? Promise.all([
       supabase.from('labor_condition_sets').select('*')
@@ -274,6 +416,16 @@ export async function getEmploymentDetail(
       costCenters: costCentersResult.data ?? [],
       costCarriers: costCarriersResult.data ?? [],
       salaryScaleSteps: scalesResult.data ?? [],
+      salaryScales: scalesResult.salaryScales ?? [],
+      salaryBands: scalesResult.salaryBands ?? [],
+      salaryRoutes: scalesResult.salaryRoutes ?? [],
+      salaryBandValues: scalesResult.bandValues ?? [],
+      salaryRevisions: scalesResult.revisions ?? [],
+      salaryScaleValues: scalesResult.scaleValues ?? [],
+      salaryResolutionSteps: scalesResult.resolutionSteps ?? [],
+      salaryResolutionBandValues: scalesResult.resolutionBandValues ?? [],
+      laborConditionSalaryStructureIds: scalesResult.laborConditionSalaryStructureIds ?? {},
+      salaryStructureIds: scalesResult.salaryStructureIds ?? [],
       laborConditionSets: contractOptionsResult[0].data ?? [],
       flexPhases: contractOptionsResult[1].data ?? [],
       departments: organizationOptionsResult[0].data ?? [],
@@ -294,6 +446,17 @@ export async function applyTimelineMutation(employmentId: string, input: Timelin
   const permission = input.timeline === 'SALARY' ? 'salary:write' : 'contract:write'
   await loadEmploymentForAction(employmentId, permission)
   await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
+  if (input.timeline === 'SALARY' && input.payload.salaryRoute) {
+    const result = await applySalaryApplicationRouteChange({
+      employmentId,
+      effectiveOn: input.effectiveOn,
+      reason: input.reason,
+      warningCodes: input.warningCodes,
+      acknowledgements: input.acknowledgements,
+      payload: input.payload,
+    })
+    return result.changeSetId
+  }
   const supabase = await createClient()
   const { data, error } = input.timeline === 'COST_ALLOCATION'
     ? await supabase.rpc('apply_employment_cost_allocation', {
@@ -326,14 +489,24 @@ export async function applyCombinedTimelineMutation(
   if (requiresSalaryWrite) await loadEmploymentForAction(employmentId, 'salary:write')
   await validateSelectedContract(employmentId, input.contractId, input.effectiveOn)
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('apply_combined_employment_timeline_mutation', {
-    requested_employment_id: employmentId,
-    requested_effective_on: input.effectiveOn,
-    requested_mutations: input.mutations as Json,
-    requested_reason: input.reason,
-    requested_warning_codes: input.warningCodes,
-    requested_acknowledgements: input.acknowledgements as Json,
-  })
+  const usesSalaryApplicationRoute = input.mutations.some((mutation) => mutation.timeline === 'SALARY' && Boolean(mutation.payload.salaryRoute))
+  const { data, error } = usesSalaryApplicationRoute
+    ? await supabase.rpc('apply_combined_salary_application_change', {
+      requested_employment_id: employmentId,
+      requested_effective_on: input.effectiveOn,
+      requested_mutations: input.mutations as Json,
+      requested_reason: input.reason,
+      requested_warning_codes: input.warningCodes,
+      requested_acknowledgements: input.acknowledgements as Json,
+    })
+    : await supabase.rpc('apply_combined_employment_timeline_mutation', {
+      requested_employment_id: employmentId,
+      requested_effective_on: input.effectiveOn,
+      requested_mutations: input.mutations as Json,
+      requested_reason: input.reason,
+      requested_warning_codes: input.warningCodes,
+      requested_acknowledgements: input.acknowledgements as Json,
+    })
   if (error || !data) throwDatabaseError(error?.message ?? 'EMPLOYMENT_CHANGE_FAILED')
   return data
 }

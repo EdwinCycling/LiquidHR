@@ -6,16 +6,32 @@ import {
   EmploymentGeneralSettings,
 } from '@/components/settings/employment-contract-settings'
 import { EmploymentRegulationsManager } from '@/components/settings/employment-regulations-manager'
+import { SalaryApplicationSettings } from '@/components/settings/salary-application-settings'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { getEmploymentSettings } from '@/lib/employment/employment-settings'
-import { getTranslator } from '@/lib/i18n/server'
+import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
+import { redirect } from 'next/navigation'
 
 export default async function EmploymentContractSettingsPage() {
-  const context = await requireAdministrationSettingsContext('/settings/employment-contracts')
-  const [settings, t, settingsT] = await Promise.all([
-    getEmploymentSettings(),
+  let context: Awaited<ReturnType<typeof requireAdministrationSettingsContext>>
+  try {
+    context = await requireAdministrationSettingsContext('/settings/employment-contracts')
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+  let settings: Awaited<ReturnType<typeof getEmploymentSettings>>
+  try {
+    settings = await getEmploymentSettings()
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+  const [t, settingsT, locale] = await Promise.all([
     getTranslator('employment'),
     getTranslator('settings'),
+    getLocale(),
   ])
   const labels = {
     search: t('catalogSearch'), code: t('catalogCode'), name: t('catalogName'),
@@ -48,6 +64,48 @@ export default async function EmploymentContractSettingsPage() {
           timelines={settings.laborConditionTimelines}
           labels={{
             search: t('catalogSearch'), addRegulation: t('regulationAdd'), addSuccessor: t('regulationAddSuccessor'), edit: t('catalogEdit'), save: t('catalogSave'), cancel: t('catalogCancel'), name: t('catalogName'), validFrom: t('regulationValidFrom'), standardHours: t('standardWeeklyHours'), successor: t('regulationSuccessor'), successors: t('regulationSuccessors'), current: t('regulationCurrent'), historical: t('regulationHistorical'), validUntil: t('regulationValidUntil'), empty: t('catalogEmpty'), failed: t('changeFailed'), description: t('regulationTimelineDescription'), newTitle: t('regulationNewTitle'), editTitle: t('regulationEditTitle'), successorTitle: t('regulationSuccessorTitle'), continuityHint: t('regulationContinuityHint'), probationMaximum: t('probationMaximum'), probationOneMonth: t('probationOneMonth'), probationTwoMonths: t('probationTwoMonths'),
+            salaryStructures: { sectionTitle: t('salaryStructures.sectionTitle'), description: t('salaryStructures.description'), scalesAndSteps: t('salaryStructures.scalesAndSteps'), salaryBands: t('salaryStructures.salaryBands'), linked: t('salaryStructures.linked'), noActiveRevision: t('salaryStructures.noActiveRevision'), save: t('salaryStructures.save'), cancel: t('salaryStructures.cancel'), unsaved: t('salaryStructures.unsaved'), saving: t('salaryStructures.saving'), saved: t('salaryStructures.saved'), failed: t('salaryStructures.failed'), readOnly: t('salaryStructures.readOnly') },
+          }}
+          salaryStructureCatalog={settings.salaryStructureCatalog}
+          locale={locale}
+        />,
+      },
+      {
+        id: 'salaryApplication',
+        title: t('salaryCalculation'),
+        children: <SalaryApplicationSettings
+          routes={settings.salaryApplicationSettings.routes}
+          structureIds={settings.salaryApplicationSettings.structureIds}
+          canWrite={settings.salaryApplicationSettings.canWrite}
+          structures={(settings.salaryStructureCatalog?.structures ?? []).map((structure) => ({
+            id: structure.id,
+            code: structure.code,
+            name: structure.name,
+            structureType: structure.structure_type,
+            isActive: structure.is_active,
+          }))}
+          labels={{
+            intro: t('salaryApplication.intro'),
+            routeTitle: t('salaryApplication.routeTitle'),
+            routeDescription: t('salaryApplication.routeDescription'),
+            manual: t('salaryApplication.manual'),
+            manualDescription: t('salaryApplication.manualDescription'),
+            minimumWage: t('salaryApplication.minimumWage'),
+            minimumWageDescription: t('salaryApplication.minimumWageDescription'),
+            scaleWithSteps: t('salaryApplication.scaleWithSteps'),
+            scaleWithStepsDescription: t('salaryApplication.scaleWithStepsDescription'),
+            salaryBand: t('salaryApplication.salaryBand'),
+            salaryBandDescription: t('salaryApplication.salaryBandDescription'),
+            structuresTitle: t('salaryApplication.structuresTitle'),
+            structuresDescription: t('salaryApplication.structuresDescription'),
+            searchStructures: t('salaryApplication.searchStructures'),
+            scales: t('salaryApplication.scales'),
+            bands: t('salaryApplication.bands'),
+            noStructures: t('salaryApplication.noStructures'),
+            save: t('salaryApplication.save'),
+            saved: t('salaryApplication.saved'),
+            failed: t('salaryApplication.failed'),
+            readOnly: t('salaryApplication.readOnly'),
           }}
         />,
       },

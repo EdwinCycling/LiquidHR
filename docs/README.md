@@ -1,5 +1,35 @@
 # Liquid HR documentatie-index
 
+## Phase 2 Salary Structures + Salary Application — GREEN 2026-08-14
+
+**Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN / CHECKPOINT BASELINE**
+
+De salary-applicationfundering is in dezelfde `feature/salary-structures`-worktree uitgebreid met administration×CAO-beschikbaarheid inclusief nul-linkfallback, datumgebonden resolutie van gepubliceerde scale-/step- en bandrevisies, en HR-uitzonderingen in het bestaande Insights-patroon. De twee resterende browserdeviations zijn opgelost: de employment-detail i18n-key gebruikt nu de geneste salary-applicationnamespace en directory mode rendert geen beschermde peer-avatarroute. Zie [`requirements/salary-application/SALARY_APPLICATION.md`](requirements/salary-application/SALARY_APPLICATION.md). De actuele gate is groen met 195 testbestanden/741 tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build met 224 routes en diff-check. Remote dev/test, RLS/grants, advisors en authenticated desktop/390×844-browserbewijs zijn gecontroleerd. Geen push, merge, deployment, PR of version bump.
+
+## Phase 3 Salary Insights — GREEN 2026-08-15
+
+**Status: GREEN — PHASE 3 CHECKPOINT READY**
+
+Salary Insights is vanaf checkpoint `de3bf54` in dezelfde worktree afgerond met zes server-side salarisrapporten, peildatum, scopefilters, canonical Salary Application-resolutie, CSV-export, responsive NL/EN-i18n en HR Admin-only interne salarispositie. Manager heeft exact vijf reportcards/routes/API's; `salary-internal-position` ontbreekt voor Manager en directe URL/API/export geven `403`, terwijl HR Admin het rapport gebruikt.
+
+De dev/test-fixture bevat 3 actieve minimumloonrijen (REGULAR/BBL, lokaal bedrag null en niet als €0 geaggregeerd) en 6 actieve canonical bandrijen (binnen/onder/boven, FTE/compa/range coverage). De authenticated API/RPC-gate bewijst HR Admin 63, Manager 17 scoped rows, Employee denied, empty/cross-tenant `FORBIDDEN`, geen peer-statistieken in Manager HTML/JSON/network en geen peerwaarden onder de vijf-groepdrempel. Browsergate: HR Admin desktop + 390×844 alle zes met echte band/minimumloon-KPI's/tabellen; Manager desktop + 390×844 alle vijf toegestane; Employee desktop + 390×844 zonder salarisdata. CSV, historische peildatum, NL/EN en responsive gedrag zijn groen.
+
+Lokale gate: `199` testbestanden/`758` tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build 225 pagina's/routes en diff-check. Remote dev/test RLS/grants/functie-eigenschappen zijn gecontroleerd; alleen bestaande projectbrede Supabase-advisor-WARNs blijven als apart hardeningpunt. De lokale checkpointcommit gebruikt `feat: add salary insights`; geen push, merge, deployment, PR of version bump. Zie [`requirements/salary-insights/SALARY_INSIGHTS_PRODUCT_REQUIREMENTS.md`](requirements/salary-insights/SALARY_INSIGHTS_PRODUCT_REQUIREMENTS.md), [`requirements/salary-insights/SALARY_INSIGHTS_UX_REFERENCE.md`](requirements/salary-insights/SALARY_INSIGHTS_UX_REFERENCE.md), [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md).
+
+## Salarisstructuren - Stap 2
+
+**Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN; vervangen door de actuele status hierboven**
+
+De complete HR Admin-ervaring is lokaal aangesloten op de Step 1-architectuur: catalogus met meerdere logische structuren, detail/revisiehistorie, bandeditor met drie invoermethoden en centrale metrics, schalen/treden met vrije labels en expliciete volgorde, publicatiereviews, migratieconflicten en CAO-koppelingen. Gepubliceerde revisies blijven immutable en read-only in de UI. Deze onderliggende Stap 2-scope is bevestigd met de canonical remote fixture; de groene Phase 2-baseline hierboven bevat de volledige runtime-, browser- en release-evidence.
+
+## Salarisstructuren — Stap 1 GREEN 2026-08-14
+
+De canonieke productspecificatie staat in [`requirements/salary-structures/SALARY_STRUCTURES_PRODUCT_REQUIREMENTS.md`](requirements/salary-structures/SALARY_STRUCTURES_PRODUCT_REQUIREMENTS.md) en bevat exact SSR-001 t/m SSR-069. De canonieke schermspecificatie staat in [`requirements/salary-structures/SALARY_STRUCTURES_UX_REFERENCE.md`](requirements/salary-structures/SALARY_STRUCTURES_UX_REFERENCE.md) en bevat exact SS-001 t/m SS-011. De JSON onder [`requirements/salary-structures/testdata/`](requirements/salary-structures/testdata/) is de testbron; [`superpowers/plans/2026-08-14-salary-structures.md`](superpowers/plans/2026-08-14-salary-structures.md) begrenst twee stappen. Stitch is uitsluitend visuele richting.
+
+Stap 1 levert het definitieve HR-groepmodel voor benoemde `SCALE_WITH_STEPS`- en `SALARY_BAND`-structuren, stabiele logische identiteiten, effectieve concept/gepubliceerde revisies, immutable publicatie, decimal-safe bandberekeningen, vrije tredelabels en expliciete volgorde, many-to-many CAO-koppelingen, migratieconflicten, audit, RLS, grants en getypeerde API-services. De bestaande 60 `CUSTOM_SCALE`-verwijzingen zijn zonder orphaned steps behouden. Alle negen migrations staan op dev/test-project `wnpfloqpjvaacobppbpk`; 9/9 tabellen hebben RLS en gesplitste policies, anon heeft nul tabelgrants en de security-advisor meldt geen salarisstructuurbevinding.
+
+De canonieke dev/testfixture bevat 5 structuren, 7 revisies, 403 schaalstappen waarvan exact 198 officiële Rijk-stappen, 19 bandwaarden, 3 CAO-relaties en 1 expliciet migratieconflict; schaal 8/trede 5 is exact €3.741,48. Gerichte tests (21/21), strict TypeScript, gerichte ESLint en `git diff --check` zijn groen. Stap 2 bouwt in dezelfde worktree de volledige SS-001 t/m SS-011-UX; er is nog geen push, merge, deployment, PR of version bump uitgevoerd. **DO NOT recreate previous-step architecture.**
+
 ## Guided Recruitment — lokaal geconsolideerde testrelease 2026-08-13
 
 Guided Recruitment is samengevoegd naar `main` en gepubliceerd als zichtbare productversie `1.20260813.1`. De volledige lokale gate is groen: 182 testbestanden/687 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, ESLint zonder warnings, `git diff --check` en Webpack-build met 223 pagina's. GitHub `origin/main` en Vercel Production draaien op release-SHA `446a8f8ecef7b7c06f1c6910a990ecbe3bf84046`; deployment `dpl_JDCAbJkkTy9YDLWCB1UGLxvc7kKd` staat `READY`. De publieke Turnstile-, rate-limit- en malware-scanconfiguratie blijft bewust geparkeerd; publieke submit/upload blijft fail-closed.

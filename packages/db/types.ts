@@ -683,6 +683,8 @@ export type Database = {
           employee_directory_show_work_email: boolean
           employee_directory_show_work_phone: boolean
           id: string
+          salary_routes: Database["public"]["Enums"]["salary_application_route"][]
+          salary_structure_ids: string[]
           tenant_id: string
           updated_at: string
         }
@@ -698,6 +700,8 @@ export type Database = {
           employee_directory_show_work_email?: boolean
           employee_directory_show_work_phone?: boolean
           id?: string
+          salary_routes?: Database["public"]["Enums"]["salary_application_route"][]
+          salary_structure_ids?: string[]
           tenant_id: string
           updated_at?: string
         }
@@ -713,6 +717,8 @@ export type Database = {
           employee_directory_show_work_email?: boolean
           employee_directory_show_work_phone?: boolean
           id?: string
+          salary_routes?: Database["public"]["Enums"]["salary_application_route"][]
+          salary_structure_ids?: string[]
           tenant_id?: string
           updated_at?: string
         }
@@ -4406,13 +4412,20 @@ export type Database = {
           employment_id: string
           fulltime_amount: number | null
           hourly_rate: number | null
+          hr_group_id: string
           id: string
           parttime_amount: number | null
           payment_frequency: Database["public"]["Enums"]["salary_frequency"]
           payment_type: Database["public"]["Enums"]["salary_payment_type"]
+          minimum_wage_scheme: Database["public"]["Enums"]["minimum_wage_scheme"] | null
+          salary_band_id: string | null
           salary_basis: Database["public"]["Enums"]["salary_basis"]
           salary_frequency_id: string
+          salary_route: Database["public"]["Enums"]["salary_application_route"]
+          salary_scale_id: string | null
           salary_scale_step_id: string | null
+          salary_step_code: string | null
+          salary_structure_id: string | null
           tenant_id: string
           updated_at: string
           valid_from: string
@@ -4429,13 +4442,20 @@ export type Database = {
           employment_id: string
           fulltime_amount?: number | null
           hourly_rate?: number | null
+          hr_group_id?: string
           id?: string
           parttime_amount?: number | null
           payment_frequency: Database["public"]["Enums"]["salary_frequency"]
           payment_type: Database["public"]["Enums"]["salary_payment_type"]
+          minimum_wage_scheme?: Database["public"]["Enums"]["minimum_wage_scheme"] | null
+          salary_band_id?: string | null
           salary_basis: Database["public"]["Enums"]["salary_basis"]
           salary_frequency_id: string
+          salary_route?: Database["public"]["Enums"]["salary_application_route"]
+          salary_scale_id?: string | null
           salary_scale_step_id?: string | null
+          salary_step_code?: string | null
+          salary_structure_id?: string | null
           tenant_id: string
           updated_at?: string
           valid_from: string
@@ -4452,13 +4472,20 @@ export type Database = {
           employment_id?: string
           fulltime_amount?: number | null
           hourly_rate?: number | null
+          hr_group_id?: string
           id?: string
           parttime_amount?: number | null
           payment_frequency?: Database["public"]["Enums"]["salary_frequency"]
           payment_type?: Database["public"]["Enums"]["salary_payment_type"]
+          minimum_wage_scheme?: Database["public"]["Enums"]["minimum_wage_scheme"] | null
+          salary_band_id?: string | null
           salary_basis?: Database["public"]["Enums"]["salary_basis"]
           salary_frequency_id?: string
+          salary_route?: Database["public"]["Enums"]["salary_application_route"]
+          salary_scale_id?: string | null
           salary_scale_step_id?: string | null
+          salary_step_code?: string | null
+          salary_structure_id?: string | null
           tenant_id?: string
           updated_at?: string
           valid_from?: string
@@ -4490,6 +4517,13 @@ export type Database = {
             ]
           },
           {
+            foreignKeyName: "employment_salaries_employment_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id", "employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employment_salaries_frequency_fkey"
             columns: ["tenant_id", "administration_id", "salary_frequency_id"]
             isOneToOne: false
@@ -4497,11 +4531,18 @@ export type Database = {
             referencedColumns: ["tenant_id", "administration_id", "id"]
           },
           {
+            foreignKeyName: "employment_salaries_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
             foreignKeyName: "employment_salaries_scale_step_fkey"
-            columns: ["tenant_id", "administration_id", "salary_scale_step_id"]
+            columns: ["tenant_id", "hr_group_id", "salary_scale_step_id"]
             isOneToOne: false
             referencedRelation: "salary_scale_steps"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -7571,6 +7612,51 @@ export type Database = {
             columns: ["tenant_id", "hr_group_id", "template_version_id"]
             isOneToOne: false
             referencedRelation: "journey_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      labor_condition_salary_structures: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          hr_group_id: string
+          id: string
+          labor_condition_set_id: string
+          salary_structure_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id: string
+          id?: string
+          labor_condition_set_id: string
+          salary_structure_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          hr_group_id?: string
+          id?: string
+          labor_condition_set_id?: string
+          salary_structure_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_condition_salary_structures_condition_fkey"
+            columns: ["tenant_id", "hr_group_id", "labor_condition_set_id"]
+            isOneToOne: false
+            referencedRelation: "labor_condition_sets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "labor_condition_salary_structures_structure_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
+            isOneToOne: false
+            referencedRelation: "salary_structures"
             referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
@@ -12641,6 +12727,117 @@ export type Database = {
           },
         ]
       }
+      salary_band_values: {
+        Row: {
+          code: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          input_method: Database["public"]["Enums"]["salary_band_input_method"]
+          input_spread_percentage: number | null
+          maximum_amount: number | null
+          midpoint_amount: number
+          minimum_amount: number
+          name: string
+          salary_band_id: string
+          salary_structure_revision_id: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          input_method: Database["public"]["Enums"]["salary_band_input_method"]
+          input_spread_percentage?: number | null
+          maximum_amount?: number | null
+          midpoint_amount: number
+          minimum_amount: number
+          name: string
+          salary_band_id: string
+          salary_structure_revision_id: string
+          sort_order: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          input_method?: Database["public"]["Enums"]["salary_band_input_method"]
+          input_spread_percentage?: number | null
+          maximum_amount?: number | null
+          midpoint_amount?: number
+          minimum_amount?: number
+          name?: string
+          salary_band_id?: string
+          salary_structure_revision_id?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_band_values_band_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_band_id"]
+            isOneToOne: false
+            referencedRelation: "salary_bands"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "salary_band_values_revision_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "salary_structure_revision_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "salary_structure_revisions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      salary_bands: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          identity_key: string
+          salary_structure_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          identity_key: string
+          salary_structure_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          identity_key?: string
+          salary_structure_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_bands_structure_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
+            isOneToOne: false
+            referencedRelation: "salary_structures"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
       salary_frequencies: {
         Row: {
           administration_id: string
@@ -12692,179 +12889,192 @@ export type Database = {
           },
         ]
       }
-      salary_scale_revisions: {
+      salary_scale_revision_values: {
         Row: {
-          administration_id: string
+          code: string
           created_at: string
+          default_months_to_next_step: number | null
           description: string | null
+          hr_group_id: string
           id: string
-          published_at: string | null
-          published_by_user_id: string | null
-          revision_number: number
+          name: string
+          progression_type: Database["public"]["Enums"]["salary_progression_type"]
           salary_scale_id: string
-          status: Database["public"]["Enums"]["salary_revision_status"]
+          salary_structure_revision_id: string
+          sort_order: number
           tenant_id: string
           updated_at: string
-          valid_from: string
-          valid_until: string | null
         }
         Insert: {
-          administration_id: string
+          code: string
           created_at?: string
+          default_months_to_next_step?: number | null
           description?: string | null
+          hr_group_id: string
           id?: string
-          published_at?: string | null
-          published_by_user_id?: string | null
-          revision_number: number
+          name: string
+          progression_type?: Database["public"]["Enums"]["salary_progression_type"]
           salary_scale_id: string
-          status?: Database["public"]["Enums"]["salary_revision_status"]
+          salary_structure_revision_id: string
+          sort_order: number
           tenant_id: string
           updated_at?: string
-          valid_from: string
-          valid_until?: string | null
         }
         Update: {
-          administration_id?: string
+          code?: string
           created_at?: string
+          default_months_to_next_step?: number | null
           description?: string | null
+          hr_group_id?: string
           id?: string
-          published_at?: string | null
-          published_by_user_id?: string | null
-          revision_number?: number
+          name?: string
+          progression_type?: Database["public"]["Enums"]["salary_progression_type"]
           salary_scale_id?: string
-          status?: Database["public"]["Enums"]["salary_revision_status"]
+          salary_structure_revision_id?: string
+          sort_order?: number
           tenant_id?: string
           updated_at?: string
-          valid_from?: string
-          valid_until?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "salary_scale_revisions_tenant_id_administration_id_salary__fkey"
-            columns: ["tenant_id", "administration_id", "salary_scale_id"]
+            foreignKeyName: "salary_scale_revision_values_revision_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "salary_structure_revision_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "salary_structure_revisions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "salary_scale_revision_values_scale_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_scale_id"]
             isOneToOne: false
             referencedRelation: "salary_scales"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
       salary_scale_steps: {
         Row: {
-          administration_id: string
           created_at: string
           currency_code: string
           fulltime_amount: number
           hourly_amount: number | null
+          hr_group_id: string
           id: string
+          months_to_next_step: number | null
+          progression_type: Database["public"]["Enums"]["salary_progression_type"]
           salary_scale_id: string
-          salary_scale_revision_id: string
+          salary_structure_revision_id: string
           sequence_number: number
           step_code: string
           step_kind: Database["public"]["Enums"]["salary_step_kind"]
           step_name: string
           tenant_id: string
           updated_at: string
-          valid_from: string
-          valid_until: string | null
         }
         Insert: {
-          administration_id: string
           created_at?: string
           currency_code?: string
           fulltime_amount: number
           hourly_amount?: number | null
+          hr_group_id: string
           id?: string
+          months_to_next_step?: number | null
+          progression_type?: Database["public"]["Enums"]["salary_progression_type"]
           salary_scale_id: string
-          salary_scale_revision_id: string
+          salary_structure_revision_id: string
           sequence_number: number
           step_code: string
           step_kind?: Database["public"]["Enums"]["salary_step_kind"]
           step_name: string
           tenant_id: string
           updated_at?: string
-          valid_from: string
-          valid_until?: string | null
         }
         Update: {
-          administration_id?: string
           created_at?: string
           currency_code?: string
           fulltime_amount?: number
           hourly_amount?: number | null
+          hr_group_id?: string
           id?: string
+          months_to_next_step?: number | null
+          progression_type?: Database["public"]["Enums"]["salary_progression_type"]
           salary_scale_id?: string
-          salary_scale_revision_id?: string
+          salary_structure_revision_id?: string
           sequence_number?: number
           step_code?: string
           step_kind?: Database["public"]["Enums"]["salary_step_kind"]
           step_name?: string
           tenant_id?: string
           updated_at?: string
-          valid_from?: string
-          valid_until?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "salary_scale_steps_revision_fkey"
+            foreignKeyName: "salary_scale_steps_revision_membership_fkey"
             columns: [
               "tenant_id",
-              "administration_id",
-              "salary_scale_revision_id",
+              "hr_group_id",
+              "salary_structure_revision_id",
+              "salary_scale_id",
             ]
             isOneToOne: false
-            referencedRelation: "salary_scale_revisions"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
-          },
-          {
-            foreignKeyName: "salary_scale_steps_scale_fkey"
-            columns: ["tenant_id", "administration_id", "salary_scale_id"]
-            isOneToOne: false
-            referencedRelation: "salary_scales"
-            referencedColumns: ["tenant_id", "administration_id", "id"]
+            referencedRelation: "salary_scale_revision_values"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "salary_structure_revision_id",
+              "salary_scale_id",
+            ]
           },
         ]
       }
       salary_scales: {
         Row: {
-          administration_id: string
           code: string
           created_at: string
           description: string | null
+          hr_group_id: string
           id: string
           is_active: boolean
           name: string
+          salary_structure_id: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          administration_id: string
           code: string
           created_at?: string
           description?: string | null
+          hr_group_id: string
           id?: string
           is_active?: boolean
           name: string
+          salary_structure_id: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          administration_id?: string
           code?: string
           created_at?: string
           description?: string | null
+          hr_group_id?: string
           id?: string
           is_active?: boolean
           name?: string
+          salary_structure_id?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "salary_scales_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
+            foreignKeyName: "salary_scales_structure_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
             isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
+            referencedRelation: "salary_structures"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "salary_scales_tenant_id_fkey"
@@ -12872,6 +13082,183 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_structure_migration_conflicts: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          id: string
+          legacy_scale_code: string
+          reason: string
+          resolution: Json | null
+          resolved_at: string | null
+          resolved_by_user_id: string | null
+          salary_structure_ids: string[]
+          source_administration_ids: string[]
+          status: Database["public"]["Enums"]["salary_structure_migration_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          legacy_scale_code: string
+          reason: string
+          resolution?: Json | null
+          resolved_at?: string | null
+          resolved_by_user_id?: string | null
+          salary_structure_ids: string[]
+          source_administration_ids: string[]
+          status?: Database["public"]["Enums"]["salary_structure_migration_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          legacy_scale_code?: string
+          reason?: string
+          resolution?: Json | null
+          resolved_at?: string | null
+          resolved_by_user_id?: string | null
+          salary_structure_ids?: string[]
+          source_administration_ids?: string[]
+          status?: Database["public"]["Enums"]["salary_structure_migration_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_structure_migration_conflicts_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      salary_structure_revisions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          currency_code: string
+          description: string | null
+          effective_from: string
+          hr_group_id: string
+          id: string
+          lock_version: number
+          published_at: string | null
+          published_by_user_id: string | null
+          revision_number: number
+          salary_basis: Database["public"]["Enums"]["salary_structure_basis"]
+          salary_structure_id: string
+          status: Database["public"]["Enums"]["salary_revision_status"]
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          currency_code?: string
+          description?: string | null
+          effective_from: string
+          hr_group_id: string
+          id?: string
+          lock_version?: number
+          published_at?: string | null
+          published_by_user_id?: string | null
+          revision_number: number
+          salary_basis: Database["public"]["Enums"]["salary_structure_basis"]
+          salary_structure_id: string
+          status?: Database["public"]["Enums"]["salary_revision_status"]
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          currency_code?: string
+          description?: string | null
+          effective_from?: string
+          hr_group_id?: string
+          id?: string
+          lock_version?: number
+          published_at?: string | null
+          published_by_user_id?: string | null
+          revision_number?: number
+          salary_basis?: Database["public"]["Enums"]["salary_structure_basis"]
+          salary_structure_id?: string
+          status?: Database["public"]["Enums"]["salary_revision_status"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_structure_revisions_structure_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
+            isOneToOne: false
+            referencedRelation: "salary_structures"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      salary_structures: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by_user_id: string | null
+          description: string | null
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          structure_type: Database["public"]["Enums"]["salary_structure_type"]
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          structure_type: Database["public"]["Enums"]["salary_structure_type"]
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          structure_type?: Database["public"]["Enums"]["salary_structure_type"]
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_structures_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
@@ -16216,6 +16603,44 @@ export type Database = {
         }
         Returns: string
       }
+      apply_salary_application_change: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_payload: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: Json
+      }
+      get_salary_insights_projection: {
+        Args: {
+          requested_as_of: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      apply_combined_salary_application_change: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_mutations: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: string
+      }
+      save_administration_salary_settings: {
+        Args: {
+          requested_administration_id: string
+          requested_routes: Database["public"]["Enums"]["salary_application_route"][]
+          requested_structure_ids: string[]
+        }
+        Returns: Json
+      }
       apply_group_leave_manual_adjustment: {
         Args: {
           requested_accrual_year: number
@@ -16714,6 +17139,14 @@ export type Database = {
         }
         Returns: Json
       }
+      create_salary_structure: {
+        Args: { requested_hr_group_id: string; requested_payload: Json }
+        Returns: Json
+      }
+      create_salary_structure_draft: {
+        Args: { requested_payload: Json; requested_structure_id: string }
+        Returns: Json
+      }
       create_talent_notification: {
         Args: {
           requested_event_type: string
@@ -17056,6 +17489,14 @@ export type Database = {
         }
         Returns: string
       }
+      publish_complete_salary_application_employment: {
+        Args: {
+          requested_administration_id: string
+          requested_employee_id: string
+          requested_payload: Json
+        }
+        Returns: string
+      }
       publish_employment_work_pattern: {
         Args: { requested_employment_id: string; requested_payload: Json }
         Returns: string
@@ -17092,9 +17533,12 @@ export type Database = {
         Args: { requested_reminder_id: string }
         Returns: number
       }
-      publish_salary_scale_revision: {
-        Args: { requested_administration_id: string; requested_payload: Json }
-        Returns: string
+      publish_salary_structure_revision: {
+        Args: {
+          requested_expected_lock_version: number
+          requested_revision_id: string
+        }
+        Returns: Json
       }
       re_resolve_process_work_item: {
         Args: {
@@ -17226,6 +17670,13 @@ export type Database = {
           requested_participant_id: string
           requested_reason: string
           requested_replacement_employee_id: string
+        }
+        Returns: Json
+      }
+      replace_labor_condition_salary_structures: {
+        Args: {
+          requested_labor_condition_set_id: string
+          requested_salary_structure_ids: string[]
         }
         Returns: Json
       }
@@ -17376,6 +17827,15 @@ export type Database = {
           requested_language?: string
           requested_values: Json
           requested_work_item_id: string
+        }
+        Returns: Json
+      }
+      save_salary_structure_draft: {
+        Args: {
+          requested_draft_id: string
+          requested_expected_lock_version: number
+          requested_payload: Json
+          requested_structure_id: string
         }
         Returns: Json
       }
@@ -17826,11 +18286,22 @@ export type Database = {
       reminder_status: "DRAFT" | "PUBLISHED" | "CANCELLED"
       reminder_target_type: "SELF" | "EVERYONE" | "DEPARTMENTS" | "EMPLOYEES"
       reminder_type: "PERSONAL" | "HR"
-      salary_basis: "MANUAL" | "MINIMUM_WAGE" | "CUSTOM_SCALE" | "CAO_SCALE"
+      salary_band_input_method: "MIDPOINT_SPREAD" | "MIN_MAX" | "MANUAL_ANCHORS"
+      salary_application_route: "MANUAL" | "MINIMUM_WAGE" | "SCALE_WITH_STEPS" | "SALARY_BAND"
+      salary_basis: "MANUAL" | "MINIMUM_WAGE" | "CUSTOM_SCALE" | "CAO_SCALE" | "SALARY_BAND"
       salary_frequency: "MONTHLY" | "FOUR_WEEKLY"
       salary_payment_type: "PERIODIC_FIXED" | "HOURLY_VARIABLE"
+      salary_progression_type: "MANUAL" | "TIME_IN_STEP" | "FIXED_DATE"
       salary_revision_status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
       salary_step_kind: "REGULAR" | "START" | "MAXIMUM" | "SPECIAL"
+      salary_structure_basis:
+        | "MONTHLY_BASE"
+        | "FOUR_WEEKLY_BASE"
+        | "ANNUAL_BASE"
+        | "HOURLY"
+      salary_structure_migration_status: "OPEN" | "RESOLVED" | "IGNORED"
+      salary_structure_type: "SCALE_WITH_STEPS" | "SALARY_BAND"
+      minimum_wage_scheme: "REGULAR" | "BBL"
       schedule_type:
         | "HOURS_PER_DAY"
         | "HOURS_AND_AVG_DAYS"
@@ -18226,11 +18697,27 @@ export const Constants = {
       reminder_status: ["DRAFT", "PUBLISHED", "CANCELLED"],
       reminder_target_type: ["SELF", "EVERYONE", "DEPARTMENTS", "EMPLOYEES"],
       reminder_type: ["PERSONAL", "HR"],
-      salary_basis: ["MANUAL", "MINIMUM_WAGE", "CUSTOM_SCALE", "CAO_SCALE"],
+      salary_band_input_method: [
+        "MIDPOINT_SPREAD",
+        "MIN_MAX",
+        "MANUAL_ANCHORS",
+      ],
+      salary_application_route: ["MANUAL", "MINIMUM_WAGE", "SCALE_WITH_STEPS", "SALARY_BAND"],
+      salary_basis: ["MANUAL", "MINIMUM_WAGE", "CUSTOM_SCALE", "CAO_SCALE", "SALARY_BAND"],
       salary_frequency: ["MONTHLY", "FOUR_WEEKLY"],
       salary_payment_type: ["PERIODIC_FIXED", "HOURLY_VARIABLE"],
+      salary_progression_type: ["MANUAL", "TIME_IN_STEP", "FIXED_DATE"],
       salary_revision_status: ["DRAFT", "PUBLISHED", "ARCHIVED"],
       salary_step_kind: ["REGULAR", "START", "MAXIMUM", "SPECIAL"],
+      salary_structure_basis: [
+        "MONTHLY_BASE",
+        "FOUR_WEEKLY_BASE",
+        "ANNUAL_BASE",
+        "HOURLY",
+      ],
+      salary_structure_migration_status: ["OPEN", "RESOLVED", "IGNORED"],
+      salary_structure_type: ["SCALE_WITH_STEPS", "SALARY_BAND"],
+      minimum_wage_scheme: ["REGULAR", "BBL"],
       schedule_type: [
         "HOURS_PER_DAY",
         "HOURS_AND_AVG_DAYS",

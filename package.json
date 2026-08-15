@@ -5,6 +5,9 @@
     "apps/*",
     "packages/*"
   ],
+  "devDependencies": {
+    "eslint": "9.39.5"
+  },
   "scripts": {
     "dev": "npm run dev -w @liquid-hr/hr-suite",
     "dev:control": "npm run dev -w @liquid-hr/control",

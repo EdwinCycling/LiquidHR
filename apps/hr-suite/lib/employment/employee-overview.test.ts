@@ -41,4 +41,14 @@ describe('mapEmployeeOverviewRpcRow', () => {
       department_name: null, job_title: null,
     }, '2026-07-23')).toThrow('EMPLOYEE_OVERVIEW_HISTORY_INVALID')
   })
+
+  it('behoudt een data-avatar als fixture resource en maakt er geen avatar-route van', () => {
+    const dataAvatar = 'data:image/svg+xml;base64,fixture'
+
+    expect(mapEmployeeOverviewRpcRow({
+      id: 'employee-1', employee_number: 'E-001', first_name: 'Lina', birth_name_prefix: null, birth_name: 'Bakker',
+      work_email: null, avatar_url: dataAvatar, is_archived: false, employment_history: [],
+      department_name: null, job_title: null,
+    }, '2026-07-23').avatarUrl).toBe(dataAvatar)
+  })
 })

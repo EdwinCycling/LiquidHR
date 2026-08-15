@@ -14,6 +14,7 @@ import { EmploymentContractTimeline } from "@/components/employment/employment-c
 import { SelectableTimelineList } from "@/components/employment/selectable-timeline-list";
 import { OrganizationTimelineManager } from "@/components/employment/organization-timeline-manager";
 import { CompanyLocationTimelineManager } from "@/components/employment/company-location-timeline-manager";
+import { SalaryBandPositionCard } from "@/components/salary/salary-band-position-card";
 import { WorkPatternPanel } from "@/components/employment/work-pattern-panel";
 import { EmploymentOverviewActions } from "@/components/employment/employment-overview-actions";
 import {
@@ -28,6 +29,8 @@ import type { DateFormat } from "@/lib/preferences/user-preferences";
 import { listEmployeeHrEvents } from "@/lib/hr-events/service";
 import { getRequestAuthorizationContext } from "@/lib/auth/permissions";
 import { listProcessWork } from "@/lib/process-automation/work-service";
+import { resolveSalaryBandAtDate, resolveSalaryScaleStepAtDate } from "@/lib/salary-application/resolution";
+import { employmentMutationTranslationKey } from "@/lib/employment/employment-mutation-labels";
 
 interface PageProps {
   params: Promise<{ employeeId: string; employmentId: string }>;
@@ -107,6 +110,21 @@ export default async function EmploymentDetailPage({
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? "")
     ? query.date!
     : today;
+  const currentSalary = detail.salaries.find((salary) => salary.valid_from <= selectedDate && (!salary.valid_until || salary.valid_until > selectedDate)) ?? detail.salaries[0];
+  const resolutionRevisions = detail.options.salaryRevisions.map((revision) => ({ id: revision.id, salaryStructureId: revision.salary_structure_id, effectiveFrom: revision.effective_from, revisionNumber: revision.revision_number, status: revision.status }));
+  const resolutionScaleValues = detail.options.salaryScaleValues.map((value) => ({ revisionId: value.salary_structure_revision_id, salaryScaleId: value.salary_scale_id, code: value.code, name: value.name }));
+  const resolutionSteps = detail.options.salaryResolutionSteps.map((step) => ({ id: step.id, revisionId: step.salary_structure_revision_id, salaryScaleId: step.salary_scale_id, stepCode: step.step_code, stepName: step.step_name ?? undefined, fulltimeAmount: step.fulltime_amount }));
+  const resolutionBandValues = detail.options.salaryResolutionBandValues.map((value) => ({ id: value.id, revisionId: value.salary_structure_revision_id, salaryBandId: value.salary_band_id, code: value.code, name: value.name, minimumAmount: value.minimum_amount, midpointAmount: value.midpoint_amount, maximumAmount: value.maximum_amount }));
+  function resolvedSalaryAmount(row: (typeof detail.salaries)[number], asOf: string): string | null {
+    if (row.salary_route === 'SCALE_WITH_STEPS' && row.salary_structure_id && row.salary_scale_id && row.salary_step_code) {
+      return resolveSalaryScaleStepAtDate({ salaryStructureId: row.salary_structure_id, salaryScaleId: row.salary_scale_id, stepCode: row.salary_step_code, asOf, revisions: resolutionRevisions, scaleValues: resolutionScaleValues, steps: resolutionSteps })?.fulltimeAmount ?? (row.fulltime_amount === null ? null : String(row.fulltime_amount));
+    }
+    return row.fulltime_amount === null ? null : String(row.fulltime_amount);
+  }
+  const currentBandValue = currentSalary?.salary_route === 'SALARY_BAND' && currentSalary.salary_structure_id && currentSalary.salary_band_id
+    ? resolveSalaryBandAtDate({ salaryStructureId: currentSalary.salary_structure_id, salaryBandId: currentSalary.salary_band_id, asOf: selectedDate, revisions: resolutionRevisions, bandValues: resolutionBandValues })
+    : null;
+  const currentSalaryAmount = currentSalary ? resolvedSalaryAmount(currentSalary, selectedDate) : null;
   const name = `${detail.employee.first_name} ${detail.employee.birth_name}`;
   const mutationLabels = Object.fromEntries(
     [
@@ -131,10 +149,33 @@ export default async function EmploymentDetailPage({
       "periodicFixed",
       "hourlyVariable",
       "paymentFrequency",
+      "salaryCalculation",
+      "salaryManual",
+      "salaryMinimum",
+      "salaryTable",
+      "salaryBand",
+      "salaryScale",
+      "salaryScaleStep",
+      "salaryMinimumScheme",
+      "salaryRegular",
+      "salaryBbl",
+      "salaryApplicationExternalAmount",
       "monthly",
       "fourWeekly",
       "fulltimeAmount",
       "hourlyRate",
+      "salaryApplicationScheme",
+      "salaryBandMinimum",
+      "salaryBandMidpoint",
+      "salaryBandMaximum",
+      "salaryOpenEnded",
+      "compaRatio",
+      "rangePenetration",
+      "status",
+      "underMinimum",
+      "withinRange",
+      "aboveMaximum",
+      "noValidBand",
       "costCenter",
       "costCarrier",
       "percentage",
@@ -168,7 +209,7 @@ export default async function EmploymentDetailPage({
       "impactLaborSchedule",
       "impactLaborSalary",
       "impactLaborLeave",
-    ].map((key) => [key, t(key)]),
+    ].map((key) => [key, t(employmentMutationTranslationKey(key))]),
   );
   const tabLabels: Record<Tab, string> = {
     overview: t("tabsOverview"),
@@ -429,11 +470,17 @@ export default async function EmploymentDetailPage({
                   paymentType: row.payment_type,
                   paymentFrequency: row.payment_frequency,
                   salaryBasis: row.salary_basis,
+                  salaryRoute: row.salary_route,
+                  minimumWageScheme: row.minimum_wage_scheme,
                   fulltimeAmount: row.fulltime_amount,
                   parttimeAmount: row.parttime_amount,
                   hourlyRate: row.hourly_rate,
                   currencyCode: row.currency_code,
                   salaryScaleStepId: row.salary_scale_step_id,
+                  salaryStructureId: row.salary_structure_id,
+                  salaryScaleId: row.salary_scale_id,
+                  salaryStepCode: row.salary_step_code,
+                  salaryBandId: row.salary_band_id,
                 })),
                 organizations: detail.organizations.map((row) => ({
                   id: row.id,
@@ -459,7 +506,10 @@ export default async function EmploymentDetailPage({
                   jobs: detail.options.jobs.map((item) => ({ id: item.id, code: item.code, name: item.name })),
                   costCenters: detail.options.costCenters.map((item) => ({ id: item.id, code: item.code, name: item.name })),
                   costCarriers: detail.options.costCarriers.map((item) => ({ id: item.id, code: item.code, name: item.name })),
-                  salaryScaleSteps: detail.options.salaryScaleSteps.map((item) => ({ id: item.id, label: `${item.salary_scales?.code ?? ""} · ${item.step_name || item.step_code}`, fulltimeAmount: Number(item.fulltime_amount) })),
+                  salaryScaleSteps: detail.options.salaryScaleSteps.map((item) => ({ id: item.id, salaryScaleId: item.salary_scale_id, stepCode: item.step_code, label: `${item.salary_scales?.code ?? ""} · ${item.step_name || item.step_code}`, fulltimeAmount: Number(item.fulltime_amount) })),
+                  salaryScales: detail.options.salaryScales,
+                  salaryBands: detail.options.salaryBands,
+                  salaryRoutes: detail.options.salaryRoutes,
                 },
               }}
             />}
@@ -585,7 +635,17 @@ export default async function EmploymentDetailPage({
           </div>
         )}
         {tab === "salary" && detail.capabilities.canReadSalary && (
-          <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
+          <div className="space-y-5">
+            {currentSalary?.salary_route === 'SALARY_BAND' && currentSalaryAmount !== null && <SalaryBandPositionCard
+              salaryAmount={currentSalaryAmount}
+              band={currentBandValue ? { minimum: String(currentBandValue.minimumAmount), midpoint: String(currentBandValue.midpointAmount), maximum: currentBandValue.maximumAmount === null ? null : String(currentBandValue.maximumAmount) } : null}
+              locale={locale}
+              currencyCode={currentSalary.currency_code}
+              labels={{
+                preview: t("salaryApplication.preview"), currentSalary: t("salaryApplication.currentSalary"), minimum: t("salaryApplication.minimum"), midpoint: t("salaryApplication.midpoint"), maximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), openEnded: t("salaryApplication.openEnded"),
+              }}
+            />}
+            <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
             <SelectableTimelineList
               labels={timelineListLabels}
               items={detail.salaries.map((row) => ({
@@ -593,15 +653,17 @@ export default async function EmploymentDetailPage({
                 title: new Intl.NumberFormat(locale, {
                     style: "currency",
                     currency: row.currency_code,
-                }).format(row.parttime_amount ?? row.fulltime_amount ?? row.hourly_rate ?? 0),
+                }).format(Number(row.parttime_amount ?? resolvedSalaryAmount(row, row.valid_from) ?? row.hourly_rate ?? 0)),
                 period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
-                summary: `${row.salary_basis} · ${row.payment_frequency}`,
-                details: [
-                  { label: t("salaryCalculation"), value: row.salary_basis },
-                  { label: t("fulltimeSalary"), value: String(row.fulltime_amount ?? "—") },
-                  { label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") },
-                  { label: t("frequency"), value: row.payment_frequency },
-                ],
+                 summary: `${row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual")} · ${row.payment_frequency}`,
+                 details: [
+                   { label: t("salaryCalculation"), value: row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual") },
+                   { label: t("fulltimeSalary"), value: String(resolvedSalaryAmount(row, selectedDate) ?? "—") },
+                   { label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") },
+                   { label: t("frequency"), value: row.payment_frequency },
+                   ...(row.salary_route === 'MINIMUM_WAGE' ? [{ label: t("salaryApplication.minimumWage"), value: row.minimum_wage_scheme ?? "—" }] : []),
+                   ...(row.salary_route === 'SCALE_WITH_STEPS' ? [{ label: t("salaryScale"), value: row.salary_step_code ?? "—" }] : []),
+                 ],
               }))}
             />
             <EmploymentMutationPanel
@@ -610,8 +672,15 @@ export default async function EmploymentDetailPage({
               canWrite={detail.capabilities.canWriteSalary}
               blockCount={detail.salaries.length}
               latestEffectiveOn={detail.salaries[0]?.valid_from}
+              salaryRoutes={detail.options.salaryRoutes}
+              salaryScales={detail.options.salaryScales}
+              salaryScaleSteps={detail.options.salaryScaleSteps.map((item) => ({ id: item.id, salaryScaleId: item.salary_scale_id, stepCode: item.step_code, label: `${item.salary_scales?.code ?? ''} · ${item.step_name || item.step_code}`, fulltimeAmount: Number(item.fulltime_amount) }))}
+              salaryBands={detail.options.salaryBands}
+              salaryBandLocale={locale}
+              salaryBandLabels={{ preview: t('salaryApplication.preview'), currentSalary: t('salaryApplication.currentSalary'), minimum: t('salaryApplication.minimum'), midpoint: t('salaryApplication.midpoint'), maximum: t('salaryApplication.maximum'), compaRatio: t('salaryApplication.compaRatio'), rangePenetration: t('salaryApplication.rangePenetration'), status: t('salaryApplication.status'), underMinimum: t('salaryApplication.underMinimum'), withinRange: t('salaryApplication.withinRange'), aboveMaximum: t('salaryApplication.aboveMaximum'), noValidBand: t('salaryApplication.noValidBand'), openEnded: t('salaryApplication.openEnded') }}
               labels={mutationLabels}
             />
+            </div>
           </div>
         )}
         {tab === "organization" && (

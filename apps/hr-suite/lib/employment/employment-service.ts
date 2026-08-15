@@ -87,11 +87,13 @@ export interface RehireEmploymentDefaults {
   } | null
   salary: {
     salaryBasis: Database['public']['Enums']['salary_basis']
+    minimumWageScheme: Database['public']['Enums']['minimum_wage_scheme'] | null
     salaryFrequencyId: string
     fulltimeAmount: number | null
     parttimeAmount: number | null
     hourlyRate: number | null
     salaryScaleStepId: string | null
+    salaryBandId: string | null
   } | null
   organization: {
     departmentId: string
@@ -127,6 +129,7 @@ export interface EmploymentCreationOptions {
   costCenters: Array<{ id: string; code: string; name: string }>
   costCarriers: Array<{ id: string; code: string; name: string }>
   laborConditionSets: Array<{ id: string; code: string; name: string; standardHoursPerWeek: number; probationMaximumMonths: 1 | 2 }>
+  laborConditionSalaryStructureIds: Record<string, string[]>
   flexPhases: Array<{ id: string; code: string; name: string }>
   salaryFrequencies: Array<{ id: string; code: string; name: string }>
   minimumWageRates: Array<{
@@ -135,13 +138,26 @@ export interface EmploymentCreationOptions {
     validFrom: string
     validUntil: string | null
   }>
-  salaryScales: Array<{ id: string; code: string; name: string }>
+  salaryScales: Array<{ id: string; structureId: string; code: string; name: string }>
   salaryScaleSteps: Array<{
     id: string
     salaryScaleId: string
+    stepCode: string
     label: string
     fulltimeAmount: number
   }>
+  salaryBands: Array<{
+    id: string
+    structureId: string
+    code: string
+    name: string
+    minimumAmount: number
+    midpointAmount: number
+    maximumAmount: number | null
+    effectiveFrom: string
+  }>
+  salaryRoutes: Array<Database['public']['Enums']['salary_application_route']>
+  salaryStructureIds: string[]
   nextEmploymentNumber: string
   nextIkvNumber: number
   canWriteSalary: boolean
@@ -311,7 +327,7 @@ async function getRehireEmploymentDefaults(
   const [contractResult, scheduleResult, salaryResult, organizationResult, allocationResult] = await Promise.all([
     supabase.from('employment_contracts').select('flex_phase_id, labor_condition_set_id, duration_type, ends_on, probation_applies, probation_ends_on').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', previousEmploymentId).order('starts_on', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('employment_schedules').select('is_on_call, on_call_obligation, work_scope, average_hours_per_week, part_time_factor, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours').eq('tenant_id', tenantId).eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', previousEmploymentId).order('valid_from', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('employment_salaries').select('salary_basis, salary_frequency_id, fulltime_amount, parttime_amount, hourly_rate, salary_scale_step_id').eq('tenant_id', tenantId).eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', previousEmploymentId).order('valid_from', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('employment_salaries').select('salary_basis, minimum_wage_scheme, salary_frequency_id, fulltime_amount, parttime_amount, hourly_rate, salary_scale_step_id, salary_band_id').eq('tenant_id', tenantId).eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', previousEmploymentId).order('valid_from', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('employee_organizations').select('department_id, job_id, job_title, direct_manager_id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', previousEmploymentId).order('effective_from', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('employment_cost_allocations').select('cost_center_id, cost_carrier_id, percentage, valid_from').eq('tenant_id', tenantId).eq('administration_id', administrationId).eq('employee_id', employeeId).eq('employment_id', previousEmploymentId).order('valid_from', { ascending: false }).limit(50),
   ])
@@ -350,11 +366,13 @@ async function getRehireEmploymentDefaults(
     } : null,
     salary: salaryResult.data ? {
       salaryBasis: salaryResult.data.salary_basis,
+      minimumWageScheme: salaryResult.data.minimum_wage_scheme,
       salaryFrequencyId: salaryResult.data.salary_frequency_id,
       fulltimeAmount: salaryResult.data.fulltime_amount,
       parttimeAmount: salaryResult.data.parttime_amount,
       hourlyRate: salaryResult.data.hourly_rate,
       salaryScaleStepId: salaryResult.data.salary_scale_step_id,
+      salaryBandId: salaryResult.data.salary_band_id,
     } : null,
     organization: organizationResult.data ? {
       departmentId: organizationResult.data.department_id,
@@ -596,11 +614,14 @@ export async function publishCompleteEmployment(
     }
   }
 
-  const { data, error } = await supabase.rpc('publish_complete_employment', {
+  const rpcArgs = {
     requested_employee_id: employeeId,
     requested_administration_id: administrationId,
     requested_payload: requestedInput as Json,
-  })
+  }
+  const { data, error } = input.salary?.salaryRoute
+    ? await supabase.rpc('publish_complete_salary_application_employment', rpcArgs)
+    : await supabase.rpc('publish_complete_employment', rpcArgs)
   if (error || !data) {
     const code = error?.message.match(/[A-Z][A-Z_]+/)?.[0] ?? 'EMPLOYMENT_CREATE_FAILED'
     const status = code === 'FORBIDDEN' ? 403
@@ -622,6 +643,28 @@ export async function getEmploymentCreationOptions(
   const defaultStartDate = new Date(Date.UTC(currentYear, currentMonth, 1)).toISOString().slice(0, 10)
   const administrationIds = administrations.map((administration) => administration.id)
   const hrGroupId = requireHrGroupId(context)
+  const effectiveScaleRevisionsResult = canWriteSalary
+    ? await supabase.from('salary_structure_revisions')
+      .select('id, salary_structure_id, effective_from')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('status', 'PUBLISHED')
+      .lte('effective_from', today)
+      .order('effective_from', { ascending: false })
+      .order('revision_number', { ascending: false })
+      .limit(500)
+    : { data: [], error: null }
+  if (effectiveScaleRevisionsResult.error) {
+    throw new EmploymentServiceError('EMPLOYMENT_OPTIONS_FAILED', 500)
+  }
+  const seenSalaryStructures = new Set<string>()
+  const effectiveScaleRevisionIds = (effectiveScaleRevisionsResult.data ?? [])
+    .filter((revision) => {
+      if (seenSalaryStructures.has(revision.salary_structure_id)) return false
+      seenSalaryStructures.add(revision.salary_structure_id)
+      return true
+    })
+    .map((revision) => revision.id)
 
   const [
     departmentsResult, jobGroupsResult, jobsResult, costCentersResult, costCarriersResult,
@@ -657,7 +700,7 @@ export async function getEmploymentCreationOptions(
     supabase.from('salary_frequencies').select('id, code, name')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
       .eq('is_active', true).order('code').limit(100),
-    supabase.from('administration_hr_settings').select('default_employment_country_code')
+    supabase.from('administration_hr_settings').select('default_employment_country_code, salary_routes, salary_structure_ids')
       .eq('tenant_id', context.tenantId).eq('administration_id', administrationId).maybeSingle(),
     supabase.from('employees').select('employee_number, nationality, birth_date, gender, updated_at')
       .eq('tenant_id', context.tenantId).eq('id', employeeId).maybeSingle(),
@@ -682,16 +725,21 @@ export async function getEmploymentCreationOptions(
         .eq('country_code', 'NL').order('valid_from').order('minimum_age').limit(100)
       : Promise.resolve({ data: [], error: null }),
     canWriteSalary
-      ? supabase.from('salary_scales').select('id, code, name')
-        .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
-        .eq('is_active', true).order('code').limit(100)
+      ? effectiveScaleRevisionIds.length > 0
+        ? supabase.from('salary_scale_revision_values').select('salary_scale_id, code, name')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
+          .in('salary_structure_revision_id', effectiveScaleRevisionIds)
+          .order('sort_order').limit(500)
+        : Promise.resolve({ data: [], error: null })
       : Promise.resolve({ data: [], error: null }),
     canWriteSalary
-      ? supabase.from('salary_scale_steps')
-        .select('id, salary_scale_id, step_code, step_name, fulltime_amount, salary_scales(code, name)')
-        .eq('tenant_id', context.tenantId).eq('administration_id', administrationId)
-        .lte('valid_from', today).or(`valid_until.is.null,valid_until.gt.${today}`)
-        .order('fulltime_amount').limit(500)
+      ? effectiveScaleRevisionIds.length > 0
+        ? supabase.from('salary_scale_steps')
+          .select('id, salary_scale_id, step_code, step_name, fulltime_amount')
+          .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
+          .in('salary_structure_revision_id', effectiveScaleRevisionIds)
+          .order('sequence_number').limit(2_000)
+        : Promise.resolve({ data: [], error: null })
       : Promise.resolve({ data: [], error: null }),
     supabase.from('employees').select('id, employee_number, first_name, birth_name')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId)
@@ -707,15 +755,47 @@ export async function getEmploymentCreationOptions(
     supabase.from('employees').select('id, is_archived')
       .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null).limit(10_000),
   ])
+  const allPublishedRevisionIds = (effectiveScaleRevisionsResult.data ?? []).map((revision) => revision.id)
+  const [salaryStructuresResult, salaryScalesCatalogResult, salaryBandsResult, salaryBandValuesResult] = canWriteSalary
+    ? await Promise.all([
+      supabase.from('salary_structures').select('id, structure_type').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).limit(250),
+      supabase.from('salary_scales').select('id, salary_structure_id, code, name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).limit(1_000),
+      supabase.from('salary_bands').select('id, salary_structure_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(1_000),
+      allPublishedRevisionIds.length > 0
+        ? supabase.from('salary_band_values').select('id, salary_structure_revision_id, salary_band_id, code, name, minimum_amount, midpoint_amount, maximum_amount').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('salary_structure_revision_id', allPublishedRevisionIds).order('sort_order').limit(2_000)
+        : Promise.resolve({ data: [], error: null }),
+    ])
+    : [
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: [], error: null },
+    ] as const
   const optionResults = [
     departmentsResult, jobGroupsResult, jobsResult, costCentersResult, costCarriersResult,
     laborConditionSetsResult, flexPhasesResult, salaryFrequenciesResult,
     hrSettingsResult, employeeResult, bsnResult, primaryResult, employmentNumbersResult, ikvResult,
     minimumWagesResult, salaryScalesResult, scaleStepsResult, managersResult,
+    salaryStructuresResult, salaryScalesCatalogResult, salaryBandsResult, salaryBandValuesResult,
   ]
   if (optionResults.some((result) => result.error) || !employeeResult.data) {
     throw new EmploymentServiceError('EMPLOYMENT_OPTIONS_FAILED', 500)
   }
+  const laborConditionSalaryStructuresResult = canWriteSalary
+    ? await supabase.from('labor_condition_salary_structures')
+      .select('labor_condition_set_id, salary_structure_id')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .limit(2_000)
+    : { data: [], error: null }
+  if (laborConditionSalaryStructuresResult.error) {
+    throw new EmploymentServiceError('EMPLOYMENT_OPTIONS_FAILED', 500)
+  }
+  const laborConditionSalaryStructureIds = (laborConditionSalaryStructuresResult.data ?? []).reduce<Record<string, string[]>>((result, row) => {
+    const current = result[row.labor_condition_set_id] ?? []
+    if (!current.includes(row.salary_structure_id)) result[row.labor_condition_set_id] = [...current, row.salary_structure_id]
+    return result
+  }, {})
   const rehireDefaults = await getRehireEmploymentDefaults(
     supabase,
     context.tenantId,
@@ -761,6 +841,47 @@ export async function getEmploymentCreationOptions(
     rows.push({ code: conditionSet.code, name: conditionSet.name })
     laborConditionRowsByAdministration.set(conditionSet.administration_id, rows)
   }
+  const salaryRoutes: Array<Database['public']['Enums']['salary_application_route']> = hrSettingsResult.data?.salary_routes ?? ['MANUAL', 'MINIMUM_WAGE']
+  const configuredStructureIds = new Set(hrSettingsResult.data?.salary_structure_ids ?? [])
+  const scaleStructureIds = new Set((salaryStructuresResult.data ?? [])
+    .filter((structure) => configuredStructureIds.has(structure.id) && structure.structure_type === 'SCALE_WITH_STEPS')
+    .map((structure) => structure.id))
+  const bandStructureIds = new Set((salaryStructuresResult.data ?? [])
+    .filter((structure) => configuredStructureIds.has(structure.id) && structure.structure_type === 'SALARY_BAND')
+    .map((structure) => structure.id))
+  const allowedScaleIds = new Set((salaryScalesCatalogResult.data ?? [])
+    .filter((scale) => scaleStructureIds.has(scale.salary_structure_id) && salaryRoutes.includes('SCALE_WITH_STEPS'))
+    .map((scale) => scale.id))
+  const revisionEffectiveDates = new Map((effectiveScaleRevisionsResult.data ?? []).map((revision) => [revision.id, revision.effective_from]))
+  const bandStructureById = new Map((salaryBandsResult.data ?? []).map((band) => [band.id, band.salary_structure_id]))
+  const latestBandValues = new Map<string, {
+    id: string
+    structureId: string
+    code: string
+    name: string
+    minimumAmount: number
+    midpointAmount: number
+    maximumAmount: number | null
+    effectiveFrom: string
+  }>()
+  for (const value of salaryBandValuesResult.data ?? []) {
+    const structureId = bandStructureById.get(value.salary_band_id)
+    const effectiveFrom = revisionEffectiveDates.get(value.salary_structure_revision_id)
+    if (!structureId || !bandStructureIds.has(structureId) || !effectiveFrom) continue
+    const current = latestBandValues.get(value.salary_band_id)
+    if (!current || effectiveFrom > current.effectiveFrom) {
+      latestBandValues.set(value.salary_band_id, {
+        id: value.salary_band_id,
+        structureId,
+        code: value.code,
+        name: value.name,
+        minimumAmount: value.minimum_amount,
+        midpointAmount: value.midpoint_amount,
+        maximumAmount: value.maximum_amount,
+        effectiveFrom,
+      })
+    }
+  }
 
   return {
     administrations: administrations.map((administration) => ({
@@ -799,6 +920,7 @@ export async function getEmploymentCreationOptions(
       standardHoursPerWeek: item.standard_hours_per_week,
       probationMaximumMonths: item.probation_maximum_months === 2 ? 2 : 1,
     })),
+    laborConditionSalaryStructureIds,
     flexPhases: flexPhasesResult.data ?? [],
     salaryFrequencies: salaryFrequenciesResult.data ?? [],
     minimumWageRates: (minimumWagesResult.data ?? []).map((rate) => ({
@@ -807,13 +929,22 @@ export async function getEmploymentCreationOptions(
       validFrom: rate.valid_from,
       validUntil: rate.valid_until,
     })),
-    salaryScales: salaryScalesResult.data ?? [],
-    salaryScaleSteps: (scaleStepsResult.data ?? []).map((step) => ({
+    salaryScales: (salaryScalesCatalogResult.data ?? []).filter((scale) => allowedScaleIds.has(scale.id)).map((scale) => ({
+      id: scale.id,
+      structureId: scale.salary_structure_id,
+      code: scale.code,
+      name: scale.name,
+    })),
+    salaryScaleSteps: (scaleStepsResult.data ?? []).filter((step) => allowedScaleIds.has(step.salary_scale_id)).map((step) => ({
       id: step.id,
       salaryScaleId: step.salary_scale_id,
-      label: `${step.salary_scales?.code ?? ''} · ${step.step_name || step.step_code}`,
+      stepCode: step.step_code,
+      label: `${salaryScalesResult.data?.find((scale) => scale.salary_scale_id === step.salary_scale_id)?.code ?? ''} · ${step.step_name || step.step_code}`,
       fulltimeAmount: step.fulltime_amount,
     })),
+    salaryBands: salaryRoutes.includes('SALARY_BAND') ? [...latestBandValues.values()] : [],
+    salaryRoutes,
+    salaryStructureIds: [...configuredStructureIds],
     nextIkvNumber: highestIkvNumber < 99 ? highestIkvNumber + 1 : 0,
     canWriteSalary,
     defaultCountryCode: hrSettingsResult.data?.default_employment_country_code ?? 'NL',
