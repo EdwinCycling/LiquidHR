@@ -18,6 +18,22 @@ De actuele eindgate is groen: `195` testbestanden en `741` tests, strict TypeScr
 
 Deze groene baseline is de afgesproken lokale checkpoint voor Salary Structures + Salary Application. Geen push, merge, deploy, PR of version bump.
 
+## Phase 3 Salary Insights — GREEN 2026-08-15
+
+**Status: GREEN — PHASE 3 CHECKPOINT READY**
+
+De slice staat in dezelfde `feature/salary-structures`-worktree vanaf `de3bf54` en volgt schema → API → UI. HR Admin heeft zes rapporten; Manager precies vijf (`salary-overview`, `salary-band-position`, `salary-band-status`, `salary-scale-steps`, `salary-structure-exceptions`); Employee heeft geen Salary Insights-data. `salary-internal-position` is aantoonbaar HR Admin-only: Manager ziet geen card, directe URL/browser-fetch/API en export geven `403 SALARY_INSIGHTS_INTERNAL_POSITION_FORBIDDEN`; HR Admin krijgt `200`.
+
+Dev/test-fixture `20260815090000_salary_insights_test_fixtures.sql` bevat 3 actieve minimumloonrijen (2 REGULAR, 1 BBL, bedragen null en niet als €0 geaggregeerd) en 6 actieve canonical salary-bandrijen (3 binnen, 2 onder, 1 boven; FTE 1.0/0.8/0.2; compa/range geldig). De canonical expected values zijn niet gewijzigd. HR Admin API/browsertotaal is 63, Manager 17; Employee API's zijn alle zes `403`. Empty HR-groep en cross-tenant zijn voor alle rollen `0/FORBIDDEN`; de Managerresultaten bleven binnen HR Admin-scope.
+
+De server-side authenticated gate is onafhankelijk van de in-app browser uitgevoerd. De projection-RPC heeft lege `search_path`, alleen authenticated EXECUTE en de dedicated managerguard; relevante remote tabellen hebben RLS. De API/RPC-, HTML- en browser-networkresponses bevatten geen niet-null peer-statistieken. HR Admin internal-position rapporteerde `0` voldoende en `63` onvoldoende peer-groepen; geen median/average/percentile is vrijgegeven. De security advisor bevat 83 bestaande projectbrede lints, met één verwachte actor-geautoriseerde salary-RPC-waarschuwing en geen nieuwe Salary Insights-RLS/scopebevinding; performance bevat geen Salary Insights-match.
+
+Authenticated browserbewijs is opnieuw groen: HR Admin desktop 1440×900 en 390×844 voor alle zes rapporten met echte band/minimumloonresultaten; band-KPI onder/binnen/boven `2/2/2`, compa `106.55`, range penetration `72.21`, overview salary sum `215435.00`, scale/steps `42`, internal `63`, exceptions `0` als correcte lege staat. Manager desktop en 390×844 voor alle vijf toegestane rapporten; Employee desktop en 390×844 zonder cards/data. CSV, historische peildatum `2026-07-31` (HR `60`, Manager `16`), actuele peildatum `2026-08-15`, NL/EN en responsive gedrag zijn gecontroleerd.
+
+Lokale eindgate: `199` testbestanden / `758` tests, strict TypeScript, ESLint `0 errors / 0 warnings`, i18n `33` gelijke namespaces, Webpack-build `225` pagina's/routes en `git diff --check` groen. De releasegate staat in `apps/hr-suite/scripts/salary-insights-release-gate.mjs`. Phase 3 wordt nu lokaal gecommit met `feat: add salary insights`; geen push, merge, deployment, PR of version bump.
+
+Leidende documenten: [`requirements/salary-insights/SALARY_INSIGHTS_PRODUCT_REQUIREMENTS.md`](../requirements/salary-insights/SALARY_INSIGHTS_PRODUCT_REQUIREMENTS.md), [`requirements/salary-insights/SALARY_INSIGHTS_UX_REFERENCE.md`](../requirements/salary-insights/SALARY_INSIGHTS_UX_REFERENCE.md), [`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md).
+
 ## Salaristoepassing - vervolgslice 2026-08-14
 
 **Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN; vervangen door de actuele status hierboven**

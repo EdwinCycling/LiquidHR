@@ -6,6 +6,16 @@
 
 De salary-applicationfundering is in dezelfde `feature/salary-structures`-worktree uitgebreid met administration×CAO-beschikbaarheid inclusief nul-linkfallback, datumgebonden resolutie van gepubliceerde scale-/step- en bandrevisies, en HR-uitzonderingen in het bestaande Insights-patroon. De twee resterende browserdeviations zijn opgelost: de employment-detail i18n-key gebruikt nu de geneste salary-applicationnamespace en directory mode rendert geen beschermde peer-avatarroute. Zie [`requirements/salary-application/SALARY_APPLICATION.md`](requirements/salary-application/SALARY_APPLICATION.md). De actuele gate is groen met 195 testbestanden/741 tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build met 224 routes en diff-check. Remote dev/test, RLS/grants, advisors en authenticated desktop/390×844-browserbewijs zijn gecontroleerd. Geen push, merge, deployment, PR of version bump.
 
+## Phase 3 Salary Insights — GREEN 2026-08-15
+
+**Status: GREEN — PHASE 3 CHECKPOINT READY**
+
+Salary Insights is vanaf checkpoint `de3bf54` in dezelfde worktree afgerond met zes server-side salarisrapporten, peildatum, scopefilters, canonical Salary Application-resolutie, CSV-export, responsive NL/EN-i18n en HR Admin-only interne salarispositie. Manager heeft exact vijf reportcards/routes/API's; `salary-internal-position` ontbreekt voor Manager en directe URL/API/export geven `403`, terwijl HR Admin het rapport gebruikt.
+
+De dev/test-fixture bevat 3 actieve minimumloonrijen (REGULAR/BBL, lokaal bedrag null en niet als €0 geaggregeerd) en 6 actieve canonical bandrijen (binnen/onder/boven, FTE/compa/range coverage). De authenticated API/RPC-gate bewijst HR Admin 63, Manager 17 scoped rows, Employee denied, empty/cross-tenant `FORBIDDEN`, geen peer-statistieken in Manager HTML/JSON/network en geen peerwaarden onder de vijf-groepdrempel. Browsergate: HR Admin desktop + 390×844 alle zes met echte band/minimumloon-KPI's/tabellen; Manager desktop + 390×844 alle vijf toegestane; Employee desktop + 390×844 zonder salarisdata. CSV, historische peildatum, NL/EN en responsive gedrag zijn groen.
+
+Lokale gate: `199` testbestanden/`758` tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build 225 pagina's/routes en diff-check. Remote dev/test RLS/grants/functie-eigenschappen zijn gecontroleerd; alleen bestaande projectbrede Supabase-advisor-WARNs blijven als apart hardeningpunt. De lokale checkpointcommit gebruikt `feat: add salary insights`; geen push, merge, deployment, PR of version bump. Zie [`requirements/salary-insights/SALARY_INSIGHTS_PRODUCT_REQUIREMENTS.md`](requirements/salary-insights/SALARY_INSIGHTS_PRODUCT_REQUIREMENTS.md), [`requirements/salary-insights/SALARY_INSIGHTS_UX_REFERENCE.md`](requirements/salary-insights/SALARY_INSIGHTS_UX_REFERENCE.md), [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md).
+
 ## Salarisstructuren - Stap 2
 
 **Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN; vervangen door de actuele status hierboven**

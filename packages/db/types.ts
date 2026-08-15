@@ -16614,6 +16614,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_salary_insights_projection: {
+        Args: {
+          requested_as_of: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       apply_combined_salary_application_change: {
         Args: {
           requested_acknowledgements?: Json
