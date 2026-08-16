@@ -36,6 +36,10 @@ describe('employment wizard validation', () => {
     }
   })
 
+  it('requires an explicit worker type before continuing from employment details', () => {
+    expect(isEmploymentWizardStepValid('employment', { ...validInput, employmentType: '' }, validOptions)).toBe(false)
+  })
+
   it('requires an explicit payroll choice before continuing', () => {
     expect(isEmploymentWizardStepValid('payrollChoice', validInput, { ...validOptions, payrollDetails: null })).toBe(false)
     expect(isEmploymentWizardStepValid('payrollChoice', validInput, { ...validOptions, payrollDetails: true })).toBe(true)

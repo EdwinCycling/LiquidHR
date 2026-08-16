@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LiquidHR Salary Review - Budget Setup</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-tertiary-container": "#ffc6b2",
+                      "error": "#ba1a1a",
+                      "background": "#faf8ff",
+                      "on-tertiary-fixed": "#380d00",
+                      "budget-meter-overage": "#DE350B",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "surface-variant": "#e1e2ec",
+                      "on-secondary-fixed-variant": "#444749",
+                      "outline": "#737685",
+                      "secondary": "#5c5f60",
+                      "inverse-surface": "#2e3038",
+                      "primary-fixed": "#dae2ff",
+                      "surface-tint": "#0c56d0",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "inverse-primary": "#b2c5ff",
+                      "on-error": "#ffffff",
+                      "status-draft": "#6B778C",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#f3f3fd",
+                      "on-tertiary": "#ffffff",
+                      "secondary-fixed": "#e1e2e4",
+                      "surface-bright": "#faf8ff",
+                      "status-open": "#00875A",
+                      "on-surface": "#191b23",
+                      "surface-container-high": "#e7e7f2",
+                      "outline-variant": "#c3c6d6",
+                      "inverse-on-surface": "#f0f0fb",
+                      "budget-meter-track": "#EBECF0",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-primary": "#ffffff",
+                      "surface-container": "#ededf8",
+                      "on-background": "#191b23",
+                      "primary-container": "#0052cc",
+                      "status-preparing": "#0052CC",
+                      "status-warning": "#FFAB00",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#001848",
+                      "on-primary-container": "#c4d2ff",
+                      "tertiary-fixed": "#ffdbcf",
+                      "surface-container-highest": "#e1e2ec",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "on-surface-variant": "#434654",
+                      "budget-meter-fill": "#36B37E",
+                      "status-error": "#DE350B",
+                      "primary": "#003d9b",
+                      "surface-dim": "#d9d9e4",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "tertiary": "#7b2600",
+                      "status-finalized": "#172B4D",
+                      "surface": "#faf8ff",
+                      "secondary-container": "#dee0e2",
+                      "tertiary-container": "#a33500",
+                      "on-secondary-container": "#606365"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "desktop-margin": "2rem",
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Work Sans"],
+                      "label-caps": ["Work Sans"],
+                      "headline-lg": ["Work Sans"],
+                      "headline-xl": ["Work Sans"],
+                      "body-sm": ["Work Sans"],
+                      "data-mono": ["jetbrainsMono"],
+                      "body-lg": ["Work Sans"],
+                      "headline-md": ["Work Sans"],
+                      "body-md": ["Work Sans"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-xl": ["30px", {"lineHeight": "38px", "fontWeight": "600"}],
+                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-secondary bg-opacity-10 text-on-surface min-h-screen font-body-lg flex flex-col">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">LiquidHR Salary Review</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold ml-2">
+                HR
+            </div>
+</div>
+</header>
+<div class="flex pt-16 flex-1">
+<!-- Main Content (Wizard Layout) -->
+<main class="flex-1 p-gutter md:p-desktop-margin overflow-y-auto max-w-[1200px] mx-auto w-full pb-32">
+<!-- Stepper -->
+<div class="mb-gutter">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-2">STAP 2/5</p>
+<div class="flex items-center w-full gap-2">
+<div class="h-2 rounded-full bg-primary flex-1"></div>
+<div class="h-2 rounded-full bg-primary flex-1"></div>
+<div class="h-2 rounded-full bg-surface-variant flex-1"></div>
+<div class="h-2 rounded-full bg-surface-variant flex-1"></div>
+<div class="h-2 rounded-full bg-surface-variant flex-1"></div>
+</div>
+</div>
+<!-- Header -->
+<h2 class="font-headline-xl text-headline-xl text-on-surface mb-8">Bepaal het totale budget</h2>
+<!-- Salary Basis Summary Card -->
+<div class="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm mb-gutter">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Salary basis summary</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Reviewable</p>
+<p class="font-headline-lg text-headline-lg text-primary mt-1">115 <span class="font-body-md text-body-md text-on-surface-variant font-normal">medewerkers</span></p>
+</div>
+<div class="border-l border-outline-variant pl-6">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Annualized basis</p>
+<p class="font-headline-lg text-headline-lg text-on-surface mt-1 font-data-mono">€4.250.000</p>
+</div>
+<div class="border-l border-outline-variant pl-6">
+<p class="font-body-sm text-body-sm text-on-surface-variant">Minimumloon (Excluded van budget)</p>
+<p class="font-headline-lg text-headline-lg text-on-surface-variant mt-1">9 <span class="font-body-md text-body-md font-normal">(€0 budget)</span></p>
+</div>
+</div>
+</div>
+<!-- Budget Configuration -->
+<div class="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm mb-gutter">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Budgetkeuze</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<!-- Option 1: Geen budget -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="budget_type" type="radio" value="none"/>
+<div class="h-full rounded-lg border-2 border-outline-variant p-4 peer-checked:border-primary peer-checked:bg-primary-container bg-surface hover:bg-surface-container-low transition-all">
+<div class="flex items-center justify-between mb-2">
+<span class="font-body-lg text-body-lg font-semibold peer-checked:text-on-primary-container">Geen budget</span>
+<div class="w-5 h-5 rounded-full border-2 border-outline-variant peer-checked:border-primary flex items-center justify-center">
+<div class="w-2.5 h-2.5 rounded-full bg-primary hidden peer-checked:block"></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant peer-checked:text-on-primary-container">Managers adviseren vrij.</p>
+</div>
+</label>
+<!-- Option 2: Percentage (Selected) -->
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="budget_type" type="radio" value="percentage"/>
+<div class="h-full rounded-lg border-2 border-outline-variant p-4 peer-checked:border-primary peer-checked:bg-primary-container/20 bg-surface hover:bg-surface-container-low transition-all">
+<div class="flex items-center justify-between mb-4">
+<span class="font-body-lg text-body-lg font-semibold text-primary">Percentage</span>
+<div class="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+<div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<input aria-label="Budget Percentage" class="w-20 rounded-md border-outline-variant bg-surface px-3 py-2 text-right font-data-mono text-on-surface focus:border-primary focus:ring-primary shadow-sm" type="text" value="4,0"/>
+<span class="font-body-lg text-body-lg text-on-surface-variant">%</span>
+<span class="material-symbols-outlined text-outline mx-2">arrow_right_alt</span>
+<span class="font-data-mono text-data-mono text-on-surface font-semibold bg-surface-container px-3 py-2 rounded-md">€170.000</span>
+</div>
+</div>
+</label>
+<!-- Option 3: Totaal bedrag -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="budget_type" type="radio" value="fixed"/>
+<div class="h-full rounded-lg border-2 border-outline-variant p-4 peer-checked:border-primary peer-checked:bg-primary-container bg-surface hover:bg-surface-container-low transition-all">
+<div class="flex items-center justify-between mb-2">
+<span class="font-body-lg text-body-lg font-semibold peer-checked:text-on-primary-container">Totaal bedrag</span>
+<div class="w-5 h-5 rounded-full border-2 border-outline-variant peer-checked:border-primary flex items-center justify-center">
+<div class="w-2.5 h-2.5 rounded-full bg-primary hidden peer-checked:block"></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant peer-checked:text-on-primary-container">Voer een vast totaalbudget in.</p>
+</div>
+</label>
+</div>
+<!-- HR Reserve Toggle -->
+<div class="border-t border-outline-variant pt-6">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface">HR-reserve gebruiken</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Houd een deel van het budget apart voor centrale sturing achteraf.</p>
+</div>
+<!-- Custom Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-fixed-dim rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="mt-4 flex items-center gap-2 bg-surface-container-low p-4 rounded-lg">
+<span class="font-body-sm text-body-sm text-on-surface-variant">In te houden:</span>
+<input aria-label="HR Reserve Percentage" class="w-20 rounded-md border-outline-variant bg-surface px-3 py-1.5 text-right font-data-mono text-on-surface focus:border-primary focus:ring-primary shadow-sm" type="text" value="5,0"/>
+<span class="font-body-lg text-body-lg text-on-surface-variant">%</span>
+<span class="material-symbols-outlined text-outline mx-2">arrow_right_alt</span>
+<span class="font-data-mono text-data-mono text-on-surface font-semibold bg-surface-container px-3 py-1.5 rounded-md">€8.500</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Sticky Footer / Reconciliation Strip -->
+<div class="fixed bottom-0 left-0 w-full bg-surface border-t border-outline-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40">
+<div class="max-w-[1200px] mx-auto px-gutter md:px-desktop-margin py-4">
+<div class="flex flex-col md:flex-row items-center justify-between gap-4">
+<!-- Reconciliation Numbers -->
+<div class="flex flex-wrap items-center gap-6">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Totaal budget</span>
+<span class="font-data-mono text-data-mono text-on-surface font-bold text-lg">€170.000</span>
+</div>
+<div class="h-8 w-px bg-outline-variant hidden md:block"></div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Te verdelen</span>
+<span class="font-data-mono text-data-mono text-primary font-bold text-lg">€161.500</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HR reserve</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-lg">€8.500</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Onverklaard</span>
+<span class="font-data-mono text-data-mono text-status-open text-lg">€0</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2 rounded-lg border border-outline-variant font-body-lg text-body-lg text-on-surface hover:bg-surface-variant transition-colors">
+                        Vorige
+                    </button>
+<button class="flex-1 md:flex-none px-6 py-2 rounded-lg bg-primary font-body-lg text-body-lg text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors font-semibold shadow-sm">
+                        Volgende
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

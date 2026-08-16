@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manager Mobile Proposal Drawer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed": "#dae2ff",
+                      "inverse-on-surface": "#f0f0fb",
+                      "surface": "#faf8ff",
+                      "error": "#ba1a1a",
+                      "surface-bright": "#faf8ff",
+                      "surface-container-high": "#e7e7f2",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#0052cc",
+                      "primary": "#003d9b",
+                      "error-container": "#ffdad6",
+                      "secondary": "#5c5f60",
+                      "status-open": "#00875A",
+                      "on-tertiary-fixed": "#380d00",
+                      "surface-dim": "#d9d9e4",
+                      "background": "#faf8ff",
+                      "surface-container-low": "#f3f3fd",
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-secondary-fixed-variant": "#444749",
+                      "on-primary-container": "#c4d2ff",
+                      "inverse-surface": "#2e3038",
+                      "secondary-fixed": "#e1e2e4",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "outline": "#737685",
+                      "surface-container-highest": "#e1e2ec",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191b23",
+                      "outline-variant": "#c3c6d6",
+                      "surface-tint": "#0c56d0",
+                      "budget-meter-fill": "#36B37E",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-surface": "#191b23",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#001848",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "secondary-container": "#dee0e2",
+                      "surface-container": "#ededf8",
+                      "inverse-primary": "#b2c5ff",
+                      "budget-meter-overage": "#DE350B",
+                      "status-preparing": "#0052CC",
+                      "on-surface-variant": "#434654",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#a33500",
+                      "status-finalized": "#172B4D",
+                      "status-error": "#DE350B",
+                      "on-error": "#ffffff",
+                      "status-warning": "#FFAB00",
+                      "on-secondary-container": "#606365",
+                      "surface-variant": "#e1e2ec",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "on-tertiary-container": "#ffc6b2",
+                      "status-draft": "#6B778C",
+                      "tertiary": "#7b2600",
+                      "tertiary-fixed": "#ffdbcf",
+                      "budget-meter-track": "#EBECF0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem",
+                      "desktop-margin": "2rem"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Work Sans"
+                      ],
+                      "body-md": [
+                              "Work Sans"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-lg-mobile": [
+                              "Work Sans"
+                      ],
+                      "headline-xl": [
+                              "Work Sans"
+                      ],
+                      "headline-md": [
+                              "Work Sans"
+                      ],
+                      "label-caps": [
+                              "Work Sans"
+                      ],
+                      "body-sm": [
+                              "Work Sans"
+                      ],
+                      "headline-lg": [
+                              "Work Sans"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "13px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-xl": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+      </script>
+</head>
+<body class="bg-surface-dim text-on-surface-variant antialiased min-h-screen flex flex-col"><div class="flex flex-col min-h-screen bg-surface w-[390px] h-[844px] overflow-hidden shadow-2xl mx-auto">
+<!-- Header -->
+<header class="flex items-center justify-between p-4 bg-surface border-b border-outline-variant">
+<button class="material-symbols-outlined text-on-surface">arrow_back</button>
+<h1 class="font-headline-md text-on-surface">Voorstel details</h1>
+<button class="material-symbols-outlined text-on-surface">more_vert</button>
+</header>
+<!-- Content -->
+<main class="flex-1 overflow-y-auto p-4 space-y-6">
+<!-- Employee Info -->
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-headline-lg">SS</div>
+<div>
+<h2 class="font-headline-md text-on-surface">Sarah Smit</h2>
+<p class="text-body-md text-on-surface-variant">Senior Consultant • Band 8</p>
+</div>
+</div>
+<!-- Proposal Details -->
+<div class="bg-surface-container-low rounded-xl p-4 space-y-4">
+<div class="flex justify-between items-center">
+<span class="text-body-md text-on-surface-variant">Huidig salaris</span>
+<span class="font-data-mono text-on-surface">€ 4.850,00</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-body-md text-on-surface-variant">Nieuw salaris</span>
+<span class="font-data-mono text-on-surface font-bold">€ 5.125,00</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-body-md text-on-surface-variant">Verhoging</span>
+<span class="font-data-mono text-status-open">+5,67%</span>
+</div>
+</div>
+<!-- HR Comment -->
+<div class="space-y-2">
+<label class="font-label-caps text-on-surface-variant">HR OPMERKING</label>
+<div class="p-3 bg-surface-container rounded-lg border border-outline-variant">
+<p class="text-body-md text-on-surface">Marktpositie en ontwikkeling in de functie meegenomen.</p>
+</div>
+</div>
+<!-- Actions -->
+<div class="pt-4 space-y-3">
+<button class="w-full py-3 bg-primary text-on-primary rounded-full font-body-lg">Voorstel goedkeuren</button>
+<button class="w-full py-3 border border-outline text-primary rounded-full font-body-lg">Aanpassen</button>
+</div>
+</main>
+<!-- Navigation -->
+<nav class="flex justify-around items-center p-3 bg-surface-container-high border-t border-outline-variant">
+<div class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-caps">Dashboard</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-label-caps">Salarisronde</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+<span class="text-label-caps">Meer</span>
+</div>
+</nav>
+</div></body></html>

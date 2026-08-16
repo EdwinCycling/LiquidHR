@@ -1,4 +1,4 @@
-import type { Json } from '@scope/db'
+import type { Database, Json } from '@scope/db'
 import { deriveEmploymentStatus, type EmploymentStatus } from './employment-status'
 
 export interface EmployeeOverview {
@@ -14,6 +14,9 @@ export interface EmployeeOverview {
   isArchived: boolean
   status: EmploymentStatus
   employmentCount: number
+  employmentType: Database['public']['Enums']['employment_type'] | null
+  administrationNames: string[]
+  hrGroupAdministrationCount: number
 }
 
 export interface EmployeeOverviewRpcRow {
@@ -76,5 +79,8 @@ export function mapEmployeeOverviewRpcRow(row: EmployeeOverviewRpcRow, today: st
     isArchived: row.is_archived,
     status: deriveEmploymentStatus(periods, today),
     employmentCount: periods.length,
+    employmentType: null,
+    administrationNames: [],
+    hrGroupAdministrationCount: 0,
   }
 }

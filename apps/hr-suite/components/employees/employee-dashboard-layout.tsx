@@ -18,7 +18,7 @@ interface Labels {
   failed: string
 }
 
-export function EmployeeDashboardLayout({ wide, narrow, initialLayout, labels }: { wide: WidgetNode[]; narrow: WidgetNode[]; initialLayout: Layout; labels: Labels }) {
+export function EmployeeDashboardLayout({ wide, narrow, initialLayout, compact = false, labels }: { wide: WidgetNode[]; narrow: WidgetNode[]; initialLayout: Layout; compact?: boolean; labels: Labels }) {
   const [layout, setLayout] = useState<Layout>(initialLayout)
   const [dragged, setDragged] = useState<{ column: 'wide' | 'narrow'; id: string } | null>(null)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
@@ -56,24 +56,18 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, labels }:
   }
 
   function render(column: 'wide' | 'narrow', items: readonly string[]) {
-    return items.map((id, index) => (
-      <div
-        className="group"
-        draggable
-        key={id}
-        onDragEnd={() => setDragged(null)}
-        onDragOver={(event: DragEvent<HTMLDivElement>) => event.preventDefault()}
-        onDrop={() => drop(column, id)}
-        onDragStart={() => setDragged({ column, id })}
-      >
+    return items.map((id, index) => {
+      const node = nodes.get(id as EmployeeDashboardWideWidget | EmployeeDashboardNarrowWidget)
+      if (compact) return <div key={id}>{node}</div>
+      return <div className="group" draggable key={id} onDragEnd={() => setDragged(null)} onDragOver={(event: DragEvent<HTMLDivElement>) => event.preventDefault()} onDrop={() => drop(column, id)} onDragStart={() => setDragged({ column, id })}>
         <div className="mb-2 flex min-h-9 items-center justify-end gap-1 rounded-lg border border-dashed border-border/70 bg-surface/80 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
           <span aria-label={labels.drag} className="px-1 text-muted-foreground" title={labels.drag}><GripVertical aria-hidden="true" size={15} /></span>
           <button aria-label={labels.moveUp} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" disabled={index === 0} onClick={() => move(column, id, -1)} type="button"><ArrowUp aria-hidden="true" size={14} /></button>
           <button aria-label={labels.moveDown} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" disabled={index === items.length - 1} onClick={() => move(column, id, 1)} type="button"><ArrowDown aria-hidden="true" size={14} /></button>
         </div>
-        {nodes.get(id as EmployeeDashboardWideWidget | EmployeeDashboardNarrowWidget)}
+        {node}
       </div>
-    ))
+    })
   }
 
   return <>

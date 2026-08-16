@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Plus, UsersRound } from 'lucide-react'
 import { EmployeeFilterPanel } from '@/components/employees/employee-filter-panel'
 import { EmployeeList } from '@/components/employees/employee-list'
 import { getRequestAuthorizationContext, requireAnyPermission } from '@/lib/auth/permissions'
@@ -97,12 +97,6 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
-      {canCreateEmployee && <div className="mb-4 flex justify-end">
-        <Link href="/employees/new" className="button-primary gap-2">
-          <Plus aria-hidden="true" className="h-4 w-4" />{tEmployees('new')}
-        </Link>
-      </div>}
-
       <EmployeeFilterPanel
         activeStatus={statusFilter}
         archiveFilter={archiveFilter}
@@ -141,7 +135,9 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           myTeam: tEmployees('myTeam'),
           allEmployees: tEmployees('allEmployees'),
         }}
-        resultCountLabel={tEmployees('resultCount', { count: sorted.length })}
+        headerAction={canCreateEmployee ? <Link href="/employees/new" className="button-primary inline-flex items-center gap-2">
+          <Plus aria-hidden="true" className="h-4 w-4" />{tEmployees('new')}
+        </Link> : null}
         search={search}
         scope={employeeScope}
         canSelectTeamScope={canSelectTeamScope}
@@ -153,15 +149,26 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
       <div className="mt-4">
         <EmployeeList
           archiveLabel={tEmployees('archived')}
+          administrationLabel={tEmployees('administration')}
           departmentLabel={tEmployees('department')}
           employeeNumberLabel={tEmployees('employeeNumber')}
-          labels={labels}
           emptyLabel={tEmployees('empty')}
           employees={sorted}
-          employmentCountLabel={(count) => tEmployees('employmentCount', { count })}
+          employeeTypeLabel={(employmentType, employmentStatus) => employmentType === 'EMPLOYEE'
+            ? tEmployment('workerEmployee')
+            : employmentType === 'INTERN' || employmentType === 'APPRENTICE'
+              ? tEmployment('workerStudentIntern')
+              : employmentType === 'CONTRACTOR' || employmentType === 'TEMPORARY_AGENCY'
+                ? tEmployment('workerTemporaryAgency')
+                : employmentType === 'FREELANCER'
+                  ? tEmployment('workerFreelancer')
+                  : employmentType === 'VOLUNTEER'
+                    ? tEmployment('workerVolunteer')
+                    : employmentType === 'NO_PAYROLL'
+                      ? tEmployment('workerNoPayroll')
+                      : employmentStatus === 'NEVER_EMPLOYED' ? labels[employmentStatus] : ''}
           jobTitleLabel={tEmployees('jobTitle')}
           noEmailLabel={tEmployees('noEmail')}
-          notRecordedLabel={tEmployees('notRecorded')}
           listLabel={tEmployees('title')}
           viewProfileLabel={tEmployees('viewProfile')}
           view={viewMode}
@@ -171,6 +178,10 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           limitedDetailEmployeeIds={limitsManagerDetails ? sorted.filter((employee) => employee.id !== authContext.employeeId && !directTeamEmployeeIds.includes(employee.id)).map((employee) => employee.id) : []}
           directoryLabels={{ loading: tEmployees('directoryLoading'), close: tEmployees('directoryClose'), unavailable: tEmployees('directoryUnavailable'), job: tEmployees('jobTitle'), department: tEmployees('department'), email: tEmployees('workEmail'), phone: tEmployees('workPhone'), presence: tEmployees('directoryPresence'), schedule: tEmployees('directorySchedule'), working: tEmployees('directoryWorking'), off: tEmployees('directoryOff'), absent: tEmployees('directoryAbsent'), noDetails: tEmployees('directoryEyebrow') }}
         />
+      </div>
+      <div className="mt-4 flex items-center justify-end gap-2 px-1 text-sm font-medium text-muted-foreground">
+        <UsersRound aria-hidden="true" className="h-4 w-4" />
+        {tEmployees('resultCount', { count: sorted.length })}
       </div>
     </main>
   )

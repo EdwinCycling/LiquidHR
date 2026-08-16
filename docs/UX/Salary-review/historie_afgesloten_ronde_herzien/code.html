@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<html class="light" lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Salarisronde 2026 - LiquidHR</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-high": "#e7e7f2",
+                        "on-secondary-fixed": "#191c1e",
+                        "primary-container": "#0052cc",
+                        "surface-container": "#ededf8",
+                        "on-error-container": "#93000a",
+                        "status-draft": "#6B778C",
+                        "surface-bright": "#faf8ff",
+                        "status-preparing": "#0052CC",
+                        "budget-meter-track": "#EBECF0",
+                        "surface-tint": "#0c56d0",
+                        "inverse-on-surface": "#f0f0fb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c3c6d6",
+                        "tertiary": "#7b2600",
+                        "surface": "#faf8ff",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "background": "#faf8ff",
+                        "tertiary-container": "#a33500",
+                        "on-primary-fixed": "#001848",
+                        "on-secondary-container": "#606365",
+                        "budget-meter-fill": "#36B37E",
+                        "primary-fixed": "#dae2ff",
+                        "status-finalized": "#172B4D",
+                        "primary": "#003d9b",
+                        "on-surface-variant": "#434654",
+                        "on-primary-container": "#c4d2ff",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "inverse-primary": "#b2c5ff",
+                        "secondary-container": "#dee0e2",
+                        "outline": "#737685",
+                        "secondary": "#5c5f60",
+                        "tertiary-fixed": "#ffdbcf",
+                        "budget-meter-overage": "#DE350B",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "status-error": "#DE350B",
+                        "on-tertiary-fixed": "#380d00",
+                        "status-open": "#00875A",
+                        "surface-container-low": "#f3f3fd",
+                        "secondary-fixed": "#e1e2e4",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#ffc6b2",
+                        "on-secondary-fixed-variant": "#444749",
+                        "on-surface": "#191b23",
+                        "surface-container-highest": "#e1e2ec",
+                        "status-warning": "#FFAB00",
+                        "inverse-surface": "#2e3038",
+                        "surface-variant": "#e1e2ec",
+                        "surface-dim": "#d9d9e4",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191b23",
+                        "on-error": "#ffffff"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "row-padding-dense": "0.5rem",
+                        "row-padding-standard": "1rem",
+                        "mobile-margin": "1rem",
+                        "gutter": "1.5rem",
+                        "desktop-margin": "2rem"
+                    },
+                    fontFamily: {
+                        "headline-xl": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "data-mono": ["jetbrainsMono"],
+                        "body-sm": ["Work Sans"],
+                        "body-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "headline-lg": ["Work Sans"]
+                    },
+                    fontSize: {
+                        "headline-xl": ["30px", { lineHeight: "38px", fontWeight: "600" }],
+                        "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "headline-lg-mobile": ["22px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "data-mono": ["13px", { lineHeight: "16px", fontWeight: "500" }],
+                        "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }],
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", fontWeight: "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for data tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ededf8;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c3c6d6;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #737685;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen font-body-md">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">LiquidHR Salary Review</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-full text-body-sm font-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64" placeholder="Zoeken..." type="text"/>
+</div>
+<button aria-label="Notifications" class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button aria-label="Help" class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container overflow-hidden border border-outline-variant">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A highly detailed close up portrait of a professional corporate HR administrator in a well lit modern office environment. Soft natural light, high-key bright lighting, shallow depth of field, blue and grey color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwGBGbVwgQU0OSX73PpS2oNwz3p0P4XeWaAUD4yx7kncSSCupUhiGkL-mVvhS1MUEycXFOwvftPldpD6etM9fKEw0NM906TpfzYVVUUR-48zdx0VZSBd78gx7iA7q-Wfn1XsumUND-sX-GUhudltt_-apaD52yT2pqzPGrR3qlyEQCaCLvjBQuRTWwqwbMQR_XiHU2To10sBdwBvm_hfWQW_AjGdbs0zgN4RvrIR7au_fUoJZstLzj"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-64 flex flex-col py-6 px-4 z-40 bg-surface-container-low border-r border-outline-variant pt-24">
+<div class="flex-1 flex flex-col gap-2 mt-4">
+<!-- Tabs -->
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary-container text-on-primary-container rounded-lg font-bold transition-all font-body-md text-body-md translate-x-1" href="#">
+<span class="material-symbols-outlined filled">payments</span>
+                Salarisronde
+            </a>
+</div>
+<div class="mt-auto flex flex-col gap-2 pt-6 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Instellingen
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Uitloggen
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 mt-16 p-desktop-margin overflow-y-auto bg-surface-bright">
+<!-- Top Banner (Read-only status) -->
+<div class="bg-surface-container text-on-surface-variant p-4 rounded-lg flex items-center gap-3 mb-gutter border border-outline-variant/50 shadow-sm">
+<span class="material-symbols-outlined text-primary">lock</span>
+<p class="font-body-md text-body-md m-0">Afgerond op 20 november 2026 door HR Admin.</p>
+</div>
+<!-- Header Section -->
+<div class="flex justify-between items-end mb-8">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-2">Salarisronde 2026</h1>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-status-finalized text-white font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[14px]">done_all</span>
+                        AFGEROND
+                    </span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">| 450 Medewerkers beoordeeld</span>
+</div>
+</div>
+<!-- Export Dropdown -->
+<div class="relative" id="export-dropdown-wrapper">
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded font-body-md text-body-md hover:bg-surface-tint transition-colors shadow-sm" id="export-btn">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Exporteren
+                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<!-- Dropdown Menu -->
+<div class="hidden absolute right-0 mt-2 w-[300px] bg-surface-container-lowest border border-outline-variant rounded shadow-lg z-10 py-1" id="export-menu">
+<button class="w-full text-left px-4 py-2 hover:bg-surface-container-low text-on-surface font-body-sm text-body-sm flex flex-col gap-0.5">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">table_chart</span>Excel</span>
+<span class="text-on-surface-variant ml-6">Volledige voorstel- en verwerkingslijst</span>
+</button>
+<button class="w-full text-left px-4 py-2 hover:bg-surface-container-low text-on-surface font-body-sm text-body-sm flex flex-col gap-0.5">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">csv</span>CSV</span>
+<span class="text-on-surface-variant ml-6">Definitieve medewerkerslijst</span>
+</button>
+<button class="w-full text-left px-4 py-2 hover:bg-surface-container-low text-on-surface font-body-sm text-body-sm flex flex-col gap-0.5">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">picture_as_pdf</span>PDF</span>
+<span class="text-on-surface-variant ml-6">Managementsamenvatting</span>
+</button>
+</div>
+</div>
+</div>
+<!-- In-page Tabs -->
+<div class="flex gap-8 border-b border-outline-variant mb-gutter overflow-x-auto">
+<button class="pb-3 border-b-2 border-primary text-primary font-bold font-body-md text-body-md whitespace-nowrap">Samenvatting</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors whitespace-nowrap">Medewerkers</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors whitespace-nowrap">Managers &amp; Teams</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors whitespace-nowrap">Budget</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors whitespace-nowrap">Bandanalyse</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors whitespace-nowrap">Minimumloon</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors whitespace-nowrap">Besluitvorming</button>
+</div>
+<!-- Dashboard Content Grid -->
+<div class="grid grid-cols-3 gap-gutter mb-gutter">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant shadow-sm flex flex-col">
+<span class="text-on-surface-variant font-label-caps text-label-caps mb-2">TOTAAL BUDGET UITGEGEVEN</span>
+<div class="flex items-baseline gap-2 mb-4">
+<span class="font-headline-xl text-headline-xl text-on-surface font-data-mono">€ 425.000</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">/ € 430.000</span>
+</div>
+<!-- Budget Meter (Read-only final state) -->
+<div class="w-full h-2 bg-budget-meter-track rounded-full overflow-hidden mt-auto">
+<div class="h-full bg-budget-meter-fill" style="width: 98.8%"></div>
+</div>
+<div class="flex justify-between mt-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant">98.8% GEBRUIKT</span>
+<span class="font-label-caps text-label-caps text-budget-meter-fill">€ 5.000 OVER</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant shadow-sm flex flex-col justify-between">
+<span class="text-on-surface-variant font-label-caps text-label-caps mb-2">POPULATIE OVERZICHT</span>
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center border-b border-surface-container pb-2">
+<span class="font-body-md text-body-md text-on-surface">Herzien &amp; Goedgekeurd</span>
+<span class="font-data-mono text-data-mono font-bold text-on-surface">432</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Uitgesloten (buiten scope)</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant">18</span>
+</div>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant shadow-sm flex flex-col">
+<span class="text-on-surface-variant font-label-caps text-label-caps mb-2">GEMIDDELDE VERHOGING</span>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-xl text-headline-xl text-primary font-data-mono">+ 4.2%</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-auto">Exclusief promoties en eenmalige bonussen.</p>
+</div>
+</div>
+<!-- Data Table (Read-only) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg shadow-sm overflow-hidden flex flex-col">
+<div class="px-4 py-3 border-b border-outline-variant bg-surface flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface">Definitieve Toekenningen (Top 5)</h2>
+<button class="text-primary font-body-sm text-body-sm hover:underline">Bekijk volledige lijst →</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant">
+<tr>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant w-64">MEDEWERKER</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-right">HUIDIG SALARIS</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-right bg-surface-container">ADVIES MANAGER</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-primary text-right bg-primary-fixed-dim/10">HR DEFINITIEF</th>
+<th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-right">VERSCHIL</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-lowest/50 transition-colors bg-surface-container-lowest">
+<td class="px-4 py-row-padding-standard">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-medium text-on-surface">Jansen, Pieter</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Senior Developer</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface">
+                                € 4.500,00
+                            </td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface-variant bg-surface-container/30">
+<div class="flex flex-col">
+<span>€ 4.725,00</span>
+<span class="text-[11px]">+5.0%</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface font-bold bg-primary-fixed-dim/5">
+<div class="flex flex-col">
+<span>€ 4.725,00</span>
+<span class="text-[11px] text-primary">+5.0%</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-budget-meter-fill">
+                                -
+                            </td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-lowest/50 transition-colors bg-surface-container-lowest">
+<td class="px-4 py-row-padding-standard">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-medium text-on-surface">De Vries, Sanne</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Marketing Manager</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface">
+                                € 5.200,00
+                            </td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface-variant bg-surface-container/30">
+<div class="flex flex-col">
+<span>€ 5.460,00</span>
+<span class="text-[11px]">+5.0%</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface font-bold bg-primary-fixed-dim/5">
+<div class="flex flex-col">
+<span>€ 5.356,00</span>
+<span class="text-[11px] text-primary">+3.0%</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-budget-meter-overage">
+                                - € 104,00
+                            </td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-lowest/50 transition-colors bg-surface-container-lowest">
+<td class="px-4 py-row-padding-standard">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-medium text-on-surface">Bakker, Tim</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Support Specialist</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface">
+                                € 3.100,00
+                            </td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface-variant bg-surface-container/30">
+<div class="flex flex-col">
+<span>€ 3.100,00</span>
+<span class="text-[11px]">0.0%</span>
+</div>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-on-surface font-bold bg-primary-fixed-dim/5 relative">
+<div class="flex flex-col">
+<span>€ 3.255,00</span>
+<span class="text-[11px] text-primary">+5.0%</span>
+</div>
+<span class="material-symbols-outlined absolute top-1/2 -translate-y-1/2 left-2 text-[14px] text-status-warning" title="HR Override">edit_note</span>
+</td>
+<td class="px-4 py-row-padding-standard text-right font-data-mono text-data-mono text-status-open">
+                                + € 155,00
+                            </td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-4 py-3 bg-surface-container-low border-t border-outline-variant text-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tabel toont alleen de top 3 ter illustratie. Bekijk 'Medewerkers' tab voor de volledige lijst.</span>
+</div>
+</div>
+</main>
+<script>
+        // Simple script for Export dropdown toggle
+        const exportBtn = document.getElementById('export-btn');
+        const exportMenu = document.getElementById('export-menu');
+
+        exportBtn.addEventListener('click', () => {
+            exportMenu.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!exportBtn.contains(event.target) && !exportMenu.contains(event.target)) {
+                exportMenu.classList.add('hidden');
+            }
+        });
+    </script>
+</body></html>

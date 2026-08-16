@@ -164,10 +164,6 @@ function effectiveAt<T extends { effectiveFrom: string; effectiveTo?: string | n
   return [...rows].filter((row) => row.effectiveFrom <= date && (!row.effectiveTo || row.effectiveTo >= date)).sort((left, right) => right.effectiveFrom.localeCompare(left.effectiveFrom))[0]
 }
 
-function intersectsContract(validFrom: string, validUntil: string | null, contract: EmploymentOverviewChangeData['contracts'][number]): boolean {
-  return validFrom <= (contract.endsOn ?? '9999-12-31') && (!validUntil || validUntil >= contract.startsOn)
-}
-
 function monthStart(date: string): string {
   return `${date.slice(0, 7)}-01`
 }
@@ -186,7 +182,7 @@ function toMonday(value: string): string {
 }
 
 function patternEndTime(minutes: number): string {
-  const rounded = Math.round(minutes)
+  const rounded = 9 * 60 + Math.round(minutes)
   const hours = Math.floor(rounded / 60)
   const remainder = rounded % 60
   return `${String(hours).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
@@ -232,24 +228,12 @@ function workerTypeLabel(value: string, labels: Labels): string {
   return labels.notRecorded
 }
 
-function scheduleTypeLabel(value: string, labels: Labels): string {
-  if (value === 'HOURS_PER_DAY') return labels.hoursPerDay
-  if (value === 'HOURS_AND_AVG_DAYS') return labels.hoursAndAverageDays
-  if (value === 'HOURS_AND_SPECIFIC_DAYS') return labels.hoursAndSpecificDays
-  if (value === 'TIMES_PER_DAY') return labels.timesPerDay
-  return labels.notRecorded
-}
-
 function salaryBasisLabel(value: string, labels: Labels): string {
   if (value === 'MINIMUM_WAGE') return labels.salaryMinimum
   if (value === 'CUSTOM_SCALE') return labels.salaryTable
   if (value === 'SALARY_BAND') return labels.salaryBand
   if (value === 'CAO_SCALE') return labels.caoScale
   return labels.salaryManual
-}
-
-function paymentFrequencyLabel(value: string, labels: Labels): string {
-  return value === 'FOUR_WEEKLY' ? labels.fourWeekly : labels.monthly
 }
 
 function initialSchedule(
@@ -499,12 +483,18 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
   async function saveWorkPattern(): Promise<void> {
     if (!selectedContract) return
     const weeks = schedule.twoWeekRoster ? [schedule.days, schedule.secondWeekDays] : [schedule.days]
+    const nextScheduleStart = data.schedules
+      .filter((row) => row.validFrom > effectiveOn)
+      .sort((left, right) => left.validFrom.localeCompare(right.validFrom))[0]?.validFrom
+    const validUntil = [selectedContract.endsOn, nextScheduleStart]
+      .filter((value): value is string => Boolean(value))
+      .sort()[0] ?? null
     await post(`/api/employments/${employmentId}/work-patterns`, {
       name: labels.roster,
       cycleWeeks: weeks.length,
       anchorDate: toMonday(effectiveOn),
       validFrom: effectiveOn,
-      validUntil: selectedContract.endsOn && selectedContract.endsOn > effectiveOn ? selectedContract.endsOn : null,
+      validUntil: validUntil && validUntil > effectiveOn ? validUntil : null,
       days: workPatternDays(weeks),
     })
   }
@@ -549,13 +539,13 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
   const stepIndex = step === 'selection' ? 0 : step === 'date' ? 1 : step === 'details' ? 2 : 3
 
   return <div className="fixed inset-0 z-[80] grid place-items-center bg-sidebar/70 p-3 sm:p-6" role="presentation">
-    <section aria-labelledby="employment-contract-change-title" aria-modal="true" className="flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border bg-surface shadow-2xl" onMouseDown={(event) => event.stopPropagation()} role="dialog">
+    <section aria-labelledby="employment-contract-change-title" aria-modal="true" className="flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border bg-surface shadow-2xl" onMouseDown={(event) => event.stopPropagation()} role="dialog">
       <header className="flex items-start justify-between gap-4 border-b px-5 py-4 sm:px-7">
         <div className="min-w-0"><p className="eyebrow text-primary">{labels.changeModalTitle}</p><h2 className="mt-1 truncate text-xl font-semibold" id="employment-contract-change-title">{modeTitle}</h2></div>
         <button aria-label={labels.cancel} className="button-secondary shrink-0 p-2" disabled={state === 'saving'} onClick={onClose} ref={closeRef} type="button"><X aria-hidden="true" className="size-4" /></button>
       </header>
-      <div className="border-b bg-muted/20 px-5 py-3 sm:px-7"><ol className="grid gap-2 sm:grid-cols-4">{stepLabels.map((label, index) => <li className={`flex items-center gap-2 text-xs font-semibold ${index <= stepIndex ? 'text-primary' : 'text-muted-foreground'}`} key={label}><span className={`grid size-7 place-items-center rounded-full border ${index <= stepIndex ? 'border-primary bg-primary text-primary-foreground' : 'border-border'}`}>{index + 1}</span><span>{label}</span></li>)}</ol></div>
-      <form className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" onSubmit={(event) => void save(event)}>
+      <div className="border-b bg-muted/20 px-5 py-3 sm:px-7"><ol className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">{stepLabels.map((label, index) => <li className={`flex min-w-0 items-center gap-2 text-xs font-semibold ${index <= stepIndex ? 'text-primary' : 'text-muted-foreground'}`} key={label}><span className={`grid size-7 shrink-0 place-items-center rounded-full border ${index <= stepIndex ? 'border-primary bg-primary text-primary-foreground' : 'border-border'}`}>{index + 1}</span><span className="truncate">{label}</span></li>)}</ol></div>
+      <form id="employment-contract-change-form" className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" onSubmit={(event) => void save(event)}>
         {step === 'selection' && <section className="space-y-5"><div><p className="eyebrow text-primary">{labels.chooseContract}</p><h3 className="mt-1 text-2xl font-semibold">{labels.contractSelectionTitle}</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.contractSelectionHelp}</p></div><div className="grid gap-3">{orderedContracts.map((contract) => <button aria-pressed={selectedContractId === contract.id} className={`rounded-2xl border p-4 text-left transition ${selectedContractId === contract.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/40 hover:bg-muted/50'}`} key={contract.id} onClick={() => chooseContract(contract.id)} type="button"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{labels.contractNumber} {contract.sequenceNumber}</p><p className="mt-1 font-semibold">{contract.laborConditionName}</p></div>{selectedContractId === contract.id && <CircleCheck aria-hidden="true" className="size-5 text-primary" />}</div><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4"><Summary label={labels.contractType} value={contractTypeLabel(contract.durationType, labels)} /><Summary label={labels.workerType} value={workerTypeLabel(contract.workerType, labels)} /><Summary label={labels.period} value={`${dateLabel(contract.startsOn, formatter)} — ${contract.endsOn ? dateLabel(contract.endsOn, formatter) : labels.active}`} /><Summary label={labels.fulltimeReference} value={`${contract.fulltimeHoursPerWeek} ${labels.hoursPerWeek}`} /></dl></button>)}</div>{selectedContract && <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4"><p className="font-semibold text-primary">{labels.selectedContractStatement}</p><p className="mt-1 text-sm text-muted-foreground">{contractSummary(selectedContract, formatter, labels)}</p></div>}</section>}
 
         {step === 'date' && selectedContract && <section className="space-y-6"><div><p className="eyebrow text-primary">{labels.timelineBeforeChange}</p><h3 className="mt-1 text-2xl font-semibold">{labels.changeStartDateTitle}</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.changeStartDateHelp}</p></div><TimelinePreview actionKey={actionKey} contract={selectedContract} data={data} labels={labels} locale={locale} formatter={formatter} /><fieldset><legend className="text-sm font-semibold">{labels.changeStartDateTitle}</legend><div className="mt-3 grid gap-3 sm:grid-cols-3">{dateChoices.map((choice) => <button className={`rounded-xl border p-3 text-left text-sm transition ${choice.disabled ? 'cursor-not-allowed opacity-50' : dateChoice === choice.key ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/40'}`} disabled={choice.disabled} key={choice.key} onClick={() => { setDateChoice(choice.key); setEffectiveOn(choice.date); setError('') }} type="button"><span className="font-semibold">{choice.label}</span><span className="mt-1 block text-muted-foreground">{dateLabel(choice.date, formatter)}</span></button>)}</div><label className="mt-3 grid gap-1.5 text-sm font-medium sm:max-w-sm"><span>{labels.customDateOption}</span><input aria-label={labels.customDateOption} className={fieldClassName(Boolean(selectedContract && !isDateInContract(effectiveOn, selectedContract)))} max={selectedContract.endsOn ?? undefined} min={selectedContract.startsOn} onChange={(event) => { setDateChoice('custom'); setEffectiveOn(event.target.value); setError('') }} type="date" value={dateChoice === 'custom' ? effectiveOn : ''} /></label></fieldset></section>}
@@ -567,7 +557,7 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
          {error && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{error}</p>}
         {state === 'saved' && <p className="mt-5 rounded-xl border border-success/30 bg-success-surface p-3 text-sm text-success" role="status">{labels.changeSaved}</p>}
       </form>
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t bg-surface/95 px-5 py-4 backdrop-blur-sm sm:px-7"><button className="button-secondary inline-flex items-center gap-2" disabled={step === 'selection' || state === 'saving'} onClick={previous} type="button"><ChevronLeft aria-hidden="true" className="size-4" />{labels.previous}</button><div className="flex items-center gap-3"><button className="button-secondary" disabled={state === 'saving'} onClick={onClose} type="button">{labels.cancel}</button>{step !== 'review' ? <button className="button-primary inline-flex items-center gap-2" disabled={state === 'saving' || (step === 'selection' && !selectedContract)} onClick={next} type="button">{labels.next}<ChevronRight aria-hidden="true" className="size-4" /></button> : <button className="button-primary inline-flex items-center gap-2" disabled={state === 'saving' || state === 'saved' || !reason.trim()} type="submit">{state === 'saving' ? labels.saving : labels.confirm}<CircleCheck aria-hidden="true" className="size-4" /></button>}</div></footer>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t bg-surface/95 px-5 py-4 backdrop-blur-sm sm:px-7"><button className="button-secondary inline-flex items-center gap-2" disabled={step === 'selection' || state === 'saving'} onClick={previous} type="button"><ChevronLeft aria-hidden="true" className="size-4" />{labels.previous}</button><div className="flex items-center gap-3"><button className="button-secondary" disabled={state === 'saving'} onClick={onClose} type="button">{labels.cancel}</button>{step !== 'review' ? <button className="button-primary inline-flex items-center gap-2" disabled={state === 'saving' || (step === 'selection' && !selectedContract)} onClick={next} type="button">{labels.next}<ChevronRight aria-hidden="true" className="size-4" /></button> : <button className="button-primary inline-flex items-center gap-2" disabled={state === 'saving' || state === 'saved' || !reason.trim()} form="employment-contract-change-form" type="submit">{state === 'saving' ? labels.saving : labels.confirm}<CircleCheck aria-hidden="true" className="size-4" /></button>}</div></footer>
     </section>
   </div>
 }
@@ -594,24 +584,56 @@ function Summary({ label, value }: { label: string; value: string }) {
 }
 
 function TimelinePreview({ actionKey, contract, data, labels, locale, formatter }: { actionKey: EmploymentOverviewActionKey; contract: EmploymentOverviewChangeData['contracts'][number]; data: EmploymentOverviewChangeData; labels: Labels; locale: string; formatter: Intl.DateTimeFormat }) {
-  const items: Array<{ id: string; from: string; title: string; period: string; summary: string }> = []
-  if (actionKey === 'hoursSchedule' || actionKey === 'hoursScheduleSalary') data.schedules.filter((row) => intersectsContract(row.validFrom, row.validUntil, contract)).forEach((row) => items.push({ id: `schedule-${row.id}`, from: row.validFrom, title: `${row.averageHours} ${labels.hoursPerWeek}`, period: `${dateLabel(row.validFrom, formatter)} — ${row.validUntil ? dateLabel(row.validUntil, formatter) : labels.active}`, summary: `${scheduleTypeLabel(row.scheduleType, labels)} · ${Math.round(row.partTimeFactor * 100)}%` }))
-  if (actionKey === 'hoursScheduleSalary' || actionKey === 'salary') data.salaries.filter((row) => intersectsContract(row.validFrom, row.validUntil, contract)).forEach((row) => items.push({ id: `salary-${row.id}`, from: row.validFrom, title: moneyLabel(row.parttimeAmount ?? row.fulltimeAmount ?? row.hourlyRate, row.currencyCode, locale), period: `${dateLabel(row.validFrom, formatter)} — ${row.validUntil ? dateLabel(row.validUntil, formatter) : labels.active}`, summary: `${salaryBasisLabel(row.salaryBasis, labels)} · ${paymentFrequencyLabel(row.paymentFrequency, labels)}` }))
-  if (actionKey === 'functionDepartmentCostCenter') data.organizations.filter((row) => intersectsContract(row.effectiveFrom, row.effectiveTo, contract)).forEach((row) => items.push({ id: `organization-${row.id}`, from: row.effectiveFrom, title: row.departmentName, period: `${dateLabel(row.effectiveFrom, formatter)} — ${row.effectiveTo ? dateLabel(row.effectiveTo, formatter) : labels.active}`, summary: row.jobName }))
-  if (actionKey === 'functionDepartmentCostCenter') data.costAllocations.filter((row) => intersectsContract(row.validFrom, row.validUntil, contract)).forEach((row) => items.push({ id: `cost-${row.id}`, from: row.validFrom, title: row.costCenterName, period: `${dateLabel(row.validFrom, formatter)} — ${row.validUntil ? dateLabel(row.validUntil, formatter) : labels.active}`, summary: `${row.percentage}% · ${row.costCarrierName}` }))
-  items.sort((left, right) => right.from.localeCompare(left.from))
-  return <section className="rounded-2xl border bg-muted/20 p-4"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-accent text-accent-foreground"><Clock3 aria-hidden="true" className="size-4" /></span><div><h4 className="font-semibold">{labels.timelineBeforeChange}</h4><p className="text-xs text-muted-foreground">{labels.selectedContractStatement}</p></div></div>{items.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">{labels.notRecorded}</p> : <div className="mt-4 grid gap-2 sm:grid-cols-2">{items.map((item, index) => <article className="rounded-xl border bg-surface p-3" key={item.id}><p className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{index === 0 ? labels.currentValue : labels.historyLabel}</p><p className="mt-1 font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.period}</p><p className="mt-2 text-sm text-muted-foreground">{item.summary}</p></article>)}</div>}</section>
+  const schedule = dateAt(data.schedules, contract.startsOn)
+  const salary = dateAt(data.salaries, contract.startsOn)
+  const organization = effectiveAt(data.organizations, contract.startsOn)
+  const costCount = data.costAllocations.filter((row) => row.validFrom <= contract.startsOn && (!row.validUntil || row.validUntil >= contract.startsOn)).length
+  const currentSummary = actionKey === 'hoursSchedule' || actionKey === 'hoursScheduleSalary'
+    ? schedule ? `${schedule.averageHours} ${labels.hoursPerWeek} · ${Math.round(schedule.partTimeFactor * 100)}%` : labels.notRecorded
+    : actionKey === 'salary'
+      ? salary ? moneyLabel(salary.parttimeAmount ?? salary.fulltimeAmount ?? salary.hourlyRate, salary.currencyCode, locale) : labels.notRecorded
+      : actionKey === 'functionDepartmentCostCenter'
+        ? organization ? `${organization.departmentName} · ${organization.jobName}${costCount > 0 ? ` · ${costCount} ${labels.costCenter.toLowerCase()}` : ''}` : labels.notRecorded
+        : labels.notRecorded
+  return <p className="border-y bg-muted/20 px-1 py-3 text-sm"><span className="font-semibold">{labels.selectedContractStatement}</span><span className="ml-2 text-muted-foreground">{contractSummary(contract, formatter, labels)} · {labels.currentValue}: {currentSummary}</span></p>
 }
 
 function ScheduleEditor({ labels, dayLabels, schedule, weeklyHours, fulltimeHours, partTimeFactor, scheduleAverageDays, rosterMatches, onWeeklyHours, onToggleTwoWeeks, onTimeForTime, onDayChange }: { labels: Labels; dayLabels: string[]; schedule: { weeklyHours: string; days: DayValues; secondWeekDays: DayValues; twoWeekRoster: boolean; timeForTime: string }; weeklyHours: number; fulltimeHours: number; partTimeFactor: number; scheduleAverageDays: number; rosterMatches: boolean; onWeeklyHours: (value: string) => void; onToggleTwoWeeks: () => void; onTimeForTime: (value: string) => void; onDayChange: (week: 1 | 2, day: DayKey, value: string) => void }) {
   const scope = Math.abs(weeklyHours - fulltimeHours) < 0.0001 ? labels.fullTime : labels.partTime
+  return (
+    <section className="rounded-xl border p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground"><Clock3 aria-hidden="true" className="size-5" /></span>
+        <div><p className="eyebrow text-primary">{labels.stepSchedule}</p><h4 className="mt-1 text-lg font-semibold">{labels.roster}</h4><p className="mt-1 text-sm text-muted-foreground">{labels.hoursAgreementHelp}</p></div>
+      </div>
+      <fieldset className="mt-6 border-t pt-5">
+        <legend className="text-base font-semibold">{labels.hoursAgreement}</legend>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label={labels.employmentScope}><div aria-live="polite" className="form-field flex items-center bg-muted/40">{scope}</div></Field>
+          <Field label={labels.weeklyHours}><div className="relative"><input className="form-field pr-14" inputMode="numeric" max="50" min="0" onChange={(event) => onWeeklyHours(event.target.value)} step="1" type="number" value={schedule.weeklyHours} /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">{labels.hourUnit}</span></div><span className="text-xs font-normal text-muted-foreground">{labels.fulltimeReference}: {fulltimeHours} {labels.hoursPerWeek}</span></Field>
+          <Field label={labels.partTimeFactor}><div className="form-field flex items-center bg-muted/40">{Math.round(partTimeFactor * 10000) / 100}%</div><span className="text-xs font-normal text-muted-foreground">{labels.factorCalculated}</span></Field>
+          <Field label={labels.averageDays}><div className="form-field flex items-center bg-muted/40">{Math.round(scheduleAverageDays * 100) / 100}</div></Field>
+        </div>
+      </fieldset>
+      <fieldset className="mt-6 border-t pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><legend className="text-base font-semibold">{labels.roster}</legend><p className="mt-1 text-sm text-muted-foreground">{labels.rosterHelp}</p></div><button className="button-secondary" onClick={onToggleTwoWeeks} type="button">{schedule.twoWeekRoster ? labels.removeSecondWeek : labels.addSecondWeek}</button></div>
+        <RosterWeek title={labels.weekOne} week={1} days={schedule.days} dayLabels={dayLabels} labels={labels} onDayChange={onDayChange} />
+        {schedule.twoWeekRoster && <RosterWeek title={labels.weekTwo} week={2} days={schedule.secondWeekDays} dayLabels={dayLabels} labels={labels} onDayChange={onDayChange} />}
+      </fieldset>
+      <div className="mt-6 grid gap-4 border-t pt-5 sm:grid-cols-2">
+        <Field label={labels.timeForTime}><div className="relative"><input className="form-field pr-14" inputMode="numeric" min="0" onChange={(event) => onTimeForTime(event.target.value)} step="1" type="number" value={schedule.timeForTime} /><span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">{labels.hourUnit}</span></div></Field>
+        <div className={`self-end rounded-lg border p-3 text-sm ${rosterMatches ? 'border-success/30 bg-success-surface text-success' : 'border-destructive/30 bg-destructive/5 text-destructive'}`} role="status"><span className="font-semibold">{labels.rosterAverage}:</span> {scheduleAverageHours(schedule)} {labels.hoursPerWeek}{!rosterMatches ? ` · ${labels.rosterMismatch}` : ''}</div>
+      </div>
+    </section>
+  )
   return <section className="rounded-2xl border p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-xl bg-accent text-accent-foreground"><Clock3 aria-hidden="true" className="size-5" /></span><div><p className="eyebrow text-primary">{labels.roster}</p><h4 className="mt-1 text-lg font-semibold">{labels.stepSchedule}</h4></div></div><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Field label={labels.employmentScope}><div className="form-field flex items-center bg-muted/40" aria-live="polite">{scope}</div></Field><Field label={labels.weeklyHours}><input className="form-field" inputMode="decimal" max="50" min="0" onChange={(event) => onWeeklyHours(event.target.value)} step="0.01" type="number" value={schedule.weeklyHours} /><span className="text-xs font-normal text-muted-foreground">{labels.fulltimeReference}: {fulltimeHours} {labels.hoursPerWeek}</span></Field><Field label={labels.partTimeFactor}><div className="form-field flex items-center bg-muted/40">{Math.round(partTimeFactor * 10000) / 100}%</div></Field><Field label={labels.averageDays}><div className="form-field flex items-center bg-muted/40">{Math.round(scheduleAverageDays * 100) / 100}</div></Field></div><div className="mt-5 flex flex-wrap items-center justify-between gap-3"><h5 className="font-semibold">{labels.roster}</h5><button className="button-secondary" onClick={onToggleTwoWeeks} type="button">{schedule.twoWeekRoster ? labels.removeSecondWeek : labels.addSecondWeek}</button></div><RosterWeek title={labels.weekOne} week={1} days={schedule.days} dayLabels={dayLabels} onDayChange={onDayChange} />{schedule.twoWeekRoster && <RosterWeek title={labels.weekTwo} week={2} days={schedule.secondWeekDays} dayLabels={dayLabels} onDayChange={onDayChange} />}<div className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.timeForTime}><input className="form-field" min="0" onChange={(event) => onTimeForTime(event.target.value)} step="0.01" type="number" value={schedule.timeForTime} /></Field><div className={`self-end rounded-xl border p-3 text-sm ${rosterMatches ? 'border-success/30 bg-success-surface text-success' : 'border-destructive/30 bg-destructive/5 text-destructive'}`} role="status">{labels.rosterAverage}: {scheduleAverageHours(schedule)} {labels.hoursPerWeek}{!rosterMatches ? ` · ${labels.rosterMismatch}` : ''}</div></div></section>
 }
 
 function scheduleAverageHours(schedule: { days: DayValues; secondWeekDays: DayValues; twoWeekRoster: boolean }): number { return Math.round((sumDays(schedule.days) + (schedule.twoWeekRoster ? sumDays(schedule.secondWeekDays) : 0)) / (schedule.twoWeekRoster ? 2 : 1) * 100) / 100 }
 
-function RosterWeek({ title, week, days, dayLabels, onDayChange }: { title: string; week: 1 | 2; days: DayValues; dayLabels: string[]; onDayChange: (week: 1 | 2, day: DayKey, value: string) => void }) {
-  return <fieldset className="mt-4"><legend className="text-sm font-semibold">{title}</legend><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">{dayKeys.map((day, index) => <label className="grid gap-1.5 text-xs font-semibold" key={day}><span>{dayLabels[index]}</span><input className="form-field px-2" inputMode="decimal" max="24" min="0" onChange={(event) => onDayChange(week, day, event.target.value)} step="0.01" type="number" value={days[day]} /></label>)}</div></fieldset>
+function RosterWeek({ title, week, days, dayLabels, labels, onDayChange }: { title: string; week: 1 | 2; days: DayValues; dayLabels: string[]; labels?: Labels; onDayChange: (week: 1 | 2, day: DayKey, value: string) => void }) {
+  const hourUnit = labels?.hourUnit ?? ''
+  return <fieldset className="mt-4"><legend className="text-sm font-semibold">{title}</legend><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">{dayKeys.map((day, index) => <label className="grid min-w-0 gap-1.5 text-xs font-semibold" key={day}><span>{dayLabels[index]} <span className="font-normal text-muted-foreground">({hourUnit})</span></span><input aria-label={`${dayLabels[index]} ${hourUnit}`} className="form-field px-2" inputMode="numeric" max="24" min="0" onChange={(event) => onDayChange(week, day, event.target.value)} step="1" type="number" value={days[day]} /></label>)}</div></fieldset>
 }
 
 function SalaryEditor({ locale, labels, salary, salaryFactor, options, onChange }: { locale: string; labels: Labels; salary: SalaryDraft; salaryFactor: number; options: EmploymentOverviewChangeData['options']; onChange: <K extends keyof SalaryDraft>(key: K, value: SalaryDraft[K]) => void }) {

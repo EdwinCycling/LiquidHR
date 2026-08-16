@@ -19,14 +19,14 @@ async function employmentForAction(employmentId: string, permission: string) {
   const { data, error } = await supabase.from('employments').select('id, tenant_id, administration_id, employee_id').eq('id', employmentId).is('deleted_at', null).maybeSingle()
   if (error || !data) throw new WorkPatternError('WORK_PATTERN_EMPLOYMENT_NOT_FOUND', 404)
   const auth = await requirePermission(permission, data.employee_id)
-  if (auth.tenantId !== data.tenant_id || auth.administrationId !== data.administration_id) throw new WorkPatternError('WORK_PATTERN_EMPLOYMENT_NOT_FOUND', 404)
+  if (auth.tenantId !== data.tenant_id) throw new WorkPatternError('WORK_PATTERN_EMPLOYMENT_NOT_FOUND', 404)
   return data
 }
 
 export async function listEmploymentWorkPatterns(employmentId: string) {
   await employmentForAction(employmentId, 'work-schedule:read')
   const supabase = await createClient()
-  const { data, error } = await supabase.from('employment_work_patterns').select('*, employment_work_pattern_days(*)').eq('employment_id', employmentId).order('valid_from', { ascending: false }).limit(100)
+  const { data, error } = await supabase.from('employment_work_patterns').select('id, name, cycle_weeks, valid_from, valid_until, average_minutes_per_week').eq('employment_id', employmentId).order('valid_from', { ascending: false }).limit(100)
   if (error) databaseError(error.message)
   return data ?? []
 }

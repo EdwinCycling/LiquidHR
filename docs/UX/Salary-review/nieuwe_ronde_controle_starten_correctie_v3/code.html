@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Salarisronde Controleren &amp; Starten - LiquidHR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e7e7f2",
+                        "error": "#ba1a1a",
+                        "outline": "#737685",
+                        "tertiary-container": "#a33500",
+                        "primary": "#003d9b",
+                        "surface-container-highest": "#e1e2ec",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "background": "#faf8ff",
+                        "on-secondary-fixed-variant": "#444749",
+                        "inverse-surface": "#2e3038",
+                        "status-preparing": "#0052CC",
+                        "status-open": "#00875A",
+                        "surface-variant": "#e1e2ec",
+                        "inverse-primary": "#b2c5ff",
+                        "surface-container": "#ededf8",
+                        "inverse-on-surface": "#f0f0fb",
+                        "tertiary": "#7b2600",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#0052cc",
+                        "on-primary-fixed": "#001848",
+                        "on-secondary-container": "#606365",
+                        "surface-bright": "#faf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c3c6d6",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191b23",
+                        "on-surface": "#191b23",
+                        "surface-dim": "#d9d9e4",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "secondary-container": "#dee0e2",
+                        "status-finalized": "#172B4D",
+                        "on-tertiary-fixed": "#380d00",
+                        "on-surface-variant": "#434654",
+                        "status-draft": "#6B778C",
+                        "status-warning": "#FFAB00",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#dae2ff",
+                        "surface-tint": "#0c56d0",
+                        "surface": "#faf8ff",
+                        "on-tertiary-container": "#ffc6b2",
+                        "surface-container-low": "#f3f3fd",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "secondary-fixed": "#e1e2e4",
+                        "budget-meter-track": "#EBECF0",
+                        "budget-meter-overage": "#DE350B",
+                        "on-primary-container": "#c4d2ff",
+                        "secondary": "#5c5f60",
+                        "budget-meter-fill": "#36B37E",
+                        "tertiary-fixed": "#ffdbcf",
+                        "status-error": "#DE350B",
+                        "on-secondary-fixed": "#191c1e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "desktop-margin": "2rem",
+                        "gutter": "1.5rem",
+                        "mobile-margin": "1rem",
+                        "row-padding-standard": "1rem",
+                        "row-padding-dense": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Work Sans"],
+                        "body-sm": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "headline-lg": ["Work Sans"],
+                        "data-mono": ["jetbrainsMono"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-xl": ["Work Sans"],
+                        "body-lg": ["Work Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-xl": ["30px", { "lineHeight": "38px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen" style="border: 4px solid #00875A;">
+<!-- Top Navigation App Bar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface border-b border-outline-variant shadow-sm">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg text-primary">LiquidHR Salary Review</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A professional corporate portrait of an HR administrator in a brightly lit modern office setting. The lighting is soft and neutral, reflecting a corporate professional environment. The mood is confident and reliable. Professional photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDc7_SGlxbQ4xY9dY7wklcG0PUHXwGG9nzZMy9qfm03HfiyFvsBBiVWQo0MiEn7pG-LjdxSYaolFw5IpcIzYWh0jC7t2EMBcCMdVFOxZs9l9puR6eyjSAvVQGovlk_rBNq790FfHe6WZZj0Od7Sofw5nFNjh2MOmI3iwboWjKRoTJIqwX4mAzY__O6NYEZGB-IsjIe4qO9Mevd2UaCcp-bpDyehb_K78jjh_1m4kPq5btM_VLnEhxX"/>
+</div>
+</div>
+</header>
+<!-- Side Navigation -->
+<nav class="hidden md:flex fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 flex-col py-6 px-4 z-40 bg-surface-container-low border-r border-outline-variant justify-between">
+<div class="flex flex-col gap-2"><a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#"><span class="material-symbols-outlined">groups</span><span>Medewerkers</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary-container text-on-primary-container font-bold font-body-md text-body-md shadow-sm" href="#"><span class="material-symbols-outlined">payments</span><span>Salarisronde</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#"><span class="material-symbols-outlined">description</span><span>Documenten</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#"><span class="material-symbols-outlined">analytics</span><span>Rapportages</span></a></div>
+<div class="flex flex-col gap-2 border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="">Instellingen</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="">Uitloggen</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-16 md:pl-64 min-h-screen bg-background">
+<div class="max-w-[1200px] mx-auto p-mobile-margin md:p-desktop-margin pb-24">
+<!-- Page Header & Stepper -->
+<div class="mb-gutter">
+<div class="flex items-center gap-2 text-on-surface-variant mb-4">
+<a class="hover:text-primary transition-colors" href="#">Salarisronde</a>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span class="text-on-surface">Nieuwe ronde</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-6">Controle &amp; starten</h1>
+<!-- Stepper Progress -->
+<div class="relative w-full max-w-3xl mb-12">
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-outline-variant -z-10"></div>
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-primary -z-10 transition-all duration-500 ease-in-out"></div>
+<div class="flex justify-between items-center w-full">
+<!-- Step 1 -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-body-md text-body-md shadow-sm">
+<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
+</div>
+<span class="font-label-caps text-label-caps text-primary uppercase">Basis &amp; populatie</span>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-body-md text-body-md shadow-sm">
+<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
+</div>
+<span class="font-label-caps text-label-caps text-primary uppercase">Budget</span>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-body-md text-body-md shadow-sm">
+<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
+</div>
+<span class="font-label-caps text-label-caps text-primary uppercase">Verdeling</span>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-body-md text-body-md shadow-sm">
+<span class="material-symbols-outlined text-sm" data-icon="check">check</span>
+</div>
+<span class="font-label-caps text-label-caps text-primary uppercase">Voorstellen</span>
+</div>
+<!-- Step 5 Active -->
+<div class="flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold font-body-md text-body-md shadow-md ring-4 ring-primary-container">
+                                5
+                            </div>
+<span class="font-label-caps text-label-caps text-primary uppercase font-bold">Controle &amp; starten</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Warnings Section -->
+<div class="bg-status-warning/10 border border-status-warning/30 rounded-xl p-6 mb-gutter flex items-start gap-4 shadow-sm">
+<span class="material-symbols-outlined text-status-warning mt-1" data-icon="warning">warning</span>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Aandachtspunten voor start</h3>
+<ul class="list-disc pl-5 font-body-md text-body-md text-on-surface-variant space-y-1">
+<li class="">4 actieve medewerkers zitten niet in de ronde (beoordeel <a class="text-primary underline" href="#">uitzonderingen</a>)</li>
+<li class="">2 reviewable medewerkers hebben geen HR-startvoorstel.</li>
+<li class="">€1.500 budget is nog niet toegewezen aan managergroepen.</li>
+</ul>
+</div>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-6">Controleer de ronde</h2>
+<!-- Summary Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mb-gutter">
+<!-- Ronde Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Ronde Data</h3>
+</div>
+<button class="text-primary hover:bg-surface-container-low p-2 rounded-lg transition-colors font-body-sm text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>
+                            Wijzig
+                        </button>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Peildatum populatie</span>
+<span class="font-body-md text-body-md text-on-surface">01-01-2024</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Ingangsdatum salaris</span>
+<span class="font-body-md text-body-md text-on-surface">01-04-2024</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Deadline managers</span>
+<span class="font-body-md text-body-md font-medium text-status-open bg-status-open/10 px-2 py-0.5 rounded text-sm">28-02-2024</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Einddatum ronde</span>
+<span class="font-body-md text-body-md text-on-surface">31-03-2024</span>
+</div>
+</div>
+</div>
+<!-- Populatie Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Populatie</h3>
+</div>
+<button class="text-primary hover:bg-surface-container-low p-2 rounded-lg transition-colors font-body-sm text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>
+                            Wijzig
+                        </button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface p-4 rounded-lg border border-outline-variant">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">In ronde</div>
+<div class="font-headline-xl text-headline-xl text-on-surface">142</div>
+</div>
+<div class="bg-surface p-4 rounded-lg border border-outline-variant">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Niet in ronde</div>
+<div class="font-headline-xl text-headline-xl text-status-warning">4</div>
+</div>
+</div>
+<div class="mt-4 space-y-2">
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Actieve medewerkers</span>
+<span class="text-on-surface">146</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Reviewable</span>
+<span class="text-on-surface">120</span>
+</div>
+<div class="flex justify-between text-sm pl-4">
+<span class="text-on-surface-variant">- Via manager</span>
+<span class="text-on-surface">100</span>
+</div>
+<div class="flex justify-between text-sm pl-4">
+<span class="text-on-surface-variant">- HR direct</span>
+<span class="text-on-surface">20</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Minimumloon (WML)</span>
+<span class="text-on-surface">12</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Schaal + trede · uitgesloten</span>
+<span class="text-on-surface">10</span>
+</div>
+</div>
+</div>
+<!-- Budget Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Budget Overzicht</h3>
+</div>
+<button class="text-primary hover:bg-surface-container-low p-2 rounded-lg transition-colors font-body-sm text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>
+                            Wijzig
+                        </button>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Totaal Budget (Maand)</div>
+<div class="font-headline-xl text-headline-xl text-on-surface font-data-mono">€ 42.500</div>
+<div class="text-sm text-on-surface-variant mt-1 mb-4">4.5% van huidige loonsom</div>
+</div>
+<!-- Budget Breakdown Bar -->
+<div class="flex h-3 rounded-full overflow-hidden mb-3 bg-surface-container-high">
+<div class="bg-primary h-full" style="width: 70%;" title="Managers"></div>
+<div class="bg-tertiary-container h-full" style="width: 20%;" title="HR Direct"></div>
+<div class="bg-outline h-full" style="width: 6.5%;" title="HR Reserve"></div>
+<div class="bg-status-warning h-full" style="width: 3.5%;" title="Nog niet toegewezen"></div>
+</div>
+<!-- Legend -->
+<div class="grid grid-cols-2 gap-4 mt-4">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-3 h-3 rounded-sm bg-primary"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Managers</span>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface">€ 29.750</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-3 h-3 rounded-sm bg-tertiary-container"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">HR direct</span>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface">€ 8.500</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-3 h-3 rounded-sm bg-outline"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">HR reserve</span>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface">€ 2.750</div>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-3 h-3 rounded-sm bg-status-warning"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Nog niet toegewezen</span>
+</div>
+<div class="font-data-mono text-data-mono text-status-warning">€ 1.500</div>
+</div>
+</div>
+</div>
+<!-- Voorstellen Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Voorstellen</h3>
+</div>
+<button class="text-primary hover:bg-surface-container-low p-2 rounded-lg transition-colors font-body-sm text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>
+                            Wijzig
+                        </button>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">HR-start ingevuld</span>
+<span class="font-body-md text-body-md text-on-surface">118</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Geen HR-start</span>
+<span class="font-body-md text-body-md text-status-warning font-medium">2</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Forced zero</span>
+<span class="font-body-md text-body-md text-on-surface">5</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Systeem berekend (vast)</span>
+<span class="font-body-md text-body-md text-on-surface">22</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Footer CTA -->
+<div class="fixed bottom-0 left-0 md:left-64 right-0 bg-surface border-t border-outline-variant p-4 px-mobile-margin md:px-desktop-margin z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] flex justify-between items-center"><div class="flex items-center gap-2 text-on-surface-variant font-body-sm"><span class="material-symbols-outlined text-sm text-status-open">check_circle</span><span>Automatisch opgeslagen om 14:32</span></div>
+<button class="px-8 py-3 rounded-lg bg-primary text-on-primary font-headline-md text-headline-md text-sm font-bold shadow-md hover:bg-primary-fixed-variant transition-colors flex items-center gap-2 group">
+                Ronde naar managers sturen
+                <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform" data-icon="send">send</span>
+</button>
+</div>
+</main>
+</body></html>

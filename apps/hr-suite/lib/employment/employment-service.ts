@@ -1033,9 +1033,57 @@ async function listDirectTeamEmployeeOverviews(
   if (error) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
 
   const teamEmployeeIdSet = new Set(teamEmployeeIds)
-  return data
+  const employees = data
     .filter((employee) => teamEmployeeIdSet.has(employee.id))
     .map((employee) => mapEmployeeOverviewRpcRow(employee, today))
+  return addEmployeeAdministrationSummaries(employees, context, requireHrGroupId(context), supabase, today)
+}
+
+async function addEmployeeAdministrationSummaries(
+  employees: EmployeeOverview[],
+  context: EmployeeOverviewReadDependencies['context'],
+  hrGroupId: string,
+  supabase: SupabaseServerClient,
+  today: string,
+): Promise<EmployeeOverview[]> {
+  if (!context.permissions.includes('employee:read') || employees.length === 0) return employees
+
+  const employeeIds = employees.map((employee) => employee.id)
+  const [employmentResult, administrationResult] = await Promise.all([
+    supabase.from('employments').select('employee_id, administration_id, employment_type, starts_on, ends_on, record_status')
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('employee_id', employeeIds)
+      .neq('record_status', 'CANCELLED').is('deleted_at', null).limit(5000),
+    supabase.from('administrations').select('id, name', { count: 'exact' })
+      .eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('name').limit(500),
+  ])
+  if (employmentResult.error || administrationResult.error) throw new EmploymentServiceError('EMPLOYEE_ADMINISTRATION_READ_FAILED', 500)
+
+  const administrationNames = new Map((administrationResult.data ?? []).map((administration) => [administration.id, administration.name]))
+  const namesByEmployee = new Map<string, string[]>()
+  const employmentTypes = new Map<string, { type: NonNullable<EmployeeOverview['employmentType']>; rank: number; startsOn: string }>()
+  for (const employment of employmentResult.data ?? []) {
+    if (employment.record_status !== 'CANCELLED' && employment.employment_type) {
+      const active = employment.starts_on <= today && (!employment.ends_on || employment.ends_on >= today)
+      const rank = active ? 0 : employment.starts_on > today ? 1 : 2
+      const current = employmentTypes.get(employment.employee_id)
+      if (!current || rank < current.rank || (rank === current.rank && employment.starts_on > current.startsOn)) {
+        employmentTypes.set(employment.employee_id, { type: employment.employment_type, rank, startsOn: employment.starts_on })
+      }
+    }
+
+    const name = administrationNames.get(employment.administration_id)
+    if (!name) continue
+    const names = namesByEmployee.get(employment.employee_id) ?? []
+    if (!names.includes(name)) names.push(name)
+    namesByEmployee.set(employment.employee_id, names)
+  }
+
+  return employees.map((employee) => ({
+    ...employee,
+    administrationNames: namesByEmployee.get(employee.id) ?? [],
+    hrGroupAdministrationCount: administrationResult.count ?? 0,
+    employmentType: employmentTypes.get(employee.id)?.type ?? null,
+  }))
 }
 
 export async function listEmployeesOverview(
@@ -1063,7 +1111,13 @@ export async function listEmployeesOverview(
   })
   if (error) throw new EmploymentServiceError('EMPLOYEE_OVERVIEW_FAILED', 500)
 
-  const employees = data.map((employee) => mapEmployeeOverviewRpcRow(employee, today))
+  const employees = await addEmployeeAdministrationSummaries(
+    data.map((employee) => mapEmployeeOverviewRpcRow(employee, today)),
+    context,
+    hrGroupId,
+    supabase,
+    today,
+  )
   return options.activeDirectoryOnly ? employees.filter((employee) => employee.status === 'ACTIVE_EMPLOYEE') : employees
 }
 

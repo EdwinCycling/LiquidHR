@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowUpDown, Filter, LayoutList, Search, UsersRound, X } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowUpDown, Filter, LayoutList, Search, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { ACTIVE_FUTURE_EXTERNAL_STATUS, employeeListHref, type EmployeeArchiveFilter, type EmployeeListScope, type EmployeeListSort, type EmployeeListView, type EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
@@ -55,7 +55,7 @@ interface EmployeeFilterPanelProps {
   statusOptions: EmployeeStatusOption[]
   archiveOptions: EmployeeArchiveOption[]
   labels: EmployeeFilterPanelLabels
-  resultCountLabel: string
+  headerAction?: ReactNode
   scope: EmployeeListScope
   canSelectTeamScope: boolean
 }
@@ -69,7 +69,7 @@ export function EmployeeFilterPanel({
   statusOptions,
   archiveOptions,
   labels,
-  resultCountLabel,
+  headerAction,
   scope,
   canSelectTeamScope,
 }: EmployeeFilterPanelProps) {
@@ -127,10 +127,7 @@ export function EmployeeFilterPanel({
             </Link>
           ) : null}
         </div>
-        <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
-          <UsersRound aria-hidden="true" className="h-4 w-4" />
-          {resultCountLabel}
-        </span>
+        {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
 
       {filtersOpen ? (

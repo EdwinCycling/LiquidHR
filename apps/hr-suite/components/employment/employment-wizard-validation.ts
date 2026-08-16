@@ -17,7 +17,7 @@ export interface EmploymentWizardValidationInput {
   seniorityDate: string
   countryCode: string
   ikvNumber: string
-  employmentType: 'EMPLOYEE' | 'INTERN' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
+  employmentType: '' | 'EMPLOYEE' | 'INTERN' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
   flexPhaseId: string
   laborConditionSetId: string
   durationType: 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
@@ -61,7 +61,7 @@ export function isEmploymentWizardStepValid(
 ): boolean {
   if (step === 'administration') return Boolean(input.administrationId) && !options.optionsLoading
   if (step === 'employment') {
-    return Boolean(/^\d+$/.test(input.employmentNumber.trim()) && input.startsOn && input.seniorityDate && input.countryCode
+    return Boolean(input.employmentType && /^\d+$/.test(input.employmentNumber.trim()) && input.startsOn && input.seniorityDate && input.countryCode
       && (!options.payrollDetails || (Number(input.ikvNumber) >= 1 && Number(input.ikvNumber) <= 99)))
   }
   if (step === 'payrollChoice') return options.payrollDetails !== null

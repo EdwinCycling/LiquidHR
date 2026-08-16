@@ -31,7 +31,21 @@ describe('mapEmployeeOverviewRpcRow', () => {
       isArchived: false,
       status: 'ACTIVE_EMPLOYEE',
       employmentCount: 2,
+      employmentType: null,
+      administrationNames: [],
+      hrGroupAdministrationCount: 0,
     })
+  })
+
+  it('start met een lege administratieprojectie die de lijstservice kan aanvullen', () => {
+    const overview = mapEmployeeOverviewRpcRow({
+      id: 'employee-1', employee_number: 'E-001', first_name: 'Lina', birth_name_prefix: null, birth_name: 'Bakker',
+      work_email: null, avatar_url: null, is_archived: false, employment_history: [],
+      department_name: null, job_title: null,
+    }, '2026-07-23')
+
+    expect(overview.administrationNames).toEqual([])
+    expect(overview.hrGroupAdministrationCount).toBe(0)
   })
 
   it('verwerpt corrupte RPC-historie voordat een lijststatus wordt getoond', () => {

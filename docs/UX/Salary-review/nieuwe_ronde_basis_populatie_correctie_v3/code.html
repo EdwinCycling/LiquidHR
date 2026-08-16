@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="light" lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HR Admin Create Flow - Stap 1: Basis &amp; Populatie</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-tertiary-container": "#ffc6b2",
+                      "error": "#ba1a1a",
+                      "background": "#faf8ff",
+                      "on-tertiary-fixed": "#380d00",
+                      "budget-meter-overage": "#DE350B",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "surface-variant": "#e1e2ec",
+                      "on-secondary-fixed-variant": "#444749",
+                      "outline": "#737685",
+                      "secondary": "#5c5f60",
+                      "inverse-surface": "#2e3038",
+                      "primary-fixed": "#dae2ff",
+                      "surface-tint": "#0c56d0",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "inverse-primary": "#b2c5ff",
+                      "on-error": "#ffffff",
+                      "status-draft": "#6B778C",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#f3f3fd",
+                      "on-tertiary": "#ffffff",
+                      "secondary-fixed": "#e1e2e4",
+                      "surface-bright": "#faf8ff",
+                      "status-open": "#00875A",
+                      "on-surface": "#191b23",
+                      "surface-container-high": "#e7e7f2",
+                      "outline-variant": "#c3c6d6",
+                      "inverse-on-surface": "#f0f0fb",
+                      "budget-meter-track": "#EBECF0",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-primary": "#ffffff",
+                      "surface-container": "#ededf8",
+                      "on-background": "#191b23",
+                      "primary-container": "#0052cc",
+                      "status-preparing": "#0052CC",
+                      "status-warning": "#FFAB00",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#001848",
+                      "on-primary-container": "#c4d2ff",
+                      "tertiary-fixed": "#ffdbcf",
+                      "surface-container-highest": "#e1e2ec",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "on-surface-variant": "#434654",
+                      "budget-meter-fill": "#36B37E",
+                      "status-error": "#DE350B",
+                      "primary": "#003d9b",
+                      "surface-dim": "#d9d9e4",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "tertiary": "#7b2600",
+                      "status-finalized": "#172B4D",
+                      "surface": "#faf8ff",
+                      "secondary-container": "#dee0e2",
+                      "tertiary-container": "#a33500",
+                      "on-secondary-container": "#606365"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "desktop-margin": "2rem",
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Work Sans"],
+                      "label-caps": ["Work Sans"],
+                      "headline-lg": ["Work Sans"],
+                      "headline-xl": ["Work Sans"],
+                      "body-sm": ["Work Sans"],
+                      "data-mono": ["jetbrainsMono"],
+                      "body-lg": ["Work Sans"],
+                      "headline-md": ["Work Sans"],
+                      "body-md": ["Work Sans"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-xl": ["30px", {"lineHeight": "38px", "fontWeight": "600"}],
+                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed-dim">LiquidHR</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline" data-icon="search">search</span>
+<input class="bg-surface-container-low border-none rounded-full px-4 py-1.5 focus:ring-2 focus:ring-primary text-body-md font-body-md" placeholder="Search..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors group">
+<span class="material-symbols-outlined group-hover:scale-[0.98] transition-transform duration-100" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors group">
+<span class="material-symbols-outlined group-hover:scale-[0.98] transition-transform duration-100" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A professional headshot of an HR administrator in a well-lit, modern office environment. The person is smiling subtly, conveying approachability and competence. Soft, diffused lighting enhances the corporate yet welcoming atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKBu4w5tROI-tfC1_NB5Qte9AYSIZXv5_l80rc77HCrjewBeopiFnHo8rUJvUDlJ7xFnSRfePcuCGtGwoxxFu4U3QQZVlAbCt6YR3sjbgRZtcqCR8-abqpUqRWCEGgJ8Rz9o_M3rJdpbMIHGHC9mmLeENq3MFsgS2fP9d9X9LrbqDCxuQbmfTtei23LnD9zVnLhljojpMPLa8wtUPksj_f2Ur6wiTxN4NobaevvvqwBf8XvzWgubpi"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="flex-1 mt-16 flex">
+<!-- Side Navigation Bar -->
+<nav class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 flex flex-col py-6 px-4 z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline">
+<div class="mb-8 px-2 flex items-center gap-3"><div class="w-10 h-10 rounded bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary icon-filled">water_drop</span></div><div><h2 class="font-headline-md text-headline-md font-bold text-on-surface">LiquidHR</h2></div></div>
+<ul class="flex flex-col gap-2 flex-1"><li class="">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                        Dashboard
+                    </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary-container text-on-primary-container font-bold translate-x-1 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined icon-filled" data-icon="payments">payments</span>
+                        Salarisronde
+                    </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                        Populatie
+                    </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+                        Budgettering
+                    </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                        Rapportage
+                    </a>
+</li></ul>
+<div class="mt-auto border-t border-outline-variant pt-4 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Instellingen
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                    Uitloggen
+                </a>
+</div>
+</nav>
+<!-- Page Canvas -->
+<main class="ml-64 flex-1 p-desktop-margin max-w-7xl mx-auto w-full pb-24" style="border: 4px solid #00875A;">
+<!-- Page Header & Stepper -->
+<div class="flex justify-between items-end mb-gutter">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-2">Basis &amp; populatie</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Stel de basisgegevens en de te beoordelen populatie in.</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-open text-[18px]" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Opgeslagen</span>
+</div>
+</div>
+<!-- Stepper -->
+<div class="mb-8">
+<div class="flex items-center justify-between relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-surface-container-highest -z-10"></div>
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-[25%] h-0.5 bg-primary -z-10"></div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold font-body-md text-body-md ring-4 ring-background">1</div>
+<span class="font-label-caps text-label-caps text-primary">BASIS &amp; POPULATIE</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-body-md text-body-md ring-4 ring-background">2</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">BUDGET</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-body-md text-body-md ring-4 ring-background">3</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">VERDELING</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-body-md text-body-md ring-4 ring-background">4</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">VOORSTELLEN</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-body-md text-body-md ring-4 ring-background">5</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant">CONTROLE &amp; STARTEN</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Rondegegevens Card -->
+<div class="col-span-1 lg:col-span-1 bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-6 flex flex-col gap-4">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Rondegegevens</h3>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Naam salarisronde</label>
+<input class="w-full border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary-container focus:ring-opacity-50 font-body-md text-body-md" type="text" value="Jaarlijkse Herziening 2024"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Peildatum</label>
+<input class="w-full border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary-container focus:ring-opacity-50 font-body-md text-body-md" type="date" value="2023-12-31"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Ingangsdatum nieuw salaris</label>
+<input class="w-full border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary-container focus:ring-opacity-50 font-body-md text-body-md" type="date" value="2024-01-01"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Managerdeadline</label>
+<input class="w-full border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary-container focus:ring-opacity-50 font-body-md text-body-md" type="date" value="2024-02-15"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Einddatum salarisronde</label>
+<input class="w-full border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary-container focus:ring-opacity-50 font-body-md text-body-md" type="date" value="2024-03-31"/>
+</div>
+</div>
+<!-- Populatie KPI's Card -->
+<div class="col-span-1 lg:col-span-2 flex flex-col gap-gutter">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center">
+<span class="font-headline-xl text-headline-xl text-primary font-bold">135</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Actieve medewerkers</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-primary/20 shadow-sm p-4 flex flex-col items-center justify-center text-center ring-1 ring-primary/10">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">124</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">In ronde</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">115</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Reviewable</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">105</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Via managers</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">10</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">HR direct</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">9</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Minimumloon · systeemgestuurd</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center relative group pb-8">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">4</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Niet in ronde</span>
+<a class="absolute bottom-2 text-primary font-body-sm text-body-sm hover:underline opacity-0 group-hover:opacity-100 transition-opacity" href="#">Bekijk medewerkers</a>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm p-4 flex flex-col items-center justify-center text-center relative group pb-8">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">7</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Schaal + trede · uitgesloten</span>
+<a class="absolute bottom-2 text-primary font-body-sm text-body-sm hover:underline opacity-0 group-hover:opacity-100 transition-opacity" href="#">Bekijk medewerkers</a>
+</div>
+</div>
+<!-- Populatietabel met Filters -->
+<div class="bg-surface-container-lowest rounded-xl border border-[#EBECF0] shadow-sm flex flex-col overflow-hidden">
+<div class="p-4 border-b border-outline-variant flex flex-col gap-4 bg-surface-bright">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<h4 class="font-headline-md text-headline-md text-on-surface">Populatie Overzicht</h4>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline text-[18px]" data-icon="search">search</span>
+<input class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-8 pr-3 w-64" placeholder="Zoek medewerker..." type="text"/>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 items-center">
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Administratie</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Afdeling</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Team</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Manager</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Functie</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Functiegroep</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Salarisroute</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Diensttijd</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Contracttype</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Contract eindigt</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Uit dienst</option></select>
+<select class="border-outline-variant rounded-md shadow-sm focus:border-primary focus:ring-primary font-body-sm text-body-sm py-1.5 pl-3 pr-8"><option>Deelname</option></select>
+</div>
+<div class="flex flex-wrap gap-2 pt-2 border-t border-outline-variant items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant mr-2">Bulk acties:</span>
+<button class="px-3 py-1 rounded bg-surface-container-low border border-outline-variant font-body-sm text-body-sm hover:bg-surface-variant transition-colors">Via manager</button>
+<button class="px-3 py-1 rounded bg-surface-container-low border border-outline-variant font-body-sm text-body-sm hover:bg-surface-variant transition-colors">HR direct</button>
+<button class="px-3 py-1 rounded bg-surface-container-low border border-outline-variant font-body-sm text-body-sm hover:bg-surface-variant transition-colors">Vastzetten op 0%</button>
+<button class="px-3 py-1 rounded bg-surface-container-low border border-outline-variant font-body-sm text-body-sm hover:bg-surface-variant transition-colors">0% vrijgeven</button>
+<button class="px-3 py-1 rounded bg-surface-container-low border border-outline-variant font-body-sm text-body-sm hover:bg-surface-variant transition-colors text-error">Uit ronde</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant">
+<tr>
+<th class="p-row-padding-dense w-10 sticky left-0 bg-surface-container-low z-10"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant font-bold sticky left-10 bg-surface-container-low z-10">Medewerker</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant font-bold">Afdeling</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant font-bold">Salarisroute</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant font-bold">Reviewroute</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant font-bold">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-row-padding-dense sticky left-10 bg-surface-container-lowest">
+<div class="">A. Jansen</div>
+<div class="text-[11px] text-on-surface-variant">4,2 jaar · onbepaalde tijd</div>
+</td>
+<td class="p-row-padding-dense text-on-surface-variant">IT</td>
+<td class="p-row-padding-dense text-on-surface-variant">Vrij salaris</td>
+<td class="p-row-padding-dense text-on-surface-variant">Manager &gt; HR</td>
+<td class="p-row-padding-dense">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary-container/20 text-primary-container">In ronde</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-row-padding-dense sticky left-10 bg-surface-container-lowest">
+<div class="">B. de Vries</div>
+<div class="text-[11px] text-on-surface-variant">2,1 jaar · onbepaalde tijd</div>
+</td>
+<td class="p-row-padding-dense text-on-surface-variant">Sales</td>
+<td class="p-row-padding-dense text-on-surface-variant">Salarisband (Band 8)</td>
+<td class="p-row-padding-dense text-on-surface-variant">Manager &gt; HR</td>
+<td class="p-row-padding-dense">
+<span class="inline-flex flex-col gap-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary-container/20 text-primary-container w-max">In ronde</span>
+<span class="text-[10px] text-on-surface-variant italic">Startvoorstel 0% vanwege bekende contract-/uitdienstcontext</span>
+</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-surface-variant/30">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest"><input class="rounded border-outline-variant/50 text-primary/50 focus:ring-primary" disabled="" type="checkbox"/></td>
+<td class="p-row-padding-dense sticky left-10 bg-surface-container-lowest">
+<div class="">C. Pietersen</div>
+<div class="text-[11px] text-on-surface-variant">0,8 jaar · bepaalde tijd</div>
+</td>
+<td class="p-row-padding-dense text-on-surface-variant">HR</td>
+<td class="p-row-padding-dense text-on-surface-variant">Schaal + trede · uitgesloten</td>
+<td class="p-row-padding-dense text-on-surface-variant">-</td>
+<td class="p-row-padding-dense">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-surface-variant text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="lock">lock</span>
+                                                Uitgesloten
+                                            </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-row-padding-dense sticky left-10 bg-surface-container-lowest">
+<div class="">D. Bakker</div>
+<div class="text-[11px] text-on-surface-variant">5,0 jaar · onbepaalde tijd</div>
+</td>
+<td class="p-row-padding-dense text-on-surface-variant">IT</td>
+<td class="p-row-padding-dense text-on-surface-variant">Minimumloon · systeemgestuurd</td>
+<td class="p-row-padding-dense text-on-surface-variant">HR direct</td>
+<td class="p-row-padding-dense"><span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary-container/20 text-primary-container">Minimumloon</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-3 border-t border-outline-variant bg-surface-bright flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Toont 1-4 van 135</span>
+<div class="flex gap-1">
+<button class="p-1 rounded hover:bg-surface-container-low disabled:opacity-50 text-on-surface-variant"><span class="material-symbols-outlined text-[20px]" data-icon="chevron_left">chevron_left</span></button>
+<button class="p-1 rounded hover:bg-surface-container-low text-on-surface-variant"><span class="material-symbols-outlined text-[20px]" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Footer CTA -->
+<div class="fixed bottom-0 left-64 right-0 p-4 bg-surface-container-lowest border-t border-outline-variant flex justify-end gap-4 z-30">
+<button class="px-4 py-2 rounded-lg font-body-md text-body-md font-bold text-on-surface-variant hover:bg-surface-variant transition-colors border border-outline-variant">Annuleren</button>
+<button class="px-6 py-2 rounded-lg font-body-md text-body-md font-bold bg-primary text-on-primary hover:bg-primary/90 transition-colors flex items-center gap-2">
+                    Volgende
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</main>
+</div>
+</body></html>

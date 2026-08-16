@@ -1,5 +1,42 @@
 # Actuele overdracht Liquid HR
 
+## Medewerkerswizard — verplicht medewerkertype 2026-08-16
+
+- Het veld `Medewerkertype` in het dienstverbandgedeelte start leeg met een expliciete keuze-placeholder. De keuze is verplicht: `Volgende` blijft disabled totdat een type is gekozen en de wizardvalidatie weigert een lege waarde ook serverpayload-voorbereidend.
+- Verificatie: gerichte wizardvalidatietest 8/8, `check:i18n` met 33 gelijke NL/EN-namespaces, strict TypeScript, `git diff --check` en authenticated browsercontrole op poort 3000. In de browser bleef `Volgende` disabled op de lege stap en ging de wizard na `Medewerker` door naar `Looncontractgegevens toevoegen`. Geen schema-, API-, remote-, commit-, push- of deploymentwijziging.
+
+## Dienstverbandwijzigingen — UX-redesign en test 2026-08-16
+
+- De wijzigingswizard op het dienstverband toont contractvelden met expliciete labels en i18n-fallbacks, gebruikt in de startdatumstap één compacte contractsamenvatting en heeft in de uren-/roosterstap de herkenbare groepen `Urenafspraak` en `Rooster`. Uren- en roostervelden werken met hele uren; de vier actieve flows zijn op dezelfde label- en structuurregels gebracht. De niet-ondersteunde CAO-, contracttype/startdatum- en verwijderacties blijven expliciet beschikbaarheidsmeldingen tonen.
+- Het werkpatroonendpoint gebruikt dezelfde tenant-/medewerkergrens als de bestaande employment-detailservice; de controle op een exacte actieve administratie is verwijderd omdat een HR-admin met tenant/HR-groeprecht anders een dienstverband in een andere administratie ten onrechte als 404 zag. Bij een retroactieve urenwijziging begrenst de wizard het nieuwe werkpatroon op het eerstvolgende urenblok of contracteinde.
+- Testdata voor Lina Bakker / `EMP-DEMO-026-A` is met gebruikersautorisatie gecontroleerd en consistent gemaakt: 40 uur vanaf `2024-01-06`, 38 uur van `2026-08-01` tot `2026-09-01` en 39 uur vanaf `2026-09-01`, inclusief werkpatronen. Er is geen schemawijziging uitgevoerd.
+- Verificatie: desktop- en 390×844-browsercontrole met Test HR Admin, vier actieve wijzigingsflows zonder `undefined`, werkpatroonkaart zichtbaar, definitieve browserreload zonder console-errors/warnings; i18n 33 namespaces, strict typecheck, gerichte ESLint, 9 gerichte tests en `git diff --check` groen. Volledige testsuite/productiebuild/releasegate zijn niet uitgevoerd.
+- Zie [`requirements/ux/REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md`](../requirements/ux/REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md) voor de UX-besluiten en acceptatiepunten. Geen commit, push, merge of deployment uitgevoerd.
+
+## Medewerkerslijst: medewerkerstype en archieflabel 2026-08-16
+
+- De medewerkerslijst toont rechts niet langer dienstverband-aantallen of actieve/toekomstige statuslabels. De lijstservice verrijkt de bestaande veilige employee-overview voor `employee:read` met het actuele, anders toekomstige of anders meest recente `employment_type`; de UI toont de bestaande NL/EN-typenamen. Medewerkers zonder dienstverband vallen terug op `Externe persoon`.
+- `Gearchiveerd` wordt alleen bij `isArchived` getoond; niet-gearchiveerde medewerkers krijgen geen statusbadge. Compacte metadata, administratievoorwaarden, URL-state en directorybeperkingen blijven behouden.
+- Verificatie: `employee-overview.test.ts` 4/4, authenticated browsercontrole op de compacte lijst met geen dienstverband-aantallen en geen Actief/Toekomstig-labels, plus `git diff --check`. Volledige TypeScript-check blijft geblokkeerd door niet-gerelateerde dirty wijzigingen in `components/employment/employment-contract-change-dialog.tsx` (`intersectsContract`/`items` buiten scope). Geen schema-, remote-, commit-, push- of deploymentwijziging uitgevoerd.
+
+## Medewerkerslijst: lege ontbrekende velden en headeractie 2026-08-16
+
+- Compacte medewerkersregels tonen geen `Niet vastgelegd` meer: ontbrekende afdeling, functie en administratie worden weggelaten zonder losse scheidingstekens. Dezelfde lege-waarde-regel geldt voor Detail en Card.
+- `Nieuwe medewerker` staat nu rechts in de filterheader naast de filterbediening; het medewerkersaantal staat als footer onder de lijst. De bestaande URL-state, filters en autorisatie blijven behouden.
+- Browsercontrole en `git diff --check` zijn groen. De volledige TypeScript-check wordt geblokkeerd door niet-gerelateerde dirty wijzigingen in `components/employment/employment-contract-change-dialog.tsx` (`intersectsContract`/`items` buiten scope); de medewerkerslijstwijziging introduceert daar geen wijzigingen. Geen schema-, API-, remote-, commit-, push- of deploymentwijziging uitgevoerd.
+
+## Medewerkerdetail Compact: dashboardkolommen zonder drag/drop 2026-08-16
+
+- Op de medewerkerdetailpagina geeft de server-side `view=compact`-status nu door aan het dashboard. Compact behoudt bij voldoende schermbreedte de bestaande 8/4-dashboardkolommen en valt op smallere schermen terug naar één kolom; de drag-and-drop-attributen en de verplaatsbalk met omhoog/omlaag-bediening worden niet gerenderd. Uitgebreid behoudt de bestaande twee kolommen en persoonlijke layoutvoorkeur.
+- Geen schema-, API-, remote-, commit-, push- of deploymentwijziging uitgevoerd. Gerichte browsercontrole en TypeScriptcontrole volgen voor deze wijziging.
+
+## Medewerkerslijst: administratie en compacte regel 2026-08-16
+
+- De medewerkerslijst leest voor bevoegde `employee:read`-kijkers de unieke actieve HR-groepadministraties van de niet-geannuleerde employments. In Detail verschijnt `Administratie: ...`; bij meerdere administraties worden namen één keer getoond. Directory- en beperkte managerrecords krijgen deze gegevens niet.
+- Compact toont nu één regel als `Naam [nummer] - afdeling - functie (administratie)`; het label `Personeelsnummer:` is in Compact verwijderd. De administratie wordt alleen toegevoegd wanneer de HR-groep twee of meer actieve administraties heeft. Bestaande directory/privacy- en URL-state blijven behouden.
+- Verificatie: gerichte `employee-overview`-tests 4/4, i18n-check 33 gelijke NL/EN-namespaces, `git diff --check` en authenticated browsercontrole op poort 3000 voor HR Admin in Compact en Detail; de browser toonde onder meer `Lina Bakker [DEMO-046]` met `Mars BV, Jupiter BV` en Detail met dezelfde unieke namen. Browserconsole: 0 errors/warnings.
+- Open: volledige typecheck stopt op een al bestaande dubbele objectkey in `app/(dashboard)/employees/[employeeId]/employments/[employmentId]/page.tsx:469`; gerichte ESLint stopt op de bekende ESLint 10/`eslint-plugin-react`-incompatibiliteit. Geen schema-, remote-, commit-, push- of deploymentwijziging uitgevoerd.
+
 ## Phase 2 Salary Structures + Salary Application — GREEN 2026-08-14
 
 **Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN / CHECKPOINT BASELINE**

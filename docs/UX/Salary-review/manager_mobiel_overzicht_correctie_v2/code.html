@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manager Dashboard - Salary Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed": "#dae2ff",
+                      "inverse-on-surface": "#f0f0fb",
+                      "surface": "#faf8ff",
+                      "error": "#ba1a1a",
+                      "surface-bright": "#faf8ff",
+                      "surface-container-high": "#e7e7f2",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#0052cc",
+                      "primary": "#003d9b",
+                      "error-container": "#ffdad6",
+                      "secondary": "#5c5f60",
+                      "status-open": "#00875A",
+                      "on-tertiary-fixed": "#380d00",
+                      "surface-dim": "#d9d9e4",
+                      "background": "#faf8ff",
+                      "surface-container-low": "#f3f3fd",
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-secondary-fixed-variant": "#444749",
+                      "on-primary-container": "#c4d2ff",
+                      "inverse-surface": "#2e3038",
+                      "secondary-fixed": "#e1e2e4",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "outline": "#737685",
+                      "surface-container-highest": "#e1e2ec",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191b23",
+                      "outline-variant": "#c3c6d6",
+                      "surface-tint": "#0c56d0",
+                      "budget-meter-fill": "#36B37E",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-surface": "#191b23",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#001848",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "secondary-container": "#dee0e2",
+                      "surface-container": "#ededf8",
+                      "inverse-primary": "#b2c5ff",
+                      "budget-meter-overage": "#DE350B",
+                      "status-preparing": "#0052CC",
+                      "on-surface-variant": "#434654",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#a33500",
+                      "status-finalized": "#172B4D",
+                      "status-error": "#DE350B",
+                      "on-error": "#ffffff",
+                      "status-warning": "#FFAB00",
+                      "on-secondary-container": "#606365",
+                      "surface-variant": "#e1e2ec",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "on-tertiary-container": "#ffc6b2",
+                      "status-draft": "#6B778C",
+                      "tertiary": "#7b2600",
+                      "tertiary-fixed": "#ffdbcf",
+                      "budget-meter-track": "#EBECF0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem",
+                      "desktop-margin": "2rem"
+              },
+              "fontFamily": {
+                      "body-lg": ["Work Sans"],
+                      "body-md": ["Work Sans"],
+                      "data-mono": ["jetbrainsMono"],
+                      "headline-lg-mobile": ["Work Sans"],
+                      "headline-xl": ["Work Sans"],
+                      "headline-md": ["Work Sans"],
+                      "label-caps": ["Work Sans"],
+                      "body-sm": ["Work Sans"],
+                      "headline-lg": ["Work Sans"]
+              },
+              "fontSize": {
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-xl": ["30px", {"lineHeight": "38px", "fontWeight": "600"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Mobile Simulator Container for Web Preview */
+        body { background-color: #e1e2ec; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        #mobile-simulator { width: 100%; max-width: 390px; height: 844px; background-color: #faf8ff; position: relative; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        @media (max-width: 400px) { #mobile-simulator { height: 100vh; max-width: 100%; } }
+        
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(844px, 100dvh);
+    }
+  </style>
+</head>
+<body class="font-body-md text-body-md text-on-surface">
+<div class="flex flex-col" id="mobile-simulator">
+<!-- Top App Bar -->
+<header class="flex items-center justify-between px-mobile-margin h-16 bg-surface border-b border-outline-variant z-50 shrink-0">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A modern, abstract geometric logo representing a corporate organization, featuring crisp edges and a professional blue color palette, set against a pristine white background with soft, studio-quality lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsb9x-PepajjftkI5Bz_XanS_bmJuFTVLEWlda83m1IgQvhO_PLDzY_OrpZgTdQtsuKKrsh-AI7JBj5pGoQr1MgNeK-N3r7Pc9YrkizFeo5FFhBLzNSw8o2Mnt_TefhI1e7uCeWKh9GsbYgyx9wg24mohDI3M2HiWvbYSD9TEDl-ic55qk6DQSpIhal5o8ThH_o0RR9K6rmrB4RL5ofcclZLYnBgMtr2tP6NXWfrn2Y3XxMBSnq3GP"/>
+</div>
+<span class="font-headline-md text-headline-md font-bold text-primary">LiquidHR</span>
+</div>
+<div class="flex gap-4 text-primary">
+<span class="material-symbols-outlined cursor-pointer hover:bg-surface-container-low rounded-full p-1 transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:bg-surface-container-low rounded-full p-1 transition-colors">help_outline</span>
+</div>
+</header>
+<!-- Main Scrollable Content -->
+<main class="flex-1 overflow-y-auto no-scrollbar pb-48 bg-background relative">
+<!-- Context Header -->
+<section class="px-mobile-margin pt-6 pb-4">
+<div class="flex justify-between items-end mb-2">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">Salarisronde 2027</h1>
+<div class="flex items-center gap-1 text-status-warning bg-status-warning/10 px-2 py-1 rounded-full border border-status-warning/20">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="font-label-caps text-label-caps">15 NOV</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Marketing &amp; Sales Department</p>
+</section>
+<!-- Budget Meter Card -->
+<section class="px-mobile-margin mb-6">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-center mb-3">
+<span class="font-body-md text-body-md font-semibold">Budget</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant">€ 250.000</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-3 bg-budget-meter-track rounded-full overflow-hidden mb-3">
+<div class="h-full bg-budget-meter-fill transition-all duration-500 ease-out" style="width: 72%;"></div>
+</div>
+<div class="flex justify-between font-body-sm text-body-sm">
+<div class="flex flex-col">
+<span class="text-on-surface-variant">Voorgesteld</span>
+<span class="font-data-mono text-data-mono font-semibold">€ 180.000</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-on-surface-variant">Resterend</span>
+<span class="font-data-mono text-data-mono font-semibold text-budget-meter-fill">€ 70.000</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Progress/KPI Cards -->
+<section class="px-mobile-margin mb-6">
+<div class="grid grid-cols-3 gap-3">
+<div class="bg-surface-container border border-outline-variant rounded-lg p-3 flex flex-col items-center justify-center text-center">
+<span class="font-headline-md text-headline-md text-primary mb-1">12</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">MEDEWERKERS</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col items-center justify-center text-center">
+<span class="font-headline-md text-headline-md text-on-surface mb-1">4</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">TE BEOORDELEN</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col items-center justify-center text-center">
+<span class="font-headline-md text-headline-md text-status-open mb-1">8</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">INGEVULD</span>
+</div>
+</div>
+</section>
+<!-- Employee List -->
+<section class="px-mobile-margin space-y-4">
+<h2 class="font-headline-md text-headline-md text-on-background mb-2">Teamleden</h2>
+<!-- Card 1: Completed -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-open"></div>
+<div class="flex items-start gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a young woman in a modern office environment, wearing a smart casual blazer. The lighting is soft and flattering, creating a bright, optimistic mood consistent with a modern corporate tool." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNzZu6PPm9MXiKR8jloYV79V2Z8pKzdfLOW-YrDsS_A5ozIbAPpdSgTe3ZFCOsVpVBJcRdtdfezbQb9c0zEYrA2LbQ1Rti-DtJgjDi7CW_z3eUTxAVknOxTgs02mSSGAws2_3aRjPWiYvxmspkydFqlH6WqMjwl-dAMsDabT-lxI8pC9HKcsXAcPGhKzXTSOZ9wIwdhvRZb9CGjoMmqOCChZqrIV5XG4_-yKiLGjfUPfdR8SndaLRF"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-lg text-body-lg font-semibold text-on-surface">Emma de Vries</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">4,2 jr · onbepaalde tijd</p>
+</div>
+<div class="bg-surface-container px-2 py-1 rounded text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-label-caps text-label-caps">INGEVULD</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-3 border-t border-surface-variant">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">HUIDIG (CR 95%)</p>
+<p class="font-data-mono text-data-mono">€ 4.500</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">VOORSTEL (+4.4%)</p>
+<p class="font-data-mono text-data-mono font-bold text-primary">€ 4.700</p>
+</div>
+</div>
+</div>
+<!-- Card 2: To Review -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-warning"></div>
+<div class="flex items-start gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged man with glasses in a modern office environment, wearing a neat button-down shirt. The lighting is soft and flattering, creating a bright, optimistic mood consistent with a modern corporate tool." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZoPa9_zZNTp-plAdlTZ2ljvBGcRK3unsVvVpb9gQWXWIrVqBuz5L1Dh0u9BlzidJbYQd19N_8E6w-Q5SElhKK6l0Nrj8IHzNltoINa_qi0KrtakaNszW-Vm520NkR5IvZf8AZH9qXkyOpCVrFBKs8GGdMwOJ4b8t80OZOUOmNrdPqjQFbiYyd9v3X30ZDX5H5ncK5kLKq_KSroneLb4YvyO2Ye7PGDymX4iYBiPZT9XkaKmM57Y8W"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-lg text-body-lg font-semibold text-on-surface">Thomas Bakker</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">1,5 jr · bepaalde tijd</p>
+</div>
+<div class="bg-error-container text-on-error-container px-2 py-1 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+<span class="font-label-caps text-label-caps">ACTIE</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-3 border-t border-surface-variant">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">HUIDIG (CR 88%)</p>
+<p class="font-data-mono text-data-mono">€ 3.800</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">VOORSTEL</p>
+<p class="font-data-mono text-data-mono text-on-surface-variant italic">Nog invullen</p>
+</div>
+</div>
+</div>
+<!-- Card 3: Read-Only / Exception -->
+<div class="bg-surface-container border border-outline-variant rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] opacity-80 relative overflow-hidden">
+<div class="flex items-start gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex-shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional silhouette avatar icon on a soft gray background, representing a user profile without a photo. Minimalist, clean, and corporate design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLjLdYZeYLttLUEN8i_LHNm-9n82LZrYPM9J5GGIePdcbDENOuaqKWOZngh2j_dp-HqVkwhF8QdawKpRhX3lldWH47Ajs7CU_56lIZbaCS1JdSMTDhl7PrkEBasmEyi1-fhHyme6wrip-_vPS1hgpwG1QcaaDhMizqZkQHSqBRgyZyib8pvfXAgSvI9JoJfnQbh6-novvNfcpVjm74qHgVTcVAAc_i6xwTyLR_pKIr6LGBnKlTgt7N"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-lg text-body-lg font-semibold text-on-surface">Sanne Visser</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">0,2 jr · proeftijd</p>
+</div>
+<div class="bg-surface-variant text-on-surface-variant px-2 py-1 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span class="font-label-caps text-label-caps">UITGESLOTEN</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-3 border-t border-outline-variant">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">HUIDIG (CR N/A)</p>
+<p class="font-data-mono text-data-mono">€ 3.500</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">VOORSTEL</p>
+<p class="font-data-mono text-data-mono text-on-surface-variant">-</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Spacer for Sticky Footer & Nav -->
+<div class="h-8"></div>
+</main>
+<!-- Sticky Footer Action -->
+<div class="absolute bottom-16 left-0 w-full bg-surface border-t border-outline-variant p-4 z-40 bg-opacity-95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
+<div class="flex justify-center mb-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Opgeslagen om 14:02</span>
+</div>
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-body-lg font-semibold hover:bg-primary-fixed-dim transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">send</span>
+                Indienen (8/12)
+            </button>
+</div>
+<!-- Bottom Navigation (Mobile variant of SideNav JSON) -->
+<nav class="absolute bottom-0 left-0 w-full h-16 bg-surface-container-low flex items-center justify-around z-50 border-t border-outline-variant">
+<!-- Tab 1: Dashboard (Active) -->
+<div class="flex flex-col items-center justify-center w-16 h-14 rounded-lg bg-primary-container text-on-primary-container font-bold cursor-pointer">
+<span class="material-symbols-outlined icon-filled mb-1">dashboard</span>
+<span class="font-label-caps text-[9px] uppercase">Dashboard</span>
+</div>
+<!-- Tab 2: Salarisronde -->
+<div class="flex flex-col items-center justify-center w-16 h-14 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors cursor-pointer">
+<span class="material-symbols-outlined mb-1">payments</span>
+<span class="font-label-caps text-[9px] uppercase">Salarisronde</span>
+</div>
+<!-- Tab 4: Menu/More -->
+<div class="flex flex-col items-center justify-center w-16 h-14 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors cursor-pointer">
+<span class="material-symbols-outlined mb-1">menu</span>
+<span class="font-label-caps text-[9px] uppercase">Meer</span>
+</div>
+</nav>
+</div>
+</body></html>

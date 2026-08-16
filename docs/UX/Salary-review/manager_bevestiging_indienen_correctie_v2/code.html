@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Definitief Indienen - Bevestiging</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#dae2ff",
+                        "inverse-on-surface": "#f0f0fb",
+                        "surface": "#faf8ff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#faf8ff",
+                        "surface-container-high": "#e7e7f2",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#0052cc",
+                        "primary": "#003d9b",
+                        "error-container": "#ffdad6",
+                        "secondary": "#5c5f60",
+                        "status-open": "#00875A",
+                        "on-tertiary-fixed": "#380d00",
+                        "surface-dim": "#d9d9e4",
+                        "background": "#faf8ff",
+                        "surface-container-low": "#f3f3fd",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-secondary-fixed-variant": "#444749",
+                        "on-primary-container": "#c4d2ff",
+                        "inverse-surface": "#2e3038",
+                        "secondary-fixed": "#e1e2e4",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "outline": "#737685",
+                        "surface-container-highest": "#e1e2ec",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191b23",
+                        "outline-variant": "#c3c6d6",
+                        "surface-tint": "#0c56d0",
+                        "budget-meter-fill": "#36B37E",
+                        "on-secondary-fixed": "#191c1e",
+                        "on-surface": "#191b23",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#001848",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "secondary-container": "#dee0e2",
+                        "surface-container": "#ededf8",
+                        "inverse-primary": "#b2c5ff",
+                        "budget-meter-overage": "#DE350B",
+                        "status-preparing": "#0052CC",
+                        "on-surface-variant": "#434654",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#a33500",
+                        "status-finalized": "#172B4D",
+                        "status-error": "#DE350B",
+                        "on-error": "#ffffff",
+                        "status-warning": "#FFAB00",
+                        "on-secondary-container": "#606365",
+                        "surface-variant": "#e1e2ec",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "on-tertiary-container": "#ffc6b2",
+                        "status-draft": "#6B778C",
+                        "tertiary": "#7b2600",
+                        "tertiary-fixed": "#ffdbcf",
+                        "budget-meter-track": "#EBECF0"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "row-padding-standard": "1rem",
+                        "row-padding-dense": "0.5rem",
+                        "gutter": "1.5rem",
+                        "mobile-margin": "1rem",
+                        "desktop-margin": "2rem"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "data-mono": ["JetBrains Mono", "monospace"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-xl": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "body-sm": ["Work Sans"],
+                        "headline-lg": ["Work Sans"]
+                    },
+                    fontSize: {
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "data-mono": ["13px", { lineHeight: "16px", fontWeight: "500" }],
+                        "headline-lg-mobile": ["22px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-xl": ["30px", { lineHeight: "38px", fontWeight: "600" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", fontWeight: "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background h-screen min-w-[1440px] min-h-[900px] relative font-body-md text-on-surface antialiased overflow-hidden w-full">
+<!-- Mock Background of Manager Team Overzicht -->
+<div aria-hidden="true" class="absolute inset-0 pointer-events-none p-mobile-margin md:p-desktop-margin opacity-30 select-none">
+<header class="mb-gutter flex justify-between items-center border-b border-outline-variant pb-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary">Team Overzicht</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Salarisronde 2024</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Opgeslagen om 14:02</span>
+<div class="h-10 w-10 bg-surface-variant rounded-full"></div>
+</div>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="bg-surface-container-lowest h-32 rounded-lg border border-outline-variant"></div>
+<div class="bg-surface-container-lowest h-32 rounded-lg border border-outline-variant"></div>
+<div class="bg-surface-container-lowest h-32 rounded-lg border border-outline-variant"></div>
+</div>
+<div class="mt-gutter space-y-4">
+<div class="bg-surface-container-lowest h-16 rounded-lg border border-outline-variant"></div>
+<div class="bg-surface-container-lowest h-16 rounded-lg border border-outline-variant"></div>
+<div class="bg-surface-container-lowest h-16 rounded-lg border border-outline-variant"></div>
+<div class="bg-surface-container-lowest h-16 rounded-lg border border-outline-variant"></div>
+</div>
+</div>
+<!-- Dialog Overlay & Container -->
+<div aria-labelledby="dialog-title" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-on-background/50 backdrop-blur-sm p-mobile-margin md:p-desktop-margin" role="dialog">
+<!-- Dialog Card -->
+<div class="bg-surface-container-lowest w-full max-w-[480px] rounded-xl shadow-2xl border border-outline-variant flex flex-col transform transition-all scale-100 opacity-100">
+<!-- Header -->
+<div class="px-6 py-5 border-b border-outline-variant flex items-start gap-4">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">send</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1" id="dialog-title">Voorstellen definitief indienen</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Controleer de onderstaande samenvatting voordat je de voorstellen definitief indient bij HR.</p>
+</div>
+</div>
+<!-- Body -->
+<div class="px-6 py-6 bg-surface-container-low/30 space-y-6">
+<!-- Population Summary -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-3">Populatie</h3>
+<ul class="space-y-3">
+<li class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">group</span>
+<span class="font-body-md text-body-md">Medewerkers beoordeeld</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface">12</span>
+</li>
+<li class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+<span class="font-body-md text-body-md">Systeemgestuurd / geblokkeerd</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface-variant">2</span>
+</li>
+</ul>
+</div>
+<!-- Financial Summary -->
+<div class="bg-surface-container-lowest rounded-lg border border-error-container p-4">
+<div class="flex justify-between items-end mb-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase">Financieel Overzicht</h3>
+<div class="flex items-center gap-1 text-budget-meter-overage bg-error-container/30 px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px] filled">warning</span>
+<span class="font-label-caps text-label-caps">Overschrijding</span>
+</div>
+</div>
+<ul class="space-y-2 mb-5">
+<li class="flex justify-between items-center py-1">
+<span class="font-body-md text-body-md text-on-surface-variant">Beschikbaar Budget</span>
+<span class="font-data-mono text-data-mono text-on-surface">€24.000</span>
+</li>
+<li class="flex justify-between items-center py-1">
+<span class="font-body-md text-body-md text-on-surface-variant">Totaal Voorgesteld</span>
+<span class="font-data-mono text-data-mono text-on-surface">€25.350</span>
+</li>
+<li class="flex justify-between items-center py-2 border-t border-error-container/50 mt-1">
+<span class="font-body-md text-body-md font-semibold text-budget-meter-overage">Overschrijding</span>
+<span class="font-data-mono text-data-mono font-semibold text-budget-meter-overage">€1.350</span>
+</li>
+</ul>
+<!-- Budget Meter Graphic -->
+<div class="relative w-full h-3 bg-budget-meter-track rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-budget-meter-fill rounded-l-full" style="width: 100%;"></div>
+<!-- Visually representing the overage pushing past 100% -->
+<div class="absolute top-0 right-0 h-full bg-budget-meter-overage rounded-r-full" style="width: 5.6%;"></div>
+</div>
+</div>
+<!-- Warning Banner -->
+<div class="flex items-start gap-3 bg-surface-container px-4 py-3 rounded-lg border border-outline-variant">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface">
+<strong>Let op:</strong> Na indienen kun je jouw voorstellen niet meer wijzigen. HR zal de definitieve afhandeling verzorgen.
+                    </p>
+</div>
+</div>
+<!-- Footer / Actions -->
+<div class="px-6 py-4 border-t border-outline-variant bg-surface flex items-center justify-end gap-3">
+<button class="px-5 py-2.5 rounded font-body-md text-body-md font-semibold text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" type="button">
+                    Terug
+                </button>
+<button class="px-5 py-2.5 rounded font-body-md text-body-md font-semibold text-on-primary bg-primary hover:bg-on-primary-fixed-variant transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Definitief indienen
+                </button>
+</div>
+</div>
+</div>
+</body></html>
