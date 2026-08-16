@@ -4,7 +4,7 @@
 
 - Alle lokale featurebranches zijn gecontroleerd; hun tips zijn al ancestors van `main`. De resterende medewerkerwizard/avatar/rooster-wijzigingen zijn in `main` vastgelegd.
 - De zichtbare productversie is volgens `X.datum.volgnummer` verhoogd naar `1.20260816.1`; de technische npm-versie blijft ongewijzigd.
-- Releasegate: volledige testsuite, strict TypeScript, lint, i18n, Webpack-build en diff-check moeten in deze release-run opnieuw worden vastgesteld. GitHub-publicatie volgt na geslaagde lokale gate en herstelde GitHub-authenticatie.
+- Releasegate: 200 testbestanden/763 tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build met 225 routes/pages en diff-check zijn groen. GitHub `origin/main` is gepubliceerd op commit `18cf531`.
 
 ## Supabase-avatar-RLS 2026-08-16
 

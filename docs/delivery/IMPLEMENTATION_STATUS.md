@@ -2,7 +2,7 @@
 
 ## Release 2026-08-16: lokale consolidatie en productversie 1.20260816.1
 
-Alle lokale branches zijn geïnventariseerd en blijken al in `main` opgenomen. De resterende medewerkerwizard-, roosterinvoer- en pre-placement avatar-storagebron is toegevoegd aan de releasebasis. De zichtbare productversie is verhoogd naar `1.20260816.1`; de npm-packageversie blijft `0.1.2`. De definitieve status volgt na de lokale releasegate en GitHub-publicatie.
+Alle lokale branches zijn geïnventariseerd en blijken al in `main` opgenomen. De resterende medewerkerwizard-, roosterinvoer- en pre-placement avatar-storagebron is toegevoegd aan de releasebasis. De zichtbare productversie is verhoogd naar `1.20260816.1`; de npm-packageversie blijft `0.1.2`. De lokale releasegate is groen met 200 testbestanden/763 tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build met 225 routes/pages en diff-check. GitHub `origin/main` staat op releasecommit `18cf531`.
 
 ## Medewerker-avatar vóór eerste plaatsing — Supabase 2026-08-16
 
