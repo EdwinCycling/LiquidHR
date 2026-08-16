@@ -8,6 +8,7 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 | Rollen en autorisatie | `/authorization` | GEVERIFIEERD | [`REDESIGN_ROLLEN_EN_AUTORISATIE.md`](REDESIGN_ROLLEN_EN_AUTORISATIE.md) | Edwin bepaalt het volgende scherm |
 | Workflows en formulieren | `/settings/process-automation` | GEIMPLEMENTEERD | [`REDESIGN_WORKFLOWS_EN_FORMULIEREN.md`](REDESIGN_WORKFLOWS_EN_FORMULIEREN.md) | Browsercontrole uitvoeren in een geauthenticeerde omgeving |
 | Dienstverbandwijzigingen | `/employees/[employeeId]/employments/[employmentId]?tab=overview&view=expanded` | GEVERIFIEERD | [`REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md`](REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md) | Volgende redesign: door Edwin te bepalen |
+| Startpagina compact en uitgebreid | `/dashboard/start` | GEIMPLEMENTEERD | [`REDESIGN_STARTPAGINA.md`](REDESIGN_STARTPAGINA.md) | Geauthenticeerde browsercontrole op desktop en 390px uitvoeren |
 
 ## Volgorde
 
