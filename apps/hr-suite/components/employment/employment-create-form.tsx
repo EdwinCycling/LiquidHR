@@ -11,6 +11,7 @@ import { calculateCappedPartTimeFactor, deriveEmploymentWorkScope } from '@/lib/
 import { isNewEmployeeBirthDateValid } from '@/lib/employees/age-validation'
 import { addCalendarMonths, addContractPeriodEnd, validateProbation } from '@/lib/employment/probation-rules'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
+import { parseRosterHoursInput } from '@/lib/employment/roster-hours'
 import { resolveSalaryStructureIntersection } from '@/lib/salary-application/availability'
 import { canSubmitEmploymentWizard, hasMissingEmploymentPrerequisites, isEmploymentWizardStepValid, type EmploymentWizardStep } from './employment-wizard-validation'
 
@@ -56,7 +57,7 @@ export interface EmploymentCreateFormProps {
     wednesday: string; thursday: string; friday: string; saturday: string; sunday: string
     weekOne: string; weekTwo: string; addSecondWeek: string; removeSecondWeek: string; rosterAverage: string
     contractShortWarning: string; startDatePastWarning: string; startDateFutureWarning: string; probationLongWarning: string; probationOutsideContract: string; probationNotAllowed: string; probationMaximumExceeded: string; probationCaoMaximum: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
-    weeklyHoursInvalid: string; negativeHoursInvalid: string
+    weeklyHoursInvalid: string; negativeHoursInvalid: string; rosterHoursFormat: string
     salaryCalculation: string; salaryManual: string; salaryMinimum: string; salaryTable: string; salaryBand: string
     minimumWageScheme: string; minimumWageRegular: string; minimumWageBbl: string; minimumWageExternalAmount: string
     salaryBandPercentage: string; salaryBandPercentageHelp: string
@@ -126,7 +127,7 @@ function toMonday(value: string): string {
 }
 
 function averageDayHours(weeks: Array<Record<DayKey, string>>): Record<DayKey, number> {
-  return Object.fromEntries(dayKeys.map((day) => [day, weeks.reduce((sum, week) => sum + (parseDecimalInput(week[day]) || 0), 0) / weeks.length])) as Record<DayKey, number>
+  return Object.fromEntries(dayKeys.map((day) => [day, weeks.reduce((sum, week) => sum + (parseRosterHoursInput(week[day]) || 0), 0) / weeks.length])) as Record<DayKey, number>
 }
 
 function patternEndTime(scheduledMinutes: number): string {
@@ -138,7 +139,7 @@ function workPatternDays(weeks: Array<Record<DayKey, string>>): Array<{
   weekIndex: number; isoWeekday: number; isWorkingDay: boolean; startsAt: string | null; endsAt: string | null; breakMinutes: number; scheduledMinutes: number; note: null
 }> {
   return weeks.flatMap((week, weekIndex) => dayKeys.map((day, dayIndex) => {
-    const scheduledMinutes = Math.round((parseDecimalInput(week[day]) || 0) * 60)
+    const scheduledMinutes = Math.round((parseRosterHoursInput(week[day]) || 0) * 60)
     return {
       weekIndex: weekIndex + 1,
       isoWeekday: dayIndex + 1,
@@ -302,11 +303,11 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
     ? options.minimumWageRates.find((rate) => rate.minimumAge === Math.min(Math.max(employeeAge, 15), 21) && rate.validFrom <= draft.startsOn && (!rate.validUntil || rate.validUntil > draft.startsOn))
     : undefined
   const rosterWeeks = draft.twoWeekRoster ? [draft.days, draft.secondWeekDays] : [draft.days]
-  const rosterWeekTotals = rosterWeeks.map((week) => dayKeys.reduce((sum, day) => sum + (parseDecimalInput(week[day]) || 0), 0))
+  const rosterWeekTotals = rosterWeeks.map((week) => dayKeys.reduce((sum, day) => sum + (parseRosterHoursInput(week[day]) || 0), 0))
   const rosterAverage = rosterWeekTotals.reduce((sum, total) => sum + total, 0) / rosterWeekTotals.length
   const rosterMatches = Math.abs(rosterAverage - parseDecimalInput(draft.weeklyHours)) < 0.0001
-  const rosterHasNegativeHours = rosterWeeks.some((week) => dayKeys.some((day) => parseDecimalInput(week[day]) < 0))
-  const rosterHasInvalidHours = rosterWeeks.some((week) => dayKeys.some((day) => week[day].trim() === '' || !Number.isFinite(parseDecimalInput(week[day])) || parseDecimalInput(week[day]) > 24))
+  const rosterHasNegativeHours = rosterWeeks.some((week) => dayKeys.some((day) => parseRosterHoursInput(week[day]) < 0))
+  const rosterHasInvalidHours = rosterWeeks.some((week) => dayKeys.some((day) => week[day].trim() === '' || !Number.isFinite(parseRosterHoursInput(week[day])) || parseRosterHoursInput(week[day]) > 24))
   const contractTooShort = draft.durationType === 'DEFINITE' && Boolean(draft.endsOn) && draft.endsOn < addContractPeriodEnd(draft.startsOn, 1)
   const startDateIsTooFarInPast = Boolean(draft.startsOn) && draft.startsOn < addCalendarMonths(todayDateOnly(), -1)
   const startDateIsTooFarInFuture = Boolean(draft.startsOn) && draft.startsOn > addCalendarMonths(todayDateOnly(), 2)
@@ -508,7 +509,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
         employment: { employmentNumber: draft.employmentNumber, employmentType, startsOn: draft.startsOn, seniorityDate: draft.seniorityDate, countryCode: draft.countryCode, isPrimary: draft.isPrimary },
         incomeRelationship: { payrollTaxSubnumber: '0001', ikvNumber: Number(draft.ikvNumber), validFrom: draft.startsOn },
         contract: { workerType: workerTypeForEmployment(employmentType), flexPhaseId: employmentType === 'TEMPORARY_AGENCY' ? draft.flexPhaseId : null, laborConditionSetId: draft.laborConditionSetId, durationType: draft.durationType, startsOn: draft.startsOn, endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : null, probationApplies: draft.probationApplies, probationEndsOn: draft.probationApplies ? draft.probationEndsOn : null, caoAllowsTwoMonths },
-        schedule: { scheduleType: 'HOURS_PER_DAY', startWeek: 1, averageDaysPerWeek: scheduleWeeks.reduce((sum, week) => sum + dayKeys.filter((day) => parseDecimalInput(week[day]) > 0).length, 0) / scheduleWeeks.length, averageHoursPerWeek: parseDecimalInput(draft.weeklyHours), partTimeFactor: factor, timeForTimeAccrual: 0, mondayHours: scheduleDayHours.monday, tuesdayHours: scheduleDayHours.tuesday, wednesdayHours: scheduleDayHours.wednesday, thursdayHours: scheduleDayHours.thursday, fridayHours: scheduleDayHours.friday, saturdayHours: scheduleDayHours.saturday, sundayHours: scheduleDayHours.sunday, isOnCall: draft.isOnCall, onCallObligation: draft.isOnCall ? draft.onCallObligation : null, workScope, validFrom: draft.startsOn },
+        schedule: { scheduleType: 'HOURS_PER_DAY', startWeek: 1, averageDaysPerWeek: scheduleWeeks.reduce((sum, week) => sum + dayKeys.filter((day) => parseRosterHoursInput(week[day]) > 0).length, 0) / scheduleWeeks.length, averageHoursPerWeek: parseDecimalInput(draft.weeklyHours), partTimeFactor: factor, timeForTimeAccrual: 0, mondayHours: scheduleDayHours.monday, tuesdayHours: scheduleDayHours.tuesday, wednesdayHours: scheduleDayHours.wednesday, thursdayHours: scheduleDayHours.thursday, fridayHours: scheduleDayHours.friday, saturdayHours: scheduleDayHours.saturday, sundayHours: scheduleDayHours.sunday, isOnCall: draft.isOnCall, onCallObligation: draft.isOnCall ? draft.onCallObligation : null, workScope, validFrom: draft.startsOn },
          salary: options.canWriteSalary ? { paymentType: draft.salaryBasis === 'MINIMUM_WAGE' ? 'HOURLY_VARIABLE' : 'PERIODIC_FIXED', paymentFrequency: options.salaryFrequencies.find((item) => item.id === draft.salaryFrequencyId)?.code ?? 'MONTHLY', salaryFrequencyId: draft.salaryFrequencyId, salaryBasis: draft.salaryBasis, salaryRoute: draft.salaryBasis === 'MINIMUM_WAGE' ? 'MINIMUM_WAGE' : draft.salaryBasis === 'CUSTOM_SCALE' ? 'SCALE_WITH_STEPS' : draft.salaryBasis === 'SALARY_BAND' ? 'SALARY_BAND' : 'MANUAL', minimumWageScheme: draft.salaryBasis === 'MINIMUM_WAGE' ? draft.minimumWageScheme : null, fulltimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : fulltimeAmount, parttimeAmount: draft.salaryBasis === 'MINIMUM_WAGE' ? null : (parseDecimalInput(draft.parttimeAmount) || fulltimeAmount * factor), hourlyRate: null, currencyCode: 'EUR', salaryStructureId: draft.salaryBasis === 'CUSTOM_SCALE' ? options.salaryScales.find((item) => item.id === draft.salaryScaleId)?.structureId ?? null : draft.salaryBasis === 'SALARY_BAND' ? options.salaryBands.find((item) => item.id === draft.salaryBandId)?.structureId ?? null : null, salaryScaleId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleId : null, salaryStepCode: draft.salaryBasis === 'CUSTOM_SCALE' ? selectedScale?.stepCode ?? null : null, salaryScaleStepId: draft.salaryBasis === 'CUSTOM_SCALE' ? draft.salaryScaleStepId : null, salaryBandId: draft.salaryBasis === 'SALARY_BAND' ? draft.salaryBandId : null, validFrom: draft.startsOn } : undefined,
         organization: { departmentId: draft.departmentId, jobId: draft.jobId, jobTitle: selectedJob?.name ?? '', managerEmployeeId: departmentManagers[0]?.id ?? null, effectiveFrom: draft.startsOn },
         costAllocation: { validFrom: draft.startsOn, allocations: draft.allocations.map((allocation) => ({ costCenterId: allocation.costCenterId, costCarrierId: draft.allocations[0]?.costCarrierId ?? allocation.costCarrierId, percentage: parseDecimalInput(allocation.percentage) })) },
@@ -610,6 +611,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
         {(parseDecimalInput(draft.weeklyHours) > 50 || parseDecimalInput(draft.weeklyHours) < 0) && <p role="alert" className="text-destructive">{labels.weeklyHoursInvalid}</p>}
         {rosterHasNegativeHours && <p role="alert" className="text-destructive">{labels.negativeHoursInvalid}</p>}
         {rosterHasInvalidHours && <p role="alert" className="text-destructive">{labels.weeklyHoursInvalid}</p>}
+        <p className="text-xs text-muted-foreground">{labels.rosterHoursFormat}</p>
       </div>
     </WizardStep>}
 
@@ -653,7 +655,7 @@ function errorMessage(code: string, labels: EmploymentCreateFormProps['labels'])
 }
 
 function RosterWeekFields({ title, days, labels, inputClass, onChange }: { title: string; days: Record<DayKey, string>; labels: EmploymentCreateFormProps['labels']; inputClass: string; onChange: (day: DayKey, value: string) => void }) {
-  return <section className="mt-4"><h5 className="text-sm font-semibold">{title}</h5><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{dayKeys.map((day) => <Field key={day} label={labels[day]}><input type="text" inputMode="decimal" min="0" max="24" className={inputClass} value={days[day]} onChange={(event) => onChange(day, event.target.value)} /></Field>)}</div></section>
+  return <section className="mt-4"><h5 className="text-sm font-semibold">{title}</h5><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{dayKeys.map((day) => <Field key={day} label={labels[day]}><input type="text" inputMode="numeric" placeholder="uu,mm" className={inputClass} value={days[day]} onChange={(event) => onChange(day, event.target.value)} /></Field>)}</div></section>
 }
 
 function Field({ label, children, required = false, className = '', labelClassName = '' }: { label: string; children: ReactNode; required?: boolean; className?: string; labelClassName?: string }) {

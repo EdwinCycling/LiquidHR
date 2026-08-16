@@ -1,5 +1,6 @@
 import { isBlockingProbationValidation, validateProbation } from '@/lib/employment/probation-rules'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
+import { parseRosterHoursInput } from '@/lib/employment/roster-hours'
 
 export type EmploymentWizardStep = 'administration' | 'employment' | 'payrollChoice' | 'contract' | 'schedule' | 'salary' | 'other' | 'review'
 
@@ -79,8 +80,8 @@ export function isEmploymentWizardStepValid(
     const dayValues = Object.values(input.days)
     const secondWeekValues = Object.values(input.secondWeekDays)
     const allDayValues = input.twoWeekRoster ? [...dayValues, ...secondWeekValues] : dayValues
-    const validDayValues = allDayValues.length > 0 && allDayValues.every((value) => value.trim() !== '' && Number.isFinite(parseDecimalInput(value)) && parseDecimalInput(value) >= 0 && parseDecimalInput(value) <= 24)
-    const rosterMatches = Math.abs(allDayValues.reduce((sum, value) => sum + (parseDecimalInput(value) || 0), 0) - weeklyHours * (input.twoWeekRoster ? 2 : 1)) < 0.0001
+    const validDayValues = allDayValues.length > 0 && allDayValues.every((value) => value.trim() !== '' && Number.isFinite(parseRosterHoursInput(value)) && parseRosterHoursInput(value) >= 0 && parseRosterHoursInput(value) <= 24)
+    const rosterMatches = Math.abs(allDayValues.reduce((sum, value) => sum + (parseRosterHoursInput(value) || 0), 0) - weeklyHours * (input.twoWeekRoster ? 2 : 1)) < 0.0001
     return options.rosterMatches && rosterMatches && input.weeklyHours.trim() !== '' && Number.isFinite(weeklyHours) && weeklyHours >= 0 && weeklyHours <= 50 && validDayValues
   }
   if (step === 'salary') {

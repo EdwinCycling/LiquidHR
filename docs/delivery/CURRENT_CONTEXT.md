@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## Release 2026-08-16: lokale consolidatie en productversie 1.20260816.1
+
+- Alle lokale featurebranches zijn gecontroleerd; hun tips zijn al ancestors van `main`. De resterende medewerkerwizard/avatar/rooster-wijzigingen zijn in `main` vastgelegd.
+- De zichtbare productversie is volgens `X.datum.volgnummer` verhoogd naar `1.20260816.1`; de technische npm-versie blijft ongewijzigd.
+- Releasegate: volledige testsuite, strict TypeScript, lint, i18n, Webpack-build en diff-check moeten in deze release-run opnieuw worden vastgesteld. GitHub-publicatie volgt na geslaagde lokale gate en herstelde GitHub-authenticatie.
+
+## Supabase-avatar-RLS 2026-08-16
+
+- Na expliciete toestemming is `allow_hr_preplacement_avatar_storage` toegepast op dev/test-project `wnpfloqpjvaacobppbpk` (remote geregistreerd als versie `20260816151833`). De `employee-avatars`-policies voor insert, update en delete gebruiken nu `internal_security.employee_subresource_can_write`.
+- Remote controle is groen: alle drie policies bestaan voor `authenticated`, beperken tot bucket `employee-avatars` en verwijzen naar de pre-placement schrijver. De transactietest voor medewerker `a256a3cc-c3be-4c57-a351-4d63a24e6524` gaf geen fout; de functie staat dus voor de gekozen `employee:write`-actor toe vóór de eerste organisatieplaatsing. Geen uploaddata is aangemaakt of achtergelaten.
+- Supabase security-advisor: 83 bestaande projectbrede meldingen (1 INFO, 82 WARN), geen nieuwe avatar/storage-bevinding. Performance-advisor: 0 meldingen. Open: authenticated browsercontrole van de echte foto-upload en de volledige aanmaakflow.
+
 ## Lokale main-consolidatie en Employees UX vNext — 2026-08-16
 
 - `main` bevat de lokaal gemaakte wijzigingen uit de relevante worktrees. De Employee/employment-wijzigingen staan in `5a01fd9` (`feat: consolidate local employee and employment work`) en de Startpagina-compactwijziging is lokaal samengevoegd in `a7db6dc` (`merge: add startpage compact view`). Er is niet gepusht of gedeployed; de bestaande stash met handmatige acties is behouden.
@@ -1887,3 +1899,8 @@ Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migrat
 - In aparte worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\startpage-compact` op branch `codex/startpage-compact` is `/dashboard/start` aangepast volgens [`REDESIGN_STARTPAGINA.md`](../requirements/ux/REDESIGN_STARTPAGINA.md). De bestaande dirty `main`-workspace is niet gewijzigd.
 - De bestaande opgeslagen `viewMode` wordt nu gebruikt. Compact toont alleen een éénregelige begroeting, hetzelfde éénknops wisselicoon als de medewerkerkaart en horizontale informatietegels voor beschikbare volgende kalenderregels. Uitgebreid behoudt de hogere header, dashboardvensters en drag-and-drop.
 - Er zijn geen schema-, API-, RLS-, permissie- of dataladingswijzigingen uitgevoerd. Gerichte typecheck, i18n, lint en geauthenticeerde desktop/390px-browsercontrole moeten nog worden uitgevoerd.
+## Hotfix 2026-08-16: medewerkerfoto en roosterinvoer bij aanmaak
+
+De avatarupload van een net aangemaakte medewerker faalde doordat de Storage-policy nog `can_manage_employee` gebruikte en dus een organisatieplaatsing vereiste. De nieuwe lokale migratie `20260816140854_allow_hr_preplacement_avatar_storage` gebruikt de bestaande actorveilige `employee_subresource_can_write`-scope voor insert, update en delete. De read-only remote proef bevestigt dat dezelfde HR-gebruikersrol vóór plaatsing schrijfrecht heeft; de migratie is nog niet remote toegepast.
+
+Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,30` betekent 7,5 uur. De Controleren-stap blijft de enige stap die een dienstverband kan publiceren; een regressietest dekt ook Overige expliciet af. Lokale verificatie: 11 gerichte Vitest-tests, strict TypeScript, i18n-pariteit, gerichte ESLint en `git diff --check` groen. Open: remote migration, Supabase-advisors en authenticated browsercontrole van foto-upload en de volledige aanmaakflow.

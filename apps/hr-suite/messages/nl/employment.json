@@ -341,6 +341,7 @@
   "fulltimeReference": "Fulltime volgens gekozen cao",
   "roster": "Rooster",
   "rosterHelp": "Verdeel de uren over de dagen. Het gemiddelde moet gelijk zijn aan de urenafspraak.",
+  "rosterHoursFormat": "Vul roostertijden in als uren en minuten, bijvoorbeeld 7,30 voor 7 uur en 30 minuten.",
   "rosterMismatch": "Het rooster moet exact gelijk zijn aan het aantal uur per week.",
   "rosterAverage": "Gemiddelde",
   "weekOne": "Week 1",

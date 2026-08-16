@@ -341,6 +341,7 @@
   "fulltimeReference": "Full-time according to selected CBA",
   "roster": "Schedule",
   "rosterHelp": "Distribute the hours across the days. The average must match the hours agreement.",
+  "rosterHoursFormat": "Enter schedule hours as hours and minutes, for example 7,30 for 7 hours and 30 minutes.",
   "rosterMismatch": "The schedule must exactly match the hours per week.",
   "rosterAverage": "Average",
   "weekOne": "Week 1",

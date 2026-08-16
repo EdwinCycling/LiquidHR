@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Release 2026-08-16: lokale consolidatie en productversie 1.20260816.1
+
+Alle lokale branches zijn geïnventariseerd en blijken al in `main` opgenomen. De resterende medewerkerwizard-, roosterinvoer- en pre-placement avatar-storagebron is toegevoegd aan de releasebasis. De zichtbare productversie is verhoogd naar `1.20260816.1`; de npm-packageversie blijft `0.1.2`. De definitieve status volgt na de lokale releasegate en GitHub-publicatie.
+
+## Medewerker-avatar vóór eerste plaatsing — Supabase 2026-08-16
+
+De Storage-RLS-migratie `allow_hr_preplacement_avatar_storage` is remote toegepast op dev/test `wnpfloqpjvaacobppbpk` (geregistreerd als `20260816151833`). Insert-, update- en delete-policy verwijzen naar `employee_subresource_can_write`; de gerichte transactietest en policy-inspectie zijn groen. Security-advisor toont alleen bestaande projectbrede meldingen (83; 1 INFO, 82 WARN), performance-advisor 0 meldingen. Authenticated browserbewijs van de daadwerkelijke upload blijft open.
+
 ## Phase 2 Salary Structures + Salary Application — GREEN 2026-08-14
 
 **Status: IMPLEMENTATION COMPLETE — PHASE 2 GREEN / CHECKPOINT BASELINE**
@@ -1241,3 +1249,4 @@ Foto wijzigen/verwijderen is zichtbaar op de medewerkerdetailpagina voor gebruik
 De beheerroute `/settings/process-automation` heeft nu een expliciet statusoverzicht, een compacte lijst-eerst catalogus en een genummerde studioflow. Concept, gepubliceerd/in productie en gearchiveerd zijn als afzonderlijke aantallen zichtbaar. Proces, formulier, preview, Procesproef en versieverschil worden per onderwerp geopend in plaats van als één lange pagina.
 
 `Nieuw proces` gebruikt een driestapswizard met basisgegevens, startpunt en review vóór aanmaken. De bestaande create-route, autorisatie, autosave, compiler, recepten en publicatiegrenzen zijn ongewijzigd. Strict TypeScript, i18n en diff-check zijn groen. ESLint blijft geblokkeerd door de bestaande ESLint 10/plugin-incompatibiliteit; browserbewijs is geblokkeerd doordat lokale Supabase-env bewust niet naar de worktree is gekopieerd.
+Aanvulling 2026-08-16: de aanmaakwizard verwerkt roosterdagen voortaan als uren plus minuten; `7,30` wordt als 7,5 uur gevalideerd en gepubliceerd. De savegrens blijft de Controleren-stap; Overige kan niet publiceren. Voor profielfoto's is de lokale Storage/RLS-migratie `20260816140854_allow_hr_preplacement_avatar_storage` toegevoegd: HR behoudt tenant-, HR-groep- en permissionchecks, ook vóór de eerste organisatieplaatsing. De remote toepassing en live uploadcontrole wachten op expliciete toestemming.

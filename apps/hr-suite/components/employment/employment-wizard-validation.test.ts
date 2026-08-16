@@ -47,6 +47,7 @@ describe('employment wizard validation', () => {
   })
 
   it('only allows saving from the review step', () => {
+    expect(canSubmitEmploymentWizard('other')).toBe(false)
     expect(canSubmitEmploymentWizard('payrollChoice')).toBe(false)
     expect(canSubmitEmploymentWizard('contract')).toBe(false)
     expect(canSubmitEmploymentWizard('review')).toBe(true)
@@ -61,6 +62,15 @@ describe('employment wizard validation', () => {
     expect(isEmploymentWizardStepValid('schedule', twoWeekInput, validOptions)).toBe(true)
     expect(isEmploymentWizardStepValid('schedule', { ...twoWeekInput, secondWeekDays: { ...twoWeekInput.secondWeekDays, monday: '9' } }, validOptions)).toBe(false)
     expect(isEmploymentWizardStepValid('schedule', { ...validInput, days: { ...validInput.days, monday: '-1' } }, validOptions)).toBe(false)
+  })
+
+  it('treats roster fractions as minutes instead of decimal hours', () => {
+    const minuteRoster = {
+      ...validInput,
+      weeklyHours: '37.5',
+      days: { monday: '7,30', tuesday: '7,30', wednesday: '7,30', thursday: '7,30', friday: '7,30', saturday: '0', sunday: '0' },
+    }
+    expect(isEmploymentWizardStepValid('schedule', minuteRoster, validOptions)).toBe(true)
   })
 
   it('keeps probation outside the contract as a warning', () => {

@@ -67,6 +67,8 @@ De wijziging is lokaal geïmplementeerd en geverifieerd; er was geen nieuwe migr
 
 De wizard bevat nu profielfoto-upload onder `Optionele extra gegevens`, correcte periode-einddatums, niet-blokkerende proeftijdwaarschuwingen, automatische deeltijd/voltijd-afleiding en een read-only `Controleren`-tab die pas na `Dienstverband aanmaken` naar de database schrijft. De lokale wijziging is groen op de volledige suite, strict TypeScript, ESLint en i18n-pariteit; de proeftijdmigratie is nog niet remote toegepast en authenticated browserbewijs/deployment blijven open.
 
+Aanvulling 2026-08-16: roosterdagen accepteren nu uren en minuten (`7,30` is 7 uur en 30 minuten, dus 7,5 uur). De avatar-Storage-policy gebruikt dezelfde actorveilige HR-groepsscope als de overige medewerker-subresources vóór de eerste organisatieplaatsing. Migratie `allow_hr_preplacement_avatar_storage` is toegepast op dev/test `wnpfloqpjvaacobppbpk`; de drie policies en de pre-placement schrijffunctie zijn remote gecontroleerd. Een authenticated live uploadcontrole blijft open.
+
 ## Navigatie en module-instellingen 2026-08-12
 
 Teamkompas is verplaatst uit de linker navigatie naar een modulevenster op `Ontwikkeling` (`/workforce`). De actieve-modulencatalogus toont geen Documentdossiers meer: documentdossiers zijn altijd actief en worden door de lokale migratie `20260812054853_documents_always_on.sql` ook op databaseniveau niet uitschakelbaar gemaakt. De wijziging is lokaal geïmplementeerd en gericht gecontroleerd; remote migratie, advisors, typegeneratie, browsercontrole en deployment zijn nog niet uitgevoerd.
