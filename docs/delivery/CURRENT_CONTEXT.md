@@ -1836,3 +1836,9 @@ Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migrat
 - Een nieuwe driestapswizard volgt het patroon van de medewerkerwizard: Basis, Startpunt en Controleren. Hij maakt via de bestaande API uitsluitend een concept aan; schema, API-contracten, RLS en permissies zijn niet gewijzigd.
 - Processtudio, formulierstudio, preview, Procesproef en versieverschil zijn als genummerde stappen bereikbaar en worden niet meer tegelijk onder elkaar getoond.
 - Strict TypeScript, i18n-pariteit en diff-check zijn groen. Gerichte ESLint wordt geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit. Desktop-/390px-browsercontrole is geblokkeerd omdat de geïsoleerde worktree geen lokale Supabase-env bevat; er zijn geen secrets gekopieerd of gelinkt.
+
+## UX-redesign startpagina compact en uitgebreid 2026-08-16
+
+- In aparte worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\startpage-compact` op branch `codex/startpage-compact` is `/dashboard/start` aangepast volgens [`REDESIGN_STARTPAGINA.md`](../requirements/ux/REDESIGN_STARTPAGINA.md). De bestaande dirty `main`-workspace is niet gewijzigd.
+- De bestaande opgeslagen `viewMode` wordt nu gebruikt. Compact toont alleen een éénregelige begroeting, hetzelfde éénknops wisselicoon als de medewerkerkaart en horizontale informatietegels voor beschikbare volgende kalenderregels. Uitgebreid behoudt de hogere header, dashboardvensters en drag-and-drop.
+- Er zijn geen schema-, API-, RLS-, permissie- of dataladingswijzigingen uitgevoerd. Gerichte typecheck, i18n, lint en geauthenticeerde desktop/390px-browsercontrole moeten nog worden uitgevoerd.
