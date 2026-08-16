@@ -96,7 +96,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <EmployeeFilterPanel
         activeStatus={statusFilter}
         archiveFilter={archiveFilter}
@@ -146,7 +146,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
         statusOptions={(directoryMode ? ['ACTIVE_EMPLOYEE' as EmploymentStatus] : STATUSES).map((item) => ({ value: item, label: labels[item] }))}
       />
 
-      <div className="mt-4">
+      <div className="mt-3">
         <EmployeeList
           archiveLabel={tEmployees('archived')}
           administrationLabel={tEmployees('administration')}

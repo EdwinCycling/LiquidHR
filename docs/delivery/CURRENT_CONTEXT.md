@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Lokale main-consolidatie en Employees UX vNext — 2026-08-16
+
+- `main` bevat de lokaal gemaakte wijzigingen uit de relevante worktrees. De Employee/employment-wijzigingen staan in `5a01fd9` (`feat: consolidate local employee and employment work`) en de Startpagina-compactwijziging is lokaal samengevoegd in `a7db6dc` (`merge: add startpage compact view`). Er is niet gepusht of gedeployed; de bestaande stash met handmatige acties is behouden.
+- De lokale consolidatiegate is groen: `199` testbestanden / `760` tests, strict TypeScript, lint, i18n met 33 gelijke NL/EN-namespaces en productiebuild met 225 routes/pages.
+- De Employees UX vNext-pilot op `/employees` is lokaal geïmplementeerd volgens `docs/requirements/ux/REDESIGN_EMPLOYEES_VNEXT.md`: Work Sans via `next/font/google`, rustigere vlakke filter-/lijstpresentatie, compactere detail- en kaartweergave en responsieve filtercontrols. Bestaande query-, URL-, autorisatie-, directory- en medewerkerstype-/archiefgedragingen zijn behouden.
+- De browsercontrole met Test HR Admin op `localhost:3000` is groen op desktop en 390×844: filters openen, zoeken en resetten, detail/card-switching, 0 console-errors, Work Sans actief en geen horizontale overflow (`scrollWidth = 390`). Alleen Next dev/HMR/preload-waarschuwingen zijn gezien.
+- Open: Edwin's visuele beoordeling. Zonder akkoord wordt geen volgende UX/UI-pagina aangepakt. Geen schema-, API-, remote-, versie-, push- of deploymentwijziging.
+
 ## Medewerkerswizard — verplicht medewerkertype 2026-08-16
 
 - Het veld `Medewerkertype` in het dienstverbandgedeelte start leeg met een expliciete keuze-placeholder. De keuze is verplicht: `Volgende` blijft disabled totdat een type is gekozen en de wizardvalidatie weigert een lege waarde ook serverpayload-voorbereidend.

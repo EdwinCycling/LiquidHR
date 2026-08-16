@@ -9,6 +9,7 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 | Workflows en formulieren | `/settings/process-automation` | GEIMPLEMENTEERD | [`REDESIGN_WORKFLOWS_EN_FORMULIEREN.md`](REDESIGN_WORKFLOWS_EN_FORMULIEREN.md) | Browsercontrole uitvoeren in een geauthenticeerde omgeving |
 | Dienstverbandwijzigingen | `/employees/[employeeId]/employments/[employmentId]?tab=overview&view=expanded` | GEVERIFIEERD | [`REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md`](REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md) | Volgende redesign: door Edwin te bepalen |
 | Startpagina compact en uitgebreid | `/dashboard/start` | GEIMPLEMENTEERD | [`REDESIGN_STARTPAGINA.md`](REDESIGN_STARTPAGINA.md) | Geauthenticeerde browsercontrole op desktop en 390px uitvoeren |
+| Employees UX vNext | `/employees` | GEVERIFIEERD | [`REDESIGN_EMPLOYEES_VNEXT.md`](REDESIGN_EMPLOYEES_VNEXT.md) | Edwin's visuele beoordeling; daarna pas een volgende pagina |
 
 ## Volgorde
 
@@ -16,6 +17,7 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 2. Rollen en autorisatie — redesign doorgevoerd en geverifieerd op desktop en 390px.
 3. Workflows en formulieren — overzicht, productie-inzicht en begeleide aanmaakflow geïmplementeerd; browserverificatie geblokkeerd door ontbrekende lokale worktree-env.
 4. Daarna bepaalt Edwin per keer de volgende pagina.
+5. Employees UX vNext — lokale Structured Enterprise-pilot; pas na Edwin's visuele akkoord wordt een volgende pagina gekozen.
 
 ## Werkwijze na ieder scherm
 
