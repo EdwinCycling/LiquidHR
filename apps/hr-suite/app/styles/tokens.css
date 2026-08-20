@@ -71,4 +71,5 @@
   --radius-button: 0.625rem;
   --radius-surface: 0.5rem;
   --radius-overlay: 0.75rem;
+  --elevation-overlay: 0 1rem 2.5rem color-mix(in srgb, var(--foreground) 14%, transparent);
 }

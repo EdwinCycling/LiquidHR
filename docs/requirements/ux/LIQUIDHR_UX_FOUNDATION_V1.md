@@ -24,11 +24,47 @@ De componentinventaris en architectuur zijn `components/ui` voor generieke primi
 
 Blok 2 levert de centrale herbruikbare componentlaag op `feature/ux-foundation-v1`. De werkelijk beschikbare componenten zijn:
 
-- `components/ui`: `Button`, `IconButton`, `TextInput`, `Surface`, `Badge`, `EmptyState`; bestaande `DropdownSelect` en `CountryPicker` zijn behouden.
+- `components/ui`: `Button`, `IconButton`, `TextInput`, `Textarea`, `Checkbox`, `RadioGroup`, `Switch`, `DropdownSelect`, `CountryPicker`, `Surface`, `Badge`, `EmptyState`.
 - `components/patterns`: `PageHeader`, `SectionHeader`, `PageToolbar`, `FilterBar`, `InfoList`.
 - `components/layout`: `PageShell`, `DetailColumns`.
 
 De componentarchitectuur blijft daarmee `ui` voor primitives, `patterns` voor composities en `layout` voor shell-/layoutcontracten. Blok 3, inclusief Employees-list en Employee Detail-migratie, is afgerond.
+
+## 0.3 Foundation Controls v1.1 — actuele compacte inventory
+
+Deze controls zijn de centrale contracten voor volgende HR Suite-slices. Ze bevatten geen domeindata, businessvalidatie of permissionbesluit.
+
+### Primitives — `components/ui`
+
+- `Button`: `primary`, `secondary`, `danger`, `ghost`; `sm`/`md`; `loading`; directe Lucide-iconen krijgen vaste maat, gap en shrink behavior.
+- `IconButton`: verplicht voor icon-only acties; vereist een toegankelijke `label`.
+- `TextInput`: native inputtypes plus optionele `leadingIcon` en `trailingIcon`; decoratieve iconen zijn niet-interactief en `aria-hidden`.
+- `Textarea`: native textarea-props met hetzelfde control-, focus-, invalid- en disabled-contract als `TextInput`.
+- `Checkbox`: native checkboxsemantics voor selectie/toestemming/onderdeel van een set.
+- `RadioGroup`: native radios met `name`, controlled/uncontrolled waarde, disabled options en optionele description.
+- `Switch`: native checkboxsemantics met `role="switch"` voor directe aan/uit-instellingen; niet gebruiken als selectie uit een set.
+- `DropdownSelect`: regular en searchable via hetzelfde contract (`<DropdownSelect searchable />`); native multiple blijft een eenvoudige native select, geen nieuwe multiselect-ervaring.
+- `CountryPicker`, `Badge`, `Surface`, `EmptyState`.
+
+### Patterns — `components/patterns`
+
+- `FormField`: label, required indicator, description/help, control, error en correcte `aria-describedby`/`aria-invalid`-koppeling; bevat geen businessvalidatie.
+- Canonical tabs: `ScrollableTabs`, `TabLink` voor echte route-links en `TabButton` voor client-state; actieve tab is een duidelijke 3px underline, met keyboardpijlen voor button tabs en overflowcontrols alleen bij echte overflow.
+- `PageHeader`, `SectionHeader`, `PageToolbar`, `FilterBar`, `InfoList`.
+
+### Layout — `components/layout`
+
+- `PageShell`
+- `DetailColumns`
+
+`DropdownSelect` gebruikt `--radius-control` voor trigger/search, `--radius-overlay` voor de overlay en semantic surface/border/focus/elevation-tokens. Alle controls werken zonder theme-branching in zowel het standaardtheme als LinkedHR.
+
+### FOUNDATION_GAP-kandidaten uit het vooronderzoek
+
+- **Multiselect — LATER.** Concrete native multiple-selects bestaan in custom fields, reminders en documenten. De huidige Foundation kan deze native contracten behouden, maar biedt geen zoekbare selectie, chips, bulkacties of duidelijke keyboard-UX. Minimale latere API: opties, geselecteerde waarden, zoeken, selecteer/wis alles, `onChange` en native form-submissie.
+- **Datepicker — LATER.** Er zijn concrete native `date`-inputs in employee-, organization- en calendarflows. `TextInput type="date"` is nu voldoende; een kalenderoverlay zou extra focus-, locale- en keyboardcontracten vereisen.
+- **Dialog — LATER.** Er zijn meerdere bestaande domeinmodalen/-dialogen voor bevestiging, instellingen, reminders en documentpreview. Een generiek contract moet portal, focus trap, Escape, labelled title/description en restore-focus correct afhandelen; daarom niet speculatief in v1.1.
+- **Tooltip — LATER/geen huidige gap.** Bestaande icon-acties hebben toegankelijke labels en waar nodig `title`; er is nu geen herhaald inhoudelijk tooltipcontract dat een nieuwe primitive rechtvaardigt.
 
 ## 1. Designrichting
 

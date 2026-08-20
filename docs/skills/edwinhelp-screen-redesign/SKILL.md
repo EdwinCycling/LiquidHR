@@ -71,6 +71,10 @@ Beschrijf in het schermdocument minstens doel, huidige problemen, nieuw ontwerp,
 4. Is het alleen een lokale stylingvariant van een bestaand Foundation-component? Bouw geen nieuw component; gebruik de Foundation-API en tokens.
 5. Is een Foundation primitive werkelijk onvoldoende? Breid die eerst klein en backwards-compatible uit; bouw niet meteen een parallel component.
 
+6. Bestaat de generieke behoefte wel maar ontbreekt de Foundation-component? Meld `FOUNDATION_GAP` met concrete use cases, tekortkoming, minimale API/behavior, verwachte hergebruiklocaties en **NU/LATER**-voorstel. Bouw geen lokale variant.
+
+Parallelle product-runs mogen `components/ui` en generieke `components/patterns` niet zelfstandig uitbreiden tenzij hun opdracht dit expliciet toestaat. De onafhankelijke slice gaat verder met de gapmelding; de centrale Foundation-/integratortask lost de gedeelde behoefte op.
+
 ### 4. Ontwerp en implementeer
 
 Gebruik de bestaande Liquid Flow-basis:

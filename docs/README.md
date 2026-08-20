@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Foundation Controls v1.1 — lokaal groen 2026-08-20
+
+De centrale UI-foundation is uitgebreid met `Textarea`, `Checkbox`, `RadioGroup`, `Switch`, `FormField`, canonical `TabLink`/`TabButton` en geharde `TextInput`, `Button`, `IconButton`, `DropdownSelect` en `ScrollableTabs`. De actuele inventory en FOUNDATION_GAP-kandidaten staan in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). De gate is groen met 203 testbestanden/788 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint, Webpack-build met 225 routes en diff-check. Browser smoke op `/login` is groen. Deze slice wijzigt geen routes, API, database, auth, permissions, RLS of businesslogica.
+
 ## Leidende algemene UX-foundation — Blok 4 afgerond
 
 De algemene HR Suite UX- en stylingrichting staat in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). Dit document is vanaf 2026-08-20 leidend; oudere design-systemdocumenten blijven historische context. Blok 1 legde de CSS-foundation vast, Blok 2 levert de centrale componentlaag in `apps/hr-suite/components/ui`, `patterns` en `layout`, Blok 3 past die toe op `/employees` en `/employees/[employeeId]` als reference implementations en Blok 4 maakt governance verplicht via `AGENTS.md` en de screen-redesignskill. Geen schema-, API-, RLS-, security-, release- of deploymentwijziging in Blok 4.

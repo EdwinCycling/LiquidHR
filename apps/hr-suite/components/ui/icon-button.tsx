@@ -26,7 +26,7 @@ export function IconButton({
   variant = 'primary',
   ...props
 }: IconButtonProps) {
-  const iconSizeClass = size === 'sm' ? '[&>svg]:size-4' : '[&>svg]:size-5'
+  const iconSizeClass = size === 'sm' ? '[&_svg]:size-4' : '[&_svg]:size-5'
 
   return (
     <button

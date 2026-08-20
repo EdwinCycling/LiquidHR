@@ -22,7 +22,7 @@ export type ButtonClassOptions = {
 }
 
 export function buttonClasses({ className, size = 'md', variant = 'primary' }: ButtonClassOptions = {}): string {
-  return `ui-button ui-button-${variant} relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-medium leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 [&>svg]:size-4 [&>svg]:shrink-0 ${buttonSizeClasses[size]} ${buttonVariantClasses[variant]} ${className ?? ''}`.trim()
+  return `ui-button ui-button-${variant} relative inline-flex min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-medium leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-4 [&_svg]:shrink-0 ${buttonSizeClasses[size]} ${buttonVariantClasses[variant]} ${className ?? ''}`.trim()
 }
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -50,7 +50,7 @@ export function Button({
       className={buttonClasses({ className, size, variant })}
       disabled={isDisabled}
     >
-      <span className={loading ? 'invisible' : undefined}>{children}</span>
+      <span className={`inline-flex min-w-0 items-center gap-2 ${loading ? 'invisible' : ''}`.trim()}>{children}</span>
       {loading ? (
         <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
           <span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />

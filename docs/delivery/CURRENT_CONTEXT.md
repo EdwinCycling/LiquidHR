@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Foundation Controls v1.1 — 2026-08-20
+
+- Branch `work/foundation-controls-v1-1` is gestart vanaf exact `main`/`origin/main` SHA `3dc4dc038940fdca731f292098a9b0760411c3d7`; de werkboom was schoon.
+- Geïmplementeerd: `Textarea`, `Checkbox`, `RadioGroup`, `Switch`, `FormField`, `TabLink`, `TabButton`, `TextInput` adornments, Button/IconButton icon-contract, DropdownSelect token-hardening en canonical ScrollableTabs overflowcontrols. `happy-dom` is toegevoegd als dev-testdependency voor DOM-contracttests.
+- Vooronderzoek: native multiple-selects, date-inputs en domeinmodalen bestaan concreet; zij zijn als FOUNDATION_GAP **LATER** vastgelegd. Een generieke tooltip is nu geen noodzakelijke gap.
+- Verificatie: gerichte Foundation-tests 23/23 groen; volledige suite 203 testbestanden/788 tests, strict TypeScript, `check:i18n` (33 gelijke NL/EN-namespaces), lint, Webpack-build (225 routes/pages), `git diff --check` en browser smoke op `/login` zijn groen. Browserconsole bevatte alleen React DevTools/HMR-logs.
+- Scopegrens behouden: geen productmodulemigratie, route/API/database/Supabase/RLS/permission/auth/businesslogicwijziging.
+
 ## LinkedHR polish + compact fixes 2026-08-20
 
 - Nieuwe worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\linkedhr-polish` op branch `feature/ux-linkedhr-polish`, gestart vanaf baseline `5af312353beaf0512a200d40fa84b98135a4ded9` (`origin/feature/ux-employment-workspace`). De bron-worktree was schoon.

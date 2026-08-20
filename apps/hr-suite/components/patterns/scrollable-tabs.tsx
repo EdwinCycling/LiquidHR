@@ -1,7 +1,9 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type AnchorHTMLAttributes, type ButtonHTMLAttributes, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
+
+import { IconButton } from '@/components/ui/icon-button'
 
 interface ScrollableTabsProps {
   ariaLabel: string
@@ -14,7 +16,44 @@ interface ScrollableTabsProps {
 }
 
 export function tabLinkClasses({ active, className = '' }: { active: boolean; className?: string }): string {
-  return `-mb-px inline-flex min-h-10 items-center whitespace-nowrap border-b-[3px] px-3 py-2.5 text-sm font-semibold leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${active ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground'} ${className}`.trim()
+  return `-mb-px inline-flex min-h-10 items-center whitespace-nowrap border-b-[3px] px-3 py-2.5 text-sm leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${active ? 'border-primary font-semibold text-primary' : 'border-transparent font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground'} ${className}`.trim()
+}
+
+export type TabLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  active?: boolean
+}
+
+export function TabLink({ active = false, 'aria-current': ariaCurrent, className, ...props }: TabLinkProps) {
+  return <a {...props} aria-current={ariaCurrent ?? (active ? 'page' : undefined)} className={tabLinkClasses({ active, className })} />
+}
+
+function focusAdjacentTab(current: HTMLButtonElement, direction: -1 | 1): void {
+  const tabList = current.closest('[role="tablist"]')
+  if (!tabList) return
+  const tabs = Array.from(tabList.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)'))
+  const index = tabs.indexOf(current)
+  if (index < 0 || tabs.length < 2) return
+  tabs[(index + direction + tabs.length) % tabs.length]?.focus()
+}
+
+export type TabButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  active?: boolean
+}
+
+export function TabButton({ active = false, className, onKeyDown, tabIndex, ...props }: TabButtonProps) {
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
+    onKeyDown?.(event)
+    if (event.defaultPrevented) return
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      focusAdjacentTab(event.currentTarget, 1)
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      focusAdjacentTab(event.currentTarget, -1)
+    }
+  }
+
+  return <button {...props} aria-selected={active} className={tabLinkClasses({ active, className })} onKeyDown={handleKeyDown} role="tab" tabIndex={tabIndex ?? (active ? 0 : -1)} type="button" />
 }
 
 export function ScrollableTabs({ ariaLabel, children, className = '', contentClassName = '', contentProps, leftLabel, rightLabel }: ScrollableTabsProps) {
@@ -52,11 +91,11 @@ export function ScrollableTabs({ ariaLabel, children, className = '', contentCla
 
   return (
     <div aria-label={ariaLabel} className={`relative min-w-0 ${className}`.trim()}>
-      {overflow.left ? <button aria-label={leftLabel} className="absolute left-1 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-[var(--radius-control)] border border-border bg-surface text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus hover:bg-muted hover:text-foreground" onClick={() => scrollByPage(-1)} type="button"><ChevronLeft aria-hidden="true" size={16} /></button> : null}
+      {overflow.left ? <IconButton className="absolute left-1 top-1/2 z-10 -translate-y-1/2 border border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground" label={leftLabel} onClick={() => scrollByPage(-1)} size="sm" variant="ghost"><ChevronLeft aria-hidden="true" /></IconButton> : null}
       <div ref={scrollRef} className={`tabs-scroll overflow-x-auto overflow-y-hidden border-b border-border ${overflow.left ? 'pl-10' : 'pl-1'} ${overflow.right ? 'pr-10' : 'pr-1'}`}>
-        <div {...contentProps} className={`flex min-w-max gap-1 ${contentClassName}`.trim()}>{children}</div>
+        <div {...contentProps} aria-label={contentProps?.['aria-label'] ?? (contentProps?.role === 'tablist' ? ariaLabel : undefined)} className={`flex min-w-max gap-1 ${contentClassName}`.trim()}>{children}</div>
       </div>
-      {overflow.right ? <button aria-label={rightLabel} className="absolute right-1 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-[var(--radius-control)] border border-border bg-surface text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus hover:bg-muted hover:text-foreground" onClick={() => scrollByPage(1)} type="button"><ChevronRight aria-hidden="true" size={16} /></button> : null}
+      {overflow.right ? <IconButton className="absolute right-1 top-1/2 z-10 -translate-y-1/2 border border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground" label={rightLabel} onClick={() => scrollByPage(1)} size="sm" variant="ghost"><ChevronRight aria-hidden="true" /></IconButton> : null}
     </div>
   )
 }

@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Foundation Controls v1.1 — 2026-08-20
+
+**Status: LOKAAL GROEN; WACHT OP PUSH/REVIEW OP `work/foundation-controls-v1-1`**
+
+Vanaf baseline `3dc4dc038940fdca731f292098a9b0760411c3d7` zijn de Foundation-controls aangevuld met `Textarea`, `Checkbox`, `RadioGroup`, `Switch`, `FormField`, canonical route/button tabs en interactieve overflowcontrols. `TextInput`, `Button`, `IconButton` en `DropdownSelect` zijn backwards-compatible gehard; `DropdownSelect` gebruikt nu Foundation-tokens en behoudt regular/searchable/native-formgedrag. De gerichte controlgate staat op 23/23 tests en strict TypeScript. `happy-dom` is uitsluitend als dev-testdependency toegevoegd voor echte DOM-interactiechecks.
+
+De concrete use-case-inventaris en FOUNDATION_GAP-kandidaten (multiselect, datepicker, dialog en tooltip) staan compact in `docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`. De volledige lokale gate is groen: 203 testbestanden/788 tests, strict TypeScript, `check:i18n` met 33 gelijke NL/EN-namespaces, lint, Webpack-build met 225 routes/pages en `git diff --check`. Browser smoke op `/login` laadde inhoud met zichtbare interactieve elementen en zonder runtime-console-errors; alleen React DevTools/HMR-logs waren aanwezig. Er zijn geen productmodules gemigreerd en geen API-, route-, database-, RLS-, permission-, auth- of businesslogica gewijzigd.
+
 ## LinkedHR polish + compact fixes — 2026-08-20
 
 **Status: LOKAAL GEREED; LINT INHERITED BLOCKER; AUTHENTICATED BROWSERGATE GEBLOKKEERD**

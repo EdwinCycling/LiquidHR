@@ -77,6 +77,13 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 - LinkedHR is een officieel LiquidHR-theme, gebruikt dezelfde Foundation en is geen aparte componentfamilie.
 - `/employees` is de reference list/workbench en `/employees/[employeeId]` de reference profile/detail. Employee Detail gebruikt als reference ongeveer 2/3 hoofdinhoud en 1/3 aside via `DetailColumns`; nieuwe redesigns gebruiken deze structuur waar passend zonder domeinlogica te kopiëren.
 
+### Foundation gaps en parallelle product-runs
+
+- Bestaat een generieke Foundation-component, dan is hergebruik verplicht.
+- Ontbreekt een generieke component met hergebruikbehoefte, bouw dan geen lokale kopie. Meld `FOUNDATION_GAP` met naam, concrete use cases, tekortkoming, minimale API/behavior, verwachte hergebruiklocaties en het voorstel **NU** of **LATER**.
+- Is de behoefte aantoonbaar domeinspecifiek, dan hoort de component in de betreffende domeinmap.
+- Parallelle product-runs mogen `components/ui` en generieke `components/patterns` niet zelfstandig uitbreiden tenzij hun opdracht dat expliciet toestaat. Meld de gap, voer de onafhankelijke scope verder uit en laat de centrale Foundation-/integratortask het gedeelde component oplossen.
+
 ## Remote database governance
 
 - Een migration/schemawijziging als code maken mag wanneer die binnen de expliciete feature-scope valt. Een migration op een remote Supabase-project toepassen is een externe mutatie en gebeurt uitsluitend na expliciete toestemming van de gebruiker; hetzelfde geldt voor destructive-, reset- en seed-achtige remote acties. Expliciete toestemming in de actuele opdracht hoeft niet opnieuw te worden gevraagd.
