@@ -47,7 +47,7 @@ export function EmployeeArchiveToggle({ employeeId, archived, hasActiveEmploymen
   }
 
   const buttonClass = headerStyle
-    ? 'inline-flex h-10 min-h-10 w-10 items-center justify-center rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 p-0 text-primary-foreground transition hover:bg-primary-foreground/20'
+    ? 'button-secondary inline-flex h-10 min-h-10 w-10 items-center justify-center p-0'
     : 'button-secondary inline-flex min-h-9 items-center gap-2'
 
   return (

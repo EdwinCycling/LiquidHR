@@ -2,6 +2,7 @@ import type { SettingsModalLabels } from '@/components/layout/settings-modal'
 import { PersonalSettingsForm } from '@/components/settings/personal-settings-form'
 import { getTranslator } from '@/lib/i18n/server'
 import { getUserPreferences } from '@/lib/preferences/server'
+import { UI_THEMES } from '@/lib/preferences/user-preferences'
 
 export default async function PersonalSettingsPage() {
   const [preferences, settings, common] = await Promise.all([getUserPreferences(), getTranslator('settings'), getTranslator('common')])
@@ -29,4 +30,4 @@ export default async function PersonalSettingsPage() {
   )
 }
 
-const UI_THEME_KEYS = ['liquid-navy', 'noordzee', 'bos', 'warm-zand', 'aubergine', 'nacht'] as const
+const UI_THEME_KEYS = UI_THEMES

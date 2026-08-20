@@ -161,7 +161,8 @@
     "bos": "Bos",
     "warm-zand": "Warm Zand",
     "aubergine": "Aubergine",
-    "nacht": "Nacht"
+    "nacht": "Nacht",
+    "linkedhr": "LinkedHR"
   },
   "themeDescriptions": {
     "liquid-navy": "Helder marineblauw met een rustige lichte werkruimte.",
@@ -169,7 +170,8 @@
     "bos": "Diep groen met natuurlijke, rustige contrasten.",
     "warm-zand": "Warme neutrale tinten voor een zachte werkomgeving.",
     "aubergine": "Verfijnd paars met warme, zakelijke diepte.",
-    "nacht": "Een volwaardig donker thema voor weinig omgevingslicht."
+    "nacht": "Een volwaardig donker thema voor weinig omgevingslicht.",
+    "linkedhr": "Een lichte, professionele interface met heldere blauwe accenten."
   },
   "companyBranding": {
     "title": "Bedrijfsinstellingen",

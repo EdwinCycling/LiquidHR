@@ -161,7 +161,8 @@
     "bos": "Forest",
     "warm-zand": "Warm Sand",
     "aubergine": "Aubergine",
-    "nacht": "Night"
+    "nacht": "Night",
+    "linkedhr": "LinkedHR"
   },
   "themeDescriptions": {
     "liquid-navy": "Clear navy blue with a calm, bright workspace.",
@@ -169,7 +170,8 @@
     "bos": "Deep green with natural, calm contrasts.",
     "warm-zand": "Warm neutral tones for a soft workspace.",
     "aubergine": "Refined purple with warm, professional depth.",
-    "nacht": "A complete dark theme for low-light environments."
+    "nacht": "A complete dark theme for low-light environments.",
+    "linkedhr": "A light, professional interface with clear blue accents."
   },
   "companyBranding": {
     "title": "Company settings",

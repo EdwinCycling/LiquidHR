@@ -8,6 +8,7 @@ export const UI_THEMES = [
   'warm-zand',
   'aubergine',
   'nacht',
+  'linkedhr',
 ] as const satisfies readonly Database['public']['Enums']['ui_theme'][]
 export const THEME_COOKIE = 'liquid-theme'
 export const CLOCK_MODES = ['ANALOG', 'DIGITAL', 'HIDDEN'] as const
@@ -64,11 +65,18 @@ export function resolveUserPreferences(
   cookieValue: unknown,
 ): UserPreferences {
   const databaseResult = userPreferencesSchema.safeParse(databaseValue)
-  if (databaseResult.success) return { ...databaseResult.data, companyBranding: null }
-
   const cookieRecord = typeof cookieValue === 'object' && cookieValue !== null
     ? cookieValue as Readonly<Record<string, unknown>>
     : {}
+  if (databaseResult.success) {
+    const cookieTheme = userPreferencesSchema.shape.theme.safeParse(cookieRecord.theme)
+    return {
+      ...databaseResult.data,
+      theme: cookieTheme.success && cookieTheme.data === 'linkedhr' ? cookieTheme.data : databaseResult.data.theme,
+      companyBranding: null,
+    }
+  }
+
   const localeResult = userPreferencesSchema.shape.locale.safeParse(cookieRecord.locale)
   const themeResult = userPreferencesSchema.shape.theme.safeParse(cookieRecord.theme)
 

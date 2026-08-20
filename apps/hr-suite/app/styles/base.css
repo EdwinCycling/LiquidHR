@@ -17,7 +17,7 @@ body {
   min-width: 20rem;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-work-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
@@ -30,7 +30,7 @@ select {
 select:not([multiple]) {
   min-height: 2.75rem;
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: var(--radius-input);
   background-color: var(--surface);
   background-image:
     linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
@@ -67,7 +67,7 @@ select:not([multiple]):disabled {
 select[multiple] {
   min-height: 7rem;
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: var(--radius-input);
   background: var(--surface);
   color: var(--foreground);
   padding: 0.5rem 0.75rem;

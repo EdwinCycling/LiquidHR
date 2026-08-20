@@ -18335,6 +18335,7 @@ export type Database = {
         | "warm-zand"
         | "aubergine"
         | "nacht"
+        | "linkedhr"
       week_numbering_system: "JANUARY_FIRST" | "ISO"
       work_hour_type_category: "REGULAR_WORK" | "OVERTIME" | "INFORMATIONAL"
       workflow_job_status:
@@ -18755,6 +18756,7 @@ export const Constants = {
         "warm-zand",
         "aubergine",
         "nacht",
+        "linkedhr",
       ],
       week_numbering_system: ["JANUARY_FIRST", "ISO"],
       work_hour_type_category: ["REGULAR_WORK", "OVERTIME", "INFORMATIONAL"],

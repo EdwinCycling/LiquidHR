@@ -1,5 +1,12 @@
 # Actuele overdracht Liquid HR
 
+## Employee Detail profile polish + LinkedHR 2026-08-20
+
+- Op `feature/ux-foundation-v1` is `/employees/[employeeId]` visueel aangescherpt: lichte profielkaart met subtiele coverzone, overlappende avatar, duidelijke identity/status/meta-hiërarchie, bestaande edit-/archive-/weather-/compactacties en vlakke tabs. Functie en afdeling komen uitsluitend uit de al geladen `currentEmploymentSummary`; geen nieuwe fetch.
+- Het nieuwe thema `linkedhr` gebruikt theme-level tokens voor lichte workspace/surfaces, blauw accent, lichte sidebar, system/UI-font en aangepaste radius/input/buttontokens. Bestaande zes themes houden hun bestaande tokenwaarden.
+- Supabase-migratie `20260820081814_add_linkedhr_theme` is met expliciete toestemming toegepast op project `wnpfloqpjvaacobppbpk`; `public.ui_theme` bevat nu `linkedhr` en `packages/db/types.ts` is bijgewerkt. Advisors tonen alleen bestaande projectbrede meldingen.
+- Verificatie: gerichte voorkeurstest 10/10, strict typecheck, ESLint, i18n-pariteit (33 namespaces), Webpack-productiebuild en `git diff --check` groen. Lokale LinkedHR-preview op 390x844 gebruikt de juiste tokens en heeft geen horizontale overflow; Employee Detail expanded/compact browsercontrole blijft open wegens ontbrekende ingelogde browser-sessie.
+
 ## UX Foundation v1 — Blok 3 eindgate 2026-08-20
 
 - Blok 3 is uitgevoerd op `feature/ux-foundation-v1` voor `/employees` en `/employees/[employeeId]`. De Employees reference implementation gebruikt `PageShell`, `PageHeader`, `Surface`, `EmptyState`; Employee Detail gebruikt een vlakke zakelijke profielheader met `Surface`/`Badge`; het dashboard gebruikt `DetailColumns` en behoudt wide/narrow, drag/reorder en opgeslagen voorkeuren.

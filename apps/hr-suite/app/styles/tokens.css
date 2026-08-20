@@ -48,6 +48,7 @@
 }
 
 :root {
+  --font-ui: var(--font-work-sans);
   --workspace: var(--background);
   --surface-subtle: var(--surface-raised);
   --surface-overlay: var(--surface);
@@ -66,6 +67,8 @@
   --space-32: 2rem;
   --control-height: 2.5rem;
   --radius-control: 0.5rem;
+  --radius-input: 0.625rem;
+  --radius-button: 0.625rem;
   --radius-surface: 0.5rem;
   --radius-overlay: 0.75rem;
 }

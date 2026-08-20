@@ -8,7 +8,7 @@ import {
 
 describe('userPreferencesSchema', () => {
   it('accepteert iedere ondersteunde themawaarde', () => {
-    const themes = ['liquid-navy', 'noordzee', 'bos', 'warm-zand', 'aubergine', 'nacht']
+    const themes = ['liquid-navy', 'noordzee', 'bos', 'warm-zand', 'aubergine', 'nacht', 'linkedhr']
     for (const theme of themes) {
       expect(userPreferencesSchema.parse({ locale: 'nl', theme }).theme).toBe(theme)
     }
@@ -35,6 +35,13 @@ describe('resolveUserPreferences', () => {
     expect(resolveUserPreferences(null, { locale: 'en', theme: 'noordzee' })).toEqual({
       locale: 'en', theme: 'noordzee', clockMode: 'ANALOG', analogClockStyle: 'LIQUID', dateFormat: 'DMY', timeFormat: '24H', weekNumberingSystem: 'JANUARY_FIRST', useCompanyTheme: true, companyBranding: null,
     })
+  })
+
+  it('behoudt LinkedHR als cookie-thema naast een opgeslagen thema', () => {
+    expect(resolveUserPreferences(
+      { locale: 'nl', theme: 'bos', useCompanyTheme: true },
+      { locale: 'nl', theme: 'linkedhr' },
+    ).theme).toBe('linkedhr')
   })
 
   it('valt per ongeldige cookiewaarde terug op de veilige standaard', () => {

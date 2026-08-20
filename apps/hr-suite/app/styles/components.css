@@ -108,19 +108,19 @@
 
   .form-field,
   .input {
-    @apply min-h-11 w-full rounded-lg border bg-surface px-3 py-2 text-foreground shadow-sm transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-primary/40 hover:bg-surface-raised focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-focus/20;
+    @apply min-h-11 w-full rounded-[var(--radius-input)] border bg-surface px-3 py-2 text-foreground shadow-sm transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-primary/40 hover:bg-surface-raised focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-focus/20;
   }
 
   .dropdown-trigger {
-    @apply inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-border/90 bg-surface px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-[var(--radius-input)] border border-border/90 bg-surface px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .dropdown-menu {
-    @apply overflow-hidden rounded-xl border border-border bg-surface p-2 shadow-2xl;
+    @apply overflow-hidden rounded-[var(--radius-overlay)] border border-border bg-surface p-2 shadow-2xl;
   }
 
   .dropdown-option {
-    @apply flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted;
+    @apply flex w-full items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted;
   }
 
   .tabs-scroll {
@@ -135,7 +135,7 @@
   .button-primary,
   .button-secondary,
   .button-danger {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-[var(--radius-button)] px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
     -webkit-backdrop-filter: blur(1rem) saturate(1.35);
     backdrop-filter: blur(1rem) saturate(1.35);
     box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);

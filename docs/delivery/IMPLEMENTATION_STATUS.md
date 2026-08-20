@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Employee Detail profile polish + LinkedHR — 2026-08-20
+
+**Status: LOKAAL GEVERIFIEERD; AUTHENTICATED BROWSERGATE OPEN**
+
+De Employee Detail-header gebruikt nu een rustige profile-cardopbouw met subtiele bovenband, avatar-overlap, compacte metadata, bestaande profielactie, secundaire utilities en vlakke tabs. Compact mode deelt dezelfde profile language. Het nieuwe `linkedhr`-theme is toegevoegd aan de bestaande preference/selectieflow, inclusief NL/EN-labels, theme-level kleur-/font-/radius-/input-/buttontokens en de Supabase-enum. De remote migratie `20260820081814_add_linkedhr_theme` is toegepast op `wnpfloqpjvaacobppbpk`; data, permissions, API-routes en Employee Detail-functionaliteit zijn verder niet gewijzigd.
+
+Gericht groen: voorkeurstest 10/10, strict TypeScript, ESLint, i18n (33 gelijke namespaces), Webpack-build en diff-check. De anonieme LinkedHR-preview op 390x844 bevestigde `data-theme=linkedhr`, de blauwe/lichte tokens en geen horizontale overflow. Expanded/compact Employee Detail, `/employees`, generieke settings/form surface en desktop/mobile authenticated browsercontrole wachten op een beschikbare ingelogde browser-sessie.
+
 ## Release 2026-08-16: lokale consolidatie en productversie 1.20260816.1
 
 Alle lokale branches zijn geïnventariseerd en blijken al in `main` opgenomen. De resterende medewerkerwizard-, roosterinvoer- en pre-placement avatar-storagebron is toegevoegd aan de releasebasis. De zichtbare productversie is verhoogd naar `1.20260816.1`; de npm-packageversie blijft `0.1.2`. De lokale releasegate is groen met 200 testbestanden/763 tests, strict TypeScript, ESLint 0/0, 33 gelijke NL/EN-namespaces, Webpack-build met 225 routes/pages en diff-check. GitHub `origin/main` staat op releasecommit `18cf531`.
