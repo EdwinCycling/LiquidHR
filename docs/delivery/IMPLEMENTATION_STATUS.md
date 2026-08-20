@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Employee Personal Tab — final correction 2026-08-20
+
+**Status: LOKAAL GEREED; LINT INHERITED BLOCKER; GEEN MAIN-MERGE**
+
+De PersonalPanel-redesignuitbreiding is functioneel teruggebracht naar de bestaande bewerkbare velden. De actieve address form is volledig naar Foundation-controls en semantic overlay-/sectiestyling gemigreerd; de onbereikbare legacy fallback is verwijderd. Er zijn geen API-, schema-, security-, theme-, remote-, release- of versionwijzigingen gedaan.
+
+Gericht groen: employee-person-card 1/1, relevante employee-tests 9 suites/30 tests, strict TypeScript, i18n-pariteit met 33 namespaces, Webpack-productiebuild met 225 routes/pages en `git diff --check`. De volledige lintopdracht blijft geblokkeerd door de reeds bekende ESLint 10/`eslint-plugin-react` incompatibiliteit (`contextOrFilename.getFilename is not a function`).
+
 ## UX Foundation v1 — Blok 4 governance afgerond 2026-08-20
 
 **Status: GEREED VOOR BREDERE SCHERMMIGRATIE; GEEN MAIN-MERGE**

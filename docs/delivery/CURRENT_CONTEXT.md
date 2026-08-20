@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## Employee Personal Tab — final correction 2026-08-20
+
+- Op `feature/ux-employee-personal-tab` is de onbedoelde functionele uitbreiding uit `PersonalPanel` verwijderd: titel, initialen, partnernaamvelden, voornaamwoorden, burgerlijke staat/-datum en opleidingsniveau zijn niet langer bewerkbaar, leesbaar of onderdeel van het labelcontract/PATCH-body. De bestaande onderliggende velden en API/schema zijn niet gewijzigd.
+- De actieve `AddressFormV2` gebruikt Foundation `TextInput`, `Button`, `SELECT_CLASS` en semantic overlay-/subsectiestyling. De onbereikbare `LegacyAddressesPanel`/`AddressForm` fallback is verwijderd; address search, postcode lookup, reminders, controlled state en validatie zijn behouden.
+- Verificatie: gerichte personal-cardtest 1/1, relevante employee-tests 9 suites/30 tests, strict typecheck, i18n 33 namespaces, Webpack-productiebuild 225 routes en `git diff --check` groen. Lint blijft geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react` incompatibiliteit (`contextOrFilename.getFilename is not a function`). Geen schema-, API-, security-, theme-, remote-, main-, release- of versionwijziging.
+
 ## UX Foundation v1 — Blok 4 governance afgerond 2026-08-20
 
 - UX Foundation v1 is compleet: Blok 1 t/m 4 zijn afgerond. `AGENTS.md` en de screen-redesignskill maken Foundation v1 nu verplicht voor toekomstige HR Suite UI-ontwikkeling.

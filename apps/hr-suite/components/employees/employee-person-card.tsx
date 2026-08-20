@@ -162,25 +162,6 @@ export interface EmployeePersonCardLabels {
   roleTenantWide: string
   roleValidFrom: string
   roleValidUntil: string
-  employeeTitle: string
-  employeeInitials: string
-  pronouns: string
-  partnerNamePrefix: string
-  partnerName: string
-  maritalStatus: string
-  maritalStatusSingle: string
-  maritalStatusMarried: string
-  maritalStatusRegisteredPartnership: string
-  maritalStatusDivorced: string
-  maritalStatusWidowed: string
-  maritalStatusDate: string
-  educationLevel: string
-  educationMbo: string
-  educationHbo: string
-  educationWo: string
-  educationHighschool: string
-  educationOther: string
-  educationUnknown: string
 }
 
 interface EmployeePersonCardProps {
@@ -289,12 +270,10 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
     if (!employee.updatedAt) return
     const form = new FormData(event.currentTarget)
     const succeeded = await runJsonMutation(setState, `/api/employees/${employee.id}`, 'PATCH', {
-      updatedAt: employee.updatedAt, employeeNumber: value(form, 'employeeNumber'), title: nullable(value(form, 'title')), initials: nullable(value(form, 'initials')),
+      updatedAt: employee.updatedAt, employeeNumber: value(form, 'employeeNumber'),
       firstName: value(form, 'firstName'), birthNamePrefix: nullable(value(form, 'birthNamePrefix')), birthName: value(form, 'birthName'),
-      partnerNamePrefix: nullable(value(form, 'partnerNamePrefix')), partnerName: nullable(value(form, 'partnerName')), nameUsage: value(form, 'nameUsage'),
-      gender: value(form, 'gender'), pronouns: nullable(value(form, 'pronouns')), birthDate: nullable(value(form, 'birthDate')), birthPlace: nullable(value(form, 'birthPlace')),
+      nameUsage: value(form, 'nameUsage'), gender: value(form, 'gender'), birthDate: nullable(value(form, 'birthDate')), birthPlace: nullable(value(form, 'birthPlace')),
       birthCountry: nullable(value(form, 'birthCountry').toUpperCase()), nationality: nullable(value(form, 'nationality').toUpperCase()),
-      maritalStatus: nullable(value(form, 'maritalStatus')), maritalStatusDate: nullable(value(form, 'maritalStatusDate')), educationLevel: nullable(value(form, 'educationLevel')),
       preferredLanguage: value(form, 'preferredLanguage'), privateEmail: nullable(value(form, 'privateEmail')), privatePhone: nullable(value(form, 'privatePhone')),
       privateMobile: nullable(value(form, 'privateMobile')), workEmail: nullable(value(form, 'workEmail')), workPhone: nullable(value(form, 'workPhone')),
       workPhoneExt: nullable(value(form, 'workPhoneExt')), workMobile: nullable(value(form, 'workMobile')),
@@ -310,25 +289,17 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
         <div className="mt-6 divide-y divide-border-subtle">
           <FormSection title={labels.personalTitle}>
             <Field label={labels.employeeNumber}><TextInput name="employeeNumber" defaultValue={employee.employeeNumber} required /></Field>
-            <Field label={labels.employeeTitle}><TextInput name="title" defaultValue={employee.title ?? ''} /></Field>
-            <Field label={labels.employeeInitials}><TextInput name="initials" defaultValue={employee.initials ?? ''} /></Field>
             <Field label={labels.firstName}><TextInput name="firstName" defaultValue={employee.firstName} required /></Field>
             <Field label={labels.birthNamePrefix}><TextInput name="birthNamePrefix" defaultValue={employee.birthNamePrefix ?? ''} /></Field>
             <Field label={labels.birthName}><TextInput name="birthName" defaultValue={employee.birthName} required /></Field>
-            <Field label={labels.partnerNamePrefix}><TextInput name="partnerNamePrefix" defaultValue={employee.partnerNamePrefix ?? ''} /></Field>
-            <Field label={labels.partnerName}><TextInput name="partnerName" defaultValue={employee.partnerName ?? ''} /></Field>
             <Field label={labels.nameUsage}><select name="nameUsage" defaultValue={employee.nameUsage ?? 'BIRTH_NAME'} className={SELECT_CLASS}><option value="BIRTH_NAME">{labels.nameUsageBirth}</option><option value="PARTNER_NAME">{labels.nameUsagePartner}</option><option value="PARTNER_BEFORE_BIRTH_NAME">{labels.nameUsagePartnerBirth}</option><option value="BIRTH_NAME_BEFORE_PARTNER_NAME">{labels.nameUsageBirthPartner}</option></select></Field>
             <Field label={labels.gender}><select name="gender" defaultValue={employee.gender ?? 'PREFER_NOT_TO_SAY'} className={SELECT_CLASS}><option value="MALE">{labels.genderMale}</option><option value="FEMALE">{labels.genderFemale}</option><option value="OTHER">{labels.genderOther}</option><option value="PREFER_NOT_TO_SAY">{labels.genderUndisclosed}</option></select></Field>
-            <Field label={labels.pronouns}><TextInput name="pronouns" defaultValue={employee.pronouns ?? ''} /></Field>
           </FormSection>
           <FormSection title={labels.birthDate}>
             <Field label={labels.birthDate}><TextInput name="birthDate" type="date" defaultValue={employee.birthDate ?? ''} /></Field>
             <Field label={labels.birthPlace}><TextInput name="birthPlace" defaultValue={employee.birthPlace ?? ''} /></Field>
             <CountrySelect name="birthCountry" label={labels.birthCountry} initialValue={employee.birthCountry ?? defaultCountryCode} defaultCountryCode={defaultCountryCode} locale={locale} labels={labels} />
             <CountrySelect name="nationality" label={labels.nationality} initialValue={employee.nationality ?? defaultCountryCode} defaultCountryCode={defaultCountryCode} locale={locale} labels={labels} />
-            <Field label={labels.maritalStatus}><select name="maritalStatus" defaultValue={employee.maritalStatus ?? ''} className={SELECT_CLASS}><option value="">{labels.notRecorded}</option><option value="SINGLE">{labels.maritalStatusSingle}</option><option value="MARRIED">{labels.maritalStatusMarried}</option><option value="REGISTERED_PARTNERSHIP">{labels.maritalStatusRegisteredPartnership}</option><option value="DIVORCED">{labels.maritalStatusDivorced}</option><option value="WIDOWED">{labels.maritalStatusWidowed}</option></select></Field>
-            <Field label={labels.maritalStatusDate}><TextInput name="maritalStatusDate" type="date" defaultValue={employee.maritalStatusDate ?? ''} /></Field>
-            <Field label={labels.educationLevel}><select name="educationLevel" defaultValue={employee.educationLevel ?? ''} className={SELECT_CLASS}><option value="">{labels.notRecorded}</option><option value="MBO">{labels.educationMbo}</option><option value="HBO">{labels.educationHbo}</option><option value="WO">{labels.educationWo}</option><option value="HIGHSCHOOL">{labels.educationHighschool}</option><option value="OTHER">{labels.educationOther}</option><option value="UNKNOWN">{labels.educationUnknown}</option></select></Field>
             <LanguageSelect name="preferredLanguage" label={labels.preferredLanguage} initialValue={employee.preferredLanguage ?? 'nl-NL'} locale={locale} labels={labels} />
           </FormSection>
           <FormSection title={labels.privateContact}>
@@ -357,8 +328,8 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
       {roleAssignments.length > 0 && <section className="mb-8 border-b border-border-subtle pb-6"><SectionHeader title={labels.rolesTitle} /><div className="mt-4 grid gap-x-6 gap-y-1 md:grid-cols-2">{roleAssignments.map((assignment) => <div className="border-b border-border-subtle py-3" key={assignment.id}><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{assignment.roleName}</p><p className="text-xs text-muted-foreground">{assignment.roleCode}</p></div><Badge tone="info">{assignment.departmentName ?? labels.roleTenantWide}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{labels.roleDepartment}: {assignment.departmentName ?? labels.roleTenantWide}</p><p className="mt-1 text-xs text-muted-foreground">{labels.roleValidFrom}: {formatDate(assignment.effectiveFrom, { locale, dateFormat })}{assignment.effectiveTo ? ` · ${labels.roleValidUntil}: ${formatDate(assignment.effectiveTo, { locale, dateFormat })}` : ''}</p></div>)}</div></section>}
       <SectionHeader title={labels.personalTitle} actions={capabilities.canEditEmployee && employee.updatedAt ? <Button type="button" variant="secondary" onClick={() => setEditing(true)}><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editPersonal}</Button> : undefined} />
       <div className="mt-6 space-y-8">
-        <PersonalInfoSection title={labels.overviewTitle} items={[{ label: labels.employeeNumber, value: employee.employeeNumber }, { label: labels.employeeTitle, value: employee.title }, { label: labels.employeeInitials, value: employee.initials }, { label: labels.firstName, value: employee.firstName }, { label: labels.birthNamePrefix, value: employee.birthNamePrefix }, { label: labels.birthName, value: employee.birthName }, { label: labels.partnerNamePrefix, value: employee.partnerNamePrefix }, { label: labels.partnerName, value: employee.partnerName }, { label: labels.nameUsage, value: employee.nameUsage ? nameUsageLabel(employee.nameUsage, labels) : null }, { label: labels.gender, value: employee.gender ? genderLabel(employee.gender, labels) : null }, { label: labels.pronouns, value: employee.pronouns }]} />
-        <PersonalInfoSection title={labels.birthDate} items={[{ label: labels.birthDate, value: employee.birthDate }, { label: labels.birthPlace, value: employee.birthPlace }, { label: labels.birthCountry, value: employee.birthCountry }, { label: labels.nationality, value: employee.nationality }, { label: labels.maritalStatus, value: employee.maritalStatus ? maritalStatusLabel(employee.maritalStatus, labels) : null }, { label: labels.maritalStatusDate, value: employee.maritalStatusDate }, { label: labels.educationLevel, value: employee.educationLevel ? educationLabel(employee.educationLevel, labels) : null }, { label: labels.preferredLanguage, value: employee.preferredLanguage }]} />
+        <PersonalInfoSection title={labels.overviewTitle} items={[{ label: labels.employeeNumber, value: employee.employeeNumber }, { label: labels.firstName, value: employee.firstName }, { label: labels.birthNamePrefix, value: employee.birthNamePrefix }, { label: labels.birthName, value: employee.birthName }, { label: labels.nameUsage, value: employee.nameUsage ? nameUsageLabel(employee.nameUsage, labels) : null }, { label: labels.gender, value: employee.gender ? genderLabel(employee.gender, labels) : null }]} />
+        <PersonalInfoSection title={labels.birthDate} items={[{ label: labels.birthDate, value: employee.birthDate }, { label: labels.birthPlace, value: employee.birthPlace }, { label: labels.birthCountry, value: employee.birthCountry }, { label: labels.nationality, value: employee.nationality }, { label: labels.preferredLanguage, value: employee.preferredLanguage }]} />
         <PersonalInfoSection title={labels.privateContact} items={[{ label: labels.privateEmail, value: employee.privateEmail, isEmail: true }, { label: labels.privatePhone, value: employee.privatePhone }, { label: labels.privateMobile, value: employee.privateMobile }]} />
         <PersonalInfoSection title={labels.workContact} items={[{ label: labels.workEmail, value: employee.workEmail, isEmail: true }, { label: labels.workPhone, value: employee.workPhone }, { label: labels.workPhoneExtension, value: employee.workPhoneExt }, { label: labels.workMobile, value: employee.workMobile }]} />
       </div>
@@ -379,14 +350,6 @@ function nameUsageLabel(value: NonNullable<EmployeeDetailViewModel['employee']['
 
 function genderLabel(value: NonNullable<EmployeeDetailViewModel['employee']['gender']>, labels: EmployeePersonCardLabels): string {
   return value === 'MALE' ? labels.genderMale : value === 'FEMALE' ? labels.genderFemale : value === 'OTHER' ? labels.genderOther : labels.genderUndisclosed
-}
-
-function maritalStatusLabel(value: NonNullable<EmployeeDetailViewModel['employee']['maritalStatus']>, labels: EmployeePersonCardLabels): string {
-  return value === 'SINGLE' ? labels.maritalStatusSingle : value === 'MARRIED' ? labels.maritalStatusMarried : value === 'REGISTERED_PARTNERSHIP' ? labels.maritalStatusRegisteredPartnership : value === 'DIVORCED' ? labels.maritalStatusDivorced : labels.maritalStatusWidowed
-}
-
-function educationLabel(value: NonNullable<EmployeeDetailViewModel['employee']['educationLevel']>, labels: EmployeePersonCardLabels): string {
-  return value === 'MBO' ? labels.educationMbo : value === 'HBO' ? labels.educationHbo : value === 'WO' ? labels.educationWo : value === 'HIGHSCHOOL' ? labels.educationHighschool : value === 'OTHER' ? labels.educationOther : labels.educationUnknown
 }
 
 function BsnReveal({ employeeId, labels }: { employeeId: string; labels: EmployeePersonCardLabels }) {
@@ -416,83 +379,6 @@ function BsnReveal({ employeeId, labels }: { employeeId: string; labels: Employe
 
 type ReminderRole = 'HR_ADMIN' | 'MANAGER' | 'EMPLOYEE'
 
-function LegacyAddressesPanel({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
-  return <section>
-    <SectionHeader title={labels.addressesTitle} />
-    {addresses.length === 0 ? <EmptyState icon={<Home className="h-5 w-5" />} title={labels.addressesEmpty} /> : <ol className="mt-6 space-y-3">{addresses.map((address) => <li key={address.id} className="rounded-xl border bg-background p-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{address.addressLine1}</p>{!address.validUntil && <span className="status-chip bg-success-surface text-success">{labels.current}</span>}</div>{address.addressLine2 && <p className="mt-1 text-sm">{address.addressLine2}</p>}<p className="mt-1 text-sm text-muted-foreground">{[address.postalCode, address.city, address.region, address.countryCode].filter(Boolean).join(' · ')}</p><p className="mt-2 text-xs tabular-nums text-muted-foreground">{formatAddressDate(address.validFrom)} — {address.validUntil ? formatAddressDate(address.validUntil) : labels.current}</p></div>
-        {canManage && <div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => setEditingId(editingId === address.id ? null : address.id)} className="button-secondary gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</button><DeleteResourceButton url={`/api/employees/${employeeId}/addresses/${address.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} disabled={addresses.length === 1} disabledTitle={labels.cannotDeleteLastAddress} onDeleted={() => setEditingId(null)} /></div>}
-      </div>
-      {editingId === address.id && <div className="mt-5 border-t pt-5"><AddressForm employeeId={employeeId} locale={locale} labels={labels} address={address} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
-    </li>)}</ol>}
-    {canManage && <div className="mt-6"><ResourceDetails title={labels.addAddress}><AddressForm employeeId={employeeId} locale={locale} labels={labels} /></ResourceDetails></div>}
-  </section>
-}
-
-function AddressForm({ employeeId, locale, labels, address, onCancel, onSaved }: { employeeId: string; locale: string; labels: EmployeePersonCardLabels; address?: NonNullable<EmployeeDetailViewModel['addresses']>[number]; onCancel?: () => void; onSaved?: () => void }) {
-  const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
-  const [searchState, setSearchState] = useState<'idle' | 'loading' | 'empty' | 'failed'>('idle')
-  const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'failed'>('idle')
-  const [query, setQuery] = useState(address?.addressLine1 ?? '')
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
-  const [reminderRoles, setReminderRoles] = useState<ReminderRole[]>([])
-  const [values, setValues] = useState({ countryCode: address?.countryCode ?? 'NL', addressLine1: address?.addressLine1 ?? '', addressLine2: address?.addressLine2 ?? '', street: address?.street ?? '', houseNumber: address?.houseNumber ?? '', addition: address?.houseNumberAddition ?? '', postalCode: address?.postalCode ?? '', city: address?.city ?? '', region: address?.region ?? '', validFrom: address?.validFrom ?? new Date().toISOString().slice(0, 10), validUntil: address?.validUntil ?? '', source: (address?.source === 'pdok' || address?.source === 'geoapify' ? address.source : 'manual') as 'manual' | 'pdok' | 'geoapify', sourceReference: address?.sourceReference ?? '' })
-  const isNew = !address
-  const isDutch = values.countryCode === 'NL'
-  const countryOptions = getCountryOptions(locale)
-
-  useEffect(() => {
-    if (query.trim().length < 3 || !isNew) return
-    const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
-      setSearchState('loading')
-      try {
-        const response = await fetch(`/api/address-suggestions?country=${values.countryCode}&q=${encodeURIComponent(query.trim())}`, { signal: controller.signal })
-        if (!response.ok) throw new Error('ADDRESS_SEARCH_UNAVAILABLE')
-        const payload: { data?: AddressSuggestion[] } = await response.json()
-        const result = payload.data ?? []
-        setSuggestions(result); setSearchState(result.length > 0 ? 'idle' : 'empty')
-      } catch {
-        if (!controller.signal.aborted) { setSuggestions([]); setSearchState('failed') }
-      }
-    }, 300)
-    return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [isNew, query, values.countryCode])
-
-  function updateValue(name: keyof typeof values, value: string): void { setValues((current) => ({ ...current, [name]: value, source: 'manual', sourceReference: '' })) }
-  function updateQuery(value: string): void { setQuery(value); if (value.trim().length < 3) { setSuggestions([]); setSearchState('idle') } }
-  function applySuggestion(suggestion: AddressSuggestion): void { setValues((current) => ({ ...current, countryCode: suggestion.countryCode, addressLine1: suggestion.addressLine1, addressLine2: suggestion.addressLine2 ?? '', street: suggestion.street ?? '', houseNumber: suggestion.houseNumber ?? '', addition: suggestion.houseNumberAddition ?? '', postalCode: suggestion.postalCode ?? '', city: suggestion.city ?? '', region: suggestion.region ?? '', source: suggestion.source, sourceReference: suggestion.sourceReference ?? '' })); setQuery(suggestion.label); setSuggestions([]); setSearchState('idle') }
-  function toggleReminderRole(role: ReminderRole): void { setReminderRoles((current) => current.includes(role) ? current.filter((item) => item !== role) : [...current, role]) }
-
-  async function lookupByPostalCode(): Promise<void> {
-    setLookupState('loading')
-    try { const response = await fetch(`/api/address-lookup?country=NL&postcode=${encodeURIComponent(values.postalCode)}&houseNumber=${encodeURIComponent(values.houseNumber)}`); if (!response.ok) throw new Error('ADDRESS_LOOKUP_UNAVAILABLE'); const payload: { data?: AddressSuggestion[] } = await response.json(); if (payload.data?.[0]) applySuggestion(payload.data[0]) } catch { setLookupState('failed') } finally { setLookupState('idle') }
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
-    const payload = { ...values, addressLine1: nullable(values.addressLine1), addressLine2: nullable(values.addressLine2), street: nullable(values.street), houseNumber: nullable(values.houseNumber), addition: nullable(values.addition), postalCode: nullable(values.postalCode), city: values.city, region: nullable(values.region), validUntil: nullable(values.validUntil), sourceReference: nullable(values.sourceReference), province: null, directReminderRecipients: isNew ? reminderRoles : [] }
-    const succeeded = await runJsonMutation(setState, address ? `/api/employees/${employeeId}/addresses/${address.id}` : `/api/employees/${employeeId}/addresses`, address ? 'PATCH' : 'POST', payload)
-    if (!succeeded) return
-    if (onSaved) onSaved()
-    if (isNew) { setReminderRoles([]); setValues((current) => ({ ...current, addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validUntil: '', source: 'manual', sourceReference: '' })); setQuery('') }
-    router.refresh()
-  }
-
-  return <form onSubmit={submit} className="grid gap-4">
-    <div className="grid gap-3 sm:grid-cols-[minmax(11rem,0.75fr)_minmax(0,2fr)] sm:items-start">
-      <Field label={labels.country} className="self-start"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className="form-field">{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field>
-      <Field label={labels.addressSearch} className="min-w-0"><div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="form-field pl-10" autoComplete="off" autoFocus={isNew} role="combobox" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded={suggestions.length > 0} /></div><div className="mt-1.5 min-h-4 text-xs text-muted-foreground">{searchState === 'loading' && <span className="inline-flex items-center gap-1.5"><LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span>{labels.searchNoResults}</span>}</div>{suggestions.length > 0 && <ul id="address-suggestions" role="listbox" className="mt-1 max-h-60 overflow-y-auto rounded-lg border bg-background shadow-sm">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`} role="presentation"><button type="button" role="option" aria-selected={false} className="flex w-full items-start gap-2 border-b px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-accent" onClick={() => applySuggestion(suggestion)}><MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{suggestion.label}</span></button></li>)}</ul>}</Field>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-6"><div className="sm:col-span-full"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{labels.manualEntry}</p></div>{isDutch ? <><Field label={labels.street} className="sm:col-span-4"><input value={values.street} onChange={(event) => updateValue('street', event.target.value)} className="form-field" /></Field><Field label={labels.houseNumber}><input value={values.houseNumber} onChange={(event) => updateValue('houseNumber', event.target.value)} className="form-field" /></Field><Field label={labels.addition}><input value={values.addition} onChange={(event) => updateValue('addition', event.target.value)} className="form-field" /></Field></> : <><Field label={labels.addressLine1} className="sm:col-span-4"><input value={values.addressLine1} onChange={(event) => updateValue('addressLine1', event.target.value)} className="form-field" /></Field><Field label={labels.addressLine2} className="sm:col-span-2"><input value={values.addressLine2} onChange={(event) => updateValue('addressLine2', event.target.value)} className="form-field" /></Field></>}<Field label={labels.postalCode} className="sm:col-span-2"><input value={values.postalCode} onChange={(event) => updateValue('postalCode', event.target.value)} className="form-field uppercase" /></Field>{isDutch && values.postalCode.trim() && values.houseNumber.trim() && !values.city.trim() && <div className="sm:col-span-2 sm:self-end"><button type="button" onClick={lookupByPostalCode} disabled={lookupState === 'loading'} aria-label={`${labels.lookup}: ${labels.lookupByPostalCode}`} className="button-secondary inline-flex w-full justify-center gap-2">{lookupState === 'loading' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{lookupState === 'loading' ? labels.searchLoading : labels.lookup}</button><p className="mt-1.5 text-xs text-muted-foreground">{labels.lookupHint}</p></div>}<Field label={labels.city} className="sm:col-span-4"><input value={values.city} onChange={(event) => updateValue('city', event.target.value)} required className="form-field" /></Field><Field label={labels.region} className="sm:col-span-2"><input value={values.region} onChange={(event) => updateValue('region', event.target.value)} className="form-field" /></Field><Field label={labels.validFrom} className="sm:col-span-2"><input value={values.validFrom} onChange={(event) => updateValue('validFrom', event.target.value)} type="date" required className="form-field" /></Field><Field label={labels.validUntil} className="sm:col-span-2"><div className="flex items-center gap-2"><input value={values.validUntil} onChange={(event) => updateValue('validUntil', event.target.value)} type="date" className="form-field min-w-0 flex-1" /><button type="button" aria-label={labels.clearValidUntil} className="button-secondary shrink-0 px-3" onClick={() => updateValue('validUntil', '')}>{labels.clearValidUntil}</button></div></Field>{lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}</div>
-    {isNew && <fieldset className="rounded-xl border bg-surface-raised p-4"><legend className="px-1 text-sm font-semibold">{labels.directReminderTitle}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.directReminderHelp}</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{([['HR_ADMIN', labels.reminderHrAdmin], ['MANAGER', labels.reminderManager], ['EMPLOYEE', labels.reminderEmployee]] as const).map(([role, label]) => <label key={role} className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={reminderRoles.includes(role)} onChange={() => toggleReminderRole(role)} className="h-4 w-4 accent-primary" />{label}</label>)}</div></fieldset>}
-    <FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} />
-  </form>
-}
-
 type AddressKind = 'PRIMARY' | 'SECONDARY'
 
 function AddressesPanelV2({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
@@ -501,10 +387,6 @@ function AddressesPanelV2({ employeeId, addresses, canManage, locale, dateFormat
   const primaryAddresses = addresses.filter((address) => address.addressType === 'PRIMARY')
   const secondaryAddresses = addresses.filter((address) => address.addressType === 'SECONDARY')
   const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
-
-  if (!Array.isArray(addresses)) {
-    return <LegacyAddressesPanel employeeId={employeeId} addresses={addresses} canManage={canManage} locale={locale} dateFormat={dateFormat} labels={labels} />
-  }
 
   function renderAddress(address: NonNullable<EmployeeDetailViewModel['addresses']>[number], kind: AddressKind): ReactNode {
     const isSecondary = kind === 'SECONDARY'
@@ -598,16 +480,29 @@ function AddressFormV2({ employeeId, locale, labels, address, addressType, onCan
     router.refresh()
   }
 
-  return <form onSubmit={submit} className="grid gap-4">
-    {isSecondary && <Field label={labels.secondaryAddressDescription}><input value={values.description} onChange={(event) => updateValue('description', event.target.value)} required maxLength={240} className="form-field" /><span className="text-xs font-normal text-muted-foreground">{labels.secondaryAddressHelp}</span></Field>}
-    <div className="grid gap-3 sm:grid-cols-[minmax(11rem,0.75fr)_minmax(0,2fr)] sm:items-start">
-      <Field label={labels.country} className="self-start"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className="form-field">{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field>
-      <Field label={labels.addressSearch} className="min-w-0"><div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="form-field pl-10" autoComplete="off" autoFocus={isNew} role="combobox" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded={suggestions.length > 0} /></div><div className="mt-1.5 min-h-4 text-xs text-muted-foreground">{searchState === 'loading' && <span className="inline-flex items-center gap-1.5"><LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span>{labels.searchNoResults}</span>}</div>{suggestions.length > 0 && <ul id="address-suggestions" role="listbox" className="mt-1 max-h-60 overflow-y-auto rounded-lg border bg-background shadow-sm">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`} role="presentation"><button type="button" role="option" aria-selected={false} className="flex w-full items-start gap-2 border-b px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-accent" onClick={() => applySuggestion(suggestion)}><MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{suggestion.label}</span></button></li>)}</ul>}</Field>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-6"><div className="sm:col-span-full"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{labels.manualEntry}</p></div>{isDutch ? <><Field label={labels.street} className="sm:col-span-4"><input value={values.street} onChange={(event) => updateValue('street', event.target.value)} className="form-field" />{/\d/.test(values.street) && <span className="text-xs text-muted-foreground">{labels.streetHasNumberNote}</span>}</Field><Field label={labels.houseNumber}><input value={values.houseNumber} onChange={(event) => updateValue('houseNumber', event.target.value)} className="form-field" /></Field><Field label={labels.addition}><input value={values.addition} onChange={(event) => updateValue('addition', event.target.value)} className="form-field" /></Field></> : <><Field label={labels.addressLine1} className="sm:col-span-4"><input value={values.addressLine1} onChange={(event) => updateValue('addressLine1', event.target.value)} className="form-field" /></Field><Field label={labels.addressLine2} className="sm:col-span-2"><input value={values.addressLine2} onChange={(event) => updateValue('addressLine2', event.target.value)} className="form-field" /></Field></>}<Field label={labels.postalCode} className="sm:col-span-2"><input value={values.postalCode} onChange={(event) => updateValue('postalCode', event.target.value)} className="form-field uppercase" /></Field>{isDutch && values.postalCode.trim() && values.houseNumber.trim() && !values.city.trim() && <div className="sm:col-span-2 sm:self-end"><button type="button" onClick={lookupByPostalCode} disabled={lookupState === 'loading'} aria-label={`${labels.lookup}: ${labels.lookupByPostalCode}`} className="button-secondary inline-flex w-full justify-center gap-2">{lookupState === 'loading' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}{lookupState === 'loading' ? labels.searchLoading : labels.lookup}</button><p className="mt-1.5 text-xs text-muted-foreground">{labels.lookupHint}</p></div>}<Field label={labels.city} className="sm:col-span-4"><input value={values.city} onChange={(event) => updateValue('city', event.target.value)} required className="form-field" /></Field><Field label={labels.region} className="sm:col-span-2"><input value={values.region} onChange={(event) => updateValue('region', event.target.value)} className="form-field" /></Field><Field label={labels.validFrom} className="sm:col-span-2"><input value={values.validFrom} onChange={(event) => updateValue('validFrom', event.target.value)} type="date" required className="form-field" /></Field>{isSecondary && <Field label={labels.validUntil} className="sm:col-span-2"><input value={values.validUntil} onChange={(event) => updateValue('validUntil', event.target.value)} type="date" required className="form-field" /></Field>}{lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}</div>
-    {isNew && <fieldset className="rounded-xl border bg-surface-raised p-4"><legend className="px-1 text-sm font-semibold">{labels.directReminderTitle}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.directReminderHelp}</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{([['HR_ADMIN', labels.reminderHrAdmin], ['MANAGER', labels.reminderManager], ['EMPLOYEE', labels.reminderEmployee]] as const).map(([role, label]) => <label key={role} className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={reminderRoles.includes(role)} onChange={() => toggleReminderRole(role)} className="h-4 w-4 accent-primary" />{label}</label>)}</div></fieldset>}
+  return (
+    <form onSubmit={submit} className="grid gap-4">
+      {isSecondary && <Field label={labels.secondaryAddressDescription}><TextInput value={values.description} onChange={(event) => updateValue('description', event.target.value)} required maxLength={240} /><span className="text-xs font-normal text-muted-foreground">{labels.secondaryAddressHelp}</span></Field>}
+      <div className="grid gap-3 sm:grid-cols-[minmax(11rem,0.75fr)_minmax(0,2fr)] sm:items-start">
+        <Field label={labels.country} className="self-start"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className={SELECT_CLASS}>{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field>
+        <Field label={labels.addressSearch} className="min-w-0">
+          <div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><TextInput value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="pl-10" autoComplete="off" autoFocus={isNew} role="combobox" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded={suggestions.length > 0} /></div>
+          <div className="mt-1.5 min-h-4 text-xs text-muted-foreground">{searchState === 'loading' && <span className="inline-flex items-center gap-1.5"><LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span>{labels.searchNoResults}</span>}</div>
+          {suggestions.length > 0 && <ul id="address-suggestions" role="listbox" className="mt-1 max-h-60 overflow-y-auto rounded-[var(--radius-overlay)] border border-border bg-surface-overlay shadow-sm">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`} role="presentation"><button type="button" role="option" aria-selected={false} className="flex w-full items-start gap-2 border-b px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-accent" onClick={() => applySuggestion(suggestion)}><MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{suggestion.label}</span></button></li>)}</ul>}
+        </Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-6">
+        <div className="sm:col-span-full"><h3 className="text-sm font-semibold text-foreground">{labels.manualEntry}</h3></div>
+        {isDutch ? <><Field label={labels.street} className="sm:col-span-4"><TextInput value={values.street} onChange={(event) => updateValue('street', event.target.value)} />{/\d/.test(values.street) && <span className="text-xs text-muted-foreground">{labels.streetHasNumberNote}</span>}</Field><Field label={labels.houseNumber}><TextInput value={values.houseNumber} onChange={(event) => updateValue('houseNumber', event.target.value)} /></Field><Field label={labels.addition}><TextInput value={values.addition} onChange={(event) => updateValue('addition', event.target.value)} /></Field></> : <><Field label={labels.addressLine1} className="sm:col-span-4"><TextInput value={values.addressLine1} onChange={(event) => updateValue('addressLine1', event.target.value)} /></Field><Field label={labels.addressLine2} className="sm:col-span-2"><TextInput value={values.addressLine2} onChange={(event) => updateValue('addressLine2', event.target.value)} /></Field></>}
+        <Field label={labels.postalCode} className="sm:col-span-2"><TextInput value={values.postalCode} onChange={(event) => updateValue('postalCode', event.target.value)} className="uppercase" /></Field>
+        {isDutch && values.postalCode.trim() && values.houseNumber.trim() && !values.city.trim() && <div className="sm:col-span-2 sm:self-end"><Button type="button" onClick={lookupByPostalCode} disabled={lookupState === 'loading'} loading={lookupState === 'loading'} aria-label={`${labels.lookup}: ${labels.lookupByPostalCode}`} variant="secondary" className="w-full">{lookupState === 'loading' ? labels.searchLoading : labels.lookup}</Button><p className="mt-1.5 text-xs text-muted-foreground">{labels.lookupHint}</p></div>}
+        <Field label={labels.city} className="sm:col-span-4"><TextInput value={values.city} onChange={(event) => updateValue('city', event.target.value)} required /></Field><Field label={labels.region} className="sm:col-span-2"><TextInput value={values.region} onChange={(event) => updateValue('region', event.target.value)} /></Field><Field label={labels.validFrom} className="sm:col-span-2"><TextInput value={values.validFrom} onChange={(event) => updateValue('validFrom', event.target.value)} type="date" required /></Field>{isSecondary && <Field label={labels.validUntil} className="sm:col-span-2"><div className="flex items-center gap-2"><TextInput value={values.validUntil} onChange={(event) => updateValue('validUntil', event.target.value)} type="date" className="min-w-0 flex-1" /><Button type="button" aria-label={labels.clearValidUntil} variant="secondary" size="sm" onClick={() => updateValue('validUntil', '')}>{labels.clearValidUntil}</Button></div></Field>}
+        {lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}
+      </div>
+      {isNew && <fieldset className="border-t border-border-subtle pt-5"><legend className="px-1 text-sm font-semibold">{labels.directReminderTitle}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.directReminderHelp}</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{([['HR_ADMIN', labels.reminderHrAdmin], ['MANAGER', labels.reminderManager], ['EMPLOYEE', labels.reminderEmployee]] as const).map(([role, label]) => <label key={role} className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={reminderRoles.includes(role)} onChange={() => toggleReminderRole(role)} className="h-4 w-4 accent-primary" />{label}</label>)}</div></fieldset>}
     <FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} />
-  </form>
+   </form>
+  )
 }
 
 function CountrySelect({ name, label, initialValue, defaultCountryCode, locale, labels }: { name: string; label: string; initialValue: string; defaultCountryCode: string; locale: string; labels: Pick<EmployeePersonCardLabels, 'countrySearch' | 'countryNoResults'> }) {
