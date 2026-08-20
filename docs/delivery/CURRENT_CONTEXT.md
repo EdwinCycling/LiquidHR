@@ -1937,3 +1937,9 @@ Lokaal gecontroleerd: strict TypeScript en i18n-pariteit geslaagd. Remote migrat
 De avatarupload van een net aangemaakte medewerker faalde doordat de Storage-policy nog `can_manage_employee` gebruikte en dus een organisatieplaatsing vereiste. De nieuwe lokale migratie `20260816140854_allow_hr_preplacement_avatar_storage` gebruikt de bestaande actorveilige `employee_subresource_can_write`-scope voor insert, update en delete. De read-only remote proef bevestigt dat dezelfde HR-gebruikersrol vóór plaatsing schrijfrecht heeft; de migratie is nog niet remote toegepast.
 
 Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,30` betekent 7,5 uur. De Controleren-stap blijft de enige stap die een dienstverband kan publiceren; een regressietest dekt ook Overige expliciet af. Lokale verificatie: 11 gerichte Vitest-tests, strict TypeScript, i18n-pariteit, gerichte ESLint en `git diff --check` groen. Open: remote migration, Supabase-advisors en authenticated browsercontrole van foto-upload en de volledige aanmaakflow.
+# Employee Personal Tab UX Foundation v1 — 2026-08-20
+
+- Worktree: `.codex-worktrees/employee-personal-tab`, branch `feature/ux-employee-personal-tab`, baseline `origin/feature/ux-foundation-v1` / `16a2022`.
+- Geïmplementeerd: volledige personal-tab met vijf subtabs. Foundation `Surface`, `SectionHeader`, `InfoList`, `Badge`, `Button`, `TextInput` en `EmptyState` zijn aangesloten; bestaande data-, mutation-, permission-, RLS-, API- en auditcontracten zijn behouden.
+- Gerichte componentcontracttest, volledige testsuite, strict typecheck, i18n en Webpack-production build zijn groen. Lint blijft geblokkeerd door de bestaande ESLint 10/plugin-incompatibiliteit; authenticated browsercontrole desktop/390px in LiquidHR/LinkedHR staat open omdat poort 3000 door een niet-identificeerbare bestaande server bezet is.
+- Geen remote Supabase-write, migration, release, deployment, merge of main-push uitgevoerd.

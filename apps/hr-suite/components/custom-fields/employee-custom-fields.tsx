@@ -3,6 +3,8 @@
 import type { Json } from '@scope/db'
 import { useState } from 'react'
 import type { EmployeeCustomField } from '@/lib/custom-fields/service'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 interface Labels { title: string; subtitle: string; save: string; saving: string; saved: string; failed: string; readOnly: string; yes: string; no: string }
 
@@ -39,12 +41,12 @@ export function EmployeeCustomFields({ employeeId, fields, labels, embedded = fa
     } catch { setMessage(labels.failed) } finally { setSaving(false) }
   }
   if (!fields.length) return null
-  return <section className={embedded ? '' : 'mt-8 rounded-2xl border bg-surface p-5 sm:p-6'}><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold text-foreground">{labels.title}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p></div>{!writable ? <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">{labels.readOnly}</span> : null}</div><form action={submit} className="mt-6 grid gap-4 sm:grid-cols-2">{fields.map((field) => <Field key={field.id} field={field} labels={labels} />)}{message ? <p aria-live="polite" className="text-sm text-muted-foreground sm:col-span-2">{message}</p> : null}{writable ? <button className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60 sm:col-span-2 sm:justify-self-start" disabled={saving} type="submit">{saving ? labels.saving : labels.save}</button> : null}</form></section>
+  return <section className={embedded ? '' : 'mt-8 rounded-2xl border bg-surface p-5 sm:p-6'}><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold text-foreground">{labels.title}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p></div>{!writable ? <Badge tone="neutral">{labels.readOnly}</Badge> : null}</div><form action={submit} className="mt-6 grid gap-4 sm:grid-cols-2">{fields.map((field) => <Field key={field.id} field={field} labels={labels} embedded={embedded} />)}{message ? <p aria-live="polite" className="text-sm text-muted-foreground sm:col-span-2">{message}</p> : null}{writable ? <Button className="sm:col-span-2 sm:justify-self-start" disabled={saving} loading={saving} type="submit">{saving ? labels.saving : labels.save}</Button> : null}</form></section>
 }
 
-function Field({ field, labels }: { field: EmployeeCustomField; labels: Labels }) {
+function Field({ field, labels, embedded }: { field: EmployeeCustomField; labels: Labels; embedded: boolean }) {
   const disabled = field.access !== 'WRITE' || field.fieldType === 'AUTO_INCREMENT'
-  const className = 'mt-1.5 w-full rounded-lg border bg-background px-3 py-2 disabled:bg-muted disabled:text-muted-foreground'
+  const className = embedded ? 'mt-1.5 min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm disabled:bg-muted disabled:text-muted-foreground' : 'mt-1.5 w-full rounded-lg border bg-background px-3 py-2 disabled:bg-muted disabled:text-muted-foreground'
   const label = <span>{field.labelNl}{field.isRequired ? ' *' : ''}</span>
   if (disabled) return <div className="text-sm"><span className="font-medium text-foreground">{label}</span><p className="mt-1.5 rounded-lg border bg-muted px-3 py-2 text-muted-foreground">{displayValue(field, labels)}</p></div>
   if (field.fieldType === 'TEXTAREA') return <label className="text-sm font-medium text-foreground">{label}<textarea className={`${className} min-h-24`} defaultValue={typeof field.value === 'string' ? field.value : ''} name={field.key} required={field.isRequired} /></label>
