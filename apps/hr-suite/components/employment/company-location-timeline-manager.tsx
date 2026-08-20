@@ -3,6 +3,11 @@
 import { MapPin, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { InfoList } from '@/components/patterns/info-list'
+import { Surface } from '@/components/ui/surface'
+import { buttonClasses } from '@/components/ui/button'
 
 interface CompanyAddress {
   address_line_1: string | null
@@ -91,7 +96,7 @@ function LocationPicker({
       <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
         aria-label={labels.locationSearch}
-        className="form-field pl-10"
+        className="min-h-10 w-full rounded-[var(--radius-control)] border border-border bg-surface pl-10 pr-3 text-sm text-foreground outline-none focus-visible:border-focus focus-visible:outline-2 focus-visible:outline-focus/50"
         onChange={(event) => setQuery(event.target.value)}
         placeholder={labels.locationSearchPlaceholder}
         role="combobox"
@@ -101,7 +106,7 @@ function LocationPicker({
         value={query}
       />
     </label>
-    <div aria-label={labels.locationSearch} className="max-h-52 overflow-y-auto rounded-xl border" id="employment-location-options" role="listbox">
+    <div aria-label={labels.locationSearch} className="max-h-52 overflow-y-auto border-y border-subtle" id="employment-location-options" role="listbox">
       {filtered.length === 0 ? <p className="p-3 text-sm text-muted-foreground">{labels.noLocationResults}</p> : filtered.map((option) => <button
         aria-selected={option.id === value}
         className={`flex w-full items-center justify-between gap-3 border-b px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-accent ${option.id === value ? 'bg-primary/5 font-semibold' : ''}`}
@@ -189,65 +194,61 @@ export function CompanyLocationTimelineManager({
   }
 
   if (company.single_location) {
-    return <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+    return <Surface className="p-5">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="eyebrow">{labels.title}</p>
           <h2 className="mt-1 text-xl font-semibold">{labels.company}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.singleLocationMode}</p>
         </div>
-        <span className="status-chip bg-muted text-muted-foreground">{labels.readOnly}</span>
+        <Badge tone="neutral">{labels.readOnly}</Badge>
       </header>
-      <article className="mt-5 flex items-start gap-3 rounded-2xl border bg-background p-4">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary"><MapPin aria-hidden="true" className="h-5 w-5" /></span>
+      <article className="mt-5 flex items-start gap-3 border-t border-subtle pt-4">
+        <span className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] bg-accent text-primary"><MapPin aria-hidden="true" className="h-5 w-5" /></span>
         <div>
           <h3 className="font-semibold">{company.name}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{labels.companyAddress}: {formatAddress(company.address) || labels.notRecorded}</p>
         </div>
       </article>
-    </section>
+    </Surface>
   }
 
   const activeLocations = locations.filter((location) => location.is_active)
   const modalOpen = Boolean(selected || mode === 'add')
 
-  return <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+  return <Surface className="p-5">
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p className="eyebrow">{labels.title}</p>
         <h2 className="mt-1 text-xl font-semibold">{labels.locations}</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.description}</p>
       </div>
-      {canWrite && activeLocations.length > 0 ? <button className="button-primary" onClick={add} type="button">{labels.add}</button> : null}
+      {canWrite && activeLocations.length > 0 ? <button className={buttonClasses()} onClick={add} type="button">{labels.add}</button> : null}
     </header>
-    {activeLocations.length === 0 ? <p className="mt-5 rounded-xl border border-dashed p-5 text-sm text-muted-foreground">{labels.noLocations}</p> : null}
-    <div className="mt-5 grid gap-3">{assignments.map((assignment, index) => {
+    {activeLocations.length === 0 ? <EmptyState className="mt-5" title={labels.noLocations} /> : null}
+    <div className="mt-5 divide-y divide-subtle border-y border-subtle">{assignments.map((assignment, index) => {
       const location = locations.find((option) => option.id === assignment.location_id)
-      return <button className="cursor-pointer rounded-2xl border p-4 text-left transition hover:border-primary hover:bg-primary/5" key={assignment.id} onClick={() => open(assignment)} type="button">
+      return <button className="w-full cursor-pointer px-2 py-4 text-left transition-colors hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" key={assignment.id} onClick={() => open(assignment)} type="button">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{index === 0 ? labels.current : labels.history}</p>
+            <p className="text-sm font-medium text-muted-foreground">{index === 0 ? labels.current : labels.history}</p>
             <p className="mt-1 font-semibold">{location?.name ?? labels.notRecorded}</p>
           </div>
-          <span className="status-chip bg-accent text-accent-foreground">{assignment.effective_to ?? labels.active}</span>
+          <Badge tone={index === 0 ? 'info' : 'neutral'}>{assignment.effective_to ?? labels.active}</Badge>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">{labels.effectiveOn}: {assignment.effective_from}</p>
       </button>
     })}</div>
     {modalOpen ? <div className="fixed inset-0 z-[70] grid place-items-center bg-sidebar/70 p-4" role="presentation">
-      <form className="w-full max-w-xl rounded-3xl border bg-surface p-6 shadow-2xl" onSubmit={(event) => void save(event)} role="dialog" aria-modal="true">
-        <div className="flex items-center justify-between gap-4 border-b pb-4"><div><p className="eyebrow">{labels.title}</p><h3 className="mt-1 text-xl font-semibold">{mode === 'add' ? labels.add : mode === 'edit' ? labels.edit : labels.locations}</h3></div><button className="button-secondary" onClick={close} type="button">{labels.cancel}</button></div>
-        {mode === 'view' ? <dl className="mt-5 grid gap-3 sm:grid-cols-2"><Item label={labels.location} value={locations.find((location) => location.id === selected?.location_id)?.name ?? labels.notRecorded} /><Item label={labels.effectiveOn} value={selected?.effective_from ?? ''} /><Item label={labels.active} value={selected?.effective_to ?? labels.active} /></dl> : <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <form className="w-full max-w-xl rounded-[var(--radius-overlay)] border border-subtle bg-surface-overlay p-6 shadow-lg" onSubmit={(event) => void save(event)} role="dialog" aria-modal="true">
+        <div className="flex items-center justify-between gap-4 border-b border-subtle pb-4"><div><p className="text-sm font-medium text-muted-foreground">{labels.title}</p><h3 className="mt-1 text-xl font-semibold">{mode === 'add' ? labels.add : mode === 'edit' ? labels.edit : labels.locations}</h3></div><button className={buttonClasses({ variant: 'secondary', size: 'sm' })} onClick={close} type="button">{labels.cancel}</button></div>
+        {mode === 'view' ? <InfoList className="mt-5" columns={2} items={[{ label: labels.location, value: locations.find((location) => location.id === selected?.location_id)?.name ?? labels.notRecorded }, { label: labels.effectiveOn, value: selected?.effective_from ?? '' }, { label: labels.active, value: selected?.effective_to ?? labels.active }]} /> : <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <LocationPicker labels={labels} onChange={setLocationId} options={activeLocations} value={locationId} />
           <label className="grid gap-1.5 text-sm font-medium"><span>{labels.effectiveOn}</span><input className="form-field" min={assignments[0]?.effective_from} onChange={(event) => setEffectiveOn(event.target.value)} readOnly={mode === 'edit'} required type="date" value={effectiveOn} /></label>
         </div>}
         {error ? <p className="mt-4 text-sm text-destructive" role="alert">{labels.failed}</p> : null}
-        <div className="mt-6 flex justify-end gap-3 border-t pt-4">{mode === 'view' && canWrite && selected ? <button className="button-primary" onClick={() => setMode('edit')} type="button">{labels.edit}</button> : mode !== 'view' ? <button className="button-primary" disabled={saving || !locationId} type="submit">{saving ? labels.saving : labels.save}</button> : null}</div>
+        <div className="mt-6 flex justify-end gap-3 border-t border-subtle pt-4">{mode === 'view' && canWrite && selected ? <button className={buttonClasses()} onClick={() => setMode('edit')} type="button">{labels.edit}</button> : mode !== 'view' ? <button className={buttonClasses()} disabled={saving || !locationId} type="submit">{saving ? labels.saving : labels.save}</button> : null}</div>
       </form>
     </div> : null}
-  </section>
-}
-
-function Item({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>
+  </Surface>
 }

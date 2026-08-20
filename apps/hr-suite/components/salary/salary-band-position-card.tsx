@@ -1,4 +1,7 @@
 import { calculateSalaryBandPosition, type SalaryBandPositionBand } from '@/lib/salary-application/calculations'
+import { Badge } from '@/components/ui/badge'
+import { InfoList } from '@/components/patterns/info-list'
+import { Surface } from '@/components/ui/surface'
 
 type Labels = {
   preview: string
@@ -49,10 +52,10 @@ export function SalaryBandPositionCard({
     : position.status === 'ABOVE_MAXIMUM' ? labels.aboveMaximum
       : position.status === 'WITHIN_RANGE' ? labels.withinRange : labels.noValidBand
 
-  return <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+  return <Surface className="p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><p className="eyebrow">{labels.preview}</p><h3 className="mt-1 text-lg font-semibold">{labels.currentSalary}: {money(salaryAmount, locale, currencyCode)}</h3></div>
-      <span className="status-chip bg-primary/10 text-primary">{statusLabel}</span>
+      <div><p className="text-sm font-medium text-muted-foreground">{labels.preview}</p><h3 className="mt-1 text-lg font-semibold">{labels.currentSalary}: {money(salaryAmount, locale, currencyCode)}</h3></div>
+      <Badge tone={position.status === 'WITHIN_RANGE' ? 'success' : position.status === 'NO_VALID_BAND' ? 'neutral' : 'warning'}>{statusLabel}</Badge>
     </div>
     <div className="relative mt-7 h-24" aria-label={`${labels.minimum} ${money(band?.minimum ?? null, locale, currencyCode)}, ${labels.midpoint} ${money(band?.midpoint ?? null, locale, currencyCode)}, ${labels.maximum} ${money(band?.maximum ?? null, locale, currencyCode)}`}>
       <div className="absolute left-0 right-0 top-5 h-1 rounded-full bg-primary/20" />
@@ -62,21 +65,17 @@ export function SalaryBandPositionCard({
         <span className="absolute top-2 size-2 -translate-x-1/2 rounded-full bg-primary" style={{ left: `${midpointPosition}%` }} />
         {maximum !== null && <span className="absolute top-2 size-2 -translate-x-1/2 rounded-full bg-primary" style={{ left: '100%' }} />}
       </>}
-      <span className="absolute top-0 size-3 -translate-x-1/2 rounded-full border-2 border-background bg-foreground shadow-sm" style={{ left: `${salaryPosition}%` }} aria-hidden="true" />
+      <span className="absolute top-0 size-3 -translate-x-1/2 rounded-full border-2 border-background bg-foreground" style={{ left: `${salaryPosition}%` }} aria-hidden="true" />
       <div className="absolute inset-x-0 top-10 flex justify-between gap-2 text-xs text-muted-foreground">
         <span><span className="block font-medium">{labels.minimum}</span><span className="font-semibold text-foreground">{money(band?.minimum ?? null, locale, currencyCode)}</span></span>
         <span className="text-center"><span className="block font-medium">{labels.midpoint}</span><span className="font-semibold text-foreground">{money(band?.midpoint ?? null, locale, currencyCode)}</span></span>
         <span className="text-right"><span className="block font-medium">{labels.maximum}</span><span className="font-semibold text-foreground">{band?.maximum === null ? labels.openEnded : money(band?.maximum ?? null, locale, currencyCode)}</span></span>
       </div>
     </div>
-    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-      <Metric label={labels.compaRatio} value={position.compaRatioPercentage === null ? '—' : `${position.compaRatioPercentage}%`} />
-      <Metric label={labels.rangePenetration} value={position.rangePenetrationPercentage === null ? '—' : `${position.rangePenetrationPercentage}%`} />
-      <Metric label={labels.status} value={statusLabel} />
-    </div>
-  </section>
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border bg-background px-3 py-3"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-base font-semibold">{value}</p></div>
+    <InfoList className="mt-4" columns={2} items={[
+      { label: labels.compaRatio, value: position.compaRatioPercentage === null ? '—' : `${position.compaRatioPercentage}%` },
+      { label: labels.rangePenetration, value: position.rangePenetrationPercentage === null ? '—' : `${position.rangePenetrationPercentage}%` },
+      { label: labels.status, value: statusLabel },
+    ]} />
+  </Surface>
 }

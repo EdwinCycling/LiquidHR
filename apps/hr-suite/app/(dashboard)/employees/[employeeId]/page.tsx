@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
 import { PageShell } from '@/components/layout/page-shell'
+import { SectionHeader } from '@/components/patterns/section-header'
+import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { Badge } from '@/components/ui/badge'
 import { EmployeeDashboard } from '@/components/employees/employee-dashboard'
@@ -298,9 +300,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'employments' && <div className="mt-8">
           <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">{tEmployment('title')}</h2>
-            </div>
+            <SectionHeader title={tEmployment('title')} actions={canManageEmployments ? <Link href={`/employees/${employeeId}/employments/new`} className={buttonClasses()}>{tEmployment('new')}</Link> : null} />
             <EmploymentTimeline
               employments={detail.employments}
               summaries={detail.employmentCards}
@@ -332,9 +332,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
               }}
             />
           </section>
-          {canManageEmployments && <div className="mt-6 flex justify-end">
-            <Link href={`/employees/${employeeId}/employments/new`} className="button-primary">{tEmployment('new')}</Link>
-          </div>}
         </div>}
       </PageShell>
   )

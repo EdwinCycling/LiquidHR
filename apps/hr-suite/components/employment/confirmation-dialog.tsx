@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useRef } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
+import { buttonClasses } from '@/components/ui/button'
 
 interface ConfirmationDialogProps {
   open: boolean
@@ -31,9 +32,9 @@ export function ConfirmationDialog(props: ConfirmationDialogProps) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/35 p-4" role="presentation" onMouseDown={props.onCancel}>
       <section aria-modal="true" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-description"
-        className="w-full max-w-lg rounded-2xl border bg-surface p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+        className="w-full max-w-lg rounded-[var(--radius-overlay)] border border-subtle bg-surface-overlay p-6 shadow-lg" onMouseDown={(event) => event.stopPropagation()}>
         <div className="flex items-start gap-4">
-          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${props.warning ? 'bg-warning/15 text-warning-foreground' : 'bg-accent text-accent-foreground'}`}>
+          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] ${props.warning ? 'bg-warning-surface text-warning' : 'bg-accent text-accent-foreground'}`}>
             <AlertTriangle aria-hidden="true" className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -41,13 +42,13 @@ export function ConfirmationDialog(props: ConfirmationDialogProps) {
             <p id="confirm-description" className="mt-2 text-sm leading-6 text-muted-foreground">{props.description}</p>
             {props.children}
           </div>
-          <button type="button" aria-label={props.cancelLabel} onClick={props.onCancel} className="rounded-lg p-2 hover:bg-muted">
+          <button type="button" aria-label={props.cancelLabel} onClick={props.onCancel} className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'min-h-8 w-8 p-0' })}>
             <X aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <button ref={cancelRef} type="button" className="button-secondary" onClick={props.onCancel}>{props.cancelLabel}</button>
-          <button type="button" className={props.warning ? 'button-danger' : 'button-primary'} disabled={props.busy} onClick={props.onConfirm}>{props.confirmLabel}</button>
+          <button ref={cancelRef} type="button" className={buttonClasses({ variant: 'secondary' })} onClick={props.onCancel}>{props.cancelLabel}</button>
+          <button type="button" className={buttonClasses({ variant: props.warning ? 'danger' : 'primary' })} disabled={props.busy} onClick={props.onConfirm}>{props.confirmLabel}</button>
         </div>
       </section>
     </div>

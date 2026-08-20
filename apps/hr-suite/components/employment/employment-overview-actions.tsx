@@ -16,6 +16,7 @@ import {
   type EmploymentOverviewActionKey,
   type EmploymentOverviewChangeData,
 } from './employment-contract-change-dialog'
+import { buttonClasses } from '@/components/ui/button'
 
 interface EmploymentOverviewActionLabels extends EmploymentContractChangeLabels {
   sectionTitle: string
@@ -62,12 +63,12 @@ export function EmploymentOverviewActions({ labels, employmentId, today, locale,
           const Icon = action.icon
           return (
             <button
-              className={`group flex min-h-20 items-center gap-3 rounded-2xl border bg-surface px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${action.destructive ? 'border-destructive/30' : ''}`}
+              className={`${buttonClasses({ variant: action.destructive ? 'danger' : 'secondary', className: 'min-h-20 w-full justify-start whitespace-normal px-4 py-3 text-left' })} ${action.destructive ? 'border-destructive/30' : ''}`}
               key={action.key}
               onClick={() => setActiveAction(action)}
               type="button"
             >
-              <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${action.destructive ? 'bg-destructive/10 text-destructive' : 'bg-accent text-accent-foreground'}`}>
+              <span className={`grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] ${action.destructive ? 'bg-destructive-surface text-destructive' : 'bg-accent text-accent-foreground'}`}>
                 <Icon aria-hidden="true" className="size-5" />
               </span>
               <span className="font-semibold leading-5 group-hover:text-primary">{action.title}</span>

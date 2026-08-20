@@ -6,6 +6,8 @@ import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import { SalaryBandPositionCard } from '@/components/salary/salary-band-position-card'
 import { SalaryBandPercentageControl } from '@/components/salary/salary-band-percentage-control'
+import { buttonClasses } from '@/components/ui/button'
+import { Surface } from '@/components/ui/surface'
 import { ConfirmationDialog } from './confirmation-dialog'
 
 type Timeline = 'LABOR_CONDITIONS' | 'SCHEDULE' | 'SALARY' | 'COST_ALLOCATION'
@@ -138,10 +140,10 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
 
   const isTwk = pending ? String(pending.effectiveOn) < today : false
   return (
-    <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+    <Surface className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{labels.change}</h2>
-        <button type="button" disabled={blockCount <= 1} onClick={() => setDialog('rollback')} className="button-secondary inline-flex items-center gap-2">
+        <button type="button" disabled={blockCount <= 1} onClick={() => setDialog('rollback')} className={buttonClasses({ variant: 'secondary' })}>
           <RotateCcw aria-hidden="true" className="h-4 w-4" />{labels.rollback}
         </button>
       </div>
@@ -177,19 +179,19 @@ export function EmploymentMutationPanel({ employmentId, timeline, canWrite, bloc
             <select aria-label={labels.costCenter} className="form-field" value={allocation.costCenterId} onChange={(event) => setAllocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, costCenterId: event.target.value } : item))}>{costCenters.map((option) => <option key={option.id} value={option.id}>{option.code} · {option.name}</option>)}</select>
             <select aria-label={labels.costCarrier} className="form-field" value={allocation.costCarrierId} onChange={(event) => setAllocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, costCarrierId: event.target.value } : item))}>{costCarriers.map((option) => <option key={option.id} value={option.id}>{option.code} · {option.name}</option>)}</select>
             <input aria-label={labels.percentage} className="form-field" type="number" min="0.01" max="100" step="0.01" value={allocation.percentage} onChange={(event) => setAllocations((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, percentage: Number(event.target.value) } : item))} />
-            <button aria-label={labels.rollback} type="button" className="rounded-lg p-2 hover:bg-muted" onClick={() => setAllocations((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></button>
+            <button aria-label={labels.rollback} type="button" className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'px-2' })} onClick={() => setAllocations((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></button>
           </div>)}
-          <div className="flex flex-wrap items-center justify-between gap-3"><button type="button" className="button-secondary inline-flex items-center gap-2" onClick={() => setAllocations((current) => [...current, { costCenterId: costCenters[0]?.id ?? '', costCarrierId: costCarriers[0]?.id ?? '', percentage: 0 }])}><Plus className="h-4 w-4" />{labels.addAllocation}</button><p className={allocationTotal === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>{labels.allocationTotal.replace('{total}', String(allocationTotal))}</p></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><button type="button" className={buttonClasses({ variant: 'secondary' })} onClick={() => setAllocations((current) => [...current, { costCenterId: costCenters[0]?.id ?? '', costCarrierId: costCarriers[0]?.id ?? '', percentage: 0 }])}><Plus className="h-4 w-4" />{labels.addAllocation}</button><p className={allocationTotal === 100 ? 'text-sm text-success' : 'text-sm text-danger'}>{labels.allocationTotal.replace('{total}', String(allocationTotal))}</p></div>
           {allocationTotal !== 100 && <p className="text-sm text-danger">{labels.allocationMustBe100}</p>}
         </div>}
-        {impacts.length > 0 && <fieldset className="sm:col-span-2 rounded-xl border bg-muted/40 p-4"><legend className="px-1 text-sm font-semibold">{labels.impactTitle}</legend><div className="mt-2 space-y-3">{impacts.map((impact) => <div key={impact.key} className="grid gap-2 sm:grid-cols-[1fr_12rem] sm:items-center"><p className="text-sm text-muted-foreground">{impact.label}</p><select className="form-field" value={impact.choice} onChange={(event) => setImpacts((current) => current.map((item) => item.key === impact.key ? { ...item, choice: event.target.value as ImpactChoice['choice'] } : item))}><option value="DIRECT" disabled={!impact.directTimeline || !directPayloads[impact.directTimeline]}>{labels.impactDirect}</option><option value="NOT_APPLICABLE">{labels.impactNotApplicable}</option></select></div>)}</div></fieldset>}
+        {impacts.length > 0 && <fieldset className="sm:col-span-2 border border-subtle bg-muted/40 p-4"><legend className="px-1 text-sm font-semibold">{labels.impactTitle}</legend><div className="mt-2 divide-y divide-subtle">{impacts.map((impact) => <div key={impact.key} className="grid gap-2 py-3 first:pt-0 last:pb-0 sm:grid-cols-[1fr_12rem] sm:items-center"><p className="text-sm text-muted-foreground">{impact.label}</p><select className="form-field" value={impact.choice} onChange={(event) => setImpacts((current) => current.map((item) => item.key === impact.key ? { ...item, choice: event.target.value as ImpactChoice['choice'] } : item))}><option value="DIRECT" disabled={!impact.directTimeline || !directPayloads[impact.directTimeline]}>{labels.impactDirect}</option><option value="NOT_APPLICABLE">{labels.impactNotApplicable}</option></select></div>)}</div></fieldset>}
         <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">{labels.changeReason}<textarea className="form-field min-h-24" name="reason" required maxLength={500} /></label>
-        <div className="sm:col-span-2 flex items-center gap-3"><button className="button-primary" type="submit">{labels.continue}</button>{status === 'saved' && <span className="text-sm text-success">{labels.changeSaved}</span>}{status === 'failed' && <span className="text-sm text-danger">{labels.changeFailed}</span>}</div>
+        <div className="sm:col-span-2 flex items-center gap-3"><button className={buttonClasses({ variant: 'primary' })} type="submit">{labels.continue}</button>{status === 'saved' && <span className="text-sm text-success">{labels.changeSaved}</span>}{status === 'failed' && <span className="text-sm text-danger">{labels.changeFailed}</span>}</div>
       </form>
       <ConfirmationDialog open={dialog === 'change'} title={isTwk ? labels.twkTitle : labels.normalConfirmTitle} description={isTwk ? labels.twkWarning : labels.normalConfirmText} confirmLabel={labels.confirm} cancelLabel={labels.cancel} busy={busy} warning={isTwk} onCancel={() => setDialog(null)} onConfirm={applyChange} />
       <ConfirmationDialog open={dialog === 'rollback'} title={labels.rollbackTitle} description={labels.rollbackWarning} confirmLabel={labels.rollbackConfirm} cancelLabel={labels.cancel} busy={busy} warning onCancel={() => setDialog(null)} onConfirm={rollback}>
         <label className="mt-4 grid gap-1.5 text-sm font-medium">{labels.rollbackReason}<input className="form-field" value={rollbackReason} onChange={(event) => setRollbackReason(event.target.value)} /></label>
       </ConfirmationDialog>
-    </section>
+    </Surface>
   )
 }

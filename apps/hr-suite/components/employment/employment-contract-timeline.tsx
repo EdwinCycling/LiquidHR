@@ -2,6 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { buttonClasses } from '@/components/ui/button'
+import { InfoList } from '@/components/patterns/info-list'
+import { Surface } from '@/components/ui/surface'
 
 type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
 type DurationType = 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
@@ -21,7 +25,6 @@ interface Contract {
   probationApplies: boolean
   probationEndsOn: string | null
 }
-
 interface Draft {
   workerType: WorkerType
   flexPhaseId: string
@@ -32,7 +35,6 @@ interface Draft {
   probationApplies: boolean
   probationEndsOn: string
 }
-
 interface Props {
   employeeId: string
   employmentId: string
@@ -120,17 +122,17 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
     router.refresh()
   }
 
-  return <section className="rounded-2xl border bg-surface p-5 shadow-sm">
+  return <Surface className="p-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-lg font-semibold">{labels.title}</h2>
-      {canWrite && <button type="button" className="button-primary" onClick={add}>{labels.add}</button>}
+      {canWrite && <button type="button" className={buttonClasses({ variant: 'primary' })} onClick={add}>{labels.add}</button>}
     </div>
     {error && !draft && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
-    <div className="mt-5 grid gap-3 md:grid-cols-2">
-      {ordered.map((contract) => <button type="button" key={contract.id} className="cursor-pointer rounded-2xl border p-4 text-left transition hover:border-primary hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => open(contract)}>
+    <div className="mt-5 grid gap-3 divide-y divide-subtle border-y border-subtle md:grid-cols-2 md:divide-y-0 md:border-y-0">
+      {ordered.map((contract) => <button type="button" key={contract.id} className="cursor-pointer border-subtle p-4 text-left transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary md:border md:border-subtle" onClick={() => open(contract)}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{contract.sequenceNumber}. {contract.durationType === 'INDEFINITE' ? labels.indefinite : contract.durationType === 'DEFINITE' ? labels.definite : labels.temporaryWithoutEnd}</p><p className="mt-1 font-semibold">{contract.laborConditionName}</p></div>
-          <span className="status-chip bg-accent text-accent-foreground">{contract.endsOn ?? labels.active}</span>
+          <Badge tone={contract.endsOn ? 'neutral' : 'success'}>{contract.endsOn ?? labels.active}</Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{labels.fulltimeReference}: {contract.fulltimeHoursPerWeek}</p>
         <p className="mt-3 text-sm text-muted-foreground">{contract.startsOn} — {contract.endsOn ?? labels.active}</p>
@@ -138,27 +140,27 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
     </div>
 
     {draft && <div className="fixed inset-0 z-[70] grid place-items-center bg-sidebar/70 p-4" role="presentation">
-      <form onSubmit={save} role="dialog" aria-modal="true" className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border bg-surface p-6 shadow-2xl">
+      <form onSubmit={save} role="dialog" aria-modal="true" className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[var(--radius-overlay)] border border-subtle bg-surface-overlay p-6 shadow-lg">
         <div className="flex items-center justify-between gap-3 border-b pb-4">
           <h3 className="text-xl font-semibold">{mode === 'add' ? labels.add : labels.edit}</h3>
-          <button type="button" className="button-secondary" onClick={() => { setDraft(null); setSelected(null) }}>{labels.close}</button>
+          <button type="button" className={buttonClasses({ variant: 'secondary' })} onClick={() => { setDraft(null); setSelected(null) }}>{labels.close}</button>
         </div>
-        {mode === 'view' ? <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Item label={labels.laborConditions} value={selected?.laborConditionName ?? ''} />
-          <Item label={labels.fulltimeReference} value={String(selected?.fulltimeHoursPerWeek ?? options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40)} />
-          <Item label={labels.startDate} value={draft.startsOn} />
-          <Item label={labels.endDate} value={draft.endsOn || labels.active} />
-          <Item label={labels.flexPhase} value={selected?.flexPhaseName ?? '—'} />
-          <Item label={labels.probationEnd} value={draft.probationEndsOn || '—'} />
-        </dl> : <ContractFields draft={draft} update={update} options={options} labels={labels} employmentStartsOn={employmentStartsOn} isFirstContract={selected?.sequenceNumber === 1} />}
+        {mode === 'view' ? <InfoList className="mt-5" columns={2} items={[
+          { label: labels.laborConditions, value: selected?.laborConditionName ?? '' },
+          { label: labels.fulltimeReference, value: String(selected?.fulltimeHoursPerWeek ?? options.laborConditionSets.find((item) => item.id === draft.laborConditionSetId)?.standardHoursPerWeek ?? 40) },
+          { label: labels.startDate, value: draft.startsOn },
+          { label: labels.endDate, value: draft.endsOn || labels.active },
+          { label: labels.flexPhase, value: selected?.flexPhaseName ?? '—' },
+          { label: labels.probationEnd, value: draft.probationEndsOn || '—' },
+        ]} /> : <ContractFields draft={draft} update={update} options={options} labels={labels} employmentStartsOn={employmentStartsOn} isFirstContract={selected?.sequenceNumber === 1} />}
         {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
         <div className="mt-6 flex justify-end gap-3 border-t pt-4">
-          {mode === 'view' && canWrite && <button type="button" className="button-primary" onClick={() => setMode('edit')}>{labels.edit}</button>}
-          {mode !== 'view' && <><button type="button" className="button-secondary" onClick={() => setMode(selected ? 'view' : 'add')}>{labels.cancel}</button><button type="submit" className="button-primary" disabled={saving}>{labels.save}</button></>}
+          {mode === 'view' && canWrite && <button type="button" className={buttonClasses({ variant: 'primary' })} onClick={() => setMode('edit')}>{labels.edit}</button>}
+          {mode !== 'view' && <><button type="button" className={buttonClasses({ variant: 'secondary' })} onClick={() => setMode(selected ? 'view' : 'add')}>{labels.cancel}</button><button type="submit" className={buttonClasses({ variant: 'primary' })} disabled={saving}>{labels.save}</button></>}
         </div>
       </form>
     </div>}
-  </section>
+  </Surface>
 }
 
 function ContractFields({ draft, update, options, labels, employmentStartsOn, isFirstContract }: {
@@ -182,8 +184,4 @@ function ContractFields({ draft, update, options, labels, employmentStartsOn, is
     <label className="grid gap-1.5 text-sm font-medium">{labels.probation}<select className={inputClass} value={String(draft.probationApplies)} onChange={(event) => update('probationApplies', event.target.value === 'true')}><option value="false">{labels.no}</option><option value="true">{labels.yes}</option></select></label>
     {draft.probationApplies && <label className="grid gap-1.5 text-sm font-medium">{labels.probationEnd}<input type="date" min={draft.startsOn} className={inputClass} value={draft.probationEndsOn} onChange={(event) => update('probationEndsOn', event.target.value)} /></label>}
   </div>
-}
-
-function Item({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>
 }

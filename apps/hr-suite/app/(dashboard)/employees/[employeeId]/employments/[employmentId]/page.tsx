@@ -13,6 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { PageShell } from "@/components/layout/page-shell";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Surface } from "@/components/ui/surface";
+import { InfoList } from "@/components/patterns/info-list";
+import { SectionHeader } from "@/components/patterns/section-header";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
@@ -346,57 +350,36 @@ export default async function EmploymentDetailPage({
       <div className="mt-6">
         {tab === "processes" && canReadProcesses && (
           <section className="space-y-5">
-            <header>
-              <p className="eyebrow text-primary">{tProcess('processesTab')}</p>
-              <h2 className="mt-1 text-2xl font-semibold">{tProcess('workspaceTitle')}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{tProcess('workspaceDescription')}</p>
-            </header>
-            {!processWork ? <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{tProcess('readError')}</p> : processWork.items.length === 0 ? <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground" role="status">{tProcess('noItems')}</p> : <div className="grid gap-4">{processWork.items.map((item) => {
+            <SectionHeader title={tProcess('workspaceTitle')} description={tProcess('workspaceDescription')} />
+            {!processWork ? <p className="border border-destructive/30 bg-destructive-surface p-4 text-sm text-destructive" role="alert">{tProcess('readError')}</p> : processWork.items.length === 0 ? <EmptyState title={tProcess('noItems')} /> : <div className="grid gap-3">{processWork.items.map((item) => {
               const status = item.instanceStatus === 'BLOCKED' ? 'BLOCKED' : item.status;
               const statusLabel = ({ OPEN: tProcess('statusOpen'), CLAIMED: tProcess('statusClaimed'), BLOCKED: tProcess('statusBlocked'), COMPLETED: tProcess('statusCompleted'), CANCELLED: tProcess('statusCancelled'), EXPIRED: tProcess('statusExpired') } as Record<string, string>)[status] ?? tProcess('unknown');
-              return <article className="rounded-2xl border border-border bg-surface p-5" key={item.workItemId}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{item.processKey}</p><h3 className="mt-1 font-semibold">{item.processTitle}</h3></div><span className={`status-chip ${status === 'BLOCKED' ? 'bg-warning-surface text-warning' : 'bg-muted text-muted-foreground'}`}>{statusLabel}</span></div><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3"><div><dt className="text-xs text-muted-foreground">{tProcess('step')}</dt><dd className="mt-1">{item.stepTitle}</dd></div><div><dt className="text-xs text-muted-foreground">{tProcess('subject')}</dt><dd className="mt-1">{item.subjectName ?? tProcess('unknown')}</dd></div><div><dt className="text-xs text-muted-foreground">{tProcess('deadline')}</dt><dd className="mt-1">{item.deadlineAt ?? tProcess('unknown')}</dd></div></dl><Link prefetch={false} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href={`/work/${item.workItemId}`}>{tProcess('open')}</Link></article>
+              return <Surface className="p-5" key={item.workItemId}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-medium text-muted-foreground">{item.processKey}</p><h3 className="mt-1 font-semibold">{item.processTitle}</h3></div><Badge tone={status === 'BLOCKED' ? 'warning' : status === 'COMPLETED' ? 'success' : 'neutral'}>{statusLabel}</Badge></div><InfoList className="mt-4" columns={2} items={[{ label: tProcess('step'), value: item.stepTitle }, { label: tProcess('subject'), value: item.subjectName ?? tProcess('unknown') }, { label: tProcess('deadline'), value: item.deadlineAt ?? tProcess('unknown') }]} /><Link prefetch={false} className={`${buttonClasses({ size: 'sm' })} mt-5`} href={`/work/${item.workItemId}`}>{tProcess('open')}</Link></Surface>
             })}</div>}
           </section>
         )}
         {tab === "overview" && (
           <div className="space-y-5">
-            <section aria-labelledby="employment-summary-title" className="rounded-2xl border bg-surface p-5 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-4">
-                <div>
-                  <p className="eyebrow">{t("employmentContext")}</p>
-                  <h2 className="mt-1 text-xl font-semibold" id="employment-summary-title">{t("summaryTitle")}</h2>
-                </div>
-                <span className="status-chip bg-muted text-muted-foreground">{detail.employment.employment_number}</span>
-              </div>
-              <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("summaryAdministration")}</dt>
-                  <dd className="mt-2 font-semibold">{detail.administration.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("seniorityDate")}</dt>
-                  <dd className="mt-2 font-semibold">
-                    {detail.employment.seniority_date
-                      ? formatDate(detail.employment.seniority_date, { locale, dateFormat: preferences.dateFormat })
-                      : t("notRecorded")}
-                    {seniority ? <span className="mt-1 block text-sm font-normal text-muted-foreground">{t("seniorityDuration", { years: seniority.years, months: seniority.months })}</span> : null}
-                  </dd>
-                </div>
-              </dl>
-              <div className="mt-6 border-t pt-5">
+            <Surface className="p-5 sm:p-6">
+              <SectionHeader title={t("summaryTitle")} actions={<Badge tone="neutral">{detail.employment.employment_number}</Badge>} />
+              <InfoList className="mt-5" columns={2} items={[
+                { label: t("summaryAdministration"), value: detail.administration.name },
+                { label: t("seniorityDate"), value: <>{detail.employment.seniority_date ? formatDate(detail.employment.seniority_date, { locale, dateFormat: preferences.dateFormat }) : t("notRecorded")}{seniority ? <span className="mt-1 block text-sm text-muted-foreground">{t("seniorityDuration", { years: seniority.years, months: seniority.months })}</span> : null}</> },
+              ]} />
+              <div className="mt-6 border-t border-subtle pt-5">
                 {currentContract ? <>
-                  <h3 className="text-sm font-semibold">{t("contractDetails")}</h3>
-                  <dl className="mt-4 grid gap-5 text-sm sm:grid-cols-2 xl:grid-cols-3">
-                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("contractType")}</dt><dd className="mt-1 font-semibold">{contractTypeLabel}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("laborConditions")}</dt><dd className="mt-1 font-semibold">{currentContract.labor_condition_sets?.name ?? t("notRecorded")}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("weeklyHours")}</dt><dd className="mt-1 font-semibold">{contractHours === null ? t("notRecorded") : `${contractHours} ${t("hoursPerWeek")}`}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("department")}</dt><dd className="mt-1 font-semibold">{currentOrganization?.departments?.name ?? t("notRecorded")}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("jobTitle")}</dt><dd className="mt-1 font-semibold">{currentOrganization?.job_title ?? t("notRecorded")}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{t("workerType")}</dt><dd className="mt-1 font-semibold">{workerTypeLabel}</dd></div>
-                  </dl>
+                  <SectionHeader title={t("contractDetails")} />
+                  <InfoList className="mt-4" columns={2} items={[
+                    { label: t("contractType"), value: contractTypeLabel },
+                    { label: t("laborConditions"), value: currentContract.labor_condition_sets?.name ?? t("notRecorded") },
+                    { label: t("weeklyHours"), value: contractHours === null ? t("notRecorded") : `${contractHours} ${t("hoursPerWeek")}` },
+                    { label: t("department"), value: currentOrganization?.departments?.name ?? t("notRecorded") },
+                    { label: t("jobTitle"), value: currentOrganization?.job_title ?? t("notRecorded") },
+                    { label: t("workerType"), value: workerTypeLabel },
+                  ]} />
                 </> : <p className="text-sm text-muted-foreground">{t("noActiveContract")}</p>}
               </div>
-            </section>
+            </Surface>
             {currentContract && <EmploymentOverviewActions
               labels={{
                 sectionTitle: t("changeActionsTitle"),
@@ -723,9 +706,7 @@ export default async function EmploymentDetailPage({
           </div>
         )}
         {tab === "salary" && !detail.capabilities.canReadSalary && (
-          <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
-            {t("salaryRestricted")}
-          </div>
+          <EmptyState title={t("salaryRestricted")} />
         )}
         {tab === "salary" && detail.capabilities.canReadSalary && (
           <div className="space-y-5">
@@ -898,18 +879,16 @@ export default async function EmploymentDetailPage({
                 },
               }}
             />
-            <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-              <h2 className="text-lg font-semibold">{t("auditLog")}</h2>
+            <Surface className="p-5">
+              <SectionHeader title={t("auditLog")} />
               {detail.auditLogs.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  {t("auditEmpty")}
-                </p>
+                <EmptyState className="mt-4" title={t("auditEmpty")} />
               ) : (
-                <ol className="mt-5 space-y-4 border-l pl-5">
+                <ol className="mt-5 space-y-4 border-l border-subtle pl-5">
                   {detail.auditLogs.map((log) => (
                     <li
                       key={log.id}
-                      className="relative before:absolute before:-left-[1.6rem] before:top-1 before:h-3 before:w-3 before:rounded-full before:bg-primary"
+                      className="relative before:absolute before:-left-[1.35rem] before:top-1.5 before:size-2 before:bg-primary"
                     >
                       <p className="font-semibold">
                         {log.action} · {log.entity_name}
@@ -922,7 +901,7 @@ export default async function EmploymentDetailPage({
                   ))}
                 </ol>
               )}
-            </section>
+            </Surface>
           </div>
         )}
       </div>

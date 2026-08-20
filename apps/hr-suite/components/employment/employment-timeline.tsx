@@ -6,6 +6,10 @@ import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
 import { seniorityDuration } from '@/lib/employment/seniority'
 import { getEmploymentCardStatus } from '@/lib/employment/employment-card-state'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { InfoList } from '@/components/patterns/info-list'
+import { Surface } from '@/components/ui/surface'
 
 type Employment = Database['public']['Tables']['employments']['Row']
 
@@ -51,7 +55,7 @@ interface EmploymentTimelineProps {
 
 export function EmploymentTimeline({ employments, summaries, locale, dateFormat, labels }: EmploymentTimelineProps) {
   if (employments.length === 0) {
-    return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">{labels.empty}</p>
+    return <EmptyState title={labels.empty} />
   }
   const today = new Date().toISOString().slice(0, 10)
   const format = (value: string) => formatDate(value, { locale, dateFormat })
@@ -67,7 +71,8 @@ export function EmploymentTimeline({ employments, summaries, locale, dateFormat,
         const contractType = summary?.contractType === 'INDEFINITE' ? labels.indefinite : summary?.contractType === 'DEFINITE' ? labels.definite : summary?.contractType === 'TEMPORARY_NO_END' ? labels.temporaryWithoutEnd : null
         return (
           <li key={employment.id}>
-            <Link prefetch={false} href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="group block h-full cursor-pointer rounded-2xl border bg-surface p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <Link prefetch={false} href={`/employees/${employment.employee_id}/employments/${employment.id}?fromTab=employments`} className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <Surface className="h-full p-5 transition-colors group-hover:border-primary/40">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -75,34 +80,35 @@ export function EmploymentTimeline({ employments, summaries, locale, dateFormat,
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  {employment.is_primary && <span className="status-chip">{labels.primary}</span>}
-                  <span className="status-chip">{statusLabel}</span>
+                  {employment.is_primary && <Badge tone="info">{labels.primary}</Badge>}
+                  <Badge tone={status === 'ACTIVE' ? 'success' : status === 'FUTURE' ? 'info' : 'neutral'}>{statusLabel}</Badge>
                 </div>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
                 {format(employment.starts_on)} — {employment.ends_on ? format(employment.ends_on) : labels.active}
               </p>
-              <dl className="mt-5 grid gap-x-5 gap-y-3 border-t pt-4 text-sm sm:grid-cols-2">
-                <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.seniority}</dt><dd className="mt-1 font-medium">{employment.seniority_date ? format(employment.seniority_date) : labels.notRecorded}{duration ? <span className="mt-1 block text-sm font-normal text-muted-foreground">{labels.seniorityDuration.replace('{years}', String(duration.years)).replace('{months}', String(duration.months))}</span> : null}</dd></div>
-                <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.administration}</dt><dd className="mt-1 font-medium">{summary?.administrationName ?? labels.notRecorded}</dd></div>
-              </dl>
-              <div className="mt-5 border-t pt-4">
+              <InfoList className="mt-5 border-t border-subtle pt-4" columns={2} items={[
+                { label: labels.seniority, value: <>{employment.seniority_date ? format(employment.seniority_date) : labels.notRecorded}{duration ? <span className="mt-1 block text-sm text-muted-foreground">{labels.seniorityDuration.replace('{years}', String(duration.years)).replace('{months}', String(duration.months))}</span> : null}</> },
+                { label: labels.administration, value: summary?.administrationName ?? labels.notRecorded },
+              ]} />
+              <div className="mt-5 border-t border-subtle pt-4">
                 {summary?.contractType ? <>
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.contractDetails}</p>
-                  <dl className="mt-3 grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
-                    <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.contractType}</dt><dd className="mt-1 font-medium">{contractType ?? labels.notRecorded}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.department}</dt><dd className="mt-1 font-medium">{summary?.departmentName ?? labels.notRecorded}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.jobTitle}</dt><dd className="mt-1 font-medium">{summary?.jobTitle ?? labels.notRecorded}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.hoursPerWeek}</dt><dd className="mt-1 font-medium">{summary?.hoursPerWeek === null || summary?.hoursPerWeek === undefined ? labels.notRecorded : `${summary.hoursPerWeek} ${labels.hoursPerWeekSuffix}`}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.laborConditions}</dt><dd className="mt-1 font-medium">{summary?.laborConditionName ?? labels.notRecorded}</dd></div>
-                    <div><dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.workerType}</dt><dd className="mt-1 font-medium">{workerType}</dd></div>
-                  </dl>
+                  <p className="text-sm font-semibold">{labels.contractDetails}</p>
+                  <InfoList className="mt-3" columns={2} items={[
+                    { label: labels.contractType, value: contractType ?? labels.notRecorded },
+                    { label: labels.department, value: summary?.departmentName ?? labels.notRecorded },
+                    { label: labels.jobTitle, value: summary?.jobTitle ?? labels.notRecorded },
+                    { label: labels.hoursPerWeek, value: summary?.hoursPerWeek === null || summary?.hoursPerWeek === undefined ? labels.notRecorded : `${summary.hoursPerWeek} ${labels.hoursPerWeekSuffix}` },
+                    { label: labels.laborConditions, value: summary?.laborConditionName ?? labels.notRecorded },
+                    { label: labels.workerType, value: workerType },
+                  ]} />
                 </> : <p className="text-sm text-muted-foreground">{labels.noActiveContract}</p>}
               </div>
-              <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+              <div className="mt-6 flex items-center justify-between gap-3 border-t border-subtle pt-4">
                 <span className="text-sm font-medium text-muted-foreground">{labels.status}</span>
-                <span className="button-secondary cursor-pointer transition-colors group-hover:border-primary/40 group-hover:text-primary">{labels.editDetail} <span aria-hidden="true">→</span></span>
+                <span className="text-sm font-semibold text-primary">{labels.editDetail} <span aria-hidden="true">→</span></span>
               </div>
+              </Surface>
             </Link>
           </li>
         )

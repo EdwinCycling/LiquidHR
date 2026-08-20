@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { calculateSalaryBandPosition, calculateSalaryFromBandPercentage, type SalaryBandPositionBand } from '@/lib/salary-application/calculations'
+import { Surface } from '@/components/ui/surface'
 
 interface SalaryBandPercentageDraft {
   sourceKey: string
@@ -33,7 +34,7 @@ export function SalaryBandPercentageControl({ salaryAmount, band, labels, onSala
     if (salary !== null) onSalaryAmountChange(salary)
   }
 
-  return <div className="rounded-xl border bg-muted/20 p-4">
+  return <Surface variant="subtle" className="p-4">
     <label className="grid gap-1.5 text-sm font-medium">
       <span>{labels.percentage}</span>
       <div className="flex items-center gap-2">
@@ -42,7 +43,7 @@ export function SalaryBandPercentageControl({ salaryAmount, band, labels, onSala
       </div>
     </label>
     <p className="mt-2 text-xs text-muted-foreground" id="salary-band-percentage-help">{labels.percentageHelp}</p>
-  </div>
+  </Surface>
 }
 
 function safePercentage(salaryAmount: string, band: SalaryBandPositionBand): string {

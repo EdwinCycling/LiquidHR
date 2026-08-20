@@ -2,49 +2,71 @@
 
 Datum: 2026-08-20
 Route: `/employees/[employeeId]/employments/[employmentId]`
-Status: **GEIMPLEMENTEERD — lokale verificatie volgt**
+Status: **GEIMPLEMENTEERD — lokale gates uitgevoerd; browsergate open**
 
-## Doel
+## Doel en goedgekeurde scope
 
-De Employment Detail-route wordt een rustige, compacte werkplek voor één dienstverband. De medewerker blijft herkenbaar, maar het scherm krijgt geen tweede volledige Employee Profile-card. De gebruiker ziet direct de dienstverbandcontext en kan daarna zonder visuele ruis tussen de acht bestaande workspace-tabs wisselen.
+Employment Detail is een compacte werkplek voor één dienstverband. De medewerker blijft herkenbaar, zonder tweede volledige Employee Profile-card of gradient hero. De volledige presentatie-slice omvat:
 
-## Nieuwe ontwerpbeslissing
+- de Employee → Employment-overviewingang en kaartpresentatie;
+- de **Compact Work Context Header**;
+- alle acht bestaande workspace-tabs: Overview, Schedule, Salary, Organization, Company Location, Costs, Processes en History;
+- presentatiecomponenten en dialogs die rechtstreeks door deze workspace worden gebruikt: timelines, managers, contract-/mutationpresentatie, SalaryBandPositionCard, bevestigingsdialogen en de zichtbare delen van EmploymentContractChangeDialog.
 
-De bovenkant gebruikt een **Compact Work Context Header**:
+## Compact Work Context Header
 
-- avatar en volledige naam als menselijk anker;
-- functie, afdeling en administratie als compacte contextregel;
-- dienstverbandnummer en personeelsnummer als identificerende metadata;
-- status Actief, Toekomstig of Beëindigd;
-- Primair alleen wanneer `is_primary` waar is;
-- startdatum en einddatum, met Doorlopend wanneer geen einddatum is vastgelegd;
-- de bestaande compact/uitgebreid-actie rechts;
-- direct daaronder de bestaande tabs, vlak weergegeven met een actieve onderstreping.
+De header toont in één vlakke Foundation-surface:
 
-De header gebruikt een vlakke semantic surface met Foundation-rand, radius en tokens. Een gradient hero, decoratieve cirkel, zware shadow en pillachtige tabkaart zijn verwijderd.
+- avatar en volledige naam;
+- functie, afdeling en administratie;
+- dienstverbandnummer;
+- Actief, Toekomstig of Beëindigd;
+- Primair alleen wanneer relevant;
+- startdatum en einddatum, met Doorlopend zonder einddatum;
+- de bestaande actie rechts;
+- direct daaronder de acht vlakke workspace-tabs met actieve onderstreping.
+
+Er is geen tweede volledige Employee Profile-card, gradient hero, decoratieve hero-illustratie of nieuwe functionele actie toegevoegd.
+
+## Foundation-migratie
+
+De presentatie gebruikt UX Foundation v1: semantic surfaces, Foundation Button/buttonClasses, Badge, EmptyState, SectionHeader, InfoList, vlakke separators en Foundation-tokens. De migratie behoudt bestaande data, links, URL-state, autorisatie, permissions, fetches, payloads, berekeningen, effective dating, validatie en mutatiegedrag.
+
+- Overview gebruikt compacte sectiehiërarchie, metadata en separators.
+- Schedule gebruikt de bestaande WorkPatternPanel, EmploymentTimeMap, SelectableTimelineList en mutationpresentatie met rustige tijdlijn/list-structuur.
+- Salary behoudt bedragen, permissions, salary-bandpositie, compa/range penetration en effective dating; restricted states en acties zijn Foundation-presentatie.
+- Organization en Company Location gebruiken dezelfde current/future/history-hiërarchie in managers en SelectableTimelineList.
+- Costs behoudt alle allocations, totalen, 100%-validatie en mutationcontrols, inclusief desktop- en 390px-layout.
+- Processes gebruikt Badge, Button, EmptyState en Surface zonder engine-, route- of permissionwijziging.
+- History gebruikt een rustige auditlijst/tijdlijn zonder zware event-cards.
+- Contract- en mutationpresentatie gebruikt dezelfde dialogs, acties, formulieren en statusgedrag; alleen zichtbare styling en hiërarchie zijn aangepast.
 
 ## Functionele grenzen
 
-Route, query-state (`tab`, `view`, `date`, `fromTab`), acht tabs, serverautorisatie, RLS, API-contracten, bestaande timeline-mutaties, wijzigingswizard, salariszichtbaarheid en bestaande lege/foutstates blijven behouden. De organisatiecontext wordt op iedere workspace-tab gelezen zodat functie en afdeling in de header stabiel blijven; er zijn geen nieuwe databronnen, writes, permissions of workflows toegevoegd.
+Geen schema, migration, API-contract, RLS-policy, permission, route, edit-capability, businesslogica, salary-engine, berekening of Supabase-write is gewijzigd. De bestaande organisatiecontext-read voor de stabiele header blijft beperkt tot de eerder goedgekeurde headercontext; er is geen bredere data-fetchuitbreiding toegevoegd.
 
 ## Responsive en toegankelijkheid
 
-- De header stapelt de context en acties op smallere schermen zonder horizontale overflow.
-- De tabstrip blijft horizontaal scrollbaar en gebruikt tekstlabels, niet alleen kleur, voor de actieve staat.
-- Links behouden zichtbare focus states en `aria-current` voor de actieve workspace-tab.
-- Avatar-alttekst en semantische `dl`-metadata blijven beschikbaar voor screenreaders.
-- Alle nieuwe zichtbare tekst (`Doorlopend` / `Ongoing`) staat gelijkwaardig in NL en EN.
+- De header en tabs blijven bruikbaar op desktop en 390px; de tabstrip kan horizontaal scrollen.
+- Bestaande focus states, `aria-current`, dialog semantics, labels en keyboard flows blijven behouden.
+- Current, future en history blijven visueel onderscheiden zonder uitsluitend op kleur te vertrouwen.
+- Native date/number/textarea/select-controls in mutation- en dialogflows behouden hun bestaande gedrag; waar Foundation-controls al bestaan worden die hergebruikt.
 
 ## Acceptatiecriteria
 
-- Geen gradient hero of tweede volledige Employee Profile-card.
-- Compact Work Context Header toont avatar, naam, functie, afdeling, administratie, dienstverbandnummer, status, primaire markering indien relevant en start/einddatum.
-- Bestaande actie staat rechts op desktop en blijft bereikbaar op mobiel.
-- De acht bestaande workspace-tabs sluiten direct onder de header aan en zijn vlak vormgegeven.
-- Geen wijziging aan functionele acties, route, API, schema, RLS, permissions of data-eigenaarschap.
+- Compact Work Context Header toont alle goedgekeurde contextvelden en de bestaande acties.
+- Alle acht tabs zijn bereikbaar, presenteren de bestaande data en gebruiken de Foundation-hiërarchie.
+- Employee employment-overviewingang en kaartpresentatie sluiten visueel op de workspace aan.
+- Direct gebruikte contract-, timeline-, manager-, mutation- en dialogpresentatie is gemigreerd zonder functionele uitbreiding.
+- Geen tweede profielkaart, gradient hero, nieuwe tab, nieuwe write of nieuwe capability.
 - NL/EN namespaces blijven gelijk.
-- Gerichte typecheck, lint, i18n-check, relevante tests en diff-check zijn groen; browsercontrole op desktop en 390px volgt wanneer de lokale authenticated omgeving beschikbaar is.
+- Gerichte tests, volledige hr-suite-tests, strict typecheck, i18n-check, productiebuild en diff-check zijn uitgevoerd; lint wordt alleen als bekende infrastructuurblocker gerapporteerd.
+- Authenticated browsercontrole op desktop en 390px wordt alleen gerapporteerd wanneer een veilige sessie/env beschikbaar is.
+
+## Legacy-scan
+
+De scan is beperkt tot de Employment Workspace en direct gebruikte presentatie. Legacy `status-chip`, `button-primary`, `button-secondary`, `rounded-xl/2xl`, ad-hoc shadows, hover-lift en gradients zijn verwijderd of vervangen door Foundation-patronen. Resterende `rounded-[var(--radius-overlay)]` en `shadow-lg` zijn echte dialogs/overlays; native `form-field`-controls blijven uitsluitend waar hun bestaande native form-gedrag direct aan mutation- of dialogpayloads is gekoppeld.
 
 ## Buiten scope
 
-Geen schema- of Supabase-write, nieuwe Employment-functionaliteit, nieuwe workspace-tab, routewijziging, release/version bump, deployment of merge naar `main`.
+Geen nieuwe Employment-functionaliteit, schema- of Supabase-write, remote migration, release/version bump, deployment, main-merge of main-push.
