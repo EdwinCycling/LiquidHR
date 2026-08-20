@@ -1,8 +1,8 @@
 # Liquid HR documentatie-index
 
-## Leidende algemene UX-foundation — Blok 3
+## Leidende algemene UX-foundation — Blok 4 afgerond
 
-De algemene HR Suite UX- en stylingrichting staat in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). Dit document is vanaf 2026-08-20 leidend; oudere design-systemdocumenten blijven historische context. Blok 1 legde de CSS-foundation vast, Blok 2 levert de centrale componentlaag in `apps/hr-suite/components/ui`, `patterns` en `layout`, en Blok 3 past die toe op `/employees` en `/employees/[employeeId]` als reference implementations. Geen schema-, API-, RLS-, security-, release- of deploymentwijziging.
+De algemene HR Suite UX- en stylingrichting staat in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). Dit document is vanaf 2026-08-20 leidend; oudere design-systemdocumenten blijven historische context. Blok 1 legde de CSS-foundation vast, Blok 2 levert de centrale componentlaag in `apps/hr-suite/components/ui`, `patterns` en `layout`, Blok 3 past die toe op `/employees` en `/employees/[employeeId]` als reference implementations en Blok 4 maakt governance verplicht via `AGENTS.md` en de screen-redesignskill. Geen schema-, API-, RLS-, security-, release- of deploymentwijziging in Blok 4.
 
 ## Phase 2 Salary Structures + Salary Application — GREEN 2026-08-14
 

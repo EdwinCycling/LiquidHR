@@ -1,13 +1,24 @@
 # LiquidHR UX Foundation v1
 
-Status: **LEIDEND — Blok 3 uitgevoerd op 2026-08-20**
-Scope: **Blok 1 t/m Blok 3; Employees en Employee Detail zijn reference implementations**
+Status: **LEIDEND — Blok 4 afgerond op 2026-08-20**
+Scope: **Blok 1 t/m Blok 4; Employees en Employee Detail zijn reference implementations**
 
-## 0.1 Blok 3 uitgevoerd
+## 0.1 Blok 3 afgerond
 
 `/employees` en `/employees/[employeeId]` gebruiken de Blok-2-foundation voor shell, headers, surfaces, badges, empty states en de 2/3 + 1/3 detailkolommen. Alle bestaande routes, URL-state, permissions, view modes, tabs, widgets, dashboardvoorkeuren en API-/businesslogica zijn behouden. Geen schema-, API-, RLS-, security-, release- of deploymentwijziging.
 
 Dit document is vanaf 2026-08-20 de leidende algemene UX- en stylingfoundation voor de LiquidHR HR Suite. Het vervangt conflicterende suitebrede richting uit oudere conceptdocumenten. Historische ontwerpdocumenten blijven bewaard als context; bestaande schermen adopteren nieuwe patronen later, per gecontroleerde slice.
+
+## 0.2 Blok 4 afgerond — governance
+
+| Blok | Status |
+|---|---|
+| Blok 1 — CSS-, token- en theme-foundation | Afgerond |
+| Blok 2 — centrale componentarchitectuur | Afgerond |
+| Blok 3 — Employees en Employee Detail reference implementations | Afgerond |
+| Blok 4 — governance, redesignskill en deliverydocumentatie | Afgerond |
+
+De componentinventaris en architectuur zijn `components/ui` voor generieke primitives, `components/patterns` voor herbruikbare composities en `components/layout` voor generieke layoutcontracten. `/employees` is de reference list/workbench; `/employees/[employeeId]` is de reference profile/detail met ongeveer 2/3 hoofdinhoud en 1/3 aside via `DetailColumns`. LinkedHR is een officieel theme dat dezelfde Foundation gebruikt. De governance staat in `AGENTS.md` en de screen-redesignskill. Foundation v1 is gereed voor bredere, gecontroleerde schermmigratie.
 
 ## 0. Blok 2 uitgevoerd
 
@@ -17,7 +28,7 @@ Blok 2 levert de centrale herbruikbare componentlaag op `feature/ux-foundation-v
 - `components/patterns`: `PageHeader`, `SectionHeader`, `PageToolbar`, `FilterBar`, `InfoList`.
 - `components/layout`: `PageShell`, `DetailColumns`.
 
-De componentarchitectuur blijft daarmee `ui` voor primitives, `patterns` voor composities en `layout` voor shell-/layoutcontracten. Blok 3, inclusief Employees-list en Employee Detail-migratie, is niet uitgevoerd.
+De componentarchitectuur blijft daarmee `ui` voor primitives, `patterns` voor composities en `layout` voor shell-/layoutcontracten. Blok 3, inclusief Employees-list en Employee Detail-migratie, is afgerond.
 
 ## 1. Designrichting
 
@@ -82,6 +93,8 @@ De themewaarden blijven de bron voor alle tokens. De additive aliases zijn besch
 
 React-componenten voegen geen nieuwe hardcoded hexkleuren toe. Persoonlijke thema's en company branding blijven CSS-variable overrides. Alle bestaande themes blijven beschikbaar: `liquid-navy`, `noordzee`, `bos`, `warm-zand`, `aubergine` en `nacht`.
 
+LinkedHR is naast `liquid-navy`, `noordzee`, `bos`, `warm-zand`, `aubergine` en `nacht` een officieel LiquidHR-theme en gebruikt dezelfde Foundation.
+
 ## 5. Controls en iconen
 
 De standaard interactieve controlhoogte is 40px. Controls behouden consistente focus-visible-, disabled- en selected states en consistente icon spacing. De iconbibliotheek blijft uitsluitend `lucide-react`:
@@ -137,12 +150,14 @@ Blok 1 bevat uitsluitend:
 
 De berekende bestaande CSS blijft inhoudelijk gelijk, met uitzondering van de expliciet vastgelegde primaire Work Sans-font. Bestaande componentclasses, selectors, theme support, auth-visuals, kalenderstijlen, product-update-styling en focusregels blijven behouden.
 
-## 9. Buiten scope
+## 9. Governancegrenzen en buiten scope
 
-- Blok 3 of app-brede schermmigratie;
+- Bredere schermmigratie na Foundation v1 gebeurt per gecontroleerde slice;
 - Control-app, sidebar, navigatie of shell-redesign;
 - app-brede schermmigratie;
 - database, migrations, API-contracten, permissions of RLS;
 - businesslogica, nieuwe workflows of npm UI-libraries;
 - shadcn, MUI, Chakra, Ant, Radix of een ander nieuw UI-framework;
 - release, deployment, version bump, merge naar `main` of remote databasewijzigingen.
+
+Blok 4 zelf bevatte geen code-, design-, component-API-, database-, migration- of Supabase-wijziging. De eerder goedgekeurde LinkedHR-migratie en remote toepassing blijven ongewijzigd.

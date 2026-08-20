@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## UX Foundation v1 — Blok 4 governance afgerond 2026-08-20
+
+**Status: GEREED VOOR BREDERE SCHERMMIGRATIE; GEEN MAIN-MERGE**
+
+Blok 1 t/m 4 van UX Foundation v1 zijn afgerond. De canonieke componentarchitectuur is `components/ui` voor primitives, `components/patterns` voor herbruikbare composities en `components/layout` voor generieke layoutcontracten. `/employees` en `/employees/[employeeId]` zijn de reference implementations; LinkedHR is een officieel theme.
+
+`AGENTS.md`, de screen-redesignskill en dit deliverydocument leggen de governance vast. Blok 4 was documentatie/governance-only: geen code-, design-, component-API-, database-, migration- of remote Supabase-wijziging. De eerdere LinkedHR-migratie en remote toepassing zijn niet aangepast. Volgende stap: bredere gecontroleerde schermmigratie. Deze featurebranch is niet naar `main` gemerged.
+
 ## Employee Detail profile polish + LinkedHR — 2026-08-20
 
 **Status: LOKAAL GEVERIFIEERD; AUTHENTICATED BROWSERGATE OPEN**

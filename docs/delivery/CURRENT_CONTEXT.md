@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## UX Foundation v1 — Blok 4 governance afgerond 2026-08-20
+
+- UX Foundation v1 is compleet: Blok 1 t/m 4 zijn afgerond. `AGENTS.md` en de screen-redesignskill maken Foundation v1 nu verplicht voor toekomstige HR Suite UI-ontwikkeling.
+- Reference screens zijn `/employees` als list/workbench en `/employees/[employeeId]` als profile/detail; Employee Detail gebruikt `DetailColumns` met ongeveer 2/3 hoofdinhoud en 1/3 aside. LinkedHR is een officieel theme op dezelfde Foundation.
+- De gebruiker heeft de actuele feature-preview handmatig visueel beoordeeld, inclusief Employee Detail dashboard en Employee Detail persoonsgegevens/adressen. Dit is gebruikersreview en geen geautomatiseerde browserverificatie.
+- De volgende stap is bredere, gecontroleerde schermmigratie. Blok 4 bevatte geen code-, design-, component-API-, database-, migration- of Supabase-wijziging; de eerder goedgekeurde LinkedHR-migratie bleef ongewijzigd.
+- Finale branchgate en commit/push horen bij deze afsluiting; er is niet naar `main` gemerged.
+
 ## Employee Detail profile polish + LinkedHR 2026-08-20
 
 - Op `feature/ux-foundation-v1` is `/employees/[employeeId]` visueel aangescherpt: lichte profielkaart met subtiele coverzone, overlappende avatar, duidelijke identity/status/meta-hiërarchie, bestaande edit-/archive-/weather-/compactacties en vlakke tabs. Functie en afdeling komen uitsluitend uit de al geladen `currentEmploymentSummary`; geen nieuwe fetch.

@@ -64,6 +64,23 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 - Kiesbare waarden gebruiken altijd een toegankelijke keuzecomponent met zoekfunctie en zichtbare selectie; voer ISO-codes, referenties of andere gesloten waardelijsten niet als vrij tekstveld in.
 - Beheerbare stamdata volgt altijd **lijst eerst**: zoeken/filteren/sorteren, klikrij, en een modal voor toevoegen of wijzigen met bewaren en annuleren. Deactiveren/archiveren blijft een expliciete actie in die modal.
 
+## LiquidHR UX Foundation
+
+- `apps/hr-suite` gebruikt UX Foundation v1 als canonieke UI-basis. Lees bij UI-, layout- of redesignwerk ook [`docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md).
+- Centrale componentarchitectuur: `apps/hr-suite/components/ui` bevat generieke primitives, `components/patterns` herbruikbare composities/patronen en `components/layout` generieke paginalayoutcontracten. Domeinmappen zoals `components/employees` en `components/journeys` bevatten uitsluitend domeinspecifieke componenten en logica.
+- Bestaat er een Foundation-component, hergebruik die. Bouw geen lokale alternatieven voor button, input, badge, card/surface, empty state, page header, section header, toolbar/filterbar, page shell of detail columns.
+- Nieuwe generieke primitives horen in `components/ui`, nieuwe herbruikbare composities in `components/patterns` en nieuwe generieke layouts in `components/layout`; plaats ze niet stil in een featurefolder.
+- Styling gebruikt Tailwind v4, Foundation CSS-variabelen/tokens, Lucide voor standaard UI-iconen, Foundation-maatvoering en toegankelijke `focus-visible`-states. Gebruik geen component-hardcoded hexwaarden, willekeurige radius/shadow/gradient of gewone hover-lift/translate.
+- Surfaces zijn standaard vlak met een semantische 1px-border en Foundation-radius, zonder standaard shadow. Overlay-elevation is alleen voor echte layering. Vermijd nested card-on-card; voeg een extra Surface alleen toe bij functionele of hiërarchische betekenis.
+- Een visueel redesign wijzigt standaard niet de route, API, database, RLS, permission, businesslogica of data-eigenaarschap.
+- Componenten zijn theme-agnostic. Themes worden primair via semantic CSS variables/tokens opgelost; gewone componenten bevatten geen `if (theme === ...)` tenzij dit noodzakelijk en gedocumenteerd is. Een nieuw theme verandert bestaande themes niet.
+- LinkedHR is een officieel LiquidHR-theme, gebruikt dezelfde Foundation en is geen aparte componentfamilie.
+- `/employees` is de reference list/workbench en `/employees/[employeeId]` de reference profile/detail. Employee Detail gebruikt als reference ongeveer 2/3 hoofdinhoud en 1/3 aside via `DetailColumns`; nieuwe redesigns gebruiken deze structuur waar passend zonder domeinlogica te kopiëren.
+
+## Remote database governance
+
+- Een migration/schemawijziging als code maken mag wanneer die binnen de expliciete feature-scope valt. Een migration op een remote Supabase-project toepassen is een externe mutatie en gebeurt uitsluitend na expliciete toestemming van de gebruiker; hetzelfde geldt voor destructive-, reset- en seed-achtige remote acties. Expliciete toestemming in de actuele opdracht hoeft niet opnieuw te worden gevraagd.
+
 ## Documentatie bijhouden
 
 - Nieuwe requirements worden als Markdown onder `docs/requirements/<domein>/` opgeslagen.
@@ -99,5 +116,7 @@ De repository bevat vaste natuurlijke commando's. Gebruik `EdwinHelp` voor het a
 ### Feature worktree workflow in Codex-chat
 
 Werk tijdens een feature uitsluitend in de aparte worktree; wijzig de hoofdworkspace of `main` niet rechtstreeks. Stop bij een dirty worktree, mislukte merge, ontbrekende featurecommits in `main`, mislukte tests of mislukte deployment. Verwijder dan geen worktree of branch.
+
+Normale lokale featurewerkzaamheden mogen zonder micro-confirmaties; bestaande testdata, testfixtures en testomgeving mogen voor verificatie worden gebruikt. Als de gebruiker voor de actuele feature expliciet featurebranch-push heeft toegestaan, mag Codex naar exact die featurebranch pushen. Nooit zelfstandig naar `main` pushen of mergen. Production deploy, release en version bump blijven expliciete acties. Stop alleen voor een echte blocker, destructive action, production/security/secrets-risico of scope-uitbreiding.
 
 Gebruik nooit `git reset --hard`, `git clean -fd`, force-push of geforceerde branchverwijdering zonder expliciete toestemming. `Feature samenvoegen` is de expliciete toestemming voor de beschreven merge/push-workflow.

@@ -14,11 +14,27 @@ Lees vóór onderzoek of wijziging:
 1. `AGENTS.md`
 2. `docs/README.md`
 3. `docs/delivery/CURRENT_CONTEXT.md`
-4. `docs/requirements/ux/SCHERM_REDESIGN_STATUS.md`
-5. `docs/requirements/ux/SCREEN_REDESIGN_TEMPLATE.md`
-6. De relevante domeinrequirements, architectuurdocumenten en bestaande routecode
+4. `docs/requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`
+5. `docs/requirements/ux/SCHERM_REDESIGN_STATUS.md`
+6. Het relevante schermrequirement
+7. De relevante route- en componentcode
 
 Bepaal daarna de route, rollen, permissies, bestaande componenten, API-routes, data-afhankelijkheden en actuele Git-status. Raak ongerelateerde bestaande wijzigingen niet aan. Stop en meld het wanneer de gevraagde pagina dezelfde bestanden gebruikt als onbegrepen wijzigingen buiten deze opdracht.
+
+De Foundation is de eerste designbasis. De CSS-foundation staat in:
+
+- `apps/hr-suite/app/styles/tokens.css`
+- `apps/hr-suite/app/styles/themes.css`
+- `apps/hr-suite/app/styles/base.css`
+- `apps/hr-suite/app/styles/components.css`
+
+De componentarchitectuur staat in:
+
+- `apps/hr-suite/components/ui` — generieke primitives;
+- `apps/hr-suite/components/patterns` — herbruikbare composities;
+- `apps/hr-suite/components/layout` — generieke paginalayoutcontracten.
+
+`globals.css` is niet de centrale designbasis; gebruik de Foundation-tokens, semantic CSS variables en gedeelde componenten.
 
 ## Werkwijze
 
@@ -47,23 +63,42 @@ Werk `docs/README.md` alleen bij wanneer het requirementsdocument een nieuwe lei
 
 Beschrijf in het schermdocument minstens doel, huidige problemen, nieuw ontwerp, states, responsive gedrag, toegankelijkheid, i18n, functionele grenzen, acceptatiecriteria en buiten-scope.
 
-### 3. Ontwerp en implementeer
+### 3. Beslisboom voor ieder UI-element
+
+1. Bestaat er een Foundation primitive? Gebruik die.
+2. Is het een combinatie van bestaande primitives die op meerdere schermen bruikbaar is? Plaats het als pattern.
+3. Is het uitsluitend domeinspecifiek? Plaats het in de domeincomponenten.
+4. Is het alleen een lokale stylingvariant van een bestaand Foundation-component? Bouw geen nieuw component; gebruik de Foundation-API en tokens.
+5. Is een Foundation primitive werkelijk onvoldoende? Breid die eerst klein en backwards-compatible uit; bouw niet meteen een parallel component.
+
+### 4. Ontwerp en implementeer
 
 Gebruik de bestaande Liquid Flow-basis:
 
-- centrale tokens en gedeelde stijlen in `apps/hr-suite/app/globals.css`;
+- Foundation-tokens en gedeelde stijlen in `apps/hr-suite/app/styles/`;
 - bestaande form-, button-, dropdown-, modal-, list- en addresscomponenten;
 - CSS-variabelen en Tailwind v4, geen hardcoded hexwaarden in componenten;
-- minder ronde hoeken, maar niet volledig vierkant;
 - duidelijke primaire actie, rustige spacing en zo weinig mogelijk dubbele uitleg;
 - informatiepanelen alleen wanneer zij op dat scherm echt helpen;
 - alle zichtbare tekst via NL/EN-vertalingen met gelijke sleutels.
+
+De visuele richting is **Structured Enterprise / Liquid Flow**: zakelijk, menselijk, rustig en compact, met sterke informatiehiërarchie, beperkte decoratie, lichte semantic surfaces en een heldere primary action. Gebruik geen standaard gradients, hover-lift of overmatig veel cards. LinkedIn/Stitch-inspiratie mag profile hierarchy, de mens als visueel anker, rustige cards, vlakke tabs, duidelijke actiehiërarchie, compacte metadata en een moderne professional-software-uitstraling geven. Neem geen social feed, followers/connections, LinkedIn-branding, standaard grote coverfoto of logo/kleur/pixelkopie over.
+
+Reference patterns:
+
+- **List/workbench** — `/employees`: `PageShell`, `PageHeader`, `PageToolbar`/`FilterBar`, `Surface`, `TextInput`, `Button`/`IconButton`, `Badge`, `EmptyState`.
+- **Detail/profile** — `/employees/[employeeId]`: `PageShell`, profile `Surface`, `SectionHeader`, `Badge`, `Button`/`IconButton`, tabs en `DetailColumns`.
+- **DetailColumns** — desktop ongeveer 2/3 hoofdinhoud en 1/3 aside; mobiel main gevolgd door aside. Gebruik `DetailColumns` en vind niet per scherm opnieuw een 8/4-grid uit.
+
+### 5. Themesafe ontwerpen
+
+Een redesign gebruikt semantic tokens en is niet uitsluitend ontworpen voor één achtergrondkleur. Statuskleuren behouden hun betekenis. Company branding mag de Foundation niet breken. LinkedHR hoeft niet apart gecodeerd te worden. Nieuwe componenten moeten in de bestaande themes functioneren. Voor belangrijke reference- en redesignschermen is visuele controle in het standaardtheme en LinkedHR zinvol wanneer browsercontrole beschikbaar is; test niet standaard alle themes volledig matrixgewijs.
 
 Behoud standaard route, API-contracten, database, permissies, RLS, data-eigenaarschap en bestaande gebruikersflows. Voer geen schema- of remote wijziging uit voor een visuele redesignopdracht tenzij de gebruiker dat afzonderlijk en expliciet vraagt.
 
 Als de gebruiker alleen om een voorstel vraagt, stop na analyse, requirements en ontwerpvoorstel. Als de gebruiker akkoord geeft of expliciet vraagt om het door te voeren, implementeer dan de afgesproken scope.
 
-### 4. Controleer het resultaat
+### 6. Controleer het resultaat
 
 Voer voor een geïmplementeerd scherm minimaal uit:
 
