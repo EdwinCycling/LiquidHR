@@ -7,7 +7,7 @@
 - De route, URL-state, permissions, API's, schema/RLS, bestaande timeline- en contractmutaties en overige acties zijn behouden. Alleen de bestaande organisatiecontext wordt ook buiten het overview-scope geladen om de header op alle tabs consistent te houden.
 - Gewijzigd: employment-detailpagina, employment-detailservice, NL/EN employment-vertalingen en UX-redesignstatus/documentatie. Geen Supabase-write, release/version bump, main-merge of deployment.
 - Verificatie: strict typecheck groen; `check:i18n` groen met 33 gelijke NL/EN-namespaces; gerichte employment-suite 20 testbestanden / 85 tests groen; `git diff --check` groen. Volledige lint blijft geblokkeerd door de bekende ESLint 10 / `eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`) op een ongerelateerde absence-pagina. Browsercontrole is niet uitgevoerd: de worktree heeft geen `.env.local` en poort 3000 luistert niet; secrets zijn niet gekopieerd.
-- Open voor overdracht: authenticated desktop/390px-browsercontrole zodra een veilige sessie/env beschikbaar is. Daarna featurecommit en push naar `origin/feature/ux-employment-workspace`.
+- Featurecommits: `436069e` (redesign) en `bc016f5` (documentatie-whitespacecorrectie); push naar `origin/feature/ux-employment-workspace` is geslaagd. Open blijft alleen authenticated desktop/390px-browsercontrole zodra een veilige sessie/env beschikbaar is.
 
 ## Employee Personal Tab — final correction 2026-08-20
 
