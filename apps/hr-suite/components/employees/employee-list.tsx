@@ -6,6 +6,7 @@ import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import type { EmployeeListView } from '@/lib/preferences/employee-list-state'
 import { getEmployeeListAvatarUrl } from '@/lib/employees/employee-avatar-visibility'
 import { EmailLink } from '@/components/shared/email-link'
+import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { EmployeeDirectoryTrigger } from './employee-directory-trigger'
@@ -151,8 +152,8 @@ export function EmployeeList({
                 </span> : null}
               </div>
               <div className={`relative z-10 flex items-center justify-between gap-3 pointer-events-none sm:justify-end ${view === 'detail' ? 'pl-[3.375rem] sm:pl-0' : 'pl-0'}`}>
-                {employeeTypeLabel(employee.employmentType, employee.status) ? <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{employeeTypeLabel(employee.employmentType, employee.status)}</span> : null}
-                {employee.isArchived && <span className="rounded-md bg-warning-surface px-2 py-1 text-xs font-medium text-warning">{archiveLabel}</span>}
+                {employeeTypeLabel(employee.employmentType, employee.status) ? <Badge>{employeeTypeLabel(employee.employmentType, employee.status)}</Badge> : null}
+                {employee.isArchived && <Badge tone="warning">{archiveLabel}</Badge>}
                 <ArrowUpRight aria-hidden="true" className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
               </div>
             </div>
@@ -214,8 +215,8 @@ function EmployeeCard({
           </span>
         )}
         <div className="mb-1 flex flex-wrap justify-end gap-2">
-          {employeeTypeLabel(employee.employmentType, employee.status) ? <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{employeeTypeLabel(employee.employmentType, employee.status)}</span> : null}
-          {employee.isArchived ? <span className="rounded-md bg-warning-surface px-2 py-1 text-xs font-medium text-warning">{archiveLabel}</span> : null}
+          {employeeTypeLabel(employee.employmentType, employee.status) ? <Badge>{employeeTypeLabel(employee.employmentType, employee.status)}</Badge> : null}
+          {employee.isArchived ? <Badge tone="warning">{archiveLabel}</Badge> : null}
         </div>
       </div>
 

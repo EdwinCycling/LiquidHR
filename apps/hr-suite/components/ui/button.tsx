@@ -15,6 +15,16 @@ export const buttonSizeClasses: Record<ButtonSize, string> = {
   sm: 'min-h-8 px-3 text-sm',
 }
 
+export type ButtonClassOptions = {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  className?: string
+}
+
+export function buttonClasses({ className, size = 'md', variant = 'primary' }: ButtonClassOptions = {}): string {
+  return `relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 ${buttonSizeClasses[size]} ${buttonVariantClasses[variant]} ${className ?? ''}`.trim()
+}
+
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant
   size?: ButtonSize
@@ -37,7 +47,7 @@ export function Button({
     <button
       {...props}
       aria-busy={loading || undefined}
-      className={`relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 ${buttonSizeClasses[size]} ${buttonVariantClasses[variant]} ${className ?? ''}`.trim()}
+      className={buttonClasses({ className, size, variant })}
       disabled={isDisabled}
     >
       <span className={loading ? 'invisible' : undefined}>{children}</span>

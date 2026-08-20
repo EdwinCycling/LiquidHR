@@ -193,7 +193,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                   {detail.employee.isArchived && <Badge tone="warning">{tEmployees('archived')}</Badge>}
                   <Badge tone={detail.employee.isActive ? 'success' : 'info'}>{statusLabel}</Badge>
                 </div>
-                <h1 className="mt-2 break-words text-4xl font-semibold leading-none tracking-[-0.04em] sm:text-5xl md:text-4xl xl:text-5xl">{detail.employee.firstName} {detail.employee.birthName}</h1>
+                <h1 className="mt-2 break-words text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{detail.employee.firstName} {detail.employee.birthName}</h1>
               </div>
               <div className="flex flex-col items-center gap-3 md:self-stretch md:items-end md:justify-between">
                 <div className="flex items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-subtle bg-surface-subtle text-foreground transition-colors hover:bg-muted"><Minimize2 aria-hidden="true" size={18} /></Link></div>

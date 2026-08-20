@@ -6,6 +6,10 @@ import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { ACTIVE_FUTURE_EXTERNAL_STATUS, employeeListHref, type EmployeeArchiveFilter, type EmployeeListScope, type EmployeeListSort, type EmployeeListView, type EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
+import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
 
 interface EmployeeStatusOption {
   value: EmploymentStatus
@@ -102,18 +106,19 @@ export function EmployeeFilterPanel({
   }
 
   return (
-    <div className="mt-5 rounded-lg border border-border/90 bg-surface p-3.5">
+    <Surface className="mt-5 p-3.5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <Button
             aria-expanded={filtersOpen}
-            className="button-secondary inline-flex min-h-10 items-center gap-2 px-3 shadow-none"
+            className="px-3"
             onClick={toggleFilters}
             type="button"
+            variant="secondary"
           >
             <Filter aria-hidden="true" className="h-4 w-4" />
             {filtersOpen ? labels.hideFilters : labels.showFilters}
-          </button>
+          </Button>
           {hasActiveFilters ? (
             <Link
               className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -148,23 +153,20 @@ export function EmployeeFilterPanel({
                   <span className="sr-only">{labels.searchPlaceholder}</span>
                   <div className="relative">
                     <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      className="form-field h-10 min-h-10 w-full pl-10 shadow-none"
+                    <TextInput
+                      className="h-10 min-h-10 pl-10 shadow-none"
                       onChange={(event) => setSearchInput(event.target.value)}
                       value={searchInput}
                       name="search"
                       placeholder={labels.searchPlaceholder}
                     />
-                    {searchInput ? <button aria-label={labels.clearSearch} className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" onClick={() => {
+                    {searchInput ? <IconButton className="absolute right-1 top-1/2 -translate-y-1/2" label={labels.clearSearch} size="sm" variant="ghost" onClick={() => {
                       setSearchInput('')
                       void navigate({ search: '', status: activeStatus, archive: archiveFilter, sort, view, scope })
-                    }} type="button"><X aria-hidden="true" className="h-4 w-4" /></button> : null}
+                    }} type="button"><X aria-hidden="true" /></IconButton> : null}
                   </div>
                 </label>
-                <button className="button-secondary h-10 min-h-10 px-3 shadow-none" type="submit">
-                  <Search aria-hidden="true" className="h-4 w-4" />
-                  <span className="sr-only">{labels.searchAction}</span>
-                </button>
+                <IconButton label={labels.searchAction} size="md" type="submit" variant="secondary"><Search aria-hidden="true" /></IconButton>
               </form>
             </div>
 
@@ -254,6 +256,6 @@ export function EmployeeFilterPanel({
           </div>
         </>
       ) : null}
-    </div>
+    </Surface>
   )
 }
