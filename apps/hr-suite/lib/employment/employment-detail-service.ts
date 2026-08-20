@@ -98,6 +98,7 @@ export async function getEmploymentDetail(
   const includeSchedule = includeOverview || scope === 'schedule' || scope === 'salary'
   const includeSalary = includeOverview || scope === 'salary' || scope === 'schedule'
   const includeOrganization = includeOverview || scope === 'organization'
+  const includeOrganizationContext = true
   const includeCompanyLocation = isAllScope || scope === 'company-location'
   const includeCosts = includeOverview || scope === 'costs'
   const includeHistory = isAllScope || scope === 'history'
@@ -154,7 +155,7 @@ export async function getEmploymentDetail(
     ? supabase.from('employment_cost_allocations').select('*, cost_centers(code, name), cost_carriers(code, name)').eq('employment_id', employmentId)
       .order('valid_from', { ascending: false }).limit(500)
     : Promise.resolve({ data: [], error: null })
-  const organizationQuery = includeOrganization
+  const organizationQuery = includeOrganizationContext
     ? supabase.from('employee_organizations').select('*, departments!employee_organizations_department_hr_group_fkey(code, name), jobs!employee_organizations_job_hr_group_fkey(code)').eq('tenant_id', employment.tenant_id).eq('hr_group_id', employment.hr_group_id).eq('employment_id', employmentId)
       .order('effective_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })

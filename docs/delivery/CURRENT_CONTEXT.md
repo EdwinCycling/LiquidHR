@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Employment Workspace UX-redesign 2026-08-20
+
+- Nieuwe worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-workspace` op branch `feature/ux-employment-workspace`, gestart vanaf `debbe8fccd235375d0fdfbcdbb80a36dc7f677a8` (`origin/feature/ux-employee-personal-tab` volgens de lokale remote-tracking ref). Live `ls-remote` kon niet worden uitgevoerd door ontbrekende Git-credentials; er is geen remote write gedaan.
+- Employment Detail gebruikt nu een vlakke Compact Work Context Header met avatar/naam, functie, afdeling, administratie, nummers, status, primaire markering, start/einddatum en de bestaande compact/uitgebreid-actie. De acht bestaande workspace-tabs staan direct eronder als vlakke underline-tabs.
+- De route, URL-state, permissions, API's, schema/RLS, bestaande timeline- en contractmutaties en overige acties zijn behouden. Alleen de bestaande organisatiecontext wordt ook buiten het overview-scope geladen om de header op alle tabs consistent te houden.
+- Gewijzigd: employment-detailpagina, employment-detailservice, NL/EN employment-vertalingen en UX-redesignstatus/documentatie. Geen Supabase-write, release/version bump, main-merge of deployment.
+- Verificatie: strict typecheck groen; `check:i18n` groen met 33 gelijke NL/EN-namespaces; gerichte employment-suite 20 testbestanden / 85 tests groen; `git diff --check` groen. Volledige lint blijft geblokkeerd door de bekende ESLint 10 / `eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`) op een ongerelateerde absence-pagina. Browsercontrole is niet uitgevoerd: de worktree heeft geen `.env.local` en poort 3000 luistert niet; secrets zijn niet gekopieerd.
+- Open voor overdracht: authenticated desktop/390px-browsercontrole zodra een veilige sessie/env beschikbaar is. Daarna featurecommit en push naar `origin/feature/ux-employment-workspace`.
+
 ## Employee Personal Tab — final correction 2026-08-20
 
 - Op `feature/ux-employee-personal-tab` is de onbedoelde functionele uitbreiding uit `PersonalPanel` verwijderd: titel, initialen, partnernaamvelden, voornaamwoorden, burgerlijke staat/-datum en opleidingsniveau zijn niet langer bewerkbaar, leesbaar of onderdeel van het labelcontract/PATCH-body. De bestaande onderliggende velden en API/schema zijn niet gewijzigd.

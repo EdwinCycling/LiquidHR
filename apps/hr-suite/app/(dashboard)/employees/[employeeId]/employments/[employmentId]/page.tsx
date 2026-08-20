@@ -4,10 +4,15 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
+  BriefcaseBusiness,
+  Building2,
+  Landmark,
   Mail,
-  MapPin,
   Phone,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { buttonClasses } from "@/components/ui/button";
+import { PageShell } from "@/components/layout/page-shell";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
@@ -227,6 +232,16 @@ export default async function EmploymentDetailPage({
       : detail.employment.ends_on && detail.employment.ends_on < today
         ? t("ended")
         : t("active");
+  const statusTone = detail.employment.starts_on > today
+    ? "info"
+    : detail.employment.ends_on && detail.employment.ends_on < today
+      ? "neutral"
+      : "success";
+  const currentJobTitle = currentOrganization?.job_title ?? t("notRecorded");
+  const currentDepartment = currentOrganization?.departments?.name ?? t("notRecorded");
+  const endDateLabel = detail.employment.ends_on
+    ? formatDate(detail.employment.ends_on, { locale, dateFormat: preferences.dateFormat })
+    : t("ongoing");
   const contractTypeLabel = currentContract?.duration_type === 'INDEFINITE' ? t('indefinite') : currentContract?.duration_type === 'DEFINITE' ? t('definite') : currentContract?.duration_type === 'TEMPORARY_NO_END' ? t('temporaryWithoutEnd') : t('notRecorded');
   const workerTypeLabel = currentContract?.worker_type === 'EMPLOYEE'
     ? t('workerEmployee')
@@ -245,7 +260,8 @@ export default async function EmploymentDetailPage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
+    <main>
+      <PageShell className="py-6 lg:py-9">
       <Link
         href={`/employees/${employeeId}?tab=${query.fromTab === 'overview' ? 'overview' : query.fromTab === 'personal' ? 'personal' : query.fromTab === 'reminders' ? 'reminders' : 'employments'}`}
         className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
@@ -253,82 +269,64 @@ export default async function EmploymentDetailPage({
         <ArrowLeft className="h-4 w-4" />
         {t("backToEmployee")}
       </Link>
-      <header className={`relative mt-4 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-accent-foreground text-primary-foreground shadow-lg ${expanded ? 'p-5 sm:p-7' : 'p-2.5'}`}>
-        <div
-          aria-hidden="true"
-          className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-accent opacity-80"
-        />
-        <div className={`relative flex items-center justify-between ${expanded ? 'flex-col gap-6 lg:flex-row lg:items-center' : 'gap-3'}`}>
-          <div className="flex min-w-0 items-center gap-3 sm:gap-5">
+      <header className="mt-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3 sm:gap-4">
             {detail.employee.avatar_url ? (
               <img
                 src={detail.employee.avatar_url}
                 alt={name}
-                className={`${expanded ? 'h-16 w-16 sm:h-20 sm:w-20' : 'h-8 w-8 rounded-lg'} rounded-2xl object-cover ${expanded ? 'ring-4 ring-background' : ''}`}
+                className="size-12 shrink-0 rounded-full object-cover sm:size-14"
               />
             ) : (
-              <span className={`grid shrink-0 place-items-center rounded-2xl bg-primary font-bold text-primary-foreground ${expanded ? 'h-16 w-16 text-xl sm:h-20 sm:w-20' : 'h-8 w-8 rounded-lg text-[0.65rem]'}`}>
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground sm:size-14 sm:text-base">
                 {detail.employee.first_name[0]}
                 {detail.employee.birth_name[0]}
               </span>
             )}
             <div className="min-w-0">
-              {expanded && <p className="eyebrow text-primary-foreground/70">
-                {detail.employee.employee_number} ·{" "}
-                {detail.employment.employment_number}
-              </p>}
-              <h1 className={`${expanded ? 'mt-1 text-2xl sm:text-3xl' : 'text-base'} truncate font-semibold tracking-tight`}>{name}</h1>
-              {expanded && <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-primary-foreground/80">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4" />
-                  {detail.administration.name}
-                </span>
-              </p>}
+              <p className="eyebrow text-primary">{t("employmentContext")}</p>
+              <h1 className="mt-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">{name}</h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5"><BriefcaseBusiness aria-hidden="true" className="size-4" />{currentJobTitle}</span>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1.5"><Building2 aria-hidden="true" className="size-4" />{currentDepartment}</span>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1.5"><Landmark aria-hidden="true" className="size-4" />{detail.administration.name}</span>
+              </p>
             </div>
           </div>
-          <div className="relative flex flex-wrap items-center gap-2">
-            {expanded && <>
-              <span className="status-chip bg-success-surface text-success">{t("employmentContext")}</span>
-              <span className="status-chip bg-accent text-accent-foreground">{effectiveStatus}</span>
-            </>}
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+            <Badge tone={statusTone}>{effectiveStatus}</Badge>
+            {detail.employment.is_primary && <Badge tone="info">{t("primary")}</Badge>}
             <Link
               prefetch={false}
-              className="button-secondary border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+              className={buttonClasses({ variant: "secondary", size: "sm" })}
               href={`?tab=${tab}&view=${expanded ? "compact" : "expanded"}`}
             >
               {expanded ? t("compact") : t("expanded")}
             </Link>
           </div>
         </div>
-        {expanded && (
-          <div className="relative mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-primary-foreground/20 pt-4 text-sm text-primary-foreground/80">
-            {detail.employee.work_email && (
-              <a
-                href={`mailto:${detail.employee.work_email}`}
-                className="inline-flex items-center gap-2 hover:text-primary-foreground"
-              >
-                <Mail className="h-4 w-4" />
-                {detail.employee.work_email}
-              </a>
-            )}
-            {(detail.employee.work_phone ?? detail.employee.work_mobile) && (
-              <a
-                href={`tel:${detail.employee.work_phone ?? detail.employee.work_mobile}`}
-                className="inline-flex items-center gap-2 hover:text-primary-foreground"
-              >
-                <Phone className="h-4 w-4" />
-                {detail.employee.work_phone ?? detail.employee.work_mobile}
-              </a>
-            )}
+        <dl className="mt-4 grid gap-3 border-t border-subtle pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div><dt className="text-xs text-muted-foreground">{t("employmentNumber")}</dt><dd className="mt-1 font-semibold">{detail.employment.employment_number}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">{t("startDate")}</dt><dd className="mt-1 font-semibold">{formatDate(detail.employment.starts_on, { locale, dateFormat: preferences.dateFormat })}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">{t("endDate")}</dt><dd className="mt-1 font-semibold">{endDateLabel}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">{t("employeeNumber")}</dt><dd className="mt-1 font-semibold">{detail.employee.employee_number}</dd></div>
+        </dl>
+        {expanded && (detail.employee.work_email || detail.employee.work_phone || detail.employee.work_mobile) ? (
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-subtle pt-3 text-sm text-muted-foreground">
+            {detail.employee.work_email ? <a href={`mailto:${detail.employee.work_email}`} className="inline-flex items-center gap-2 hover:text-foreground"><Mail aria-hidden="true" className="size-4" />{detail.employee.work_email}</a> : null}
+            {detail.employee.work_phone || detail.employee.work_mobile ? <a href={`tel:${detail.employee.work_phone ?? detail.employee.work_mobile}`} className="inline-flex items-center gap-2 hover:text-foreground"><Phone aria-hidden="true" className="size-4" />{detail.employee.work_phone ?? detail.employee.work_mobile}</a> : null}
           </div>
-        )}
+        ) : null}
       </header>
 
       <nav
         aria-label={t("detailTitle", {
           number: detail.employment.employment_number,
         })}
-        className="mt-5 overflow-x-auto rounded-2xl border bg-surface p-1.5 shadow-sm"
+        className="mt-3 overflow-x-auto border-b border-border"
       >
         <div className="flex min-w-max gap-1">
           {tabs.filter((item) => item !== 'processes' || canReadProcesses).map((item) => (
@@ -336,7 +334,8 @@ export default async function EmploymentDetailPage({
               prefetch={false}
               key={item}
               href={`?tab=${item}&view=${expanded ? "expanded" : "compact"}`}
-              className={`rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${tab === item ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+              aria-current={tab === item ? "page" : undefined}
+              className={`-mb-px whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"}`}
             >
               {tabLabels[item]}
             </Link>
@@ -927,6 +926,7 @@ export default async function EmploymentDetailPage({
           </div>
         )}
       </div>
+      </PageShell>
     </main>
   );
 }
