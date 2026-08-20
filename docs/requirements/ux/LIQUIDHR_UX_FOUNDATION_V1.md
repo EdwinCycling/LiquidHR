@@ -1,9 +1,19 @@
 # LiquidHR UX Foundation v1
 
-Status: **LEIDEND — Blok 1 uitgevoerd op 2026-08-20**  
-Scope: **alleen Blok 1; Blok 2 is niet gestart**
+Status: **LEIDEND — Blok 2 uitgevoerd op 2026-08-20**
+Scope: **Blok 1 en Blok 2; Blok 3 is niet uitgevoerd**
 
 Dit document is vanaf 2026-08-20 de leidende algemene UX- en stylingfoundation voor de LiquidHR HR Suite. Het vervangt conflicterende suitebrede richting uit oudere conceptdocumenten. Historische ontwerpdocumenten blijven bewaard als context; bestaande schermen adopteren nieuwe patronen later, per gecontroleerde slice.
+
+## 0. Blok 2 uitgevoerd
+
+Blok 2 levert de centrale herbruikbare componentlaag op `feature/ux-foundation-v1`. De werkelijk beschikbare componenten zijn:
+
+- `components/ui`: `Button`, `IconButton`, `TextInput`, `Surface`, `Badge`, `EmptyState`; bestaande `DropdownSelect` en `CountryPicker` zijn behouden.
+- `components/patterns`: `PageHeader`, `SectionHeader`, `PageToolbar`, `FilterBar`, `InfoList`.
+- `components/layout`: `PageShell`, `DetailColumns`.
+
+De componentarchitectuur blijft daarmee `ui` voor primitives, `patterns` voor composities en `layout` voor shell-/layoutcontracten. Blok 3, inclusief Employees-list en Employee Detail-migratie, is niet uitgevoerd.
 
 ## 1. Designrichting
 
@@ -78,9 +88,9 @@ De standaard interactieve controlhoogte is 40px. Controls behouden consistente f
 
 Blok 1 verandert bestaande controlclasses niet inhoudelijk; de bestaande globale classes zijn alleen structureel verplaatst naar `components.css`.
 
-## 6. Conceptuele layoutpatronen voor latere blokken
+## 6. Layoutpatronen
 
-De volgende namen en patronen zijn in deze foundation vastgelegd als richting voor latere blokken, maar worden in Blok 1 nog niet gebouwd:
+De volgende layout- en compositiepatronen zijn in Blok 2 beschikbaar voor gecontroleerd gebruik in latere slices:
 
 - `PageShell`
 - `PageHeader`
@@ -104,7 +114,7 @@ apps/hr-suite/components/
   <domain>/    domeinspecifieke componenten
 ```
 
-Blok 1 maakt bewust geen `packages/ui` en geen nieuwe component library. De afhankelijkheidsregel voor volgende blokken is:
+Blok 2 maakt bewust geen `packages/ui` en geen nieuwe component library. De afhankelijkheidsregel voor volgende blokken is:
 
 - `ui` importeert geen domeincomponenten;
 - `patterns` mag `ui` gebruiken;
@@ -125,7 +135,7 @@ De berekende bestaande CSS blijft inhoudelijk gelijk, met uitzondering van de ex
 
 ## 9. Buiten scope
 
-- Blok 2 of nieuwe generieke componenten;
+- Blok 3 of app-brede schermmigratie;
 - Control-app, sidebar, navigatie of shell-redesign;
 - app-brede schermmigratie;
 - database, migrations, API-contracten, permissions of RLS;

@@ -1,13 +1,17 @@
 # Actuele overdracht Liquid HR
 
-## Controlecorrectie UX Foundation v1 — Blok 1 2026-08-20
+## UX Foundation v1 — Blok 2 2026-08-20
 
-- Uitsluitend Blok 1 blijft de scope op `feature/ux-foundation-v1`; de algemene UX-foundation staat leidend in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](../requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). Blok 2 is niet gestart.
-- `origin/main` is na fetch in deze featurebranch gemerged. Main-functionaliteit is behouden; de CSS-split naar `app/styles/tokens.css`, `themes.css`, `base.css` en `components.css` en de actuele README/CURRENT_CONTEXT-status zijn behouden.
-- Work Sans, bestaande classes, theme support, globale componentstijlen, additive semantic aliases en de bestaande UI-flow/security/data/sidebar/RBAC/URL-state-regels zijn behouden. `packages/ui` en nieuwe foundationcomponenten zijn niet ingevoerd.
-- Nieuwe lokale merge-gate: `git diff --check` groen; strict typecheck groen; ESLint groen; `check:i18n` groen met 33 gelijke NL/EN-namespaces; volledige tests groen met 200 testbestanden en 763 tests; Webpack-productiebuild groen met 225 routes/pages.
-- Browsercontrole met de bestaande Test HR Admin-fixture is gedeeltelijk uitgevoerd: `/login` gaf HTTP 200 en de fixture-login slaagde, maar `/dashboard/start` gaf daarna een lokale server-runtimefout. De sessie viel vervolgens terug naar `/login?next=%2Femployees`; `/employees` en medewerkerdetail desktop/390px zijn daardoor niet betrouwbaar geverifieerd. Geen testdata of productiegegevens gewijzigd.
-- Geen Supabase-, deployment-, release- of version-bumpactie. **Blok 2 is niet gestart.**
+- Blok 2 is uitgevoerd op `feature/ux-foundation-v1`: generieke UI-primitives in `components/ui`, composities in `components/patterns` en layoutcontracten in `components/layout`.
+- Beschikbaar: `Button`, `IconButton`, `TextInput`, `Surface`, `Badge`, `EmptyState`, `PageHeader`, `SectionHeader`, `PageToolbar`, `FilterBar`, `InfoList`, `PageShell` en `DetailColumns`. `DropdownSelect` en `CountryPicker` zijn behouden.
+- Gerichte foundationtests: 12/12 groen. Volledige tests, typecheck, lint, i18n-check en productiebuild worden als eindgate hieronder vastgelegd.
+- Alleen foundationcomponenten en documentatiestatus zijn gewijzigd. Geen schema-, API-, permission-, businesslogic-, release-, deployment- of Supabase-wijziging. **Blok 3 niet gestart.**
+
+## Controlecorrectie UX Foundation v1 — Blok 1-baseline 2026-08-20
+
+- Historische Blok 1-baseline op dezelfde featurebranch: de CSS-split naar `app/styles/tokens.css`, `themes.css`, `base.css` en `components.css`, Work Sans, bestaande classes, theme support en additive semantic aliases zijn behouden.
+- De bestaande UI-flow/security/data/sidebar/RBAC/URL-state-regels zijn behouden. `packages/ui` is niet ingevoerd.
+- De eerdere Blok 1-gates waren groen; de actuele Blok 2-eindgate staat in de nieuwe overdracht hierboven en vervangt de oude scopevermelding.
 
 ## Release 2026-08-16: lokale consolidatie en productversie 1.20260816.1
 
