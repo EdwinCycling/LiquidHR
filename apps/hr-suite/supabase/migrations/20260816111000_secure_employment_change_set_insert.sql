@@ -571,3 +571,4 @@ $$;
 
 revoke all on function public.publish_complete_salary_application_employment(uuid, uuid, jsonb) from public, anon;
 grant execute on function public.publish_complete_salary_application_employment(uuid, uuid, jsonb) to authenticated;
+

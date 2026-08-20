@@ -134,7 +134,7 @@ The color palette is functional and semantic, prioritizing clarity of status and
 
 - **Primary Blue:** Used for navigation, primary actions (CTAs), and active states. It signals the "official" path.
 - **Neutral Grays:** Used for the "Exact shell" background, borders, and secondary text to maintain a calm, professional HR SaaS environment.
-- **Semantic Statuses:**
+- **Semantic Statuses:** 
     - **Draft/Concept:** Neutral gray, signaling an incomplete state.
     - **Open/Submitted:** Success green, signaling progress and completion.
     - **HR Final/Finalized:** Deep navy, signaling authority and immutability.

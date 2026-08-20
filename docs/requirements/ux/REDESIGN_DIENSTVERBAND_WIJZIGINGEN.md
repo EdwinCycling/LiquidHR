@@ -1,7 +1,7 @@
 # Redesign dienstverbandwijzigingen
 
-Datum: 2026-08-16
-Route: `/employees/[employeeId]/employments/[employmentId]?tab=overview&view=expanded`
+Datum: 2026-08-16  
+Route: `/employees/[employeeId]/employments/[employmentId]?tab=overview&view=expanded`  
 Status: geïmplementeerd en lokaal/browsermatig geverifieerd
 
 ## Aanleiding

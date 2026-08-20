@@ -399,7 +399,7 @@
                 pctInput.value = pct.toFixed(2);
                 newSalaryInput.value = (baseSalary + amt).toFixed(2);
             });
-
+            
             newSalaryInput.addEventListener('input', (e) => {
                 const newSalary = parseFloat(e.target.value) || 0;
                 const amt = newSalary - baseSalary;
@@ -424,7 +424,7 @@
 
             closeBtn.addEventListener('click', closeDrawer);
             backdrop.addEventListener('click', closeDrawer);
-
+            
             // Helper for contains text selector simulation
             document.querySelectorAll('footer button').forEach(btn => {
                 if(btn.textContent.trim() === 'Annuleren') {
