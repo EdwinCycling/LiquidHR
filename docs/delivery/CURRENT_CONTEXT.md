@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## LinkedHR polish + compact fixes 2026-08-20
+
+- Nieuwe worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\linkedhr-polish` op branch `feature/ux-linkedhr-polish`, gestart vanaf baseline `5af312353beaf0512a200d40fa84b98135a4ded9` (`origin/feature/ux-employment-workspace`). De bron-worktree was schoon.
+- LinkedHR-only tokens zijn aangescherpt naar circa 6px voor surfaces/inputs, 8px voor buttons/controls en 8px voor overlays. LinkedHR-buttons gebruiken geen blur, hover-lift of overdreven pill-radius; andere theme-tokenwaarden zijn niet gewijzigd.
+- `ScrollableTabs` is toegevoegd als gedeeld pattern voor employee detail, personal subtabs en employment workspace: actieve tabs hebben een 3px underline; left/right controls verschijnen alleen bij echte overflow. Foto-upload/verwijdering gebruikt compacte toegankelijke icon-actions. De compacte employment-header verbergt alleen de extra metadata-rij; expanded blijft behouden.
+- Compact dashboard render-fallback voorkomt lege widgetwrappers bij ontbrekende opgeslagen nodes en zet beschikbare inhoud gecontroleerd terug naar de hoofdkolom wanneer de brede kolom niet renderbaar is. Geen API-, database-, permission-, RLS- of Supabase-wijziging.
+- Verificatie: volledige hr-suite 202/777, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, Webpack-build 225 routes en `git diff --check` groen. Lint blijft geblokkeerd door de bestaande ESLint 10/`eslint-plugin-react`-fout `contextOrFilename.getFilename is not a function`.
+- Authenticated browserreview is niet uitgevoerd: deze worktree heeft geen Supabase-env; de lokale devserver gaf daardoor 500 op `/login` en de Playwright-browserdaemon kon de machinebrede browserdirectory niet openen. Er is geen Supabase-write, main-merge, release of version bump uitgevoerd.
+
 ## Employment Workspace UX-redesign 2026-08-20
 
 - Nieuwe worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\employment-workspace` op branch `feature/ux-employment-workspace`, gestart vanaf `debbe8fccd235375d0fdfbcdbb80a36dc7f677a8` (`origin/feature/ux-employee-personal-tab` volgens de lokale remote-tracking ref). Live `ls-remote` kon niet worden uitgevoerd door ontbrekende Git-credentials; er is geen remote write gedaan.

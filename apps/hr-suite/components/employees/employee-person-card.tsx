@@ -18,6 +18,7 @@ import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { InfoList } from '@/components/patterns/info-list'
 import { SectionHeader } from '@/components/patterns/section-header'
+import { ScrollableTabs, tabLinkClasses } from '@/components/patterns/scrollable-tabs'
 
 type Tab = 'personal' | 'addresses' | 'bankAccounts' | 'relations' | 'additionalInformation'
 type MutationState = 'idle' | 'saving' | 'saved' | 'failed'
@@ -41,6 +42,8 @@ export interface EmployeePersonCardLabels {
   noEmergencyContact: string
   employmentCount: string
   personalTitle: string
+  previous: string
+  next: string
   editPersonal: string
   save: string
   saving: string
@@ -229,8 +232,8 @@ export function EmployeePersonCard({ detail, initialEdit = false, locale, dateFo
 
   return (
     <Surface className="mt-6 overflow-hidden">
-      <nav className="overflow-x-auto border-b border-subtle px-2 sm:px-4" aria-label={labels.personalTitle}>
-        <div role="tablist" className="flex min-w-max gap-6">
+      <nav className="border-b border-subtle px-2 sm:px-4" aria-label={labels.personalTitle}>
+        <ScrollableTabs ariaLabel={labels.personalTitle} leftLabel={labels.previous} rightLabel={labels.next} contentClassName="gap-4 sm:gap-6" contentProps={{ role: 'tablist' }}>
           {tabs.map((item, index) => (
             <button
               key={item}
@@ -242,12 +245,12 @@ export function EmployeePersonCard({ detail, initialEdit = false, locale, dateFo
               tabIndex={tab === item ? 0 : -1}
               onClick={() => setTab(item)}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
-              className={`border-b-2 px-1 py-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${tab === item ? 'border-primary font-semibold text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`}
+              className={tabLinkClasses({ active: tab === item, className: 'px-1' })}
             >
               {labels.tabs[item]}
             </button>
           ))}
-        </div>
+        </ScrollableTabs>
       </nav>
       <div id={`employee-panel-${tab}`} role="tabpanel" aria-labelledby={`employee-tab-${tab}`} className="p-4 sm:p-6 lg:p-8">
         {tab === 'personal' && <PersonalPanel employee={detail.employee} initialEdit={initialEdit} capabilities={capabilities} labels={labels} roleAssignments={roleAssignments} locale={locale} dateFormat={dateFormat} defaultCountryCode={defaultCountryCode} />}

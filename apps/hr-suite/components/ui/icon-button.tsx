@@ -32,7 +32,7 @@ export function IconButton({
     <button
       {...props}
       aria-label={label}
-      className={`inline-flex items-center justify-center rounded-[var(--radius-control)] p-0 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 ${iconButtonSizeClasses[size]} ${buttonVariantClasses[variant]} ${iconSizeClass} ${className ?? ''}`.trim()}
+      className={`ui-icon-button inline-flex shrink-0 items-center justify-center rounded-[var(--radius-control)] p-0 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 ${iconButtonSizeClasses[size]} ${buttonVariantClasses[variant]} ${iconSizeClass} ${className ?? ''}`.trim()}
     >
       {children}
     </button>

@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## LinkedHR polish + compact fixes — 2026-08-20
+
+**Status: LOKAAL GEREED; LINT INHERITED BLOCKER; AUTHENTICATED BROWSERGATE GEBLOKKEERD**
+
+De aparte branch `feature/ux-linkedhr-polish` bouwt vanaf `origin/feature/ux-employment-workspace` (`5af3123`) en beperkt zich tot LinkedHR-theme-polish, Foundation-buttons, gedeelde overflow-tabs, employee/employment-presentatie en een compacte dashboard-fallback. Er zijn geen nieuwe features, API-, database-, RLS-, permission-, migration-, Supabase-, release- of versionwijzigingen uitgevoerd.
+
+De LinkedHR-radiuscontracten zijn circa 6px voor surfaces/inputs, 8px voor buttons/controls en overlays. `ScrollableTabs` maakt actieve tabs duidelijker en toont rustige randcontrols uitsluitend bij echte overflow. Employee-fotoacties zijn icon-only met aria-label/title; de compacte employment-header verbergt de extra metadata-rij. De dashboard-layout filtert ontbrekende nodes en gebruikt een hoofdkolomfallback zodat compact geen lege hoofdcontent toont wanneer data beschikbaar is.
+
+Groen: volledige hr-suite 202 testbestanden/777 tests, strict TypeScript, i18n-pariteit met 33 namespaces, Webpack-productiebuild met 225 routes/pages en `git diff --check`. Lint start niet inhoudelijk door de bestaande ESLint 10/`eslint-plugin-react`-incompatibiliteit (`contextOrFilename.getFilename is not a function`). Authenticated browserreview is niet uitgevoerd: er is geen Supabase-env in de worktree en de Playwright-browserdaemon kon de machinebrede browserdirectory niet openen; `/login` gaf lokaal 500 door ontbrekende Supabase URL/key.
+
 ## Employee Personal Tab — final correction 2026-08-20
 
 **Status: LOKAAL GEREED; LINT INHERITED BLOCKER; GEEN MAIN-MERGE**

@@ -59,6 +59,7 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, compact =
   function render(column: 'wide' | 'narrow', items: readonly string[]) {
     return items.map((id, index) => {
       const node = nodes.get(id as EmployeeDashboardWideWidget | EmployeeDashboardNarrowWidget)
+      if (!node) return null
       if (compact) return <div key={id}>{node}</div>
       return <div className="group" draggable key={id} onDragEnd={() => setDragged(null)} onDragOver={(event: DragEvent<HTMLDivElement>) => event.preventDefault()} onDrop={() => drop(column, id)} onDragStart={() => setDragged({ column, id })}>
         <div className="mb-2 flex min-h-9 items-center justify-end gap-1 rounded-lg border border-dashed border-border/70 bg-surface/80 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
@@ -71,8 +72,13 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, compact =
     })
   }
 
+  const renderableWide = layout.wide.filter((id) => nodes.has(id))
+  const renderableNarrow = layout.narrow.filter((id) => nodes.has(id))
+  const mainItems = renderableWide.length > 0 ? render('wide', renderableWide) : render('narrow', renderableNarrow)
+  const asideItems = renderableWide.length > 0 ? render('narrow', renderableNarrow) : null
+
   return <>
-    <DetailColumns main={<div className="space-y-5">{render('wide', layout.wide)}</div>} aside={<aside className="space-y-5">{render('narrow', layout.narrow)}</aside>} />
+    <DetailColumns main={<div className="space-y-5">{mainItems}</div>} aside={<aside className="space-y-5">{asideItems}</aside>} />
     <p aria-live="polite" className="sr-only">{status === 'saving' ? labels.saving : status === 'saved' ? labels.saved : status === 'failed' ? labels.failed : ''}{status === 'saving' ? <LoaderCircle aria-hidden="true" /> : null}</p>
   </>
 }

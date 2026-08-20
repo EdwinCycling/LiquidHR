@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
 import { PageShell } from '@/components/layout/page-shell'
 import { SectionHeader } from '@/components/patterns/section-header'
+import { ScrollableTabs, tabLinkClasses } from '@/components/patterns/scrollable-tabs'
 import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
 import { Badge } from '@/components/ui/badge'
@@ -220,12 +221,14 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           </>}
         </Surface>
 
-        <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
-          {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
-            const active = tab === item
-            const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'processes' ? tProcess('processesTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
-            return <Link prefetch={false} key={item} href={`/employees/${employeeId}?tab=${item}&view=${compact ? 'compact' : 'expanded'}`} className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${active ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground'}`}>{label}</Link>
-          })}
+        <nav className="mt-6" aria-label={tEmployees('tabsLabel')}>
+          <ScrollableTabs ariaLabel={tEmployees('tabsLabel')} leftLabel={tEmployees('previous')} rightLabel={tEmployees('next')} contentProps={{ role: 'tablist' }}>
+            {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
+              const active = tab === item
+              const label = item === 'overview' ? tEmployees('tabDashboard') : item === 'personal' ? tEmployees('tabPersonal') : item === 'employments' ? tEmployees('tabEmployments') : item === 'reminders' ? tEmployees('tabReminders') : item === 'documents' ? tEmployees('tabDocuments') : item === 'absence' ? tEmployees('absenceTab') : item === 'processes' ? tProcess('processesTab') : item === 'payslips' ? tDocuments('payslipsTab') : tEmployees('tabNotes')
+              return <Link prefetch={false} key={item} href={`/employees/${employeeId}?tab=${item}&view=${compact ? 'compact' : 'expanded'}`} aria-current={active ? 'page' : undefined} className={tabLinkClasses({ active })}>{label}</Link>
+            })}
+          </ScrollableTabs>
         </nav>
 
         {tab === 'overview' && <EmployeeDashboard journeys={journeys} journeyLabels={{ journeys: tEmployees('journeys'), journeysDescription: tEmployees('journeysDescription'), journeysEmpty: tEmployees('journeysEmpty'), journeysOpen: tEmployees('journeysOpen'), journeyProgress: tEmployees('journeyProgress') }} selfReportAbsence={selfReport} canManageEmployments={canManageEmployments} absence={absenceOverview} detail={detail} customFields={customFields} documents={dashboardDocuments} reminders={reminders} activity={dashboardActivity} canWriteActivity={canWriteActivity} initialLayout={dashboardLayout} compact={compact} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} processWork={processWork} canReadProcesses={canReadProcesses} canStartProcess={canStartProcess} labels={{
@@ -261,7 +264,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             overviewTitle: tEmployees('overviewTitle'), contactTitle: tEmployees('contactTitle'), workContact: tEmployees('workContact'), privateContact: tEmployees('privateContact'),
             noContact: tEmployees('noContact'), currentAddress: tEmployees('currentAddress'), noAddress: tEmployees('noAddress'), primaryBank: tEmployees('primaryBank'),
             noBankAccount: tEmployees('noBankAccount'), emergencyContacts: tEmployees('emergencyContacts'), noEmergencyContact: tEmployees('noEmergencyContact'),
-            employmentCount: tEmployees('employmentCount'), personalTitle: tEmployees('personalTitle'), editPersonal: tEmployees('editPersonal'),
+            employmentCount: tEmployees('employmentCount'), personalTitle: tEmployees('personalTitle'), previous: tEmployees('previous'), next: tEmployees('next'), editPersonal: tEmployees('editPersonal'),
             save: tEmployees('save'), saving: tEmployees('saving'), saved: tEmployees('saved'), cancel: tEmployees('cancel'), genericError: tErrors('generic'),
             employeeNumber: tEmployees('employeeNumber'), firstName: tEmployees('firstName'), birthNamePrefix: tEmployees('birthNamePrefix'), birthName: tEmployees('birthName'),
             nameUsage: tEmployees('nameUsage'), nameUsageBirth: tEmployees('nameUsageBirth'), nameUsagePartner: tEmployees('nameUsagePartner'),

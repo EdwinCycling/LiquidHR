@@ -4,6 +4,7 @@
 import { Camera, Trash2, UserRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
+import { IconButton } from '@/components/ui/icon-button'
 
 interface Labels {
   upload: string
@@ -52,10 +53,10 @@ export function EmployeeAvatarManager({ employeeId, avatarUrl, name, gender, can
     : <span aria-label={name} className={`flex ${avatarClass} items-center justify-center text-primary-foreground ${compact ? 'shadow-sm' : 'ring-[5px] ring-primary-foreground shadow-lg'} ${gender === 'FEMALE' ? 'bg-chart-2' : 'bg-primary'}`}><UserRound aria-hidden="true" className={compact ? 'h-4 w-4' : 'h-12 w-12'} strokeWidth={1.6} /></span>
   return <div className="flex flex-col items-center gap-2">
     {avatarUrl ? <img src={avatarUrl} alt={name} className={`${avatarClass} object-cover ${compact ? 'shadow-sm' : 'ring-[5px] ring-primary-foreground shadow-lg'}`} /> : fallback}
-    {canManage && <div className="flex flex-wrap justify-center gap-2">
+    {canManage && <div className="flex flex-wrap justify-center gap-1.5">
       <input ref={inputRef} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = '' }} />
-      <button type="button" className="inline-flex items-center gap-1 rounded-[var(--radius-control)] border border-subtle bg-surface px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" disabled={saving} onClick={() => inputRef.current?.click()}><Camera aria-hidden="true" className="h-3.5 w-3.5" />{avatarUrl ? labels.replace : labels.upload}</button>
-      {avatarUrl && <button type="button" className="inline-flex items-center gap-1 rounded-[var(--radius-control)] border border-subtle bg-surface px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" disabled={saving} onClick={() => void remove()}><Trash2 aria-hidden="true" className="h-3.5 w-3.5" />{labels.remove}</button>}
+      <IconButton label={avatarUrl ? labels.replace : labels.upload} title={avatarUrl ? labels.replace : labels.upload} variant="ghost" size="sm" className="border border-subtle bg-surface text-muted-foreground hover:bg-muted hover:text-foreground" disabled={saving} onClick={() => inputRef.current?.click()}><Camera aria-hidden="true" /></IconButton>
+      {avatarUrl && <IconButton label={labels.remove} title={labels.remove} variant="ghost" size="sm" className="border border-subtle bg-surface text-muted-foreground hover:bg-muted hover:text-foreground" disabled={saving} onClick={() => void remove()}><Trash2 aria-hidden="true" /></IconButton>}
     </div>}
     {failed && <p className="text-xs text-destructive">{labels.failed}</p>}
   </div>

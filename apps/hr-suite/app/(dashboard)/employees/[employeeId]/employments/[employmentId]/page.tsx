@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Surface } from "@/components/ui/surface";
 import { InfoList } from "@/components/patterns/info-list";
 import { SectionHeader } from "@/components/patterns/section-header";
+import { ScrollableTabs, tabLinkClasses } from "@/components/patterns/scrollable-tabs";
 import { EmploymentMutationPanel } from "@/components/employment/employment-mutation-panel";
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
@@ -312,12 +313,12 @@ export default async function EmploymentDetailPage({
             </Link>
           </div>
         </div>
-        <dl className="mt-4 grid gap-3 border-t border-subtle pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        {expanded ? <dl className="mt-4 grid gap-3 border-t border-subtle pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div><dt className="text-xs text-muted-foreground">{t("employmentNumber")}</dt><dd className="mt-1 font-semibold">{detail.employment.employment_number}</dd></div>
           <div><dt className="text-xs text-muted-foreground">{t("startDate")}</dt><dd className="mt-1 font-semibold">{formatDate(detail.employment.starts_on, { locale, dateFormat: preferences.dateFormat })}</dd></div>
           <div><dt className="text-xs text-muted-foreground">{t("endDate")}</dt><dd className="mt-1 font-semibold">{endDateLabel}</dd></div>
           <div><dt className="text-xs text-muted-foreground">{t("employeeNumber")}</dt><dd className="mt-1 font-semibold">{detail.employee.employee_number}</dd></div>
-        </dl>
+        </dl> : null}
         {expanded && (detail.employee.work_email || detail.employee.work_phone || detail.employee.work_mobile) ? (
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-subtle pt-3 text-sm text-muted-foreground">
             {detail.employee.work_email ? <a href={`mailto:${detail.employee.work_email}`} className="inline-flex items-center gap-2 hover:text-foreground"><Mail aria-hidden="true" className="size-4" />{detail.employee.work_email}</a> : null}
@@ -326,25 +327,20 @@ export default async function EmploymentDetailPage({
         ) : null}
       </header>
 
-      <nav
-        aria-label={t("detailTitle", {
-          number: detail.employment.employment_number,
-        })}
-        className="mt-3 overflow-x-auto border-b border-border"
-      >
-        <div className="flex min-w-max gap-1">
+      <nav aria-label={t("detailTitle", { number: detail.employment.employment_number })} className="mt-3">
+        <ScrollableTabs ariaLabel={t("detailTitle", { number: detail.employment.employment_number })} leftLabel={t("previous")} rightLabel={t("next")} contentProps={{ role: 'tablist' }}>
           {tabs.filter((item) => item !== 'processes' || canReadProcesses).map((item) => (
             <Link
               prefetch={false}
               key={item}
               href={`?tab=${item}&view=${expanded ? "expanded" : "compact"}`}
               aria-current={tab === item ? "page" : undefined}
-              className={`-mb-px whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"}`}
+              className={tabLinkClasses({ active: tab === item })}
             >
               {tabLabels[item]}
             </Link>
           ))}
-        </div>
+        </ScrollableTabs>
       </nav>
 
       <div className="mt-6">

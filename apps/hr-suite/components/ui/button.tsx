@@ -22,7 +22,7 @@ export type ButtonClassOptions = {
 }
 
 export function buttonClasses({ className, size = 'md', variant = 'primary' }: ButtonClassOptions = {}): string {
-  return `relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 ${buttonSizeClasses[size]} ${buttonVariantClasses[variant]} ${className ?? ''}`.trim()
+  return `ui-button ui-button-${variant} relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-medium leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 [&>svg]:size-4 [&>svg]:shrink-0 ${buttonSizeClasses[size]} ${buttonVariantClasses[variant]} ${className ?? ''}`.trim()
 }
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
