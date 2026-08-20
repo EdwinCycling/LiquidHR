@@ -91,7 +91,7 @@ Twee lagen, altijd allebei toepassen — nooit UI-only:
 
 **Schaduwen/spacing**: Tailwind-default-schaal, geen custom shadow-tokens nodig tenzij er een specifiek "verdiept paneel"-effect nodig is. Compacte tabellen (specifiek domein) gebruiken een lage rij-hoogte en border-loze cel-inputs in plaats van de standaard padding-schaal.
 
-**Typografie**: `Inter`-achtig sans-serif als hoofdfont voor de suite; een systeem-font + `tabular-nums` voor cijfer-zware, dichte tabelweergaven (financieel/rapportage-achtige schermen) — bewust géén monospace-font daar, dat oogt "code-achtig" in plaats van "spreadsheet-achtig".
+**Typografie**: Work Sans als hoofdfont voor de HR Suite; een systeem-font + `tabular-nums` voor cijfer-zware, dichte tabelweergaven (financieel/rapportage-achtige schermen) — bewust géén monospace-font daar, dat oogt "code-achtig" in plaats van "spreadsheet-achtig". De suitebrede UX-foundation staat leidend in [`LIQUIDHR_UX_FOUNDATION_V1.md`](../requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md).
 
 ### 5.1 Gecontroleerde design-systemevolutie
 

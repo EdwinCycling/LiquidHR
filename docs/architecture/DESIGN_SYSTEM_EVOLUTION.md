@@ -4,6 +4,8 @@ Status: **CONCEPT — gecontroleerde adoptie, geen app-brede restyling**
 Datum: **2026-08-12**  
 Eerste beoogde gebruiker: **LiquidHR Journeys**
 
+> **Leidende suitebrede richting vanaf 2026-08-20:** de algemene UX- en stylingrichting wordt overgenomen door [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](../requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). Waar dit historische concept met die Foundation v1 conflicteert, is Foundation v1 leidend. De oorspronkelijke Inter-verwijzing hieronder blijft als historische ontwerpcontext bewaard; Work Sans is de actuele primaire HR Suite-font.
+
 ## Doel en grens
 
 Dit document beoordeelt welke principes uit Stitch `DESIGN.md` verantwoord tot algemene LiquidHR-tokens of componenten kunnen worden verheven. Het is geen opdracht om bestaande schermen in één keer te restylen.

@@ -1,0 +1,274 @@
+.liquid-auth-visual {
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 15%, color-mix(in srgb, var(--liquid-light) 52%, transparent), transparent 35%),
+    radial-gradient(circle at 90% 85%, color-mix(in srgb, var(--liquid-soft) 30%, transparent), transparent 44%),
+    linear-gradient(145deg, var(--sidebar), var(--primary));
+}
+
+.liquid-auth-visual::before,
+.liquid-auth-visual::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  border: 1px solid color-mix(in srgb, var(--primary-foreground) 22%, transparent);
+  background: color-mix(in srgb, var(--liquid-light) 18%, transparent);
+  box-shadow:
+    inset 0 0 4rem color-mix(in srgb, var(--primary-foreground) 8%, transparent),
+    0 2rem 5rem color-mix(in srgb, var(--sidebar) 45%, transparent);
+  backdrop-filter: blur(1.5rem);
+  transform: rotate(-17deg);
+}
+
+.liquid-auth-visual::before {
+  width: 25rem;
+  height: 34rem;
+  right: -8rem;
+  top: -5rem;
+  border-radius: 44% 56% 68% 32% / 38% 41% 59% 62%;
+  animation: liquid-drift 16s ease-in-out infinite alternate;
+}
+
+.liquid-auth-visual::after {
+  width: 18rem;
+  height: 16rem;
+  left: -6rem;
+  bottom: -6rem;
+  border-radius: 63% 37% 46% 54% / 54% 63% 37% 46%;
+  animation: liquid-drift 21s ease-in-out -7s infinite alternate-reverse;
+}
+
+.liquid-panel-shadow {
+  box-shadow: 0 1.5rem 4.5rem color-mix(in srgb, var(--primary) 13%, transparent);
+}
+
+.settings-dialog::backdrop {
+  background: color-mix(in srgb, var(--sidebar) 68%, transparent);
+  backdrop-filter: blur(0.25rem);
+}
+
+.department-tree-line {
+  background: linear-gradient(var(--border), color-mix(in srgb, var(--border) 12%, transparent));
+}
+
+@layer components {
+  .calendar-type-event {
+    --calendar-event-color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 0.9rem;
+    padding-inline: 0.18rem;
+    border-radius: 0.2rem;
+    color: var(--calendar-event-color);
+    border: 1px solid color-mix(in srgb, var(--calendar-event-color) 70%, var(--border));
+    background-color: color-mix(in srgb, var(--calendar-event-color) 18%, transparent);
+  }
+
+  .calendar-type-event-leave,
+  .calendar-type-marker-leave {
+    --calendar-event-color: var(--chart-1);
+    background-color: color-mix(in srgb, var(--calendar-event-color, var(--color-primary)) 32%, transparent);
+  }
+
+  .calendar-type-event-work,
+  .calendar-type-marker-work {
+    --calendar-event-color: var(--chart-2);
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--calendar-event-color, var(--color-primary)) 34%, transparent) 0 2px, transparent 2px 4px);
+  }
+
+  .calendar-type-event-overtime,
+  .calendar-type-marker-overtime {
+    --calendar-event-color: var(--chart-4);
+    background-image: radial-gradient(color-mix(in srgb, var(--calendar-event-color, var(--color-primary)) 58%, transparent) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .calendar-type-marker {
+    --calendar-event-color: var(--color-primary);
+    display: inline-block;
+    width: 1.4rem;
+    height: 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--calendar-event-color) 70%, var(--border));
+    border-radius: 0.2rem;
+  }
+
+  .calendar-absence-active {
+    background-color: color-mix(in srgb, var(--destructive) 24%, var(--surface));
+    color: var(--destructive);
+  }
+
+  .calendar-absence-projected {
+    background-color: color-mix(in srgb, var(--destructive) 12%, var(--surface));
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--destructive) 42%, transparent) 0 2px, transparent 2px 6px);
+    color: var(--destructive);
+  }
+
+  .form-field,
+  .input {
+    @apply min-h-11 w-full rounded-lg border bg-surface px-3 py-2 text-foreground shadow-sm transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-primary/40 hover:bg-surface-raised focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-focus/20;
+  }
+
+  .dropdown-trigger {
+    @apply inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-border/90 bg-surface px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .dropdown-menu {
+    @apply overflow-hidden rounded-xl border border-border bg-surface p-2 shadow-2xl;
+  }
+
+  .dropdown-option {
+    @apply flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted;
+  }
+
+  .tabs-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .tabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .button-primary,
+  .button-secondary,
+  .button-danger {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-[background-color,border-color,box-shadow,transform,color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60;
+    -webkit-backdrop-filter: blur(1rem) saturate(1.35);
+    backdrop-filter: blur(1rem) saturate(1.35);
+    box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in srgb, white 58%, transparent);
+  }
+
+  .button-primary {
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .button-primary:hover:not(:disabled) {
+    border-color: var(--primary-hover);
+    background: var(--primary-hover);
+    box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary) 14%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .button-primary:active:not(:disabled),
+  .button-secondary:active:not(:disabled),
+  .button-danger:active:not(:disabled) {
+    box-shadow: 0 0.2rem 0.5rem color-mix(in srgb, var(--primary) 10%, transparent), inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+    transform: translateY(0);
+  }
+
+  .button-secondary {
+    border: 1px solid color-mix(in srgb, var(--border) 82%, var(--foreground) 18%);
+    background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+    color: var(--foreground);
+  }
+
+  .button-secondary:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    background: color-mix(in srgb, var(--surface) 72%, var(--accent) 28%);
+    box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary) 10%, transparent), inset 0 1px 0 color-mix(in srgb, white 70%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .button-danger {
+    border: 1px solid color-mix(in srgb, var(--destructive) 34%, var(--border));
+    background: color-mix(in srgb, var(--surface) 72%, var(--destructive) 28%);
+    color: var(--destructive);
+  }
+
+  .button-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--surface) 62%, var(--destructive) 38%);
+    box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--destructive) 14%, transparent), inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.16em] text-primary;
+  }
+
+  .status-chip,
+  .filter-chip {
+    @apply inline-flex items-center whitespace-nowrap rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground;
+  }
+
+  .filter-chip {
+    @apply border bg-surface px-3 py-2 hover:bg-accent;
+  }
+
+  .filter-chip-active {
+    @apply border-primary bg-primary text-primary-foreground;
+  }
+}
+
+@keyframes liquid-drift {
+  from { transform: rotate(-17deg) translate3d(0, 0, 0) scale(1); }
+  to { transform: rotate(-10deg) translate3d(-1.5rem, 1.25rem, 0) scale(1.06); }
+}
+
+.product-update-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--border));
+  background:
+    radial-gradient(125% 190% at 5% -70%, color-mix(in srgb, var(--warning) 78%, white 22%) 0%, transparent 48%),
+    radial-gradient(90% 210% at 94% 135%, color-mix(in srgb, var(--chart-4) 76%, var(--warning) 24%) 0%, transparent 54%),
+    linear-gradient(115deg, color-mix(in srgb, var(--primary) 78%, var(--warning) 22%) 0%, color-mix(in srgb, var(--warning) 68%, var(--chart-4) 32%) 48%, color-mix(in srgb, var(--primary) 72%, var(--chart-4) 28%) 100%);
+  color: var(--primary-foreground);
+  box-shadow: 0 0.7rem 2rem color-mix(in srgb, var(--warning) 16%, transparent), inset 0 1px 0 color-mix(in srgb, white 48%, transparent);
+}
+
+.product-update-banner::before,
+.product-update-banner::after {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+}
+
+.product-update-banner::before {
+  inset: -190% -20%;
+  background: linear-gradient(112deg, transparent 40%, color-mix(in srgb, white 48%, transparent) 48%, color-mix(in srgb, var(--warning-surface) 40%, transparent) 51%, transparent 60%);
+  filter: blur(0.3rem);
+  opacity: 0.7;
+  transform: rotate(-8deg);
+  animation: product-update-metallic-sweep 10s ease-in-out infinite;
+}
+
+.product-update-banner::after {
+  inset: -100% -10% -120% 52%;
+  border-radius: 999px;
+  background: radial-gradient(ellipse, color-mix(in srgb, white 34%, transparent) 0%, transparent 68%);
+  filter: blur(1.3rem);
+  opacity: 0.55;
+  transform: rotate(-14deg);
+}
+
+.product-update-banner__icon {
+  color: var(--warning-surface);
+  filter: drop-shadow(0 0 0.55rem color-mix(in srgb, var(--warning-surface) 72%, transparent));
+}
+
+.product-update-banner__link {
+  border-color: color-mix(in srgb, var(--primary-foreground) 42%, transparent);
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+  color: var(--primary-foreground);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 52%, transparent);
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.product-update-banner__link:hover {
+  background: color-mix(in srgb, var(--primary-foreground) 18%, transparent);
+  box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--primary) 22%, transparent), inset 0 1px 0 color-mix(in srgb, white 72%, transparent);
+  transform: translateY(-1px);
+}
+
+@keyframes product-update-metallic-sweep {
+  0%, 18% { transform: translate3d(-34%, 0, 0) rotate(-8deg); }
+  48%, 64% { transform: translate3d(30%, 0, 0) rotate(-8deg); }
+  100% { transform: translate3d(76%, 0, 0) rotate(-8deg); }
+}

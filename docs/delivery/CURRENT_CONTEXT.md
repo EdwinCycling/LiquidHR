@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## UX Foundation v1 — Blok 1 2026-08-20
+
+- Uitsluitend Blok 1 uitgevoerd op `feature/ux-foundation-v1`; de algemene UX-foundation staat leidend in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](../requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md).
+- `apps/hr-suite/app/globals.css` is structureel opgeschoond naar `app/styles/tokens.css`, `themes.css`, `base.css` en `components.css`. Bestaande classes, theme support en globale componentstijlen zijn behouden; additive semantic aliases zijn toegevoegd.
+- Work Sans is leidend en via `next/font/google` aan de root gekoppeld. `packages/ui` is bewust niet ingevoerd en er zijn geen nieuwe foundationcomponenten gebouwd.
+- De algemene architectuurdocumenten markeren Foundation v1 als leidend; UI-flow behoudt security-, data-, sidebar-, RBAC- en URL-state-regels.
+- Verificatie: `git diff --check` groen; lint groen; `check:i18n` groen met 33 gelijke NL/EN-namespaces; tests groen met 182 testbestanden en 687 tests; strict typecheck groen; productiebuild groen met 223 routes/pages. Een incomplete lokale install van de al gedeclareerde `sharp`-dependency is tijdens de gate hersteld; de foundationbestanden kwamen niet in de foutlijst voor.
+- Authenticated browsercontrole op localhost:3000 is uitgevoerd met HR Admin: `/employees` desktop en 390x844, en medewerkerdetail desktop en 390x844. Work Sans is computed actief; focus-visible toont een 3px solid focusring; alle vier viewports hebben `scrollWidth` gelijk aan de viewportbreedte en 0 console-errors. De fixturetheme `bos`, niet-persistente `liquid-navy`-preview en `nacht`-preview zijn gecontroleerd; beide theme-previews bleven op 390px zonder overflow of console-errors.
+- Geen remote wijziging, merge, deployment of releaseactie.
+- **Blok 2 is niet gestart.**
+
 ## Guided Recruitment — lokaal geconsolideerde testrelease 2026-08-13
 
 - De volledige Guided Recruitment-feature is vanuit `feature/recruitment` lokaal samengevoegd naar `main`. De feature-afrondingscommit is `fd367ff`; de normale mergecommit was `98fc2f0`; versie-/lintfix en release-documentatie zijn daarna gecontroleerd gecommit.
