@@ -1,7 +1,7 @@
 # Employment Workspace UX-redesign
 
-Datum: 2026-08-20  
-Route: `/employees/[employeeId]/employments/[employmentId]`  
+Datum: 2026-08-20
+Route: `/employees/[employeeId]/employments/[employmentId]`
 Status: **GEIMPLEMENTEERD — lokale verificatie volgt**
 
 ## Doel
