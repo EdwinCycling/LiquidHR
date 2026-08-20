@@ -1,7 +1,11 @@
 # LiquidHR UX Foundation v1
 
-Status: **LEIDEND — Blok 2 uitgevoerd op 2026-08-20**
-Scope: **Blok 1 en Blok 2; Blok 3 is niet uitgevoerd**
+Status: **LEIDEND — Blok 3 uitgevoerd op 2026-08-20**
+Scope: **Blok 1 t/m Blok 3; Employees en Employee Detail zijn reference implementations**
+
+## 0.1 Blok 3 uitgevoerd
+
+`/employees` en `/employees/[employeeId]` gebruiken de Blok-2-foundation voor shell, headers, surfaces, badges, empty states en de 2/3 + 1/3 detailkolommen. Alle bestaande routes, URL-state, permissions, view modes, tabs, widgets, dashboardvoorkeuren en API-/businesslogica zijn behouden. Geen schema-, API-, RLS-, security-, release- of deploymentwijziging.
 
 Dit document is vanaf 2026-08-20 de leidende algemene UX- en stylingfoundation voor de LiquidHR HR Suite. Het vervangt conflicterende suitebrede richting uit oudere conceptdocumenten. Historische ontwerpdocumenten blijven bewaard als context; bestaande schermen adopteren nieuwe patronen later, per gecontroleerde slice.
 

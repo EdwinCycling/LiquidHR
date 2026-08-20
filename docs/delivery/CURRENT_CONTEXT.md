@@ -1,10 +1,15 @@
 # Actuele overdracht Liquid HR
 
-## UX Foundation v1 — Blok 2 2026-08-20
+## UX Foundation v1 — Blok 3 eindgate 2026-08-20
+
+- Blok 3 is uitgevoerd op `feature/ux-foundation-v1` voor `/employees` en `/employees/[employeeId]`. De Employees reference implementation gebruikt `PageShell`, `PageHeader`, `Surface`, `EmptyState`; Employee Detail gebruikt een vlakke zakelijke profielheader met `Surface`/`Badge`; het dashboard gebruikt `DetailColumns` en behoudt wide/narrow, drag/reorder en opgeslagen voorkeuren.
+- Alle bestaande employee view modes, filters, URL-state, scope, permissions, tabs, weather, widgets, documenten, reminders, journeys, absence, workflows, salary visibility en notes zijn behouden. Geen schema-, API-, RLS-, security-, release- of deploymentwijziging. **Blok 4 niet gestart.**
+
+## UX Foundation v1 — Blok 2 gecorrigeerde baseline 2026-08-20
 
 - Blok 2 is uitgevoerd op `feature/ux-foundation-v1`: generieke UI-primitives in `components/ui`, composities in `components/patterns` en layoutcontracten in `components/layout`.
 - Beschikbaar: `Button`, `IconButton`, `TextInput`, `Surface`, `Badge`, `EmptyState`, `PageHeader`, `SectionHeader`, `PageToolbar`, `FilterBar`, `InfoList`, `PageShell` en `DetailColumns`. `DropdownSelect` en `CountryPicker` zijn behouden.
-- Gerichte foundationtests: 12/12 groen. Volledige tests, typecheck, lint, i18n-check en productiebuild worden als eindgate hieronder vastgelegd.
+- Gerichte foundationtests: 12/12 groen. De volledige Blok-2-baseline was 201 testbestanden / 775 tests, 33 i18n-namespaces en een build met 225 routes/pages.
 - Alleen foundationcomponenten en documentatiestatus zijn gewijzigd. Geen schema-, API-, permission-, businesslogic-, release-, deployment- of Supabase-wijziging. **Blok 3 niet gestart.**
 
 ## Controlecorrectie UX Foundation v1 — Blok 1-baseline 2026-08-20

@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, GripVertical, LoaderCircle } from 'lucide-react'
 import { useState, type DragEvent, type ReactNode } from 'react'
 import type { EmployeeDashboardLayout as Layout, EmployeeDashboardNarrowWidget, EmployeeDashboardWideWidget } from '@/lib/preferences/employee-dashboard-layout'
+import { DetailColumns } from '@/components/layout/detail-columns'
 
 interface WidgetNode {
   id: EmployeeDashboardWideWidget | EmployeeDashboardNarrowWidget
@@ -71,10 +72,7 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, compact =
   }
 
   return <>
-    <div className="grid gap-5 lg:grid-cols-12">
-      <div className="space-y-5 lg:col-span-8">{render('wide', layout.wide)}</div>
-      <aside className="space-y-5 lg:col-span-4">{render('narrow', layout.narrow)}</aside>
-    </div>
+    <DetailColumns main={<div className="space-y-5">{render('wide', layout.wide)}</div>} aside={<aside className="space-y-5">{render('narrow', layout.narrow)}</aside>} />
     <p aria-live="polite" className="sr-only">{status === 'saving' ? labels.saving : status === 'saved' ? labels.saved : status === 'failed' ? labels.failed : ''}{status === 'saving' ? <LoaderCircle aria-hidden="true" /> : null}</p>
   </>
 }

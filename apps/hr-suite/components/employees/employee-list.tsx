@@ -6,6 +6,8 @@ import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import type { EmployeeListView } from '@/lib/preferences/employee-list-state'
 import { getEmployeeListAvatarUrl } from '@/lib/employees/employee-avatar-visibility'
 import { EmailLink } from '@/components/shared/email-link'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
 import { EmployeeDirectoryTrigger } from './employee-directory-trigger'
 import { EmployeePhotoAvatar } from './employee-photo-avatar'
 
@@ -49,14 +51,7 @@ export function EmployeeList({
   directoryLabels,
 }: EmployeeListProps) {
   if (employees.length === 0) {
-    return (
-      <section className="rounded-lg border border-dashed border-border/90 bg-surface/70 px-6 py-14 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          <BriefcaseBusiness aria-hidden="true" className="h-5 w-5" />
-        </div>
-        <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">{emptyLabel}</p>
-      </section>
-    )
+    return <EmptyState icon={<BriefcaseBusiness />} title={emptyLabel} />
   }
 
   if (view === 'card') {
@@ -101,7 +96,7 @@ export function EmployeeList({
   }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border/90 bg-surface shadow-none">
+    <Surface className="overflow-hidden">
       <ul className="divide-y">
         {employees.map((employee, index) => {
           const avatarUrl = getEmployeeListAvatarUrl(employee, directoryMode, currentEmployeeId)
@@ -164,7 +159,7 @@ export function EmployeeList({
           </li>
         })}
       </ul>
-    </section>
+    </Surface>
   )
 }
 

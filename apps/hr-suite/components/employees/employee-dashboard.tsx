@@ -25,6 +25,9 @@ import { EmployeeActivityFeed } from '@/components/employees/employee-activity-f
 import { EmployeeDashboardSummary, type EmployeeDashboardSummaryLabels } from '@/components/employees/employee-dashboard-summary'
 import { ProfileLinkForm } from '@/components/employment/profile-link-form'
 import { EmployeeDashboardLayout } from '@/components/employees/employee-dashboard-layout'
+import { SectionHeader } from '@/components/patterns/section-header'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
 import { EmploymentDashboardSummary } from '@/components/employees/employment-dashboard-summary'
 import type { EmployeeActivityItem } from '@/lib/employees/employee-activity-service'
 import type { EmployeeDashboardLayout as DashboardLayout } from '@/lib/preferences/employee-dashboard'
@@ -189,7 +192,7 @@ function EmploymentSummaryList({
 }
 
 function DashboardCard({ icon, title, actionHref, actionLabel, compact = false, children }: { icon: React.ReactNode; title: string; actionHref?: string; actionLabel?: string; compact?: boolean; children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-sm"><header className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3.5 sm:px-5"><div className="flex min-w-0 items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-accent-foreground">{icon}</span><h3 className="truncate text-sm font-semibold">{title}</h3></div>{actionHref && actionLabel ? <Link href={actionHref} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"><ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />{actionLabel}</Link> : null}</header><div className={`p-4 sm:p-5 ${compact ? 'sm:p-4' : ''}`}>{children}</div></section>
+  return <Surface className="overflow-hidden"><div className="border-b border-subtle px-4 py-3.5 sm:px-5"><SectionHeader title={<span className="flex min-w-0 items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] bg-accent text-accent-foreground">{icon}</span><span className="truncate">{title}</span></span>} actions={actionHref && actionLabel ? <Link href={actionHref} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"><ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />{actionLabel}</Link> : undefined} /></div><div className={`p-4 sm:p-5 ${compact ? 'sm:p-4' : ''}`}>{children}</div></Surface>
 }
 
 function PlaceholderCard({ icon, title, description, labels }: { icon: React.ReactNode; title: string; description: string; labels: EmployeeDashboardLabels }) {
@@ -197,7 +200,7 @@ function PlaceholderCard({ icon, title, description, labels }: { icon: React.Rea
 }
 
 function EmptyModule({ title, labels }: { title: string; labels: EmployeeDashboardLabels }) { return <div className="rounded-xl border border-dashed border-primary/25 bg-accent/20 p-4"><p className="text-sm leading-6 text-muted-foreground">{title}</p><p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-primary">{labels.futureModule}</p><p className="mt-1 text-xs text-muted-foreground">{labels.futureModuleDescription}</p></div> }
-function EmptyInline({ children }: { children: React.ReactNode }) { return <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">{children}</p> }
+function EmptyInline({ children }: { children: React.ReactNode }) { return <EmptyState title={children} className="items-start p-4 text-left" /> }
 function DataPoint({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 truncate text-sm font-semibold">{value}</dd></div> }
 function formatCustomValue(value: Json | undefined, fallback: string): string { if (value === undefined || value === null) return fallback; if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value); if (Array.isArray(value)) return value.map((item) => formatCustomValue(item, fallback)).join(', '); return Object.entries(value).map(([key, item]) => `${key}: ${formatCustomValue(item, fallback)}`).join(', ') }
 

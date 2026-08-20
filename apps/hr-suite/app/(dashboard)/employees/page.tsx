@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Plus, UsersRound } from 'lucide-react'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/patterns/page-header'
 import { EmployeeFilterPanel } from '@/components/employees/employee-filter-panel'
 import { EmployeeList } from '@/components/employees/employee-list'
 import { getRequestAuthorizationContext, requireAnyPermission } from '@/lib/auth/permissions'
@@ -96,7 +98,8 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <PageShell width="standard" className="py-6 lg:py-8">
+      <PageHeader title={tEmployees('title')} actions={canCreateEmployee ? <Link href="/employees/new" className="button-primary inline-flex items-center gap-2"><Plus aria-hidden="true" className="h-4 w-4" />{tEmployees('new')}</Link> : undefined} />
       <EmployeeFilterPanel
         activeStatus={statusFilter}
         archiveFilter={archiveFilter}
@@ -135,9 +138,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           myTeam: tEmployees('myTeam'),
           allEmployees: tEmployees('allEmployees'),
         }}
-        headerAction={canCreateEmployee ? <Link href="/employees/new" className="button-primary inline-flex items-center gap-2">
-          <Plus aria-hidden="true" className="h-4 w-4" />{tEmployees('new')}
-        </Link> : null}
+        headerAction={null}
         search={search}
         scope={employeeScope}
         canSelectTeamScope={canSelectTeamScope}
@@ -183,6 +184,6 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
         <UsersRound aria-hidden="true" className="h-4 w-4" />
         {tEmployees('resultCount', { count: sorted.length })}
       </div>
-    </main>
+    </PageShell>
   )
 }

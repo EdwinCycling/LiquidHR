@@ -48,10 +48,8 @@ describe('LiquidHR foundation UI components', () => {
   })
 
   it('uses the required accessible label for an icon button', () => {
-    const markup = render(createElement(IconButton, {
-      children: createElement('span', null, '⌘'),
-      label: 'Menu openen',
-    }))
+    // eslint-disable-next-line react/no-children-prop
+    const markup = render(createElement(IconButton, { label: 'Menu openen', children: createElement('span', null, '⌘') }))
 
     expect(markup).toContain('aria-label="Menu openen"')
     expect(markup).toContain('min-h-10')
@@ -83,6 +81,7 @@ describe('LiquidHR foundation UI components', () => {
     } as const
 
     for (const [variant, expectedClass] of Object.entries(variants)) {
+      // eslint-disable-next-line react/no-children-prop
       const markup = render(createElement(Surface, { children: 'Inhoud', variant: variant as keyof typeof variants }))
 
       expect(markup).toContain(expectedClass)
@@ -100,6 +99,7 @@ describe('LiquidHR foundation UI components', () => {
     } as const
 
     for (const [tone, expectedClass] of Object.entries(tones)) {
+      // eslint-disable-next-line react/no-children-prop
       const markup = render(createElement(Badge, { children: 'Status', tone: tone as keyof typeof tones }))
 
       expect(markup).toContain(expectedClass)
@@ -145,10 +145,8 @@ describe('LiquidHR foundation UI components', () => {
       end: createElement('button', { type: 'button' }, 'Actie'),
       start: createElement('span', null, 'Zoeken'),
     }))
-    const filterMarkup = render(createElement(FilterBar, {
-      actions: createElement('button', { type: 'button' }, 'Wis filters'),
-      children: createElement('span', null, 'Afdeling'),
-    }))
+    // eslint-disable-next-line react/no-children-prop
+    const filterMarkup = render(createElement(FilterBar, { actions: createElement('button', { type: 'button' }, 'Wis filters'), children: createElement('span', null, 'Afdeling') }))
 
     expect(toolbarMarkup).toContain('Zoeken')
     expect(toolbarMarkup).toContain('Actie')
@@ -176,6 +174,7 @@ describe('LiquidHR foundation UI components', () => {
     const widths = ['reading', 'standard', 'wide'] as const
 
     for (const width of widths) {
+      // eslint-disable-next-line react/no-children-prop
       const markup = render(createElement(PageShell, { children: 'Pagina', width }))
 
       expect(markup).toContain('px-4')

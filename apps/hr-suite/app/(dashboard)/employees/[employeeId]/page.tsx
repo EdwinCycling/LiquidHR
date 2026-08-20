@@ -3,6 +3,9 @@ import { ArrowLeft, BriefcaseBusiness, CalendarDays, Mail, Maximize2, Minimize2,
 import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
+import { PageShell } from '@/components/layout/page-shell'
+import { Surface } from '@/components/ui/surface'
+import { Badge } from '@/components/ui/badge'
 import { EmployeeDashboard } from '@/components/employees/employee-dashboard'
 import { EmailLink } from '@/components/shared/email-link'
 import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-toggle'
@@ -123,7 +126,7 @@ function EmployeeCalendarHeader({ items, locale, labels }: { items: UpcomingCale
   if (!items.holiday && !items.companyActivity) return null
   const dateLocale = locale === 'nl' ? 'nl-NL' : 'en-GB'
   const formatItem = (template: string, item: { name: string; date: string }) => template.replace('{name}', item.name).replace('{date}', new Intl.DateTimeFormat(dateLocale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${item.date}T00:00:00Z`)))
-  return <div className="relative mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-primary-foreground/25 pt-4 text-xs text-primary-foreground/80"><CalendarDays aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{items.holiday ? <span>{formatItem(labels.holiday, items.holiday)}</span> : null}{items.companyActivity ? <span>{formatItem(labels.activity, items.companyActivity)}</span> : null}</div>
+  return <div className="relative mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-border-subtle pt-4 text-xs text-muted-foreground"><CalendarDays aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{items.holiday ? <span>{formatItem(labels.holiday, items.holiday)}</span> : null}{items.companyActivity ? <span>{formatItem(labels.activity, items.companyActivity)}</span> : null}</div>
 }
 
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
@@ -170,43 +173,41 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   }[status] ?? tProcess('unknown'))
 
   return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
+      <PageShell width="standard" className="py-7 lg:py-10">
         <Link href="/employees" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />{tEmployees('title')}
         </Link>
-        <div className={`relative mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-accent-foreground text-primary-foreground shadow-lg ${compact ? 'p-2.5 sm:px-4' : 'px-5 py-6 sm:px-8 sm:py-8'}`}>
-          <div aria-hidden="true" className="absolute -right-14 -top-20 h-52 w-52 rounded-full bg-primary-foreground/10" />
-          {!compact && <div aria-hidden="true" className="absolute -bottom-52 right-0 h-80 w-[70%] rotate-[-10deg] rounded-[50%] border border-primary-foreground/10 bg-primary-foreground/[0.035]" />}
+        <Surface className={`relative mt-5 overflow-hidden ${compact ? 'p-2.5 sm:px-4' : 'px-5 py-6 sm:px-8 sm:py-8'}`}>
           {compact ? <><div className="relative flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <EmployeeAvatarManager compact employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
               <h1 className="truncate text-base font-semibold tracking-tight">{detail.employee.firstName} {detail.employee.birthName}</h1>
             </div>
-            <div className="flex shrink-0 items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('expand')} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} prefetch={false} title={tEmployees('expand')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition hover:bg-primary-foreground/20"><Maximize2 aria-hidden="true" size={18} /></Link></div>
+            <div className="flex shrink-0 items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('expand')} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} prefetch={false} title={tEmployees('expand')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-subtle bg-surface-subtle text-foreground transition-colors hover:bg-muted"><Maximize2 aria-hidden="true" size={18} /></Link></div>
           </div><EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} /></> : <>
             <div className="relative grid gap-x-8 gap-y-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-start">
               <EmployeeAvatarManager employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed') }} />
               <div className="min-w-0 self-center text-center md:text-left">
                 <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
-                  <p className="eyebrow text-primary-foreground/70">{detail.employee.employeeNumber}</p>
-                  {detail.employee.isArchived && <span className="status-chip bg-warning-surface text-warning">{tEmployees('archived')}</span>}
-                  <span className={`status-chip ${detail.employee.isActive ? 'bg-success-surface text-success' : 'bg-accent text-accent-foreground'}`}>{statusLabel}</span>
+                  <p className="eyebrow text-muted-foreground">{detail.employee.employeeNumber}</p>
+                  {detail.employee.isArchived && <Badge tone="warning">{tEmployees('archived')}</Badge>}
+                  <Badge tone={detail.employee.isActive ? 'success' : 'info'}>{statusLabel}</Badge>
                 </div>
                 <h1 className="mt-2 break-words text-4xl font-semibold leading-none tracking-[-0.04em] sm:text-5xl md:text-4xl xl:text-5xl">{detail.employee.firstName} {detail.employee.birthName}</h1>
               </div>
               <div className="flex flex-col items-center gap-3 md:self-stretch md:items-end md:justify-between">
-                <div className="flex items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition hover:bg-primary-foreground/20"><Minimize2 aria-hidden="true" size={18} /></Link></div>
+                <div className="flex items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-subtle bg-surface-subtle text-foreground transition-colors hover:bg-muted"><Minimize2 aria-hidden="true" size={18} /></Link></div>
                 <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
               </div>
             </div>
-            <div className="relative mt-7 grid gap-3 border-t border-primary-foreground/35 pt-5 text-sm text-primary-foreground/85 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
-              <span className="flex min-w-0 items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="min-w-0 truncate">{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink className="text-primary-foreground/90 hover:text-primary-foreground hover:underline" email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span></span>
-              {(detail.employee.workPhone ?? detail.employee.workMobile) && <a className="flex items-center gap-2 hover:text-primary-foreground" href={`tel:${detail.employee.workPhone ?? detail.employee.workMobile}`}><Phone aria-hidden="true" className="h-4 w-4 shrink-0" />{detail.employee.workPhone ?? detail.employee.workMobile}</a>}
+            <div className="relative mt-7 grid gap-3 border-t border-subtle pt-5 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <span className="flex min-w-0 items-center gap-2"><Mail aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="min-w-0 truncate">{(detail.employee.workEmail ?? detail.employee.privateEmail) ? <EmailLink className="text-primary hover:underline" email={detail.employee.workEmail ?? detail.employee.privateEmail ?? ''} /> : tEmployees('noEmail')}</span></span>
+              {(detail.employee.workPhone ?? detail.employee.workMobile) && <a className="flex items-center gap-2 hover:text-foreground" href={`tel:${detail.employee.workPhone ?? detail.employee.workMobile}`}><Phone aria-hidden="true" className="h-4 w-4 shrink-0" />{detail.employee.workPhone ?? detail.employee.workMobile}</a>}
               <span className="flex items-center gap-2 sm:col-span-2 lg:col-span-1"><BriefcaseBusiness aria-hidden="true" className="h-4 w-4 shrink-0" />{tEmployees('employmentCount', { count: detail.employments.length })}</span>
             </div>
             <EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} />
           </>}
-        </div>
+        </Surface>
 
         <nav className="tabs-scroll mt-6 flex gap-2 overflow-x-auto overflow-y-hidden border-b" aria-label={tEmployees('tabsLabel')}>
           {(['overview', 'personal', 'employments', 'reminders', 'documents', 'absence', ...(canReadProcesses ? ['processes' as const] : []), ...(canReadPayslips ? ['payslips' as const] : []), ...(canReadNotes ? ['notes' as const] : [])] as const).map((item) => {
@@ -326,6 +327,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
             <Link href={`/employees/${employeeId}/employments/new`} className="button-primary">{tEmployment('new')}</Link>
           </div>}
         </div>}
-      </main>
+      </PageShell>
   )
 }

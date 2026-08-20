@@ -1,8 +1,10 @@
 # Employees UX vNext — gecontroleerde UI-pilot
 
-Status: **GEVERIFIEERD — lokale testfase**
+Status: **GEIMPLEMENTEERD — UX Foundation v1 Blok 3 reference implementation**
 Route: `/employees`
-Datum: `2026-08-16`
+Datum: `2026-08-20`
+
+Aanvulling Blok 3: de Employees-lijst en Employee Detail zijn gemigreerd naar de centrale Blok-2-componentenlaag. Employee Detail gebruikt een vlakke zakelijke profielheader zonder gradient/cirkels/zware shadow en `DetailColumns` voor de bestaande wide/narrow dashboardstructuur. De bestaande functionele contracten zijn ongewijzigd.
 
 ## Doel en scope
 
