@@ -1,6 +1,7 @@
 import 'server-only'
 
-import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { listSalaryStructureCatalog } from '@/lib/salary-structures/service'
 import { createClient } from '@/lib/supabase/server'
 import { buildEmploymentRegulationTimelines } from './employment-regulation-model'
 
@@ -15,6 +16,16 @@ export class EmploymentSettingsError extends Error {
 function administrationId(value: string | null): string {
   if (!value) throw new EmploymentSettingsError('ADMINISTRATION_REQUIRED', 400)
   return value
+}
+
+async function permissionAllowed(permission: string): Promise<boolean> {
+  try {
+    await requirePermission(permission)
+    return true
+  } catch (error) {
+    if (error instanceof AuthorizationError) return false
+    throw error
+  }
 }
 
 function regulationCodeBase(name: string): string {
@@ -46,7 +57,11 @@ export async function getEmploymentSettings() {
   const context = await requirePermission('contract:read')
   const adminId = administrationId(context.administrationId)
   const supabase = await createClient()
-  const [settings, labor, flex, frequencies, carriers, centers] = await Promise.all([
+  const salaryStructureCatalogPromise = listSalaryStructureCatalog().catch((error: unknown) => {
+    if (error instanceof AuthorizationError) return null
+    throw error
+  })
+  const [settings, labor, flex, frequencies, carriers, centers, salaryStructureCatalog, canWriteSalaryApplication] = await Promise.all([
     supabase.from('administration_hr_settings').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).single(),
     supabase.from('labor_condition_sets').select('*')
@@ -59,14 +74,36 @@ export async function getEmploymentSettings() {
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
     supabase.from('cost_centers').select('*')
       .eq('tenant_id', context.tenantId).eq('administration_id', adminId).order('code').limit(500),
+    salaryStructureCatalogPromise,
+    permissionAllowed('salary:write'),
   ])
   if ([settings, labor, flex, frequencies, carriers, centers].some((result) => result.error) || !settings.data) {
     throw new EmploymentSettingsError('EMPLOYMENT_SETTINGS_READ_FAILED', 500)
   }
+  const enabledSalaryStructureIds = new Set(settings.data.salary_structure_ids ?? [])
+  const administrationSalaryStructureCatalog = salaryStructureCatalog
+    ? {
+      ...salaryStructureCatalog,
+      structures: salaryStructureCatalog.structures.filter((structure) => enabledSalaryStructureIds.has(structure.id)),
+      revisions: salaryStructureCatalog.revisions.filter((revision) => enabledSalaryStructureIds.has(revision.salary_structure_id)),
+      scales: salaryStructureCatalog.scales.filter((scale) => enabledSalaryStructureIds.has(scale.salary_structure_id)),
+      scaleValues: salaryStructureCatalog.scaleValues.filter((value) => salaryStructureCatalog.revisions.some((revision) => revision.id === value.salary_structure_revision_id && enabledSalaryStructureIds.has(revision.salary_structure_id))),
+      steps: salaryStructureCatalog.steps.filter((step) => salaryStructureCatalog.revisions.some((revision) => revision.id === step.salary_structure_revision_id && enabledSalaryStructureIds.has(revision.salary_structure_id))),
+      bands: salaryStructureCatalog.bands.filter((band) => enabledSalaryStructureIds.has(band.salary_structure_id)),
+      bandValues: salaryStructureCatalog.bandValues.filter((value) => salaryStructureCatalog.revisions.some((revision) => revision.id === value.salary_structure_revision_id && enabledSalaryStructureIds.has(revision.salary_structure_id))),
+      laborConditionRelations: salaryStructureCatalog.laborConditionRelations.filter((relation) => enabledSalaryStructureIds.has(relation.salary_structure_id)),
+    }
+    : null
   return {
     defaultCountryCode: settings.data.default_employment_country_code,
     laborConditionSets: labor.data ?? [],
     laborConditionTimelines: buildEmploymentRegulationTimelines(labor.data ?? []),
+    salaryStructureCatalog: administrationSalaryStructureCatalog,
+    salaryApplicationSettings: {
+      routes: settings.data.salary_routes,
+      structureIds: settings.data.salary_structure_ids,
+      canWrite: canWriteSalaryApplication,
+    },
     flexPhases: flex.data ?? [],
     salaryFrequencies: frequencies.data ?? [],
     costCarriers: carriers.data ?? [],

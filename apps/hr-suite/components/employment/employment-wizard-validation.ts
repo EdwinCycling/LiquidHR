@@ -1,5 +1,6 @@
 import { isBlockingProbationValidation, validateProbation } from '@/lib/employment/probation-rules'
 import { parseDecimalInput } from '@/lib/employment/decimal-input'
+import { parseRosterHoursInput } from '@/lib/employment/roster-hours'
 
 export type EmploymentWizardStep = 'administration' | 'employment' | 'payrollChoice' | 'contract' | 'schedule' | 'salary' | 'other' | 'review'
 
@@ -17,7 +18,7 @@ export interface EmploymentWizardValidationInput {
   seniorityDate: string
   countryCode: string
   ikvNumber: string
-  employmentType: 'EMPLOYEE' | 'INTERN' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
+  employmentType: '' | 'EMPLOYEE' | 'INTERN' | 'TEMPORARY_AGENCY' | 'FREELANCER' | 'VOLUNTEER' | 'NO_PAYROLL'
   flexPhaseId: string
   laborConditionSetId: string
   durationType: 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
@@ -29,10 +30,12 @@ export interface EmploymentWizardValidationInput {
   days: Readonly<Record<string, string>>
   secondWeekDays: Readonly<Record<string, string>>
   twoWeekRoster: boolean
-  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE'
+  salaryBasis: 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'SALARY_BAND'
+  minimumWageScheme?: 'REGULAR' | 'BBL'
   salaryFrequencyId: string
   fulltimeAmount: string
   salaryScaleStepId: string
+  salaryBandId?: string
   jobGroupId: string
   jobId: string
   departmentId: string
@@ -59,7 +62,7 @@ export function isEmploymentWizardStepValid(
 ): boolean {
   if (step === 'administration') return Boolean(input.administrationId) && !options.optionsLoading
   if (step === 'employment') {
-    return Boolean(/^\d+$/.test(input.employmentNumber.trim()) && input.startsOn && input.seniorityDate && input.countryCode
+    return Boolean(input.employmentType && /^\d+$/.test(input.employmentNumber.trim()) && input.startsOn && input.seniorityDate && input.countryCode
       && (!options.payrollDetails || (Number(input.ikvNumber) >= 1 && Number(input.ikvNumber) <= 99)))
   }
   if (step === 'payrollChoice') return options.payrollDetails !== null
@@ -77,15 +80,16 @@ export function isEmploymentWizardStepValid(
     const dayValues = Object.values(input.days)
     const secondWeekValues = Object.values(input.secondWeekDays)
     const allDayValues = input.twoWeekRoster ? [...dayValues, ...secondWeekValues] : dayValues
-    const validDayValues = allDayValues.length > 0 && allDayValues.every((value) => value.trim() !== '' && Number.isFinite(parseDecimalInput(value)) && parseDecimalInput(value) >= 0 && parseDecimalInput(value) <= 24)
-    const rosterMatches = Math.abs(allDayValues.reduce((sum, value) => sum + (parseDecimalInput(value) || 0), 0) - weeklyHours * (input.twoWeekRoster ? 2 : 1)) < 0.0001
+    const validDayValues = allDayValues.length > 0 && allDayValues.every((value) => value.trim() !== '' && Number.isFinite(parseRosterHoursInput(value)) && parseRosterHoursInput(value) >= 0 && parseRosterHoursInput(value) <= 24)
+    const rosterMatches = Math.abs(allDayValues.reduce((sum, value) => sum + (parseRosterHoursInput(value) || 0), 0) - weeklyHours * (input.twoWeekRoster ? 2 : 1)) < 0.0001
     return options.rosterMatches && rosterMatches && input.weeklyHours.trim() !== '' && Number.isFinite(weeklyHours) && weeklyHours >= 0 && weeklyHours <= 50 && validDayValues
   }
   if (step === 'salary') {
     if (!options.canWriteSalary) return true
     if (!input.salaryFrequencyId) return false
-    if (input.salaryBasis === 'MINIMUM_WAGE') return options.minimumRateAvailable
+    if (input.salaryBasis === 'MINIMUM_WAGE') return Boolean(input.minimumWageScheme)
     if (input.salaryBasis === 'CUSTOM_SCALE') return Boolean(input.salaryScaleStepId)
+    if (input.salaryBasis === 'SALARY_BAND') return Boolean(input.salaryBandId) && Number(input.fulltimeAmount) > 0
     return Boolean(input.fulltimeAmount)
   }
   return Boolean(input.jobGroupId && input.jobId && input.departmentId

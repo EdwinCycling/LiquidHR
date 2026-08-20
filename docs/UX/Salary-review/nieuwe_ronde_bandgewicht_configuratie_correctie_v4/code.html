@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Configuratiescherm voor Salarisband-weging</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#0c56d0",
+                        "inverse-primary": "#b2c5ff",
+                        "on-error": "#ffffff",
+                        "on-surface": "#191b23",
+                        "on-secondary-fixed": "#191c1e",
+                        "status-open": "#00875A",
+                        "on-secondary-fixed-variant": "#444749",
+                        "surface-container": "#ededf8",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#ffc6b2",
+                        "outline-variant": "#c3c6d6",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "on-primary-container": "#c4d2ff",
+                        "budget-meter-fill": "#36B37E",
+                        "tertiary": "#7b2600",
+                        "surface-variant": "#e1e2ec",
+                        "budget-meter-track": "#EBECF0",
+                        "primary-fixed": "#dae2ff",
+                        "status-error": "#DE350B",
+                        "surface-container-high": "#e7e7f2",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "surface-bright": "#faf8ff",
+                        "surface-dim": "#d9d9e4",
+                        "on-secondary": "#ffffff",
+                        "status-draft": "#6B778C",
+                        "tertiary-container": "#a33500",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "on-surface-variant": "#434654",
+                        "status-preparing": "#0052CC",
+                        "on-secondary-container": "#606365",
+                        "status-warning": "#FFAB00",
+                        "on-primary-fixed": "#001848",
+                        "surface-container-highest": "#e1e2ec",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "surface-container-low": "#f3f3fd",
+                        "error-container": "#ffdad6",
+                        "surface": "#faf8ff",
+                        "secondary": "#5c5f60",
+                        "inverse-on-surface": "#f0f0fb",
+                        "tertiary-fixed": "#ffdbcf",
+                        "primary-container": "#0052cc",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#003d9b",
+                        "secondary-fixed": "#e1e2e4",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#2e3038",
+                        "on-tertiary-fixed": "#380d00",
+                        "on-background": "#191b23",
+                        "budget-meter-overage": "#DE350B",
+                        "status-finalized": "#172B4D",
+                        "background": "#faf8ff",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "secondary-container": "#dee0e2",
+                        "outline": "#737685"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "row-padding-dense": "0.5rem",
+                        "desktop-margin": "2rem",
+                        "row-padding-standard": "1rem",
+                        "mobile-margin": "1rem",
+                        "gutter": "1.5rem"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Work Sans"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "data-mono": ["jetbrainsMono"],
+                        "headline-lg": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "headline-xl": ["Work Sans"],
+                        "body-lg": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "body-md": ["Work Sans"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-xl": ["30px", { "lineHeight": "38px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Work Sans', sans-serif; }
+        .font-data-mono { font-family: 'JetBrains Mono', monospace; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline flat no shadows hidden md:flex">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed-dim">LiquidHR Salary Review</span>
+</div>
+<div class="flex items-center gap-6">
+<!-- Navigation Links -->
+<nav class="flex gap-4">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors px-3 py-2 rounded font-body-md text-body-md" href="#">Home</a>
+<a class="text-primary dark:text-primary-fixed-dim font-bold border-b-2 border-primary hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors px-3 py-2 rounded font-body-md text-body-md scale-[0.98] transition-transform duration-100" href="#">Instellingen</a>
+</nav>
+<div class="flex items-center gap-4">
+<button aria-label="notifications" class="text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="help_outline" class="text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 bg-surface-container-highest rounded-full overflow-hidden flex-shrink-0" data-alt="A professional user profile avatar showing a smiling person in business casual attire against a neutral light gray background. High key lighting, sharp focus, modern corporate aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAKt4GvkMuhsTF8BFdEki20MMPNX250eJpYs0OjeLJJD_heoRDEICi2Twrxli9xdE2Iea6RovEUvFndlQ0QW-38rZR0R_xukSVfiMeNiqJaNXDq-URpgnZooK3ZUVZiDtQrzbL6-WcfuEmlIvfxagApy8bedoCabMMypjMIAgdxwXoF9G44d1mi0Uw6X8b4mxjiI_WALBxnDsR0y5pvYdoI3RwjjiuyMOotrGjqAJW7UbEQHbtdG0s-')"></div>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 flex flex-col py-6 px-4 z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline flat no shadows hidden md:flex mt-16">
+<nav class="flex-1 space-y-2 mt-8">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-lg font-bold transition-all translate-x-1 font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Salarisronde</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span>Populatie</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span>Budgettering</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Rapportage</span>
+</a>
+</nav>
+<div class="mt-auto space-y-2 pt-6 border-t border-outline-variant dark:border-outline">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Instellingen</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span>Uitloggen</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="md:ml-64 md:pt-16 p-4 md:p-8 min-h-screen border-4 flex flex-col items-center border-status-open">
+<!-- Header with Autosave -->
+<div class="w-full max-w-[1200px] flex justify-between items-center mb-8">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-background">Salarisband-weging</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Stap 4: Verdelen op positie in salarisband (compa-ratio)</p>
+</div>
+<div class="flex items-center gap-2 text-status-open bg-surface-container-low px-3 py-1.5 rounded-full shadow-sm border border-outline-variant/30">
+<span class="material-symbols-outlined text-[18px]" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-body-sm font-medium">Opgeslagen</span>
+</div>
+</div>
+<!-- Configuration Card -->
+<div class="w-full max-w-[1200px] bg-surface rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.05)] border border-[#EBECF0] overflow-hidden">
+<div class="p-6 border-b border-outline-variant bg-surface-container-lowest">
+<h2 class="font-headline-md text-headline-md text-on-surface">Gewichten configureren</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Stel de weegfactoren in op basis van de positie in salarisband (compa-ratio).</p>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container text-on-surface-variant font-label-caps text-label-caps border-b border-outline-variant">
+<tr>
+<th class="px-6 py-4 font-semibold w-2/3">Positie in Salarisband (compa-ratio)</th>
+<th class="px-6 py-4 font-semibold w-1/3">Weging</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="px-6 py-row-padding-standard text-on-surface">Minder dan 80%</td>
+<td class="px-6 py-row-padding-standard">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-32 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input aria-label="Weging voor &lt;80%" class="bg-transparent border-none p-0 w-full font-data-mono text-data-mono text-on-surface text-right focus:ring-0" type="text" value="1,40"/>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="px-6 py-row-padding-standard text-on-surface">80% – tot 90%</td>
+<td class="px-6 py-row-padding-standard">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-32 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input aria-label="Weging voor 80-90%" class="bg-transparent border-none p-0 w-full font-data-mono text-data-mono text-on-surface text-right focus:ring-0" type="text" value="1,20"/>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="px-6 py-row-padding-standard text-on-surface">90% – tot 100%</td>
+<td class="px-6 py-row-padding-standard">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-32 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input aria-label="Weging voor 90-100%" class="bg-transparent border-none p-0 w-full font-data-mono text-data-mono text-on-surface text-right focus:ring-0" type="text" value="1,00"/>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="px-6 py-row-padding-standard text-on-surface">100% – tot 110%</td>
+<td class="px-6 py-row-padding-standard">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-32 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input aria-label="Weging voor 100-110%" class="bg-transparent border-none p-0 w-full font-data-mono text-data-mono text-on-surface text-right focus:ring-0" type="text" value="0,75"/>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-6 py-row-padding-standard text-on-surface">110% of meer</td>
+<td class="px-6 py-row-padding-standard">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-32 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<input aria-label="Weging voor &gt;=110%" class="bg-transparent border-none p-0 w-full font-data-mono text-data-mono text-on-surface text-right focus:ring-0" type="text" value="0,50"/>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 bg-surface-container-lowest border-t border-outline-variant flex justify-end">
+<button class="bg-primary text-on-primary font-body-md text-body-md font-semibold py-2 px-6 rounded-lg hover:bg-primary-fixed-variant transition-colors flex items-center gap-2 shadow-sm">Volgende Stap <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span></button>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowUpDown, Filter, LayoutList, Search, UsersRound, X } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowUpDown, Filter, LayoutList, Search, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 import { ACTIVE_FUTURE_EXTERNAL_STATUS, employeeListHref, type EmployeeArchiveFilter, type EmployeeListScope, type EmployeeListSort, type EmployeeListView, type EmployeeStatusFilter } from '@/lib/preferences/employee-list-state'
@@ -55,7 +55,7 @@ interface EmployeeFilterPanelProps {
   statusOptions: EmployeeStatusOption[]
   archiveOptions: EmployeeArchiveOption[]
   labels: EmployeeFilterPanelLabels
-  resultCountLabel: string
+  headerAction?: ReactNode
   scope: EmployeeListScope
   canSelectTeamScope: boolean
 }
@@ -69,7 +69,7 @@ export function EmployeeFilterPanel({
   statusOptions,
   archiveOptions,
   labels,
-  resultCountLabel,
+  headerAction,
   scope,
   canSelectTeamScope,
 }: EmployeeFilterPanelProps) {
@@ -102,12 +102,12 @@ export function EmployeeFilterPanel({
   }
 
   return (
-    <div className="mt-7 rounded-2xl border bg-surface p-4 shadow-sm">
+    <div className="mt-5 rounded-lg border border-border/90 bg-surface p-3.5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <button
             aria-expanded={filtersOpen}
-            className="button-secondary inline-flex min-h-10 items-center gap-2 px-3"
+            className="button-secondary inline-flex min-h-10 items-center gap-2 px-3 shadow-none"
             onClick={toggleFilters}
             type="button"
           >
@@ -116,10 +116,11 @@ export function EmployeeFilterPanel({
           </button>
           {hasActiveFilters ? (
             <Link
-              className="inline-flex min-h-10 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               href={employeeListHref({ search: '', status: 'ACTIVE_EMPLOYEE', archive: 'active', sort: 'last-name', view: 'detail', scope: canSelectTeamScope ? 'team' : scope })}
               onClick={(event) => {
                 event.preventDefault()
+                setSearchInput('')
                 void navigate({ search: '', status: 'ACTIVE_EMPLOYEE', archive: 'active', sort: 'last-name', view: 'detail', scope: canSelectTeamScope ? 'team' : scope })
               }}
             >
@@ -127,17 +128,14 @@ export function EmployeeFilterPanel({
             </Link>
           ) : null}
         </div>
-        <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
-          <UsersRound aria-hidden="true" className="h-4 w-4" />
-          {resultCountLabel}
-        </span>
+        {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
 
       {filtersOpen ? (
         <>
           <div className="mt-4 grid gap-3 border-t pt-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-center">
-            <div className="rounded-xl border bg-background/80 p-3.5">
-              <form className="flex w-full items-center gap-2" method="get" onSubmit={(event) => {
+            <div className="min-w-0">
+              <form className="flex min-w-0 w-full items-center gap-2" method="get" onSubmit={(event) => {
                 event.preventDefault()
                 void navigate({ search: searchInput, status: activeStatus, archive: archiveFilter, sort, view, scope })
               }}>
@@ -151,7 +149,7 @@ export function EmployeeFilterPanel({
                   <div className="relative">
                     <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <input
-                      className="form-field h-10 min-h-10 w-full pl-10"
+                      className="form-field h-10 min-h-10 w-full pl-10 shadow-none"
                       onChange={(event) => setSearchInput(event.target.value)}
                       value={searchInput}
                       name="search"
@@ -163,7 +161,7 @@ export function EmployeeFilterPanel({
                     }} type="button"><X aria-hidden="true" className="h-4 w-4" /></button> : null}
                   </div>
                 </label>
-                <button className="button-secondary h-10 min-h-10 px-3" type="submit">
+                <button className="button-secondary h-10 min-h-10 px-3 shadow-none" type="submit">
                   <Search aria-hidden="true" className="h-4 w-4" />
                   <span className="sr-only">{labels.searchAction}</span>
                 </button>
@@ -172,7 +170,7 @@ export function EmployeeFilterPanel({
 
             <form
               action="/employees"
-              className="flex items-center justify-end gap-3"
+              className="grid min-w-0 grid-cols-1 gap-2 sm:flex sm:items-center sm:justify-end sm:gap-3"
               method="get"
             >
               {search.trim() ? <input name="search" type="hidden" value={search.trim()} /> : null}
@@ -182,7 +180,7 @@ export function EmployeeFilterPanel({
                 <LayoutList aria-hidden="true" className="h-4 w-4 shrink-0" />
                 <span className="sr-only">{labels.viewLabel}</span>
                 <select
-                  className="form-field h-10 min-h-10 w-full min-w-36 sm:w-40"
+                  className="form-field h-10 min-h-10 min-w-0 flex-1 shadow-none sm:w-40 sm:min-w-36 sm:flex-none"
                   defaultValue={view}
                   name="view"
                   onChange={(event) => void navigate({ search, status: activeStatus, archive: archiveFilter, sort, view: event.target.value as EmployeeListView, scope })}
@@ -201,7 +199,7 @@ export function EmployeeFilterPanel({
                 <ArrowUpDown aria-hidden="true" className="h-4 w-4 shrink-0" />
                 <span className="sr-only">{labels.sortLabel}</span>
                 <select
-                  className="form-field h-10 min-h-10 w-full min-w-44 sm:w-48"
+                  className="form-field h-10 min-h-10 min-w-0 flex-1 shadow-none sm:w-48 sm:min-w-44 sm:flex-none"
                   defaultValue={sort}
                   name="sort"
                   onChange={(event) => void navigate({ search, status: activeStatus, archive: archiveFilter, sort: event.target.value as EmployeeListSort, view, scope })}
@@ -214,17 +212,17 @@ export function EmployeeFilterPanel({
           </div>
 
           <div className="mt-4 flex flex-col gap-3 border-t pt-4">
-            {canSelectTeamScope ? <nav aria-label={labels.scopeLabel} className="flex items-center gap-2 overflow-x-auto pb-1"><span className="shrink-0 text-sm font-medium text-muted-foreground">{labels.scopeLabel}</span><Link className={`filter-chip ${scope === 'team' ? 'filter-chip-active' : ''}`} href={employeeListHref({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'team' })} onClick={(event) => { event.preventDefault(); void navigate({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'team' }) }}>{labels.myTeam}</Link><Link className={`filter-chip ${scope === 'all' ? 'filter-chip-active' : ''}`} href={employeeListHref({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'all' })} onClick={(event) => { event.preventDefault(); void navigate({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'all' }) }}>{labels.allEmployees}</Link></nav> : null}
+            {canSelectTeamScope ? <nav aria-label={labels.scopeLabel} className="flex items-center gap-2 overflow-x-auto pb-1"><span className="shrink-0 text-sm font-medium text-muted-foreground">{labels.scopeLabel}</span><Link className={`filter-chip rounded-md px-2.5 py-1.5 ${scope === 'team' ? 'filter-chip-active' : ''}`} href={employeeListHref({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'team' })} onClick={(event) => { event.preventDefault(); void navigate({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'team' }) }}>{labels.myTeam}</Link><Link className={`filter-chip rounded-md px-2.5 py-1.5 ${scope === 'all' ? 'filter-chip-active' : ''}`} href={employeeListHref({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'all' })} onClick={(event) => { event.preventDefault(); void navigate({ search, status: activeStatus, archive: archiveFilter, sort, view, scope: 'all' }) }}>{labels.allEmployees}</Link></nav> : null}
             <nav className="flex gap-2 overflow-x-auto pb-1" aria-label={labels.statusFilter}>
               <Link
-                className={`filter-chip ${activeStatus === ACTIVE_FUTURE_EXTERNAL_STATUS ? 'filter-chip-active' : ''}`}
+                className={`filter-chip rounded-md px-2.5 py-1.5 ${activeStatus === ACTIVE_FUTURE_EXTERNAL_STATUS ? 'filter-chip-active' : ''}`}
                 href={employeeListHref({ search, status: ACTIVE_FUTURE_EXTERNAL_STATUS, archive: archiveFilter, sort, view, scope })}
                 onClick={(event) => { event.preventDefault(); void navigate({ search, status: ACTIVE_FUTURE_EXTERNAL_STATUS, archive: archiveFilter, sort, view, scope }) }}
               >
                 {labels.activeFutureExternal}
               </Link>
               <Link
-                className={`filter-chip ${activeStatus === 'all' ? 'filter-chip-active' : ''}`}
+                className={`filter-chip rounded-md px-2.5 py-1.5 ${activeStatus === 'all' ? 'filter-chip-active' : ''}`}
                 href={employeeListHref({ search, status: 'all', archive: archiveFilter, sort, view, scope })}
                 onClick={(event) => { event.preventDefault(); void navigate({ search, status: 'all', archive: archiveFilter, sort, view, scope }) }}
               >
@@ -233,7 +231,7 @@ export function EmployeeFilterPanel({
               {statusOptions.map((option) => (
                 <Link
                   key={option.value}
-                  className={`filter-chip ${activeStatus === option.value ? 'filter-chip-active' : ''}`}
+                  className={`filter-chip rounded-md px-2.5 py-1.5 ${activeStatus === option.value ? 'filter-chip-active' : ''}`}
                   href={employeeListHref({ search, status: option.value, archive: archiveFilter, sort, view, scope })}
                   onClick={(event) => { event.preventDefault(); void navigate({ search, status: option.value, archive: archiveFilter, sort, view, scope }) }}
                 >
@@ -245,7 +243,7 @@ export function EmployeeFilterPanel({
               {archiveOptions.map((option) => (
                 <Link
                   key={option.value}
-                  className={`filter-chip ${archiveFilter === option.value ? 'filter-chip-active' : ''}`}
+                  className={`filter-chip rounded-md px-2.5 py-1.5 ${archiveFilter === option.value ? 'filter-chip-active' : ''}`}
                   href={employeeListHref({ search, status: activeStatus, archive: option.value, sort, view, scope })}
                   onClick={(event) => { event.preventDefault(); void navigate({ search, status: activeStatus, archive: option.value, sort, view, scope }) }}
                 >

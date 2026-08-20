@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HR Eindcontrole - LiquidHR Salarisronde</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed": "#dae2ff",
+                      "inverse-on-surface": "#f0f0fb",
+                      "surface": "#faf8ff",
+                      "error": "#ba1a1a",
+                      "surface-bright": "#faf8ff",
+                      "surface-container-high": "#e7e7f2",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#0052cc",
+                      "primary": "#003d9b",
+                      "error-container": "#ffdad6",
+                      "secondary": "#5c5f60",
+                      "status-open": "#00875A",
+                      "on-tertiary-fixed": "#380d00",
+                      "surface-dim": "#d9d9e4",
+                      "background": "#faf8ff",
+                      "surface-container-low": "#f3f3fd",
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-secondary-fixed-variant": "#444749",
+                      "on-primary-container": "#c4d2ff",
+                      "inverse-surface": "#2e3038",
+                      "secondary-fixed": "#e1e2e4",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "outline": "#737685",
+                      "surface-container-highest": "#e1e2ec",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191b23",
+                      "outline-variant": "#c3c6d6",
+                      "surface-tint": "#0c56d0",
+                      "budget-meter-fill": "#36B37E",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-surface": "#191b23",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#001848",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "secondary-container": "#dee0e2",
+                      "surface-container": "#ededf8",
+                      "inverse-primary": "#b2c5ff",
+                      "budget-meter-overage": "#DE350B",
+                      "status-preparing": "#0052CC",
+                      "on-surface-variant": "#434654",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#a33500",
+                      "status-finalized": "#172B4D",
+                      "status-error": "#DE350B",
+                      "on-error": "#ffffff",
+                      "status-warning": "#FFAB00",
+                      "on-secondary-container": "#606365",
+                      "surface-variant": "#e1e2ec",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "on-tertiary-container": "#ffc6b2",
+                      "status-draft": "#6B778C",
+                      "tertiary": "#7b2600",
+                      "tertiary-fixed": "#ffdbcf",
+                      "budget-meter-track": "#EBECF0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem",
+                      "desktop-margin": "2rem"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Work Sans"
+                      ],
+                      "body-md": [
+                              "Work Sans"
+                      ],
+                      "data-mono": [
+                              "jetbrainsMono"
+                      ],
+                      "headline-lg-mobile": [
+                              "Work Sans"
+                      ],
+                      "headline-xl": [
+                              "Work Sans"
+                      ],
+                      "headline-md": [
+                              "Work Sans"
+                      ],
+                      "label-caps": [
+                              "Work Sans"
+                      ],
+                      "body-sm": [
+                              "Work Sans"
+                      ],
+                      "headline-lg": [
+                              "Work Sans"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "13px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-xl": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        .icon-fill {
+             font-variation-settings: 'FILL' 1;
+        }
+
+        /* Drawer Animations */
+        .drawer-open {
+            transform: translateX(0);
+        }
+        .drawer-closed {
+            transform: translateX(100%);
+        }
+    </style>
+<style>
+    body {
+      width: 390px;
+      height: 844px;
+      margin: 0 auto;
+      border: 1px solid #e1e2ec;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden flex flex-col md:hidden">
+<!-- Top Navigation (Mobile Adapted) -->
+<header class="flex items-center justify-between px-mobile-margin h-16 bg-surface border-b border-outline-variant shrink-0 z-10">
+<div class="flex items-center gap-3">
+<!-- Back button for mobile contexts instead of full nav -->
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<span class="font-headline-md-mobile text-headline-md-mobile font-bold text-primary">LiquidHR Salarisronde</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">person</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto pb-24 relative">
+<!-- Summary Stats Section -->
+<section class="p-mobile-margin bg-surface-container-lowest border-b border-outline-variant shadow-[0_4px_4px_rgba(0,0,0,0.02)]">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile mb-4">HR Eindcontrole</h1>
+<div class="flex flex-col gap-4">
+<!-- Budget vs Final Card -->
+<div class="bg-surface p-4 rounded-lg border border-outline-variant relative overflow-hidden">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Totaal budget</span>
+<span class="font-data-mono text-data-mono">€ 45,000</span>
+</div>
+<!-- Budget Meter -->
+<div class="h-2 w-full bg-budget-meter-track rounded-full mb-2 overflow-hidden flex">
+<div class="h-full bg-budget-meter-fill rounded-full" style="width: 85%;"></div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Allocated: € 38,250</span>
+<span class="font-body-sm text-body-sm text-budget-meter-fill font-medium">Remaining: € 6,750</span>
+</div>
+</div>
+<!-- KPI Mini Cards -->
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface p-3 rounded-lg border border-outline-variant flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Beoordeeld</span>
+<div class="flex items-end gap-2">
+<span class="font-headline-md-mobile text-headline-md-mobile">12<span class="font-body-sm text-body-sm text-on-surface-variant font-normal">/15</span></span>
+</div>
+</div>
+<div class="bg-surface p-3 rounded-lg border border-outline-variant flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Gem. verhoging</span>
+<span class="font-headline-md-mobile text-headline-md-mobile">3.2%</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Employee List -->
+<section class="p-mobile-margin">
+<h2 class="font-body-lg text-body-lg font-medium mb-3">Werknemer Voorstellen</h2>
+<div class="flex flex-col gap-3">
+<!-- Employee Card 1 - Pending HR -->
+<div class="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant shadow-[0_1px_2px_rgba(0,0,0,0.05)] active:bg-surface-container-low transition-colors" onclick="openDrawer('drawer-employee-1')">
+<div class="flex justify-between items-start mb-3">
+<div class="flex gap-3 items-center">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">JD</div>
+<div>
+<h3 class="font-body-lg text-body-lg font-medium">Jan de Vries</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sales Rep</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-surface-variant text-on-surface-variant font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[12px]">pending</span> Pending
+                        </span>
+</div>
+<div class="flex justify-between items-center bg-surface p-2 rounded border border-outline-variant mt-2 text-sm">
+<div class="text-center">
+<span class="block text-on-surface-variant text-[10px] uppercase font-bold">HR Start</span>
+<span class="font-data-mono">2.0%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="text-center">
+<span class="block text-on-surface-variant text-[10px] uppercase font-bold">Manager</span>
+<span class="font-data-mono">4.5%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="text-center">
+<span class="block text-primary text-[10px] uppercase font-bold">HR Definitief</span>
+<input class="w-16 bg-transparent border-b border-primary text-center font-data-mono font-bold text-primary focus:outline-none focus:border-primary-container p-0" type="text" value="4.5%"/>
+</div>
+</div>
+</div>
+<!-- Employee Card 2 - Finalized -->
+<div class="bg-surface p-4 rounded-lg border border-outline-variant shadow-[0_1px_2px_rgba(0,0,0,0.05)] opacity-80" onclick="openDrawer('drawer-employee-1')">
+<div class="flex justify-between items-start mb-3">
+<div class="flex gap-3 items-center">
+<div class="w-10 h-10 rounded-full bg-surface-dim text-on-surface-variant flex items-center justify-center font-bold">AS</div>
+<div>
+<h3 class="font-body-lg text-body-lg font-medium">Anne Smit</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Marketing</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#E3FCEF] text-status-open font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Final
+                        </span>
+</div>
+<div class="flex justify-between items-center bg-surface p-2 rounded border border-outline-variant mt-2 text-sm">
+<div class="text-center">
+<span class="block text-on-surface-variant text-[10px] uppercase font-bold">HR Start</span>
+<span class="font-data-mono">3.0%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="text-center">
+<span class="block text-on-surface-variant text-[10px] uppercase font-bold">Manager</span>
+<span class="font-data-mono">3.0%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="text-center">
+<span class="block text-status-open text-[10px] uppercase font-bold">HR Definitief</span>
+<input class="w-16 bg-transparent border-b border-status-open text-center font-data-mono font-bold text-status-open focus:outline-none focus:border-primary-container p-0" disabled="" type="text" value="3.0%"/>
+</div>
+</div>
+</div>
+<!-- Employee Card 3 - Discrepancy -->
+<div class="bg-surface-container-lowest p-4 rounded-lg border border-error-container shadow-[0_1px_2px_rgba(0,0,0,0.05)] active:bg-surface-container-low transition-colors" onclick="openDrawer('drawer-employee-1')">
+<div class="flex justify-between items-start mb-3">
+<div class="flex gap-3 items-center">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">PT</div>
+<div>
+<h3 class="font-body-lg text-body-lg font-medium">Peter Timmers</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Developer</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-error-container text-on-error-container font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[12px]">warning</span> Review
+                        </span>
+</div>
+<div class="flex justify-between items-center bg-surface p-2 rounded border border-outline-variant mt-2 text-sm">
+<div class="text-center">
+<span class="block text-on-surface-variant text-[10px] uppercase font-bold">HR Start</span>
+<span class="font-data-mono">4.0%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="text-center">
+<span class="block text-on-surface-variant text-[10px] uppercase font-bold">Manager</span>
+<span class="font-data-mono">8.0%</span>
+</div>
+<div class="w-px h-6 bg-outline-variant"></div>
+<div class="text-center">
+<span class="block text-primary text-[10px] uppercase font-bold">HR Definitief</span>
+<input class="w-16 bg-transparent border-b border-primary text-center font-data-mono font-bold text-primary focus:outline-none focus:border-primary-container p-0" placeholder="--%" type="text"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="p-mobile-margin text-center">
+<button class="bg-primary text-on-primary px-6 py-3 rounded-lg font-body-lg text-body-lg font-medium hover:bg-primary-fixed-dim hover:text-on-primary-fixed transition-colors w-full">
+            Ronde afronden
+    </button>
+</div>
+</main>
+<!-- Standard Mobile Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full bg-surface border-t border-outline-variant h-16 flex items-center justify-around z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] pb-safe">
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="text-[10px] font-medium">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-primary relative" href="#">
+<div class="absolute -top-1 w-12 h-1 rounded-full bg-primary"></div>
+<span class="material-symbols-outlined mb-1 icon-fill">payments</span>
+<span class="text-[10px] font-medium">Salarisronde</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">more_horiz</span>
+<span class="text-[10px] font-medium">Meer</span>
+</a>
+</nav>
+<!-- Full Screen Drawer (HR Final Comparison) -->
+<div class="absolute inset-0 bg-surface z-50 flex flex-col drawer-closed transition-transform duration-300 ease-in-out shadow-[-16px_0_24px_rgba(0,0,0,0.1)]" id="drawer-employee-1">
+<!-- Drawer Header -->
+<header class="flex items-center justify-between px-mobile-margin h-16 bg-surface border-b border-outline-variant shrink-0">
+<div class="flex items-center gap-3">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors flex items-center justify-center" onclick="closeDrawer('drawer-employee-1')">
+<span class="material-symbols-outlined">close</span>
+</button>
+<span class="font-headline-md-mobile text-headline-md-mobile font-bold">Jan de Vries</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-surface-variant text-on-surface-variant font-label-caps text-label-caps">
+                Pending
+            </span>
+</header>
+<!-- Drawer Content -->
+<div class="flex-1 overflow-y-auto p-mobile-margin bg-surface-container-lowest">
+<!-- Employee Context -->
+<div class="mb-6 flex items-start gap-4">
+<div class="w-16 h-16 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-headline-lg-mobile text-headline-lg-mobile">JD</div>
+<div>
+<h2 class="font-headline-md-mobile text-headline-md-mobile">Jan de Vries</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Sales Representative • Dept: Commerce</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">FTE: 1.0 • Compa-ratio: 92%</p>
+</div>
+</div>
+<!-- Comparison Timeline -->
+<div class="bg-surface rounded-xl border border-outline-variant overflow-hidden mb-6">
+<!-- Huidig -->
+<div class="p-4 border-b border-outline-variant bg-surface-dim opacity-70">
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Huidig (Current)</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="font-data-mono text-data-mono text-on-surface">€ 3,800</span>
+</div>
+</div>
+<!-- HR Start -->
+<div class="p-4 border-b border-outline-variant">
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HR Start Advice</span>
+</div>
+<div class="flex justify-between items-baseline">
+<div class="flex gap-2 items-baseline">
+<span class="font-data-mono text-data-mono text-on-surface">€ 3,876</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">(+€ 76)</span>
+</div>
+<span class="font-data-mono text-data-mono text-primary bg-primary-fixed px-2 py-0.5 rounded text-sm">+2.0%</span>
+</div>
+</div>
+<!-- Manager Advice -->
+<div class="p-4 border-b border-outline-variant bg-surface-container-low">
+<div class="flex justify-between items-center mb-1">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase flex items-center gap-1">
+                            Manager Advice <span class="material-symbols-outlined text-[14px]">person_check</span>
+</span>
+</div>
+<div class="flex justify-between items-baseline mb-2">
+<div class="flex gap-2 items-baseline">
+<span class="font-data-mono text-data-mono text-on-surface font-medium">€ 3,971</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">(+€ 171)</span>
+</div>
+<span class="font-data-mono text-data-mono text-status-warning bg-[#FFF0B3] px-2 py-0.5 rounded text-sm font-bold">+4.5%</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant italic border-l-2 border-outline-variant pl-2">"Good contribution to the team."</p>
+</div>
+<!-- HR Final Edit Block -->
+<div class="p-4 bg-primary-fixed-dim/20">
+<div class="flex justify-between items-center mb-3">
+<span class="font-label-caps text-label-caps text-primary font-bold uppercase flex items-center gap-1">
+                            HR Definitief <span class="material-symbols-outlined text-[14px]">gavel</span>
+</span>
+</div>
+<!-- Linked Inputs -->
+<div class="flex flex-col gap-4">
+<div class="flex gap-3">
+<div class="flex-1">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Percentage (%)</label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline-variant rounded-md py-2 px-3 font-data-mono text-data-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow" type="number" value="4.5"/>
+</div>
+</div>
+<div class="flex-1">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Bedrag (€)</label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline-variant rounded-md py-2 px-3 font-data-mono text-data-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow" type="number" value="171"/>
+</div>
+</div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Nieuw Salaris (€)</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-data-mono">€</span>
+<input class="w-full bg-surface-container-lowest border border-primary rounded-md py-3 pl-8 pr-3 font-data-mono text-[16px] font-bold focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-shadow" type="number" value="3971"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Justification / Notes -->
+<div class="mb-20">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">HR Notities (Intern)</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded-md py-2 px-3 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow placeholder:text-on-surface-variant/50" placeholder="Optionele notities..." rows="3"></textarea>
+</div>
+</div>
+<!-- Drawer Sticky Footer -->
+<div class="absolute bottom-0 left-0 w-full bg-surface border-t border-outline-variant p-mobile-margin z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] flex gap-3">
+<button class="flex-1 bg-surface-variant text-on-surface-variant px-4 py-3 rounded-lg font-body-lg text-body-lg font-medium hover:bg-surface-container-high transition-colors" onclick="closeDrawer('drawer-employee-1')">
+                Annuleren
+            </button>
+<button class="flex-[2] bg-primary text-on-primary px-4 py-3 rounded-lg font-body-lg text-body-lg font-medium hover:bg-primary-fixed-dim hover:text-on-primary-fixed transition-colors flex justify-center items-center gap-2" onclick="closeDrawer('drawer-employee-1')">
+                Opslaan &amp; Volgende <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<script>
+        function openDrawer(id) {
+            const drawer = document.getElementById(id);
+            drawer.classList.remove('drawer-closed');
+            drawer.classList.add('drawer-open');
+        }
+
+        function closeDrawer(id) {
+            const drawer = document.getElementById(id);
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+        }
+    </script>
+</body></html>

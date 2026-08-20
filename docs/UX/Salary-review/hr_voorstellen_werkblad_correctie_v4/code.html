@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HR Proposal Worktable - LiquidHR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-high": "#e7e7f2",
+                        "error": "#ba1a1a",
+                        "outline": "#737685",
+                        "tertiary-container": "#a33500",
+                        "primary": "#003d9b",
+                        "surface-container-highest": "#e1e2ec",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "background": "#faf8ff",
+                        "on-secondary-fixed-variant": "#444749",
+                        "inverse-surface": "#2e3038",
+                        "status-preparing": "#0052CC",
+                        "status-open": "#00875A",
+                        "surface-variant": "#e1e2ec",
+                        "inverse-primary": "#b2c5ff",
+                        "surface-container": "#ededf8",
+                        "inverse-on-surface": "#f0f0fb",
+                        "tertiary": "#7b2600",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#0052cc",
+                        "on-primary-fixed": "#001848",
+                        "on-secondary-container": "#606365",
+                        "surface-bright": "#faf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c3c6d6",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191b23",
+                        "on-surface": "#191b23",
+                        "surface-dim": "#d9d9e4",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "secondary-container": "#dee0e2",
+                        "status-finalized": "#172B4D",
+                        "on-tertiary-fixed": "#380d00",
+                        "on-surface-variant": "#434654",
+                        "status-draft": "#6B778C",
+                        "status-warning": "#FFAB00",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#dae2ff",
+                        "surface-tint": "#0c56d0",
+                        "surface": "#faf8ff",
+                        "on-tertiary-container": "#ffc6b2",
+                        "surface-container-low": "#f3f3fd",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "secondary-fixed": "#e1e2e4",
+                        "budget-meter-track": "#EBECF0",
+                        "budget-meter-overage": "#DE350B",
+                        "on-primary-container": "#c4d2ff",
+                        "secondary": "#5c5f60",
+                        "budget-meter-fill": "#36B37E",
+                        "tertiary-fixed": "#ffdbcf",
+                        "status-error": "#DE350B",
+                        "on-secondary-fixed": "#191c1e"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "desktop-margin": "2rem",
+                        "gutter": "1.5rem",
+                        "mobile-margin": "1rem",
+                        "row-padding-standard": "1rem",
+                        "row-padding-dense": "0.5rem"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Work Sans"],
+                        "body-sm": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "headline-lg": ["Work Sans"],
+                        "data-mono": ["JetBrains Mono", "monospace"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-xl": ["Work Sans"],
+                        "body-lg": ["Work Sans"]
+                    },
+                    fontSize: {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-xl": ["30px", { "lineHeight": "38px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Custom scrollbar for data tables to maintain clean look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-low');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md antialiased overflow-hidden">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline flat no shadows">
+<div class="flex items-center gap-4">
+<!-- Search Bar (on_left as per JSON) -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-lg">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary text-body-sm font-body-sm w-64 placeholder-on-surface-variant text-on-surface transition-all" placeholder="Zoeken..." type="text"/>
+</div>
+</div>
+<!-- Brand Logo Center (Implicit requirement for standard app bars, though JSON puts search on left) -->
+<div class="absolute left-1/2 transform -translate-x-1/2">
+<span class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed-dim">LiquidHR Salary Review</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-primary dark:text-primary-fixed-dim">
+<button class="hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors rounded-full p-2 flex items-center justify-center scale-[0.98] transition-transform duration-100">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors rounded-full p-2 flex items-center justify-center scale-[0.98] transition-transform duration-100">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</div>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A small, professional corporate headshot of a mid-40s European woman with short blonde hair, wearing a navy blue blazer, smiling warmly against a bright, modern light-mode office background. High quality, crisp lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR93xZNAPx1d5tcBkRPWZlB4MSRberckzHVkV7iuinNYafGdCWT4pJwh3CMCkmEMkMMiqQMrnlFPVFnhI4mH7Ty29sLxEzi2IJYs2FqWjhaH0KPqa8w7P92GlFsIVldO4XuHQ46d1XwcrPEMr4c9poV5en_rgmdY6gmR8LPNA5v6OfOFtLjdiH1GzgmTZKAaTLAh1GFFVtqi-Qnbs3wXsuxcLUXTf5j-J85OLyWKsY607IqsnLhpj3"/>
+</div>
+</header>
+<!-- SideNavBar -->
+<!-- z-40 and h-full, adjusting pt-20 to sit below TopNavBar content visually without overlapping -->
+<nav class="fixed left-0 top-0 h-full w-64 flex flex-col py-6 px-4 z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline flat no shadows pt-[calc(4rem+1.5rem)]">
+<!-- SideNav Header -->
+<div class="mb-8 flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-headline-md font-headline-md">
+                E
+            </div>
+<div>
+<h2 class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed-dim leading-tight">Salary Review</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">HR Administration</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-1 flex-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<!-- Active Tab: Salarisronde (mapped to "Voorstellen overzicht" context) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container font-bold translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="font-body-md text-body-md">Salarisronde</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-body-md text-body-md">Populatie</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="flex flex-col gap-1 mt-auto pt-4 border-t border-outline-variant/50">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Instellingen</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Uitloggen</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<!-- ml-64 to offset SideNav, pt-16 to offset TopNav, pr-[400px] to make room for the open drawer without overlapping content -->
+<main class="ml-64 pt-16 pr-[400px] h-screen overflow-y-auto flex flex-col bg-background relative transition-all duration-300" style="border: 4px solid #00875A;">
+<!-- Sticky Page Header Area -->
+<div class="sticky top-0 z-20 bg-background/95 backdrop-blur px-desktop-margin py-6 flex flex-col gap-4 border-b border-outline-variant shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+<!-- Wizard Steps -->
+<div class="flex items-center gap-2 mb-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="flex items-center gap-1"><span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-[10px]">1</span> Basis &amp; populatie</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="flex items-center gap-1"><span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-[10px]">2</span> Budget</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="flex items-center gap-1"><span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-[10px]">3</span> Verdeling</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="flex items-center gap-1 font-semibold text-primary"><span class="w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-[10px]">4</span> Voorstellen</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="flex items-center gap-1"><span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-[10px]">5</span> Controle &amp; starten</span>
+</div>
+<div class="flex justify-between items-center">
+<h1 class="font-headline-xl text-headline-xl text-on-surface">Voorstellen overzicht</h1>
+<div class="flex items-center gap-3">
+<span class="font-body-sm text-body-sm text-status-draft flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px]">sync</span> Opgeslagen
+                    </span>
+<button class="px-4 py-2 bg-surface text-primary border border-primary rounded hover:bg-primary/5 transition-colors font-headline-md text-[14px] font-semibold">
+                        Exporteer
+                    </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded hover:bg-primary-container hover:text-on-primary-container transition-colors font-headline-md text-[14px] font-semibold shadow-sm">
+                        Advies afronden
+                    </button>
+</div>
+</div>
+<!-- Filters Toolbar -->
+<div class="flex items-center gap-3 flex-wrap">
+<!-- Filter Select -->
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant text-on-surface font-body-md text-body-md rounded pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer hover:bg-surface-container-lowest shadow-sm">
+<option>Afdeling: Alle</option>
+<option>Marketing</option>
+<option>Sales</option>
+<option>Engineering</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant text-on-surface font-body-md text-body-md rounded pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer hover:bg-surface-container-lowest shadow-sm">
+<option>Manager: Alle</option>
+<option>J. de Vries</option>
+<option>A. Bakker</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant text-on-surface font-body-md text-body-md rounded pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer hover:bg-surface-container-lowest shadow-sm"><option>Route: Alle</option><option>Vrij salaris</option><option>Salarisband</option><option>Minimumloon · systeemgestuurd</option><option>Schaal + trede · uitgesloten</option></select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant text-on-surface font-body-md text-body-md rounded pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer hover:bg-surface-container-lowest shadow-sm">
+<option>Band: Alle</option>
+<option>Band 7</option>
+<option>Band 8</option>
+<option>Band 9</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant text-on-surface font-body-md text-body-md rounded pl-3 pr-8 py-1.5 focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer hover:bg-surface-container-lowest shadow-sm">
+<option>Status: In bewerking</option>
+<option>Concept</option>
+<option>Gereed</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+<button class="ml-auto text-primary flex items-center gap-1 font-headline-md text-body-md hover:underline">
+<span class="material-symbols-outlined text-[18px]">filter_list_off</span> Wis filters
+                </button>
+</div>
+</div>
+<!-- Dense HR Admin Table Worktable Container -->
+<div class="flex-1 p-desktop-margin pb-20">
+<div class="bg-surface border border-outline-variant rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.05)] overflow-x-auto w-full">
+<table class="w-full text-left border-collapse whitespace-nowrap min-w-max">
+<thead class="bg-surface-container-low border-b-2 border-outline-variant sticky top-0 z-10">
+<tr>
+<th class="p-row-padding-dense px-4 py-3"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Medewerker</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Manager / HR direct</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Diensttijd</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Contractcontext</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Salarisroute</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase text-right">Huidig salaris</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase text-right">FTE</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Salarisband</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase text-right">Compa</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase text-right">Bandbucket</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase text-right">Gewicht</th>
+<!-- HR Edit zone headers styled differently to indicate actionability -->
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-primary uppercase bg-primary/5 border-l border-primary/20 text-right">HR start %</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-primary uppercase bg-primary/5 text-right">HR start €</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-primary uppercase bg-primary/5 text-right font-bold">Nieuw salaris</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase border-l border-outline-variant text-right">Nieuwe compa</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase">Status</th>
+<th class="p-row-padding-dense px-4 py-3 font-label-caps text-label-caps text-on-surface-variant uppercase text-center"><span class="material-symbols-outlined text-[18px]">chat_bubble_outline</span></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant bg-surface">
+<!-- Active Row Example (Matches open drawer) -->
+<tr class="bg-surface-container-low hover:bg-surface-variant cursor-pointer transition-colors relative border-l-4 border-l-primary">
+<td class="p-row-padding-dense px-4 py-2"><input checked="" class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-row-padding-dense px-4 py-2">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-headline-md text-body-sm">SS</div>
+<span class="font-headline-md text-body-md text-on-surface font-semibold">Smit, Sarah</span>
+</div>
+</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant">J. de Vries</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant">4.2 jr</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface">Onbepaald</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface">Salarisband</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">€ 4.250,00</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">1.0</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface">Band 8</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">92%</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface text-right">80–&lt;90%</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">1,20</td>
+<!-- Edit Zone -->
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right bg-primary/5 border-l border-primary/20">
+<input class="w-16 text-right font-data-mono text-data-mono py-1 px-2 border-outline-variant rounded bg-surface focus:ring-1 focus:ring-primary focus:border-primary" type="text" value="3,5%"/>
+</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right bg-primary/5">
+<input class="w-24 text-right font-data-mono text-data-mono py-1 px-2 border-outline-variant rounded bg-surface focus:ring-1 focus:ring-primary focus:border-primary" type="text" value="€ 148,75"/>
+</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-primary font-bold text-right bg-primary/5">
+                                € 4.398,75
+                            </td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right border-l border-outline-variant">95% <span class="text-status-open text-[10px] ml-1">▲</span></td>
+<td class="p-row-padding-dense px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide bg-status-preparing/10 text-status-preparing">IN BEWERKING</span>
+</td>
+<td class="p-row-padding-dense px-4 py-2 text-center text-primary"><span class="material-symbols-outlined text-[18px]">chat</span></td>
+</tr>
+<!-- Standard Row 1 -->
+<tr class="hover:bg-surface-container-low cursor-pointer transition-colors border-l-4 border-l-transparent">
+<td class="p-row-padding-dense px-4 py-2"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-row-padding-dense px-4 py-2">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-md text-body-sm">TB</div>
+<span class="font-headline-md text-body-md text-on-surface">Bakker, Tom</span>
+</div>
+</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant">A. Bakker</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant">1.5 jr</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface">Bepaald</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface">Vrij salaris</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">€ 3.800,00</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">0.8</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface">Band 7</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">101%</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface text-right">100–&lt;110%</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">1,05</td>
+<!-- Edit Zone -->
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right bg-primary/5 border-l border-primary/20">
+                                2,0%
+                            </td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right bg-primary/5">
+                                € 76,00
+                            </td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface font-semibold text-right bg-primary/5">
+                                € 3.876,00
+                            </td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface text-right border-l border-outline-variant">103% <span class="text-status-open text-[10px] ml-1">▲</span></td>
+<td class="p-row-padding-dense px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide bg-status-open/10 text-status-open">GEREED</span>
+</td>
+<td class="p-row-padding-dense px-4 py-2 text-center text-outline-variant"><span class="material-symbols-outlined text-[18px]">chat_bubble_outline</span></td>
+</tr>
+<!-- Standard Row 2 (Excluded/Locked) -->
+<tr class="bg-surface-dim hover:bg-surface-dim cursor-not-allowed border-l-4 border-l-transparent opacity-80">
+<td class="p-row-padding-dense px-4 py-2"><input class="rounded border-outline-variant text-outline" disabled="" type="checkbox"/></td>
+<td class="p-row-padding-dense px-4 py-2">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-outline-variant text-on-surface-variant flex items-center justify-center font-headline-md text-body-sm">LJ</div>
+<span class="font-headline-md text-body-md text-on-surface-variant flex items-center gap-1">Jansen, Lisa <span class="material-symbols-outlined text-[14px]">lock</span></span>
+</div>
+</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant">J. de Vries</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant">0.4 jr</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant">Onbepaald</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant">Schaal + trede · uitgesloten</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">€ 5.100,00</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">1.0</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant">Band 9</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">88%</td>
+<td class="p-row-padding-dense px-4 py-2 text-on-surface-variant text-right">80–&lt;90%</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right">-</td>
+<!-- Edit Zone -->
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right bg-outline-variant/10 border-l border-outline-variant/30">0,0%</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right bg-outline-variant/10">€ 0,00</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right bg-outline-variant/10">€ 5.100,00</td>
+<td class="p-row-padding-dense px-4 py-2 font-data-mono text-data-mono text-on-surface-variant text-right border-l border-outline-variant">88% <span class="text-outline-variant text-[10px] ml-1">■</span></td>
+<td class="p-row-padding-dense px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide bg-surface-variant text-on-surface-variant">UITGESLOTEN</span>
+</td>
+<td class="p-row-padding-dense px-4 py-2 text-center text-outline-variant"><span class="material-symbols-outlined text-[18px]">chat_bubble_outline</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- Detail Drawer (Sidebar) -->
+<!-- Fixed to right, spanning height minus TopNavBar -->
+<aside class="fixed right-0 top-16 w-[400px] h-[calc(100vh-4rem)] bg-surface shadow-[-4px_0_24px_rgba(0,0,0,0.08)] z-40 border-l border-outline-variant flex flex-col transform translate-x-0 transition-transform duration-300" id="detail-drawer">
+<!-- Drawer Header -->
+<div class="px-6 py-5 border-b border-outline-variant flex justify-between items-start bg-surface-bright">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide bg-status-preparing/10 text-status-preparing">IN BEWERKING</span>
+</div>
+<h3 class="font-headline-lg text-headline-lg text-on-surface">Sarah Smit</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Medior Marketing Specialist • Band 8</p>
+</div>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-1.5 rounded-full transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Drawer Content Scrollable -->
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
+<!-- Section: Huidige situatie -->
+<section>
+<h4 class="font-headline-md text-[16px] font-semibold text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary">person</span> Huidige situatie
+                </h4>
+<div class="grid grid-cols-2 gap-y-4 gap-x-6 bg-surface-container-low p-4 rounded-lg border border-outline-variant/50">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Salaris (freq)</p>
+<p class="font-data-mono text-[15px] font-semibold text-on-surface">€ 4.250,00 <span class="text-body-sm font-body-sm font-normal text-on-surface-variant ml-1">/ mnd</span></p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">FTE (FTE equiv.)</p>
+<p class="font-data-mono text-[15px] font-semibold text-on-surface">1.0 <span class="text-body-sm font-body-sm font-normal text-on-surface-variant ml-1">(1.0)</span></p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">In dienst sinds</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">01-01-2020</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Diensttijd (op eff. datum)</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">4,2 jaar</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Contract type</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">Onbepaald</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Contract eind / uit dienst</p>
+<p class="font-body-md text-body-md text-on-surface font-medium">-</p>
+</div>
+</div>
+</section>
+<!-- Section: Salarisband Visual Metric -->
+<section>
+<div class="flex justify-between items-end mb-2">
+<h4 class="font-headline-md text-[16px] font-semibold text-on-surface">Salarisband (Band 8)</h4>
+<div class="flex flex-col items-end">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Min: € 3.200 - Max: € 4.800</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Compa: 92,4% | Range pen: 65,6%</span>
+</div>
+</div>
+<div class="relative w-full h-8 bg-surface-container rounded border border-outline-variant/50 overflow-hidden mb-1">
+<!-- Target Midpoint Marker -->
+<div class="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-outline-variant z-10" title="Midpoint: € 4.000"></div>
+<!-- Current Position Fill (gray) -->
+<div class="absolute left-0 top-0 h-full bg-outline-variant/30 border-r-2 border-outline-variant z-20" style="width: 65%;" title="Huidig: € 4.250"></div>
+<!-- Proposed Increase Fill (green) -->
+<div class="absolute left-[65%] top-0 h-full bg-budget-meter-fill/20 border-r-2 border-budget-meter-fill z-20" style="width: 9%;" title="Nieuw: € 4.398"></div>
+</div>
+<div class="flex justify-between font-label-caps text-label-caps text-on-surface-variant mt-2">
+<span class="">€ 3.200</span>
+<span class="ml-4">Mid: € 4.000</span>
+<span class="">€ 4.800</span>
+</div>
+</section>
+<!-- Section: HR-startvoorstel Editable -->
+<section class="bg-primary/5 -mx-6 p-6 border-y border-primary/20">
+<h4 class="font-headline-md text-[16px] font-semibold text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">edit_note</span> Marktconforme aanpassing
+                </h4>
+<div class="flex gap-4 items-end mb-6">
+<div class="w-1/3 relative">
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1.5">Verhoging %</label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline-variant rounded p-2 pr-6 font-data-mono text-data-mono focus:border-primary focus:ring-1 focus:ring-primary text-right shadow-sm" type="text" value="3,5"/>
+<span class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant font-data-mono">%</span>
+</div>
+</div>
+<span class="text-outline-variant font-headline-md pb-2">=</span>
+<div class="w-1/3 relative">
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1.5">Verhoging €</label>
+<div class="relative">
+<span class="absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant font-data-mono">€</span>
+<input class="w-full bg-surface border border-outline-variant rounded p-2 pl-6 font-data-mono text-data-mono focus:border-primary focus:ring-1 focus:ring-primary text-right shadow-sm" type="text" value="148,75"/>
+</div>
+</div>
+</div>
+<div class="bg-surface p-4 rounded-lg border border-primary/30 flex justify-between items-center shadow-[0_2px_4px_rgba(0,61,155,0.05)]">
+<div>
+<p class="font-label-caps text-label-caps text-primary uppercase mb-1">Nieuw Salaris</p>
+<p class="font-headline-xl text-headline-xl font-bold text-primary">€ 4.398,75</p>
+</div>
+<div class="text-right">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Nieuwe Compa</p>
+<p class="font-data-mono text-[16px] text-status-open font-semibold flex items-center gap-1 justify-end">
+                            95,2% <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+</p>
+</div>
+</div>
+</section>
+<!-- Section: Comment -->
+<section>
+<div class="flex justify-between items-center mb-2">
+<label class="font-headline-md text-[16px] font-semibold text-on-surface">Toelichting voor manager (optioneel)</label>
+<span class="font-label-caps text-label-caps text-status-draft bg-surface-container-low px-2 py-0.5 rounded">Zichtbaar voor manager</span>
+</div>
+<textarea class="w-full bg-surface border border-outline-variant rounded-lg p-3 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary shadow-sm h-28 resize-none" placeholder="Voeg een toelichting toe voor de manager..."></textarea>
+</section>
+</div>
+<!-- Drawer Footer -->
+<div class="p-6 bg-surface border-t border-outline-variant flex justify-end gap-3 mt-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+<button class="px-4 py-2 font-headline-md text-[14px] font-semibold text-on-surface hover:bg-surface-container-low border border-transparent rounded transition-colors">
+                Annuleren
+            </button>
+<button class="px-6 py-2 font-headline-md text-[14px] font-semibold bg-primary text-on-primary rounded hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm">
+                Toepassen
+            </button>
+</div>
+</aside>
+</body></html>

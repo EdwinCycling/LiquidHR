@@ -1,0 +1,3714 @@
+{
+  "fixture_id": "TEST-SALARY-STRUCTURES-FULL-V1",
+  "version": "1.0",
+  "generated_on": "2026-08-14",
+  "purpose": "Canonical dev/test dataset for LiquidHR Salary Structures architecture, calculations, RLS, revisions, CAO linking and legacy salary-flow regression.",
+  "data_policy": {
+    "people": "All person/employment identifiers are synthetic.",
+    "public_salary_data": "CAO Rijk revision effective 2026-07-01 is transcribed from the official CAO Rijk public salary table.",
+    "synthetic_salary_data": "All salary bands, compact step scales and future revisions are synthetic but realistic and exist to exercise product rules and edge cases.",
+    "production_use": "TEST ONLY. Never import this fixture into production."
+  },
+  "source_references": [
+    {
+      "reference_key": "CAO-RIJK-2026-07-01",
+      "title": "CAO Rijk — De salarisschalen en maandbedragen per 1 juli 2026",
+      "effective_from": "2026-07-01",
+      "official_public_source": true,
+      "verified_on": "2026-08-14"
+    }
+  ],
+  "hr_groups": [
+    {
+      "hr_group_key": "TEST-SALARY-STRUCTURES-HRG-001",
+      "name": "TEST Salary Structures HR Group"
+    }
+  ],
+  "salary_structures": [
+    {
+      "structure_key": "TEST-STRUCT-RIJK",
+      "hr_group_key": "TEST-SALARY-STRUCTURES-HRG-001",
+      "name": "CAO Rijk salarisschalen",
+      "code": "RIJK",
+      "type": "SCALE_WITH_STEPS",
+      "source_kind": "PUBLIC_CAO_REFERENCE",
+      "revisions": [
+        {
+          "revision_key": "TEST-REV-RIJK-2026-07",
+          "status": "PUBLISHED",
+          "effective_from": "2026-07-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": false,
+          "scales": [
+            {
+              "logical_scale_key": "SCALE-1",
+              "code": "1",
+              "name": "Schaal 1",
+              "sort_order": 1,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-1-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2399.87,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2440.96,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2482.79,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2525.34,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2568.64,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2612.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 2657.52,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 2703.13,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 2749.53,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 2796.75,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 2844.8,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-2",
+              "code": "2",
+              "name": "Schaal 2",
+              "sort_order": 2,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-2-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2525.34,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2568.64,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2612.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2657.52,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2703.13,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2749.53,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 2796.75,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 2844.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 2893.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 2943.42,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 2994.03,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-3",
+              "code": "3",
+              "name": "Schaal 3",
+              "sort_order": 3,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-3-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2657.52,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2703.13,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2749.53,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2796.75,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2844.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2893.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 2943.42,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 2994.03,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3045.54,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3097.95,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3170.57,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-4",
+              "code": "4",
+              "name": "Schaal 4",
+              "sort_order": 4,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-4-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2749.53,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2796.75,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2844.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2893.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2943.42,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2994.03,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3045.54,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3097.95,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3170.57,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3251.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3333.81,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-5",
+              "code": "5",
+              "name": "Schaal 5",
+              "sort_order": 5,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-5-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2844.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2893.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2943.42,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2994.03,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3045.54,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3097.95,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3170.57,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3251.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3333.81,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3415.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3496.31,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-6",
+              "code": "6",
+              "name": "Schaal 6",
+              "sort_order": 6,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-6-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2943.42,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2994.03,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3045.54,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3097.95,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3170.57,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3251.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3333.81,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3415.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3496.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3579.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3660.24,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-7",
+              "code": "7",
+              "name": "Schaal 7",
+              "sort_order": 7,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-7-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3097.95,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3170.57,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3251.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3333.81,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3415.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3496.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3579.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3660.24,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3741.48,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3854.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3984.5,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-8",
+              "code": "8",
+              "name": "Schaal 8",
+              "sort_order": 8,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-8-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3333.81,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3415.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3496.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3579.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3660.24,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3741.48,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3854.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3984.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 4132.76,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 4293.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 4457.77,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-9",
+              "code": "9",
+              "name": "Schaal 9",
+              "sort_order": 9,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-9-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3579.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3660.24,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3741.48,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3854.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3984.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 4132.76,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 4293.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 4457.77,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 4636.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 4818.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 4999.46,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-10",
+              "code": "10",
+              "name": "Schaal 10",
+              "sort_order": 10,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-10-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3496.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3660.24,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3854.8,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 4132.76,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 4457.77,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 4636.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 4818.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 4999.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 5171.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 5353.68,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 5535.4,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-11",
+              "code": "11",
+              "name": "Schaal 11",
+              "sort_order": 11,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-11-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 4132.76,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 4457.77,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 4636.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 4818.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 4999.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 5171.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 5353.68,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 5535.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 5769.16,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 6022.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 6275.94,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-12",
+              "code": "12",
+              "name": "Schaal 12",
+              "sort_order": 12,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-12-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 4818.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 4999.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 5171.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 5353.68,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 5535.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 5769.16,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 6022.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 6275.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 6545.34,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 6819.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 7094.18,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-13",
+              "code": "13",
+              "name": "Schaal 13",
+              "sort_order": 13,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-13-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 5353.68,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 5535.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 5769.16,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 6022.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 6275.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 6545.34,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 6819.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 7094.18,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 7369.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 7659.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 7956.89,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-14",
+              "code": "14",
+              "name": "Schaal 14",
+              "sort_order": 14,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-14-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 6022.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 6275.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 6545.34,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 6819.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 7094.18,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 7369.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 7659.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 7956.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 8229.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 8505.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 8781.26,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-15",
+              "code": "15",
+              "name": "Schaal 15",
+              "sort_order": 15,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-15-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 6819.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 7094.18,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 7369.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 7659.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 7956.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 8229.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 8505.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 8781.26,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 9028.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 9286.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 9561.61,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-16",
+              "code": "16",
+              "name": "Schaal 16",
+              "sort_order": 16,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-16-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 7659.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 7956.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 8229.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 8505.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 8781.26,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 9028.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 9286.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 9561.61,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 9831.67,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 10106.79,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 10407.54,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-17",
+              "code": "17",
+              "name": "Schaal 17",
+              "sort_order": 17,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-17-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 8505.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 8781.26,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 9028.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 9286.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 9561.61,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 9831.67,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 10106.79,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 10407.54,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 10716.21,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 11025.76,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 11334.46,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-18",
+              "code": "18",
+              "name": "Schaal 18",
+              "sort_order": 18,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-18-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 9286.47,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 9561.61,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 9831.67,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 10106.79,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 10407.54,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 10716.21,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 11025.76,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 11334.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 11671.25,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 12008.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 12345.58,
+                  "months_to_next_step": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "revision_key": "TEST-REV-RIJK-2027-DRAFT",
+          "status": "DRAFT",
+          "effective_from": "2027-01-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": true,
+          "scales": [
+            {
+              "logical_scale_key": "SCALE-1",
+              "code": "1",
+              "name": "Schaal 1",
+              "sort_order": 1,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-1-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2471.87,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2514.19,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2557.27,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2601.1,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2645.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2691.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 2737.25,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 2784.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 2832.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 2880.65,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-1-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 2930.14,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-2",
+              "code": "2",
+              "name": "Schaal 2",
+              "sort_order": 2,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-2-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2601.1,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2645.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2691.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2737.25,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2784.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2832.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 2880.65,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 2930.14,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 2980.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3031.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-2-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3083.85,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-3",
+              "code": "3",
+              "name": "Schaal 3",
+              "sort_order": 3,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-3-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2737.25,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2784.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2832.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2880.65,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 2930.14,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 2980.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3031.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3083.85,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3136.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3190.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-3-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3265.69,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-4",
+              "code": "4",
+              "name": "Schaal 4",
+              "sort_order": 4,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-4-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2832.02,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2880.65,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 2930.14,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 2980.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3031.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3083.85,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3136.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3190.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3265.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3349.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-4-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3433.82,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-5",
+              "code": "5",
+              "name": "Schaal 5",
+              "sort_order": 5,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-5-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 2930.14,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2980.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3031.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3083.85,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3136.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3190.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3265.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3349.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3433.82,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3517.51,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-5-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3601.2,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-6",
+              "code": "6",
+              "name": "Schaal 6",
+              "sort_order": 6,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-6-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3031.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3083.85,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3136.91,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3190.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3265.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3349.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3433.82,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3517.51,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3601.2,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3686.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-6-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 3770.05,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-7",
+              "code": "7",
+              "name": "Schaal 7",
+              "sort_order": 7,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-7-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3190.89,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3265.69,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3349.4,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3433.82,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3517.51,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3601.2,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3686.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 3770.05,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 3853.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 3970.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-7-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 4104.04,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-8",
+              "code": "8",
+              "name": "Schaal 8",
+              "sort_order": 8,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-8-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3433.82,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3517.51,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3601.2,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3686.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3770.05,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 3853.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 3970.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 4104.04,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 4256.74,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 4422.61,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-8-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 4591.5,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-9",
+              "code": "9",
+              "name": "Schaal 9",
+              "sort_order": 9,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-9-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3686.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3770.05,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3853.72,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3970.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 4104.04,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 4256.74,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 4422.61,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 4591.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 4775.73,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 4962.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-9-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 5149.44,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-10",
+              "code": "10",
+              "name": "Schaal 10",
+              "sort_order": 10,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-10-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 3601.2,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3770.05,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3970.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 4256.74,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 4591.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 4775.73,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 4962.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 5149.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 5327.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 5514.29,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-10-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 5701.46,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-11",
+              "code": "11",
+              "name": "Schaal 11",
+              "sort_order": 11,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-11-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 4256.74,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 4591.5,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 4775.73,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 4962.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 5149.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 5327.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 5514.29,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 5701.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 5942.23,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 6203.58,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-11-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 6464.22,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-12",
+              "code": "12",
+              "name": "Schaal 12",
+              "sort_order": 12,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-12-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 4962.94,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 5149.44,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 5327.07,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 5514.29,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 5701.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 5942.23,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 6203.58,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 6464.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 6741.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 7024.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-12-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 7307.01,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-13",
+              "code": "13",
+              "name": "Schaal 13",
+              "sort_order": 13,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-13-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 5514.29,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 5701.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 5942.23,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 6203.58,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 6464.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 6741.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 7024.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 7307.01,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 7590.3,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 7888.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-13-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 8195.6,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-14",
+              "code": "14",
+              "name": "Schaal 14",
+              "sort_order": 14,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-14-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 6203.58,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 6464.22,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 6741.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 7024.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 7307.01,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 7590.3,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 7888.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 8195.6,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 8475.93,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 8760.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-14-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 9044.7,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-15",
+              "code": "15",
+              "name": "Schaal 15",
+              "sort_order": 15,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-15-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 7024.31,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 7307.01,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 7590.3,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 7888.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 8195.6,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 8475.93,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 8760.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 9044.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 9298.86,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 9565.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-15-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 9848.46,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-16",
+              "code": "16",
+              "name": "Schaal 16",
+              "sort_order": 16,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-16-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 7888.84,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 8195.6,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 8475.93,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 8760.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 9044.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 9298.86,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 9565.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 9848.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 10126.62,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 10409.99,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-16-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 10719.77,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-17",
+              "code": "17",
+              "name": "Schaal 17",
+              "sort_order": 17,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-17-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 8760.63,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 9044.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 9298.86,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 9565.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 9848.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 10126.62,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 10409.99,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 10719.77,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 11037.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 11356.53,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-17-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 11674.49,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "SCALE-18",
+              "code": "18",
+              "name": "Schaal 18",
+              "sort_order": 18,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "SCALE-18-STEP-0",
+                  "label": "0",
+                  "sort_order": 0,
+                  "amount_monthly_eur": 9565.06,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-1",
+                  "label": "1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 9848.46,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-2",
+                  "label": "2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 10126.62,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-3",
+                  "label": "3",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 10409.99,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-4",
+                  "label": "4",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 10719.77,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-5",
+                  "label": "5",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 11037.7,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-6",
+                  "label": "6",
+                  "sort_order": 6,
+                  "amount_monthly_eur": 11356.53,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-7",
+                  "label": "7",
+                  "sort_order": 7,
+                  "amount_monthly_eur": 11674.49,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-8",
+                  "label": "8",
+                  "sort_order": 8,
+                  "amount_monthly_eur": 12021.39,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-9",
+                  "label": "9",
+                  "sort_order": 9,
+                  "amount_monthly_eur": 12368.26,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "SCALE-18-STEP-10",
+                  "label": "10",
+                  "sort_order": 10,
+                  "amount_monthly_eur": 12715.95,
+                  "months_to_next_step": null
+                }
+              ]
+            }
+          ],
+          "generation_rule": "Synthetic test revision: +3.00% to every 2026-07-01 amount, rounded to EUR 0.01."
+        }
+      ]
+    },
+    {
+      "structure_key": "TEST-STRUCT-COMPACT-STEPS",
+      "hr_group_key": "TEST-SALARY-STRUCTURES-HRG-001",
+      "name": "Compact Operations schalen",
+      "code": "OPS",
+      "type": "SCALE_WITH_STEPS",
+      "source_kind": "SYNTHETIC_TEST",
+      "revisions": [
+        {
+          "revision_key": "TEST-REV-OPS-2026",
+          "status": "PUBLISHED",
+          "effective_from": "2026-01-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": true,
+          "scales": [
+            {
+              "logical_scale_key": "COMPACT-C1",
+              "code": "C1",
+              "name": "Compact 1",
+              "sort_order": 1,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "COMPACT-C1-A",
+                  "label": "Aanloop",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 2850.0,
+                  "months_to_next_step": 6
+                },
+                {
+                  "logical_step_key": "COMPACT-C1-E",
+                  "label": "Eind",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3150.0,
+                  "months_to_next_step": null
+                }
+              ]
+            },
+            {
+              "logical_scale_key": "COMPACT-C2",
+              "code": "C2",
+              "name": "Compact 2",
+              "sort_order": 2,
+              "default_months_to_next_step": 12,
+              "steps": [
+                {
+                  "logical_step_key": "COMPACT-C2-A1",
+                  "label": "A1",
+                  "sort_order": 1,
+                  "amount_monthly_eur": 3200.0,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "COMPACT-C2-A2",
+                  "label": "A2",
+                  "sort_order": 2,
+                  "amount_monthly_eur": 3400.0,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "COMPACT-C2-0",
+                  "label": "0",
+                  "sort_order": 3,
+                  "amount_monthly_eur": 3600.0,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "COMPACT-C2-1",
+                  "label": "1",
+                  "sort_order": 4,
+                  "amount_monthly_eur": 3825.0,
+                  "months_to_next_step": 12
+                },
+                {
+                  "logical_step_key": "COMPACT-C2-E",
+                  "label": "Eind",
+                  "sort_order": 5,
+                  "amount_monthly_eur": 4050.0,
+                  "months_to_next_step": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "structure_key": "TEST-STRUCT-ENGINEERING-BANDS",
+      "hr_group_key": "TEST-SALARY-STRUCTURES-HRG-001",
+      "name": "Engineering salarisbanden",
+      "code": "ENG",
+      "type": "SALARY_BAND",
+      "source_kind": "SYNTHETIC_TEST",
+      "revisions": [
+        {
+          "revision_key": "TEST-REV-ENG-2026",
+          "status": "PUBLISHED",
+          "effective_from": "2026-01-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": true,
+          "bands": [
+            {
+              "logical_band_key": "ENG-E1",
+              "code": "E1",
+              "name": "Engineering 1",
+              "sort_order": 1,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 2723.4,
+              "midpoint": 3200.0,
+              "maximum": 3676.6,
+              "input_spread_pct": 35,
+              "expected_metrics": {
+                "range_spread_pct": 35.0,
+                "midpoint_progression_pct": null,
+                "overlap_pct": null,
+                "has_gap": null
+              }
+            },
+            {
+              "logical_band_key": "ENG-E2",
+              "code": "E2",
+              "name": "Engineering 2",
+              "sort_order": 2,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 3166.67,
+              "midpoint": 3800.0,
+              "maximum": 4433.33,
+              "input_spread_pct": 40,
+              "expected_metrics": {
+                "range_spread_pct": 40.0,
+                "midpoint_progression_pct": 18.75,
+                "overlap_pct": 53.5,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E3",
+              "code": "E3",
+              "name": "Engineering 3",
+              "sort_order": 3,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 3755.1,
+              "midpoint": 4600.0,
+              "maximum": 5444.9,
+              "input_spread_pct": 45,
+              "expected_metrics": {
+                "range_spread_pct": 45.0,
+                "midpoint_progression_pct": 21.05,
+                "overlap_pct": 53.54,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E4",
+              "code": "E4",
+              "name": "Engineering 4",
+              "sort_order": 4,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 4480.0,
+              "midpoint": 5600.0,
+              "maximum": 6720.0,
+              "input_spread_pct": 50,
+              "expected_metrics": {
+                "range_spread_pct": 50.0,
+                "midpoint_progression_pct": 21.74,
+                "overlap_pct": 57.1,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E5",
+              "code": "E5",
+              "name": "Engineering 5",
+              "sort_order": 5,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 5490.2,
+              "midpoint": 7000.0,
+              "maximum": 8509.8,
+              "input_spread_pct": 55,
+              "expected_metrics": {
+                "range_spread_pct": 55.0,
+                "midpoint_progression_pct": 25.0,
+                "overlap_pct": 54.9,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E6",
+              "code": "E6",
+              "name": "Engineering Principal",
+              "sort_order": 6,
+              "input_method": "MANUAL_ANCHORS",
+              "minimum": 7500.0,
+              "midpoint": 9000.0,
+              "maximum": null,
+              "input_spread_pct": null,
+              "expected_metrics": {
+                "range_spread_pct": null,
+                "midpoint_progression_pct": 28.57,
+                "overlap_pct": 33.44,
+                "has_gap": false
+              }
+            }
+          ]
+        },
+        {
+          "revision_key": "TEST-REV-ENG-2027-DRAFT",
+          "status": "DRAFT",
+          "effective_from": "2027-01-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": true,
+          "generation_rule": "Synthetic test revision: +2.50% to all anchors; open top remains open.",
+          "bands": [
+            {
+              "logical_band_key": "ENG-E1",
+              "code": "E1",
+              "name": "Engineering 1",
+              "sort_order": 1,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 2791.49,
+              "midpoint": 3280.0,
+              "maximum": 3768.52,
+              "input_spread_pct": 35,
+              "expected_metrics": {
+                "range_spread_pct": 35.0,
+                "midpoint_progression_pct": null,
+                "overlap_pct": null,
+                "has_gap": null
+              }
+            },
+            {
+              "logical_band_key": "ENG-E2",
+              "code": "E2",
+              "name": "Engineering 2",
+              "sort_order": 2,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 3245.84,
+              "midpoint": 3895.0,
+              "maximum": 4544.16,
+              "input_spread_pct": 40,
+              "expected_metrics": {
+                "range_spread_pct": 40.0,
+                "midpoint_progression_pct": 18.75,
+                "overlap_pct": 53.5,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E3",
+              "code": "E3",
+              "name": "Engineering 3",
+              "sort_order": 3,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 3848.98,
+              "midpoint": 4715.0,
+              "maximum": 5581.02,
+              "input_spread_pct": 45,
+              "expected_metrics": {
+                "range_spread_pct": 45.0,
+                "midpoint_progression_pct": 21.05,
+                "overlap_pct": 53.54,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E4",
+              "code": "E4",
+              "name": "Engineering 4",
+              "sort_order": 4,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 4592.0,
+              "midpoint": 5740.0,
+              "maximum": 6888.0,
+              "input_spread_pct": 50,
+              "expected_metrics": {
+                "range_spread_pct": 50.0,
+                "midpoint_progression_pct": 21.74,
+                "overlap_pct": 57.1,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E5",
+              "code": "E5",
+              "name": "Engineering 5",
+              "sort_order": 5,
+              "input_method": "MIDPOINT_SPREAD",
+              "minimum": 5627.46,
+              "midpoint": 7175.0,
+              "maximum": 8722.55,
+              "input_spread_pct": 55,
+              "expected_metrics": {
+                "range_spread_pct": 55.0,
+                "midpoint_progression_pct": 25.0,
+                "overlap_pct": 54.9,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "ENG-E6",
+              "code": "E6",
+              "name": "Engineering Principal",
+              "sort_order": 6,
+              "input_method": "MANUAL_ANCHORS",
+              "minimum": 7687.5,
+              "midpoint": 9225.0,
+              "maximum": null,
+              "input_spread_pct": null,
+              "expected_metrics": {
+                "range_spread_pct": null,
+                "midpoint_progression_pct": 28.57,
+                "overlap_pct": 33.44,
+                "has_gap": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "structure_key": "TEST-STRUCT-MANAGEMENT-BANDS",
+      "hr_group_key": "TEST-SALARY-STRUCTURES-HRG-001",
+      "name": "Managementbanden",
+      "code": "MGT",
+      "type": "SALARY_BAND",
+      "source_kind": "SYNTHETIC_TEST",
+      "revisions": [
+        {
+          "revision_key": "TEST-REV-MGT-2026",
+          "status": "PUBLISHED",
+          "effective_from": "2026-01-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": true,
+          "bands": [
+            {
+              "logical_band_key": "MGT-M1",
+              "code": "M1",
+              "name": "Management 1",
+              "sort_order": 1,
+              "input_method": "MANUAL_ANCHORS",
+              "minimum": 5500.0,
+              "midpoint": 6500.0,
+              "maximum": 7800.0,
+              "expected_metrics": {
+                "range_spread_pct": 41.82,
+                "midpoint_progression_pct": null,
+                "overlap_pct": null,
+                "has_gap": null
+              }
+            },
+            {
+              "logical_band_key": "MGT-M2",
+              "code": "M2",
+              "name": "Management 2",
+              "sort_order": 2,
+              "input_method": "MANUAL_ANCHORS",
+              "minimum": 7000.0,
+              "midpoint": 8500.0,
+              "maximum": 10500.0,
+              "expected_metrics": {
+                "range_spread_pct": 50.0,
+                "midpoint_progression_pct": 30.77,
+                "overlap_pct": 34.78,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "MGT-M3",
+              "code": "M3",
+              "name": "Directie",
+              "sort_order": 3,
+              "input_method": "MANUAL_ANCHORS",
+              "minimum": 9500.0,
+              "midpoint": 12000.0,
+              "maximum": null,
+              "expected_metrics": {
+                "range_spread_pct": null,
+                "midpoint_progression_pct": 41.18,
+                "overlap_pct": 28.57,
+                "has_gap": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "structure_key": "TEST-STRUCT-SUPPORT-BANDS",
+      "hr_group_key": "TEST-SALARY-STRUCTURES-HRG-001",
+      "name": "Support salarisbanden",
+      "code": "SUP",
+      "type": "SALARY_BAND",
+      "source_kind": "SYNTHETIC_TEST",
+      "revisions": [
+        {
+          "revision_key": "TEST-REV-SUP-2026",
+          "status": "PUBLISHED",
+          "effective_from": "2026-01-01",
+          "salary_basis": "GROSS_MONTHLY_FULLTIME",
+          "currency": "EUR",
+          "synthetic": true,
+          "bands": [
+            {
+              "logical_band_key": "SUP-S1",
+              "code": "S1",
+              "name": "Support 1",
+              "sort_order": 1,
+              "input_method": "MIN_MAX",
+              "minimum": 2600.0,
+              "midpoint": 3000.0,
+              "maximum": 3400.0,
+              "expected_metrics": {
+                "range_spread_pct": 30.77,
+                "midpoint_progression_pct": null,
+                "overlap_pct": null,
+                "has_gap": null
+              }
+            },
+            {
+              "logical_band_key": "SUP-S2",
+              "code": "S2",
+              "name": "Support 2",
+              "sort_order": 2,
+              "input_method": "MIN_MAX",
+              "minimum": 3000.0,
+              "midpoint": 3550.0,
+              "maximum": 4100.0,
+              "expected_metrics": {
+                "range_spread_pct": 36.67,
+                "midpoint_progression_pct": 18.33,
+                "overlap_pct": 50.0,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "SUP-S3",
+              "code": "S3",
+              "name": "Support 3",
+              "sort_order": 3,
+              "input_method": "MIN_MAX",
+              "minimum": 3700.0,
+              "midpoint": 4400.0,
+              "maximum": 5100.0,
+              "expected_metrics": {
+                "range_spread_pct": 37.84,
+                "midpoint_progression_pct": 23.94,
+                "overlap_pct": 36.36,
+                "has_gap": false
+              }
+            },
+            {
+              "logical_band_key": "SUP-S4",
+              "code": "S4",
+              "name": "Support 4",
+              "sort_order": 4,
+              "input_method": "MIN_MAX",
+              "minimum": 5000.0,
+              "midpoint": 6000.0,
+              "maximum": 7000.0,
+              "expected_metrics": {
+                "range_spread_pct": 40.0,
+                "midpoint_progression_pct": 36.36,
+                "overlap_pct": 7.14,
+                "has_gap": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "caos": [
+    {
+      "cao_key": "TEST-CAO-RIJK",
+      "name": "TEST CAO Rijk",
+      "linked_structure_keys": [
+        "TEST-STRUCT-RIJK"
+      ]
+    },
+    {
+      "cao_key": "TEST-CAO-HYBRID",
+      "name": "TEST Hybride regeling",
+      "linked_structure_keys": [
+        "TEST-STRUCT-COMPACT-STEPS",
+        "TEST-STRUCT-MANAGEMENT-BANDS"
+      ]
+    },
+    {
+      "cao_key": "TEST-CAO-NONE",
+      "name": "TEST CAO zonder structuurfilter",
+      "linked_structure_keys": []
+    }
+  ],
+  "legacy_employment_salary_regression_cases": [
+    {
+      "case": "CUSTOM_SCALE_CURRENT",
+      "person_key": "TEST-SALARY-STRUCTURES-PERSON-001",
+      "source_type": "CUSTOM_SCALE",
+      "structure_key": "TEST-STRUCT-RIJK",
+      "revision_key": "TEST-REV-RIJK-2026-07",
+      "scale_code": "8",
+      "step_label": "5",
+      "expected_amount_monthly_eur": 3741.48
+    },
+    {
+      "case": "MANUAL_CURRENT",
+      "person_key": "TEST-SALARY-STRUCTURES-PERSON-002",
+      "source_type": "MANUAL",
+      "expected_amount_monthly_eur": 4200.0
+    },
+    {
+      "case": "MINIMUM_WAGE_CURRENT",
+      "person_key": "TEST-SALARY-STRUCTURES-PERSON-003",
+      "source_type": "MINIMUM_WAGE",
+      "expected_behavior": "Existing minimum-wage service remains authoritative; fixture intentionally contains no copied statutory amount."
+    },
+    {
+      "case": "NO_PAYROLL_CURRENT",
+      "person_key": "TEST-SALARY-STRUCTURES-PERSON-004",
+      "source_type": "NO_PAYROLL",
+      "expected_behavior": "No salary-structure relation and no salary amount required."
+    }
+  ],
+  "migration_conflict_cases": [
+    {
+      "case_key": "TEST-MIGRATION-CONFLICT-SAME-CODE-DIFFERENT-STEPS",
+      "administration_a": "TEST-ADMIN-DELFT",
+      "administration_b": "TEST-ADMIN-DENHAAG",
+      "scale_code": "8",
+      "reason": "Same legacy scale code exists in two administrations but step amounts differ.",
+      "expected_resolution": "MANUAL_REVIEW_OR_KEEP_SEPARATE; never silently merge."
+    }
+  ],
+  "expected_dataset_assertions": {
+    "salary_structure_count": 5,
+    "scale_with_steps_structure_count": 2,
+    "salary_band_structure_count": 3,
+    "cao_relation_count": 3,
+    "official_rijk_scale_count": 18,
+    "official_rijk_step_count": 198,
+    "has_multiple_named_structures_same_type": true,
+    "has_multiple_revisions_same_structure": true,
+    "has_published_and_draft_revisions": true,
+    "has_two_step_scale": true,
+    "has_free_step_labels": true,
+    "has_open_highest_band": true,
+    "has_midpoint_spread_input": true,
+    "has_min_max_input": true,
+    "has_manual_anchor_input": true,
+    "has_overlap_and_gap_cases": true,
+    "has_cao_with_one_structure": true,
+    "has_cao_with_multiple_structures": true,
+    "has_cao_with_zero_structures": true,
+    "custom_scale_regression_expected_amount": 3741.48
+  }
+}

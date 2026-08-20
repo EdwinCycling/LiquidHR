@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Definitief voorstel ligt boven budget</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed": "#dae2ff",
+                      "inverse-on-surface": "#f0f0fb",
+                      "surface": "#faf8ff",
+                      "error": "#ba1a1a",
+                      "surface-bright": "#faf8ff",
+                      "surface-container-high": "#e7e7f2",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#0052cc",
+                      "primary": "#003d9b",
+                      "error-container": "#ffdad6",
+                      "secondary": "#5c5f60",
+                      "status-open": "#00875A",
+                      "on-tertiary-fixed": "#380d00",
+                      "surface-dim": "#d9d9e4",
+                      "background": "#faf8ff",
+                      "surface-container-low": "#f3f3fd",
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-secondary-fixed-variant": "#444749",
+                      "on-primary-container": "#c4d2ff",
+                      "inverse-surface": "#2e3038",
+                      "secondary-fixed": "#e1e2e4",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "outline": "#737685",
+                      "surface-container-highest": "#e1e2ec",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191b23",
+                      "outline-variant": "#c3c6d6",
+                      "surface-tint": "#0c56d0",
+                      "budget-meter-fill": "#36B37E",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-surface": "#191b23",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#001848",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "secondary-container": "#dee0e2",
+                      "surface-container": "#ededf8",
+                      "inverse-primary": "#b2c5ff",
+                      "budget-meter-overage": "#DE350B",
+                      "status-preparing": "#0052CC",
+                      "on-surface-variant": "#434654",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#a33500",
+                      "status-finalized": "#172B4D",
+                      "status-error": "#DE350B",
+                      "on-error": "#ffffff",
+                      "status-warning": "#FFAB00",
+                      "on-secondary-container": "#606365",
+                      "surface-variant": "#e1e2ec",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "on-tertiary-container": "#ffc6b2",
+                      "status-draft": "#6B778C",
+                      "tertiary": "#7b2600",
+                      "tertiary-fixed": "#ffdbcf",
+                      "budget-meter-track": "#EBECF0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem",
+                      "desktop-margin": "2rem"
+              },
+              "fontFamily": {
+                      "body-lg": ["Work Sans"],
+                      "body-md": ["Work Sans"],
+                      "data-mono": ["JetBrains Mono"],
+                      "headline-lg-mobile": ["Work Sans"],
+                      "headline-xl": ["Work Sans"],
+                      "headline-md": ["Work Sans"],
+                      "label-caps": ["Work Sans"],
+                      "body-sm": ["Work Sans"],
+                      "headline-lg": ["Work Sans"]
+              },
+              "fontSize": {
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-xl": ["30px", {"lineHeight": "38px", "fontWeight": "600"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background h-full font-sans antialiased overflow-hidden">
+<!-- Blurred/Dimmed Background Context (HR Eindcontrole Screen) -->
+<div class="fixed inset-0 z-0 bg-surface-container-low flex flex-col pointer-events-none filter blur-[2px] opacity-60">
+<!-- Mock TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-10 flex items-center justify-between px-desktop-margin h-16 bg-surface border-b border-outline-variant shadow-sm">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">LiquidHR Salary Review</span>
+</div>
+</header>
+<!-- Mock SideNavBar -->
+<nav class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 flex flex-col py-6 px-4 z-10 bg-surface-container-low border-r border-outline-variant">
+<div class="space-y-2">
+<div class="flex items-center gap-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-lg bg-primary-container text-on-primary-container font-bold translate-x-1 transition-transform">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-body-md text-body-md">Salarisronde</span>
+</div>
+</div>
+</nav>
+<!-- Mock Main Content Area -->
+<main class="ml-64 mt-16 p-desktop-margin h-full overflow-hidden flex flex-col gap-gutter">
+<h1 class="font-headline-xl text-headline-xl">HR Eindcontrole</h1>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-6 flex-1 shadow-sm opacity-50">
+<!-- Faux table content -->
+<div class="h-10 bg-surface-variant rounded mb-4 w-full"></div>
+<div class="h-10 bg-surface-variant rounded mb-4 w-full"></div>
+<div class="h-10 bg-surface-variant rounded mb-4 w-full"></div>
+</div>
+</main>
+</div>
+<!-- Overlay / Backdrop -->
+<div class="fixed inset-0 z-40 bg-[#191b23]/50 backdrop-blur-sm flex items-center justify-center p-4">
+<!-- Dialog Container -->
+<div aria-labelledby="dialog-title" aria-modal="true" class="bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant max-w-md w-full overflow-hidden transform transition-all" role="dialog">
+<!-- Dialog Header -->
+<div class="px-6 py-5 border-b border-outline-variant flex items-start gap-4 bg-surface-bright">
+<div class="flex-shrink-0 mt-0.5 flex items-center justify-center h-10 w-10 rounded-full bg-status-warning/10 text-status-warning">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface" id="dialog-title">
+                        Definitief voorstel ligt boven budget.
+                    </h2>
+</div>
+</div>
+<!-- Dialog Content -->
+<div class="px-6 py-6 bg-surface-container-lowest">
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+                    Het definitieve voorstel ligt <span class="font-data-mono text-data-mono font-bold text-budget-meter-overage">€3.500</span> (3,5%) boven het oorspronkelijke budget.
+                </p>
+<div class="mt-4 p-3 bg-surface-container rounded-lg border border-outline-variant flex gap-3 items-start">
+<span class="material-symbols-outlined text-on-surface-variant text-lg">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                        Let op: Dit is een waarschuwing. U kunt de ronde nog steeds definitief afronden, maar het overschrijden van het budget wordt geregistreerd.
+                    </p>
+</div>
+</div>
+<!-- Dialog Actions -->
+<div class="px-6 py-4 border-t border-outline-variant bg-surface-container-low flex justify-end gap-3">
+<button class="px-4 py-2 rounded-lg font-body-md text-body-md font-semibold text-on-surface-variant hover:bg-surface-variant border border-outline-variant transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" type="button">
+                    Terug
+                </button>
+<button class="px-4 py-2 rounded-lg font-body-md text-body-md font-semibold bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 shadow-sm" type="button">
+                    Definitief afronden
+                </button>
+</div>
+</div>
+</div>
+</body></html>

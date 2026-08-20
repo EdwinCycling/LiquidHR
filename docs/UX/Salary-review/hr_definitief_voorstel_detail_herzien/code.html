@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HR Eindcontrole - Detail Drawer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e7e7f2",
+                        "on-secondary-fixed": "#191c1e",
+                        "primary-container": "#0052cc",
+                        "surface-container": "#ededf8",
+                        "on-error-container": "#93000a",
+                        "status-draft": "#6B778C",
+                        "surface-bright": "#faf8ff",
+                        "status-preparing": "#0052CC",
+                        "budget-meter-track": "#EBECF0",
+                        "surface-tint": "#0c56d0",
+                        "inverse-on-surface": "#f0f0fb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c3c6d6",
+                        "tertiary": "#7b2600",
+                        "surface": "#faf8ff",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "background": "#faf8ff",
+                        "tertiary-container": "#a33500",
+                        "on-primary-fixed": "#001848",
+                        "on-secondary-container": "#606365",
+                        "budget-meter-fill": "#36B37E",
+                        "primary-fixed": "#dae2ff",
+                        "status-finalized": "#172B4D",
+                        "primary": "#003d9b",
+                        "on-surface-variant": "#434654",
+                        "on-primary-container": "#c4d2ff",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "inverse-primary": "#b2c5ff",
+                        "secondary-container": "#dee0e2",
+                        "outline": "#737685",
+                        "secondary": "#5c5f60",
+                        "tertiary-fixed": "#ffdbcf",
+                        "budget-meter-overage": "#DE350B",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "status-error": "#DE350B",
+                        "on-tertiary-fixed": "#380d00",
+                        "status-open": "#00875A",
+                        "surface-container-low": "#f3f3fd",
+                        "secondary-fixed": "#e1e2e4",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#ffc6b2",
+                        "on-secondary-fixed-variant": "#444749",
+                        "on-surface": "#191b23",
+                        "surface-container-highest": "#e1e2ec",
+                        "status-warning": "#FFAB00",
+                        "inverse-surface": "#2e3038",
+                        "surface-variant": "#e1e2ec",
+                        "surface-dim": "#d9d9e4",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191b23",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "row-padding-dense": "0.5rem",
+                        "row-padding-standard": "1rem",
+                        "mobile-margin": "1rem",
+                        "gutter": "1.5rem",
+                        "desktop-margin": "2rem"
+                    },
+                    "fontFamily": {
+                        "headline-xl": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "data-mono": ["jetbrainsMono"],
+                        "body-sm": ["Work Sans"],
+                        "body-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "headline-lg": ["Work Sans"]
+                    },
+                    "fontSize": {
+                        "headline-xl": ["30px", { "lineHeight": "38px", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-container-high h-screen overflow-hidden flex font-body-md text-on-surface">
+<!-- Top Navigation Area (Shell overlay for context) -->
+<nav class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">LiquidHR Salary Review</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="font-headline-md text-headline-md font-bold text-on-surface-variant border-b-2 border-transparent">Dashboard</span>
+<span class="font-headline-md text-headline-md font-bold text-primary border-b-2 border-primary pb-1">Salarisronde</span>
+<span class="font-headline-md text-headline-md font-bold text-on-surface-variant border-b-2 border-transparent">Populatie</span>
+<div class="flex items-center gap-2 ml-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">help_outline</span>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full ml-2 object-cover" data-alt="A professional headshot of an HR administrator in a well-lit modern office setting. The individual is wearing a dark blue blazer over a crisp white shirt. The background is slightly blurred showing glass partitions and indoor plants, conveying a corporate and approachable atmosphere. The lighting is soft and natural." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQIFQbqhJbl0lLCyUFqdpsRbpF87_vtUglsBthwOGdDpaFCxJKUZ9wYWIhPv8LAzwMyDHs0Jw0rz8wuYUNJrnTv2vd4QwlF_aTBgUA7fCE3WqUBrHXU0oC_hfJGMORihWdJd26ScgUk4fIkmM3dAJCvI7383fdSC_eGUMvhOvayrImwRb7ww9jr2LDcIGWxqbTM4PSIkG1wt_dqA9i3Ki-rffVLw6VZ55Jk3IvlSnReWOtkxq8P8Cu"/>
+</div>
+</div>
+</nav>
+<!-- Side Navigation (Shell overlay for context) -->
+<nav class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 flex flex-col py-6 px-4 z-40 bg-surface-container-low border-r border-outline-variant">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-primary-container text-on-primary-container rounded-lg font-bold cursor-pointer translate-x-1 transition-transform">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-body-md text-body-md">Salarisronde</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-body-md text-body-md">Populatie</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-body-md text-body-md">Budgettering</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">Rapportage</span>
+</div>
+</div>
+<div class="mt-auto flex flex-col gap-2">
+<div class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Instellingen</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Uitloggen</span>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas (Background for drawer) -->
+<main class="ml-64 mt-16 p-desktop-margin w-full h-[calc(100vh-4rem)] flex-1 overflow-auto opacity-40 bg-surface-container transition-opacity duration-300">
+<!-- Abstract Table Structure to represent the HR view underneath -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant p-4">
+<div class="h-8 bg-surface-variant rounded w-1/4 mb-4"></div>
+<div class="h-64 bg-surface-variant rounded w-full"></div>
+</div>
+</main>
+<!-- Detail Drawer Overlay -->
+<div class="fixed inset-0 z-[60] flex justify-end pointer-events-none">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-on-surface/20 pointer-events-auto backdrop-blur-sm" id="drawer-backdrop"></div>
+<!-- Drawer Panel -->
+<aside class="relative w-full max-w-2xl bg-surface-container-lowest h-full shadow-[0_0_16px_rgba(0,0,0,0.1)] pointer-events-auto flex flex-col translate-x-0 transition-transform duration-300 ease-in-out border-l border-outline-variant" id="detail-drawer">
+<!-- Drawer Header -->
+<header class="flex items-center justify-between p-gutter border-b border-outline-variant bg-surface sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<img alt="Sarah Smit Profile" class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional studio portrait of Sarah Smit, a Medior Marketing Specialist. She is looking directly at the camera with a confident, warm smile. She is wearing a modern, tailored grey blazer over a light blue blouse. The background is a clean, bright solid white, providing high contrast and a corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqR4XixLLSjVgTOIc2X4pqjpFXzJNBVWUQH7MMsr6OIzO3TAcCe2cCGlBtkspfGhn4Xwa8rNhZheMtjNJcwzGhyXtMw9Y452mtPaV3m1bPXUiccPtMr-eE-pqblSkiLhdL6h13KuRQ7B9zGsDB4p0vq9jk37m8xjSCWJoTSSTxTV-TiO4DCuviXgEqCqDQ3b1G347TYj6uUC9E6BjOFZfB8qefXGO9UjbMuumkUzjxbtStLLa_-rnY"/>
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Sarah Smit</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Medior Marketing Specialist • Scale 8</p>
+</div>
+</div>
+<button aria-label="Close drawer" class="p-2 rounded-full hover:bg-surface-variant transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Drawer Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-gutter space-y-gutter">
+<!-- Huidige context -->
+<section class="bg-surface rounded-lg border border-outline-variant p-4">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">person</span>
+                        Huidige context
+                    </h3>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Huidig Salaris</label>
+<span class="font-data-mono text-data-mono text-on-surface">€4.250 / mnd</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">FTE</label>
+<span class="font-data-mono text-data-mono text-on-surface">0.8</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">FTE-equivalent</label>
+<span class="font-data-mono text-data-mono text-on-surface">€5.312,50</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Dienstjaren</label>
+<span class="font-data-mono text-data-mono text-on-surface">3.5 jaar</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Contract</label>
+<span class="font-data-mono text-data-mono text-on-surface">Onbepaalde tijd</span>
+</div>
+</div>
+</section>
+<!-- Bandcontext visualisatie -->
+<section class="bg-surface rounded-lg border border-outline-variant p-4">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">bar_chart</span>
+                        Bandcontext
+                    </h3>
+<div class="grid grid-cols-3 gap-4 mb-4">
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Min</label>
+<span class="font-data-mono text-data-mono text-on-surface">€3.500</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Mid</label>
+<span class="font-data-mono text-data-mono text-on-surface">€4.350</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Max</label>
+<span class="font-data-mono text-data-mono text-on-surface">€5.200</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Compa-ratio</label>
+<span class="font-data-mono text-data-mono text-on-surface">97.7%</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Range Position</label>
+<span class="font-data-mono text-data-mono text-on-surface">44.1%</span>
+</div>
+</div>
+<div class="relative h-2 bg-budget-meter-track rounded-full w-full overflow-hidden mb-2 mt-4">
+<!-- Target/Midpoint indicator -->
+<div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-outline-variant z-10"></div>
+<!-- Position marker -->
+<div class="absolute left-[44.1%] top-0 bottom-0 w-1.5 bg-primary rounded-full transform -translate-x-1/2 z-20"></div>
+</div>
+<div class="flex justify-between mt-1 text-on-surface-variant">
+<span class="font-body-sm text-[11px]">Min</span>
+<span class="font-body-sm text-[11px]">Mid</span>
+<span class="font-body-sm text-[11px]">Max</span>
+</div>
+</section>
+<!-- Decision Layers -->
+<div class="space-y-4">
+<!-- Layer 1: HR-startvoorstel (Read-only) -->
+<section class="bg-surface-container-low rounded-lg border border-outline-variant p-4 opacity-80">
+<div class="flex items-center justify-between mb-3">
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">rule_settings</span>
+                                HR-startvoorstel
+                            </h4>
+<span class="bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded font-label-caps text-label-caps">Systeem</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-3">
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Verhoging (%)</label>
+<span class="font-data-mono text-data-mono text-on-surface">+3,5%</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Verhoging (€)</label>
+<span class="font-data-mono text-data-mono text-on-surface">+€148,75</span>
+</div>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Toelichting HR-start</label>
+<p class="font-body-md text-body-md text-on-surface italic">"Marktconformiteit herstellen"</p>
+</div>
+</section>
+<!-- Layer 2: Manageradvies (Read-only) -->
+<section class="bg-surface-bright rounded-lg border border-outline-variant p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-3">
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">person_check</span>
+                                Manageradvies
+                            </h4>
+<span class="bg-status-open/10 text-status-open px-2 py-0.5 rounded font-label-caps text-label-caps flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Ingediend
+                            </span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-3">
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Verhoging (%)</label>
+<span class="font-data-mono text-data-mono text-on-surface font-medium">+4,0%</span>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Verhoging (€)</label>
+<span class="font-data-mono text-data-mono text-on-surface font-medium">+€170,00</span>
+</div>
+</div>
+<div>
+<label class="font-body-sm text-body-sm text-on-surface-variant block mb-1">Toelichting Manager</label>
+<div class="bg-surface-container-low p-3 rounded border border-outline-variant">
+<p class="font-body-md text-body-md text-on-surface">"Sterke performance dit jaar, Sarah heeft de lead genomen in twee grote campagnes die boven verwachting hebben gescoord."</p>
+</div>
+</div>
+</section>
+<!-- Layer 3: HR Definitief (Editable) -->
+<section class="bg-surface-container-lowest rounded-lg border-2 border-primary p-5 shadow-[0_4px_16px_rgba(0,82,204,0.08)] relative">
+<!-- Active indicator -->
+<div class="absolute -left-2.5 top-5 w-5 h-5 bg-primary rounded-full border-4 border-surface-container-lowest flex items-center justify-center">
+<div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+</div>
+<div class="flex items-center justify-between mb-4">
+<h4 class="font-body-lg text-body-lg font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+                                HR Definitief
+                            </h4>
+</div>
+<div class="grid grid-cols-3 gap-4 mb-4">
+<div class="flex flex-col">
+<label class="font-body-sm text-body-sm text-on-surface-variant mb-1" for="final_pct">Verhoging (%)</label>
+<div class="relative">
+<input class="block w-full rounded-md border-outline-variant shadow-sm focus:border-primary focus:ring-primary font-data-mono text-data-mono sm:text-sm pl-3 pr-8 py-2 text-on-surface bg-surface" id="final_pct" step="0.1" type="number" value="4.0"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<span class="text-on-surface-variant font-data-mono">%</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col">
+<label class="font-body-sm text-body-sm text-on-surface-variant mb-1" for="final_amount">Verhoging (€)</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="text-on-surface-variant font-data-mono">€</span>
+</div>
+<input class="block w-full rounded-md border-outline-variant shadow-sm focus:border-primary focus:ring-primary font-data-mono text-data-mono sm:text-sm pl-8 pr-3 py-2 text-on-surface bg-surface" id="final_amount" step="1" type="number" value="170.00"/>
+</div>
+</div>
+<div class="flex flex-col">
+<label class="font-body-sm text-body-sm text-on-surface-variant mb-1" for="final_salary">Nieuw Salaris</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="text-on-surface-variant font-data-mono">€</span>
+</div>
+<input class="block w-full rounded-md border-outline-variant shadow-sm focus:border-primary focus:ring-primary font-data-mono text-data-mono sm:text-sm pl-8 pr-3 py-2 text-on-surface bg-surface" id="final_salary" step="1" type="number" value="4420.00"/>
+</div>
+</div>
+</div>
+<div class="flex flex-col">
+<label class="font-body-sm text-body-sm text-on-surface-variant mb-1 flex justify-between" for="final_notes">
+                                Definitieve HR-toelichting (alleen HR, optioneel)
+                                <span class="text-status-warning flex items-center gap-1 text-[10px]"><span class="material-symbols-outlined text-[12px]">visibility_off</span> Intern</span>
+</label>
+<textarea class="block w-full rounded-md border-outline-variant shadow-sm focus:border-primary focus:ring-primary font-body-md text-body-md sm:text-sm p-3 text-on-surface bg-surface resize-none" id="final_notes" placeholder="Voeg een interne HR notitie toe..." rows="3"></textarea>
+</div>
+</section>
+</div>
+</div>
+<!-- Drawer Footer / Actions -->
+<footer class="p-gutter border-t border-outline-variant bg-surface sticky bottom-0 z-10 flex justify-end gap-3">
+<button class="px-4 py-2 font-body-md text-body-md font-semibold text-on-surface-variant hover:bg-surface-variant rounded-md transition-colors border border-transparent" type="button">
+                    Annuleren
+                </button>
+<button class="px-6 py-2 font-body-md text-body-md font-semibold text-on-primary bg-primary hover:bg-primary-fixed-dim hover:text-on-primary-fixed rounded-md transition-colors shadow-sm" type="button">
+                    Toepassen
+                </button>
+</footer>
+</aside>
+</div>
+<script>
+        // Simple script to handle input sync simulation and closing
+        document.addEventListener('DOMContentLoaded', () => {
+            const pctInput = document.getElementById('final_pct');
+            const amtInput = document.getElementById('final_amount');
+            const newSalaryInput = document.getElementById('final_salary');
+            const baseSalary = 4250; // €
+
+            // Sync inputs (mock logic)
+            pctInput.addEventListener('input', (e) => {
+                const pct = parseFloat(e.target.value) || 0;
+                const amt = (baseSalary * (pct / 100));
+                amtInput.value = amt.toFixed(2);
+                newSalaryInput.value = (baseSalary + amt).toFixed(2);
+            });
+
+            amtInput.addEventListener('input', (e) => {
+                const amt = parseFloat(e.target.value) || 0;
+                const pct = ((amt / baseSalary) * 100);
+                pctInput.value = pct.toFixed(2);
+                newSalaryInput.value = (baseSalary + amt).toFixed(2);
+            });
+
+            newSalaryInput.addEventListener('input', (e) => {
+                const newSalary = parseFloat(e.target.value) || 0;
+                const amt = newSalary - baseSalary;
+                const pct = ((amt / baseSalary) * 100);
+                amtInput.value = amt.toFixed(2);
+                pctInput.value = pct.toFixed(2);
+            });
+
+            // Close interactions (visual only for this demo)
+            const drawer = document.getElementById('detail-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            const closeBtn = document.querySelector('button[aria-label="Close drawer"]');
+            const cancelBtn = document.querySelector('button:contains("Annuleren")');
+
+            function closeDrawer() {
+                drawer.classList.add('translate-x-full');
+                backdrop.classList.add('opacity-0');
+                setTimeout(() => {
+                    // normally remove from DOM or hide container, for now just move it out
+                }, 300);
+            }
+
+            closeBtn.addEventListener('click', closeDrawer);
+            backdrop.addEventListener('click', closeDrawer);
+
+            // Helper for contains text selector simulation
+            document.querySelectorAll('footer button').forEach(btn => {
+                if(btn.textContent.trim() === 'Annuleren') {
+                    btn.addEventListener('click', closeDrawer);
+                }
+            });
+        });
+    </script>
+</body></html>

@@ -42,4 +42,27 @@ begin
 end;
 $$;
 
+do $$
+declare
+  protected_avatar_policy_count integer;
+begin
+  select count(*)
+    into protected_avatar_policy_count
+  from pg_policies
+  where schemaname = 'storage'
+    and tablename = 'objects'
+    and policyname in (
+      'employee_avatar_objects_insert',
+      'employee_avatar_objects_update',
+      'employee_avatar_objects_delete'
+    )
+    and coalesce(qual, '') || coalesce(with_check, '')
+      like '%employee_subresource_can_write%';
+
+  if protected_avatar_policy_count <> 3 then
+    raise exception 'EMPLOYEE_PREPLACEMENT_AVATAR_STORAGE_POLICY_MISSING';
+  end if;
+end;
+$$;
+
 rollback;

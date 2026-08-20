@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Salarisrondes - LiquidHR Salary Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "on-tertiary-container": "#ffc6b2",
+                      "error": "#ba1a1a",
+                      "background": "#faf8ff",
+                      "on-tertiary-fixed": "#380d00",
+                      "budget-meter-overage": "#DE350B",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "surface-variant": "#e1e2ec",
+                      "on-secondary-fixed-variant": "#444749",
+                      "outline": "#737685",
+                      "secondary": "#5c5f60",
+                      "inverse-surface": "#2e3038",
+                      "primary-fixed": "#dae2ff",
+                      "surface-tint": "#0c56d0",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "inverse-primary": "#b2c5ff",
+                      "on-error": "#ffffff",
+                      "status-draft": "#6B778C",
+                      "error-container": "#ffdad6",
+                      "surface-container-low": "#f3f3fd",
+                      "on-tertiary": "#ffffff",
+                      "secondary-fixed": "#e1e2e4",
+                      "surface-bright": "#faf8ff",
+                      "status-open": "#00875A",
+                      "on-surface": "#191b23",
+                      "surface-container-high": "#e7e7f2",
+                      "outline-variant": "#c3c6d6",
+                      "inverse-on-surface": "#f0f0fb",
+                      "budget-meter-track": "#EBECF0",
+                      "on-secondary-fixed": "#191c1e",
+                      "on-primary": "#ffffff",
+                      "surface-container": "#ededf8",
+                      "on-background": "#191b23",
+                      "primary-container": "#0052cc",
+                      "status-preparing": "#0052CC",
+                      "status-warning": "#FFAB00",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#001848",
+                      "on-primary-container": "#c4d2ff",
+                      "tertiary-fixed": "#ffdbcf",
+                      "surface-container-highest": "#e1e2ec",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "on-surface-variant": "#434654",
+                      "budget-meter-fill": "#36B37E",
+                      "status-error": "#DE350B",
+                      "primary": "#003d9b",
+                      "surface-dim": "#d9d9e4",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "tertiary": "#7b2600",
+                      "status-finalized": "#172B4D",
+                      "surface": "#faf8ff",
+                      "secondary-container": "#dee0e2",
+                      "tertiary-container": "#a33500",
+                      "on-secondary-container": "#606365"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "desktop-margin": "2rem",
+                      "row-padding-standard": "1rem",
+                      "row-padding-dense": "0.5rem",
+                      "gutter": "1.5rem",
+                      "mobile-margin": "1rem"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": [
+                              "Work Sans"
+                      ],
+                      "label-caps": [
+                              "Work Sans"
+                      ],
+                      "headline-lg": [
+                              "Work Sans"
+                      ],
+                      "headline-xl": [
+                              "Work Sans"
+                      ],
+                      "body-sm": [
+                              "Work Sans"
+                      ],
+                      "data-mono": [
+                              "jetbrainsMono"
+                      ],
+                      "body-lg": [
+                              "Work Sans"
+                      ],
+                      "headline-md": [
+                              "Work Sans"
+                      ],
+                      "body-md": [
+                              "Work Sans"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": [
+                              "22px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-xl": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "13px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body { background-color: #f3f3fd; }
+        .table-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="font-body-md text-body-md text-on-surface flex bg-surface-container-low min-h-screen">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col py-6 px-4 z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline">
+<div class="flex items-center gap-3 mb-8 px-2">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-on-primary font-headline-lg">L</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed-dim">Salary Review</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">HR Administration</p>
+</div>
+</div>
+<div class="flex-1 space-y-1">
+<!-- Active Tab -->
+<a class="flex items-center gap-3 px-3 py-2 bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-lg font-bold transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-body-md text-body-md">Salarisronde</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-body-md text-body-md">Populatie</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-body-md text-body-md">Budgettering</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-body-md text-body-md">Rapportage</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+</div>
+<div class="mt-auto space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Instellingen</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Uitloggen</span>
+</a>
+</div>
+</nav>
+<!-- TopNavBar (Mobile only for this layout based on intent, but JSON asks for it, so we render a simplified version for small screens, assuming SideNav takes over on desktop) -->
+<header class="md:hidden fixed top-0 left-0 w-full z-50 flex items-center justify-between px-mobile-margin h-16 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline">
+<span class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary dark:text-primary-fixed-dim">LiquidHR</span>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim">notifications</span>
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A highly detailed close-up portrait of a professional corporate user smiling lightly, high quality lighting, professional business environment, crisp focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6FzdyadvUP1isGV7rTqVbUADY5V23j2v3HjZ8JNLJ_o6fYKNkuLV24AnerbGpIEqXYYWzAGRXdoAD2WLGJaVNSoPYhjidq6Zw6iIo81UNlPyr4D2uoBKKE6Ysn_1MFySBr3fi-W3KXWYcLA2lQUUYwzPN5ItoeKaBEkpXhTvRVOG9TkYcft61sOjFjS12RrPT2CnW0eyaHA0OuQMgpfRGLTuXnW6jtLxHZTH9xcYGB_Z2XfgY1s0U"/>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 md:ml-64 pt-20 md:pt-8 px-mobile-margin md:px-desktop-margin pb-12 w-full max-w-[1400px] mx-auto">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-gutter">
+<div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface mb-2">Salarisrondes</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Bereid salarisvoorstellen voor, laat managers beoordelen en rond de salarisronde centraal af.</p>
+</div>
+<button class="bg-primary text-on-primary hover:bg-on-primary-fixed-variant transition-colors px-6 py-3 rounded-lg font-body-md text-body-md font-semibold flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                Nieuwe salarisronde
+            </button>
+</div>
+<!-- Open Rounds Section -->
+<section class="mb-12">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Open rondes</h3>
+<!-- Card/Table Container -->
+<div class="bg-surface rounded-xl border border-[#EBECF0] table-shadow overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-[#EBECF0]">
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Rondenaam</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Status</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Peildatum</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Ingangsdatum</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Medewerkers</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Voortgang</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant text-right">Budget</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant text-center">Actie</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#EBECF0]">
+<tr class="hover:bg-surface-container-low transition-colors group cursor-pointer">
+<td class="p-row-padding-standard font-body-md text-body-md font-semibold text-primary">Salarisronde 2027</td>
+<td class="p-row-padding-standard">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-open/10 text-status-open font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[14px]">supervisor_account</span>
+                                        Open voor managers
+                                    </span>
+</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-on-surface-variant">01-11-2026</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-on-surface-variant">01-01-2027</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-on-surface-variant">124</td>
+<td class="p-row-padding-standard min-w-[150px]">
+<div class="flex items-center gap-3">
+<div class="flex-1 h-2 bg-budget-meter-track rounded-full overflow-hidden">
+<div class="h-full bg-status-preparing rounded-full" style="width: 65%"></div>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface-variant">65%</span>
+</div>
+</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-on-surface text-right">€ 150.000</td>
+<td class="p-row-padding-standard text-center">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Closed Rounds Section -->
+<section>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Afgesloten rondes</h3>
+<div class="bg-surface rounded-xl border border-[#EBECF0] table-shadow overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-[#EBECF0]">
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Rondenaam</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant">Afgerond op</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant text-right">Budget</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant text-right">Definitief</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant text-right">Acties</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#EBECF0]">
+<tr class="bg-surface hover:bg-surface-container-low transition-colors text-on-surface-variant">
+<td class="p-row-padding-standard font-body-md text-body-md font-semibold text-on-surface">Salarisronde 2026</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono">20-11-2025</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-right">€ 140.000</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-right text-status-open font-semibold">€ 142.500</td>
+<td class="p-row-padding-standard text-right space-x-2">
+<button class="inline-flex items-center justify-center p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors border border-transparent hover:border-outline-variant" title="Bekijken">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="inline-flex items-center justify-center p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors border border-transparent hover:border-outline-variant" title="Exporteren">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</td>
+</tr>
+<tr class="bg-surface hover:bg-surface-container-low transition-colors text-on-surface-variant opacity-80">
+<td class="p-row-padding-standard font-body-md text-body-md font-semibold text-on-surface">Salarisronde 2025</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono">15-11-2024</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-right">€ 130.000</td>
+<td class="p-row-padding-standard font-data-mono text-data-mono text-right text-status-open font-semibold">€ 128.500</td>
+<td class="p-row-padding-standard text-right space-x-2">
+<button class="inline-flex items-center justify-center p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors border border-transparent hover:border-outline-variant" title="Bekijken">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+<button class="inline-flex items-center justify-center p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors border border-transparent hover:border-outline-variant" title="Exporteren">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+</body></html>

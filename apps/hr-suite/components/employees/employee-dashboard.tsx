@@ -55,6 +55,7 @@ interface EmployeeDashboardProps {
   activity: EmployeeActivityItem[]
   canWriteActivity: boolean
   initialLayout: DashboardLayout
+  compact: boolean
   locale: string
   dateFormat: DateFormat
   timeFormat: TimeFormat
@@ -70,7 +71,7 @@ interface EmployeeDashboardProps {
   journeyLabels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string }
 }
 
-export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, compact, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
   const visibleFields = customFields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
@@ -97,7 +98,7 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
     { id: 'performance' as const, node: <PlaceholderCard icon={<Sparkles className="h-4 w-4" />} title={labels.performance} description={labels.performanceDescription} labels={labels} /> },
   ]
 
-  return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><header className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow text-primary">{labels.title}</p><h2 id="employee-dashboard-title" className="mt-1 text-2xl font-semibold tracking-tight">{labels.subtitle}</h2></div><Link prefetch={false} href={`/employees/${employee.id}?tab=personal&edit=1`} className="button-secondary inline-flex items-center gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.openDetails}</Link></header><EmployeeDashboardLayout wide={wide} narrow={narrow} initialLayout={initialLayout} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
+  return <section aria-labelledby="employee-dashboard-title" className="mt-8 space-y-5"><header className="flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow text-primary">{labels.title}</p><h2 id="employee-dashboard-title" className="mt-1 text-2xl font-semibold tracking-tight">{labels.subtitle}</h2></div><Link prefetch={false} href={`/employees/${employee.id}?tab=personal&edit=1`} className="button-secondary inline-flex items-center gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.openDetails}</Link></header><EmployeeDashboardLayout wide={wide} narrow={narrow} initialLayout={initialLayout} compact={compact} labels={{ moveUp: labels.moveUp, moveDown: labels.moveDown, drag: labels.drag, saving: labels.layoutSaving, saved: labels.layoutSaved, failed: labels.layoutFailed }} /></section>
 }
 
 function JourneyDashboardCard({ journeys, locale, labels }: { journeys: JourneyProjectionList; locale: string; labels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string } }) {

@@ -31,7 +31,21 @@ describe('mapEmployeeOverviewRpcRow', () => {
       isArchived: false,
       status: 'ACTIVE_EMPLOYEE',
       employmentCount: 2,
+      employmentType: null,
+      administrationNames: [],
+      hrGroupAdministrationCount: 0,
     })
+  })
+
+  it('start met een lege administratieprojectie die de lijstservice kan aanvullen', () => {
+    const overview = mapEmployeeOverviewRpcRow({
+      id: 'employee-1', employee_number: 'E-001', first_name: 'Lina', birth_name_prefix: null, birth_name: 'Bakker',
+      work_email: null, avatar_url: null, is_archived: false, employment_history: [],
+      department_name: null, job_title: null,
+    }, '2026-07-23')
+
+    expect(overview.administrationNames).toEqual([])
+    expect(overview.hrGroupAdministrationCount).toBe(0)
   })
 
   it('verwerpt corrupte RPC-historie voordat een lijststatus wordt getoond', () => {
@@ -40,5 +54,15 @@ describe('mapEmployeeOverviewRpcRow', () => {
       work_email: null, avatar_url: null, is_archived: false, employment_history: [{ starts_on: '2026-01-01' }],
       department_name: null, job_title: null,
     }, '2026-07-23')).toThrow('EMPLOYEE_OVERVIEW_HISTORY_INVALID')
+  })
+
+  it('behoudt een data-avatar als fixture resource en maakt er geen avatar-route van', () => {
+    const dataAvatar = 'data:image/svg+xml;base64,fixture'
+
+    expect(mapEmployeeOverviewRpcRow({
+      id: 'employee-1', employee_number: 'E-001', first_name: 'Lina', birth_name_prefix: null, birth_name: 'Bakker',
+      work_email: null, avatar_url: dataAvatar, is_archived: false, employment_history: [],
+      department_name: null, job_title: null,
+    }, '2026-07-23').avatarUrl).toBe(dataAvatar)
   })
 })

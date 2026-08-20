@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HR Eindcontrole Werkblad</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config injected by system -->
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#e7e7f2",
+                      "on-secondary-fixed": "#191c1e",
+                      "primary-container": "#0052cc",
+                      "surface-container": "#ededf8",
+                      "on-error-container": "#93000a",
+                      "status-draft": "#6B778C",
+                      "surface-bright": "#faf8ff",
+                      "status-preparing": "#0052CC",
+                      "budget-meter-track": "#EBECF0",
+                      "surface-tint": "#0c56d0",
+                      "inverse-on-surface": "#f0f0fb",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-fixed-variant": "#812800",
+                      "on-tertiary": "#ffffff",
+                      "outline-variant": "#c3c6d6",
+                      "tertiary": "#7b2600",
+                      "surface": "#faf8ff",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "background": "#faf8ff",
+                      "tertiary-container": "#a33500",
+                      "on-primary-fixed": "#001848",
+                      "on-secondary-container": "#606365",
+                      "budget-meter-fill": "#36B37E",
+                      "primary-fixed": "#dae2ff",
+                      "status-finalized": "#172B4D",
+                      "primary": "#003d9b",
+                      "on-surface-variant": "#434654",
+                      "on-primary-container": "#c4d2ff",
+                      "on-primary-fixed-variant": "#0040a2",
+                      "inverse-primary": "#b2c5ff",
+                      "secondary-container": "#dee0e2",
+                      "outline": "#737685",
+                      "secondary": "#5c5f60",
+                      "tertiary-fixed": "#ffdbcf",
+                      "budget-meter-overage": "#DE350B",
+                      "error": "#ba1a1a",
+                      "on-secondary": "#ffffff",
+                      "status-error": "#DE350B",
+                      "on-tertiary-fixed": "#380d00",
+                      "status-open": "#00875A",
+                      "surface-container-low": "#f3f3fd",
+                      "secondary-fixed": "#e1e2e4",
+                      "tertiary-fixed-dim": "#ffb59b",
+                      "secondary-fixed-dim": "#c5c6c8",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-container": "#ffc6b2",
+                      "on-secondary-fixed-variant": "#444749",
+                      "on-surface": "#191b23",
+                      "surface-container-highest": "#e1e2ec",
+                      "status-warning": "#FFAB00",
+                      "inverse-surface": "#2e3038",
+                      "surface-variant": "#e1e2ec",
+                      "surface-dim": "#d9d9e4",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191b23",
+                      "on-error": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "row-padding-dense": "0.5rem",
+                      "row-padding-standard": "1rem",
+                      "mobile-margin": "1rem",
+                      "gutter": "1.5rem",
+                      "desktop-margin": "2rem"
+              },
+              "fontFamily": {
+                      "headline-xl": ["Work Sans"],
+                      "label-caps": ["Work Sans"],
+                      "headline-lg-mobile": ["Work Sans"],
+                      "headline-md": ["Work Sans"],
+                      "data-mono": ["jetbrainsMono"],
+                      "body-sm": ["Work Sans"],
+                      "body-lg": ["Work Sans"],
+                      "body-md": ["Work Sans"],
+                      "headline-lg": ["Work Sans"]
+              },
+              "fontSize": {
+                      "headline-xl": ["30px", {"lineHeight": "38px", "fontWeight": "600"}],
+                      "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased flex flex-col md:flex-row h-screen overflow-hidden">
+<!-- TopNavBar (Mobile Only) / Shell Header Desktop -->
+<div class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline md:hidden">
+<div class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed-dim">LiquidHR Salary Review</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim cursor-pointer" data-icon="help_outline">help_outline</span>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A detailed headshot portrait of a professional corporate user. The individual has a neutral, focused expression. The lighting is studio quality, well-lit from the front with a soft shadow on the right side. The background is a stark, clean white to emphasize the modern, light-mode corporate aesthetic. The overall mood is serious and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMDz4BbfiZmBMbuu5ssfrbpM8NloCtbloqA3DHz5oRGk2YPay9uplamCCNgxQ_ZjUqzUARVjUjMmSYQdeN_PSb2IZ_2hPvYTbGmmkqDSCVTs6mi1CEEbAtwPCPFWP74A-0_MJMCBD5k8XJtWXE38kLK0pgxDqC1v6aAsWGmGZ8MtMCJvMFbJihorAepImqs7sRgzkVuPlU9aKiLkULOUuAlJU4Ymo9l4LpFB1huxtEzXiPE01Hzmct"/>
+</div>
+</div>
+<!-- SideNavBar (Desktop) -->
+<div class="hidden md:flex flex-col py-6 px-4 z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline h-full w-64 shrink-0">
+<div class="mb-8 flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded bg-primary flex items-center justify-center text-on-primary font-bold">L</div>
+<div>
+<div class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed-dim">Salary Review</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">HR Administration</div>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<!-- Tabs -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary-container text-on-primary-container font-bold translate-x-1 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                Salarisronde
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                Medewerkers
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                Rapportage
+            </a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-4 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Instellingen
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                Uitloggen
+            </a>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col h-full overflow-hidden mt-16 md:mt-0 bg-background">
+<!-- Sticky Header Area -->
+<header class="bg-surface border-b border-outline-variant p-desktop-margin sticky top-0 z-30 shrink-0">
+<!-- 5-Step Wizard -->
+<div class="flex items-center gap-2 mb-6 text-sm">
+<div class="flex items-center gap-2 text-on-surface-variant"><span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-bold text-xs">1</span> Configuratie</div>
+<div class="w-8 border-t border-outline-variant"></div>
+<div class="flex items-center gap-2 text-on-surface-variant"><span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-bold text-xs">2</span> Populatie</div>
+<div class="w-8 border-t border-outline-variant"></div>
+<div class="flex items-center gap-2 text-on-surface-variant"><span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-bold text-xs">3</span> Budget</div>
+<div class="w-8 border-t border-outline-variant"></div>
+<div class="flex items-center gap-2 text-on-surface-variant"><span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-bold text-xs">4</span> Manageradvies</div>
+<div class="w-8 border-t border-outline-variant"></div>
+<div class="flex items-center gap-2 text-primary font-bold"><span class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs">5</span> Eindcontrole</div>
+</div>
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+<div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface">Eindcontrole &amp; Definitieve Besluiten</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Controleer manager adviezen en stel definitieve percentages vast.</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-status-open inline-block"></span> Autosave: Opgeslagen
+                    </span>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-body-md text-body-md font-medium hover:bg-surface-tint transition-colors shadow-sm flex items-center gap-2">
+                        Ronde afronden
+                        <span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+</button>
+</div>
+</div>
+<!-- Metrics Bar -->
+<div class="grid grid-cols-2 md:grid-cols-6 gap-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant/50">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Totaalbudget</span>
+<span class="font-data-mono text-data-mono font-bold text-on-surface mt-1">€170.000</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HR-start totaal</span>
+<span class="font-data-mono text-data-mono font-bold text-on-surface mt-1">€158.200</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Manageradviezen totaal</span>
+<span class="font-data-mono text-data-mono font-bold text-on-surface mt-1">€162.400</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">HR Definitief totaal</span>
+<span class="font-data-mono text-data-mono font-bold text-primary mt-1">€163.500</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Afwijking budget</span>
+<span class="font-data-mono text-data-mono font-bold text-status-warning mt-1">€6.500 (3,8%)</span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Medewerkers afgerond/open</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-data-mono text-data-mono font-bold text-on-surface">118/124</span>
+<div class="w-16 h-1.5 bg-budget-meter-track rounded-full overflow-hidden">
+<div class="h-full bg-budget-meter-fill w-[95%]"></div>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Workspace (Scrollable) -->
+<div class="flex-1 overflow-auto p-desktop-margin pb-24">
+<!-- Filters -->
+<div class="flex flex-wrap gap-3 mb-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" data-icon="search">search</span>
+<input class="pl-9 pr-4 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 w-64" placeholder="Zoek medewerker..." type="text"/>
+</div>
+<select class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none pr-8 relative">
+<option>Manager: Alle</option>
+<option>Jansen, P.</option>
+<option>De Vries, M.</option>
+</select>
+<select class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+<option>Afdeling: Alle</option>
+<option>Sales</option>
+<option>IT</option>
+</select>
+<select class="px-3 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20">
+<option>Status: Alle</option>
+<option>Incompleet</option>
+<option>Gereed</option>
+</select>
+</div>
+<!-- Data Table -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[1200px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold sticky left-0 bg-surface-container-low z-10 w-48">Medewerker</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold w-32">Manager</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold w-32">Route</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-right w-28">Huidig salaris</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-center w-28">Band / Compa</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-center w-24">HR Start</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-center w-24 bg-surface-variant/30">Manager</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-primary font-bold text-center w-32 bg-primary-container/10 border-x border-primary/20 shadow-[inset_0_2px_0_0_#0052cc]">HR Definitief</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-right w-32">Nieuw Salaris</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-center w-24">Nieuwe Compa</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-right w-24">Delta</th>
+<th class="p-row-padding-standard font-label-caps text-label-caps text-on-surface-variant font-semibold text-center w-24">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<!-- Row 1: Normal -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/50 transition-colors group">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest group-hover:bg-surface-bright z-10 font-medium text-on-surface flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">AB</div>
+                                A. Bakker
+                            </td>
+<td class="p-row-padding-dense text-on-surface-variant">Jansen, P.</td>
+<td class="p-row-padding-dense text-on-surface-variant">Salarisband</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-on-surface">€ 4.200</td>
+<td class="p-row-padding-dense text-center text-on-surface-variant flex flex-col items-center"><span>Band 8</span><span class="text-xs">92%</span></td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-on-surface-variant">3.0%</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center font-medium text-on-surface bg-surface-variant/10">3.5%</td>
+<td class="p-row-padding-dense bg-primary-container/5 border-x border-primary/10">
+<input class="w-full text-center font-data-mono text-data-mono bg-surface-container-lowest border border-outline-variant rounded px-1 py-1 focus:ring-1 focus:ring-primary focus:border-primary" type="text" value="3.5"/>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right font-medium text-on-surface">€ 4.347</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-on-surface-variant">95%</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-on-surface-variant">-</td>
+<td class="p-row-padding-dense text-center"><span class="inline-block w-2 h-2 rounded-full bg-status-open"></span></td>
+</tr>
+<!-- Row 2: Warning/Delta -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/50 transition-colors group">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest group-hover:bg-surface-bright z-10 font-medium text-on-surface flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">CD</div>
+                                C. Dijk
+                            </td>
+<td class="p-row-padding-dense text-on-surface-variant">De Vries, M.</td>
+<td class="p-row-padding-dense text-on-surface-variant">Vrij salaris</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-on-surface">€ 5.100</td>
+<td class="p-row-padding-dense text-center text-on-surface-variant">-</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-on-surface-variant">2.0%</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center font-medium text-on-surface bg-surface-variant/10">4.0%</td>
+<td class="p-row-padding-dense bg-primary-container/5 border-x border-primary/10">
+<input class="w-full text-center font-data-mono text-data-mono bg-surface-container-lowest border border-status-warning rounded px-1 py-1 focus:ring-1 focus:ring-primary focus:border-primary text-status-warning font-bold" type="text" value="2.5"/>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right font-medium text-on-surface">€ 5.227</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-on-surface-variant">-</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-status-error">-1.5%</td>
+<td class="p-row-padding-dense text-center"><span class="inline-block w-2 h-2 rounded-full bg-status-warning"></span></td>
+</tr>
+<!-- Row 3: Locked/System -->
+<tr class="border-b border-outline-variant/50 bg-surface-container-low/50">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-low/50 z-10 font-medium text-on-surface flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">EF</div>
+                                E. Faber
+                                <span class="material-symbols-outlined text-[14px] text-outline ml-1" data-icon="lock">lock</span>
+</td>
+<td class="p-row-padding-dense text-outline">Jansen, P.</td>
+<td class="p-row-padding-dense text-outline">Minimumloon · systeemgestuurd</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-outline">€ 3.800</td>
+<td class="p-row-padding-dense text-center text-outline">-</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-outline">0.0%</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-outline bg-surface-variant/5">0.0%</td>
+<td class="p-row-padding-dense bg-primary-container/5 border-x border-primary/10 opacity-60">
+<input class="w-full text-center font-data-mono text-data-mono bg-surface-container-low border-transparent text-outline px-1 py-1 cursor-not-allowed" disabled="" type="text" value="0.0"/>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-outline">€ 3.800</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-outline">-</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-outline">-</td>
+<td class="p-row-padding-dense text-center"><span class="inline-block w-2 h-2 rounded-full bg-status-draft"></span></td>
+</tr>
+<!-- Row 4 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/50 transition-colors group">
+<td class="p-row-padding-dense sticky left-0 bg-surface-container-lowest group-hover:bg-surface-bright z-10 font-medium text-on-surface flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">GH</div>
+                                G. Hendriks
+                            </td>
+<td class="p-row-padding-dense text-on-surface-variant">De Vries, M.</td>
+<td class="p-row-padding-dense text-on-surface-variant">Salarisband</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-on-surface">€ 6.250</td>
+<td class="p-row-padding-dense text-center text-on-surface-variant flex flex-col items-center"><span>Band 8</span><span class="text-xs">112%</span></td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-on-surface-variant">1.5%</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center font-medium text-on-surface bg-surface-variant/10">1.5%</td>
+<td class="p-row-padding-dense bg-primary-container/5 border-x border-primary/10">
+<input class="w-full text-center font-data-mono text-data-mono bg-surface-container-lowest border border-outline-variant rounded px-1 py-1 focus:ring-1 focus:ring-primary focus:border-primary" type="text" value="1.5"/>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right font-medium text-on-surface">€ 6.343</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-center text-on-surface-variant">113%</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right text-on-surface-variant">-</td>
+<td class="p-row-padding-dense text-center"><span class="inline-block w-2 h-2 rounded-full bg-status-open"></span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-4 flex justify-center">
+<button class="text-primary font-body-sm text-body-sm font-medium hover:underline flex items-center gap-1">
+                    Meer laden <span class="material-symbols-outlined text-sm" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

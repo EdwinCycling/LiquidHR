@@ -148,13 +148,19 @@ const completeScheduleSchema = z.object({
 const completeSalarySchema = z.object({
   paymentType: z.enum(['PERIODIC_FIXED', 'HOURLY_VARIABLE']),
   paymentFrequency: z.enum(['MONTHLY', 'FOUR_WEEKLY']),
-  salaryBasis: z.enum(['MANUAL', 'MINIMUM_WAGE', 'CUSTOM_SCALE', 'CAO_SCALE']),
+  salaryBasis: z.enum(['MANUAL', 'MINIMUM_WAGE', 'CUSTOM_SCALE', 'CAO_SCALE', 'SALARY_BAND']),
+  salaryRoute: z.enum(['MANUAL', 'MINIMUM_WAGE', 'SCALE_WITH_STEPS', 'SALARY_BAND']).nullish(),
+  minimumWageScheme: z.enum(['REGULAR', 'BBL']).nullish(),
   fulltimeAmount: z.number().nonnegative().nullish(),
   parttimeAmount: z.number().nonnegative().nullish(),
   hourlyRate: z.number().nonnegative().nullish(),
   currencyCode: z.string().regex(/^[A-Z]{3}$/).default('EUR'),
   salaryFrequencyId: databaseUuid,
   salaryScaleStepId: databaseUuid.nullish(),
+  salaryStructureId: databaseUuid.nullish(),
+  salaryScaleId: databaseUuid.nullish(),
+  salaryStepCode: z.string().trim().min(1).max(100).nullish(),
+  salaryBandId: databaseUuid.nullish(),
   caoScaleName: z.string().trim().min(1).max(100).nullish(),
   caoStepName: z.string().trim().min(1).max(100).nullish(),
   validFrom: dateOnly,
@@ -163,11 +169,23 @@ const completeSalarySchema = z.object({
   if (value.paymentType === 'PERIODIC_FIXED' && value.fulltimeAmount == null) {
     context.addIssue({ code: 'custom', path: ['fulltimeAmount'], message: 'SALARY_AMOUNT_REQUIRED' })
   }
-  if (value.paymentType === 'HOURLY_VARIABLE' && value.hourlyRate == null) {
+  if (value.paymentType === 'HOURLY_VARIABLE' && value.salaryBasis !== 'MINIMUM_WAGE' && value.hourlyRate == null) {
     context.addIssue({ code: 'custom', path: ['hourlyRate'], message: 'HOURLY_RATE_REQUIRED' })
   }
   if (value.salaryBasis === 'CUSTOM_SCALE' && !value.salaryScaleStepId) {
     context.addIssue({ code: 'custom', path: ['salaryScaleStepId'], message: 'SALARY_SCALE_STEP_REQUIRED' })
+  }
+  if (value.salaryBasis === 'SALARY_BAND' && !value.salaryBandId && !value.salaryScaleStepId) {
+    context.addIssue({ code: 'custom', path: ['salaryBandId'], message: 'SALARY_BAND_REQUIRED' })
+  }
+  if (value.salaryRoute === 'MINIMUM_WAGE' && !value.minimumWageScheme) {
+    context.addIssue({ code: 'custom', path: ['minimumWageScheme'], message: 'MINIMUM_WAGE_SCHEME_REQUIRED' })
+  }
+  if (value.salaryRoute === 'SCALE_WITH_STEPS' && (!value.salaryStructureId || !value.salaryScaleId || !value.salaryScaleStepId || !value.salaryStepCode)) {
+    context.addIssue({ code: 'custom', path: ['salaryScaleStepId'], message: 'SALARY_SCALE_SELECTION_REQUIRED' })
+  }
+  if (value.salaryRoute === 'SALARY_BAND' && (!value.salaryStructureId || !value.salaryBandId)) {
+    context.addIssue({ code: 'custom', path: ['salaryBandId'], message: 'SALARY_BAND_SELECTION_REQUIRED' })
   }
 })
 

@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { GitBranch, Pencil, Plus } from 'lucide-react'
 import type { EmploymentRegulationTimeline, EmploymentRegulationVersion } from '@/lib/employment/employment-regulation-model'
+import type { SalaryStructureCatalog } from '@/lib/salary-structures/service'
+import { CaoSalaryStructuresSection } from './cao-salary-structures-section'
 
 type Labels = {
   search: string
@@ -30,6 +32,21 @@ type Labels = {
   probationMaximum: string
   probationOneMonth: string
   probationTwoMonths: string
+  salaryStructures: {
+    sectionTitle: string
+    description: string
+    scalesAndSteps: string
+    salaryBands: string
+    linked: string
+    noActiveRevision: string
+    save: string
+    cancel: string
+    unsaved: string
+    saving: string
+    saved: string
+    failed: string
+    readOnly: string
+  }
 }
 
 type DialogState =
@@ -76,7 +93,7 @@ function RegulationDialog({ state, labels, onCancel, onSave }: { state: DialogSt
   </div>
 }
 
-export function EmploymentRegulationsManager({ timelines, labels }: { timelines: EmploymentRegulationTimeline[]; labels: Labels }) {
+export function EmploymentRegulationsManager({ timelines, labels, salaryStructureCatalog, locale }: { timelines: EmploymentRegulationTimeline[]; labels: Labels; salaryStructureCatalog: SalaryStructureCatalog | null; locale: 'nl' | 'en' }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [dialog, setDialog] = useState<DialogState | null>(null)
@@ -109,6 +126,13 @@ export function EmploymentRegulationsManager({ timelines, labels }: { timelines:
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{index === 0 ? labels.validFrom : labels.successor}: {version.validFrom}</p><p className="mt-1 font-semibold">{version.name}</p></div><button type="button" className="button-secondary inline-flex items-center gap-2" onClick={() => { setFailed(false); setDialog({ mode: 'edit', version, nextVersion }) }}><Pencil size={15} />{labels.edit}</button></div>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground"><span>{labels.standardHours}: {version.standardHoursPerWeek}</span><span>{labels.probationMaximum}: {version.probationMaximumMonths === 2 ? labels.probationTwoMonths : labels.probationOneMonth}</span>{nextVersion ? <span>{labels.validUntil}: {addDays(nextVersion.validFrom, -1)}</span> : <span className="font-medium text-success">{labels.current}</span>}{!version.isActive && <span>{labels.historical}</span>}</div>
           {!nextVersion && <button type="button" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" onClick={() => { setFailed(false); setDialog({ mode: 'successor', predecessor: version }) }}><Plus size={15} />{labels.addSuccessor}</button>}
+          {salaryStructureCatalog ? <CaoSalaryStructuresSection
+            laborConditionSetId={version.id}
+            catalog={salaryStructureCatalog}
+            locale={locale}
+            selectedStructureIds={salaryStructureCatalog.laborConditionRelations.filter((relation) => relation.labor_condition_set_id === version.id).map((relation) => relation.salary_structure_id)}
+            labels={labels.salaryStructures}
+          /> : null}
         </div>
       })}</div>
     </section>)}</div>

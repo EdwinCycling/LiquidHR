@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manager Team Overzicht - Submitted</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#dae2ff",
+                        "inverse-on-surface": "#f0f0fb",
+                        "surface": "#faf8ff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#faf8ff",
+                        "surface-container-high": "#e7e7f2",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#0052cc",
+                        "primary": "#003d9b",
+                        "error-container": "#ffdad6",
+                        "secondary": "#5c5f60",
+                        "status-open": "#00875A",
+                        "on-tertiary-fixed": "#380d00",
+                        "surface-dim": "#d9d9e4",
+                        "background": "#faf8ff",
+                        "surface-container-low": "#f3f3fd",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-secondary-fixed-variant": "#444749",
+                        "on-primary-container": "#c4d2ff",
+                        "inverse-surface": "#2e3038",
+                        "secondary-fixed": "#e1e2e4",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "outline": "#737685",
+                        "surface-container-highest": "#e1e2ec",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191b23",
+                        "outline-variant": "#c3c6d6",
+                        "surface-tint": "#0c56d0",
+                        "budget-meter-fill": "#36B37E",
+                        "on-secondary-fixed": "#191c1e",
+                        "on-surface": "#191b23",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#001848",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "secondary-container": "#dee0e2",
+                        "surface-container": "#ededf8",
+                        "inverse-primary": "#b2c5ff",
+                        "budget-meter-overage": "#DE350B",
+                        "status-preparing": "#0052CC",
+                        "on-surface-variant": "#434654",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#a33500",
+                        "status-finalized": "#172B4D",
+                        "status-error": "#DE350B",
+                        "on-error": "#ffffff",
+                        "status-warning": "#FFAB00",
+                        "on-secondary-container": "#606365",
+                        "surface-variant": "#e1e2ec",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "on-tertiary-container": "#ffc6b2",
+                        "status-draft": "#6B778C",
+                        "tertiary": "#7b2600",
+                        "tertiary-fixed": "#ffdbcf",
+                        "budget-meter-track": "#EBECF0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "row-padding-standard": "1rem",
+                        "row-padding-dense": "0.5rem",
+                        "gutter": "1.5rem",
+                        "mobile-margin": "1rem",
+                        "desktop-margin": "2rem"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "data-mono": ["jetbrainsMono"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-xl": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "body-sm": ["Work Sans"],
+                        "headline-lg": ["Work Sans"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-xl": ["30px", { "lineHeight": "38px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen">
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline">
+<div class="flex items-center gap-4">
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed-dim">LiquidHR Salary Review</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container-low p-2 rounded-full transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:bg-surface-container-low p-2 rounded-full transition-colors" data-icon="help_outline">help_outline</span>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAM0Lmoe96PV0mhrQGMwIBF3CELz4oL8KK7IYho4RV3NEBrXHXOkLpfb28RlHjg6vNGyxQBv9uu6RnZb5wF1889RUPRsnjLuqgEgsripp6I62AY-sZ1tmHp0k3ZDDqhLKhn5dGzCQNuMx9v9fVZPXCi1lgyjPI8EpDaRMVW0Lw1xx2MJoDrWkQJgzloeNHbB_markjsR17yyK8fv3p4nqN54Lhcq6JQp0_WZTQhBQIZS0QGfuzEYgcD"/>
+</div>
+</header>
+<!-- SideNavBar (Shared Component) - Rendered only on Web -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col py-6 px-4 z-40 bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant dark:border-outline pt-20">
+<div class="mb-8 px-2">
+<h2 class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed-dim">Salary Review</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">HR Administration</p>
+</div>
+<ul class="flex flex-col gap-2 flex-grow">
+<!-- Active Navigation Logic: "Salarisronde" represents the review process -->
+<li><a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all" href="#"><span class="material-symbols-outlined">dashboard</span> Dashboard</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 bg-primary-container text-on-primary-container rounded-lg font-bold" href="#"><span class="material-symbols-outlined">payments</span> Salarisronde</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all" href="#"><span class="material-symbols-outlined">groups</span> Populatie</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all" href="#"><span class="material-symbols-outlined">account_balance_wallet</span> Budgettering</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all" href="#"><span class="material-symbols-outlined">analytics</span> Rapportage</a></li>
+</ul>
+<ul class="flex flex-col gap-2 mt-auto">
+<li><a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all" href="#"><span class="material-symbols-outlined">settings</span> Instellingen</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all" href="#"><span class="material-symbols-outlined">logout</span> Uitloggen</a></li>
+</ul>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-20 md:ml-64 px-mobile-margin md:px-desktop-margin pb-24">
+<!-- Submission Banner -->
+<div class="bg-surface-container-high border-l-4 border-status-finalized p-4 rounded-lg flex items-start gap-3 mb-gutter">
+<span class="material-symbols-outlined text-status-finalized">lock</span>
+<div>
+<h3 class="font-headline-md text-headline-md text-status-finalized">Ingediend op 12 november 2026</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Je voorstellen zijn definitief ingediend en kunnen niet meer worden gewijzigd.</p>
+</div>
+</div>
+<!-- Budget & Stats Dashboard Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-gutter">
+<!-- Budget Meter Card -->
+<div class="bg-surface-container-lowest border border-outline-variant p-4 rounded-lg shadow-sm col-span-1 md:col-span-2">
+<div class="flex justify-between items-end mb-2">
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Beschikbaar Budget</span>
+<div class="font-headline-lg text-headline-lg font-bold">€ 150.000</div>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Toegewezen</span>
+<div class="font-headline-md text-headline-md text-on-surface">€ 142.500</div>
+</div>
+</div>
+<div class="h-3 bg-budget-meter-track rounded-full overflow-hidden">
+<!-- Progress: 95% -->
+<div class="h-full bg-budget-meter-fill w-[95%]"></div>
+</div>
+<div class="mt-2 text-right font-body-sm text-body-sm text-on-surface-variant">Resterend: € 7.500</div>
+</div>
+<!-- Summary Stat Card -->
+<div class="bg-surface-container-lowest border border-outline-variant p-4 rounded-lg shadow-sm flex flex-col justify-center items-center text-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Medewerkers Beoordeeld</span>
+<div class="font-headline-xl text-headline-xl font-bold text-primary">24 / 24</div>
+<span class="inline-flex items-center gap-1 mt-2 px-2 py-1 bg-surface-container rounded-md font-body-sm text-body-sm text-status-finalized">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Afgerond
+                </span>
+</div>
+</div>
+<!-- Read-Only Data Table Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg shadow-sm overflow-hidden mb-gutter">
+<div class="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md">Team Voorstellen</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">visibility</span> Alleen-lezen</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container">
+<tr>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant uppercase border-b border-outline-variant sticky left-0 bg-surface-container">Medewerker</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant uppercase border-b border-outline-variant text-right">Huidig Salaris</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant uppercase border-b border-outline-variant text-center">Voorstel (%)</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant uppercase border-b border-outline-variant text-right">Nieuw Salaris</th>
+<th class="p-row-padding-dense font-label-caps text-label-caps text-on-surface-variant uppercase border-b border-outline-variant text-center">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant bg-surface opacity-90">
+<td class="p-row-padding-dense sticky left-0 bg-surface">
+<div class="flex items-center gap-2">
+<img class="w-8 h-8 rounded-full bg-surface-variant object-cover" data-alt="A professional headshot of a female employee in a bright office environment, sharp focus, corporate modern style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSaVoG0pCde83655m5RSQBoD51vQqMHAyp_3Bsw0aMyKdCBfOqvYYBhPyK0AnDc2vFeP0vkUUb5vHVoNCoEHhCUSljvo_DWcMXqKlTajIsM8tDK_1p1p3j-jITyK5whG4HRvAPNeN46-1uKcCU3zuAi6TT9JILKuh6ToESFW1q4pymx--ycvHYenWvRURyYrjJuUDIAp_2w2sJ5DjIPFz3FkkK0Sn3DwCsY-1Kdvp7p83cl-MfX--o"/>
+<div>
+<div class="font-bold">Janssen, Sophie</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Marketing Specialist</div>
+</div>
+</div>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right">€ 3.800</td>
+<td class="p-row-padding-dense text-center">
+<span class="bg-surface-variant px-3 py-1 rounded text-on-surface-variant">4.0%</span>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right font-bold">€ 3.952</td>
+<td class="p-row-padding-dense text-center">
+<span class="material-symbols-outlined text-status-finalized text-[20px]">lock</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-outline-variant bg-surface opacity-90">
+<td class="p-row-padding-dense sticky left-0 bg-surface">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container text-body-sm">DV</div>
+<div>
+<div class="font-bold">De Vries, Mark</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Data Analist</div>
+</div>
+</div>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right">€ 4.200</td>
+<td class="p-row-padding-dense text-center">
+<span class="bg-surface-variant px-3 py-1 rounded text-on-surface-variant">5.5%</span>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right font-bold">€ 4.431</td>
+<td class="p-row-padding-dense text-center">
+<span class="material-symbols-outlined text-status-finalized text-[20px]">lock</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-outline-variant bg-surface opacity-90">
+<td class="p-row-padding-dense sticky left-0 bg-surface">
+<div class="flex items-center gap-2">
+<img class="w-8 h-8 rounded-full bg-surface-variant object-cover" data-alt="A professional headshot of a male employee wearing glasses in a modern corporate setting, neutral lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbyU4MlTjHVsaiL7rHvQEBrRcpIPv-zYaDoQ9CLMm8G5NqORlsSXnBgMScihAJn9o1eyLLC2AKK4hbxowTsaekohZ8erU6EIdd6Z6O52YBcf3vGTrBT0n8YsUSr2WegMSZ9YXBLxDBu3ZAvH5G7zeS_9OsryM2qCUbftZoZ39rvBCMykZj09RfKNUJx5d49kMoJvTF2ZPdVsFNihaHChmMNTAwWTm3s9dOGv4mvze_0AxG833A3kjk"/>
+<div>
+<div class="font-bold">Bakker, Thomas</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Senior Developer</div>
+</div>
+</div>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right">€ 5.100</td>
+<td class="p-row-padding-dense text-center">
+<span class="bg-surface-variant px-3 py-1 rounded text-on-surface-variant">2.0%</span>
+</td>
+<td class="p-row-padding-dense font-data-mono text-data-mono text-right font-bold">€ 5.202</td>
+<td class="p-row-padding-dense text-center">
+<span class="material-symbols-outlined text-status-finalized text-[20px]">lock</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</body></html>

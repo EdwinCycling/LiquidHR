@@ -27,7 +27,7 @@ export async function AdministrationSettingsContextBar({
               {translate('administrationContext.label')}
             </p>
             <p className="mt-1 truncate text-base font-semibold text-foreground">{administration.name}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-foreground">
               {translate('administrationContext.code', { code: administration.code })}
               {administration.administrationNumber ? ` · ${translate('administrationContext.administrationNumber', { number: administration.administrationNumber })}` : ''}
               {` · ${translate('administrationContext.hrGroup', { group: context.activeHrGroup.name })}`}
@@ -42,7 +42,7 @@ export async function AdministrationSettingsContextBar({
           {translate('administrationContext.change')}
         </Link>
       </div>
-      <p className="mt-3 border-t border-primary/10 pt-3 text-sm leading-6 text-muted-foreground">
+      <p className="mt-3 border-t border-primary/10 pt-3 text-sm leading-6 text-foreground">
         {translate('administrationContext.description')}
       </p>
     </section>

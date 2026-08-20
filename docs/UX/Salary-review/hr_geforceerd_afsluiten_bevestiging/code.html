@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html lang="nl"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Geforceerd afsluiten - LiquidHR Salary Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#dae2ff",
+                        "inverse-on-surface": "#f0f0fb",
+                        "surface": "#faf8ff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#faf8ff",
+                        "surface-container-high": "#e7e7f2",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#0052cc",
+                        "primary": "#003d9b",
+                        "error-container": "#ffdad6",
+                        "secondary": "#5c5f60",
+                        "status-open": "#00875A",
+                        "on-tertiary-fixed": "#380d00",
+                        "surface-dim": "#d9d9e4",
+                        "background": "#faf8ff",
+                        "surface-container-low": "#f3f3fd",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-secondary-fixed-variant": "#444749",
+                        "on-primary-container": "#c4d2ff",
+                        "inverse-surface": "#2e3038",
+                        "secondary-fixed": "#e1e2e4",
+                        "secondary-fixed-dim": "#c5c6c8",
+                        "outline": "#737685",
+                        "surface-container-highest": "#e1e2ec",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#0040a2",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191b23",
+                        "outline-variant": "#c3c6d6",
+                        "surface-tint": "#0c56d0",
+                        "budget-meter-fill": "#36B37E",
+                        "on-secondary-fixed": "#191c1e",
+                        "on-surface": "#191b23",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#001848",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "secondary-container": "#dee0e2",
+                        "surface-container": "#ededf8",
+                        "inverse-primary": "#b2c5ff",
+                        "budget-meter-overage": "#DE350B",
+                        "status-preparing": "#0052CC",
+                        "on-surface-variant": "#434654",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#a33500",
+                        "status-finalized": "#172B4D",
+                        "status-error": "#DE350B",
+                        "on-error": "#ffffff",
+                        "status-warning": "#FFAB00",
+                        "on-secondary-container": "#606365",
+                        "surface-variant": "#e1e2ec",
+                        "primary-fixed-dim": "#b2c5ff",
+                        "on-tertiary-container": "#ffc6b2",
+                        "status-draft": "#6B778C",
+                        "tertiary": "#7b2600",
+                        "tertiary-fixed": "#ffdbcf",
+                        "budget-meter-track": "#EBECF0"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "row-padding-standard": "1rem",
+                        "row-padding-dense": "0.5rem",
+                        "gutter": "1.5rem",
+                        "mobile-margin": "1rem",
+                        "desktop-margin": "2rem"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "data-mono": ["jetbrainsMono"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "headline-xl": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "label-caps": ["Work Sans"],
+                        "body-sm": ["Work Sans"],
+                        "headline-lg": ["Work Sans"]
+                    },
+                    fontSize: {
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "data-mono": ["13px", { lineHeight: "16px", fontWeight: "500" }],
+                        "headline-lg-mobile": ["22px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-xl": ["30px", { lineHeight: "38px", fontWeight: "600" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "label-caps": ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", fontWeight: "600" }]
+                    }
+                }
+            }
+        };
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-lg antialiased overflow-hidden">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-desktop-margin h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg font-bold text-primary">LiquidHR Salary Review</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden md:flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-body-md focus:outline-none focus:border-primary w-64" placeholder="Search..." type="text"/>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<img alt="User profile avatar" class="w-8 h-8 rounded-full object-cover ml-2 border border-outline-variant" data-alt="A professional headshot of a female HR executive in her late 30s, wearing a navy blazer, smiling subtly, set against a bright, well-lit modern corporate office background with neutral gray and white tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjBmZdgVQ9LbWY-lJ1AtrXQd45YosB_ULfLdB8W2qyrD0lo8iayqTPR6mHVNfaVTKSBWi5jfCUVNxBwf7w-7BP_M6COYdwleI1d898UzM6q-HZNHlnSx5IE3Rzd4ym_wXdhwx6gPyvxamalKKgjEPwZFcdZ1n4ARJP5zmRlCnYT35ZNsg07UBsp8ZpesJQymHDfCRatrxfnixqlj9yo1m6FXjmHdjRzetOvpOvQ3j0gwyCph7Exzzd"/>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-64 flex flex-col py-6 px-4 z-40 bg-surface-container-low border-r border-outline-variant pt-24 hidden md:flex">
+<div class="mb-8 px-2">
+<div class="font-headline-md text-headline-md font-extrabold text-primary mb-1">Salary Review</div>
+<div class="font-body-md text-body-md text-on-surface-variant">HR Administration</div>
+</div>
+<ul class="flex flex-col gap-2 flex-grow">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary-container text-on-primary-container font-bold rounded-lg translate-x-1 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined filled">payments</span>
+                    Salarisronde
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">groups</span>
+                    Populatie
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+                    Budgettering
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                    Rapportage
+                </a>
+</li>
+</ul>
+<div class="mt-auto flex flex-col gap-2 border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Instellingen
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant transition-all font-body-md text-body-md rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Uitloggen
+            </a>
+</div>
+</nav>
+<!-- Main Content Canvas (Blurred/Dimmed for Modal Context) -->
+<main class="md:ml-64 pt-16 h-screen flex flex-col p-desktop-margin filter blur-sm grayscale-[20%] opacity-80 pointer-events-none">
+<!-- Mock Content to give context -->
+<div class="flex justify-between items-center mb-6">
+<h1 class="font-headline-xl text-headline-xl text-on-background">Manager Voortgang</h1>
+<div class="font-label-caps text-label-caps text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">sync</span> Autosaved 1 min ago
+            </div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-gutter">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant mb-1">Totaal Managers</span>
+<span class="font-headline-lg text-headline-lg">24</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant mb-1">Ingediend</span>
+<span class="font-headline-lg text-headline-lg text-status-open">18</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant mb-1">In Concept</span>
+<span class="font-headline-lg text-headline-lg text-status-warning">5</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant mb-1">Niet Gestart</span>
+<span class="font-headline-lg text-headline-lg text-status-draft">1</span>
+</div>
+</div>
+<!-- Table Mock -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex-grow flex flex-col">
+<div class="bg-surface-container-low border-b border-outline-variant p-4 flex justify-between items-center">
+<span class="font-headline-md text-headline-md">In Concept (5)</span>
+<button class="bg-primary text-on-primary font-body-md text-body-md px-4 py-2 rounded-lg hover:bg-primary-fixed-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">lock_person</span>
+                    Geforceerd Afsluiten
+                </button>
+</div>
+<div class="p-4 grid grid-cols-4 font-label-caps text-label-caps text-on-surface-variant border-b border-outline-variant bg-surface-container">
+<div>Manager</div>
+<div>Afdeling</div>
+<div>Medewerkers (Beoordeeld)</div>
+<div>Actie</div>
+</div>
+<div class="overflow-y-auto">
+<div class="p-4 grid grid-cols-4 items-center border-b border-outline-variant hover:bg-surface-container-low font-body-md text-body-md">
+<div class="font-bold">J. de Vries</div>
+<div>Sales</div>
+<div>12 / 15</div>
+<div><span class="text-status-warning flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">edit_note</span> Concept</span></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Backdrop & Dialog -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-inverse-surface/40 backdrop-blur-sm p-mobile-margin">
+<div class="bg-surface-container-lowest w-full max-w-md rounded-xl shadow-[0_16px_32px_rgba(0,0,0,0.1)] border border-outline-variant flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+<!-- Header -->
+<div class="flex items-center gap-3 p-6 border-b border-outline-variant bg-error-container/10">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center text-on-error-container shrink-0">
+<span class="material-symbols-outlined text-[24px]">warning</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-background">Managerdeel geforceerd afsluiten</h2>
+</div>
+</div>
+<!-- Content -->
+<div class="p-6">
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                    Niet-ingediende conceptvoorstellen worden niet als formeel manageradvies overgenomen. HR neemt de eindbeoordeling voor deze medewerkers over.
+                </p>
+<div class="mt-4 p-3 bg-surface-container rounded-lg border border-outline-variant/50">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Impact</div>
+<div class="font-data-mono text-data-mono text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-status-warning">group</span>
+                        5 Managers (Concept)
+                    </div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="p-6 pt-2 flex flex-col-reverse sm:flex-row justify-end gap-3 bg-surface-container-lowest">
+<button class="w-full sm:w-auto px-5 py-2.5 border border-outline text-on-surface font-body-md text-body-md rounded-lg hover:bg-surface-container-low hover:border-on-surface transition-colors">
+                    Annuleren
+                </button>
+<button class="w-full sm:w-auto px-5 py-2.5 bg-error text-on-error font-body-md text-body-md font-semibold rounded-lg hover:bg-on-error-container transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+                    Geforceerd afsluiten
+                </button>
+</div>
+</div>
+</div>
+<style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
+</body></html>
