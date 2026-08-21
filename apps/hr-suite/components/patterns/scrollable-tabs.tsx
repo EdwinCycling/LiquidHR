@@ -4,6 +4,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState, type AnchorHTMLAttributes, type ButtonHTMLAttributes, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
 
 import { IconButton } from '@/components/ui/icon-button'
+import { tabLinkClasses } from './tab-link-classes'
+
+export { tabLinkClasses } from './tab-link-classes'
 
 interface ScrollableTabsProps {
   ariaLabel: string
@@ -13,10 +16,6 @@ interface ScrollableTabsProps {
   leftLabel: string
   rightLabel: string
   className?: string
-}
-
-export function tabLinkClasses({ active, className = '' }: { active: boolean; className?: string }): string {
-  return `-mb-px inline-flex min-h-10 items-center whitespace-nowrap border-b-[3px] px-3 py-2.5 text-sm leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${active ? 'border-primary font-semibold text-primary' : 'border-transparent font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground'} ${className}`.trim()
 }
 
 export type TabLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
