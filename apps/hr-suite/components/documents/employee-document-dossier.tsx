@@ -176,6 +176,7 @@ export function EmployeeDocumentDossier({
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const formElement = event.currentTarget
     if (saving) return
     if (!options || !selectedFile) {
       setErrorCode('DOCUMENT_INPUT_INVALID')
@@ -192,7 +193,7 @@ export function EmployeeDocumentDossier({
       return
     }
 
-    const form = new FormData(event.currentTarget)
+    const form = new FormData(formElement)
     const audiences = [
       ...(employeeVisible ? [{ type: 'EMPLOYEE' as const, targetId: employeeId }] : []),
       ...visibleRoleIds.map((targetId) => ({ type: 'MANAGEMENT_ROLE' as const, targetId })),
@@ -246,7 +247,7 @@ export function EmployeeDocumentDossier({
       return
     }
 
-    event.currentTarget.reset()
+    formElement.reset()
     resetFormState(options.roles)
     setDirty(false)
     router.refresh()
@@ -638,7 +639,7 @@ function CheckboxCard({
 
 function defaultRoleIds(roles: Option[]): string[] {
   return roles
-    .filter((role) => role.code === 'DIRECT_MANAGER' || role.code === 'HR_ADMIN')
+    .filter((role) => role.code === 'DIRECT_MANAGER' || role.code === 'HR_ADMIN' || role.code === 'TENANT_ADMIN')
     .map((role) => role.id)
 }
 

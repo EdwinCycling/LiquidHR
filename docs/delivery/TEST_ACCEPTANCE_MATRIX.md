@@ -2,6 +2,14 @@
 
 **ACTIVE — REQUIRED FOR LOCAL AND BROWSER ACCEPTANCE**
 
+## Latest integration run — 2026-08-21
+
+- Target: TEST project `wnpfloqpjvaacobppbpk`, exact worktree `work/ux-v1-2-integration`, localhost:3000 PID 33660.
+- Database fix: forward migration `fix_employee_document_metadata_rls` applied; remote document-RLS regression test green. Read policies remained unchanged.
+- Technical gates: 213/213 test files and 833/833 tests, typecheck, i18n, lint (0 errors/8 warnings), Webpack build (225 routes) and diff-check green.
+- Browser evidence: fresh HR login and `/dashboard/start` sanity green; critical absence/employment/authorization/process routes returned 200 without relevant console errors; documents PDF/TXT upload returned 201, PDF was visible after reload, download route returned 307; 390×844 documents had no horizontal overflow.
+- Acceptance remains `RED`: signed-storage follow-up and document delete were not reliably proven, four temporary acceptance records/objects could not be remotely deleted in this run, and the full absence/employment/authorization/process mutation matrix plus complete persona/theme matrix remains open. Do not treat this run as release evidence.
+
 Dit document is de centrale bron voor alle Codex/agent browser- en functionele acceptance.
 
 ## Testomgeving

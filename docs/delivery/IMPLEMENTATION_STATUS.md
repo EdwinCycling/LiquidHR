@@ -1,16 +1,18 @@
 # Implementatiestatus Liquid HR
 
-## UX v1.2 final integration & acceptance — 2026-08-21
+## UX v1.2 final integration & acceptance — 2026-08-21 — actuele status
 
-**Status: INTEGRATION COMPLEET; ACCEPTANCE RED / NIET GREEN**
+**Status: RED / NIET RELEASE-READY**
 
-De branch `work/ux-v1-2-integration` is vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0` opgebouwd en bevat de acht aangewezen commits in exacte Batch 4 → 3 → 1 → 2-volgorde. Alleen vier documentatieconflicten zijn geïntegreerd; historische batchstatussen hieronder blijven behouden. Er zijn geen nieuwe centrale Foundation-, API-, database-, RLS-, permission-, auth- of businesslogicawijzigingen gemaakt.
+De branch `work/ux-v1-2-integration` bevat de bestaande integrationbasis plus de forward TEST-RLS-migration, remote regression test en twee noodzakelijke document-uploadfixes. Alleen de nieuwe migration is op TEST toegepast; `main` is niet gewijzigd.
 
-Lokale technische gate: `213/213` testbestanden en `833/833` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-productiebuild `225` routes en `git diff --check` groen. De eerste standaard buildvariant faalde vóór compilatie door Next-package-resolutie in deze worktree; `next build --webpack` compileerde en genereerde succesvol.
+Remote schema-evidence is groen: write-helper `can_manage_document_for_write`, document-audience write policies en de invoker-RPC zijn gecontroleerd; read policies/RLS zijn behouden. De remote SQL-regressietest bewijst positieve HR document/audience write/read, negatieve no-write en geen algemene read zonder audience. Security/performance advisors zijn uitgevoerd; er is geen nieuwe document-specifieke finding. Types zijn opnieuw gegenereerd zonder relevante exposed-typewijziging.
 
-Authenticated browser-evidence is deels groen op localhost:3000, 390×844 en de exacte integration-worktree. DEMO-035 personal edit/dirty-discard/real PATCH-herstel, notes CRUD met cleanup, addresses CRUD met cleanup en avatar-confirmation zijn bewezen. Startpage compact/volledig en responsive overflow zijn gecontroleerd. Default/Liquid Navy en LinkedHR zijn gewisseld; LinkedHR is teruggezet. Manager en Employee zijn negatief gecontroleerd op company-data en authorization.
+Lokale technische gates zijn groen: `213/213` testbestanden en `833/833` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-productiebuild `225` routes en `git diff --check`.
 
-De eindclassificatie is **SCHEMA APPLY REQUIRED**: beide uploadpogingen (PDF en toegestaan TXT) gaven `POST /api/employees/<employeeId>/documents` `400` met `DOCUMENT_METADATA_FAILED`. De gesaniteerde echte RPC-fout is `42501`, `new row violates row-level security policy for table "employee_documents"`, met `details` en `hint` `null`. De repo-RPC en actieve TEST-RPC hebben dezelfde signature en `RETURNING id`-flow. Een authenticated insert zonder `RETURNING` slaagt, terwijl `RETURNING id` faalt omdat de SELECT-policy vóór audience-creatie geen zichtbaarheid toestaat. De noodzakelijke function-replacement/migration is bewust niet toegepast. De eigen diagnostic-key en twee eerdere orphaned `acceptance`-objects zijn verwijderd; DEMO-035 Storage-prefix: 0 orphans. Absence mutation/recovery/capacity, employment create/real mutation, HR authorization create/coverage en process publish/retire zijn nog niet volledig bewezen. Er is niet naar `main` gemerged.
+Authenticated browser-evidence is gedeeltelijk groen op localhost:3000: document PDF/TXT upload HTTP 201, PDF zichtbaar na reload, signed-downloadroute HTTP 307, meerdere kritieke routes HTTP 200 zonder relevante console-errors en 390×844 zonder horizontale overflow. De externe signed-storage-follow-up en delete zijn niet betrouwbaar bewezen. Absence-mutaties, employment-mutaties, HR authorization create/coverage, process publish/retire/changelog/cleanup, volledige persona-negatives en volledige Default+LinkedHR acceptance zijn open. De vier tijdelijke TEST acceptance-records/objecten konden niet worden verwijderd omdat de connector hiervoor een nieuwe directe bevestiging van remote destructieve cleanup verlangde.
+
+**Eindclassificatie: RED.** Geen merge, deployment, release of push naar `main`.
 
 ## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
 
