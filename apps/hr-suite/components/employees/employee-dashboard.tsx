@@ -25,6 +25,8 @@ import { EmployeeDashboardSummary, type EmployeeDashboardSummaryLabels } from '@
 import { ProfileLinkForm } from '@/components/employment/profile-link-form'
 import { EmployeeDashboardLayout } from '@/components/employees/employee-dashboard-layout'
 import { SectionHeader } from '@/components/patterns/section-header'
+import { Badge } from '@/components/ui/badge'
+import { buttonClasses } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { EmploymentDashboardSummary } from '@/components/employees/employment-dashboard-summary'
@@ -96,7 +98,7 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
     { id: 'vehicles' as const, node: <PlaceholderCard icon={<CarFront className="h-4 w-4" />} title={labels.vehicles} description={labels.vehiclesDescription} labels={labels} /> },
     { id: 'software' as const, node: <PlaceholderCard icon={<Laptop2 className="h-4 w-4" />} title={labels.software} description={labels.softwareDescription} labels={labels} /> },
     { id: 'education' as const, node: <PlaceholderCard icon={<GraduationCap className="h-4 w-4" />} title={labels.education} description={labels.educationDescription} labels={labels} /> },
-    { id: 'documents' as const, node: <DashboardCard icon={<FileText className="h-4 w-4" />} title={labels.documents} actionHref="?tab=documents" actionLabel={labels.viewDocuments} compact>{documents.length > 0 ? <ul className="divide-y divide-border/70">{documents.slice(0, 3).map((document) => <li key={document.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="min-w-0 truncate font-medium">{document.title}</span><CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-success" /></li>)}</ul> : <EmptyInline>{labels.documentsEmpty}</EmptyInline>}</DashboardCard> },
+    { id: 'documents' as const, node: <DashboardCard icon={<FileText className="h-4 w-4" />} title={labels.documents} actionHref="?tab=documents" actionLabel={labels.viewDocuments} compact>{documents.length > 0 ? <ul className="divide-y divide-border/70">{documents.slice(0, 3).map((document) => <li key={document.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="min-w-0 break-words font-medium">{document.title}</span><CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-success" /></li>)}</ul> : <EmptyInline>{labels.documentsEmpty}</EmptyInline>}</DashboardCard> },
     { id: 'performance' as const, node: <PlaceholderCard icon={<Sparkles className="h-4 w-4" />} title={labels.performance} description={labels.performanceDescription} labels={labels} /> },
   ]
 
@@ -108,7 +110,7 @@ export function EmployeeDashboardHeader({ title, subtitle }: { title: string; su
 }
 
 function JourneyDashboardCard({ journeys, locale, labels }: { journeys: JourneyProjectionList; locale: string; labels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string } }) {
-  return <DashboardCard icon={<UsersRound className="h-4 w-4" />} title={labels.journeys} compact><p className="text-sm leading-6 text-muted-foreground">{labels.journeysDescription}</p>{journeys.length > 0 ? <ul className="mt-4 divide-y divide-border/70">{journeys.slice(0, 3).map((journey) => { const progress = journeyProgressPercent(journey.progress); return <li className="py-3 first:pt-0 last:pb-0" key={journey.id}><Link className="block rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/journeys/${journey.id}`}><span className="flex items-start justify-between gap-3"><span className="min-w-0 break-words font-semibold">{localizedValue(journey.templateName, locale)}</span><span className="shrink-0 text-xs font-semibold tabular-nums text-accent-foreground">{progress}%</span></span><span className="mt-1 block text-xs text-muted-foreground">{labels.journeyProgress}: {journey.progress.completed}/{journey.progress.total}</span></Link></li> })}</ul> : <EmptyInline>{labels.journeysEmpty}</EmptyInline>}<Link className="button-secondary mt-4 inline-flex" href="/journeys">{labels.journeysOpen}</Link></DashboardCard>
+  return <DashboardCard icon={<UsersRound className="h-4 w-4" />} title={labels.journeys} compact><p className="text-sm leading-6 text-muted-foreground">{labels.journeysDescription}</p>{journeys.length > 0 ? <ul className="mt-4 divide-y divide-border/70">{journeys.slice(0, 3).map((journey) => { const progress = journeyProgressPercent(journey.progress); return <li className="py-3 first:pt-0 last:pb-0" key={journey.id}><Link className="block rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/journeys/${journey.id}`}><span className="flex items-start justify-between gap-3"><span className="min-w-0 break-words font-semibold">{localizedValue(journey.templateName, locale)}</span><span className="shrink-0 text-xs font-semibold tabular-nums text-accent-foreground">{progress}%</span></span><span className="mt-1 block text-xs text-muted-foreground">{labels.journeyProgress}: {journey.progress.completed}/{journey.progress.total}</span></Link></li> })}</ul> : <EmptyInline>{labels.journeysEmpty}</EmptyInline>}<Link className={buttonClasses({ variant: 'secondary', className: 'mt-4' })} href="/journeys">{labels.journeysOpen}</Link></DashboardCard>
 }
 
 function EmployeeProcessCard({ employeeId, processWork, canReadProcesses, canStartProcess, labels }: { employeeId: string; processWork: ProcessWorkList | null; canReadProcesses: boolean; canStartProcess: boolean; labels: EmployeeDashboardLabels }) {
@@ -117,9 +119,9 @@ function EmployeeProcessCard({ employeeId, processWork, canReadProcesses, canSta
     <p className="text-sm leading-6 text-muted-foreground">{canReadProcesses ? labels.workflowsDescription : labels.workflowsUnavailable}</p>
     {items.length > 0 ? <ul className="mt-4 divide-y divide-border/70">{items.map((item) => {
       const blocked = item.instanceStatus === 'BLOCKED' || item.status === 'BLOCKED'
-      return <li className="py-3 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}><span className="flex items-start justify-between gap-3"><span className="min-w-0 font-semibold leading-5">{item.processTitle}</span>{blocked ? <span className="status-chip shrink-0 bg-warning-surface text-warning">{labels.workflowsBlocked}</span> : item.isOverdue ? <span className="status-chip shrink-0 bg-destructive-surface text-destructive">{labels.workflowsOverdue}</span> : null}</span><span className="mt-1 block text-xs text-muted-foreground">{item.stepTitle}</span></Link></li>
+      return <li className="py-3 first:pt-0 last:pb-0" key={item.workItemId}><Link className="block rounded-[var(--radius-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}><span className="flex items-start justify-between gap-3"><span className="min-w-0 font-semibold leading-5">{item.processTitle}</span>{blocked ? <Badge className="shrink-0" tone="warning">{labels.workflowsBlocked}</Badge> : item.isOverdue ? <Badge className="shrink-0" tone="danger">{labels.workflowsOverdue}</Badge> : null}</span><span className="mt-1 block text-xs text-muted-foreground">{item.stepTitle}</span></Link></li>
     })}</ul> : <div className="mt-4"><EmptyInline>{canReadProcesses ? labels.workflowsEmpty : labels.workflowsUnavailable}</EmptyInline></div>}
-    {canStartProcess ? <Link className="button-secondary mt-4 inline-flex" href={`/work/new/internal-transfer?employeeId=${employeeId}`}>{labels.workflowsStart}</Link> : null}
+    {canStartProcess ? <Link className={buttonClasses({ variant: 'secondary', className: 'mt-4' })} href={`/work/new/internal-transfer?employeeId=${employeeId}`}>{labels.workflowsStart}</Link> : null}
   </DashboardCard>
 }
 
@@ -164,10 +166,10 @@ function EmploymentSummaryList({
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm font-semibold">{labels.contractCount.replace('{count}', String(employments.length))}</p>
-      {!active && <span className="status-chip bg-warning-surface text-warning">{labels.employmentNoActive}</span>}
+      {!active && <Badge tone="warning">{labels.employmentNoActive}</Badge>}
     </div>
-    {employments.length === 0 ? <div className="rounded-xl border border-dashed border-primary/25 bg-accent/20 p-4"><p className="text-sm text-muted-foreground">{labels.employmentEmpty}</p>{canManageEmployments && <Link href={`/employees/${employeeId}/employments/new`} className="button-primary mt-4 inline-flex items-center gap-2"><Plus aria-hidden="true" className="h-4 w-4" />{labels.employmentAdd}</Link>}</div> : <div className="space-y-3">
-      {!active && <div className="rounded-xl bg-warning-surface/60 p-4 text-sm text-warning">{labels.employmentNoActive}{canManageEmployments && <Link href={`/employees/${employeeId}/employments/new`} className="ml-2 font-semibold underline underline-offset-2">{labels.employmentAdd}</Link>}</div>}
+    {employments.length === 0 ? <EmptyState className="items-start p-4 text-left" title={labels.employmentEmpty} actions={canManageEmployments ? <Link href={`/employees/${employeeId}/employments/new`} className={buttonClasses({ variant: 'primary', className: 'mt-4' })}><Plus aria-hidden="true" className="h-4 w-4" />{labels.employmentAdd}</Link> : undefined} /> : <div className="space-y-3">
+      {!active && <Surface variant="subtle" className="bg-warning-surface/60 p-4 text-sm text-warning">{labels.employmentNoActive}{canManageEmployments && <Link href={`/employees/${employeeId}/employments/new`} className="ml-2 font-semibold underline underline-offset-2">{labels.employmentAdd}</Link>}</Surface>}
       {employments.map((employment) => {
         const summary = summaries.find((item) => item.employmentId === employment.id)
         const status = getEmploymentCardStatus({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status }, today)
@@ -178,7 +180,7 @@ function EmploymentSummaryList({
               <p className="text-sm font-semibold">{labels.employmentNumber}: {employment.employment_number}</p>
               <p className="mt-1 text-xs text-muted-foreground">{labels.employmentPeriod}: {period}</p>
             </div>
-            <span className={`status-chip ${status === 'ACTIVE' ? 'bg-success-surface text-success' : status === 'FUTURE' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>{statusLabel(status)}</span>
+            <Badge tone={status === 'ACTIVE' ? 'success' : status === 'FUTURE' ? 'info' : 'neutral'}>{statusLabel(status)}</Badge>
           </div>
           <dl className="mt-4 grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
             <DataPoint label={labels.jobTitle} value={summary?.jobTitle ?? labels.notRecorded} />
