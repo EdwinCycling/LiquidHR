@@ -2,12 +2,14 @@
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 
+- Centrale acceptancebron: [`TEST_ACCEPTANCE_MATRIX.md`](TEST_ACCEPTANCE_MATRIX.md) is vanaf deze slice verplicht voor lokale, browser- en functionele acceptance.
+
 - Branch/worktree: `work/ux-foundation-v1-2-interaction-collections` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-foundation-v1-2-interaction-collections`, start- en huidige baseline vóór lokale wijzigingen `8ac0cc1fb220dd9fd77e3ef4a21998d54d3abec8`; `origin/main` is `c4e176aec1a22bb927ac8b82ce890f71c72618a0`.
 - Geïmplementeerd: v1.2 `Dialog`, `Drawer`, `ActionMenu`, `Pagination`, `FormDrawer`, `FormActions`, `ConfirmDialog`, `CollectionToolbar`, `RowActions`, `CollectionPagination`, `DataTableShell` en `EntityList`. `IconButton` ondersteunt ref-forwarding voor focus restore.
 - Employee Reminders gebruikt nu EntityList + dezelfde FormDrawer voor Create/Edit, vaste footer, saving/double-submit protection, dirty-close ConfirmDialog, ActionMenu → delete ConfirmDialog en NL/EN reminderlabels. PERSONAL/HR, `canManageHr`, `canAdd`, `canManageItem`, target/publish-flow, bestaande reminder API's, datumshift en `router.refresh()` zijn behouden.
 - Verificatie groen: v1.2/reminder gericht 11/11; volledige hr-suite 209 testbestanden/816 tests; strict TypeScript; i18n 33 gelijke NL/EN-namespaces; lint exit 0 met 6 bestaande warnings buiten deze slice; productiebuild 225 routes; `git diff --check`.
-- Browserstatus: lokale Webpack-devserver startte op `http://localhost:3000`, maar `/login` gaf 500 omdat deze worktree geen Supabase URL/key in `.env` heeft. Authenticated desktop/390px Default + LinkedHR reminderflow, console-gate en echte save/delete blijven open. Geen secrets gekopieerd.
-- Open: finale docs-diff controleren, commits maken, branch pushen naar `origin/work/ux-foundation-v1-2-interaction-collections`; niet naar `main` mergen.
+- Browserstatus: Playwright startte vanuit deze worktree op `http://localhost:3000` met viewport 390×844. `/dashboard/start` gaf zonder sessie HTTP 307 naar `/login`; de loginpagina renderde normaal met 0 console-errors en alleen Next-dev/HMR/preload-waarschuwingen. De authenticated TEST HR Reminder-flow kon zonder fixture-session/wachtwoord niet worden uitgevoerd en staat daarom `BLOCKED BY ENVIRONMENT`; geen productdefect vastgesteld en geen secrets gekopieerd.
+- Open: finale docs-diff controleren, relevante gates draaien, commit maken en pushen naar `origin/work/ux-foundation-v1-2-interaction-collections`; niet naar `main` mergen. Bestaande wijziging in `apps/hr-suite/next-env.d.ts` blijft buiten scope.
 
 ## Employee 360 final integration + Dashboard/Overview — 2026-08-21
 
