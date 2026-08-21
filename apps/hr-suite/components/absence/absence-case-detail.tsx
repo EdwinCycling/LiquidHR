@@ -1,6 +1,10 @@
 import Link from 'next/link'
 import { ArrowLeft, CalendarDays, CheckCircle2, ChevronDown, HeartPulse, ShieldAlert } from 'lucide-react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
+import { SectionHeader } from '@/components/patterns/section-header'
 import type { AbsenceCaseSummary } from '@/lib/absence/service'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
@@ -70,16 +74,14 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
     <Link prefetch={false} href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
       <ArrowLeft aria-hidden="true" className="h-4 w-4" />{labels.back}
     </Link>
-    <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
-      <div>
-        <p className="eyebrow text-primary">{labels.dossier}</p>
-        <h2 className="mt-1 text-2xl font-semibold">{labels.heading.replace('{date}', formatDate(absenceCase.firstAbsenceOn, { locale, dateFormat }))}</h2>
-      </div>
-      <span className={`status-chip ${absenceCase.status === 'ACTIVE' ? 'bg-destructive-surface text-destructive' : 'bg-success-surface text-success'}`}>{statusLabel}</span>
-    </header>
+    <SectionHeader
+      title={labels.heading.replace('{date}', formatDate(absenceCase.firstAbsenceOn, { locale, dateFormat }))}
+      description={labels.dossier}
+      actions={<Badge tone={absenceCase.status === 'ACTIVE' ? 'danger' : absenceCase.status === 'RECOVERY_WINDOW' ? 'info' : 'success'}>{statusLabel}</Badge>}
+    />
 
-    <section className="rounded-2xl border bg-surface p-5">
-      <h3 className="flex items-center gap-2 font-semibold"><CalendarDays aria-hidden="true" className="h-5 w-5 text-primary" />{labels.status}</h3>
+    <Surface className="p-5">
+      <SectionHeader title={<span className="flex items-center gap-2"><CalendarDays aria-hidden="true" className="h-5 w-5 text-primary" />{labels.status}</span>} />
       <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
         <DetailField label={labels.firstAbsence} value={formatDate(absenceCase.firstAbsenceOn, { locale, dateFormat })} />
         <DetailField label={labels.effectiveClockStart} value={formatDate(absenceCase.effectiveClockStartOn, { locale, dateFormat })} />
@@ -94,16 +96,16 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
         <Indicator icon={<HeartPulse aria-hidden="true" className="h-4 w-4" />} label={labels.workAccident} value={formatIndicator(absenceCase.isWorkAccident, labels)} />
         <Indicator icon={<ShieldAlert aria-hidden="true" className="h-4 w-4" />} label={labels.thirdPartyAccident} value={formatIndicator(absenceCase.isThirdPartyTrafficAccident, labels)} />
       </div> : null}
-    </section>
+    </Surface>
 
-    <section className="rounded-2xl border bg-surface p-5">
-      <h3 className="flex items-center gap-2 font-semibold"><HeartPulse aria-hidden="true" className="h-5 w-5 text-primary" />{labels.periods}</h3>
+    <Surface className="p-5">
+      <SectionHeader title={<span className="flex items-center gap-2"><HeartPulse aria-hidden="true" className="h-5 w-5 text-primary" />{labels.periods}</span>} />
       <div className="mt-4 space-y-3">
-        {absenceCase.spells.map((spell) => {
+        {absenceCase.spells.length === 0 ? <EmptyState title={labels.periods} description={labels.noValue} /> : absenceCase.spells.map((spell) => {
           const startedOn = formatDate(spell.startedOn, { locale, dateFormat })
           const reportedAt = formatDate(spell.reportedAt, { locale, dateFormat })
           const expectedRecovery = spell.expectedRecoveryOn ? formatDate(spell.expectedRecoveryOn, { locale, dateFormat }) : labels.noValue
-          const status = spell.recoveredOn ? <span className="status-chip bg-success-surface text-success"><CheckCircle2 aria-hidden="true" className="mr-1 inline h-3.5 w-3.5" />{labels.recoveredOn}</span> : <span className="status-chip bg-destructive-surface text-destructive">{labels.nowSick}</span>
+          const status = spell.recoveredOn ? <Badge tone="success"><CheckCircle2 aria-hidden="true" className="mr-1 inline size-3.5" />{labels.recoveredOn}</Badge> : <Badge tone="danger">{labels.nowSick}</Badge>
           return <details key={spell.id} className="group rounded-xl border border-border/70 bg-background">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
               <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 font-semibold"><span>{startedOn}</span>{status}</span><span className="mt-1 block text-xs text-muted-foreground">{labels.reportedAt}: {reportedAt} · {labels.expectedRecovery}: {expectedRecovery} · {labels.capacity}: {spell.absencePercentage === null ? labels.noValue : `${spell.absencePercentage}%`}</span></span>
@@ -120,7 +122,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
           </details>
         })}
       </div>
-    </section>
+    </Surface>
 
     <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch }} />
   </div>
