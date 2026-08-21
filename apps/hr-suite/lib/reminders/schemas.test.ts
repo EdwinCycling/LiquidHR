@@ -53,6 +53,22 @@ describe('hrReminderCreateSchema', () => {
     expect(hrReminderCreateSchema.safeParse({ ...base, targetType: 'EVERYONE', targetIds: ['verboden'] }).success).toBe(false)
   })
 
+  it('accepteert een bestaande LiquidHR employee-id', () => {
+    expect(hrReminderCreateSchema.safeParse({
+      ...base,
+      targetType: 'EMPLOYEES',
+      targetIds: ['0e0d45dd-3290-0b34-6c8e-e509fdbca4e5'],
+    }).success).toBe(true)
+  })
+
+  it('weigert een ongeldig doel-id', () => {
+    expect(hrReminderCreateSchema.safeParse({
+      ...base,
+      targetType: 'EMPLOYEES',
+      targetIds: ['geen-geldige-identifier'],
+    }).success).toBe(false)
+  })
+
   it('dedupliceert geldige doel-id’s', () => {
     const result = hrReminderCreateSchema.parse({
       ...base,

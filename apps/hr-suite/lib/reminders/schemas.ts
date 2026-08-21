@@ -15,7 +15,12 @@ export const personalReminderCreateSchema = z.object({
   ...reminderFields,
 }).strict()
 
-const targetIds = z.array(z.string().uuid()).min(1).max(200)
+const postgresUuidLexical = z.string().regex(
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  'INVALID_TARGET_ID',
+)
+
+const targetIds = z.array(postgresUuidLexical).min(1).max(200)
   .transform((values) => [...new Set(values)])
 
 export const hrReminderCreateSchema = z.discriminatedUnion('targetType', [
