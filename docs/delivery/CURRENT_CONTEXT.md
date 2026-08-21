@@ -26,9 +26,9 @@
 
 - Branch/worktree: `work/ux-v1-2-hr-mutation-surfaces` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-v1-2-hr-mutation-surfaces`, gestart vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`.
 - Geïmplementeerd: absence report gebruikt `FormDrawer` met desktop right-drawer/mobile fullscreen, vaste FormActions-footer, dirty protection, saving/error en bestaande employment/self-service payloads. Recovery en capacity blijven inline met Foundation loading/error.
-- Geïmplementeerd: employment contract-change wizard is full-page met sticky `FormActions`, bestaande stappen/payloads/timelinegedrag en dirty/beforeunload protection. Organization- en company-location-mutaties gebruiken `FormDrawer` voor add/edit.
-- Verificatie lokaal groen: targeted 23/23, volledige hr-suite 210 testbestanden/826 tests, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, lint exit 0 met 6 bestaande warnings buiten deze slice, productiebuild 225 routes en `git diff --check`.
-- Authenticated browseracceptance staat open: `/login` op eigen runtime `http://localhost:3012` gaf HTTP 200 zonder console-errors, maar er zijn geen fixture-password environment keys en geen bestaande browsertab/sessie beschikbaar. Geen mocks, secrets of remote writes gebruikt.
+- Geïmplementeerd: employment contract-change wizard is full-page met sticky `FormActions`, bestaande stappen/payloads/timelinegedrag en dirty/beforeunload protection. Organization- en company-location-mutaties gebruiken alleen bij `canWrite=true` een `FormDrawer`; read-only rows zijn statische articles en bestaande assignments blijven zichtbaar zonder actieve locaties.
+- Verificatie lokaal groen: gerichte regressie- en bestaande employmenttests 15/15, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, gerichte ESLint en `git diff --check`. De volledige suite/build zijn voor deze niet-cross-cutting correctie niet opnieuw uitgevoerd.
+- Authenticated browseracceptance staat open: de gekopieerde `apps/hr-suite/.env.local` bevat geen canonical fixture-password keys; `fixtures:talent-auth` stopt daarom vóór login. De targetserver kon niet op `http://localhost:3000` starten door `EADDRINUSE`; de bestaande listener kon niet betrouwbaar aan deze worktree worden toegeschreven. Anonieme checks: `/login` HTTP 200, `/dashboard/start` HTTP 307. Geen secrets gelogd of remote writes gebruikt.
 - Geen centrale Foundation-, API-, schema-, database-, RLS-, permission- of businesscontractwijziging. Niet gemerged of gepusht naar `main`.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21

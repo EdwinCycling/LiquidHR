@@ -44,6 +44,7 @@ export function OrganizationTimelineManager({ employmentId, placements, options,
   function discard(): void { close() }
 
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
+    if (!canWrite) return
     event.preventDefault(); setSaving(true); setError('')
     try {
       const response = await fetch(`/api/employments/${employmentId}/organization`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ placementId: mode === 'edit' ? selected?.id : null, effectiveOn, departmentId, jobId }) })
@@ -54,12 +55,12 @@ export function OrganizationTimelineManager({ employmentId, placements, options,
 
   return <Surface className="p-5">
     <div className="flex justify-end">{canWrite && options.departments.length > 0 ? <button type="button" className={buttonClasses()} onClick={add}>{labels.add}</button> : null}</div>
-    <div className="mt-4 divide-y divide-subtle border-y border-subtle">{placements.map((placement, index) => <button type="button" key={placement.id} onClick={() => openEdit(placement)} className="w-full cursor-pointer px-2 py-4 text-left transition-colors hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-medium text-muted-foreground">{index === 0 ? labels.current : labels.history}</p><p className="mt-1 font-semibold">{placement.departmentName}</p></div><Badge tone={index === 0 ? 'info' : 'neutral'}>{placement.effectiveTo ?? labels.active}</Badge></div><p className="mt-3 text-sm text-muted-foreground">{placement.jobName} · {placement.effectiveFrom}</p></button>)}</div>
-    <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.cancel} dirty={dirty} dirtyProtection={{ title: labels.discardTitle ?? labels.cancel, description: labels.discardDescription ?? labels.failed, discardLabel: labels.discardConfirm ?? labels.cancel, keepEditingLabel: labels.discardCancel ?? labels.cancel }} onDiscard={discard} onOpenChange={(nextOpen) => { if (!nextOpen) close() }} onSubmit={save} open={open} saveLabel={labels.save} saving={saving} title={mode === 'add' ? labels.add : labels.edit}>
+    <div className="mt-4 divide-y divide-subtle border-y border-subtle">{placements.map((placement, index) => { const content = <><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-medium text-muted-foreground">{index === 0 ? labels.current : labels.history}</p><p className="mt-1 font-semibold">{placement.departmentName}</p></div><Badge tone={index === 0 ? 'info' : 'neutral'}>{placement.effectiveTo ?? labels.active}</Badge></div><p className="mt-3 text-sm text-muted-foreground">{placement.jobName} · {placement.effectiveFrom}</p></>; return canWrite ? <button type="button" key={placement.id} onClick={() => openEdit(placement)} className="w-full cursor-pointer px-2 py-4 text-left transition-colors hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{content}</button> : <article className="px-2 py-4 text-left" key={placement.id}>{content}</article> })}</div>
+    {canWrite ? <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.cancel} dirty={dirty} dirtyProtection={{ title: labels.discardTitle ?? labels.cancel, description: labels.discardDescription ?? labels.failed, discardLabel: labels.discardConfirm ?? labels.cancel, keepEditingLabel: labels.discardCancel ?? labels.cancel }} onDiscard={discard} onOpenChange={(nextOpen) => { if (!nextOpen) close() }} onSubmit={save} open={open} saveLabel={labels.save} saving={saving} title={mode === 'add' ? labels.add : labels.edit}>
       <FormField label={labels.department} required control={<DropdownSelect required value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}><option disabled value="">{labels.department}</option>{options.departments.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect>} />
       <FormField label={labels.job} required control={<DropdownSelect required value={jobId} onChange={(event) => setJobId(event.target.value)}><option disabled value="">{labels.job}</option>{options.jobs.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</DropdownSelect>} />
       <FormField label={labels.effectiveOn} required control={<input type="date" required readOnly={mode === 'edit'} className="form-field" value={effectiveOn} onChange={(event) => setEffectiveOn(event.target.value)} />} />
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
-    </FormDrawer>
+    </FormDrawer> : null}
   </Surface>
 }
