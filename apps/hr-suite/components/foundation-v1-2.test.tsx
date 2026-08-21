@@ -115,6 +115,7 @@ describe('UX Foundation v1.2 interaction primitives', () => {
     act(() => { trigger.focus(); trigger.click() })
     const drawer = document.body.querySelector('[role="dialog"]') as HTMLElement
     expect(drawer).not.toBeNull()
+    expect(document.querySelector('[data-liquidhr-overlay-root] > div')?.className).toContain('!p-0')
     expect(drawer.className).toContain('h-dvh')
     act(() => drawer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })))
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()

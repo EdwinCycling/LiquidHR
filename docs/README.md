@@ -1,8 +1,8 @@
 # Liquid HR documentatie-index
 
-## UX Foundation v1.2 + Employee Reminders — lokale implementatie groen 2026-08-21
+## UX Foundation v1.2 + Employee Reminders — authenticated acceptance GREEN 2026-08-21
 
-De interaction- en collection-foundation v1.2 is lokaal geïmplementeerd in de bestaande branch `work/ux-foundation-v1-2-interaction-collections`. De centrale Dialog, Drawer, ActionMenu, Pagination, FormDrawer, FormActions, ConfirmDialog en collection patterns zijn toegevoegd; Employee Reminders gebruikt nu EntityList, FormDrawer, RowActions en ConfirmDialog met behoud van de bestaande API-, mode-, permission- en datumcontracten. Volledige hr-suite: 209 testbestanden/816 tests, strict TypeScript, i18n-pariteit, lint exit 0 met 6 bestaande warnings en Webpack-build met 225 routes. Authenticated desktop/390px Default- en LinkedHR-browseracceptance blijft open: deze worktree heeft geen Supabase-env en `/login` geeft daardoor 500 in bestaande middleware.
+De interaction- en collection-foundation v1.2 is lokaal geïmplementeerd in de bestaande branch `work/ux-foundation-v1-2-interaction-collections`. De centrale Dialog, Drawer, ActionMenu, Pagination, FormDrawer, FormActions, ConfirmDialog en collection patterns zijn toegevoegd; Employee Reminders gebruikt nu EntityList, FormDrawer, RowActions en ConfirmDialog met behoud van de bestaande API-, mode-, permission- en datumcontracten. Volledige hr-suite: 209 testbestanden/824 tests, strict TypeScript, i18n-pariteit, lint exit 0 met 6 bestaande warnings en build met 225 routes. TEST HR is authenticated getest op localhost:3000; de echte Reminder acceptance op 390×844 is GREEN met tijdelijke create/delete-cleanup, geen horizontale overflow en geen relevante console-errors. De minimale Drawer mobile padding-fix is afgedekt met een regressietest. Er zijn geen schema-, API-, database-, RLS-, permission- of deploymentwijzigingen.
 
 ## Foundation Controls v1.1 — lokaal groen 2026-08-20
 

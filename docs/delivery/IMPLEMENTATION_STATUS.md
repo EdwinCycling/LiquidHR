@@ -2,11 +2,11 @@
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 
-**Status: LOKAAL GEIMPLEMENTEERD; AUTHENTICATED BROWSERGATE GEBLOKKEERD DOOR ONTBREKENDE ENV/SESSIE**
+**Status: GREEN — AUTHENTICATED 390×844 ACCEPTANCE COMPLETE**
 
 Op `work/ux-foundation-v1-2-interaction-collections` zijn de v1.2 interaction- en collection-primitives/patterns toegevoegd en is Employee Reminders als enige productflow gemigreerd. De bestaande PERSONAL/HR-mode, `canManageHr`/`canAdd`/`canManageItem`, targetvelden, datumverschuivingen, `router.refresh()` en de POST/PATCH/DELETE/publish-API-contracten zijn behouden. Delete gebruikt nu ActionMenu → ConfirmDialog; Create/Edit gebruiken dezelfde FormDrawer met dirty-close protection en een vaste footer.
 
-Groen: gerichte v1.2/reminder-tests 11/11, volledige hr-suite 209 testbestanden/816 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint exit 0 met 6 bestaande warnings buiten deze slice, productiebuild met 225 routes en diff-check. De browsergate is uitgevoerd tot aan de lokale server: zonder `.env` geeft bestaande Supabase-middleware op `/login` 500. Er zijn geen secrets gekopieerd, geen database/Supabase-write, geen merge naar `main` en geen deployment uitgevoerd.
+Groen: gerichte v1.2/reminder- en Drawer-regressietests, volledige hr-suite 209 testbestanden/824 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint exit 0 met 6 bestaande warnings buiten deze slice, productiebuild met 225 routes en diff-check. TEST HR is authenticated gebruikt op localhost:3000. De echte Playwright Reminder acceptance op 390×844 voor DEMO-035 is GREEN; de mobiele Drawer vult exact de viewport, footer en intended body-scroll zijn bereikbaar, dirty-close/ConfirmDialog en ActionMenu/delete zijn bewezen, zonder horizontale overflow of relevante console-errors. De tijdelijke testreminder is verwijderd. De Drawer kreeg alleen de minimale mobile padding-fix met regressiedekking. Er zijn geen schema-, API-, RLS-, permission-, database- of deploymentwijzigingen uitgevoerd.
 
 ## Employee 360 final integration + Dashboard/Overview — 2026-08-21
 
