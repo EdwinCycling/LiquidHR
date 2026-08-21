@@ -10,9 +10,10 @@
 ## UX v1.2 correction batch 3 — Process Automation interactions — 2026-08-21
 
 - Branch/worktree: `work/ux-v1-2-process-automation-interactions` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-v1-2-process-automation-interactions`, gestart vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`.
-- `/settings/process-automation` create gebruikt nu een full-page driestapsflow met sticky `FormActions`, Back/Continue/Cancel, browser dirty protection en centrale discard-confirmatie. Publish en retire gebruiken de centrale `Dialog`; changelog en retire reason blijven verplichte input. Catalogus, studio, route, API, permissions en businesslogica zijn niet gewijzigd.
-- Lokale gates GREEN: process-automation tests 8 bestanden/46 tests, volledige hr-suite 210 bestanden/826 tests, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, targeted lint, volledige lint met alleen 6 bestaande warnings, productiebuild 225 routes en `git diff --check`.
-- Browseracceptance: `BLOCKED BY ENVIRONMENT`. Deze geïsoleerde worktree bevat geen `.env.local`; poort 3000 is bezet door een andere lokale server. Geen secrets gekopieerd en geen bewijs uit een andere worktree geclaimd. TEST HR create/edit/publish/retire, unauthorized negative, desktop/390x844 en consolecheck blijven open.
+- `/settings/process-automation` create gebruikt een full-page driestapsflow met sticky `FormActions`, Back/Continue/Cancel, browser dirty protection en centrale discard-confirmatie. Publish en retire gebruiken de centrale `Dialog`; tijdens pending verdwijnen de X en alle close-signalen, dubbele starts zijn geblokkeerd, en API-fouten blijven zichtbaar in de open Dialog met behoud van changelog/reason. Catalogus, studio, route, API, permissions en businesslogica zijn niet gewijzigd.
+- Lokale gates GREEN: pending-dialog regressietest 1/1, strict TypeScript en `git diff --check`. I18n is niet gewijzigd en daarom niet opnieuw gedraaid; volledige suite/build blijven cumulatief voor de integration branch.
+- Auth: de ignored `apps/hr-suite/.env.local` is lokaal gekopieerd vanuit de hoofdwerkplek; waarden zijn niet gelogd of gecommit.
+- Browseracceptance: `BLOCKED BY ENVIRONMENT`. De bestaande poort-3000-server is niet aantoonbaar deze worktree en de gekopieerde `.env.local` bevat geen fixture-logincredentials. Loginpagina gaf 0 console-errors en alleen de bekende Next dev/HMR/preload-waarschuwing; TEST HR/TENANT_ADMIN create/read/publish/retire, unauthorized negative, desktop/390x844 en echte API-cleanup blijven open.
 - Open: branch commit en push; niet naar `main` mergen. Bestaande parallelle dirty wijziging in de hoofdwerkplek (`apps/hr-suite/next-env.d.ts`) blijft buiten scope.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
