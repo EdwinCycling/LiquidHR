@@ -244,7 +244,7 @@ export function EmployeePersonCard({ detail, initialEdit = false, locale, dateFo
   }
 
   return (
-    <Surface className="mt-6 overflow-hidden">
+    <Surface className="mt-6">
       <nav className="border-b border-subtle px-2 sm:px-4" aria-label={labels.personalTitle}>
         <ScrollableTabs ariaLabel={labels.personalTitle} leftLabel={labels.previous} rightLabel={labels.next} contentClassName="gap-4 sm:gap-6" contentProps={{ role: 'tablist' }}>
           {tabs.map((item, index) => (

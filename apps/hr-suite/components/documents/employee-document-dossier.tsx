@@ -322,6 +322,7 @@ export function EmployeeDocumentDossier({
     }
 
     setSelectedFile(fileList[0])
+    setDirty(true)
     setErrorCode(null)
   }
 
@@ -343,7 +344,7 @@ export function EmployeeDocumentDossier({
         <div className="mt-6 rounded-[var(--radius-surface)] border border-subtle bg-surface-subtle p-4">
           <h3 className="inline-flex items-center gap-2 text-sm font-semibold"><Upload className="h-4 w-4" />{labels.upload}</h3>
 
-          <form className="mt-4 space-y-5" onInput={() => setDirty(true)} onSubmit={(event) => void upload(event)} ref={formRef}>
+          <form className="mt-4 space-y-5" onChange={() => setDirty(true)} onInput={() => setDirty(true)} onSubmit={(event) => void upload(event)} ref={formRef}>
             <div className="rounded-[var(--radius-surface)] border border-subtle bg-surface p-4">
               <p className="text-sm font-semibold">{labels.requiredFields}</p>
 
@@ -386,7 +387,7 @@ export function EmployeeDocumentDossier({
                       {selectedFile ? labels.fileReplace : labels.file}
                     </Button>
                     {selectedFile ? (
-                      <Button onClick={() => setSelectedFile(null)} type="button" variant="ghost">
+                      <Button onClick={() => { setDirty(true); setSelectedFile(null) }} type="button" variant="ghost">
                         {labels.fileRemove}
                       </Button>
                     ) : null}
