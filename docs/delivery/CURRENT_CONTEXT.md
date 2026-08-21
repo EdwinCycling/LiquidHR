@@ -2009,3 +2009,8 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 - Geïmplementeerd: volledige personal-tab met vijf subtabs. Foundation `Surface`, `SectionHeader`, `InfoList`, `Badge`, `Button`, `TextInput` en `EmptyState` zijn aangesloten; bestaande data-, mutation-, permission-, RLS-, API- en auditcontracten zijn behouden.
 - Gerichte componentcontracttest, volledige testsuite, strict typecheck, i18n en Webpack-production build zijn groen. Lint blijft geblokkeerd door de bestaande ESLint 10/plugin-incompatibiliteit; authenticated browsercontrole desktop/390px in LiquidHR/LinkedHR staat open omdat poort 3000 door een niet-identificeerbare bestaande server bezet is.
 - Geen remote Supabase-write, migration, release, deployment, merge of main-push uitgevoerd.
+
+## Hotfix 2026-08-21: startpagina compact toont weer datavensters
+
+- De compacte `/dashboard/start`-weergave hield na de eerdere redesign alleen de begroeting over. De bestaande datavensters worden nu ook in compact gerenderd; vensterdragging en volgordeacties blijven daar verborgen. Uitgebreid behoudt de bestaande vensteracties.
+- Geen schema-, API-, RLS-, permissie- of dataladingswijziging. Definitieve verificatie: 2 gerichte start-page regressietests, strict typecheck, productiebuild, `git diff --check` en authenticated Test HR-browsercontrole op localhost:3000. Compacte widgets, verborgen drag/reorder en refresh zijn groen; uitgebreide widgets, drag/reorder en refresh zijn groen; 0 relevante console-errors. De voorgeschreven `docs/delivery/TEST_ACCEPTANCE_MATRIX.md` ontbreekt in deze checkout.

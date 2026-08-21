@@ -18,8 +18,8 @@
 ## Nieuw ontwerp
 
 - Uitgebreid behoudt de hogere header, de bestaande informatie en alle venster-/drag-and-dropfuncties.
-- Compact toont een korte header met een éénregelige begroeting, hetzelfde éénknops wisselpatroon en horizontale tegels voor beschikbare volgende verlof-, feestdag- en bedrijfsactiviteitsinformatie.
-- Compact rendert geen dashboardvensters en dus ook geen drag-and-dropbediening of extra witruimte.
+- Compact toont een korte header met een éénregelige begroeting, hetzelfde éénknops wisselpatroon en horizontale tegels voor beschikbare volgende verlof-, feestdag- en bedrijfsactiviteitsinformatie. De bestaande datavensters blijven onder deze header zichtbaar.
+- Compact rendert de datavensters zonder drag-and-dropbediening, pijltjes of extra lege dashboardruimte.
 - De keuze wordt opgeslagen via de bestaande `/api/preferences/start-page`-route en blijft per gebruiker behouden.
 
 ## Niet-functionele eisen
@@ -32,16 +32,16 @@
 ## Acceptatiecriteria
 
 - Compact toont de begroeting op één regel en tegels na elkaar wanneer er kalenderinformatie beschikbaar is.
-- Compact toont geen vensterdragging, pijltjes of grote lege dashboardruimte.
+- Compact toont de bestaande datavensters zonder vensterdragging, pijltjes of grote lege dashboardruimte.
 - Uitgebreid toont de bestaande hogere header met drag-and-drop en vensteracties.
 - Wisselen tussen beide modi werkt en gebruikt de bestaande opgeslagen gebruikersvoorkeur.
 - De Journey-only fallback en bestaande data-/permissiegrenzen blijven intact.
 
 ## Verificatie en overdracht
 
-- Uitgevoerd: gerichte code-inspectie en implementatie in een aparte worktree.
-- Browsercontrole: nog uit te voeren in een runtime met de benodigde authenticated sessie.
+- Uitgevoerd: gerichte code-inspectie en compact-herstel in de actieve worktree.
+- Browsercontrole: authenticated runtimecontrole op een passende lokale server uitgevoerd; poort 3000 bleef een stale server uit een andere worktree tonen.
 - Bekende bestaande waarschuwingen: repositorybrede ESLint 10/`eslint-plugin-react`-compatibiliteit kan buiten deze slice blijven bestaan.
-- Openstaande punten: gerichte typecheck, i18n-check, lint en desktop/390px-browsercontrole.
-- Status: GEIMPLEMENTEERD
-- Datum: 2026-08-16
+- Openstaande punten: i18n-check, lint en desktop/390px-browsercontrole op poort 3000 met de juiste worktree.
+- Status: GEIMPLEMENTEERD — compact datavensters hersteld
+- Datum: 2026-08-21
