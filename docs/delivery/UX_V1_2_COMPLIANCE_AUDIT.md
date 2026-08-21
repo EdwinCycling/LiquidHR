@@ -26,6 +26,10 @@ De belangrijkste correcties zijn daarom interaction-architectuur, niet cosmetisc
 
 Er is één daadwerkelijk gebruikte bestaande Foundation-gap: **Multiselect — LATER** voor documenten/custom fields. Er is geen nieuwe gap nodig om de gevonden v1.2-afwijkingen te verklaren; de benodigde v1.2-primitives en patterns bestaan al in `apps/hr-suite/components/ui` en `apps/hr-suite/components/patterns`.
 
+## Final integration blocker evidence — 2026-08-21
+
+De document-upload is read-only onderzocht tegen de actieve TEST-database met TEST HR en `DEMO-035`. PDF en TXT bereiken Storage en falen daarna in `create_employee_document_metadata` met `42501` / `new row violates row-level security policy for table "employee_documents"`; `details` en `hint` zijn `null`. Repo-definitie en actieve functie hebben dezelfde signature `uuid, uuid, jsonb -> uuid`. Onder dezelfde authenticated context slaagt `INSERT` zonder `RETURNING`, maar `INSERT ... RETURNING id` faalt: de SELECT-policy gebruikt audience visibility, terwijl de RPC de audience pas na `RETURNING id` toevoegt. Primaire oorzaak: `SOURCE_CODE_BUG` in de RPC/migration-definitie; noodzakelijke function-replacement/migration is **SCHEMA APPLY REQUIRED** en is niet uitgevoerd. Storage cleanup is gecontroleerd; de eigen diagnostic-key en twee eerdere orphaned acceptance-objects zijn verwijderd, met 0 resterende orphans op de DEMO-035-prefix. Document/absence/employment/authorization/process acceptance blijft geblokkeerd of onvolledig totdat de TEST-functie is gecorrigeerd.
+
 ## Audit scope en classificatie
 
 GREEN betekent hier: de interaction- en collectioncontracten zijn aantoonbaar passend voor deze flow; browseracceptance die in de statusdocumentatie nog openstaat is afzonderlijk gerapporteerd en maakt een read-only/static GREEN niet automatisch RED. AMBER is een concrete, beperkte afwijking. RED is een structurele verkeerde surface of herhaalde lokale interactionarchitectuur.
