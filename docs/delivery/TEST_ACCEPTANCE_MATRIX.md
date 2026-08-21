@@ -25,6 +25,20 @@ Bepaal voor iedere feature eerst de capability/permission, daarna de persona die
 
 Voor Reminders bezit TENANT_ADMIN `reminder:read` en `reminder:write` en is dit de positieve HR-CRUD-persona. DIRECT_MANAGER bezit momenteel deze permissions niet en mag geen HR Reminder CRUD verwachten; dat is een authorization-negative scenario. EMPLOYEE wordt uitsluitend volgens aanwezige self-permissions en het featurecontract getest.
 
+## Test authentication
+
+Canonical passwords komen uitsluitend uit de lokale testomgeving. Gebruik alleen deze env-key-namen:
+
+- `TALENT_HR_ADMIN_PASSWORD`
+- `TALENT_MANAGER_PASSWORD`
+- `TALENT_EMPLOYEE_PASSWORD`
+
+Als fixture-login nodig is, is `npm run fixtures:talent-auth` de standaard preflight. Het script laadt `apps/hr-suite/.env.local` expliciet. Passwords, access tokens, refresh tokens en andere secrets worden nooit gelogd, in source gezet of gecommit.
+
+Voor Playwright mag tijdelijk lokaal een authenticated `storageState`/session worden gemaakt, uitsluitend in een ignored/temp-locatie. StorageState en cookies worden nooit gecommit. Iedere persona krijgt een eigen session; hergebruik geen HR-session voor Manager- of Employee-authorizationtests.
+
+AGENT ACCEPTANCE MOET NIET STOPPEN OP “GEEN SESSIE” ZOLANG DE CANONICAL TEST AUTH VIA DE GOEDGEKEURDE LOKALE TEST-ENV BESCHIKBAAR IS.
+
 ## Lokale runtime
 
 Voor echte browseracceptance: gebruik exact de actieve worktree, controleer `git rev-parse HEAD` en `git status --short`, zorg dat `apps/hr-suite/.env.local` aanwezig is zonder die te committen, start vanuit deze worktree met `npm run dev`, en gebruik `http://localhost:3000`. Controleer dat poort 3000 niet een andere worktree serveert. Gebruik bij auth-problemen een fresh Testrol-session.
