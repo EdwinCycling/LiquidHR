@@ -13,7 +13,7 @@ import { EmployeeNotes } from './employee-notes'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 const labels = {
-  title: 'Notities', accessNotice: 'Alleen HR Admin en Manager kunnen deze notities bekijken en bewerken.', empty: 'Nog geen notities voor deze medewerker.', add: 'Notitie toevoegen', edit: 'Wijzigen', remove: 'Verwijderen', noteTitle: 'Titel', description: 'Omschrijving', author: 'Door', createdAt: 'Datum en tijd', save: 'Notitie opslaan', cancel: 'Annuleren', saving: 'Opslaan…', failed: 'Mislukt', saved: 'Notitie opgeslagen.', confirmDelete: 'Weet je het zeker?',
+  title: 'Notities', accessNotice: 'Alleen HR Admin en Manager kunnen deze notities bekijken en bewerken.', empty: 'Nog geen notities voor deze medewerker.', add: 'Notitie toevoegen', edit: 'Wijzigen', remove: 'Verwijderen', noteTitle: 'Titel', description: 'Omschrijving', author: 'Door', createdAt: 'Datum en tijd', save: 'Notitie opslaan', cancel: 'Annuleren', close: 'Sluiten', moreActions: 'Meer acties', saving: 'Opslaan…', failed: 'Mislukt', saved: 'Notitie opgeslagen.', discardTitle: 'Wijzigingen negeren?', discardDescription: 'Je hebt wijzigingen aangebracht.', discardConfirm: 'Wijzigingen negeren', discardCancel: 'Terug naar formulier', deleteTitle: 'Notitie verwijderen?', deleteDescription: 'Deze notitie wordt verwijderd.', deleteConfirm: 'Verwijderen', deleteCancel: 'Annuleren',
 }
 
 const note = {
@@ -39,7 +39,7 @@ describe('Employee notes Foundation contract', () => {
     expect(markup).toContain('Door: Ada Lovelace')
     expect(markup).toContain('Datum en tijd:')
     expect(markup).toContain('Wijzigen')
-    expect(markup).toContain('Verwijderen')
+    expect(markup).toContain('Meer acties')
   })
 
   it('uses FormField with Foundation inputs for creating a note', () => {
@@ -50,9 +50,10 @@ describe('Employee notes Foundation contract', () => {
 
     act(() => (host.querySelector('button') as HTMLButtonElement).click())
 
-    expect(host.querySelector('label[for]')).not.toBeNull()
-    expect(host.querySelector('input[name="title"]')).not.toBeNull()
-    expect(host.querySelector('textarea[name="description"]')).not.toBeNull()
+    expect(document.body.querySelector('label[for]')).not.toBeNull()
+    expect(document.body.querySelector('input[name="title"]')).not.toBeNull()
+    expect(document.body.querySelector('textarea[name="description"]')).not.toBeNull()
+    document.body.querySelector('[data-liquidhr-overlay-root]')?.remove()
     root.unmount()
     host.remove()
   })

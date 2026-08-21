@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Eye, FileText, RotateCcw, ShieldAlert, Trash2, Upload } from 'lucide-react'
+import { Eye, FileText, ShieldAlert, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type DragEvent, type FormEvent, useRef, useState } from 'react'
 import type { Json } from '@scope/db'
@@ -10,16 +10,20 @@ import {
   MAX_DOCUMENT_FILE_BYTES,
 } from '@/lib/documents/file-rules'
 import { documentMetadataSchema } from '@/lib/documents/schemas'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { FormField } from '@/components/patterns/form-field'
+import { FormActions } from '@/components/patterns/form-actions'
+import { RowActions } from '@/components/patterns/row-actions'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Badge } from '@/components/ui/badge'
-import { Button, buttonClasses } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog } from '@/components/ui/dialog'
 import { DocumentViewer } from './document-viewer'
 
 interface DocumentAudience {
@@ -115,6 +119,21 @@ interface Labels {
   viewerUnsupported: string
   customMetadata: string
   automaticValue: string
+  cancel: string
+  close: string
+  moreActions: string
+  discardTitle: string
+  discardDescription: string
+  discardConfirm: string
+  discardCancel: string
+  deleteTitle: string
+  deleteDescription: string
+  deleteConfirm: string
+  deleteCancel: string
+  restoreTitle: string
+  restoreDescription: string
+  restoreConfirm: string
+  restoreCancel: string
 }
 
 export function EmployeeDocumentDossier({
@@ -134,7 +153,9 @@ export function EmployeeDocumentDossier({
 }) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const formRef = useRef<HTMLFormElement | null>(null)
   const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -148,9 +169,14 @@ export function EmployeeDocumentDossier({
   const [reminderRoleIds, setReminderRoleIds] = useState<string[]>([])
   const [selectedCloudTagIds, setSelectedCloudTagIds] = useState<string[]>([])
   const [previewDocument, setPreviewDocument] = useState<DocumentItem | null>(null)
+  const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null)
+  const [restoreCandidate, setRestoreCandidate] = useState<string | null>(null)
+  const [mutating, setMutating] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (saving) return
     if (!options || !selectedFile) {
       setErrorCode('DOCUMENT_INPUT_INVALID')
       return
@@ -222,24 +248,36 @@ export function EmployeeDocumentDossier({
 
     event.currentTarget.reset()
     resetFormState(options.roles)
+    setDirty(false)
     router.refresh()
   }
 
-  async function mutate(documentId: string, restore: boolean) {
+  async function mutate(documentId: string, restore: boolean, reason?: string): Promise<void> {
+    if (mutating) return
+    setMutating(true)
     setErrorCode(null)
-    const response = await fetch(`/api/employees/${employeeId}/documents/${documentId}`, {
-      method: restore ? 'PATCH' : 'DELETE',
-      headers: restore ? undefined : { 'content-type': 'application/json' },
-      body: restore ? undefined : JSON.stringify({ reason: deleteReason }),
-    })
+    try {
+      const response = await fetch(`/api/employees/${employeeId}/documents/${documentId}`, {
+        method: restore ? 'PATCH' : 'DELETE',
+        headers: restore ? undefined : { 'content-type': 'application/json' },
+        body: restore ? undefined : JSON.stringify({ reason }),
+      })
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null)
-      setErrorCode(typeof payload?.code === 'string' ? payload.code : 'DOCUMENT_ACTION_FAILED')
-      return
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null)
+        setErrorCode(typeof payload?.code === 'string' ? payload.code : 'DOCUMENT_ACTION_FAILED')
+        return
+      }
+
+      setDeleteCandidate(null)
+      setRestoreCandidate(null)
+      setDeleteReason('')
+      router.refresh()
+    } catch {
+      setErrorCode('DOCUMENT_ACTION_FAILED')
+    } finally {
+      setMutating(false)
     }
-
-    router.refresh()
   }
 
   function resetFormState(roleOptions: Option[]) {
@@ -254,6 +292,18 @@ export function EmployeeDocumentDossier({
     setReminderRoleIds([])
     setSelectedCloudTagIds([])
     setErrorCode(null)
+  }
+
+  function requestReset(): void {
+    if (saving) return
+    if (dirty) { setDiscardOpen(true); return }
+    resetUploadForm()
+  }
+
+  function resetUploadForm(): void {
+    formRef.current?.reset()
+    resetFormState(options?.roles ?? [])
+    setDirty(false)
   }
 
   function openFilePicker() {
@@ -290,15 +340,10 @@ export function EmployeeDocumentDossier({
       <SectionHeader description={labels.subtitle} title={labels.title} />
 
       {canWrite && options ? (
-        <details className="mt-6 rounded-[var(--radius-surface)] border border-subtle bg-surface-subtle p-4" open>
-          <summary className="cursor-pointer list-none text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-            <span className="inline-flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              {labels.upload}
-            </span>
-          </summary>
+        <div className="mt-6 rounded-[var(--radius-surface)] border border-subtle bg-surface-subtle p-4">
+          <h3 className="inline-flex items-center gap-2 text-sm font-semibold"><Upload className="h-4 w-4" />{labels.upload}</h3>
 
-          <form className="mt-4 space-y-5" onSubmit={(event) => void upload(event)}>
+          <form className="mt-4 space-y-5" onInput={() => setDirty(true)} onSubmit={(event) => void upload(event)} ref={formRef}>
             <div className="rounded-[var(--radius-surface)] border border-subtle bg-surface p-4">
               <p className="text-sm font-semibold">{labels.requiredFields}</p>
 
@@ -455,15 +500,9 @@ export function EmployeeDocumentDossier({
               </div>
             </details>
 
-            <Button loading={saving} type="submit">
-              {saving ? labels.saving : labels.save}
-            </Button>
+            <FormActions cancelLabel={labels.cancel} onCancel={requestReset} saveLabel={labels.save} saving={saving} sticky />
           </form>
-        </details>
-      ) : null}
-
-      {canDelete ? (
-        <FormField className="mt-6 max-w-xl" control={<TextInput onChange={(event) => setDeleteReason(event.target.value)} value={deleteReason} />} label={labels.deleteReason} />
+        </div>
       ) : null}
 
       {errorCode ? <p className="mt-4 text-sm text-destructive" role="alert">{messageForCode(errorCode, labels)}</p> : null}
@@ -525,34 +564,16 @@ export function EmployeeDocumentDossier({
                   </p>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {!document.deleted_at ? (
-                    <Button onClick={() => setPreviewDocument(document)} type="button" variant="secondary">
-                      <Eye className="h-4 w-4" />
-                      {labels.view}
-                    </Button>
-                  ) : null}
-
-                  {!document.deleted_at ? (
-                    <a className={buttonClasses({ variant: 'secondary' })} href={`/api/employees/${employeeId}/documents/${document.id}/download`}>
-                      <Download className="h-4 w-4" />
-                      {labels.download}
-                    </a>
-                  ) : null}
-
-                  {canDelete ? (
-                    !document.deleted_at ? (
-                      <Button disabled={!deleteReason.trim()} onClick={() => void mutate(document.id, false)} type="button" variant="danger">
-                        <Trash2 className="h-4 w-4" />
-                        {labels.delete}
-                      </Button>
-                    ) : (
-                      <Button onClick={() => void mutate(document.id, true)} type="button" variant="secondary">
-                        <RotateCcw className="h-4 w-4" />
-                        {labels.restore}
-                      </Button>
-                    )
-                  ) : null}
+                <div className="mt-4">
+                  <RowActions
+                    menuItems={[
+                      ...(!document.deleted_at ? [{ href: `/api/employees/${employeeId}/documents/${document.id}/download`, id: 'download', label: labels.download }] : []),
+                      ...(canDelete && !document.deleted_at ? [{ destructive: true, id: 'delete', label: labels.delete, onSelect: () => { setDeleteReason(''); setDeleteCandidate(document.id) } }] : []),
+                      ...(canDelete && document.deleted_at ? [{ id: 'restore', label: labels.restore, onSelect: () => setRestoreCandidate(document.id) }] : []),
+                    ]}
+                    menuLabel={labels.moreActions}
+                    primaryAction={!document.deleted_at ? <Button onClick={() => setPreviewDocument(document)} size="sm" type="button" variant="secondary"><Eye className="h-4 w-4" />{labels.view}</Button> : undefined}
+                  />
                 </div>
               </article>
             )
@@ -560,6 +581,11 @@ export function EmployeeDocumentDossier({
         )}
       </div>
 
+      <Dialog closeLabel={labels.close} description={labels.deleteDescription} footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={mutating} onClick={() => setDeleteCandidate(null)} type="button" variant="secondary">{labels.deleteCancel}</Button><Button disabled={mutating || !deleteReason.trim()} loading={mutating} onClick={() => { if (deleteCandidate) void mutate(deleteCandidate, false, deleteReason) }} type="button" variant="danger">{labels.deleteConfirm}</Button></div>} onOpenChange={(open) => { if (!open && !mutating) setDeleteCandidate(null) }} open={deleteCandidate !== null} title={labels.deleteTitle}>
+        <FormField control={<TextInput autoFocus onChange={(event) => setDeleteReason(event.target.value)} required value={deleteReason} />} label={labels.deleteReason} required />
+      </Dialog>
+      <ConfirmDialog cancelLabel={labels.restoreCancel} confirmLabel={labels.restoreConfirm} description={labels.restoreDescription} onConfirm={() => restoreCandidate ? mutate(restoreCandidate, true) : Promise.resolve()} onOpenChange={(open) => { if (!open && !mutating) setRestoreCandidate(null) }} open={restoreCandidate !== null} pending={mutating} title={labels.restoreTitle} />
+      <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.discardConfirm} description={labels.discardDescription} destructive onConfirm={() => { setDiscardOpen(false); resetUploadForm() }} onOpenChange={setDiscardOpen} open={discardOpen} title={labels.discardTitle} />
       {previewDocument ? <DocumentViewer contentType={previewDocument.content_type} filename={previewDocument.original_filename} labels={{ close: labels.viewerClose, download: labels.download, unsupported: labels.viewerUnsupported }} onClose={() => setPreviewDocument(null)} previewHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/download`} title={previewDocument.title} /> : null}
     </Surface>
   )

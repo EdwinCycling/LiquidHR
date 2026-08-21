@@ -68,5 +68,19 @@
   "deleted": "Deleted",
   "expires": "Expires",
   "reminderActive": "Expiry reminder active",
-  "addedOn": "Added on"
+  "addedOn": "Added on",
+  "cancel": "Cancel",
+  "moreActions": "More actions",
+  "discardTitle": "Discard changes?",
+  "discardDescription": "You have made changes. Continuing will discard them.",
+  "discardConfirm": "Discard changes",
+  "discardCancel": "Return to form",
+  "deleteTitle": "Delete document?",
+  "deleteDescription": "Enter a reason. This reason is retained with the deleted document.",
+  "deleteConfirm": "Delete document",
+  "deleteCancel": "Cancel",
+  "restoreTitle": "Restore document?",
+  "restoreDescription": "The document will become active in the dossier again.",
+  "restoreConfirm": "Restore",
+  "restoreCancel": "Cancel"
 }

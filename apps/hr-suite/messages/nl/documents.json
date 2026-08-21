@@ -68,5 +68,19 @@
   "deleted": "Verwijderd",
   "expires": "Vervalt",
   "reminderActive": "Vervalreminder actief",
-  "addedOn": "Toegevoegd op"
+  "addedOn": "Toegevoegd op",
+  "cancel": "Annuleren",
+  "moreActions": "Meer acties",
+  "discardTitle": "Wijzigingen negeren?",
+  "discardDescription": "Je hebt wijzigingen aangebracht. Als je doorgaat, gaan ze verloren.",
+  "discardConfirm": "Wijzigingen negeren",
+  "discardCancel": "Terug naar formulier",
+  "deleteTitle": "Document verwijderen?",
+  "deleteDescription": "Geef een reden op. Deze reden wordt bewaard bij het verwijderde document.",
+  "deleteConfirm": "Document verwijderen",
+  "deleteCancel": "Annuleren",
+  "restoreTitle": "Document herstellen?",
+  "restoreDescription": "Het document wordt weer actief in het dossier.",
+  "restoreConfirm": "Herstellen",
+  "restoreCancel": "Annuleren"
 }

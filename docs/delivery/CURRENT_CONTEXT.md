@@ -15,6 +15,13 @@
 - Auth: de ignored `apps/hr-suite/.env.local` is lokaal gekopieerd vanuit de hoofdwerkplek; waarden zijn niet gelogd of gecommit.
 - Browseracceptance: `BLOCKED BY ENVIRONMENT`. De bestaande poort-3000-server is niet aantoonbaar deze worktree en de gekopieerde `.env.local` bevat geen fixture-logincredentials. Loginpagina gaf 0 console-errors en alleen de bekende Next dev/HMR/preload-waarschuwing; TEST HR/TENANT_ADMIN create/read/publish/retire, unauthorized negative, desktop/390x844 en echte API-cleanup blijven open.
 - Open: branch commit en push; niet naar `main` mergen. Bestaande parallelle dirty wijziging in de hoofdwerkplek (`apps/hr-suite/next-env.d.ts`) blijft buiten scope.
+## UX v1.2 correction batch 1 — Employee CRUD surfaces — 2026-08-21
+
+- Eigen branch/worktree: `work/ux-v1-2-employee-crud-surfaces` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-v1-2-employee-crud-surfaces`, gestart vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`.
+- Geïmplementeerd: Personal addresses/bank accounts/relations via FormDrawer met RowActions en ConfirmDialog-delete; Personal full-page form met sticky FormActions en dirty protection; Notes via EntityList/FormDrawer/RowActions; Documents als in-page complex upload-form met FormActions, ActionMenu en verplicht delete-reason-contract; Avatar remove via ConfirmDialog. API-, database-, RLS-, permission- en businesscontracten zijn behouden; Foundation-mappen zijn niet gewijzigd.
+- Verificatie groen: gerichte tests 4/4; volledige hr-suite 210 testbestanden/826 tests; strict TypeScript; i18n 33 gelijke namespaces; lint exit 0 met 8 warnings; Webpack-production build 225 routes; `git diff --check`.
+- Browserstatus: exacte worktree-server draait op poort 3456; `/login` HTTP 200 en 0 console-errors (twee preload-warnings). Authenticated DEMO-035 CRUD, negative persona, desktop employee-detail en 390×844 employee-detail zijn nog geblokkeerd omdat deze worktree geen fixture-passwords bevat; de standaard remote fixture-auth reset vereist expliciete toestemming.
+- Open: authenticated browseracceptance en real CRUD HTTP-statussen moeten nog worden uitgevoerd zodra TEST-fixture-auth beschikbaar is. Niet naar `main` mergen.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 

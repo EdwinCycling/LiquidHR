@@ -1,8 +1,8 @@
 'use client'
 
-import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, MapPin, Pencil, Phone, Search, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, CreditCard, Eye, HeartHandshake, Home, LoaderCircle, Mail, MapPin, Pencil, Phone, Plus, Search, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { type FormEvent, type KeyboardEvent, type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
 import { EmployeeCustomFields } from '@/components/custom-fields/employee-custom-fields'
 import type { EmployeeCustomField } from '@/lib/custom-fields/service'
@@ -18,6 +18,10 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { InfoList } from '@/components/patterns/info-list'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { FormActions } from '@/components/patterns/form-actions'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { RowActions } from '@/components/patterns/row-actions'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { ScrollableTabs, tabLinkClasses } from '@/components/patterns/scrollable-tabs'
 
@@ -51,6 +55,12 @@ export interface EmployeePersonCardLabels {
   saved: string
   cancel: string
   genericError: string
+  close: string
+  moreActions: string
+  discardTitle: string
+  discardDescription: string
+  discardConfirm: string
+  discardCancel: string
   employeeNumber: string
   firstName: string
   birthNamePrefix: string
@@ -192,8 +202,10 @@ async function runJsonMutation(
   url: string,
   method: 'POST' | 'PATCH' | 'DELETE',
   body?: unknown,
+  onStateChange?: (state: MutationState) => void,
 ): Promise<boolean> {
-  setState('saving')
+  const updateState = (nextState: MutationState) => { setState(nextState); onStateChange?.(nextState) }
+  updateState('saving')
   let outcome: MutationState = 'failed'
   try {
     const response = await fetch(url, {
@@ -206,7 +218,7 @@ async function runJsonMutation(
   } catch {
     return false
   } finally {
-    setState(outcome)
+    updateState(outcome)
   }
 }
 
@@ -268,9 +280,12 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
   const router = useRouter()
   const [editing, setEditing] = useState(initialEdit && capabilities.canEditEmployee && Boolean(employee.updatedAt))
   const [state, setState] = useState<MutationState>('idle')
+  const [dirty, setDirty] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
 
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+    if (state === 'saving') return
     if (!employee.updatedAt) return
     const form = new FormData(event.currentTarget)
     const succeeded = await runJsonMutation(setState, `/api/employees/${employee.id}`, 'PATCH', {
@@ -283,12 +298,25 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
       workPhoneExt: nullable(value(form, 'workPhoneExt')), workMobile: nullable(value(form, 'workMobile')),
     })
     if (!succeeded) return
-    setEditing(false); router.refresh()
+    setDirty(false); setEditing(false); router.refresh()
+  }
+
+  function requestCancel(): void {
+    if (state === 'saving') return
+    if (dirty) { setDiscardOpen(true); return }
+    setEditing(false)
+  }
+
+  function discardChanges(): void {
+    setDiscardOpen(false)
+    setDirty(false)
+    setEditing(false)
   }
 
   if (editing) {
     return (
-      <form onSubmit={save}>
+      <>
+      <form onInput={() => setDirty(true)} onSubmit={(event) => void save(event)}>
         <SectionHeader title={labels.personalTitle} />
         <div className="mt-6 divide-y divide-border-subtle">
           <FormSection title={labels.personalTitle}>
@@ -318,19 +346,18 @@ function PersonalPanel({ employee, initialEdit, capabilities, labels, roleAssign
             <Field label={labels.workMobile}><TextInput name="workMobile" type="tel" defaultValue={employee.workMobile ?? ''} /></Field>
           </FormSection>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border-subtle pt-5">
-          <Button type="submit" loading={state === 'saving'}>{state === 'saving' ? labels.saving : labels.save}</Button>
-          <Button type="button" onClick={() => setEditing(false)} variant="secondary">{labels.cancel}</Button>
-          {state === 'failed' && <InlineState kind="failed">{labels.genericError}</InlineState>}
-        </div>
+        {state === 'failed' && <div className="mt-6"><InlineState kind="failed">{labels.genericError}</InlineState></div>}
+        <FormActions cancelLabel={labels.cancel} leading={state === 'saved' ? <InlineState kind="saved">{labels.saved}</InlineState> : undefined} onCancel={requestCancel} saveLabel={labels.save} saving={state === 'saving'} sticky />
       </form>
+      <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.discardConfirm} description={labels.discardDescription} destructive onConfirm={discardChanges} onOpenChange={setDiscardOpen} open={discardOpen} title={labels.discardTitle} />
+      </>
     )
   }
 
   return (
     <div>
       {roleAssignments.length > 0 && <section className="mb-8 border-b border-border-subtle pb-6"><SectionHeader title={labels.rolesTitle} /><div className="mt-4 grid gap-x-6 gap-y-1 md:grid-cols-2">{roleAssignments.map((assignment) => <div className="border-b border-border-subtle py-3" key={assignment.id}><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{assignment.roleName}</p><p className="text-xs text-muted-foreground">{assignment.roleCode}</p></div><Badge tone="info">{assignment.departmentName ?? labels.roleTenantWide}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{labels.roleDepartment}: {assignment.departmentName ?? labels.roleTenantWide}</p><p className="mt-1 text-xs text-muted-foreground">{labels.roleValidFrom}: {formatDate(assignment.effectiveFrom, { locale, dateFormat })}{assignment.effectiveTo ? ` · ${labels.roleValidUntil}: ${formatDate(assignment.effectiveTo, { locale, dateFormat })}` : ''}</p></div>)}</div></section>}
-      <SectionHeader title={labels.personalTitle} actions={capabilities.canEditEmployee && employee.updatedAt ? <Button type="button" variant="secondary" onClick={() => setEditing(true)}><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editPersonal}</Button> : undefined} />
+      <SectionHeader title={labels.personalTitle} actions={capabilities.canEditEmployee && employee.updatedAt ? <Button type="button" variant="secondary" onClick={() => { setState('idle'); setDirty(false); setEditing(true) }}><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editPersonal}</Button> : undefined} />
       <div className="mt-6 space-y-8">
         <PersonalInfoSection title={labels.overviewTitle} items={[{ label: labels.employeeNumber, value: employee.employeeNumber }, { label: labels.firstName, value: employee.firstName }, { label: labels.birthNamePrefix, value: employee.birthNamePrefix }, { label: labels.birthName, value: employee.birthName }, { label: labels.nameUsage, value: employee.nameUsage ? nameUsageLabel(employee.nameUsage, labels) : null }, { label: labels.gender, value: employee.gender ? genderLabel(employee.gender, labels) : null }]} />
         <PersonalInfoSection title={labels.birthDate} items={[{ label: labels.birthDate, value: employee.birthDate }, { label: labels.birthPlace, value: employee.birthPlace }, { label: labels.birthCountry, value: employee.birthCountry }, { label: labels.nationality, value: employee.nationality }, { label: labels.preferredLanguage, value: employee.preferredLanguage }]} />
@@ -384,17 +411,39 @@ function BsnReveal({ employeeId, labels }: { employeeId: string; labels: Employe
 type ReminderRole = 'HR_ADMIN' | 'MANAGER' | 'EMPLOYEE'
 
 type AddressKind = 'PRIMARY' | 'SECONDARY'
+type ResourceFormSubmit = (event: FormEvent<HTMLFormElement>) => void | Promise<void>
 
 function AddressesPanelV2({ employeeId, addresses, canManage, locale, dateFormat, labels }: { employeeId: string; addresses: NonNullable<EmployeeDetailViewModel['addresses']>; canManage: boolean; locale: string; dateFormat: DateFormat; labels: EmployeePersonCardLabels }) {
+  const router = useRouter()
   const [openPanel, setOpenPanel] = useState<AddressKind>('PRIMARY')
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [drawerAddress, setDrawerAddress] = useState<{ addressType: AddressKind; address?: NonNullable<EmployeeDetailViewModel['addresses']>[number] } | null>(null)
+  const [addressSubmit, setAddressSubmit] = useState<ResourceFormSubmit | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const registerAddressSubmit = useCallback((handler: ResourceFormSubmit) => setAddressSubmit(() => handler), [])
   const primaryAddresses = addresses.filter((address) => address.addressType === 'PRIMARY')
   const secondaryAddresses = addresses.filter((address) => address.addressType === 'SECONDARY')
   const formatAddressDate = (date: string) => formatDate(date, { locale, dateFormat })
 
+  function openCreate(addressType: AddressKind): void { setDirty(false); setAddressSubmit(null); setDrawerAddress({ addressType }) }
+  function openEdit(addressType: AddressKind, address: NonNullable<EmployeeDetailViewModel['addresses']>[number]): void { setDirty(false); setAddressSubmit(null); setDrawerAddress({ addressType, address }) }
+  function closeDrawer(): void { if (saving) return; setDrawerAddress(null); setAddressSubmit(null); setDirty(false) }
+  async function remove(): Promise<void> {
+    if (!deleteCandidate || deleting) return
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/employees/${employeeId}/addresses/${deleteCandidate}`, { method: 'DELETE' })
+      if (response.ok) router.refresh()
+    } finally {
+      setDeleting(false)
+      setDeleteCandidate(null)
+    }
+  }
+
   function renderAddress(address: NonNullable<EmployeeDetailViewModel['addresses']>[number], kind: AddressKind): ReactNode {
     const isSecondary = kind === 'SECONDARY'
-    const isEditing = editingId === address.id
     return <article key={address.id} className="border-b border-border-subtle py-4 first:border-t">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -404,9 +453,8 @@ function AddressesPanelV2({ employeeId, addresses, canManage, locale, dateFormat
           <p className="mt-1 text-sm text-muted-foreground">{[address.postalCode, address.city, address.region, address.countryCode].filter(Boolean).join(' · ')}</p>
           <p className="mt-2 text-xs tabular-nums text-muted-foreground">{labels.validFrom}: {formatAddressDate(address.validFrom)}{isSecondary && address.validUntil ? ` · ${labels.validUntil}: ${formatAddressDate(address.validUntil)}` : ''}</p>
         </div>
-        {canManage && <div className="flex shrink-0 flex-wrap gap-2"><Button type="button" onClick={() => setEditingId(isEditing ? null : address.id)} variant="secondary" size="sm"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button><DeleteResourceButton url={`/api/employees/${employeeId}/addresses/${address.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} disabled={kind === 'PRIMARY' && primaryAddresses.length === 1} disabledTitle={kind === 'PRIMARY' ? labels.cannotDeleteLastAddress : undefined} onDeleted={() => setEditingId(null)} /></div>}
+        {canManage && <RowActions menuLabel={labels.moreActions} menuItems={[{ destructive: true, disabled: kind === 'PRIMARY' && primaryAddresses.length === 1, id: 'delete', label: labels.deleteResource, onSelect: () => setDeleteCandidate(address.id) }]} primaryAction={<Button onClick={() => openEdit(kind, address)} size="sm" type="button" variant="secondary"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button>} />}
       </div>
-      {isEditing && <div className="mt-5 border-t pt-5"><AddressFormV2 employeeId={employeeId} locale={locale} labels={labels} address={address} addressType={kind} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
     </article>
   }
 
@@ -416,31 +464,39 @@ function AddressesPanelV2({ employeeId, addresses, canManage, locale, dateFormat
     const title = isPrimary ? labels.primaryAddress : labels.secondaryAddress
     const isOpen = openPanel === kind
     return <section className="border-t border-border-subtle" key={kind}>
-      <button type="button" aria-expanded={isOpen} className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left font-semibold" onClick={() => { setOpenPanel(kind); setEditingId(null) }}><span className="flex items-center gap-2"><Home aria-hidden="true" className="h-5 w-5 text-primary" />{title}</span><ChevronDown aria-hidden="true" className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} /></button>
+      <button type="button" aria-expanded={isOpen} className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left font-semibold" onClick={() => setOpenPanel(kind)}><span className="flex items-center gap-2"><Home aria-hidden="true" className="h-5 w-5 text-primary" />{title}</span><ChevronDown aria-hidden="true" className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} /></button>
       {isOpen && <div className="border-b border-border-subtle pb-5 pt-4">
         {!isPrimary && <p className="mb-4 max-w-2xl text-sm text-muted-foreground">{labels.secondaryAddressHelp}</p>}
         {items.length === 0 ? <EmptyState className="mt-2" icon={<Home className="h-5 w-5" />} title={isPrimary ? labels.addressesEmpty : labels.noSecondaryAddress} /> : <div className="space-y-3">{items.map((address) => renderAddress(address, kind))}</div>}
-        {canManage && <div className="mt-4"><ResourceDetails title={isPrimary ? labels.relocateAddress : labels.secondaryAddress}><AddressFormV2 employeeId={employeeId} locale={locale} labels={labels} addressType={kind} /></ResourceDetails></div>}
+        {canManage && <div className="mt-4"><Button onClick={() => openCreate(kind)} type="button" variant="secondary"><Plus aria-hidden="true" />{isPrimary ? labels.relocateAddress : labels.addAddress}</Button></div>}
       </div>}
     </section>
   }
 
-  return <section>
+  return <>
+  <section>
     <SectionHeader title={labels.addressesTitle} />
     {addresses.length === 0 && <p className="mt-4 text-sm text-muted-foreground">{labels.addressesEmpty}</p>}
     <div className="mt-6 space-y-3">{(['PRIMARY', 'SECONDARY'] as const).map(renderPanel)}</div>
   </section>
+  <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.close} description={drawerAddress?.address ? labels.editResource : labels.addAddress} dirty={dirty} dirtyProtection={{ description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.discardCancel, title: labels.discardTitle }} onDiscard={closeDrawer} onOpenChange={(open) => { if (!open) closeDrawer() }} onSubmit={(event) => { event.preventDefault(); void addressSubmit?.(event) }} open={drawerAddress !== null} saveLabel={labels.saveAddress} saving={saving} title={drawerAddress?.address ? labels.editResource : labels.addAddress}>
+    {drawerAddress ? <div className="grid gap-4" onInput={() => setDirty(true)}><AddressFormV2 address={drawerAddress.address} addressType={drawerAddress.addressType} employeeId={employeeId} labels={labels} locale={locale} onSaved={closeDrawer} onStateChange={setSaving} onSubmitReady={registerAddressSubmit} /></div> : null}
+  </FormDrawer>
+  <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.deleteResource} description={labels.confirmDelete} destructive onConfirm={remove} onOpenChange={(open) => { if (!open && !deleting) setDeleteCandidate(null) }} open={deleteCandidate !== null} pending={deleting} title={labels.deleteResource} />
+  </>
+
 }
 
-function AddressFormV2({ employeeId, locale, labels, address, addressType, onCancel, onSaved }: { employeeId: string; locale: string; labels: EmployeePersonCardLabels; addressType: AddressKind; address?: NonNullable<EmployeeDetailViewModel['addresses']>[number]; onCancel?: () => void; onSaved?: () => void }) {
+function AddressFormV2({ employeeId, locale, labels, address, addressType, onSaved, onStateChange, onSubmitReady }: { employeeId: string; locale: string; labels: EmployeePersonCardLabels; addressType: AddressKind; address?: NonNullable<EmployeeDetailViewModel['addresses']>[number]; onSaved?: () => void; onStateChange?: (saving: boolean) => void; onSubmitReady?: (handler: ResourceFormSubmit) => void }) {
   const router = useRouter()
-  const [state, setState] = useState<MutationState>('idle')
+  const [, setState] = useState<MutationState>('idle')
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'empty' | 'failed'>('idle')
   const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'failed'>('idle')
   const [query, setQuery] = useState(address?.addressLine1 ?? '')
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
   const [reminderRoles, setReminderRoles] = useState<ReminderRole[]>([])
   const [values, setValues] = useState({ countryCode: address?.countryCode ?? 'NL', addressLine1: address?.addressLine1 ?? '', addressLine2: address?.addressLine2 ?? '', street: address?.street ?? '', houseNumber: address?.houseNumber ?? '', addition: address?.houseNumberAddition ?? '', postalCode: address?.postalCode ?? '', city: address?.city ?? '', region: address?.region ?? '', validFrom: address?.validFrom ?? new Date().toISOString().slice(0, 10), validUntil: address?.validUntil ?? '', description: address?.description ?? '', source: (address?.source === 'pdok' || address?.source === 'geoapify' ? address.source : 'manual') as 'manual' | 'pdok' | 'geoapify', sourceReference: address?.sourceReference ?? '' })
+  const submitRef = useRef<(() => Promise<void>) | null>(null)
   const isNew = !address
   const isSecondary = addressType === 'SECONDARY'
   const isDutch = values.countryCode === 'NL'
@@ -473,18 +529,20 @@ function AddressFormV2({ employeeId, locale, labels, address, addressType, onCan
     try { const response = await fetch(`/api/address-lookup?country=NL&postcode=${encodeURIComponent(values.postalCode)}&houseNumber=${encodeURIComponent(values.houseNumber)}`); if (!response.ok) throw new Error('ADDRESS_LOOKUP_UNAVAILABLE'); const payload: { data?: AddressSuggestion[] } = await response.json(); if (payload.data?.[0]) applySuggestion(payload.data[0]) } catch { setLookupState('failed') } finally { setLookupState('idle') }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
+  async function submit(): Promise<void> {
     const payload = { addressType, description: isSecondary ? nullable(values.description.trim()) : null, countryCode: values.countryCode, addressLine1: nullable(values.addressLine1), addressLine2: nullable(values.addressLine2), street: nullable(values.street), houseNumber: nullable(values.houseNumber), addition: nullable(values.addition), postalCode: nullable(values.postalCode), city: values.city, region: nullable(values.region), validFrom: values.validFrom, validUntil: isSecondary ? nullable(values.validUntil) : null, source: values.source, sourceReference: nullable(values.sourceReference), province: null, directReminderRecipients: isNew ? reminderRoles : [] }
-    const succeeded = await runJsonMutation(setState, address ? `/api/employees/${employeeId}/addresses/${address.id}` : `/api/employees/${employeeId}/addresses`, address ? 'PATCH' : 'POST', payload)
+    const succeeded = await runJsonMutation(setState, address ? `/api/employees/${employeeId}/addresses/${address.id}` : `/api/employees/${employeeId}/addresses`, address ? 'PATCH' : 'POST', payload, (nextState) => onStateChange?.(nextState === 'saving'))
     if (!succeeded) return
     onSaved?.()
     if (isNew) { setReminderRoles([]); setValues((current) => ({ ...current, addressLine1: '', addressLine2: '', street: '', houseNumber: '', addition: '', postalCode: '', city: '', region: '', validUntil: '', description: '', source: 'manual', sourceReference: '' })); setQuery('') }
     router.refresh()
   }
 
+  useEffect(() => { submitRef.current = submit }, [submit])
+  useEffect(() => { onSubmitReady?.(() => { if (submitRef.current) return submitRef.current(); return Promise.resolve() }) }, [onSubmitReady])
+
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <div className="grid gap-4">
       {isSecondary && <Field label={labels.secondaryAddressDescription}><TextInput value={values.description} onChange={(event) => updateValue('description', event.target.value)} required maxLength={240} /><span className="text-xs font-normal text-muted-foreground">{labels.secondaryAddressHelp}</span></Field>}
       <div className="grid gap-3 sm:grid-cols-[minmax(11rem,0.75fr)_minmax(0,2fr)] sm:items-start">
         <Field label={labels.country} className="self-start"><CountryPicker name="countryCode" value={values.countryCode} onChange={(value) => updateValue('countryCode', value)} locale={locale} searchLabel={labels.countrySearch} emptyLabel={labels.countryNoResults} /></Field>
@@ -503,8 +561,7 @@ function AddressFormV2({ employeeId, locale, labels, address, addressType, onCan
         {lookupState === 'failed' && <span role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</span>}
       </div>
       {isNew && <fieldset className="border-t border-border-subtle pt-5"><legend className="px-1 text-sm font-semibold">{labels.directReminderTitle}</legend><p className="mt-1 text-xs text-muted-foreground">{labels.directReminderHelp}</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{([['HR_ADMIN', labels.reminderHrAdmin], ['MANAGER', labels.reminderManager], ['EMPLOYEE', labels.reminderEmployee]] as const).map(([role, label]) => <label key={role} className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={reminderRoles.includes(role)} onChange={() => toggleReminderRole(role)} className="h-4 w-4 accent-primary" />{label}</label>)}</div></fieldset>}
-    <FormFooter state={state} submit={labels.saveAddress} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} />
-   </form>
+    </div>
   )
 }
 
@@ -526,67 +583,101 @@ function LanguageSelect({ name, label, initialValue, locale, labels }: { name: s
 }
 
 function BankAccountsPanel({ employeeId, accounts, canManage, labels }: { employeeId: string; accounts: NonNullable<EmployeeDetailViewModel['bankAccounts']>; canManage: boolean; labels: EmployeePersonCardLabels }) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  return <section>
+  const router = useRouter()
+  const [drawerAccount, setDrawerAccount] = useState<EmployeeBankAccount | null | undefined>(undefined)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [accountSubmit, setAccountSubmit] = useState<ResourceFormSubmit | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const registerAccountSubmit = useCallback((handler: ResourceFormSubmit) => setAccountSubmit(() => handler), [])
+  function openCreate(): void { setDrawerAccount(null); setDirty(false); setAccountSubmit(null); setDrawerOpen(true) }
+  function openEdit(account: EmployeeBankAccount): void { setDrawerAccount(account); setDirty(false); setAccountSubmit(null); setDrawerOpen(true) }
+  function closeDrawer(): void { if (saving) return; setDrawerOpen(false); setDrawerAccount(undefined); setAccountSubmit(null); setDirty(false) }
+  async function remove(): Promise<void> {
+    if (!deleteCandidate || deleting) return
+    setDeleting(true)
+    try { const response = await fetch(`/api/employees/${employeeId}/bank-accounts/${deleteCandidate}`, { method: 'DELETE' }); if (response.ok) router.refresh() } finally { setDeleting(false); setDeleteCandidate(null) }
+  }
+  return <>
+  <section>
     <SectionHeader title={labels.banksTitle} />
     {accounts.length === 0 ? <EmptyState icon={<CreditCard className="h-5 w-5" />} title={labels.banksEmpty} /> : <ul className="mt-6 divide-y divide-border-subtle">{accounts.map((account) => <li key={account.id} className="py-4 first:border-t first:border-border-subtle">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="break-all font-semibold tabular-nums">{account.maskedIban}</p>{account.isPrimary && <Badge tone="success">{labels.primary}</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">{account.accountHolder}{account.description ? ` · ${account.description}` : ''}</p>{account.bic && <p className="mt-1 text-xs text-muted-foreground">{labels.bic}: {account.bic}</p>}</div>
-        {canManage && <div className="flex shrink-0 flex-wrap gap-2"><Button type="button" onClick={() => setEditingId(editingId === account.id ? null : account.id)} variant="secondary" size="sm"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button><DeleteResourceButton url={`/api/employees/${employeeId}/bank-accounts/${account.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} onDeleted={() => setEditingId(null)} /></div>}
+        {canManage && <RowActions menuLabel={labels.moreActions} menuItems={[{ destructive: true, id: 'delete', label: labels.deleteResource, onSelect: () => setDeleteCandidate(account.id) }]} primaryAction={<Button onClick={() => openEdit(account)} size="sm" type="button" variant="secondary"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button>} />}
       </div>
-      {editingId === account.id && <div className="mt-5 border-t pt-5"><BankAccountForm employeeId={employeeId} account={account} labels={labels} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
     </li>)}</ul>}
-    {canManage && <div className="mt-6"><ResourceDetails title={labels.addBank}><BankAccountForm employeeId={employeeId} labels={labels} /></ResourceDetails></div>}
+    {canManage && <div className="mt-6"><Button onClick={openCreate} type="button" variant="secondary"><Plus aria-hidden="true" />{labels.addBank}</Button></div>}
   </section>
+  <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.close} description={drawerAccount ? labels.editResource : labels.addBank} dirty={dirty} dirtyProtection={{ description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.discardCancel, title: labels.discardTitle }} onDiscard={closeDrawer} onOpenChange={(open) => { if (!open) closeDrawer() }} onSubmit={(event) => { event.preventDefault(); void accountSubmit?.(event) }} open={drawerOpen} saveLabel={drawerAccount ? labels.editResource : labels.saveBank} saving={saving} title={drawerAccount ? labels.editResource : labels.addBank}>
+    <div className="grid gap-4" onInput={() => setDirty(true)}><BankAccountForm account={drawerAccount ?? undefined} employeeId={employeeId} labels={labels} onSaved={closeDrawer} onStateChange={setSaving} onSubmitReady={registerAccountSubmit} /></div>
+  </FormDrawer>
+  <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.deleteResource} description={labels.confirmDelete} destructive onConfirm={remove} onOpenChange={(open) => { if (!open && !deleting) setDeleteCandidate(null) }} open={deleteCandidate !== null} pending={deleting} title={labels.deleteResource} />
+  </>
 }
 
-function BankAccountForm({ employeeId, account, labels, onCancel, onSaved }: { employeeId: string; account?: EmployeeBankAccount; labels: EmployeePersonCardLabels; onCancel?: () => void; onSaved?: () => void }) {
-  const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
+function BankAccountForm({ employeeId, account, labels, onSaved, onStateChange, onSubmitReady }: { employeeId: string; account?: EmployeeBankAccount; labels: EmployeePersonCardLabels; onSaved?: () => void; onStateChange?: (saving: boolean) => void; onSubmitReady?: (handler: ResourceFormSubmit) => void }) {
+  const router = useRouter(); const [, setState] = useState<MutationState>('idle'); const submitRef = useRef<ResourceFormSubmit | null>(null)
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement)
     const payload = { iban: value(form, 'iban'), bic: nullable(value(form, 'bic')), accountHolder: value(form, 'accountHolder'), description: nullable(value(form, 'description')), isPrimary: form.get('isPrimary') === 'on' }
-    const succeeded = await runJsonMutation(setState, account ? `/api/employees/${employeeId}/bank-accounts/${account.id}` : `/api/employees/${employeeId}/bank-accounts`, account ? 'PATCH' : 'POST', payload)
+    const succeeded = await runJsonMutation(setState, account ? `/api/employees/${employeeId}/bank-accounts/${account.id}` : `/api/employees/${employeeId}/bank-accounts`, account ? 'PATCH' : 'POST', payload, (nextState) => onStateChange?.(nextState === 'saving'))
     if (!succeeded) return
     onSaved?.(); formElement.reset(); router.refresh()
   }
-  return <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2"><Field label={labels.iban}><TextInput name="iban" required autoComplete="off" placeholder={account?.maskedIban} className="uppercase" /></Field><Field label={labels.bic}><TextInput name="bic" maxLength={11} defaultValue={account?.bic ?? ''} className="uppercase" /></Field><Field label={labels.accountHolder}><TextInput name="accountHolder" required defaultValue={account?.accountHolder ?? ''} /></Field><Field label={labels.description}><TextInput name="description" defaultValue={account?.description ?? ''} /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" defaultChecked={account?.isPrimary} className="h-4 w-4 accent-primary" />{labels.makePrimary}</label><FormFooter state={state} submit={account ? labels.editResource : labels.saveBank} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} /></form>
+  useEffect(() => { submitRef.current = submit }, [submit])
+  useEffect(() => { onSubmitReady?.((event) => submitRef.current?.(event) ?? Promise.resolve()) }, [onSubmitReady])
+  return <div className="grid gap-3 sm:grid-cols-2"><Field label={labels.iban}><TextInput name="iban" required autoComplete="off" placeholder={account?.maskedIban} className="uppercase" /></Field><Field label={labels.bic}><TextInput name="bic" maxLength={11} defaultValue={account?.bic ?? ''} className="uppercase" /></Field><Field label={labels.accountHolder}><TextInput name="accountHolder" required defaultValue={account?.accountHolder ?? ''} /></Field><Field label={labels.description}><TextInput name="description" defaultValue={account?.description ?? ''} /></Field><label className="flex items-center gap-2 text-sm font-medium sm:col-span-2"><input name="isPrimary" type="checkbox" defaultChecked={account?.isPrimary} className="h-4 w-4 accent-primary" />{labels.makePrimary}</label></div>
 }
 
 function RelationsPanel({ employeeId, relations, relationTypes, locale, canManage, labels }: { employeeId: string; relations: NonNullable<EmployeeDetailViewModel['relations']>; relationTypes: EmployeeRelationTypeOption[]; locale: string; canManage: boolean; labels: EmployeePersonCardLabels }) {
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const router = useRouter()
+  const [drawerRelation, setDrawerRelation] = useState<EmployeeRelation | null | undefined>(undefined)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [relationSubmit, setRelationSubmit] = useState<ResourceFormSubmit | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const registerRelationSubmit = useCallback((handler: ResourceFormSubmit) => setRelationSubmit(() => handler), [])
   const typeLabels: Record<EmployeeRelation['relationType'], string> = Object.fromEntries(relationTypes.map((item) => [item.code, locale.startsWith('en') ? item.nameEn : item.nameNl])) as Record<EmployeeRelation['relationType'], string>
-  return <section>
+  function openCreate(): void { setDrawerRelation(null); setDirty(false); setRelationSubmit(null); setDrawerOpen(true) }
+  function openEdit(relation: EmployeeRelation): void { setDrawerRelation(relation); setDirty(false); setRelationSubmit(null); setDrawerOpen(true) }
+  function closeDrawer(): void { if (saving) return; setDrawerOpen(false); setDrawerRelation(undefined); setRelationSubmit(null); setDirty(false) }
+  async function remove(): Promise<void> {
+    if (!deleteCandidate || deleting) return
+    setDeleting(true)
+    try { const response = await fetch(`/api/employees/${employeeId}/relations/${deleteCandidate}`, { method: 'DELETE' }); if (response.ok) router.refresh() } finally { setDeleting(false); setDeleteCandidate(null) }
+  }
+  return <>
+  <section>
     <SectionHeader title={labels.relationsTitle} />
     {relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-x-8 divide-y divide-border-subtle lg:grid-cols-2 lg:divide-y-0">{relations.map((relation) => <li key={relation.id} className="border-b border-border-subtle py-4 lg:first:border-t lg:nth-[2n+1]:border-t">
-      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="break-words font-semibold">{[relation.firstName, relation.prefix, relation.lastName].filter(Boolean).join(' ')}</p>{relation.isEmergencyContact && <Badge tone="warning">{labels.emergencyContact}</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType] ?? relation.relationType}</p></div>{canManage && <div className="flex shrink-0 flex-wrap gap-2"><Button type="button" onClick={() => setEditingId(editingId === relation.id ? null : relation.id)} variant="secondary" size="sm"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button><DeleteResourceButton url={`/api/employees/${employeeId}/relations/${relation.id}`} label={labels.deleteResource} confirmation={labels.confirmDelete} onDeleted={() => setEditingId(null)} /></div>}</div>
+      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="break-words font-semibold">{[relation.firstName, relation.prefix, relation.lastName].filter(Boolean).join(' ')}</p>{relation.isEmergencyContact && <Badge tone="warning">{labels.emergencyContact}</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType] ?? relation.relationType}</p></div>{canManage && <RowActions menuLabel={labels.moreActions} menuItems={[{ destructive: true, id: 'delete', label: labels.deleteResource, onSelect: () => setDeleteCandidate(relation.id) }]} primaryAction={<Button onClick={() => openEdit(relation)} size="sm" type="button" variant="secondary"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button>} />}</div>
       {(relation.mobile || relation.phone || relation.email) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{(relation.mobile || relation.phone) && <span className="flex items-center gap-1.5"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{relation.mobile ?? relation.phone}</span>}{relation.email && <span className="flex items-center gap-1.5"><Mail aria-hidden="true" className="h-3.5 w-3.5" /><EmailLink email={relation.email} /></span>}</div>}
-      {editingId === relation.id && <div className="mt-5 border-t pt-5"><RelationForm employeeId={employeeId} relation={relation} relationTypes={relationTypes} locale={locale} labels={labels} onCancel={() => setEditingId(null)} onSaved={() => setEditingId(null)} /></div>}
     </li>)}</ul>}
-    {canManage && <div className="mt-6"><ResourceDetails title={labels.addRelation}><RelationForm employeeId={employeeId} relationTypes={relationTypes} locale={locale} labels={labels} /></ResourceDetails></div>}
+    {canManage && <div className="mt-6"><Button onClick={openCreate} type="button" variant="secondary"><Plus aria-hidden="true" />{labels.addRelation}</Button></div>}
   </section>
+  <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.close} description={drawerRelation ? labels.editResource : labels.addRelation} dirty={dirty} dirtyProtection={{ description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.discardCancel, title: labels.discardTitle }} onDiscard={closeDrawer} onOpenChange={(open) => { if (!open) closeDrawer() }} onSubmit={(event) => { event.preventDefault(); void relationSubmit?.(event) }} open={drawerOpen} saveLabel={drawerRelation ? labels.editResource : labels.saveRelation} saving={saving} title={drawerRelation ? labels.editResource : labels.addRelation}>
+    <div className="grid gap-4" onInput={() => setDirty(true)}><RelationForm employeeId={employeeId} labels={labels} locale={locale} onSaved={closeDrawer} onStateChange={setSaving} onSubmitReady={registerRelationSubmit} relation={drawerRelation ?? undefined} relationTypes={relationTypes} /></div>
+  </FormDrawer>
+  <ConfirmDialog cancelLabel={labels.discardCancel} confirmLabel={labels.deleteResource} description={labels.confirmDelete} destructive onConfirm={remove} onOpenChange={(open) => { if (!open && !deleting) setDeleteCandidate(null) }} open={deleteCandidate !== null} pending={deleting} title={labels.deleteResource} />
+  </>
 }
 
-function RelationForm({ employeeId, relation, relationTypes, locale, labels, onCancel, onSaved }: { employeeId: string; relation?: EmployeeRelation; relationTypes: EmployeeRelationTypeOption[]; locale: string; labels: EmployeePersonCardLabels; onCancel?: () => void; onSaved?: () => void }) {
-  const router = useRouter(); const [state, setState] = useState<MutationState>('idle')
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const payload = { relationType: value(form, 'relationType'), isEmergencyContact: form.get('isEmergencyContact') === 'on', firstName: nullable(value(form, 'firstName')), initials: relation?.initials ?? nullable(value(form, 'initials')), prefix: nullable(value(form, 'prefix')), lastName: value(form, 'lastName'), gender: relation?.gender ?? nullable(value(form, 'gender')), birthDate: relation?.birthDate ?? nullable(value(form, 'birthDate')), phone: nullable(value(form, 'phone')), mobile: nullable(value(form, 'mobile')), email: nullable(value(form, 'email')), notes: nullable(value(form, 'notes')) }; const succeeded = await runJsonMutation(setState, relation ? `/api/employees/${employeeId}/relations/${relation.id}` : `/api/employees/${employeeId}/relations`, relation ? 'PATCH' : 'POST', payload); if (!succeeded) return; onSaved?.(); formElement.reset(); router.refresh() }
-  return <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2"><Field label={labels.relationType}><select name="relationType" defaultValue={relation?.relationType ?? relationTypes[0]?.code} className={SELECT_CLASS}>{relationTypes.map((item) => <option key={item.code} value={item.code}>{locale.startsWith('en') ? item.nameEn : item.nameNl}</option>)}</select></Field><label className="flex items-center gap-2 self-end pb-3 text-sm font-medium"><input name="isEmergencyContact" type="checkbox" defaultChecked={relation?.isEmergencyContact} className="h-4 w-4 accent-primary" />{labels.emergencyContact}</label><Field label={labels.firstName}><TextInput name="firstName" defaultValue={relation?.firstName ?? ''} /></Field><Field label={labels.birthNamePrefix}><TextInput name="prefix" defaultValue={relation?.prefix ?? ''} /></Field><Field label={labels.lastName}><TextInput name="lastName" required defaultValue={relation?.lastName ?? ''} /></Field><Field label={labels.mobile}><TextInput name="mobile" type="tel" defaultValue={relation?.mobile ?? ''} /></Field><Field label={labels.privatePhone}><TextInput name="phone" type="tel" defaultValue={relation?.phone ?? ''} /></Field><Field label={labels.email}><TextInput name="email" type="email" defaultValue={relation?.email ?? ''} /></Field><Field label={labels.notes} className="sm:col-span-2"><textarea name="notes" rows={3} defaultValue={relation?.notes ?? ''} className="min-h-24 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" /></Field><FormFooter state={state} submit={relation ? labels.editResource : labels.saveRelation} saving={labels.saving} saved={labels.saved} failed={labels.genericError} cancel={onCancel ? labels.cancel : undefined} onCancel={onCancel} /></form>
+function RelationForm({ employeeId, relation, relationTypes, locale, labels, onSaved, onStateChange, onSubmitReady }: { employeeId: string; relation?: EmployeeRelation; relationTypes: EmployeeRelationTypeOption[]; locale: string; labels: EmployeePersonCardLabels; onSaved?: () => void; onStateChange?: (saving: boolean) => void; onSubmitReady?: (handler: ResourceFormSubmit) => void }) {
+  const router = useRouter(); const [, setState] = useState<MutationState>('idle'); const submitRef = useRef<ResourceFormSubmit | null>(null)
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const payload = { relationType: value(form, 'relationType'), isEmergencyContact: form.get('isEmergencyContact') === 'on', firstName: nullable(value(form, 'firstName')), initials: relation?.initials ?? nullable(value(form, 'initials')), prefix: nullable(value(form, 'prefix')), lastName: value(form, 'lastName'), gender: relation?.gender ?? nullable(value(form, 'gender')), birthDate: relation?.birthDate ?? nullable(value(form, 'birthDate')), phone: nullable(value(form, 'phone')), mobile: nullable(value(form, 'mobile')), email: nullable(value(form, 'email')), notes: nullable(value(form, 'notes')) }; const succeeded = await runJsonMutation(setState, relation ? `/api/employees/${employeeId}/relations/${relation.id}` : `/api/employees/${employeeId}/relations`, relation ? 'PATCH' : 'POST', payload, (nextState) => onStateChange?.(nextState === 'saving')); if (!succeeded) return; onSaved?.(); formElement.reset(); router.refresh() }
+  useEffect(() => { submitRef.current = submit }, [submit])
+  useEffect(() => { onSubmitReady?.((event) => submitRef.current?.(event) ?? Promise.resolve()) }, [onSubmitReady])
+  return <div className="grid gap-3 sm:grid-cols-2"><Field label={labels.relationType}><select name="relationType" defaultValue={relation?.relationType ?? relationTypes[0]?.code} className={SELECT_CLASS}>{relationTypes.map((item) => <option key={item.code} value={item.code}>{locale.startsWith('en') ? item.nameEn : item.nameNl}</option>)}</select></Field><label className="flex items-center gap-2 self-end pb-3 text-sm font-medium"><input name="isEmergencyContact" type="checkbox" defaultChecked={relation?.isEmergencyContact} className="h-4 w-4 accent-primary" />{labels.emergencyContact}</label><Field label={labels.firstName}><TextInput name="firstName" defaultValue={relation?.firstName ?? ''} /></Field><Field label={labels.birthNamePrefix}><TextInput name="prefix" defaultValue={relation?.prefix ?? ''} /></Field><Field label={labels.lastName}><TextInput name="lastName" required defaultValue={relation?.lastName ?? ''} /></Field><Field label={labels.mobile}><TextInput name="mobile" type="tel" defaultValue={relation?.mobile ?? ''} /></Field><Field label={labels.privatePhone}><TextInput name="phone" type="tel" defaultValue={relation?.phone ?? ''} /></Field><Field label={labels.email}><TextInput name="email" type="email" defaultValue={relation?.email ?? ''} /></Field><Field label={labels.notes} className="sm:col-span-2"><textarea name="notes" rows={3} defaultValue={relation?.notes ?? ''} className="min-h-24 w-full rounded-[var(--radius-control)] border border-border bg-surface px-3 py-2 text-sm" /></Field></div>
 }
 
 function FormSection({ title, children }: { title: string; children: ReactNode }) {
   return <section className="py-6 first:pt-0"><h3 className="text-sm font-semibold text-foreground">{title}</h3><div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div></section>
 }
 
-function DeleteResourceButton({ url, label, confirmation, disabled = false, disabledTitle, onDeleted }: { url: string; label: string; confirmation: string; disabled?: boolean; disabledTitle?: string; onDeleted: () => void }) {
-  const [state, setState] = useState<MutationState>('idle')
-  async function remove(): Promise<void> {
-    if (disabled || !window.confirm(confirmation)) return
-    const succeeded = await runJsonMutation(setState, url, 'DELETE')
-    if (succeeded) onDeleted()
-  }
-  return <Button type="button" onClick={remove} disabled={disabled || state === 'saving'} title={disabled ? disabledTitle : undefined} variant="danger" size="sm"><Trash2 aria-hidden="true" className="h-4 w-4" />{label}</Button>
-}
-
-function ResourceDetails({ title, children }: { title: string; children: ReactNode }) { return <details className="group mt-4 w-full border-t border-border-subtle pt-4"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-primary">{title}<ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" /></summary>{children}</details> }
 function Field({ label, className = '', children }: { label: string; className?: string; children: ReactNode }) { return <label className={`grid gap-1.5 text-sm font-medium ${className}`}>{label}{children}</label> }
 function DataItem({ label, value, fallback = '', isEmail = false }: { label: string; value: string | null | undefined; fallback?: string; isEmail?: boolean }) { return <div><dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-medium">{value ? (isEmail ? <EmailLink email={value} /> : value) : fallback}</dd></div> }
 function InlineState({ kind, children }: { kind: 'saved' | 'failed'; children: ReactNode }) { return <span role={kind === 'failed' ? 'alert' : 'status'} className={`inline-flex items-center gap-1.5 text-sm ${kind === 'saved' ? 'text-success' : 'text-destructive'}`}>{kind === 'saved' ? <Check aria-hidden="true" className="h-4 w-4" /> : <AlertTriangle aria-hidden="true" className="h-4 w-4" />}{children}</span> }
-function FormFooter({ state, submit, saving, saved, failed, cancel, onCancel }: { state: MutationState; submit: string; saving: string; saved: string; failed: string; cancel?: string; onCancel?: () => void }) { return <div className="flex flex-wrap items-center gap-3 border-t border-border-subtle pt-4 sm:col-span-full"><Button type="submit" loading={state === 'saving'}>{state === 'saving' ? saving : submit}</Button>{cancel && onCancel && <Button type="button" onClick={onCancel} disabled={state === 'saving'} variant="secondary">{cancel}</Button>}{state === 'saved' && <InlineState kind="saved">{saved}</InlineState>}{state === 'failed' && <InlineState kind="failed">{failed}</InlineState>}</div> }
