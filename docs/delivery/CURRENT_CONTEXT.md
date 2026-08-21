@@ -2,7 +2,7 @@
 
 ## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
 
-- Branch: `work/ux-v1-2-foundation-polish`, exact baseline `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`; geen main-merge of push.
+- Branch: `work/ux-v1-2-foundation-polish`, exact baseline `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`; commit `219b00f` staat op origin; geen main-merge.
 - Authorization: Create role is gemigreerd van inline `<details>` naar de bestaande `FormDrawer` met dirty-close protection, saving/double-submit protection, lokale foutstatus en bestaande POST-payload. Coverage inspection gebruikt de centrale `Dialog` met focus/Escape/restore; permissionselectie en PUT-save blijven behouden. Hoofdpermission-editor niet herontworpen.
 - Startpage: alleen Foundation-polish. Zware shadows, normale hover-lift en niet-canonieke surface-radius zijn verwijderd; semantic Foundation surfaces/tokens zijn gebruikt. Compact/expanded, widgets, quick-action horizontal scroll, drag/reorder, scopes, order en preferences zijn behouden.
 - Verificatie: gerichte 12/12, volledige 210/826, strict TypeScript, i18n 33 namespaces, lint 0 errors/6 bestaande warnings, build 225 routes en diff-check groen.

@@ -4,7 +4,7 @@
 
 Op `work/ux-v1-2-foundation-polish`, vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`, zijn alleen de authorization-subflows en startpage-presentatie gepolijst. Create role gebruikt de bestaande `FormDrawer` met dirty protection, saving en foutstatus; coverage gebruikt de centrale `Dialog` met focus/Escape/restore. Startpage behoudt compact/uitgebreid, widgets, quick-action-scroll, drag/reorder, scopes en voorkeuren, maar gebruikt Foundation-radius/surfaces zonder zware shadows of hover-lift. Geen API-, database-, RLS-, permission- of businesslogicawijziging.
 
-Lokale gate: 210 testbestanden/826 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint exit 0 met 6 bestaande warnings, Next-build met 225 routes en diff-check. Authenticated TEST HR/Manager acceptance is `BLOCKED BY ENVIRONMENT`: poort 3000 serveert de actuele app, maar canonical fixture-passwords ontbreken in de lokale environment; anonieme `/api/roles` geeft 401 en beschermde routes redirecten naar `/login`. Geen push of main-merge.
+Lokale gate: 210 testbestanden/826 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint exit 0 met 6 bestaande warnings, Next-build met 225 routes en diff-check. Authenticated TEST HR/Manager acceptance is `BLOCKED BY ENVIRONMENT`: poort 3000 serveert de actuele app, maar canonical fixture-passwords ontbreken in de lokale environment; anonieme `/api/roles` geeft 401 en beschermde routes redirecten naar `/login`. Alleen deze work-branch is naar origin gepusht; geen main-merge.
 
 ## UX Foundation v1.2 + Employee Reminders — authenticated acceptance GREEN 2026-08-21
 
