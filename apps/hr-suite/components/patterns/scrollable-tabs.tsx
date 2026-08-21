@@ -90,11 +90,11 @@ export function ScrollableTabs({ ariaLabel, children, className = '', contentCla
 
   return (
     <div aria-label={ariaLabel} className={`relative min-w-0 ${className}`.trim()}>
-      {overflow.left ? <IconButton className="absolute left-1 top-1/2 z-10 -translate-y-1/2 border border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground" label={leftLabel} onClick={() => scrollByPage(-1)} size="sm" variant="ghost"><ChevronLeft aria-hidden="true" /></IconButton> : null}
+      {overflow.left ? <IconButton className="absolute left-1 top-1/2 z-10 -translate-y-1/2 !border-primary/30 !bg-accent !text-primary hover:!bg-accent/80 hover:!text-primary" label={leftLabel} onClick={() => scrollByPage(-1)} size="sm" variant="ghost"><ChevronLeft aria-hidden="true" /></IconButton> : null}
       <div ref={scrollRef} className={`tabs-scroll overflow-x-auto overflow-y-hidden border-b border-border ${overflow.left ? 'pl-10' : 'pl-1'} ${overflow.right ? 'pr-10' : 'pr-1'}`}>
         <div {...contentProps} aria-label={contentProps?.['aria-label'] ?? (contentProps?.role === 'tablist' ? ariaLabel : undefined)} className={`flex min-w-max gap-1 ${contentClassName}`.trim()}>{children}</div>
       </div>
-      {overflow.right ? <IconButton className="absolute right-1 top-1/2 z-10 -translate-y-1/2 border border-border bg-surface text-muted-foreground hover:bg-muted hover:text-foreground" label={rightLabel} onClick={() => scrollByPage(1)} size="sm" variant="ghost"><ChevronRight aria-hidden="true" /></IconButton> : null}
+      {overflow.right ? <IconButton className="absolute right-1 top-1/2 z-10 -translate-y-1/2 !border-primary/30 !bg-accent !text-primary hover:!bg-accent/80 hover:!text-primary" label={rightLabel} onClick={() => scrollByPage(1)} size="sm" variant="ghost"><ChevronRight aria-hidden="true" /></IconButton> : null}
     </div>
   )
 }

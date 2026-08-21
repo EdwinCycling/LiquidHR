@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## UX acceptance follow-up — 2026-08-21
+
+- Employment Detail acceptance-correcties: Compact/Uitgebreid is nu een icon-only link met aria-label en title; ScrollableTabs-overflowknoppen gebruiken een contrasterende accentkleur; Contract verwijderen gebruikt een zachte destructieve surface met behoud van de bestaande actie- en dialoogsemantiek.
+- Verificatie: gerichte lint, strict typecheck, Turbopack-build (225 routes), `git diff --check` en authenticated browsercontrole op de employment detail-route zijn groen. Viewport-override naar 390px blijft niet beschikbaar in de in-app browser.
+- Geen API-, database-, RLS-, permission-, service- of businesslogicawijziging.
+
 ## UX acceptance polish + governance sync — 2026-08-21
 
 - Vanaf actuele `origin/main` `8de7df809f89b270c62c3ea5ea498d2d94826136` zijn de employee action tiles lokaal verbreed/gewrapt met maximaal drie kolommen op normale desktop en vier vanaf `2xl`; de employment overview kreeg lokale SectionHeader-spacing; de uitgebreide profile-header-editactie is verwijderd terwijl Personal-edit behouden bleef.

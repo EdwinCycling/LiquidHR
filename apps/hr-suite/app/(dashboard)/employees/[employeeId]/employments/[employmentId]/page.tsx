@@ -8,6 +8,8 @@ import {
   Building2,
   Landmark,
   Mail,
+  Maximize2,
+  Minimize2,
   Phone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -306,11 +308,13 @@ export default async function EmploymentDetailPage({
             <Badge tone={statusTone}>{effectiveStatus}</Badge>
             {detail.employment.is_primary && <Badge tone="info">{t("primary")}</Badge>}
             <Link
+              aria-label={expanded ? t("compact") : t("expanded")}
               prefetch={false}
-              className={buttonClasses({ variant: "secondary", size: "sm" })}
+              className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"
               href={`?tab=${tab}&view=${expanded ? "compact" : "expanded"}`}
+              title={expanded ? t("compact") : t("expanded")}
             >
-              {expanded ? t("compact") : t("expanded")}
+              {expanded ? <Minimize2 aria-hidden="true" size={18} /> : <Maximize2 aria-hidden="true" size={18} />}
             </Link>
           </div>
         </div>

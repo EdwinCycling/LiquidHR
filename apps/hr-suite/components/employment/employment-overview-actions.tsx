@@ -63,7 +63,7 @@ export function EmploymentOverviewActions({ labels, employmentId, today, locale,
           const Icon = action.icon
           return (
             <button
-              className={`${buttonClasses({ variant: action.destructive ? 'danger' : 'secondary', className: 'min-h-20 w-full min-w-0 justify-start !whitespace-normal px-4 py-3 text-left' })} ${action.destructive ? 'border-destructive/30' : ''}`}
+              className={`${buttonClasses({ variant: 'secondary', className: 'min-h-20 w-full min-w-0 justify-start !whitespace-normal px-4 py-3 text-left' })} ${action.destructive ? '!border-destructive/30 !bg-destructive-surface !text-destructive hover:!bg-destructive-surface' : ''}`}
               key={action.key}
               onClick={() => setActiveAction(action)}
               type="button"
