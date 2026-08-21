@@ -27,6 +27,7 @@ export function ActionMenu({ className, items, label }: ActionMenuProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const itemRefs = useRef<Array<HTMLElement | null>>([])
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
     if (!open) return
@@ -42,7 +43,14 @@ export function ActionMenu({ className, items, label }: ActionMenuProps) {
   }, [items, open])
 
   useEffect(() => {
-    if (!open) triggerRef.current?.focus()
+    if (open) {
+      wasOpenRef.current = true
+      return
+    }
+    if (!wasOpenRef.current) return
+
+    wasOpenRef.current = false
+    triggerRef.current?.focus()
   }, [open])
 
   function focusOffset(current: number, offset: number): void {

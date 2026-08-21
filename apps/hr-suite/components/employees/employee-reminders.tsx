@@ -82,6 +82,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
   const [formValues, setFormValues] = useState<FormValues>(newFormValues)
   const [savedValues, setSavedValues] = useState<FormValues>(newFormValues)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleteCandidate, setDeleteCandidate] = useState<ReminderItem | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -96,6 +97,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
     setFormValues(values)
     setSavedValues(values)
     setFeedback(null)
+    setFormError(null)
     setOpen(true)
   }
 
@@ -105,12 +107,14 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
     setFormValues(values)
     setSavedValues(values)
     setFeedback(null)
+    setFormError(null)
     setOpen(true)
   }
 
   function closeForm(): void {
     setOpen(false)
     setEditing(null)
+    setFormError(null)
   }
 
   function updateFormValue<Key extends keyof FormValues>(key: Key, value: FormValues[Key]): void {
@@ -122,6 +126,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
     if (saving) return
     setSaving(true)
     setFeedback(null)
+    setFormError(null)
 
     try {
       const remindAt = new Date(formValues.dateTime).toISOString()
@@ -129,7 +134,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
       const createBody = mode === 'PERSONAL' ? { type: 'PERSONAL' as const, ...body } : { type: 'HR' as const, ...body, targetType: 'EMPLOYEES' as const, targetIds: [employeeId] }
       const response = await fetch(editing ? `/api/reminders/${editing.reminderId}` : '/api/reminders', { method: editing ? 'PATCH' : 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(editing ? body : createBody) })
       if (!response.ok) {
-        setFeedback(labels.failed)
+        setFormError(labels.failed)
         return
       }
 
@@ -138,7 +143,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
         if (result.data?.id) {
           const publishResponse = await fetch(`/api/reminders/${result.data.id}/publish`, { method: 'POST' })
           if (!publishResponse.ok) {
-            setFeedback(labels.failed)
+            setFormError(labels.failed)
             return
           }
         }
@@ -148,7 +153,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
       closeForm()
       router.refresh()
     } catch {
-      setFeedback(labels.failed)
+      setFormError(labels.failed)
     } finally {
       setSaving(false)
     }
@@ -200,6 +205,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
         saving={saving}
         title={editing ? labels.edit : labels.add}
       >
+        {formError ? <p className="border border-destructive/40 bg-destructive-surface px-3 py-2 text-sm text-destructive" role="alert">{formError}</p> : null}
         <div className="grid gap-4 md:grid-cols-2" key={formKey}>
           <FormField control={<TextInput name="title" onChange={(event) => updateFormValue('title', event.target.value)} required value={formValues.title} />} label={labels.titleLabel} required />
           <FormField control={<TextInput name="remindAt" onChange={(event) => updateFormValue('dateTime', event.target.value)} required type="datetime-local" value={formValues.dateTime} />} label={labels.dateLabel} required />

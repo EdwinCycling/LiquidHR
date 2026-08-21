@@ -76,6 +76,39 @@ describe('UX Foundation v1.2 interaction primitives', () => {
     unmount(host, root)
   })
 
+  it('does not steal focus on a closed ActionMenu mount and restores focus after use', () => {
+    const external = document.createElement('button')
+    external.type = 'button'
+    document.body.append(external)
+    external.focus()
+
+    const { host, root } = mount(<ActionMenu items={[{ id: 'edit', label: 'Wijzigen', onSelect: () => undefined }]} label="Meer acties" />)
+    expect(document.activeElement).toBe(external)
+
+    const trigger = host.querySelector('button[aria-label="Meer acties"]') as HTMLButtonElement
+    act(() => { trigger.focus(); trigger.click() })
+    const menu = document.body.querySelector('[role="menu"]') as HTMLElement
+    expect(menu).not.toBeNull()
+    act(() => menu.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })))
+    expect(document.activeElement).toBe(trigger)
+
+    unmount(host, root)
+    external.remove()
+  })
+
+  it('creates and cleans the Dialog portal root with the open lifecycle', () => {
+    const { host, root } = mount(<DialogHarness />)
+    expect(document.querySelectorAll('[data-liquidhr-overlay-root]')).toHaveLength(0)
+
+    const trigger = host.querySelector('button') as HTMLButtonElement
+    act(() => { trigger.focus(); trigger.click() })
+    expect(document.querySelectorAll('[data-liquidhr-overlay-root]')).toHaveLength(1)
+
+    act(() => (document.body.querySelector('button[aria-label="Sluiten"]') as HTMLButtonElement).click())
+    expect(document.querySelectorAll('[data-liquidhr-overlay-root]')).toHaveLength(0)
+    unmount(host, root)
+  })
+
   it('keeps the drawer modal and restores focus after Escape', () => {
     const { host, root } = mount(<DrawerHarness />)
     const trigger = host.querySelector('button') as HTMLButtonElement

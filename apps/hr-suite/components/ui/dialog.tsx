@@ -1,7 +1,7 @@
 'use client'
 
 import { createPortal } from 'react-dom'
-import { useEffect, useId, useMemo, useRef, useSyncExternalStore, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { X } from 'lucide-react'
 import { IconButton } from './icon-button'
 
@@ -16,13 +16,34 @@ const focusableSelector = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',')
 
-const subscribeToMount = () => () => undefined
-const getClientMountSnapshot = () => true
-const getServerMountSnapshot = () => false
-
 function focusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => !element.hasAttribute('aria-hidden'))
 }
+
+type PortalStore = {
+  getSnapshot: () => HTMLDivElement | null
+  set: (value: HTMLDivElement | null) => void
+  subscribe: (listener: () => void) => () => void
+}
+
+function createPortalStore(): PortalStore {
+  let value: HTMLDivElement | null = null
+  const listeners = new Set<() => void>()
+
+  return {
+    getSnapshot: () => value,
+    set: (nextValue) => {
+      value = nextValue
+      listeners.forEach((listener) => listener())
+    },
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+  }
+}
+
+const getServerPortalSnapshot = (): HTMLDivElement | null => null
 
 export type DialogProps = {
   open: boolean
@@ -60,18 +81,22 @@ export function Dialog({
   const panelRef = useRef<HTMLDivElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(false)
-  const isMounted = useSyncExternalStore(subscribeToMount, getClientMountSnapshot, getServerMountSnapshot)
-  const portal = useMemo(() => {
-    if (!isMounted) return null
+  const [portalStore] = useState<PortalStore>(createPortalStore)
+  const portal = useSyncExternalStore(portalStore.subscribe, portalStore.getSnapshot, getServerPortalSnapshot)
+
+  useEffect(() => {
+    if (!open) return
+
     const root = document.createElement('div')
     root.dataset.liquidhrOverlayRoot = 'true'
     document.body.append(root)
-    return root
-  }, [isMounted])
+    portalStore.set(root)
 
-  useEffect(() => {
-    return () => portal?.remove()
-  }, [portal])
+    return () => {
+      root.remove()
+      if (portalStore.getSnapshot() === root) portalStore.set(null)
+    }
+  }, [open, portalStore])
 
   useEffect(() => {
     if (!open || !portal) return
