@@ -19,9 +19,12 @@ import {
   Search,
   Send,
   Workflow,
-  X,
 } from 'lucide-react'
 import type { FieldBinding, FieldDefinition, FieldAccessMode, FieldType, ProcessDefinitionDraft } from '@/lib/process-automation/definition-schemas'
+import { Button } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { FormActions } from '@/components/patterns/form-actions'
 import {
   defaultOptionsForFieldType,
   formFieldCatalog,
@@ -184,6 +187,10 @@ export interface StudioLabels {
   readonly back: string
   readonly createDraft: string
   readonly creationSummary: string
+  readonly discardChangesTitle: string
+  readonly discardChangesDescription: string
+  readonly discardChanges: string
+  readonly keepEditing: string
 }
 
 interface StudioWorkspaceProps {
@@ -367,9 +374,13 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const [actionError, setActionError] = useState('')
   const [studioStage, setStudioStage] = useState<StudioStage>('process')
   const [showCreateWizard, setShowCreateWizard] = useState(false)
+  const [showDiscardCreate, setShowDiscardCreate] = useState(false)
   const [createStep, setCreateStep] = useState(0)
   const [createName, setCreateName] = useState('')
   const [createKey, setCreateKey] = useState('')
+  const [createPending, setCreatePending] = useState(false)
+  const [publishPending, setPublishPending] = useState(false)
+  const [retirePending, setRetirePending] = useState(false)
   const saveInFlightRef = useRef(false)
   const saveBlockedRef = useRef(false)
 
@@ -381,6 +392,17 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   const selectedForm = draft?.forms.find((form) => form.key === activeFormKey) ?? draft?.forms[0] ?? null
   const selectedStep = draft?.steps.find((step) => step.key === activeStepKey) ?? draft?.steps[0] ?? null
   const previewParticipantDefinition = draft?.participants.find((participant) => participant.key === previewParticipant) ?? draft?.participants[0] ?? null
+  const createDirty = createName.trim() !== '' || createKey.trim() !== ''
+
+  useEffect(() => {
+    if (!showCreateWizard || !createDirty) return
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [createDirty, showCreateWizard])
 
   useEffect(() => {
     if (!draft || !selected?.definition.id || !dirty || !editing || !canWrite || saveInFlightRef.current || saveBlockedRef.current) return
@@ -423,13 +445,37 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   }
 
   async function createDefinition() {
+    if (createPending || !createName.trim() || createKey.trim().length < 3) return
     setActionError('')
+    setCreatePending(true)
     const key = createKey.trim() || `process-${Date.now().toString(36)}`
-    const response = await fetch('/api/process-automation/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) })
-    const payload = await response.json() as { data?: { id: string }; code?: string }
-    if (!response.ok || !payload.data) { setActionError(payload.code ?? labels.saveError); return }
+    try {
+      const response = await fetch('/api/process-automation/studio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) })
+      const payload = await response.json() as { data?: { id: string }; code?: string }
+      if (!response.ok || !payload.data) { setActionError(payload.code ?? labels.saveError); return }
+      setShowCreateWizard(false)
+      router.push(`/settings/process-automation?definition=${payload.data.id}`)
+    } finally {
+      setCreatePending(false)
+    }
+  }
+
+  function closeCreateWizard() {
     setShowCreateWizard(false)
-    router.push(`/settings/process-automation?definition=${payload.data.id}`)
+    setShowDiscardCreate(false)
+    setCreateStep(0)
+    setCreateName('')
+    setCreateKey('')
+    setActionError('')
+  }
+
+  function requestCreateClose() {
+    if (createPending) return
+    if (createDirty) {
+      setShowDiscardCreate(true)
+      return
+    }
+    closeCreateWizard()
   }
 
   async function cloneDefinition() {
@@ -443,21 +489,35 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
   }
 
   async function publishDefinition() {
-    if (!selected || dirty || !publishChangelog.trim()) return
+    if (!selected || dirty || !publishChangelog.trim() || publishPending) return
     setActionError('')
-    const response = await fetch(`/api/process-automation/studio/${selected.definition.id}/publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedRevision: draftRevision, changelog: publishChangelog }) })
-    const payload = await response.json() as { data?: { versionNumber: number }; code?: string; issues?: StudioIssue[] }
-    if (!response.ok || !payload.data) { setIssues(payload.issues ?? []); setActionError(payload.code ?? labels.compilerBlocked); return }
-    router.push(`/settings/process-automation?definition=${selected.definition.id}`)
+    setPublishPending(true)
+    try {
+      const response = await fetch(`/api/process-automation/studio/${selected.definition.id}/publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedRevision: draftRevision, changelog: publishChangelog }) })
+      const payload = await response.json() as { data?: { versionNumber: number }; code?: string; issues?: StudioIssue[] }
+      if (!response.ok || !payload.data) { setIssues(payload.issues ?? []); setActionError(payload.code ?? labels.compilerBlocked); return }
+      setShowPublish(false)
+      setPublishChangelog('')
+      router.push(`/settings/process-automation?definition=${selected.definition.id}`)
+    } finally {
+      setPublishPending(false)
+    }
   }
 
   async function retireDefinition() {
-    if (!selected || !retireReason.trim()) return
+    if (!selected || !retireReason.trim() || retirePending) return
     setActionError('')
-    const response = await fetch(`/api/process-automation/studio/${selected.definition.id}/retire`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: retireReason }) })
-    const payload = await response.json() as { data?: { activeInstanceCount: number }; code?: string }
-    if (!response.ok || !payload.data) { setActionError(payload.code ?? labels.saveError); return }
-    router.push(`/settings/process-automation?definition=${selected.definition.id}`)
+    setRetirePending(true)
+    try {
+      const response = await fetch(`/api/process-automation/studio/${selected.definition.id}/retire`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: retireReason }) })
+      const payload = await response.json() as { data?: { activeInstanceCount: number }; code?: string }
+      if (!response.ok || !payload.data) { setActionError(payload.code ?? labels.saveError); return }
+      setShowRetire(false)
+      setRetireReason('')
+      router.push(`/settings/process-automation?definition=${selected.definition.id}`)
+    } finally {
+      setRetirePending(false)
+    }
   }
 
   async function runTrial() {
@@ -658,6 +718,50 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
     { id: 'versions', label: labels.versionDiff, icon: GitCompareArrows },
   ]
 
+  if (showCreateWizard) {
+    const createFormId = 'create-process-wizard-form'
+    return (
+      <div className="min-h-[calc(100dvh-4rem)] bg-background">
+        <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+          <header className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="eyebrow">{labels.newProcess}</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{labels.newWizardTitle}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.newWizardDescription}</p>
+            </div>
+            <Button aria-label={labels.cancel} onClick={requestCreateClose} size="sm" type="button" variant="secondary">{labels.cancel}</Button>
+          </header>
+
+          <ol aria-label={labels.newWizardTitle} className="mt-8 grid gap-2 sm:grid-cols-3">
+            {[labels.wizardBasics, labels.wizardStartingPoint, labels.wizardReview].map((label, index) => <li aria-current={createStep === index ? 'step' : undefined} className={`flex min-w-0 items-center gap-3 rounded-lg border px-4 py-3 text-sm font-semibold ${createStep === index ? 'border-primary bg-accent/50 text-foreground' : index < createStep ? 'border-success/40 text-success' : 'border-border bg-surface text-muted-foreground'}`} key={label}><span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-xs">{index < createStep ? <CheckCircle2 aria-hidden="true" size={15} /> : index + 1}</span><span className="truncate">{label}</span></li>)}
+          </ol>
+
+          <form className="mt-6 rounded-xl border border-border bg-surface p-5 sm:p-8" id={createFormId} onSubmit={(event) => { event.preventDefault(); if (createStep < 2) setCreateStep((step) => step + 1); else void createDefinition() }}>
+            <div className="min-h-[21rem]">
+              {createStep === 0 ? <div className="grid max-w-2xl gap-5">
+                <div><h2 className="text-xl font-semibold">{labels.wizardBasics}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.newWizardDescription}</p></div>
+                <label className="grid gap-1.5 text-sm font-semibold" htmlFor="create-process-name">{labels.processName}<input autoFocus className="form-field font-normal" id="create-process-name" onChange={(event) => { const name = event.target.value; setCreateName(name); setCreateKey(name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) }} placeholder={labels.processNamePlaceholder} required value={createName} /></label>
+                <label className="grid gap-1.5 text-sm font-semibold" htmlFor="create-process-key">{labels.processKey}<input className="form-field font-mono font-normal" id="create-process-key" minLength={3} onChange={(event) => setCreateKey(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} required value={createKey} /><span className="text-xs font-normal leading-5 text-muted-foreground">{labels.processKeyHelp}</span></label>
+              </div> : null}
+              {createStep === 1 ? <div className="grid max-w-2xl gap-4">
+                <div><h2 className="text-xl font-semibold">{labels.wizardStartingPoint}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.newWizardDescription}</p></div>
+                <div aria-pressed="true" className="flex items-start gap-4 rounded-lg border border-primary bg-accent/40 p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-primary"><Workflow aria-hidden="true" size={19} /></span><span><span className="font-semibold">{labels.blankProcess}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.blankProcessDescription}</span></span></div>
+                <div aria-disabled="true" className="flex items-start gap-4 rounded-lg border border-border bg-muted/40 p-4 opacity-75"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-background text-muted-foreground"><LayoutDashboard aria-hidden="true" size={19} /></span><span><span className="font-semibold">{labels.certifiedRecipe}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.certifiedRecipeDescription}</span></span></div>
+              </div> : null}
+              {createStep === 2 ? <div className="max-w-2xl">
+                <div><h2 className="text-xl font-semibold">{labels.wizardReview}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.creationSummary}</p></div>
+                <dl className="mt-6 grid gap-5 rounded-lg border border-border bg-background p-5 sm:grid-cols-2"><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processName}</dt><dd className="mt-1 break-words font-semibold">{createName}</dd></div><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processKey}</dt><dd className="mt-1 break-all font-mono text-sm">{createKey}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-muted-foreground">{labels.wizardStartingPoint}</dt><dd className="mt-1 text-sm">{labels.blankProcessDescription}</dd></div></dl>
+              </div> : null}
+              {actionError ? <p className="mt-6 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{actionError}</p> : null}
+            </div>
+            <FormActions cancelLabel={labels.cancel} disabled={createPending} form={createFormId} onCancel={requestCreateClose} saveLabel={createStep < 2 ? labels.continue : labels.createDraft} saving={createPending} sticky leading={createStep > 0 ? <Button onClick={() => setCreateStep((step) => step - 1)} size="sm" type="button" variant="secondary"><ArrowLeft aria-hidden="true" size={15} />{labels.back}</Button> : undefined} />
+          </form>
+        </div>
+        <ConfirmDialog cancelLabel={labels.keepEditing} confirmLabel={labels.discardChanges} description={labels.discardChangesDescription} destructive onConfirm={closeCreateWizard} onOpenChange={setShowDiscardCreate} open={showDiscardCreate} title={labels.discardChangesTitle} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <section aria-labelledby="automation-overview-title" className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
@@ -857,23 +961,12 @@ export function StudioWorkspace({ initialCatalog, initialSelection, initialTab, 
         </main>
       </div>
 
-      {showCreateWizard ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-sidebar/60 p-4 backdrop-blur-sm" role="dialog">
-        <section aria-labelledby="create-process-title" className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border bg-surface p-5 shadow-2xl sm:p-7">
-          <header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.newProcess}</p><h2 className="mt-1 text-2xl font-semibold" id="create-process-title">{labels.newWizardTitle}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{labels.newWizardDescription}</p></div><button aria-label={labels.cancel} className="button-secondary" onClick={() => setShowCreateWizard(false)} type="button"><X size={16} /></button></header>
-          <ol aria-label={labels.newWizardTitle} className="mt-6 grid gap-1 rounded-lg border bg-muted p-1 sm:grid-cols-3">
-            {[labels.wizardBasics, labels.wizardStartingPoint, labels.wizardReview].map((label, index) => <li className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${createStep === index ? 'bg-surface text-foreground shadow-sm' : index < createStep ? 'text-success' : 'text-muted-foreground'}`} key={label}><span className={`grid size-6 place-items-center rounded-md text-xs ${index < createStep ? 'bg-success/10' : 'bg-background'}`}>{index < createStep ? <CheckCircle2 size={14} /> : index + 1}</span>{label}</li>)}
-          </ol>
-          <div className="mt-6 min-h-60">
-            {createStep === 0 ? <div className="grid gap-5"><label className="grid gap-1.5 text-sm font-semibold">{labels.processName}<input autoFocus className="form-field font-normal" onChange={(event) => { const name = event.target.value; setCreateName(name); setCreateKey(name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) }} placeholder={labels.processNamePlaceholder} value={createName} /></label><label className="grid gap-1.5 text-sm font-semibold">{labels.processKey}<input className="form-field font-mono font-normal" onChange={(event) => setCreateKey(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} value={createKey} /><span className="text-xs font-normal leading-5 text-muted-foreground">{labels.processKeyHelp}</span></label></div> : null}
-            {createStep === 1 ? <div className="grid gap-3"><div className="flex items-start gap-4 rounded-lg border border-primary bg-accent/40 p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-primary"><Workflow size={19} /></span><span><span className="font-semibold">{labels.blankProcess}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.blankProcessDescription}</span></span></div><div className="flex items-start gap-4 rounded-lg border bg-muted/40 p-4 opacity-75"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-background text-muted-foreground"><LayoutDashboard size={19} /></span><span><span className="font-semibold">{labels.certifiedRecipe}</span><span className="mt-1 block text-sm leading-5 text-muted-foreground">{labels.certifiedRecipeDescription}</span></span></div></div> : null}
-            {createStep === 2 ? <div className="rounded-lg border bg-background p-5"><p className="eyebrow">{labels.creationSummary}</p><dl className="mt-4 grid gap-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processName}</dt><dd className="mt-1 font-semibold">{createName}</dd></div><div><dt className="text-xs font-semibold text-muted-foreground">{labels.processKey}</dt><dd className="mt-1 break-all font-mono text-sm">{createKey}</dd></div><div className="sm:col-span-2"><dt className="text-xs font-semibold text-muted-foreground">{labels.wizardStartingPoint}</dt><dd className="mt-1 text-sm">{labels.blankProcessDescription}</dd></div></dl></div> : null}
-          </div>
-          <footer className="mt-6 flex items-center justify-between gap-3 border-t pt-5"><button className="button-secondary inline-flex items-center gap-2" onClick={() => createStep === 0 ? setShowCreateWizard(false) : setCreateStep((step) => step - 1)} type="button">{createStep === 0 ? labels.cancel : <><ArrowLeft size={15} />{labels.back}</>}</button>{createStep < 2 ? <button className="button-primary" disabled={createStep === 0 && (!createName.trim() || createKey.length < 3)} onClick={() => setCreateStep((step) => step + 1)} type="button">{labels.continue}</button> : <button className="button-primary inline-flex items-center gap-2" onClick={() => void createDefinition()} type="button"><Plus size={15} />{labels.createDraft}</button>}</footer>
-        </section>
-      </div> : null}
-
-      {showPublish ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-5" role="dialog"><div className="w-full max-w-lg rounded-3xl border bg-surface p-6 shadow-xl"><h2 className="text-xl font-semibold">{labels.publishConfirmation}</h2><label className="mt-5 block text-sm font-semibold">{labels.changelog}<textarea className="mt-1 min-h-32 w-full rounded-xl border bg-background px-3 py-2 font-normal" onChange={(event) => setPublishChangelog(event.target.value)} placeholder={labels.changelogPlaceholder} value={publishChangelog} /></label><div className="mt-5 flex justify-end gap-2"><button className="rounded-xl border px-4 py-2 text-sm font-semibold" onClick={() => setShowPublish(false)} type="button">{labels.cancel}</button><button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50" disabled={!publishChangelog.trim()} onClick={() => void publishDefinition()} type="button"><Send size={15} />{labels.confirmPublish}</button></div></div></div> : null}
-      {showRetire ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-5" role="dialog"><div className="w-full max-w-lg rounded-3xl border bg-surface p-6 shadow-xl"><h2 className="text-xl font-semibold">{labels.retire}</h2><label className="mt-5 block text-sm font-semibold">{labels.retireReason}<textarea className="mt-1 min-h-28 w-full rounded-xl border bg-background px-3 py-2 font-normal" onChange={(event) => setRetireReason(event.target.value)} value={retireReason} /></label><div className="mt-5 flex justify-end gap-2"><button className="rounded-xl border px-4 py-2 text-sm font-semibold" onClick={() => setShowRetire(false)} type="button">{labels.cancel}</button><button className="rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground disabled:opacity-50" disabled={!retireReason.trim()} onClick={() => void retireDefinition()} type="button">{labels.confirmRetire}</button></div></div></div> : null}
+      <Dialog closeLabel={labels.cancel} closeOnBackdropClick={!publishPending} closeOnEscape={!publishPending} description={labels.changelogPlaceholder} footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={publishPending} onClick={() => setShowPublish(false)} size="sm" type="button" variant="secondary">{labels.cancel}</Button><Button disabled={!publishChangelog.trim()} loading={publishPending} onClick={() => void publishDefinition()} size="sm" type="button" variant="primary"><Send aria-hidden="true" size={15} />{labels.confirmPublish}</Button></div>} onOpenChange={setShowPublish} open={showPublish} title={labels.publishConfirmation}>
+        <label className="grid gap-1.5 text-sm font-semibold" htmlFor="publish-changelog">{labels.changelog}<textarea className="min-h-32 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" id="publish-changelog" onChange={(event) => setPublishChangelog(event.target.value)} placeholder={labels.changelogPlaceholder} value={publishChangelog} /></label>
+      </Dialog>
+      <Dialog closeLabel={labels.cancel} closeOnBackdropClick={!retirePending} closeOnEscape={!retirePending} description={labels.retireReason} footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={retirePending} onClick={() => setShowRetire(false)} size="sm" type="button" variant="secondary">{labels.cancel}</Button><Button disabled={!retireReason.trim()} loading={retirePending} onClick={() => void retireDefinition()} size="sm" type="button" variant="danger">{labels.confirmRetire}</Button></div>} onOpenChange={setShowRetire} open={showRetire} title={labels.retire}>
+        <label className="grid gap-1.5 text-sm font-semibold" htmlFor="retire-reason">{labels.retireReason}<textarea className="min-h-28 w-full rounded-lg border border-input bg-background px-3 py-2 font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" id="retire-reason" onChange={(event) => setRetireReason(event.target.value)} value={retireReason} /></label>
+      </Dialog>
     </div>
   )
 }

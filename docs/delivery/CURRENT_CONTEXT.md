@@ -7,6 +7,13 @@
 - Startpage: alleen Foundation-polish. Zware shadows, normale hover-lift en niet-canonieke surface-radius zijn verwijderd; semantic Foundation surfaces/tokens zijn gebruikt. Compact/expanded, widgets, quick-action horizontal scroll, drag/reorder, scopes, order en preferences zijn behouden.
 - Verificatie: gerichte 12/12, volledige 210/826, strict TypeScript, i18n 33 namespaces, lint 0 errors/6 bestaande warnings, build 225 routes en diff-check groen.
 - Browser: `/dashboard/start` geeft lokaal 307 naar `/login`; anonieme `/api/roles` geeft 401. Authenticated TEST HR/Manager acceptance op desktop/390×844 en Default/LinkedHR is `BLOCKED BY ENVIRONMENT` omdat canonical fixture-passwords niet beschikbaar zijn. Geen secrets gekopieerd of gelogd. Bestaande dirty `apps/hr-suite/next-env.d.ts` blijft buiten scope.
+## UX v1.2 correction batch 3 — Process Automation interactions — 2026-08-21
+
+- Branch/worktree: `work/ux-v1-2-process-automation-interactions` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-v1-2-process-automation-interactions`, gestart vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`.
+- `/settings/process-automation` create gebruikt nu een full-page driestapsflow met sticky `FormActions`, Back/Continue/Cancel, browser dirty protection en centrale discard-confirmatie. Publish en retire gebruiken de centrale `Dialog`; changelog en retire reason blijven verplichte input. Catalogus, studio, route, API, permissions en businesslogica zijn niet gewijzigd.
+- Lokale gates GREEN: process-automation tests 8 bestanden/46 tests, volledige hr-suite 210 bestanden/826 tests, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, targeted lint, volledige lint met alleen 6 bestaande warnings, productiebuild 225 routes en `git diff --check`.
+- Browseracceptance: `BLOCKED BY ENVIRONMENT`. Deze geïsoleerde worktree bevat geen `.env.local`; poort 3000 is bezet door een andere lokale server. Geen secrets gekopieerd en geen bewijs uit een andere worktree geclaimd. TEST HR create/edit/publish/retire, unauthorized negative, desktop/390x844 en consolecheck blijven open.
+- Open: branch commit en push; niet naar `main` mergen. Bestaande parallelle dirty wijziging in de hoofdwerkplek (`apps/hr-suite/next-env.d.ts`) blijft buiten scope.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 

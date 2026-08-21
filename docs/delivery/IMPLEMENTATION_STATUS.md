@@ -7,6 +7,13 @@
 Branch `work/ux-v1-2-foundation-polish` start vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`. Authorization role-create gebruikt `FormDrawer` met controlled dirty-state, centrale discard-confirm, saving/double-submit protection en lokale foutmelding. Coverage inspection gebruikt `Dialog`; de bestaande permission-editing en save-payloads blijven behouden. Startpage gebruikt Foundation-radius en semantic surfaces zonder zware shadows of normale hover-lift; compact/expanded, widgets, quick actions, scopes, drag/reorder en voorkeuren zijn niet functioneel herbouwd.
 
 Gericht: startpage/v1.2 12/12 tests. Volledig: 210 testbestanden/826 tests, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, lint 0 errors/6 bestaande warnings, Next-build 225 routes en `git diff --check` groen. Browser: lokale `/dashboard/start` redirect 307 naar login en anonieme `/api/roles` 401; authenticated TEST HR/Manager, desktop/390×844 en Default/LinkedHR blijven open omdat canonical `TALENT_*_PASSWORD`-waarden niet beschikbaar zijn. Geen API-, database-, RLS-, permission-, businesslogic- of mainwijziging; alleen deze work-branch is naar origin gepusht. Bestaande `apps/hr-suite/next-env.d.ts`-wijziging blijft buiten scope.
+## UX v1.2 correction batch 3 — Process Automation interactions — 2026-08-21
+
+**Status: LOKAAL GROEN; AUTHENTICATED BROWSERACCEPTANCE GEBLOKKEERD; WACHT OP PUSH**
+
+De create-interactie van `/settings/process-automation` is gemigreerd van een custom dialog naar een full-page driestapsflow met sticky `FormActions`, Back/Continue/Cancel, dirty protection en bestaande create-draft API/navigation semantics. Publish en retire gebruiken de centrale `Dialog`; de verplichte changelog en reason zijn behouden. Er zijn geen Foundation-, route-, API-, database-, RLS-, permission- of businesslogicawijzigingen.
+
+De lokale gate is groen: process-automation tests 8/8 bestanden en 46/46 tests, volledige hr-suite 210/210 testbestanden en 826/826 tests, strict TypeScript, i18n-pariteit met 33 namespaces, targeted lint, volledige lint met 6 bestaande warnings, productiebuild met 225 routes en `git diff --check`. Authenticated acceptance met TEST HR, read-only/unauthorized negative, create/edit/publish/retire cleanup, desktop, 390×844 en 0 relevante console-errors is niet uitgevoerd: deze worktree heeft geen `.env.local` en poort 3000 is bezet door een andere lokale server. Er zijn geen secrets gekopieerd en geen andere worktree gebruikt voor bewijs.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 
