@@ -4,6 +4,21 @@ Auditdatum: 2026-08-21
 Baseline: `origin/main` — `a65d1daaa9444602f4be52c2d32933cffd285dd0`
 Verwachte baseline uit de opdracht: `a65d1daaa9444602f4be52c2d32933cffd285dd0` — actueel.
 
+## Final acceptance evidence — 2026-08-21
+
+Acceptance is executed only on `work/ux-v1-2-integration`, exact HEAD `b3ba2097eb5b7b606fe49220bb912cf37174eeb5`; `main` is untouched. Inherited gates from that HEAD remain the reference: 213/213 test files, 833/833 tests, strict TypeScript, i18n 33/33 namespaces, lint 0 errors, Webpack 225 routes and diff-check GREEN. No product code changed during this acceptance run.
+
+| Area | Evidence | Status |
+|---|---|---|
+| Documents PDF/TXT | Upload 201; download 307 and signed storage 200; delete → restore → final delete 200 for both controlled files. Cleanup: 9 acceptance records soft-deleted, 9 storage objects removed, 0 orphans. | GREEN |
+| Absence | Report 201 on two valid fixtures; recovery 200 with readback. Capacity 25% read back on a later effective date; response status not captured. Invalid legacy UUID fixtures correctly returned `ABSENCE_INPUT_INVALID` 400. | AMBER |
+| Employment | Route and wizard entry 200. CAO step explicitly says the mutation is not available; no real contract/location/organization mutation was completed. | RED |
+| Authorization | HR create 201 and temporary role deactivated 200. Valid manager/employee role POSTs were rejected 403. Coverage dialog/save not fully proven. | AMBER |
+| Process automation | Studio route 200 and existing catalog visible; create/publish/retire/changelog and cleanup were not completed. | RED |
+| Responsive/themes | LinkedHR active and 390px Employees/Documents had `scrollWidth=390`. Full route console matrix and separate Default-theme run remain open. | RED |
+
+Final acceptance classification: **RED / not release-ready** because the required employment mutation, process lifecycle, authorization coverage, and complete responsive/theme matrix are not fully proven. This is acceptance evidence, not a new design or implementation finding.
+
 ## Executive summary
 
 Er zijn 14 schermen/flows geaudit.
@@ -26,9 +41,9 @@ De belangrijkste correcties zijn daarom interaction-architectuur, niet cosmetisc
 
 Er is één daadwerkelijk gebruikte bestaande Foundation-gap: **Multiselect — LATER** voor documenten/custom fields. Er is geen nieuwe gap nodig om de gevonden v1.2-afwijkingen te verklaren; de benodigde v1.2-primitives en patterns bestaan al in `apps/hr-suite/components/ui` en `apps/hr-suite/components/patterns`.
 
-## Final integration blocker evidence — 2026-08-21
+## Final integration blocker evidence — superseded 2026-08-21
 
-De document-upload is read-only onderzocht tegen de actieve TEST-database met TEST HR en `DEMO-035`. PDF en TXT bereiken Storage en falen daarna in `create_employee_document_metadata` met `42501` / `new row violates row-level security policy for table "employee_documents"`; `details` en `hint` zijn `null`. Repo-definitie en actieve functie hebben dezelfde signature `uuid, uuid, jsonb -> uuid`. Onder dezelfde authenticated context slaagt `INSERT` zonder `RETURNING`, maar `INSERT ... RETURNING id` faalt: de SELECT-policy gebruikt audience visibility, terwijl de RPC de audience pas na `RETURNING id` toevoegt. Primaire oorzaak: `SOURCE_CODE_BUG` in de RPC/migration-definitie; noodzakelijke function-replacement/migration is **SCHEMA APPLY REQUIRED** en is niet uitgevoerd. Storage cleanup is gecontroleerd; de eigen diagnostic-key en twee eerdere orphaned acceptance-objects zijn verwijderd, met 0 resterende orphans op de DEMO-035-prefix. Document/absence/employment/authorization/process acceptance blijft geblokkeerd of onvolledig totdat de TEST-functie is gecorrigeerd.
+De eerdere document-RLS blocker is opgelost met de forward migration `20260821150000_fix_employee_document_metadata_rls.sql` op TEST. De remote SQL-regressietest is groen en de authenticated browserflow is daarna opnieuw uitgevoerd: PDF/TXT upload 201, signed download 307/200 en delete/restore/final-delete 200. De actuele acceptance-uitkomst staat hierboven; de resterende RED-status komt uit de nog open employment-, process-, authorization-coverage- en volledige responsive/theme-blokken, niet uit de eerdere document-RLS-fout.
 
 ## Audit scope en classificatie
 
