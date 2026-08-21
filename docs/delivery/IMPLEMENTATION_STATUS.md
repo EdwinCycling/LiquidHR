@@ -2,17 +2,25 @@
 
 ## UX v1.2 final integration & acceptance — 2026-08-21 — actuele status
 
-**Status: RED / NIET RELEASE-READY**
+**Status: TEST-TRUNK: GREEN — RELEASE / PRODUCTION ACCEPTANCE: AMBER**
 
 De branch `work/ux-v1-2-integration` bevat de bestaande integrationbasis plus de forward TEST-RLS-migration, remote regression test en twee noodzakelijke document-uploadfixes. Alleen de nieuwe migration is op TEST toegepast; `main` is niet gewijzigd.
 
 Remote schema-evidence is groen: write-helper `can_manage_document_for_write`, document-audience write policies en de invoker-RPC zijn gecontroleerd; read policies/RLS zijn behouden. De remote SQL-regressietest bewijst positieve HR document/audience write/read, negatieve no-write en geen algemene read zonder audience. Security/performance advisors zijn uitgevoerd; er is geen nieuwe document-specifieke finding. Types zijn opnieuw gegenereerd zonder relevante exposed-typewijziging.
 
-Lokale technische gates zijn groen: `213/213` testbestanden en `833/833` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-productiebuild `225` routes en `git diff --check`.
+Bewezen GREEN-resultaten: Document PDF/TXT CRUD + cleanup, RLS migration + regressietest, HR Absence report/recovery, Authorization role CRUD + negative 403, `833/833` tests, TypeScript, i18n, lint, Webpack build en diff-check. De technische gate omvat `213/213` testbestanden, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings` en Webpack-productiebuild met `225` routes.
 
 Authenticated browser-evidence is gedeeltelijk groen op localhost:3000: document PDF/TXT upload HTTP 201, download HTTP 307 plus signed-storage HTTP 200, delete/restore/final-delete HTTP 200 voor beide controlled files, en daarna 9/9 acceptance-records soft-deleted met 9/9 storage objects verwijderd en 0 orphans. Absence report/recovery is groen met readback; capacity leest 25% terug maar heeft geen vastgelegde response-status. HR role create/cleanup en manager/employee negative POST 403 zijn groen. Employment real mutation, authorization coverage/save, process create/publish/retire/changelog, volledige desktop/390-consolematrix en afzonderlijke Default-theme acceptance blijven open. Tijdelijke absence-cases blijven staan omdat het product geen delete-contract aanbiedt.
 
-**Eindclassificatie: RED.** Geen merge, deployment, release of push naar `main`.
+Residual acceptance backlog voor release/production acceptance:
+
+- Absence Manager/Employee volledige matrix
+- Employment mutation met geschikte non-CAO testfixture
+- Authorization Coverage-dialog/save
+- Process Automation volledige create/publish/retire lifecycle
+- resterende volledige theme/responsive matrix
+
+**Eindclassificatie: TEST-TRUNK: GREEN; RELEASE / PRODUCTION ACCEPTANCE: AMBER.** Geen merge, deployment, release of push naar `main`.
 
 ## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
 
