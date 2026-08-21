@@ -393,6 +393,10 @@ export default async function EmploymentDetailPage({
                 deleteContract: t("changeDeleteContract"),
                 modalTitle: t("changeModalTitle"),
                 cancel: t("cancel"),
+                changeDiscardTitle: t("changeDiscardTitle"),
+                changeDiscardDescription: t("changeDiscardDescription"),
+                changeDiscardConfirm: t("changeDiscardConfirm"),
+                changeDiscardCancel: t("changeDiscardCancel"),
                 chooseContract: t("chooseContract"),
                 contractSelectionTitle: t("contractSelectionTitle"),
                 contractSelectionHelp: t("contractSelectionHelp"),
@@ -779,7 +783,7 @@ export default async function EmploymentDetailPage({
               current: t("currentValue"), history: t("historyLabel"),
               add: t("timelineAdd"), edit: t("change"), save: t("confirm"),
               cancel: t("cancel"), department: t("department"), job: t("job"),
-              effectiveOn: t("effectiveOn"), active: t("active"), failed: t("changeFailed"),
+              effectiveOn: t("effectiveOn"), active: t("active"), failed: t("changeFailed"), discardTitle: t("changeDiscardTitle"), discardDescription: t("changeDiscardDescription"), discardConfirm: t("changeDiscardConfirm"), discardCancel: t("changeDiscardCancel"),
             }}
           />
         )}
@@ -812,7 +816,7 @@ export default async function EmploymentDetailPage({
               location: t("location"), locationSearch: t("locationSearch"), locationSearchPlaceholder: t("locationSearchPlaceholder"),
               noLocationResults: t("noLocationResults"), add: t("timelineAdd"), edit: t("change"),
               save: t("confirm"), cancel: t("cancel"), effectiveOn: t("effectiveOn"),
-              failed: t("changeFailed"), saving: t("saving"), changeSaved: t("changeSaved"),
+              failed: t("changeFailed"), saving: t("saving"), changeSaved: t("changeSaved"), discardTitle: t("changeDiscardTitle"), discardDescription: t("changeDiscardDescription"), discardConfirm: t("changeDiscardConfirm"), discardCancel: t("changeDiscardCancel"),
               singleLocationMode: t("singleLocationMode"),
             }}
           />

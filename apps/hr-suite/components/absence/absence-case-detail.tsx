@@ -58,6 +58,10 @@ interface AbsenceCaseDetailProps {
     employment?: string
     employmentPlaceholder?: string
     employmentSearch?: string
+    discardTitle?: string
+    discardDescription?: string
+    discardConfirm?: string
+    discardCancel?: string
   }
 }
 
@@ -124,7 +128,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
       </div>
     </Surface>
 
-    <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch }} />
+    <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
   </div>
 }
 

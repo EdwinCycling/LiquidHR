@@ -22,6 +22,14 @@
 - Verificatie groen: correctiegerichte tests 4/4; volledige hr-suite 210 testbestanden/826 tests vóór deze correctie; strict TypeScript; targeted lint 0 errors met 4 bestaande warnings; i18n ongewijzigd; `git diff --check`.
 - Browserstatus: exacte worktree-server draait op poort 3456; Playwright `/login` HTTP 200, desktop en 390×844 redirect-smoke met 0 console-errors en 1 bestaande preload-warning. Beschermde DEMO-035-route redirect naar `/login`; anonieme GET notes/documents/employee en PATCH employee geven 401. Authenticated DEMO-035 CRUD, negative persona, desktop employee-detail en 390×844 employee-detail blijven geblokkeerd omdat deze worktree en hoofdwerkplek geen fixture-passwords bevatten; `fixtures:talent-auth` kon daarom niet uitvoeren. Niet naar `main` mergen.
 - Open: authenticated browseracceptance en real CRUD HTTP-statussen moeten nog worden uitgevoerd zodra TEST-fixture-auth beschikbaar is. Niet naar `main` mergen.
+## UX v1.2 Correction Batch 2 — HR mutation surfaces — 2026-08-21
+
+- Branch/worktree: `work/ux-v1-2-hr-mutation-surfaces` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-v1-2-hr-mutation-surfaces`, gestart vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`.
+- Geïmplementeerd: absence report gebruikt `FormDrawer` met desktop right-drawer/mobile fullscreen, vaste FormActions-footer, dirty protection, saving/error en bestaande employment/self-service payloads. Recovery en capacity blijven inline met Foundation loading/error.
+- Geïmplementeerd: employment contract-change wizard is full-page met sticky `FormActions`, bestaande stappen/payloads/timelinegedrag en dirty/beforeunload protection. Organization- en company-location-mutaties gebruiken `FormDrawer` voor add/edit.
+- Verificatie lokaal groen: targeted 23/23, volledige hr-suite 210 testbestanden/826 tests, strict TypeScript, i18n 33 gelijke NL/EN-namespaces, lint exit 0 met 6 bestaande warnings buiten deze slice, productiebuild 225 routes en `git diff --check`.
+- Authenticated browseracceptance staat open: `/login` op eigen runtime `http://localhost:3012` gaf HTTP 200 zonder console-errors, maar er zijn geen fixture-password environment keys en geen bestaande browsertab/sessie beschikbaar. Geen mocks, secrets of remote writes gebruikt.
+- Geen centrale Foundation-, API-, schema-, database-, RLS-, permission- of businesscontractwijziging. Niet gemerged of gepusht naar `main`.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 

@@ -1,11 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, CircleCheck, Clock3, X } from 'lucide-react'
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { CalendarDays, ChevronLeft, CircleCheck, Clock3 } from 'lucide-react'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { buttonClasses } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { FormActions } from '@/components/patterns/form-actions'
 import { SalaryBandPositionCard } from '@/components/salary/salary-band-position-card'
 import { SalaryBandPercentageControl } from '@/components/salary/salary-band-percentage-control'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
@@ -302,7 +304,6 @@ function fieldClassName(invalid = false): string {
 export function EmploymentContractChangeDialog({ actionKey, actionTitle, employmentId, today, locale, data, labels, dayLabels, onClose }: Props) {
   const router = useRouter()
   const mode = modeForAction(actionKey)
-  const closeRef = useRef<HTMLButtonElement>(null)
   const orderedContracts = useMemo(() => [...data.contracts].sort((left, right) => left.sequenceNumber - right.sequenceNumber), [data.contracts])
   const [step, setStep] = useState<Step>('selection')
   const [selectedContractId, setSelectedContractId] = useState(orderedContracts.length === 1 ? orderedContracts[0]?.id ?? '' : '')
@@ -317,13 +318,28 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
   const [reason, setReason] = useState('')
   const [state, setState] = useState<State>('idle')
   const [error, setError] = useState('')
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
+  const [initialDraft] = useState(() => JSON.stringify({ selectedContractId, dateChoice, effectiveOn, schedule, salary, organization, allocations, reason }))
+  const hasUnsavedChanges = state !== 'saved' && JSON.stringify({ selectedContractId, dateChoice, effectiveOn, schedule, salary, organization, allocations, reason }) !== initialDraft
+
+  const requestClose = useCallback((): void => {
+    if (state === 'saving') return
+    if (hasUnsavedChanges) { setDiscardConfirmOpen(true); return }
+    onClose()
+  }, [hasUnsavedChanges, onClose, state])
+
+  function discardChanges(): void {
+    setDiscardConfirmOpen(false)
+    onClose()
+  }
 
   useEffect(() => {
-    closeRef.current?.focus()
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && state !== 'saving') onClose() }
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && state !== 'saving') { event.preventDefault(); requestClose() } }
+    const protectBeforeUnload = (event: BeforeUnloadEvent) => { if (hasUnsavedChanges) { event.preventDefault(); event.returnValue = '' } }
     document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
-  }, [onClose, state])
+    window.addEventListener('beforeunload', protectBeforeUnload)
+    return () => { document.removeEventListener('keydown', closeOnEscape); window.removeEventListener('beforeunload', protectBeforeUnload) }
+  }, [hasUnsavedChanges, onClose, requestClose, state])
 
   const dateChoices = useMemo(() => {
     if (!selectedContract) return []
@@ -533,6 +549,19 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
     }
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    if (state === 'saved') {
+      event.preventDefault()
+      return
+    }
+    if (step !== 'review') {
+      event.preventDefault()
+      next()
+      return
+    }
+    void save(event)
+  }
+
   const modeTitle = mode === 'SCHEDULE' ? labels.changeHoursSchedule
     : mode === 'SCHEDULE_SALARY' ? labels.changeHoursScheduleSalary
       : mode === 'ORGANIZATION_COST' ? labels.changeFunctionDepartmentCostCenter
@@ -540,14 +569,14 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
   const stepLabels = [labels.stepSelection, labels.stepDate, labels.stepDetails, labels.stepReview]
   const stepIndex = step === 'selection' ? 0 : step === 'date' ? 1 : step === 'details' ? 2 : 3
 
-  return <div className="fixed inset-0 z-[80] grid place-items-center bg-sidebar/70 p-3 sm:p-6" role="presentation">
-    <section aria-labelledby="employment-contract-change-title" aria-modal="true" className="flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-[var(--radius-overlay)] border border-subtle bg-surface-overlay shadow-lg" onMouseDown={(event) => event.stopPropagation()} role="dialog">
+  return <>
+    <div className="fixed inset-0 z-[80] bg-surface" role="presentation">
+    <main aria-labelledby="employment-contract-change-title" className="flex h-dvh w-full min-w-0 flex-col bg-surface">
       <header className="flex items-start justify-between gap-4 border-b px-5 py-4 sm:px-7">
         <div className="min-w-0"><p className="eyebrow text-primary">{labels.changeModalTitle}</p><h2 className="mt-1 truncate text-xl font-semibold" id="employment-contract-change-title">{modeTitle}</h2></div>
-        <button aria-label={labels.cancel} className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'shrink-0 px-2' })} disabled={state === 'saving'} onClick={onClose} ref={closeRef} type="button"><X aria-hidden="true" className="size-4" /></button>
       </header>
       <div className="border-b bg-muted/20 px-5 py-3 sm:px-7"><ol className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">{stepLabels.map((label, index) => <li className={`flex min-w-0 items-center gap-2 text-xs font-semibold ${index <= stepIndex ? 'text-primary' : 'text-muted-foreground'}`} key={label}><span className={`grid size-7 shrink-0 place-items-center rounded-full border ${index <= stepIndex ? 'border-primary bg-primary text-primary-foreground' : 'border-border'}`}>{index + 1}</span><span className="truncate">{label}</span></li>)}</ol></div>
-      <form id="employment-contract-change-form" className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" onSubmit={(event) => void save(event)}>
+      <form id="employment-contract-change-form" className="mx-auto min-h-0 w-full max-w-6xl flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" onSubmit={handleSubmit}>
         {step === 'selection' && <section className="space-y-5"><div><p className="eyebrow text-primary">{labels.chooseContract}</p><h3 className="mt-1 text-2xl font-semibold">{labels.contractSelectionTitle}</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.contractSelectionHelp}</p></div><div className="grid gap-3 divide-y divide-subtle border-y border-subtle">{orderedContracts.map((contract) => <button aria-pressed={selectedContractId === contract.id} className={`border-subtle p-4 text-left transition-colors ${selectedContractId === contract.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/40 hover:bg-muted/50'}`} key={contract.id} onClick={() => chooseContract(contract.id)} type="button"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{labels.contractNumber} {contract.sequenceNumber}</p><p className="mt-1 font-semibold">{contract.laborConditionName}</p></div>{selectedContractId === contract.id && <CircleCheck aria-hidden="true" className="size-5 text-primary" />}</div><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4"><Summary label={labels.contractType} value={contractTypeLabel(contract.durationType, labels)} /><Summary label={labels.workerType} value={workerTypeLabel(contract.workerType, labels)} /><Summary label={labels.period} value={`${dateLabel(contract.startsOn, formatter)} — ${contract.endsOn ? dateLabel(contract.endsOn, formatter) : labels.active}`} /><Summary label={labels.fulltimeReference} value={`${contract.fulltimeHoursPerWeek} ${labels.hoursPerWeek}`} /></dl></button>)}</div>{selectedContract && <div className="border-y border-primary/25 bg-primary/5 p-4"><p className="font-semibold text-primary">{labels.selectedContractStatement}</p><p className="mt-1 text-sm text-muted-foreground">{contractSummary(selectedContract, formatter, labels)}</p></div>}</section>}
 
         {step === 'date' && selectedContract && <section className="space-y-6"><div><p className="eyebrow text-primary">{labels.timelineBeforeChange}</p><h3 className="mt-1 text-2xl font-semibold">{labels.changeStartDateTitle}</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.changeStartDateHelp}</p></div><TimelinePreview actionKey={actionKey} contract={selectedContract} data={data} labels={labels} locale={locale} formatter={formatter} /><fieldset><legend className="text-sm font-semibold">{labels.changeStartDateTitle}</legend><div className="mt-3 grid gap-3 sm:grid-cols-3">{dateChoices.map((choice) => <button className={`border border-subtle p-3 text-left text-sm transition-colors ${choice.disabled ? 'cursor-not-allowed opacity-50' : dateChoice === choice.key ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-primary/40'}`} disabled={choice.disabled} key={choice.key} onClick={() => { setDateChoice(choice.key); setEffectiveOn(choice.date); setError('') }} type="button"><span className="font-semibold">{choice.label}</span><span className="mt-1 block text-muted-foreground">{dateLabel(choice.date, formatter)}</span></button>)}</div><label className="mt-3 grid gap-1.5 text-sm font-medium sm:max-w-sm"><span>{labels.customDateOption}</span><input aria-label={labels.customDateOption} className={fieldClassName(Boolean(selectedContract && !isDateInContract(effectiveOn, selectedContract)))} max={selectedContract.endsOn ?? undefined} min={selectedContract.startsOn} onChange={(event) => { setDateChoice('custom'); setEffectiveOn(event.target.value); setError('') }} type="date" value={dateChoice === 'custom' ? effectiveOn : ''} /></label></fieldset></section>}
@@ -559,9 +588,21 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
          {error && <p className="mt-5 border-y border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{error}</p>}
         {state === 'saved' && <p className="mt-5 border-y border-success/30 bg-success-surface p-3 text-sm text-success" role="status">{labels.changeSaved}</p>}
       </form>
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t bg-surface/95 px-5 py-4 backdrop-blur-sm sm:px-7"><button className={buttonClasses({ variant: 'secondary' })} disabled={step === 'selection' || state === 'saving'} onClick={previous} type="button"><ChevronLeft aria-hidden="true" className="size-4" />{labels.previous}</button><div className="flex items-center gap-3"><button className={buttonClasses({ variant: 'secondary' })} disabled={state === 'saving'} onClick={onClose} type="button">{labels.cancel}</button>{step !== 'review' ? <button className={buttonClasses({ variant: 'primary' })} disabled={state === 'saving' || (step === 'selection' && !selectedContract)} onClick={next} type="button">{labels.next}<ChevronRight aria-hidden="true" className="size-4" /></button> : <button className={buttonClasses({ variant: 'primary' })} disabled={state === 'saving' || state === 'saved' || !reason.trim()} form="employment-contract-change-form" type="submit">{state === 'saving' ? labels.saving : labels.confirm}<CircleCheck aria-hidden="true" className="size-4" /></button>}</div></footer>
-    </section>
-  </div>
+      <FormActions
+        cancelLabel={labels.cancel}
+        className="mx-auto w-full max-w-6xl px-5 py-4 sm:px-7"
+        disabled={false}
+        form="employment-contract-change-form"
+        leading={<button className={buttonClasses({ variant: 'secondary' })} disabled={step === 'selection' || state === 'saving'} onClick={previous} type="button"><ChevronLeft aria-hidden="true" className="size-4" />{labels.previous}</button>}
+        onCancel={requestClose}
+        saveLabel={step !== 'review' ? labels.next : state === 'saving' ? labels.saving : labels.confirm}
+        saving={state === 'saving'}
+        sticky
+      />
+    </main>
+    </div>
+    <ConfirmDialog cancelLabel={labels.changeDiscardCancel} confirmLabel={labels.changeDiscardConfirm} description={labels.changeDiscardDescription} destructive onConfirm={discardChanges} onOpenChange={setDiscardConfirmOpen} open={discardConfirmOpen} title={labels.changeDiscardTitle} />
+  </>
 }
 
 function isDateInContract(date: string, contract: EmploymentOverviewChangeData['contracts'][number]): boolean {

@@ -14,6 +14,11 @@ Gericht: startpage/v1.2 12/12 tests. Volledig: 210 testbestanden/826 tests, stri
 De create-interactie van `/settings/process-automation` is gemigreerd van een custom dialog naar een full-page driestapsflow met sticky `FormActions`, Back/Continue/Cancel, dirty protection en bestaande create-draft API/navigation semantics. Publish en retire gebruiken de centrale `Dialog`; de verplichte changelog en reason zijn behouden. Er zijn geen Foundation-, route-, API-, database-, RLS-, permission- of businesslogicawijzigingen.
 
 De lokale gate is groen: process-automation tests 8/8 bestanden en 46/46 tests, volledige hr-suite 210/210 testbestanden en 826/826 tests, strict TypeScript, i18n-pariteit met 33 namespaces, targeted lint, volledige lint met 6 bestaande warnings, productiebuild met 225 routes en `git diff --check`. Authenticated acceptance met TEST HR, read-only/unauthorized negative, create/edit/publish/retire cleanup, desktop, 390×844 en 0 relevante console-errors is niet uitgevoerd: deze worktree heeft geen `.env.local` en poort 3000 is bezet door een andere lokale server. Er zijn geen secrets gekopieerd en geen andere worktree gebruikt voor bewijs.
+## UX v1.2 Correction Batch 2 — HR mutation surfaces — 2026-08-21
+
+**Status: LOKAAL GROEN; AUTHENTICATED BROWSERACCEPTANCE OPEN op `work/ux-v1-2-hr-mutation-surfaces`**
+
+Vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0` is absence report naar de bestaande `FormDrawer` gemigreerd en is de complexe employment mutation-wizard full-page gemaakt. Recovery/capacity blijven inline; organization/location CRUD gebruikt de bestaande FormDrawer. Payloads, validatie, self-service/scope, warnings en timelinegedrag zijn behouden. De lokale gates zijn groen: 210 testbestanden/826 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, lint exit 0 met 6 bestaande warnings buiten deze slice, productiebuild 225 routes en diff-check. Echte desktop/390×844 authenticated browseracceptance is niet uitgevoerd omdat de geïsoleerde runtime geen fixture-passwords en geen bestaande browser-sessie had. Geen API-, schema-, database-, RLS-, permission-, Foundation-, main-, push-, release- of deploymentwijziging.
 
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 
