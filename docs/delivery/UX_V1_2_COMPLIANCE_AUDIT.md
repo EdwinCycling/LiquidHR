@@ -1,8 +1,8 @@
 # LiquidHR — UX Foundation v1.2 compliance-audit
 
 Auditdatum: 2026-08-21  
-Baseline: `origin/main` — `854d047f80d4350370f1a1252b813a3405a21260`  
-Verwachte baseline uit de opdracht: `0c935023b6546bf939a6fd6b73e7fcf20b1d3dbc` — niet langer actueel op `origin/main`.
+Baseline: `origin/main` — `a65d1daaa9444602f4be52c2d32933cffd285dd0`
+Verwachte baseline uit de opdracht: `a65d1daaa9444602f4be52c2d32933cffd285dd0` — actueel.
 
 ## Executive summary
 

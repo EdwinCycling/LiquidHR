@@ -5,10 +5,10 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 | Scherm | Route | Status | Resultaat / document | Volgende actie |
 |---|---|---|---|---|
 | Bedrijfsgegevens | `/settings/company-data` | AFGEROND | [`BEDRIJFSGEGEVENS_REDESIGN.md`](BEDRIJFSGEGEVENS_REDESIGN.md) | Volgende redesign: Rollen en autorisatie |
-| Rollen en autorisatie | `/authorization` | GEVERIFIEERD | [`REDESIGN_ROLLEN_EN_AUTORISATIE.md`](REDESIGN_ROLLEN_EN_AUTORISATIE.md) | Edwin bepaalt het volgende scherm |
+| Rollen en autorisatie | `/authorization` | LOKAAL GEIMPLEMENTEERD / BROWSERGATE GEBLOKKEERD | [`REDESIGN_ROLLEN_EN_AUTORISATIE.md`](REDESIGN_ROLLEN_EN_AUTORISATIE.md) | Authenticated TEST HR + unauthorized negative opnieuw uitvoeren |
 | Workflows en formulieren | `/settings/process-automation` | GEIMPLEMENTEERD | [`REDESIGN_WORKFLOWS_EN_FORMULIEREN.md`](REDESIGN_WORKFLOWS_EN_FORMULIEREN.md) | Browsercontrole uitvoeren in een geauthenticeerde omgeving |
 | Dienstverbandwijzigingen | `/employees/[employeeId]/employments/[employmentId]?tab=overview&view=expanded` | GEVERIFIEERD | [`REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md`](REDESIGN_DIENSTVERBAND_WIJZIGINGEN.md) | Volgende redesign: door Edwin te bepalen |
-| Startpagina compact en uitgebreid | `/dashboard/start` | GEIMPLEMENTEERD | [`REDESIGN_STARTPAGINA.md`](REDESIGN_STARTPAGINA.md) | Geauthenticeerde browsercontrole op desktop en 390px uitvoeren |
+| Startpagina compact en uitgebreid | `/dashboard/start` | LOKAAL GEIMPLEMENTEERD / BROWSERGATE GEBLOKKEERD | [`REDESIGN_STARTPAGINA.md`](REDESIGN_STARTPAGINA.md) | Authenticated compact/expanded + Default/LinkedHR op desktop en 390px uitvoeren |
 | Employees + Employee Detail | `/employees`, `/employees/[employeeId]` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYEES_VNEXT.md`](REDESIGN_EMPLOYEES_VNEXT.md) | Browsergate en eindrapport Blok 3 |
 | Employee Personal Tab | `/employees/[employeeId]?tab=personal` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYEE_PERSONAL_TAB.md`](REDESIGN_EMPLOYEE_PERSONAL_TAB.md) | Browsergate op authenticated feature-preview uitvoeren |
 | Employment Workspace | `/employees/[employeeId]/employments/[employmentId]` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYMENT_WORKSPACE.md`](REDESIGN_EMPLOYMENT_WORKSPACE.md) | Lokale gates gedaan; authenticated desktop/390px-browsercontrole blijft open zonder veilige sessie/env |

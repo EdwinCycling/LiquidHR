@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
+
+Op `work/ux-v1-2-foundation-polish`, vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`, zijn alleen de authorization-subflows en startpage-presentatie gepolijst. Create role gebruikt de bestaande `FormDrawer` met dirty protection, saving en foutstatus; coverage gebruikt de centrale `Dialog` met focus/Escape/restore. Startpage behoudt compact/uitgebreid, widgets, quick-action-scroll, drag/reorder, scopes en voorkeuren, maar gebruikt Foundation-radius/surfaces zonder zware shadows of hover-lift. Geen API-, database-, RLS-, permission- of businesslogicawijziging.
+
+Lokale gate: 210 testbestanden/826 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint exit 0 met 6 bestaande warnings, Next-build met 225 routes en diff-check. Authenticated TEST HR/Manager acceptance is `BLOCKED BY ENVIRONMENT`: poort 3000 serveert de actuele app, maar canonical fixture-passwords ontbreken in de lokale environment; anonieme `/api/roles` geeft 401 en beschermde routes redirecten naar `/login`. Geen push of main-merge.
+
 ## UX Foundation v1.2 + Employee Reminders — authenticated acceptance GREEN 2026-08-21
 
 De interaction- en collection-foundation v1.2 is lokaal geïmplementeerd in de bestaande branch `work/ux-foundation-v1-2-interaction-collections`. De centrale Dialog, Drawer, ActionMenu, Pagination, FormDrawer, FormActions, ConfirmDialog en collection patterns zijn toegevoegd; Employee Reminders gebruikt nu EntityList, FormDrawer, RowActions en ConfirmDialog met behoud van de bestaande API-, mode-, permission- en datumcontracten. Volledige hr-suite: 209 testbestanden/824 tests, strict TypeScript, i18n-pariteit, lint exit 0 met 6 bestaande warnings en build met 225 routes. TEST HR is authenticated getest op localhost:3000; de echte Reminder acceptance op 390×844 is GREEN met tijdelijke create/delete-cleanup, geen horizontale overflow en geen relevante console-errors. De minimale Drawer mobile padding-fix is afgedekt met een regressietest. Er zijn geen schema-, API-, database-, RLS-, permission- of deploymentwijzigingen.

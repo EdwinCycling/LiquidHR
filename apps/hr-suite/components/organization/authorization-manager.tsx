@@ -3,7 +3,14 @@
 import type { Database } from '@scope/db'
 import { KeyRound, Layers3, Network, Plus, RotateCcw, Save, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog } from '@/components/ui/dialog'
+import { TextInput } from '@/components/ui/text-input'
+import { Textarea } from '@/components/ui/textarea'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
 import {
   buildAuthorizationOverview,
   normalizeAuthorizationTab,
@@ -16,9 +23,13 @@ import {
 type Role = Database['public']['Tables']['management_roles']['Row']
 type Permission = Database['public']['Tables']['permissions']['Row']
 type RolePermission = Database['public']['Tables']['role_permissions']['Row']
+type CreateRoleValues = { code: string; name: string; description: string; isOrganizationScoped: boolean }
+
+const emptyCreateRoleValues: CreateRoleValues = { code: '', name: '', description: '', isOrganizationScoped: false }
 
 export interface AuthorizationLabels {
   roles: string; newRole: string; roleCode: string; roleName: string; roleDescription: string; createRole: string
+  roleCreateDescription: string; close: string; cancel: string; discardTitle: string; discardDescription: string; discardConfirm: string; discardCancel: string
   systemRole: string; tenantRole: string; roleOrganizationScoped: string; permissions: string; selectRole: string; savePermissions: string
   placements: string; managementAssignments: string; employee: string; department: string; role: string
   jobTitle: string; effectiveFrom: string; addPlacement: string; addManagement: string; saved: string; failed: string
@@ -38,7 +49,6 @@ interface AuthorizationManagerProps {
 function rolePermissionSet(roleId: string, assignments: RolePermission[]): Set<string> {
   return new Set(assignments.filter((item) => item.management_role_id === roleId).map((item) => item.permission_id))
 }
-
 function coverageTone(percentage: number): string {
   if (percentage === 0) return 'bg-muted text-muted-foreground'
   if (percentage < 50) return 'bg-accent text-accent-foreground'
@@ -61,6 +71,10 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
   const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [coverageDialog, setCoverageDialog] = useState<{ roleId: string; category: string } | null>(null)
+  const [createRoleOpen, setCreateRoleOpen] = useState(false)
+  const [createRoleValues, setCreateRoleValues] = useState<CreateRoleValues>(emptyCreateRoleValues)
+  const [createRoleSaving, setCreateRoleSaving] = useState(false)
+  const [createRoleError, setCreateRoleError] = useState<string | null>(null)
 
   const groups = useMemo(() => Map.groupBy(permissions, (permission) => permission.category), [permissions])
   const overview = useMemo(() => buildAuthorizationOverview({
@@ -71,6 +85,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null
   const editable = Boolean(selectedRole && ((selectedRole.tenant_id && !selectedRole.is_system) || (selectedRole.tenant_id === null && selectedRole.is_system)))
   const dirty = permissionSelectionChanged(savedPermissionIds, permissionIds)
+  const createRoleDirty = createRoleValues.code !== '' || createRoleValues.name !== '' || createRoleValues.description !== '' || createRoleValues.isOrganizationScoped
   const changedCount = new Set([...savedPermissionIds, ...permissionIds].filter((id) => savedPermissionIds.has(id) !== permissionIds.has(id))).size
   const normalizedRoleSearch = roleSearch.trim().toLocaleLowerCase()
   const filteredRoles = roles.filter((role) => !normalizedRoleSearch || `${role.name} ${role.code}`.toLocaleLowerCase().includes(normalizedRoleSearch))
@@ -95,7 +110,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
 
   const coverageRole = coverageDialog ? roles.find((role) => role.id === coverageDialog.roleId) ?? null : null
   const coveragePermissions = coverageDialog && coverageRole
-    ? (groups.get(coverageDialog.category) ?? []).map((permission) => ({ permission, checked: rolePermissionSet(coverageRole.id, rolePermissions).has(permission.id) }))
+    ? (groups.get(coverageDialog.category) ?? []).map((permission) => ({ permission, checked: permissionIds.has(permission.id) }))
     : []
 
   async function send(url: string, method: string, body: object): Promise<boolean> {
@@ -117,8 +132,27 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     }
   }
 
-  async function createRoleAction(formData: FormData): Promise<void> {
-    await send('/api/roles', 'POST', { code: String(formData.get('code') ?? '').toUpperCase(), name: formData.get('name'), description: formData.get('description') || null, isOrganizationScoped: formData.get('isOrganizationScoped') === 'on' })
+  async function submitCreateRole(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (createRoleSaving) return
+    setCreateRoleSaving(true)
+    setCreateRoleError(null)
+    const success = await send('/api/roles', 'POST', { code: createRoleValues.code.toUpperCase(), name: createRoleValues.name, description: createRoleValues.description || null, isOrganizationScoped: createRoleValues.isOrganizationScoped })
+    if (success) {
+      setCreateRoleValues(emptyCreateRoleValues)
+      setCreateRoleOpen(false)
+    } else {
+      setCreateRoleError(labels.failed)
+    }
+    setCreateRoleSaving(false)
+  }
+  function resetCreateRole(): void {
+    setCreateRoleValues(emptyCreateRoleValues)
+    setCreateRoleError(null)
+  }
+  function updateCreateRole<K extends keyof CreateRoleValues>(key: K, value: CreateRoleValues[K]): void {
+    setCreateRoleValues((current) => ({ ...current, [key]: value }))
+    setCreateRoleError(null)
   }
   async function savePermissions(): Promise<void> {
     if (!selectedRoleId || !editable) return
@@ -136,7 +170,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
 
     {activeTab === 'permissions' ? <div className="grid gap-6 xl:grid-cols-[21rem_minmax(0,1fr)]">
       <aside className="self-start rounded-xl border bg-surface p-4 xl:sticky xl:top-5">
-        <div className="flex items-center justify-between gap-3"><h2 className="font-semibold text-foreground">{labels.roles}</h2><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{filteredRoles.length}</span></div>
+        <div className="flex items-center justify-between gap-3"><h2 className="font-semibold text-foreground">{labels.roles}</h2><div className="flex items-center gap-2"><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{filteredRoles.length}</span><Button onClick={() => { resetCreateRole(); setCreateRoleOpen(true) }} size="sm" type="button"><Plus aria-hidden="true" />{labels.newRole}</Button></div></div>
         <SearchField label={labels.roleSearch} onChange={setRoleSearch} value={roleSearch} />
         <div className="mt-4 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
           {filteredRoles.map((role) => {
@@ -148,7 +182,26 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
           })}
           {filteredRoles.length === 0 ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{labels.noSearchResults}</p> : null}
         </div>
-        <details className="mt-5 border-t pt-4"><summary className="cursor-pointer text-sm font-semibold text-foreground">{labels.newRole}</summary><form action={createRoleAction} className="mt-4 space-y-3"><FormInput label={labels.roleCode} name="code" pattern="[A-Z][A-Z0-9_]+" required /><FormInput label={labels.roleName} name="name" required /><label className="block text-sm text-foreground">{labels.roleDescription}<textarea className="mt-1.5 min-h-20 w-full rounded-lg border bg-background px-3 py-2" name="description" /></label><label className="flex gap-2 text-sm text-foreground"><input className="size-4 accent-primary" name="isOrganizationScoped" type="checkbox" />{labels.roleOrganizationScoped}</label><button className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" type="submit"><Plus className="size-4" />{labels.createRole}</button></form></details>
+        <FormDrawer
+          cancelLabel={labels.cancel}
+          closeLabel={labels.close}
+          description={labels.roleCreateDescription}
+          dirty={createRoleDirty}
+          dirtyProtection={{ description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.discardCancel, title: labels.discardTitle }}
+          onDiscard={resetCreateRole}
+          onOpenChange={(nextOpen) => { if (!nextOpen) { resetCreateRole(); setCreateRoleOpen(false) } else setCreateRoleOpen(true) }}
+          onSubmit={(event) => void submitCreateRole(event)}
+          open={createRoleOpen}
+          saveLabel={labels.createRole}
+          saving={createRoleSaving}
+          title={labels.newRole}
+        >
+          {createRoleError ? <p className="border border-destructive/40 bg-destructive-surface px-3 py-2 text-sm text-destructive" role="alert">{createRoleError}</p> : null}
+          <FormField control={<TextInput maxLength={64} onChange={(event) => updateCreateRole('code', event.target.value)} pattern="[A-Z][A-Z0-9_]+" required value={createRoleValues.code} />} label={labels.roleCode} required />
+          <FormField control={<TextInput maxLength={160} onChange={(event) => updateCreateRole('name', event.target.value)} required value={createRoleValues.name} />} label={labels.roleName} required />
+          <FormField control={<Textarea maxLength={4000} onChange={(event) => updateCreateRole('description', event.target.value)} value={createRoleValues.description} />} label={labels.roleDescription} />
+          <Checkbox checked={createRoleValues.isOrganizationScoped} label={labels.roleOrganizationScoped} name="isOrganizationScoped" onChange={(event) => updateCreateRole('isOrganizationScoped', event.target.checked)} />
+        </FormDrawer>
       </aside>
 
       <section className="min-w-0 rounded-xl border bg-surface p-4 sm:p-6">
@@ -173,13 +226,16 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     </div> : null}
 
     {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={(roleId, category) => { selectRole(roleId); setCoverageDialog({ roleId, category }) }} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
-    {coverageDialog && coverageRole ? <div aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-foreground/35 p-4" role="dialog" aria-label={`${coverageRole.name} ${coverageDialog.category}`}>
-      <section className="max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-2xl overflow-y-auto rounded-xl border bg-surface p-5 shadow-2xl sm:p-6">
-        <div className="flex items-start justify-between gap-4"><div><p className="eyebrow">{coverageDialog.category}</p><h2 className="mt-1 text-xl font-semibold">{coverageRole.name}</h2><p className="mt-2 text-sm text-muted-foreground">{labels.coverageExplanation}</p></div><button className="button-secondary" onClick={() => setCoverageDialog(null)} type="button">×</button></div>
-         <div className="mt-5 space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-md border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><input checked={checked} disabled={!editable || selectedRoleId !== coverageRole.id} onChange={(event) => setPermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
-        <div className="mt-6 flex justify-end gap-2"><button className="button-secondary" onClick={() => { setPermissionIds(new Set(savedPermissionIds)); setCoverageDialog(null) }} type="button">{labels.resetChanges}</button>{editable ? <button className="button-primary" disabled={!dirty} onClick={() => { void savePermissions().then(() => setCoverageDialog(null)) }} type="button">{labels.savePermissions}</button> : null}</div>
-      </section>
-    </div> : null}
+    {coverageDialog && coverageRole ? <Dialog
+      closeLabel={labels.close}
+      description={labels.coverageExplanation}
+      footer={<div className="flex flex-wrap justify-end gap-2"><Button onClick={() => { setPermissionIds(new Set(savedPermissionIds)); setCoverageDialog(null) }} size="sm" type="button" variant="secondary">{labels.resetChanges}</Button>{editable ? <Button disabled={!dirty} onClick={() => { void savePermissions().then(() => setCoverageDialog(null)) }} size="sm" type="button">{labels.savePermissions}</Button> : null}</div>}
+      onOpenChange={(nextOpen) => { if (!nextOpen) setCoverageDialog(null) }}
+      open
+      title={`${coverageRole.name} — ${coverageDialog.category}`}
+    >
+      <div className="space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-[var(--radius-control)] border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><input checked={checked} disabled={!editable || selectedRoleId !== coverageRole.id} onChange={(event) => setPermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
+    </Dialog> : null}
 
   </div>
 }
@@ -208,8 +264,4 @@ function TabButton({ active, icon, label, onClick }: { active: boolean; icon: Re
 
 function SearchField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return <label className="relative mt-4 block"><span className="sr-only">{label}</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input className="w-full rounded-md border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15" onChange={(event) => onChange(event.target.value)} placeholder={label} type="search" value={value} /></label>
-}
-
-function FormInput({ label, name, pattern, required }: { label: string; name: string; pattern?: string; required?: boolean }) {
-  return <label className="block text-sm text-foreground">{label}<input className="mt-1.5 w-full rounded-lg border bg-background px-3 py-2" name={name} pattern={pattern} required={required} /></label>
 }

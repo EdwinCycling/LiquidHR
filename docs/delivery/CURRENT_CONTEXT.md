@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
+
+- Branch: `work/ux-v1-2-foundation-polish`, exact baseline `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`; geen main-merge of push.
+- Authorization: Create role is gemigreerd van inline `<details>` naar de bestaande `FormDrawer` met dirty-close protection, saving/double-submit protection, lokale foutstatus en bestaande POST-payload. Coverage inspection gebruikt de centrale `Dialog` met focus/Escape/restore; permissionselectie en PUT-save blijven behouden. Hoofdpermission-editor niet herontworpen.
+- Startpage: alleen Foundation-polish. Zware shadows, normale hover-lift en niet-canonieke surface-radius zijn verwijderd; semantic Foundation surfaces/tokens zijn gebruikt. Compact/expanded, widgets, quick-action horizontal scroll, drag/reorder, scopes, order en preferences zijn behouden.
+- Verificatie: gerichte 12/12, volledige 210/826, strict TypeScript, i18n 33 namespaces, lint 0 errors/6 bestaande warnings, build 225 routes en diff-check groen.
+- Browser: `/dashboard/start` geeft lokaal 307 naar `/login`; anonieme `/api/roles` geeft 401. Authenticated TEST HR/Manager acceptance op desktop/390×844 en Default/LinkedHR is `BLOCKED BY ENVIRONMENT` omdat canonical fixture-passwords niet beschikbaar zijn. Geen secrets gekopieerd of gelogd. Bestaande dirty `apps/hr-suite/next-env.d.ts` blijft buiten scope.
+
 ## UX Foundation v1.2 + Employee Reminders — 2026-08-21
 
 - Centrale acceptancebron: [`TEST_ACCEPTANCE_MATRIX.md`](TEST_ACCEPTANCE_MATRIX.md) is vanaf deze slice verplicht voor lokale, browser- en functionele acceptance.
