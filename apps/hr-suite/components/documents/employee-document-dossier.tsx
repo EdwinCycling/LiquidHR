@@ -10,6 +10,16 @@ import {
   MAX_DOCUMENT_FILE_BYTES,
 } from '@/lib/documents/file-rules'
 import { documentMetadataSchema } from '@/lib/documents/schemas'
+import { FormField } from '@/components/patterns/form-field'
+import { SectionHeader } from '@/components/patterns/section-header'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonClasses } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
+import { Textarea } from '@/components/ui/textarea'
 import { DocumentViewer } from './document-viewer'
 
 interface DocumentAudience {
@@ -106,9 +116,6 @@ interface Labels {
   customMetadata: string
   automaticValue: string
 }
-
-const inputClass = 'mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm'
-const checkboxCardClass = 'flex items-start gap-3 rounded-xl border px-3 py-3 text-sm transition-colors'
 
 export function EmployeeDocumentDossier({
   employeeId,
@@ -279,15 +286,12 @@ export function EmployeeDocumentDossier({
   }
 
   return (
-    <section className="mt-8 rounded-2xl border bg-surface p-5 shadow-sm sm:p-6">
-      <header>
-        <h2 className="text-xl font-semibold">{labels.title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{labels.subtitle}</p>
-      </header>
+    <Surface className="mt-8 p-5 sm:p-6">
+      <SectionHeader description={labels.subtitle} title={labels.title} />
 
       {canWrite && options ? (
-        <details className="mt-5 rounded-xl border p-4" open>
-          <summary className="cursor-pointer font-semibold">
+        <details className="mt-6 rounded-[var(--radius-surface)] border border-subtle bg-surface-subtle p-4" open>
+          <summary className="cursor-pointer list-none text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             <span className="inline-flex items-center gap-2">
               <Upload className="h-4 w-4" />
               {labels.upload}
@@ -295,13 +299,13 @@ export function EmployeeDocumentDossier({
           </summary>
 
           <form className="mt-4 space-y-5" onSubmit={(event) => void upload(event)}>
-            <div className="rounded-xl border bg-muted/30 p-4">
+            <div className="rounded-[var(--radius-surface)] border border-subtle bg-surface p-4">
               <p className="text-sm font-semibold">{labels.requiredFields}</p>
 
               <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
                 <div className="space-y-4">
                   <label
-                    className={`block rounded-xl border-2 border-dashed bg-background/80 p-4 transition-colors ${dragActive ? 'border-primary bg-accent/40' : 'border-border'} ${selectedFile ? 'border-primary/40' : ''}`}
+                    className={`block rounded-[var(--radius-surface)] border-2 border-dashed bg-surface p-4 transition-colors ${dragActive ? 'border-primary bg-accent/40' : 'border-border'} ${selectedFile ? 'border-primary/40' : ''}`}
                     onDragEnter={() => setDragActive(true)}
                     onDragLeave={() => setDragActive(false)}
                     onDragOver={(event) => event.preventDefault()}
@@ -316,7 +320,7 @@ export function EmployeeDocumentDossier({
                       type="file"
                     />
                     <span className="flex items-start gap-3">
-                      <span className="rounded-xl bg-primary/10 p-2 text-primary">
+                      <span className="rounded-[var(--radius-control)] bg-primary/10 p-2 text-primary">
                         <Upload className="h-5 w-5" />
                       </span>
                       <span className="min-w-0 flex-1">
@@ -324,7 +328,7 @@ export function EmployeeDocumentDossier({
                         <span className="mt-1 block text-sm text-muted-foreground">{labels.fileDropHelp}</span>
                         <span className="mt-2 block text-xs text-muted-foreground">{labels.fileRules}</span>
                         {selectedFile ? (
-                          <span className="mt-3 block rounded-lg border bg-muted/60 px-3 py-2 text-sm font-medium text-foreground">
+                            <span className="mt-3 block rounded-[var(--radius-control)] border border-subtle bg-surface-subtle px-3 py-2 text-sm font-medium text-foreground">
                             {labels.fileSelected}: {selectedFile.name} ({formatFileSize(selectedFile.size)})
                           </span>
                         ) : null}
@@ -333,75 +337,59 @@ export function EmployeeDocumentDossier({
                   </label>
 
                   <div className="flex flex-wrap gap-2">
-                    <button className="button-secondary" onClick={openFilePicker} type="button">
+                    <Button onClick={openFilePicker} type="button" variant="secondary">
                       {selectedFile ? labels.fileReplace : labels.file}
-                    </button>
+                    </Button>
                     {selectedFile ? (
-                      <button className="button-secondary" onClick={() => setSelectedFile(null)} type="button">
+                      <Button onClick={() => setSelectedFile(null)} type="button" variant="ghost">
                         {labels.fileRemove}
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
 
-                  <label className="text-sm font-medium">
-                    {labels.documentTitle}
-                    <input className={inputClass} name="title" required />
-                  </label>
+                  <FormField control={<TextInput name="title" />} label={labels.documentTitle} required />
 
-                  <label className="text-sm font-medium">
-                    {labels.category}
-                    <select className={inputClass} defaultValue={options.categories[0]?.id} name="categoryId" required>
+                  <FormField
+                    control={<DropdownSelect defaultValue={options.categories[0]?.id} name="categoryId" required searchable searchPlaceholder={labels.category}>
                       {options.categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.code} · {category.name}
                         </option>
                       ))}
-                    </select>
-                  </label>
+                    </DropdownSelect>}
+                    label={labels.category}
+                    required
+                  />
                 </div>
 
-                <fieldset className="rounded-xl border bg-background/80 p-4">
+                <fieldset className="rounded-[var(--radius-surface)] border border-subtle bg-surface p-4">
                   <legend className="px-1 text-sm font-semibold">{labels.visibleToTitle}</legend>
                   <p className="mt-1 text-sm text-muted-foreground">{labels.visibilityDefault}</p>
 
                   <div className="mt-4 space-y-3">
-                    <label className={`${checkboxCardClass} ${employeeVisible ? 'border-primary/40 bg-accent/40' : 'border-border'}`}>
-                      <input
-                        checked={employeeVisible}
-                        className="mt-1 h-4 w-4 rounded border"
-                        onChange={(event) => setEmployeeVisible(event.currentTarget.checked)}
-                        type="checkbox"
-                      />
-                      <span>
-                        <span className="block font-medium">{labels.visibleToEmployee}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{employeeVisible ? labels.employeeVisibilityAllowed : labels.employeeVisibilityBlocked}</span>
-                      </span>
-                    </label>
+                    <CheckboxCard checked={employeeVisible} description={employeeVisible ? labels.employeeVisibilityAllowed : labels.employeeVisibilityBlocked} label={labels.visibleToEmployee} onChange={() => setEmployeeVisible((current) => !current)} />
                   </div>
                 </fieldset>
               </div>
-              {options.documentCustomFields.length ? <fieldset className="mt-4 rounded-xl border bg-background/80 p-4"><legend className="px-1 text-sm font-semibold">{labels.customMetadata}</legend><div className="mt-3 grid gap-4 md:grid-cols-2">{options.documentCustomFields.map((definition) => <DocumentCustomFieldControl definition={definition} key={definition.id} labels={labels} />)}</div></fieldset> : null}
+              {options.documentCustomFields.length ? <fieldset className="mt-4 rounded-[var(--radius-surface)] border border-subtle bg-surface p-4"><legend className="px-1 text-sm font-semibold">{labels.customMetadata}</legend><div className="mt-3 grid gap-4 md:grid-cols-2">{options.documentCustomFields.map((definition) => <DocumentCustomFieldControl definition={definition} key={definition.id} labels={labels} />)}</div></fieldset> : null}
             </div>
 
-            <details className="rounded-xl border p-4">
+            <details className="rounded-[var(--radius-surface)] border border-subtle p-4">
               <summary className="cursor-pointer text-sm font-semibold">{labels.advancedSettings}</summary>
               <div className="mt-4 space-y-5">
                 <p className="text-sm text-muted-foreground">{labels.uploadAdvanced}</p>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="text-sm font-medium md:col-span-2">
-                    {labels.description}
-                    <textarea className={inputClass} name="description" rows={3} />
-                  </label>
+                  <FormField className="md:col-span-2" control={<Textarea name="description" rows={3} />} label={labels.description} />
 
-                  <fieldset className="rounded-xl border p-4 md:col-span-2">
+                  <fieldset className="rounded-[var(--radius-surface)] border border-subtle p-4 md:col-span-2">
                     <legend className="px-1 text-sm font-semibold">{labels.tags}</legend>
                     {options.cloudTags.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{options.cloudTags.map((tag) => <CheckboxCard checked={selectedCloudTagIds.includes(tag.id)} description={tag.name} key={tag.id} label={tag.name} onChange={() => setSelectedCloudTagIds((current) => toggleValue(current, tag.id))} />)}</div> : <p className="mt-2 text-sm text-muted-foreground">{labels.noCloudTags}</p>}
                   </fieldset>
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">
-                  <fieldset className="rounded-xl border p-4">
+                  <fieldset className="rounded-[var(--radius-surface)] border border-subtle p-4">
                     <legend className="px-1 text-sm font-semibold">{labels.visibleToRole}</legend>
                     <div className="mt-3 grid gap-2">
                       {options.roles.map((role) => (
@@ -416,7 +404,7 @@ export function EmployeeDocumentDossier({
                     </div>
                   </fieldset>
 
-                  <fieldset className="rounded-xl border p-4">
+                  <fieldset className="rounded-[var(--radius-surface)] border border-subtle p-4">
                     <legend className="px-1 text-sm font-semibold">{labels.visibleToDepartment}</legend>
                     <div className="mt-3 grid gap-2">
                       {options.departments.map((department) => (
@@ -433,33 +421,15 @@ export function EmployeeDocumentDossier({
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,.7fr)_minmax(0,1.3fr)]">
-                  <div className="space-y-4 rounded-xl border p-4">
+                  <div className="space-y-4 rounded-[var(--radius-surface)] border border-subtle p-4">
                     <p className="text-sm font-semibold">{labels.reminderTitle}</p>
 
-                    <label className="text-sm font-medium">
-                      {labels.expiresOn}
-                      <input
-                        className={inputClass}
-                        name="expiresOn"
-                        onChange={(event) => setExpiresOn(event.currentTarget.value)}
-                        type="date"
-                        value={expiresOn}
-                      />
-                    </label>
+                    <FormField control={<TextInput name="expiresOn" onChange={(event) => setExpiresOn(event.currentTarget.value)} type="date" value={expiresOn} />} label={labels.expiresOn} />
 
-                    <label className="text-sm font-medium">
-                      {labels.reminderAt}
-                      <input
-                        className={inputClass}
-                        name="reminderAt"
-                        onChange={(event) => setReminderAt(event.currentTarget.value)}
-                        type="datetime-local"
-                        value={reminderAt}
-                      />
-                    </label>
+                    <FormField control={<TextInput name="reminderAt" onChange={(event) => setReminderAt(event.currentTarget.value)} type="datetime-local" value={reminderAt} />} label={labels.reminderAt} />
                   </div>
 
-                  <fieldset className="rounded-xl border p-4">
+                  <fieldset className="rounded-[var(--radius-surface)] border border-subtle p-4">
                     <legend className="px-1 text-sm font-semibold">{labels.reminderTitle}</legend>
                     <div className="mt-3 space-y-3">
                       <CheckboxCard
@@ -485,25 +455,22 @@ export function EmployeeDocumentDossier({
               </div>
             </details>
 
-            <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" disabled={saving} type="submit">
+            <Button loading={saving} type="submit">
               {saving ? labels.saving : labels.save}
-            </button>
+            </Button>
           </form>
         </details>
       ) : null}
 
       {canDelete ? (
-        <label className="mt-5 block max-w-xl text-sm font-medium">
-          {labels.deleteReason}
-          <input className={inputClass} onChange={(event) => setDeleteReason(event.target.value)} value={deleteReason} />
-        </label>
+        <FormField className="mt-6 max-w-xl" control={<TextInput onChange={(event) => setDeleteReason(event.target.value)} value={deleteReason} />} label={labels.deleteReason} />
       ) : null}
 
-      {errorCode ? <p className="mt-3 text-sm text-destructive">{messageForCode(errorCode, labels)}</p> : null}
+      {errorCode ? <p className="mt-4 text-sm text-destructive" role="alert">{messageForCode(errorCode, labels)}</p> : null}
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+      <div className="mt-6 grid gap-3 lg:grid-cols-2">
         {documents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{labels.empty}</p>
+          <EmptyState className="lg:col-span-2" description={labels.subtitle} icon={<FileText />} title={labels.empty} />
         ) : (
           documents.map((document) => {
             const employeeCanView = document.document_audiences.some((audience) => audience.target_type === 'EMPLOYEE' && audience.target_employee_id === employeeId)
@@ -511,9 +478,9 @@ export function EmployeeDocumentDossier({
             const departmentCount = document.document_audiences.filter((audience) => audience.target_type === 'DEPARTMENT_BRANCH').length
 
             return (
-              <article className={`rounded-xl border p-4 ${document.deleted_at ? 'opacity-60' : ''}`} key={document.id}>
+              <article className={`rounded-[var(--radius-surface)] border border-subtle bg-surface p-4 ${document.deleted_at ? 'opacity-60' : ''}`} key={document.id}>
                 <div className="flex items-start gap-3">
-                  <span className="rounded-lg bg-muted p-2">
+                  <span className="rounded-[var(--radius-control)] bg-muted p-2">
                     <FileText className="h-5 w-5" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -522,10 +489,10 @@ export function EmployeeDocumentDossier({
                       {document.original_filename} · {formatFileSize(document.file_size)}
                     </p>
                   </div>
-                  {document.deleted_at ? <span className="status-chip">{labels.deleted}</span> : null}
+                  {document.deleted_at ? <Badge tone="danger">{labels.deleted}</Badge> : null}
                 </div>
 
-                <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${employeeCanView ? 'border-success/30 bg-success-surface/60 text-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
+                <div className={`mt-3 rounded-[var(--radius-control)] border px-3 py-2 text-sm ${employeeCanView ? 'border-success/30 bg-success-surface/60 text-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
                   <p className="font-semibold">
                     {employeeCanView ? labels.employeeVisibilityAllowed : labels.employeeVisibilityBlocked}
                   </p>
@@ -538,13 +505,13 @@ export function EmployeeDocumentDossier({
                 </div>
 
                 {document.description ? <p className="mt-3 text-sm text-muted-foreground">{document.description}</p> : null}
-                {document.custom_fields && typeof document.custom_fields === 'object' && !Array.isArray(document.custom_fields) ? <dl className="mt-3 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-3 gap-y-1 rounded-lg bg-muted/50 px-3 py-2 text-xs">{Object.entries(document.custom_fields).map(([key, value]) => <div className="contents" key={key}><dt className="font-medium text-muted-foreground">{options?.documentCustomFields.find((definition) => definition.key === key)?.label_nl ?? key}</dt><dd>{displayCustomFieldValue(value)}</dd></div>)}</dl> : null}
+                {document.custom_fields && typeof document.custom_fields === 'object' && !Array.isArray(document.custom_fields) ? <dl className="mt-3 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-3 gap-y-1 rounded-[var(--radius-control)] bg-muted/50 px-3 py-2 text-xs">{Object.entries(document.custom_fields).map(([key, value]) => <div className="contents" key={key}><dt className="font-medium text-muted-foreground">{options?.documentCustomFields.find((definition) => definition.key === key)?.label_nl ?? key}</dt><dd>{displayCustomFieldValue(value)}</dd></div>)}</dl> : null}
 
                 <div className="mt-3 flex flex-wrap gap-1">
                   {document.tags.map((tag) => (
-                    <span className="status-chip" key={tag}>
+                    <Badge key={tag}>
                       {tag}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
 
@@ -560,14 +527,14 @@ export function EmployeeDocumentDossier({
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {!document.deleted_at ? (
-                    <button className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold" onClick={() => setPreviewDocument(document)} type="button">
+                    <Button onClick={() => setPreviewDocument(document)} type="button" variant="secondary">
                       <Eye className="h-4 w-4" />
                       {labels.view}
-                    </button>
+                    </Button>
                   ) : null}
 
                   {!document.deleted_at ? (
-                    <a className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold" href={`/api/employees/${employeeId}/documents/${document.id}/download`}>
+                    <a className={buttonClasses({ variant: 'secondary' })} href={`/api/employees/${employeeId}/documents/${document.id}/download`}>
                       <Download className="h-4 w-4" />
                       {labels.download}
                     </a>
@@ -575,15 +542,15 @@ export function EmployeeDocumentDossier({
 
                   {canDelete ? (
                     !document.deleted_at ? (
-                      <button className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-destructive" disabled={!deleteReason.trim()} onClick={() => void mutate(document.id, false)} type="button">
+                      <Button disabled={!deleteReason.trim()} onClick={() => void mutate(document.id, false)} type="button" variant="danger">
                         <Trash2 className="h-4 w-4" />
                         {labels.delete}
-                      </button>
+                      </Button>
                     ) : (
-                      <button className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold" onClick={() => void mutate(document.id, true)} type="button">
+                      <Button onClick={() => void mutate(document.id, true)} type="button" variant="secondary">
                         <RotateCcw className="h-4 w-4" />
                         {labels.restore}
-                      </button>
+                      </Button>
                     )
                   ) : null}
                 </div>
@@ -594,21 +561,31 @@ export function EmployeeDocumentDossier({
       </div>
 
       {previewDocument ? <DocumentViewer contentType={previewDocument.content_type} filename={previewDocument.original_filename} labels={{ close: labels.viewerClose, download: labels.download, unsupported: labels.viewerUnsupported }} onClose={() => setPreviewDocument(null)} previewHref={`/api/employees/${employeeId}/documents/${previewDocument.id}/download`} title={previewDocument.title} /> : null}
-    </section>
+    </Surface>
   )
 }
 
 function DocumentCustomFieldControl({ definition, labels }: { definition: DocumentCustomField; labels: Labels }) {
   const name = `customField.${definition.key}`
-  const common = { className: inputClass, name, required: definition.is_required }
-  return <label className={`text-sm font-medium ${definition.field_type === 'TEXTAREA' || definition.field_type === 'MULTI_SELECT' ? 'md:col-span-2' : ''}`}>{definition.label_nl}{definition.is_required ? ' *' : ''}
-    {definition.field_type === 'TEXTAREA' ? <textarea {...common} rows={3} />
-      : definition.field_type === 'SELECT' ? <select {...common}><option value="" />{definition.options.map((option) => <option key={option.value} value={option.value}>{option.label_nl}</option>)}</select>
-        : definition.field_type === 'MULTI_SELECT' ? <select {...common} multiple>{definition.options.map((option) => <option key={option.value} value={option.value}>{option.label_nl}</option>)}</select>
-          : definition.field_type === 'BOOLEAN' ? <span className="mt-2 flex items-center gap-2"><input name={name} type="checkbox" />{definition.label_nl}</span>
-            : definition.field_type === 'AUTO_INCREMENT' ? <input className={inputClass} disabled placeholder={labels.automaticValue} />
-              : <input {...common} type={definition.field_type === 'NUMBER' ? 'number' : definition.field_type === 'DATE' ? 'date' : 'text'} />}
-  </label>
+  const label = definition.label_nl
+  const wide = definition.field_type === 'TEXTAREA' || definition.field_type === 'MULTI_SELECT'
+
+  if (definition.field_type === 'BOOLEAN') return <div className={wide ? 'md:col-span-2' : undefined}><Checkbox name={name} label={label} /></div>
+  if (definition.field_type === 'TEXTAREA') return <FormField className="md:col-span-2" control={<Textarea name={name} required={definition.is_required} rows={3} />} label={label} required={definition.is_required} />
+  if (definition.field_type === 'SELECT' || definition.field_type === 'MULTI_SELECT') {
+    return <FormField
+      className={wide ? 'md:col-span-2' : undefined}
+      control={<DropdownSelect multiple={definition.field_type === 'MULTI_SELECT'} name={name} required={definition.is_required} searchable={definition.field_type === 'SELECT'} searchPlaceholder={label}>
+        {definition.field_type === 'SELECT' ? <option value="" /> : null}
+        {definition.options.map((option) => <option key={option.value} value={option.value}>{option.label_nl}</option>)}
+      </DropdownSelect>}
+      label={label}
+      required={definition.is_required}
+    />
+  }
+  if (definition.field_type === 'AUTO_INCREMENT') return <FormField control={<TextInput disabled placeholder={labels.automaticValue} />} label={label} />
+
+  return <FormField control={<TextInput name={name} required={definition.is_required} type={definition.field_type === 'NUMBER' ? 'number' : definition.field_type === 'DATE' ? 'date' : 'text'} />} label={label} required={definition.is_required} />
 }
 
 function displayCustomFieldValue(value: Json | undefined): string {
@@ -629,15 +606,7 @@ function CheckboxCard({
   description: string
   onChange: () => void
 }) {
-  return (
-    <label className={`${checkboxCardClass} ${checked ? 'border-primary/40 bg-accent/40' : 'border-border'}`}>
-      <input checked={checked} className="mt-1 h-4 w-4 rounded border" onChange={onChange} type="checkbox" />
-      <span>
-        <span className="block font-medium">{label}</span>
-        <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
-      </span>
-    </label>
-  )
+  return <div className={`rounded-[var(--radius-control)] border px-3 py-3 text-sm transition-colors ${checked ? 'border-primary/40 bg-accent/40' : 'border-border'}`}><Checkbox checked={checked} description={description} label={label} onChange={onChange} /></div>
 }
 
 function defaultRoleIds(roles: Option[]): string[] {
