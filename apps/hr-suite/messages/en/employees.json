@@ -288,6 +288,7 @@
   "cancel": "Cancel",
   "saveReminder": "Save reminder",
   "reminderSaved": "Reminder saved.",
+  "reminderFutureTime": "Choose a date and time in the future.",
   "reminderClose": "Close reminder",
   "reminderMoreActions": "More reminder actions",
   "personalReminder": "Personal",

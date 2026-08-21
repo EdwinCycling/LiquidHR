@@ -15,15 +15,23 @@ const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refreshMock }) }))
 
 const labels = {
-  title: 'Reminders voor medewerker', empty: 'Geen reminders voor deze medewerker.', add: 'Reminder toevoegen', edit: 'Wijzigen', remove: 'Verwijderen', titleLabel: 'Titel', descriptionLabel: 'Omschrijving', dateLabel: 'Datum en tijd', save: 'Reminder opslaan', saved: 'Opgeslagen', failed: 'Mislukt', cancel: 'Annuleren', close: 'Reminder sluiten', moreActions: 'Meer reminderacties', personalReminder: 'Persoonlijk', hrReminder: 'HR', discardTitle: 'Wijzigingen negeren?', discardDescription: 'Niet-opgeslagen wijzigingen gaan verloren.', discardConfirm: 'Wijzigingen negeren', discardCancel: 'Terug naar formulier', deleteTitle: 'Reminder verwijderen?', deleteDescription: 'Deze reminder wordt definitief verwijderd.', deleteConfirm: 'Verwijderen', deleteCancel: 'Annuleren', shiftDayBack: 'Dag terug', shiftDayForward: 'Dag vooruit', shiftWeekForward: 'Week vooruit', shiftMonthForward: 'Maand vooruit',
+  title: 'Reminders voor medewerker', empty: 'Geen reminders voor deze medewerker.', add: 'Reminder toevoegen', edit: 'Wijzigen', remove: 'Verwijderen', titleLabel: 'Titel', descriptionLabel: 'Omschrijving', dateLabel: 'Datum en tijd', save: 'Reminder opslaan', saved: 'Opgeslagen', failed: 'Mislukt', futureTime: 'Kies een datum en tijd in de toekomst.', cancel: 'Annuleren', close: 'Reminder sluiten', moreActions: 'Meer reminderacties', personalReminder: 'Persoonlijk', hrReminder: 'HR', discardTitle: 'Wijzigingen negeren?', discardDescription: 'Niet-opgeslagen wijzigingen gaan verloren.', discardConfirm: 'Wijzigingen negeren', discardCancel: 'Terug naar formulier', deleteTitle: 'Reminder verwijderen?', deleteDescription: 'Deze reminder wordt definitief verwijderd.', deleteConfirm: 'Verwijderen', deleteCancel: 'Annuleren', shiftDayBack: 'Dag terug', shiftDayForward: 'Dag vooruit', shiftWeekForward: 'Week vooruit', shiftMonthForward: 'Maand vooruit',
 }
 
 const reminder = {
   recipientId: 'recipient-1', employeeId: 'employee-1', employeeName: 'Ada Lovelace', reminderId: 'reminder-1', title: 'Contract controleren', description: 'Controleer de looptijd.', remindAt: '2026-08-22T10:00:00.000Z', originalRemindAt: '2026-08-22T10:00:00.000Z', type: 'PERSONAL', targetType: 'SELF', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED', createdByUserId: 'user-1',
 } satisfies ReminderItem
 
+function setInputValue(input: HTMLInputElement, value: string): void {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+  setter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
 describe('Employee reminders Foundation contract', () => {
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     document.querySelectorAll('[data-liquidhr-overlay-root]').forEach((element) => element.remove())
   })
@@ -57,6 +65,99 @@ describe('Employee reminders Foundation contract', () => {
     expect(document.body.querySelector('input[name="remindAt"][type="datetime-local"]')).not.toBeNull()
     expect(document.body.querySelector('textarea[name="description"]')).not.toBeNull()
     root.unmount()
+    host.remove()
+  })
+
+  it('opens Add with a reminder time at least fifteen minutes ahead on the next quarter hour', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-21T09:18:50Z'))
+
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    act(() => root.render(createElement(EmployeeReminders, { canManageHr: false, dateFormat: 'DMY', employeeId: 'employee-1', labels, locale: 'nl-NL', mode: 'PERSONAL', reminders: [], timeFormat: '24H' })))
+
+    act(() => (host.querySelector('button') as HTMLButtonElement).click())
+
+    const input = document.body.querySelector('input[name="remindAt"][type="datetime-local"]') as HTMLInputElement
+    const defaultDate = new Date(input.value)
+    expect(defaultDate.getTime()).toBeGreaterThanOrEqual(new Date('2026-08-21T09:33:50Z').getTime())
+    expect(defaultDate.getMinutes() % 15).toBe(0)
+    expect(defaultDate.getSeconds()).toBe(0)
+
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  it('keeps the drawer open and avoids POST when the reminder time has expired', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-21T09:18:50Z'))
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    refreshMock.mockClear()
+
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    act(() => root.render(createElement(EmployeeReminders, { canManageHr: false, dateFormat: 'DMY', employeeId: 'employee-1', labels, locale: 'nl-NL', mode: 'PERSONAL', reminders: [], timeFormat: '24H' })))
+
+    act(() => (host.querySelector('button') as HTMLButtonElement).click())
+    const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+    const titleInput = dialog.querySelector('input[name="title"]') as HTMLInputElement
+    const dateInput = dialog.querySelector('input[name="remindAt"]') as HTMLInputElement
+    act(() => {
+      setInputValue(titleInput, 'Verlopen reminder')
+      setInputValue(dateInput, '2026-08-21T08:00')
+    })
+    await act(async () => {
+      ;(dialog.querySelector('button[type="submit"]') as HTMLButtonElement).click()
+      await Promise.resolve()
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toBe('Kies een datum en tijd in de toekomst.')
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(refreshMock).not.toHaveBeenCalled()
+
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  it('posts a valid future reminder with the existing payload and refreshes after success', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-21T09:18:50Z'))
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+    refreshMock.mockClear()
+
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    act(() => root.render(createElement(EmployeeReminders, { canManageHr: false, dateFormat: 'DMY', employeeId: 'employee-1', labels, locale: 'nl-NL', mode: 'PERSONAL', reminders: [], timeFormat: '24H' })))
+
+    act(() => (host.querySelector('button') as HTMLButtonElement).click())
+    const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+    const titleInput = dialog.querySelector('input[name="title"]') as HTMLInputElement
+    const dateInput = dialog.querySelector('input[name="remindAt"]') as HTMLInputElement
+    act(() => {
+      setInputValue(titleInput, 'Toekomstige reminder')
+      setInputValue(dateInput, '2026-08-21T12:00')
+    })
+    await act(async () => {
+      ;(dialog.querySelector('button[type="submit"]') as HTMLButtonElement).click()
+      await Promise.resolve()
+    })
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledWith('/api/reminders', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'PERSONAL', title: 'Toekomstige reminder', description: '', remindAt: new Date('2026-08-21T12:00').toISOString() }),
+    })
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(refreshMock).toHaveBeenCalledOnce()
+
+    act(() => root.unmount())
     host.remove()
   })
 

@@ -30,6 +30,7 @@ interface Labels {
   save: string
   saved: string
   failed: string
+  futureTime: string
   cancel: string
   close: string
   moreActions: string
@@ -60,7 +61,13 @@ function localDateTimeValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-function initialDateTime(): string { return localDateTimeValue(new Date(Date.now() + 60_000)) }
+const REMINDER_MINIMUM_DELAY_MS = 15 * 60_000
+const REMINDER_QUARTER_MS = 15 * 60_000
+
+function initialDateTime(): string {
+  const minimumTime = Date.now() + REMINDER_MINIMUM_DELAY_MS
+  return localDateTimeValue(new Date(Math.ceil(minimumTime / REMINDER_QUARTER_MS) * REMINDER_QUARTER_MS))
+}
 
 function shift(value: string, kind: 'dayBack' | 'dayForward' | 'weekForward' | 'monthForward'): string {
   const date = new Date(value)
@@ -129,7 +136,12 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
     setFormError(null)
 
     try {
-      const remindAt = new Date(formValues.dateTime).toISOString()
+      const remindAtDate = new Date(formValues.dateTime)
+      if (Number.isNaN(remindAtDate.getTime()) || remindAtDate.getTime() <= Date.now()) {
+        setFormError(labels.futureTime)
+        return
+      }
+      const remindAt = remindAtDate.toISOString()
       const body = { title: formValues.title, description: formValues.description, remindAt }
       const createBody = mode === 'PERSONAL' ? { type: 'PERSONAL' as const, ...body } : { type: 'HR' as const, ...body, targetType: 'EMPLOYEES' as const, targetIds: [employeeId] }
       const response = await fetch(editing ? `/api/reminders/${editing.reminderId}` : '/api/reminders', { method: editing ? 'PATCH' : 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(editing ? body : createBody) })
