@@ -20,6 +20,14 @@ Dit document is vanaf 2026-08-20 de leidende algemene UX- en stylingfoundation v
 
 De componentinventaris en architectuur zijn `components/ui` voor generieke primitives, `components/patterns` voor herbruikbare composities en `components/layout` voor generieke layoutcontracten. `/employees` is de reference list/workbench; `/employees/[employeeId]` is de reference profile/detail met ongeveer 2/3 hoofdinhoud en 1/3 aside via `DetailColumns`. LinkedHR is een officieel theme dat dezelfde Foundation gebruikt. De governance staat in `AGENTS.md` en de screen-redesignskill. Foundation v1 is gereed voor bredere, gecontroleerde schermmigratie.
 
+### Acceptance- en compositienormen
+
+- Belangrijke action labels worden nooit afgekapt: action grids passen het kolomaantal aan de beschikbare ruimte aan en tekst mag natuurlijk over meerdere regels wrappen. Elke relevante slice wordt op desktop en circa 390px beoordeeld.
+- De detail/profile header bevat identiteit, status en compacte globale contextacties. Inhoudelijke edit/create-acties horen bij de relevante sectie; dezelfde actie wordt niet zowel in header als inhoud aangeboden.
+- `SectionHeader` en acties mogen opvolgende content niet visueel raken. Los spacing lokaal en compositioneel op; wijzig `SectionHeader` niet globaal voor één schermprobleem.
+- Grotere UX-slices zijn pas acceptance-GREEN nadat representatieve routes werkelijk in browser of testdeployment zijn gerenderd. Compile, tests en typecheck alleen zijn onvoldoende.
+- Bij iedere nieuwe `t('key')`-reference wordt gecontroleerd dat de key in de betreffende NL- én EN-namespace bestaat en runtime resolveert; key-parity alleen is onvoldoende.
+
 ## 0. Blok 2 uitgevoerd
 
 Blok 2 levert de centrale herbruikbare componentlaag op `feature/ux-foundation-v1`. De werkelijk beschikbare componenten zijn:

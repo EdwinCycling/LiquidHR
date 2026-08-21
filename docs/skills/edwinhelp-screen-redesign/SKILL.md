@@ -100,6 +100,14 @@ Een redesign gebruikt semantic tokens en is niet uitsluitend ontworpen voor éé
 
 Behoud standaard route, API-contracten, database, permissies, RLS, data-eigenaarschap en bestaande gebruikersflows. Voer geen schema- of remote wijziging uit voor een visuele redesignopdracht tenzij de gebruiker dat afzonderlijk en expliciet vraagt.
 
+Acceptance-normen voor iedere grotere UX-slice:
+
+- belangrijke action labels worden niet afgekapt; grids passen hun kolomaantal aan en tekst mag natuurlijk wrappen;
+- de detail/profile header blijft voor identiteit, status en compacte globale contextacties; edit/create hoort bij de relevante sectie en wordt niet dubbel aangeboden;
+- opvolgende content krijgt lokale compositionele ruimte onder `SectionHeader`/acties;
+- acceptance-GREEN vereist browser- of testdeployment-rendering van representatieve routes op desktop en circa 390px, naast compile/tests;
+- nieuwe i18n-references worden inhoudelijk in NL en EN gecontroleerd en runtime getest; key-parity alleen volstaat niet.
+
 Als de gebruiker alleen om een voorstel vraagt, stop na analyse, requirements en ontwerpvoorstel. Als de gebruiker akkoord geeft of expliciet vraagt om het door te voeren, implementeer dan de afgesproken scope.
 
 ### 6. Controleer het resultaat
@@ -110,6 +118,7 @@ Voer voor een geïmplementeerd scherm minimaal uit:
 - `check:i18n` wanneer zichtbare tekst of taalbestanden wijzigen;
 - relevante test of buildcontrole;
 - browsercontrole op desktop en 390px mobiel wanneer layout of interactie is gewijzigd;
+- controleer action wrapping, header-action hierarchy en scheiding tussen section header en opvolgende content;
 - controle van toetsenbordfocus, lege toestand, foutmelding, loading en success state.
 
 Rapporteer onderscheidend wat lokaal gecontroleerd is, wat inherited is en wat nog openstaat. Merge, push of deploy is geen onderdeel van deze skill tenzij de gebruiker daar apart opdracht voor geeft.

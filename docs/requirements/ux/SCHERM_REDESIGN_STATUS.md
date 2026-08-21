@@ -13,13 +13,38 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 | Employee Personal Tab | `/employees/[employeeId]?tab=personal` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYEE_PERSONAL_TAB.md`](REDESIGN_EMPLOYEE_PERSONAL_TAB.md) | Browsergate op authenticated feature-preview uitvoeren |
 | Employment Workspace | `/employees/[employeeId]/employments/[employmentId]` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYMENT_WORKSPACE.md`](REDESIGN_EMPLOYMENT_WORKSPACE.md) | Lokale gates gedaan; authenticated desktop/390px-browsercontrole blijft open zonder veilige sessie/env |
 
-## Volgorde
+## Suitebrede migratieroadmap
 
-1. Bedrijfsgegevens — afgerond als eerste Liquid Flow-redesign.
-2. Rollen en autorisatie — redesign doorgevoerd en geverifieerd op desktop en 390px.
-3. Workflows en formulieren — overzicht, productie-inzicht en begeleide aanmaakflow geïmplementeerd; browserverificatie geblokkeerd door ontbrekende lokale worktree-env.
-4. Daarna bepaalt Edwin per keer de volgende pagina.
-5. Employees UX vNext — lokale Structured Enterprise-pilot; pas na Edwin's visuele akkoord wordt een volgende pagina gekozen.
+0. UX Foundation + Controls — AFGEROND
+1. Employee 360
+2. Absence & HR Operations
+3. Organization & Talent
+4. Recruitment & Journeys
+5. Work & Automation
+6. Home, Management & Insights
+7. Settings & Admin
+8. Final Product UX Sweep
+
+### Employee 360
+
+- Personal — afgerond
+- Employments — afgerond
+- Documents + Payslips — volgende parallelle slice
+- Reminders + Notes — volgende parallelle slice
+- Absence + Processes — volgende parallelle slice
+- Dashboard/Overview + integratie — daarna
+
+### Final Product UX Sweep
+
+- legacy/ad-hoc UI scan;
+- Foundation reuse;
+- action/header hierarchy;
+- text overflow/wrapping;
+- desktop + 390px;
+- accessibility/focus;
+- loading/error/empty/success;
+- Default + LinkedHR;
+- browser smoke van representatieve kritieke flows.
 
 ## Werkwijze na ieder scherm
 

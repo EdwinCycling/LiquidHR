@@ -58,12 +58,12 @@ export function EmploymentOverviewActions({ labels, employmentId, today, locale,
       <div>
         <p className="eyebrow" id="employment-change-actions-title">{labels.sectionTitle}</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {actions.map((action) => {
           const Icon = action.icon
           return (
             <button
-              className={`${buttonClasses({ variant: action.destructive ? 'danger' : 'secondary', className: 'min-h-20 w-full justify-start whitespace-normal px-4 py-3 text-left' })} ${action.destructive ? 'border-destructive/30' : ''}`}
+              className={`${buttonClasses({ variant: action.destructive ? 'danger' : 'secondary', className: 'min-h-20 w-full min-w-0 justify-start !whitespace-normal px-4 py-3 text-left' })} ${action.destructive ? 'border-destructive/30' : ''}`}
               key={action.key}
               onClick={() => setActiveAction(action)}
               type="button"
@@ -71,7 +71,7 @@ export function EmploymentOverviewActions({ labels, employmentId, today, locale,
               <span className={`grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] ${action.destructive ? 'bg-destructive-surface text-destructive' : 'bg-accent text-accent-foreground'}`}>
                 <Icon aria-hidden="true" className="size-5" />
               </span>
-              <span className="font-semibold leading-5 group-hover:text-primary">{action.title}</span>
+              <span className="min-w-0 flex-1 font-semibold leading-5 group-hover:text-primary">{action.title}</span>
             </button>
           )
         })}

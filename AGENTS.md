@@ -120,10 +120,10 @@ De repository bevat vaste natuurlijke commando's. Gebruik `EdwinHelp` voor het a
 
  Gebruik voor de volledige uitleg en voorbeelden [`docs/DEVELOPER_TOOLKIT.md`](docs/DEVELOPER_TOOLKIT.md). Deze toolkit commit, pusht of merge't niet automatisch buiten de expliciete lokale actie van het gekozen commando.
 
-### Feature worktree workflow in Codex-chat
+### Main- en tijdelijke-branchworkflow in Codex-chat
 
-Werk tijdens een feature uitsluitend in de aparte worktree; wijzig de hoofdworkspace of `main` niet rechtstreeks. Stop bij een dirty worktree, mislukte merge, ontbrekende featurecommits in `main`, mislukte tests of mislukte deployment. Verwijder dan geen worktree of branch.
+`main` is de centrale test-trunk. Kleine, bewezen, sequentiële LOW/MIDDLE-correcties mogen na expliciete opdracht direct op `main` worden uitgevoerd en naar `origin/main` worden gepusht. Substantiële, risicovolle of parallelle product-slices gebruiken tijdelijke `work/...`-branches; parallelle branches starten vanaf exact dezelfde goedgekeurde `main`-SHA. Na GREEN-review wordt zo'n slice naar `main` geïntegreerd en mag de tijdelijke branch worden verwijderd.
 
-Normale lokale featurewerkzaamheden mogen zonder micro-confirmaties; bestaande testdata, testfixtures en testomgeving mogen voor verificatie worden gebruikt. Als de gebruiker voor de actuele feature expliciet featurebranch-push heeft toegestaan, mag Codex naar exact die featurebranch pushen. Nooit zelfstandig naar `main` pushen of mergen. Production deploy, release en version bump blijven expliciete acties. Stop alleen voor een echte blocker, destructive action, production/security/secrets-risico of scope-uitbreiding.
+Normale lokale werkzaamheden mogen zonder micro-confirmaties; bestaande testdata, testfixtures en testomgeving mogen voor verificatie worden gebruikt. Production/release/database/destructive/security blijven apart beschermd. Force, reset en clean gedrag blijft verboden zonder expliciete toestemming. Stop bij een dirty worktree die buiten scope valt, mislukte tests, mislukte deployment of ontbrekende vereiste review/evidence.
 
 Gebruik nooit `git reset --hard`, `git clean -fd`, force-push of geforceerde branchverwijdering zonder expliciete toestemming. `Feature samenvoegen` is de expliciete toestemming voor de beschreven merge/push-workflow.

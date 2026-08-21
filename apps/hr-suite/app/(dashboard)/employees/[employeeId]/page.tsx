@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, BriefcaseBusiness, CalendarDays, Mail, Maximize2, Minimize2, Pencil, Phone } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, CalendarDays, Mail, Maximize2, Minimize2, Phone } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
@@ -206,7 +206,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 md:max-w-[15rem] md:justify-end">
-                  {detail.capabilities.canEditEmployee ? <Link href={`/employees/${employeeId}?tab=personal&edit=1&view=expanded`} prefetch={false} className="button-primary inline-flex items-center gap-2"><Pencil aria-hidden="true" className="h-4 w-4" />{tEmployees('editPersonal')}</Link> : null}
                   <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} />
                   <Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Minimize2 aria-hidden="true" size={18} /></Link>
                   <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
@@ -303,7 +302,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
         {tab === 'notes' && canReadNotes && <EmployeeNotes employeeId={employeeId} notes={notes} canWrite={canWriteNotes} canDelete={canDeleteNotes} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('notesTitle'), accessNotice: tEmployees('notesAccessNotice'), empty: tEmployees('notesEmpty'), add: tEmployees('addNote'), edit: tEmployees('editNote'), remove: tEmployees('deleteNote'), noteTitle: tEmployees('noteTitle'), description: tEmployees('description'), author: tEmployees('noteAuthor'), createdAt: tEmployees('noteCreatedAt'), save: tEmployees('saveNote'), cancel: tEmployees('cancel'), saving: tEmployees('saving'), failed: tErrors('generic'), saved: tEmployees('noteSaved'), confirmDelete: tEmployees('confirmDelete') }} />}
 
         {tab === 'employments' && <div className="mt-8">
-          <section>
+          <section className="space-y-5">
             <SectionHeader title={tEmployment('title')} actions={canManageEmployments ? <Link href={`/employees/${employeeId}/employments/new`} className={buttonClasses()}>{tEmployment('new')}</Link> : null} />
             <EmploymentTimeline
               employments={detail.employments}

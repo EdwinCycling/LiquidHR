@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## UX acceptance polish + governance sync — 2026-08-21
+
+- Vanaf actuele `origin/main` `8de7df809f89b270c62c3ea5ea498d2d94826136` zijn de employee action tiles lokaal verbreed/gewrapt met maximaal drie kolommen op normale desktop en vier vanaf `2xl`; de employment overview kreeg lokale SectionHeader-spacing; de uitgebreide profile-header-editactie is verwijderd terwijl Personal-edit behouden bleef.
+- UX Foundation, EdwinHelp, screen-redesign-roadmap en AGENTS-workflow zijn aangescherpt voor action wrapping, header hierarchy, content separation, browser acceptance en runtime-i18ncontrole. De suitebrede roadmap loopt nu van Foundation + Controls tot Final Product UX Sweep.
+- Verificatie en browserstatus staan in de oplevering van deze slice; geen API-, database-, RLS-, permission-, service- of businesslogicawijziging.
+
 ## Foundation Controls v1.1 — 2026-08-20
 
 - Branch `work/foundation-controls-v1-1` is gestart vanaf exact `main`/`origin/main` SHA `3dc4dc038940fdca731f292098a9b0760411c3d7`; de werkboom was schoon.
