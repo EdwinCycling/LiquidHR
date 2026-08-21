@@ -277,7 +277,7 @@ export default async function EmploymentDetailPage({
         <ArrowLeft className="h-4 w-4" />
         {t("backToEmployee")}
       </Link>
-      <header className="mt-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5">
+      <header className="relative mt-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 pr-16 sm:p-5 sm:pr-16">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-start gap-3 sm:gap-4">
             {detail.employee.avatar_url ? (
@@ -307,17 +307,17 @@ export default async function EmploymentDetailPage({
           <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
             <Badge tone={statusTone}>{effectiveStatus}</Badge>
             {detail.employment.is_primary && <Badge tone="info">{t("primary")}</Badge>}
-            <Link
-              aria-label={expanded ? t("compact") : t("expanded")}
-              prefetch={false}
-              className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"
-              href={`?tab=${tab}&view=${expanded ? "compact" : "expanded"}`}
-              title={expanded ? t("compact") : t("expanded")}
-            >
-              {expanded ? <Minimize2 aria-hidden="true" size={18} /> : <Maximize2 aria-hidden="true" size={18} />}
-            </Link>
           </div>
         </div>
+        <Link
+          aria-label={expanded ? t("compact") : t("expanded")}
+          prefetch={false}
+          className="button-secondary absolute right-4 top-4 inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0 sm:right-5 sm:top-5"
+          href={`?tab=${tab}&view=${expanded ? "compact" : "expanded"}`}
+          title={expanded ? t("compact") : t("expanded")}
+        >
+          {expanded ? <Minimize2 aria-hidden="true" size={18} /> : <Maximize2 aria-hidden="true" size={18} />}
+        </Link>
         {expanded ? <dl className="mt-4 grid gap-3 border-t border-subtle pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div><dt className="text-xs text-muted-foreground">{t("employmentNumber")}</dt><dd className="mt-1 font-semibold">{detail.employment.employment_number}</dd></div>
           <div><dt className="text-xs text-muted-foreground">{t("startDate")}</dt><dd className="mt-1 font-semibold">{formatDate(detail.employment.starts_on, { locale, dateFormat: preferences.dateFormat })}</dd></div>

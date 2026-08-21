@@ -11,6 +11,7 @@ import { EmailLink } from '@/components/shared/email-link'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { CountryPicker } from '@/components/ui/country-picker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -443,7 +444,6 @@ function AddressFormV2({ employeeId, locale, labels, address, addressType, onCan
   const isNew = !address
   const isSecondary = addressType === 'SECONDARY'
   const isDutch = values.countryCode === 'NL'
-  const countryOptions = getCountryOptions(locale)
 
   useEffect(() => {
     if (query.trim().length < 3 || !isNew) return
@@ -487,9 +487,9 @@ function AddressFormV2({ employeeId, locale, labels, address, addressType, onCan
     <form onSubmit={submit} className="grid gap-4">
       {isSecondary && <Field label={labels.secondaryAddressDescription}><TextInput value={values.description} onChange={(event) => updateValue('description', event.target.value)} required maxLength={240} /><span className="text-xs font-normal text-muted-foreground">{labels.secondaryAddressHelp}</span></Field>}
       <div className="grid gap-3 sm:grid-cols-[minmax(11rem,0.75fr)_minmax(0,2fr)] sm:items-start">
-        <Field label={labels.country} className="self-start"><select name="countryCode" value={values.countryCode} onChange={(event) => updateValue('countryCode', event.target.value)} className={SELECT_CLASS}>{countryOptions.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}</select></Field>
+        <Field label={labels.country} className="self-start"><CountryPicker name="countryCode" value={values.countryCode} onChange={(value) => updateValue('countryCode', value)} locale={locale} searchLabel={labels.countrySearch} emptyLabel={labels.countryNoResults} /></Field>
         <Field label={labels.addressSearch} className="min-w-0">
-          <div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><TextInput value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${countryOptions.find((option) => option.code === values.countryCode)?.label ?? values.countryCode}`} className="pl-10" autoComplete="off" autoFocus={isNew} role="combobox" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded={suggestions.length > 0} /></div>
+          <div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><TextInput value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={isDutch ? labels.addressSearchPlaceholder : `${labels.addressSearchPlaceholder} ${values.countryCode}`} className="pl-10" autoComplete="off" autoFocus={isNew} role="combobox" aria-autocomplete="list" aria-controls="address-suggestions" aria-expanded={suggestions.length > 0} /></div>
           <div className="mt-1.5 min-h-4 text-xs text-muted-foreground">{searchState === 'loading' && <span className="inline-flex items-center gap-1.5"><LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />{labels.searchLoading}</span>}{searchState === 'failed' && <span role="alert" className="text-destructive">{labels.searchUnavailable}</span>}{searchState === 'empty' && <span>{labels.searchNoResults}</span>}</div>
           {suggestions.length > 0 && <ul id="address-suggestions" role="listbox" className="mt-1 max-h-60 overflow-y-auto rounded-[var(--radius-overlay)] border border-border bg-surface-overlay shadow-sm">{suggestions.map((suggestion) => <li key={`${suggestion.source}-${suggestion.sourceReference ?? suggestion.label}`} role="presentation"><button type="button" role="option" aria-selected={false} className="flex w-full items-start gap-2 border-b px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-accent" onClick={() => applySuggestion(suggestion)}><MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{suggestion.label}</span></button></li>)}</ul>}
         </Field>
@@ -510,8 +510,7 @@ function AddressFormV2({ employeeId, locale, labels, address, addressType, onCan
 
 function CountrySelect({ name, label, initialValue, defaultCountryCode, locale, labels }: { name: string; label: string; initialValue: string; defaultCountryCode: string; locale: string; labels: Pick<EmployeePersonCardLabels, 'countrySearch' | 'countryNoResults'> }) {
   const [selected, setSelected] = useState(initialValue || defaultCountryCode)
-  const countries = useMemo(() => getCountryOptions(locale), [locale])
-  return <Field label={label}><DropdownSelect aria-label={label} emptyLabel={labels.countryNoResults} name={name} onChange={(event) => setSelected(event.target.value)} searchPlaceholder={labels.countrySearch} searchable value={selected}>{countries.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}</DropdownSelect></Field>
+  return <Field label={label}><CountryPicker emptyLabel={labels.countryNoResults} name={name} onChange={setSelected} locale={locale} searchLabel={labels.countrySearch} value={selected} /></Field>
 }
 
 const LANGUAGE_CODES = ['nl-NL', 'en-GB', 'de-DE', 'fr-FR', 'es-ES', 'it-IT', 'pt-PT', 'pl-PL', 'tr-TR', 'ar-SA', 'zh-CN', 'ja-JP', 'ko-KR', 'ru-RU', 'uk-UA', 'sv-SE', 'da-DK', 'nb-NO', 'fi-FI', 'cs-CZ', 'el-GR', 'ro-RO', 'hu-HU', 'bg-BG', 'hr-HR', 'sk-SK', 'sl-SI', 'he-IL', 'hi-IN', 'id-ID']
@@ -524,12 +523,6 @@ function LanguageSelect({ name, label, initialValue, locale, labels }: { name: s
     return options.some((option) => option.code === initialValue) || !initialValue ? options : [{ code: initialValue, label: initialValue }, ...options]
   }, [initialValue, locale])
   return <Field label={label}><DropdownSelect aria-label={label} emptyLabel={labels.languageNoResults} name={name} onChange={(event) => setSelected(event.target.value)} searchPlaceholder={labels.languageSearch} searchable value={selected}>{languages.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}</DropdownSelect></Field>
-}
-
-function getCountryOptions(locale: string): Array<{ code: string; label: string }> {
-  const codes = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split(' ')
-  const displayNames = new Intl.DisplayNames([locale], { type: 'region' })
-  return [...new Set(['NL', ...codes])].map((code) => ({ code, label: displayNames.of(code) ?? code })).sort((left, right) => left.code === 'NL' ? -1 : right.code === 'NL' ? 1 : left.label.localeCompare(right.label))
 }
 
 function BankAccountsPanel({ employeeId, accounts, canManage, labels }: { employeeId: string; accounts: NonNullable<EmployeeDetailViewModel['bankAccounts']>; canManage: boolean; labels: EmployeePersonCardLabels }) {
