@@ -3,6 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { FormField } from '@/components/patterns/form-field'
+import { Button } from '@/components/ui/button'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
 
 interface ProfileLinkFormProps {
   employeeId: string
@@ -23,6 +27,6 @@ export function ProfileLinkForm({ employeeId, labels }: ProfileLinkFormProps) {
     setFailed(!response.ok)
     if (response.ok) { setOpen(false); router.refresh() }
   }
-  if (!open) return <button type="button" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" onClick={() => setOpen(true)}><Plus className="h-4 w-4" />{labels.add}</button>
-  return <form onSubmit={submit} className="mt-4 grid gap-3"><label className="grid gap-1 text-sm font-medium">{labels.label}<input name="label" className="form-field" required /></label><label className="grid gap-1 text-sm font-medium">{labels.url}<input name="url" className="form-field" type="url" required placeholder="https://" /></label><button className="button-primary" type="submit">{labels.save}</button>{failed && <p className="text-sm text-danger">{labels.failed}</p>}</form>
+  if (!open) return <Button className="mt-4 justify-start px-0 text-primary hover:bg-transparent hover:underline" onClick={() => setOpen(true)} size="sm" type="button" variant="ghost"><Plus aria-hidden="true" />{labels.add}</Button>
+  return <Surface variant="subtle" className="mt-4 p-4"><form onSubmit={submit} className="grid gap-4"><FormField control={<TextInput name="label" required />} label={labels.label} required /><FormField control={<TextInput name="url" type="url" required placeholder="https://" />} label={labels.url} required /><Button size="sm" type="submit">{labels.save}</Button>{failed && <p className="text-sm text-destructive" role="alert">{labels.failed}</p>}</form></Surface>
 }

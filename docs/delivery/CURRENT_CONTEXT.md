@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Employee 360 final integration + Dashboard/Overview — 2026-08-21
+
+- De geïsoleerde branch `work/emp360-dashboard-integration` is gestart vanaf exact `origin/main` `ff487e256ce4460c5a85fdde1e3542fe4ac5692d`. De drie gereviewde slices zijn conflictvrij geïntegreerd: Documents + Payslips `8ffb73c0b37b77cc38c2b712657036e89286f04b`, Reminders + Notes `6aae44a93bd1efd78bfbdb2472c04b1785b046e3` en Absence + Processes `1027ac278eab13de68672a3cfb19a4116004d153`. De mergecommit is `8f0bc6a9ee20023cc12387ad6fa78b3501393f2e`; alle drie commits zijn ancestors van de branch-HEAD.
+- Dashboard/Overview is presentationeel gemigreerd naar Foundation v1. `employee-dashboard.tsx`, `employee-dashboard-summary.tsx`, `employee-dashboard-layout.tsx`, `employment-dashboard-summary.tsx`, `employee-activity-feed.tsx` en `profile-link-form.tsx` behouden de bestaande data, permissions, salary reveal, tabs, API-routes, PATCH-payload, drag/drop, compact/expanded gedrag en A/B/C-integratie. De globale dashboard-editactie is verwijderd; Personal-edit blijft contextueel beschikbaar.
+- Nieuw requirementsdocument: [`REDESIGN_EMPLOYEE_360_DASHBOARD.md`](../requirements/ux/REDESIGN_EMPLOYEE_360_DASHBOARD.md). Status staat op `GEIMPLEMENTEERD / WACHT OP ACCEPTANCE`; volgende roadmap-item is Absence & HR Operations. Geen nieuwe FOUNDATION_GAP; Dialog en Multiselect blijven LATER.
+- Verificatie: gerichte dashboardcontracttest 7/7; volledige hr-suite 208 testbestanden/809 tests; strict TypeScript; lint exit 0 met zes bestaande warnings buiten deze slice; i18n 33 gelijke NL/EN-namespaces; Webpack-production build 225 routes; `git diff --check` groen.
+- Browserstatus: niet uitgevoerd en niet geclaimd. Deze geïsoleerde worktree bevat geen `.env`-bestand en er luistert geen passende lokale server op poort 3000. Authenticated desktop/390px/default/LinkedHR-controle blijft open voor de branch-previewacceptatie. Er is geen Supabase-write, main-merge, release, version bump of deployment uitgevoerd.
+
 ## UX acceptance follow-up — 2026-08-21
 
 - Employment Detail acceptance-correcties: Compact/Uitgebreid is nu een icon-only link met aria-label en title; ScrollableTabs-overflowknoppen gebruiken een contrasterende accentkleur; Contract verwijderen gebruikt een zachte destructieve surface met behoud van de bestaande actie- en dialoogsemantiek.

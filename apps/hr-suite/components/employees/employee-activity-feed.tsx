@@ -1,8 +1,13 @@
 'use client'
 
-import { LoaderCircle, Plus, Send } from 'lucide-react'
+import { Plus, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
+import { FormField } from '@/components/patterns/form-field'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
+import { Textarea } from '@/components/ui/textarea'
 import type { EmployeeActivityItem } from '@/lib/employees/employee-activity-service'
 import { formatDateTime } from '@/lib/preferences/formatters'
 import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
@@ -35,10 +40,10 @@ export function EmployeeActivityFeed({ employeeId, items, locale, dateFormat, ti
   }
 
   return <div>
-    {items.length ? <ul className="divide-y divide-border/70">{items.map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.id}><p className="whitespace-pre-wrap text-sm leading-6">{item.message}</p><time className="mt-1 block text-xs text-muted-foreground" dateTime={item.createdAt}>{formatDateTime(item.createdAt, { locale, dateFormat, timeFormat })}</time></li>)}</ul> : <p className="rounded-xl border border-dashed border-primary/25 bg-accent/20 p-4 text-sm text-muted-foreground">{labels.empty}</p>}
+    {items.length ? <ul className="divide-y divide-border/70">{items.map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.id}><p className="break-words whitespace-pre-wrap text-sm leading-6">{item.message}</p><time className="mt-1 block text-xs text-muted-foreground" dateTime={item.createdAt}>{formatDateTime(item.createdAt, { locale, dateFormat, timeFormat })}</time></li>)}</ul> : <EmptyState title={labels.empty} className="items-start p-4 text-left" />}
     {canWrite ? <>
-      <button className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" onClick={() => setOpen((value) => !value)} type="button"><Plus aria-hidden="true" size={15} />{labels.add}</button>
-      {open ? <form className="mt-4 rounded-xl border bg-muted/40 p-4" onSubmit={(event) => void submit(event)}><textarea aria-label={labels.placeholder} autoFocus className="form-field min-h-24 resize-y" maxLength={2000} onChange={(event) => setMessage(event.target.value)} placeholder={labels.placeholder} value={message} /><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><span className="text-xs text-muted-foreground">{message.length}/2000</span><button className="button-primary inline-flex items-center gap-2" disabled={!message.trim() || status === 'saving'} type="submit">{status === 'saving' ? <LoaderCircle aria-hidden="true" className="animate-spin" size={15} /> : <Send aria-hidden="true" size={15} />}{status === 'saving' ? labels.saving : labels.save}</button></div>{status === 'failed' ? <p className="mt-2 text-sm text-destructive" role="alert">{labels.failed}</p> : null}</form> : null}
+      <Button className="mt-4 justify-start px-0 text-primary hover:bg-transparent hover:underline" onClick={() => setOpen((value) => !value)} size="sm" type="button" variant="ghost"><Plus aria-hidden="true" />{labels.add}</Button>
+      {open ? <Surface variant="subtle" className="mt-4 p-4"><form className="grid gap-4" onSubmit={(event) => void submit(event)}><FormField control={<Textarea autoFocus maxLength={2000} onChange={(event) => setMessage(event.target.value)} placeholder={labels.placeholder} value={message} />} label={labels.placeholder} required /><div className="flex flex-wrap items-center justify-between gap-3"><span className="text-xs text-muted-foreground">{message.length}/2000</span><Button disabled={!message.trim()} loading={status === 'saving'} size="sm" type="submit"><Send aria-hidden="true" />{status === 'saving' ? labels.saving : labels.save}</Button></div>{status === 'failed' ? <p className="text-sm text-destructive" role="alert">{labels.failed}</p> : null}</form></Surface> : null}
     </> : null}
   </div>
 }

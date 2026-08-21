@@ -12,6 +12,7 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 | Employees + Employee Detail | `/employees`, `/employees/[employeeId]` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYEES_VNEXT.md`](REDESIGN_EMPLOYEES_VNEXT.md) | Browsergate en eindrapport Blok 3 |
 | Employee Personal Tab | `/employees/[employeeId]?tab=personal` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYEE_PERSONAL_TAB.md`](REDESIGN_EMPLOYEE_PERSONAL_TAB.md) | Browsergate op authenticated feature-preview uitvoeren |
 | Employment Workspace | `/employees/[employeeId]/employments/[employmentId]` | GEIMPLEMENTEERD | [`REDESIGN_EMPLOYMENT_WORKSPACE.md`](REDESIGN_EMPLOYMENT_WORKSPACE.md) | Lokale gates gedaan; authenticated desktop/390px-browsercontrole blijft open zonder veilige sessie/env |
+| Employee 360 Dashboard / Overview + integratie | `/employees/[employeeId]?tab=overview` | GEIMPLEMENTEERD / WACHT OP ACCEPTANCE | [`REDESIGN_EMPLOYEE_360_DASHBOARD.md`](REDESIGN_EMPLOYEE_360_DASHBOARD.md) | Branch-preview visueel accepteren; daarna status GEVERIFIEERD |
 
 ## Suitebrede migratieroadmap
 
@@ -27,12 +28,14 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 
 ### Employee 360
 
-- Personal — afgerond
-- Employments — afgerond
-- Documents + Payslips — volgende parallelle slice
-- Reminders + Notes — volgende parallelle slice
-- Absence + Processes — volgende parallelle slice
-- Dashboard/Overview + integratie — daarna
+- Personal — AFGEROND
+- Employments — AFGEROND
+- Documents + Payslips — GEIMPLEMENTEERD
+- Reminders + Notes — GEIMPLEMENTEERD
+- Absence + Processes — GEIMPLEMENTEERD
+- Dashboard/Overview + integratie — GEIMPLEMENTEERD / WACHT OP ACCEPTANCE
+
+Volgende roadmap-item: **Absence & HR Operations**
 
 ### Final Product UX Sweep
 

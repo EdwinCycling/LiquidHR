@@ -3,8 +3,27 @@
 import { useState } from 'react'
 import { SalaryReveal } from '@/components/employees/salary-reveal'
 import type { EmployeeDashboardLabels } from '@/components/employees/employee-dashboard'
+import { EmptyState } from '@/components/ui/empty-state'
+import { TabButton } from '@/components/patterns/scrollable-tabs'
 import type { EmployeeDetailViewModel } from './types'
 import { getEmploymentCardStatus } from '@/lib/employment/employment-card-state'
+
+export type EmploymentDashboardSummaryLabels = Pick<EmployeeDashboardLabels,
+  | 'employment'
+  | 'employmentEmpty'
+  | 'department'
+  | 'jobTitle'
+  | 'manager'
+  | 'hoursPerWeek'
+  | 'salary'
+  | 'salaryHidden'
+  | 'salaryLoading'
+  | 'salaryFailed'
+  | 'salaryMonthly'
+  | 'salaryHourly'
+  | 'salaryNotAvailable'
+  | 'notRecorded'
+>
 
 export function EmploymentDashboardSummary({ employeeId, employments, cards, currentSummary, canReadSalary, labels, locale }: {
   employeeId: string
@@ -12,7 +31,7 @@ export function EmploymentDashboardSummary({ employeeId, employments, cards, cur
   cards: EmployeeDetailViewModel['employmentCards']
   currentSummary: EmployeeDetailViewModel['currentEmploymentSummary']
   canReadSalary: boolean
-  labels: EmployeeDashboardLabels
+  labels: EmploymentDashboardSummaryLabels
   locale: string
 }) {
   const today = new Date().toISOString().slice(0, 10)
@@ -25,12 +44,12 @@ export function EmploymentDashboardSummary({ employeeId, employments, cards, cur
   const selectedSummary = selectedId === currentSummary.employmentId ? currentSummary : null
 
   if (activeEmployments.length === 0) {
-    return <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">{labels.employmentEmpty}</p>
+    return <EmptyState title={labels.employmentEmpty} className="items-start p-4 text-left" />
   }
 
   return <div className="space-y-4">
     {activeEmployments.length > 1 ? <div aria-label={labels.employment} className="flex flex-wrap gap-2" role="tablist">
-      {activeEmployments.map((employment) => <button aria-selected={selectedId === employment.id} className={`rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-colors ${selectedId === employment.id ? 'border-primary bg-primary/10 text-primary' : 'border-border/70 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'}`} key={employment.id} onClick={() => setSelectedId(employment.id)} role="tab" type="button">{employment.employment_number}</button>)}
+      {activeEmployments.map((employment) => <TabButton active={selectedId === employment.id} className="max-w-full justify-start whitespace-normal break-words text-left text-xs" key={employment.id} onClick={() => setSelectedId(employment.id)}>{employment.employment_number}</TabButton>)}
     </div> : null}
     <dl className="space-y-4">
       <DataPoint label={labels.department} value={selectedCard?.departmentName ?? labels.notRecorded} />
@@ -43,5 +62,5 @@ export function EmploymentDashboardSummary({ employeeId, employments, cards, cur
 }
 
 function DataPoint({ label, value }: { label: string; value: string }) {
-  return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 truncate text-sm font-semibold">{value}</dd></div>
+  return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 break-words text-sm font-semibold">{value}</dd></div>
 }

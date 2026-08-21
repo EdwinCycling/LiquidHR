@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, GripVertical, LoaderCircle } from 'lucide-react'
 import { useState, type DragEvent, type ReactNode } from 'react'
 import type { EmployeeDashboardLayout as Layout, EmployeeDashboardNarrowWidget, EmployeeDashboardWideWidget } from '@/lib/preferences/employee-dashboard-layout'
 import { DetailColumns } from '@/components/layout/detail-columns'
+import { IconButton } from '@/components/ui/icon-button'
 
 interface WidgetNode {
   id: EmployeeDashboardWideWidget | EmployeeDashboardNarrowWidget
@@ -62,10 +63,10 @@ export function EmployeeDashboardLayout({ wide, narrow, initialLayout, compact =
       if (!node) return null
       if (compact) return <div key={id}>{node}</div>
       return <div className="group" draggable key={id} onDragEnd={() => setDragged(null)} onDragOver={(event: DragEvent<HTMLDivElement>) => event.preventDefault()} onDrop={() => drop(column, id)} onDragStart={() => setDragged({ column, id })}>
-        <div className="mb-2 flex min-h-9 items-center justify-end gap-1 rounded-lg border border-dashed border-border/70 bg-surface/80 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="mb-2 flex min-h-9 items-center justify-end gap-1 rounded-[var(--radius-control)] border border-dashed border-border/70 bg-surface-subtle p-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
           <span aria-label={labels.drag} className="px-1 text-muted-foreground" title={labels.drag}><GripVertical aria-hidden="true" size={15} /></span>
-          <button aria-label={labels.moveUp} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" disabled={index === 0} onClick={() => move(column, id, -1)} type="button"><ArrowUp aria-hidden="true" size={14} /></button>
-          <button aria-label={labels.moveDown} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30" disabled={index === items.length - 1} onClick={() => move(column, id, 1)} type="button"><ArrowDown aria-hidden="true" size={14} /></button>
+          <IconButton disabled={index === 0} label={labels.moveUp} onClick={() => move(column, id, -1)} size="sm" variant="ghost"><ArrowUp aria-hidden="true" /></IconButton>
+          <IconButton disabled={index === items.length - 1} label={labels.moveDown} onClick={() => move(column, id, 1)} size="sm" variant="ghost"><ArrowDown aria-hidden="true" /></IconButton>
         </div>
         {node}
       </div>

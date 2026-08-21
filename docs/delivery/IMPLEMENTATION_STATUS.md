@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Employee 360 final integration + Dashboard/Overview — 2026-08-21
+
+**Status: GEIMPLEMENTEERD / WACHT OP ACCEPTANCE op `work/emp360-dashboard-integration`**
+
+De drie gereviewde Employee 360-slices zijn vanaf de exacte `origin/main`-baseline conflictvrij geïntegreerd. Dashboard/Overview gebruikt nu de bestaande UX Foundation voor kaarten, empty states, formulieren, employment-tabs en reorder-controls. De globale dashboard-editactie is verwijderd; de contextuele Personal-editactie blijft beschikbaar. Bestaande routes, API-contracten, datafetches, permissions, salary reveal, PATCH-payload, drag/drop, compact/expanded gedrag en A/B/C-functionaliteit zijn behouden.
+
+Lokale gate: 208 testbestanden/809 tests, strict TypeScript, lint exit 0 met zes bestaande warnings buiten deze slice, i18n 33 gelijke NL/EN-namespaces, Webpack-build met 225 routes en diff-check groen. Authenticated browsercontrole blijft open voor de branch-preview omdat deze worktree geen lokale env heeft en poort 3000 niet luistert. Geen database-, RLS-, security-, main-, release- of deploymentwijziging.
+
 ## Foundation Controls v1.1 — 2026-08-20
 
 **Status: LOKAAL GROEN; WACHT OP PUSH/REVIEW OP `work/foundation-controls-v1-1`**
@@ -1111,7 +1119,7 @@ De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|
 | Employee-persoonskaart | GEÏMPLEMENTEERD | Lijst met opgeslagen detail/compact-, sorteer-, arbeidsstatus- en archiefvoorkeuren (zoekterm niet opgeslagen), volledige klikrij, wizard, detail met hoofdtabbladen inclusief Dashboard vóór Persoonsgegevens, effectieve dienstverbandssamenvatting, verborgen salaris-hover, mutaties, adresgeschiedenis, relaties, gemaskeerde bankrekening, foto-beheer en capabilities zijn aanwezig |
-| Medewerkerdashboard | GEDEELTELIJK | Kleurrijke dashboardprojectie, avatarfallbacks, lazy salarisreveal, reminders, activity-feed met handmatige notitie, persoonlijke drag-and-drop-widgetvolgorde, detail-CTA, geautoriseerde bestaande velden, documentpreview, lege vensters zonder fake data en links vanuit lijst/organogram/kalender/Insights zijn aanwezig. Remote migraties, hardening, advisors en typesnapshot zijn afgerond; de HR-adminbrowserflow is gecontroleerd. Beperkte-rol-deny en `OTHER`/`PREFER_NOT_TO_SAY`-fixture blijven open. |
+| Medewerkerdashboard | GEIMPLEMENTEERD / WACHT OP ACCEPTANCE | Bestaande dashboardprojectie, lazy salarisreveal, reminders, activity-feed, persoonlijke drag-and-drop-widgetvolgorde, geautoriseerde velden, documents/payslips, notes, absence/processes, journeys en rustige Foundation-kaarten zijn aanwezig. De globale dashboard-editactie is verwijderd; Personal-edit blijft contextueel. Branch-preview desktop/390px en default/LinkedHR blijven open voor acceptance. |
 | Dubbele-medewerkercontrole | GEÏMPLEMENTEERD | Tenantgebonden BSN-HMAC of gewogen persoonsgegevens, expliciet besluit en auditlog; exact BSN-matchen vereist `BSN_HASH_KEY` |
 | Afdelingenboom | GEÏMPLEMENTEERD | Beheer staat onder de HR-admin instellingen/stamgegevens; lezen, aanmaken, wijzigen/archiveren, RLS en database-cyclusbeveiliging werken |
 | Managementrollen | GEÏMPLEMENTEERD | Tenantrollen zijn beheerbaar; globale systeemrollen zijn database-breed onveranderlijk |

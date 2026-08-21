@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowUpRight, ShieldAlert, UserRound, WalletCards } from 'lucide-react'
 import { EmailLink } from '@/components/shared/email-link'
+import { Surface } from '@/components/ui/surface'
 import type { EmployeeDetailViewModel } from './types'
 
 export interface EmployeeDashboardSummaryLabels {
@@ -27,10 +28,10 @@ export function EmployeeDashboardSummary({ detail, labels }: { detail: EmployeeD
   const primaryBank = (detail.bankAccounts ?? []).find((account) => account.isPrimary) ?? detail.bankAccounts?.[0]
   const emergencyContacts = (detail.relations ?? []).filter((relation) => relation.isEmergencyContact)
 
-  return <section className="overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-sm">
+  return <Surface className="overflow-hidden">
     <header className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3.5 sm:px-5">
-      <div className="flex min-w-0 items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-accent-foreground"><UserRound aria-hidden="true" className="h-4 w-4" /></span><h3 className="truncate text-sm font-semibold">{labels.personal}</h3></div>
-      <Link href="?tab=personal" className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline"><ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />{labels.edit}</Link>
+      <div className="flex min-w-0 items-start gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-accent text-accent-foreground"><UserRound aria-hidden="true" className="h-4 w-4" /></span><h3 className="min-w-0 break-words text-sm font-semibold">{labels.personal}</h3></div>
+      <Link href="?tab=personal" className="inline-flex max-w-full items-start gap-1 text-left text-xs font-semibold text-primary whitespace-normal break-words hover:underline"><ArrowUpRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{labels.edit}</Link>
     </header>
     <div className="p-4 sm:p-5">
       <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -48,15 +49,15 @@ export function EmployeeDashboardSummary({ detail, labels }: { detail: EmployeeD
         {emergencyContacts.length > 0 ? <SummaryFact icon={<ShieldAlert aria-hidden="true" className="h-4 w-4" />} label={labels.privateContact} value={emergencyContacts.slice(0, 2).map((contact) => `${contact.firstName ?? ''} ${contact.lastName}`).join(', ')} /> : null}
       </div> : null}
     </div>
-  </section>
+  </Surface>
 }
 
 function SummaryDataPoint({ label, value, isEmail }: { label: string; value: string; isEmail?: boolean }) {
-  return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 truncate text-sm font-semibold">{isEmail ? <EmailLink email={value} /> : value}</dd></div>
+  return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 break-words text-sm font-semibold">{isEmail ? <EmailLink email={value} /> : value}</dd></div>
 }
 
 function SummaryFact({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return <div className="flex min-w-0 items-start gap-2.5"><span className="mt-0.5 text-primary">{icon}</span><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</p><p className="mt-1 truncate text-sm font-medium">{value}</p></div></div>
+  return <div className="flex min-w-0 items-start gap-2.5"><span className="mt-0.5 shrink-0 text-primary">{icon}</span><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{value}</p></div></div>
 }
 
 function getAgeLabel(birthDate: string | null | undefined, fallback: string): string {
