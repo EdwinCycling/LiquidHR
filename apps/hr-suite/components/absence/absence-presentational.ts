@@ -1,0 +1,67 @@
+export type IndicatorValue = 'UNKNOWN' | 'YES' | 'NO'
+
+export type AbsenceReportPayload = {
+  employeeId: string
+  employmentId: string | undefined
+  startDate: string
+  idempotencyKey: string
+  absencePercentage?: number
+  expectedRecoveryOn?: string | null
+  hasSicknessBenefitSafetyNet?: boolean | null
+  isWorkAccident?: boolean | null
+  isThirdPartyTrafficAccident?: boolean | null
+}
+
+export type AbsenceReportFormValues = {
+  employeeId: string
+  employmentId: string
+  startDate: string
+  percentage: string
+  expectedRecovery: string
+  hasSafetyNet: IndicatorValue
+  workAccident: IndicatorValue
+  thirdPartyAccident: IndicatorValue
+  idempotencyKey: string
+  selfService: boolean
+}
+
+export function toIndicator(value: IndicatorValue): boolean | null {
+  return value === 'UNKNOWN' ? null : value === 'YES'
+}
+
+export function buildAbsenceReportPayload(values: AbsenceReportFormValues): AbsenceReportPayload {
+  if (values.selfService) {
+    return {
+      employeeId: values.employeeId,
+      employmentId: values.employmentId || undefined,
+      startDate: values.startDate,
+      idempotencyKey: values.idempotencyKey,
+    }
+  }
+
+  return {
+    employeeId: values.employeeId,
+    employmentId: values.employmentId || undefined,
+    startDate: values.startDate,
+    absencePercentage: Number(values.percentage),
+    expectedRecoveryOn: values.expectedRecovery || null,
+    hasSicknessBenefitSafetyNet: toIndicator(values.hasSafetyNet),
+    isWorkAccident: toIndicator(values.workAccident),
+    isThirdPartyTrafficAccident: toIndicator(values.thirdPartyAccident),
+    idempotencyKey: values.idempotencyKey,
+  }
+}
+
+export function buildAbsenceRecoveryPayload(caseId: string, recoveredOn: string, idempotencyKey: string) {
+  return { caseId, recoveredOn, idempotencyKey }
+}
+
+export function buildAbsenceCapacityPayload(caseId: string, effectiveOn: string, percentage: string, idempotencyKey: string) {
+  return {
+    caseId,
+    effectiveOn,
+    absencePercentage: Number(percentage),
+    expectedNextReviewOn: null,
+    idempotencyKey,
+  }
+}

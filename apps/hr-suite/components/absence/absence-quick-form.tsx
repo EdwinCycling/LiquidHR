@@ -4,11 +4,21 @@ import { createPortal } from 'react-dom'
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { IconButton } from '@/components/ui/icon-button'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
+import { FormField } from '@/components/patterns/form-field'
 import type { AbsenceCaseSummary } from '@/lib/absence/service'
 import type { LeaveEmploymentOption } from '@/lib/leave/employment-resolver'
-
-type IndicatorValue = 'UNKNOWN' | 'YES' | 'NO'
+import {
+  buildAbsenceCapacityPayload,
+  buildAbsenceRecoveryPayload,
+  buildAbsenceReportPayload,
+  type IndicatorValue,
+} from './absence-presentational'
 
 interface AbsenceQuickFormProps {
   employeeId: string
@@ -65,9 +75,7 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
     event.preventDefault()
     setSaving(true)
     setError(false)
-    const body = selfService
-      ? { employeeId, employmentId: selectedEmploymentId || undefined, startDate, idempotencyKey: crypto.randomUUID() }
-      : { employeeId, employmentId: selectedEmploymentId || undefined, startDate, absencePercentage: Number(percentage), expectedRecoveryOn: expectedRecovery || null, hasSicknessBenefitSafetyNet: toIndicator(hasSafetyNet), isWorkAccident: toIndicator(workAccident), isThirdPartyTrafficAccident: toIndicator(thirdPartyAccident), idempotencyKey: crypto.randomUUID() }
+    const body = buildAbsenceReportPayload({ employeeId, employmentId: selectedEmploymentId, startDate, percentage, expectedRecovery, hasSafetyNet, workAccident, thirdPartyAccident, idempotencyKey: crypto.randomUUID(), selfService })
     const response = await fetch('/api/absence/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     setSaving(false)
     if (!response.ok) { setError(true); return }
@@ -80,7 +88,7 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
     if (!currentCase) return
     setSaving(true)
     setError(false)
-    const response = await fetch('/api/absence/recovery', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ caseId: currentCase.id, recoveredOn, idempotencyKey: crypto.randomUUID() }) })
+    const response = await fetch('/api/absence/recovery', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(buildAbsenceRecoveryPayload(currentCase.id, recoveredOn, crypto.randomUUID())) })
     setSaving(false)
     if (!response.ok) { setError(true); return }
     window.location.reload()
@@ -91,7 +99,7 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
     if (!currentCase) return
     setSaving(true)
     setError(false)
-    const response = await fetch('/api/absence/capacity', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ caseId: currentCase.id, effectiveOn: capacityEffectiveOn, absencePercentage: Number(capacityPercentage), expectedNextReviewOn: null, idempotencyKey: crypto.randomUUID() }) })
+    const response = await fetch('/api/absence/capacity', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(buildAbsenceCapacityPayload(currentCase.id, capacityEffectiveOn, capacityPercentage, crypto.randomUUID())) })
     setSaving(false)
     if (!response.ok) { setError(true); return }
     window.location.reload()
@@ -118,35 +126,35 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
   const isActive = currentCase?.status === 'ACTIVE'
   const modal = open && mounted ? createPortal(
     <div aria-labelledby="absence-report-title" aria-modal="true" className="fixed inset-0 z-[80] grid place-items-center bg-sidebar/70 p-4" role="dialog">
-      <section className="max-h-[min(90vh,48rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border bg-surface p-5 shadow-2xl sm:p-6">
-        <div className="flex items-start justify-between gap-4 border-b pb-4"><div><p className="eyebrow text-primary">{labels.report}</p><h2 className="mt-1 text-xl font-semibold" id="absence-report-title">{labels.report}</h2></div><button aria-label={labels.close} className="button-secondary shrink-0" onClick={() => setOpen(false)} type="button"><X aria-hidden="true" size={17} /></button></div>
+      <Surface variant="overlay" className="max-h-[min(90vh,48rem)] w-full max-w-2xl overflow-y-auto p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4 border-b border-subtle pb-4"><div><p className="eyebrow text-primary">{labels.report}</p><h2 className="mt-1 text-xl font-semibold" id="absence-report-title">{labels.report}</h2></div><IconButton label={labels.close} size="sm" variant="secondary" onClick={() => setOpen(false)}><X aria-hidden="true" /></IconButton></div>
         {selfService && labels.selfServiceIntro ? <p className="mt-5 text-sm leading-6 text-muted-foreground">{labels.selfServiceIntro}</p> : null}
         <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={submitReport}>
-          {showEmploymentSelector ? <label className="text-sm font-medium sm:col-span-2">{labels.employment ?? labels.report}<DropdownSelect aria-label={labels.employment ?? labels.report} className="mt-1" emptyLabel={labels.employmentPlaceholder ?? labels.report} id="absence-employment" name="employmentId" onChange={(event) => setSelectedEmploymentId(event.target.value)} placeholder={labels.employmentPlaceholder ?? labels.report} required searchPlaceholder={labels.employmentSearch ?? labels.report} searchable value={selectedEmploymentId}>
+          {showEmploymentSelector ? <FormField className="sm:col-span-2" label={labels.employment ?? labels.report} required control={<DropdownSelect aria-label={labels.employment ?? labels.report} emptyLabel={labels.employmentPlaceholder ?? labels.report} id="absence-employment" name="employmentId" onChange={(event) => setSelectedEmploymentId(event.target.value)} placeholder={labels.employmentPlaceholder ?? labels.report} required searchPlaceholder={labels.employmentSearch ?? labels.report} searchable value={selectedEmploymentId}>
             <option disabled value="">{labels.employmentPlaceholder ?? labels.report}</option>
             {availableEmploymentOptions.map((option) => <option key={option.id} value={option.id}>{[option.employmentNumber, option.administrationName, option.departmentName, option.functionName].filter(Boolean).join(' · ')}</option>)}
-          </DropdownSelect></label> : null}
-          <label className="text-sm font-medium">{labels.startDate}<input required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="input mt-1 w-full" /></label>
-          {!selfService && <label className="text-sm font-medium">{labels.percentage}<input required min="0.01" max="100" step="0.01" type="number" value={percentage} onChange={(event) => setPercentage(event.target.value)} className="input mt-1 w-full" /></label>}
-          {!selfService && <label className="text-sm font-medium sm:col-span-2">{labels.expectedRecovery}<input type="date" value={expectedRecovery} onChange={(event) => setExpectedRecovery(event.target.value)} className="input mt-1 w-full" /></label>}
+          </DropdownSelect>} /> : null}
+          <FormField label={labels.startDate} required control={<TextInput required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />} />
+          {!selfService && <FormField label={labels.percentage} required control={<TextInput required min="0.01" max="100" step="0.01" type="number" value={percentage} onChange={(event) => setPercentage(event.target.value)} />} />}
+          {!selfService && <FormField className="sm:col-span-2" label={labels.expectedRecovery} control={<TextInput type="date" value={expectedRecovery} onChange={(event) => setExpectedRecovery(event.target.value)} />} />}
           {!selfService && <IndicatorField label={labels.hasSafetyNet} value={hasSafetyNet} onChange={setHasSafetyNet} labels={labels} />}
           {!selfService && <IndicatorField label={labels.workAccident} value={workAccident} onChange={setWorkAccident} labels={labels} />}
           {!selfService && <IndicatorField label={labels.thirdPartyAccident} value={thirdPartyAccident} onChange={setThirdPartyAccident} labels={labels} />}
-          <div className="flex items-end sm:justify-end"><button type="submit" disabled={saving} className="button-primary w-full sm:w-auto">{saving ? labels.saving ?? labels.submit : labels.submit}</button></div>
+          <div className="flex items-end sm:justify-end"><Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? labels.saving ?? labels.submit : labels.submit}</Button></div>
           {error && <p role="alert" className="text-sm font-medium text-destructive sm:col-span-2">{labels.failed}</p>}
         </form>
-      </section>
+      </Surface>
     </div>,
     document.body,
   ) : null
 
   return <>
     <div className="flex flex-wrap items-end gap-3">
-      {showReportAction && !isOpen ? <button type="button" className="button-primary" disabled={saving} onClick={() => void openReport()}>{labels.report}</button> : null}
-      {isOpen && recoveryMode === 'link' ? <Link prefetch={false} href={`/employees/${employeeId}?tab=absence&view=expanded&caseId=${currentCase?.id}`} className="button-secondary">{labels.recover}</Link> : null}
+      {showReportAction && !isOpen ? <Button type="button" disabled={saving} onClick={() => void openReport()}>{labels.report}</Button> : null}
+      {isOpen && recoveryMode === 'link' ? <Link prefetch={false} href={`/employees/${employeeId}?tab=absence&view=expanded&caseId=${currentCase?.id}`} className={buttonClasses({ variant: 'secondary' })}>{labels.recover}</Link> : null}
       {isActive && recoveryMode === 'form' ? <>
-        <form onSubmit={submitRecovery} className="flex flex-wrap items-end gap-2"><label className="text-xs font-semibold text-muted-foreground" htmlFor="recovered-on">{labels.recoveredOn}<input id="recovered-on" required type="date" value={recoveredOn} onChange={(event) => setRecoveredOn(event.target.value)} className="input mt-1 h-10" /></label><button type="submit" disabled={saving} className="button-secondary">{labels.recover}</button></form>
-        <form onSubmit={submitCapacity} className="flex flex-wrap items-end gap-2"><label className="text-xs font-semibold text-muted-foreground" htmlFor="absence-capacity-effective-on">{labels.capacityEffectiveOn ?? labels.recoveredOn}<input id="absence-capacity-effective-on" required type="date" value={capacityEffectiveOn} onChange={(event) => setCapacityEffectiveOn(event.target.value)} className="input mt-1 h-10" /></label><label className="text-xs font-semibold text-muted-foreground" htmlFor="absence-capacity-percentage">{labels.percentage}<input id="absence-capacity-percentage" required min="0.01" max="100" step="0.01" type="number" value={capacityPercentage} onChange={(event) => setCapacityPercentage(event.target.value)} className="input mt-1 h-10 w-28" /></label><button type="submit" disabled={saving} className="button-secondary">{labels.partialRecover ?? labels.recover}</button></form>
+        <form onSubmit={submitRecovery} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><FormField className="min-w-[10rem] flex-1" label={labels.recoveredOn} required control={<TextInput id="recovered-on" required type="date" value={recoveredOn} onChange={(event) => setRecoveredOn(event.target.value)} />} /><Button type="submit" disabled={saving} variant="secondary">{labels.recover}</Button></form>
+        <form onSubmit={submitCapacity} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><FormField className="min-w-[10rem] flex-1" label={labels.capacityEffectiveOn ?? labels.recoveredOn} required control={<TextInput id="absence-capacity-effective-on" required type="date" value={capacityEffectiveOn} onChange={(event) => setCapacityEffectiveOn(event.target.value)} />} /><FormField className="min-w-[8rem] flex-1" label={labels.percentage} required control={<TextInput id="absence-capacity-percentage" required min="0.01" max="100" step="0.01" type="number" value={capacityPercentage} onChange={(event) => setCapacityPercentage(event.target.value)} />} /><Button type="submit" disabled={saving} variant="secondary">{labels.partialRecover ?? labels.recover}</Button></form>
       </> : null}
     </div>
     {error && !open && <p role="alert" className="text-sm font-medium text-destructive">{labels.failed}</p>}
@@ -155,9 +163,5 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
 }
 
 function IndicatorField({ label, value, onChange, labels }: { label: string; value: IndicatorValue; onChange: (value: IndicatorValue) => void; labels: AbsenceQuickFormProps['labels'] }) {
-  return <label className="text-sm font-medium">{label}<select className="input mt-1 w-full" value={value} onChange={(event) => onChange(event.target.value as IndicatorValue)}><option value="UNKNOWN">{labels.unknown}</option><option value="YES">{labels.yes}</option><option value="NO">{labels.no}</option></select></label>
-}
-
-function toIndicator(value: IndicatorValue): boolean | null {
-  return value === 'UNKNOWN' ? null : value === 'YES'
+  return <FormField label={label} control={<DropdownSelect value={value} onChange={(event) => onChange(event.target.value as IndicatorValue)}><option value="UNKNOWN">{labels.unknown}</option><option value="YES">{labels.yes}</option><option value="NO">{labels.no}</option></DropdownSelect>} />
 }
