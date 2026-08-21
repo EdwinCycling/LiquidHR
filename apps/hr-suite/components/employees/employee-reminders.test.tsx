@@ -13,7 +13,7 @@ import { EmployeeReminders } from './employee-reminders'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 const labels = {
-  title: 'Reminders voor medewerker', empty: 'Geen reminders voor deze medewerker.', add: 'Reminder toevoegen', edit: 'Wijzigen', remove: 'Verwijderen', titleLabel: 'Titel', descriptionLabel: 'Omschrijving', dateLabel: 'Datum en tijd', save: 'Reminder opslaan', saved: 'Opgeslagen', failed: 'Mislukt', cancel: 'Annuleren', shiftDayBack: 'Dag terug', shiftDayForward: 'Dag vooruit', shiftWeekForward: 'Week vooruit', shiftMonthForward: 'Maand vooruit', confirmDelete: 'Weet je het zeker?',
+  title: 'Reminders voor medewerker', empty: 'Geen reminders voor deze medewerker.', add: 'Reminder toevoegen', edit: 'Wijzigen', remove: 'Verwijderen', titleLabel: 'Titel', descriptionLabel: 'Omschrijving', dateLabel: 'Datum en tijd', save: 'Reminder opslaan', saved: 'Opgeslagen', failed: 'Mislukt', cancel: 'Annuleren', close: 'Reminder sluiten', moreActions: 'Meer reminderacties', personalReminder: 'Persoonlijk', hrReminder: 'HR', discardTitle: 'Wijzigingen negeren?', discardDescription: 'Niet-opgeslagen wijzigingen gaan verloren.', discardConfirm: 'Wijzigingen negeren', discardCancel: 'Terug naar formulier', deleteTitle: 'Reminder verwijderen?', deleteDescription: 'Deze reminder wordt definitief verwijderd.', deleteConfirm: 'Verwijderen', deleteCancel: 'Annuleren', shiftDayBack: 'Dag terug', shiftDayForward: 'Dag vooruit', shiftWeekForward: 'Week vooruit', shiftMonthForward: 'Maand vooruit',
 }
 
 const reminder = {
@@ -36,7 +36,7 @@ describe('Employee reminders Foundation contract', () => {
     expect(markup).toContain('bg-surface')
     expect(markup).toContain('Contract controleren')
     expect(markup).toContain('Wijzigen')
-    expect(markup).toContain('Verwijderen')
+    expect(markup).toContain('Meer reminderacties')
   })
 
   it('uses a native datetime-local TextInput in the add form', () => {
@@ -47,8 +47,8 @@ describe('Employee reminders Foundation contract', () => {
 
     act(() => (host.querySelector('button') as HTMLButtonElement).click())
 
-    expect(host.querySelector('input[name="remindAt"][type="datetime-local"]')).not.toBeNull()
-    expect(host.querySelector('textarea[name="description"]')).not.toBeNull()
+    expect(document.body.querySelector('input[name="remindAt"][type="datetime-local"]')).not.toBeNull()
+    expect(document.body.querySelector('textarea[name="description"]')).not.toBeNull()
     root.unmount()
     host.remove()
   })

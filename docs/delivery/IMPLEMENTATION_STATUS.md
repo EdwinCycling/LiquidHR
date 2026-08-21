@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## UX Foundation v1.2 + Employee Reminders — 2026-08-21
+
+**Status: LOKAAL GEIMPLEMENTEERD; AUTHENTICATED BROWSERGATE GEBLOKKEERD DOOR ONTBREKENDE ENV/SESSIE**
+
+Op `work/ux-foundation-v1-2-interaction-collections` zijn de v1.2 interaction- en collection-primitives/patterns toegevoegd en is Employee Reminders als enige productflow gemigreerd. De bestaande PERSONAL/HR-mode, `canManageHr`/`canAdd`/`canManageItem`, targetvelden, datumverschuivingen, `router.refresh()` en de POST/PATCH/DELETE/publish-API-contracten zijn behouden. Delete gebruikt nu ActionMenu → ConfirmDialog; Create/Edit gebruiken dezelfde FormDrawer met dirty-close protection en een vaste footer.
+
+Groen: gerichte v1.2/reminder-tests 11/11, volledige hr-suite 209 testbestanden/816 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint exit 0 met 6 bestaande warnings buiten deze slice, productiebuild met 225 routes en diff-check. De browsergate is uitgevoerd tot aan de lokale server: zonder `.env` geeft bestaande Supabase-middleware op `/login` 500. Er zijn geen secrets gekopieerd, geen database/Supabase-write, geen merge naar `main` en geen deployment uitgevoerd.
+
 ## Employee 360 final integration + Dashboard/Overview — 2026-08-21
 
 **Status: GEIMPLEMENTEERD / WACHT OP ACCEPTANCE op `work/emp360-dashboard-integration`**

@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## UX Foundation v1.2 + Employee Reminders — 2026-08-21
+
+- Branch/worktree: `work/ux-foundation-v1-2-interaction-collections` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-foundation-v1-2-interaction-collections`, start- en huidige baseline vóór lokale wijzigingen `8ac0cc1fb220dd9fd77e3ef4a21998d54d3abec8`; `origin/main` is `c4e176aec1a22bb927ac8b82ce890f71c72618a0`.
+- Geïmplementeerd: v1.2 `Dialog`, `Drawer`, `ActionMenu`, `Pagination`, `FormDrawer`, `FormActions`, `ConfirmDialog`, `CollectionToolbar`, `RowActions`, `CollectionPagination`, `DataTableShell` en `EntityList`. `IconButton` ondersteunt ref-forwarding voor focus restore.
+- Employee Reminders gebruikt nu EntityList + dezelfde FormDrawer voor Create/Edit, vaste footer, saving/double-submit protection, dirty-close ConfirmDialog, ActionMenu → delete ConfirmDialog en NL/EN reminderlabels. PERSONAL/HR, `canManageHr`, `canAdd`, `canManageItem`, target/publish-flow, bestaande reminder API's, datumshift en `router.refresh()` zijn behouden.
+- Verificatie groen: v1.2/reminder gericht 11/11; volledige hr-suite 209 testbestanden/816 tests; strict TypeScript; i18n 33 gelijke NL/EN-namespaces; lint exit 0 met 6 bestaande warnings buiten deze slice; productiebuild 225 routes; `git diff --check`.
+- Browserstatus: lokale Webpack-devserver startte op `http://localhost:3000`, maar `/login` gaf 500 omdat deze worktree geen Supabase URL/key in `.env` heeft. Authenticated desktop/390px Default + LinkedHR reminderflow, console-gate en echte save/delete blijven open. Geen secrets gekopieerd.
+- Open: finale docs-diff controleren, commits maken, branch pushen naar `origin/work/ux-foundation-v1-2-interaction-collections`; niet naar `main` mergen.
+
 ## Employee 360 final integration + Dashboard/Overview — 2026-08-21
 
 - De geïsoleerde branch `work/emp360-dashboard-integration` is gestart vanaf exact `origin/main` `ff487e256ce4460c5a85fdde1e3542fe4ac5692d`. De drie gereviewde slices zijn conflictvrij geïntegreerd: Documents + Payslips `8ffb73c0b37b77cc38c2b712657036e89286f04b`, Reminders + Notes `6aae44a93bd1efd78bfbdb2472c04b1785b046e3` en Absence + Processes `1027ac278eab13de68672a3cfb19a4116004d153`. De mergecommit is `8f0bc6a9ee20023cc12387ad6fa78b3501393f2e`; alle drie commits zijn ancestors van de branch-HEAD.

@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## UX Foundation v1.2 + Employee Reminders — lokale implementatie groen 2026-08-21
+
+De interaction- en collection-foundation v1.2 is lokaal geïmplementeerd in de bestaande branch `work/ux-foundation-v1-2-interaction-collections`. De centrale Dialog, Drawer, ActionMenu, Pagination, FormDrawer, FormActions, ConfirmDialog en collection patterns zijn toegevoegd; Employee Reminders gebruikt nu EntityList, FormDrawer, RowActions en ConfirmDialog met behoud van de bestaande API-, mode-, permission- en datumcontracten. Volledige hr-suite: 209 testbestanden/816 tests, strict TypeScript, i18n-pariteit, lint exit 0 met 6 bestaande warnings en Webpack-build met 225 routes. Authenticated desktop/390px Default- en LinkedHR-browseracceptance blijft open: deze worktree heeft geen Supabase-env en `/login` geeft daardoor 500 in bestaande middleware.
+
 ## Foundation Controls v1.1 — lokaal groen 2026-08-20
 
 De centrale UI-foundation is uitgebreid met `Textarea`, `Checkbox`, `RadioGroup`, `Switch`, `FormField`, canonical `TabLink`/`TabButton` en geharde `TextInput`, `Button`, `IconButton`, `DropdownSelect` en `ScrollableTabs`. De actuele inventory en FOUNDATION_GAP-kandidaten staan in [`requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md`](requirements/ux/LIQUIDHR_UX_FOUNDATION_V1.md). De gate is groen met 203 testbestanden/788 tests, strict TypeScript, i18n-pariteit met 33 namespaces, lint, Webpack-build met 225 routes en diff-check. Browser smoke op `/login` is groen. Deze slice wijzigt geen routes, API, database, auth, permissions, RLS of businesslogica.

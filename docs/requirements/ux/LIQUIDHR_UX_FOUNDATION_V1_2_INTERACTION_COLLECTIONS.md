@@ -1,11 +1,11 @@
 # LiquidHR UX Foundation v1.2
 ## Interaction & Collection Patterns
 
-Status: **DESIGN APPROVED — IMPLEMENTATION NOT STARTED**
+Status: **IMPLEMENTED — LOCAL GATES GREEN; REMINDERS REFERENCE BROWSER ACCEPTANCE BLOCKED**
 
-Dit document is een uitbreiding van de leidende [LiquidHR UX Foundation v1](LIQUIDHR_UX_FOUNDATION_V1.md). Het definieert suitebrede interaction- en collectionpatronen voor nieuwe en gecontroleerd gemigreerde CRUD-slices. Het is uitsluitend een design- en documentatiespecificatie.
+Dit document is een uitbreiding van de leidende [LiquidHR UX Foundation v1](LIQUIDHR_UX_FOUNDATION_V1.md). Het definieert suitebrede interaction- en collectionpatronen voor nieuwe en gecontroleerd gemigreerde CRUD-slices. De beschreven Foundation v1.2-primitives en de Employee Reminders-reference zijn nu lokaal geïmplementeerd; browseracceptance blijft open door de ontbrekende lokale Supabase-env/authsessie.
 
-Er wordt in deze slice geen React-componentcode, CSS, Tailwind, route, API, database, migration, Supabase/RLS-, permission-, productflow-, deployment- of bestaande schermwijziging uitgevoerd.
+Deze implementatieslice wijzigde geen route, API, database, migration, Supabase/RLS-, permission- of businesscontract. Alleen de beschreven centrale Foundation-componenten en Employee Reminders als enige productreference zijn gewijzigd.
 
 ## 1. Interaction model
 
@@ -409,20 +409,17 @@ Deze matrix is verplicht bij iedere nieuwe CRUD-slice.
 
 De beslissing en eventuele afwijking worden vastgelegd bij de betreffende slice. Een afwijking is geen reden om een generieke view-switch of lokale componentvariant toe te voegen.
 
-## 17. Buiten scope van deze design task
+## 17. Buiten scope van deze implementatieslice
 
 Deze slice bevat geen:
 
-- React-componentcode;
-- CSS of Tailwind-wijzigingen;
 - nieuwe npm-packages;
 - routewijzigingen;
 - API-wijzigingen;
 - database of migrations;
 - Supabase- of RLS-wijzigingen;
 - permissionwijzigingen;
-- productflow changes;
-- migratie van bestaande CRUD-schermen;
+- migratie van andere bestaande CRUD-schermen dan Employee Reminders;
 - Vercel deployment;
 - wijziging van `main`.
 
