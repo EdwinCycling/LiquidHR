@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## UX v1.2 final integration & acceptance — 2026-08-21
+
+**Status: INTEGRATION COMPLEET; ACCEPTANCE RED / NIET GREEN**
+
+De branch `work/ux-v1-2-integration` is vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0` opgebouwd en bevat de acht aangewezen commits in exacte Batch 4 → 3 → 1 → 2-volgorde. Alleen vier documentatieconflicten zijn geïntegreerd; historische batchstatussen hieronder blijven behouden. Er zijn geen nieuwe centrale Foundation-, API-, database-, RLS-, permission-, auth- of businesslogicawijzigingen gemaakt.
+
+Lokale technische gate: `213/213` testbestanden en `833/833` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-productiebuild `225` routes en `git diff --check` groen. De eerste standaard buildvariant faalde vóór compilatie door Next-package-resolutie in deze worktree; `next build --webpack` compileerde en genereerde succesvol.
+
+Authenticated browser-evidence is deels groen op localhost:3000, 390×844 en de exacte integration-worktree. DEMO-035 personal edit/dirty-discard/real PATCH-herstel, notes CRUD met cleanup, addresses CRUD met cleanup en avatar-confirmation zijn bewezen. Startpage compact/volledig en responsive overflow zijn gecontroleerd. Default/Liquid Navy en LinkedHR zijn gewisseld; LinkedHR is teruggezet. Manager en Employee zijn negatief gecontroleerd op company-data en authorization.
+
+De eindclassificatie is niet GREEN: beide uploadpogingen (PDF en toegestaan TXT) gaven `POST /api/employees/<employeeId>/documents` `400` met `DOCUMENT_METADATA_FAILED`. Daarnaast zijn absence mutation/recovery/capacity, employment create/real mutation, HR authorization create/coverage en process publish/retire nog niet volledig bewezen. Deze baseline-runtimefout is binnen de integration-only scope niet stil gerepareerd; er is geen tijdelijke documentdata achtergebleven en er is niet naar `main` gemerged.
+
 ## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
 
 **Status: LOKAAL GEIMPLEMENTEERD; AUTHENTICATED BROWSERGATE BLOCKED BY ENVIRONMENT**

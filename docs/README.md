@@ -1,5 +1,17 @@
 # Liquid HR documentatie-index
 
+## UX v1.2 final integration & acceptance — 2026-08-21
+
+**Status: INTEGRATION COMPLEET; ACCEPTANCE RED / NIET GREEN**
+
+`work/ux-v1-2-integration` is gestart vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0` en bevat de acht aangewezen commits in de gevraagde Batch 4 → 3 → 1 → 2-volgorde. De vier integratieconflicten waren uitsluitend documentatieconflicten; beide batch-evidences zijn behouden. Er zijn geen centrale Foundation-, API-, schema-, RLS-, permission- of businesslogicawijzigingen toegevoegd.
+
+Lokale gates zijn groen: 213 testbestanden/833 tests, strict TypeScript, 33 gelijke NL/EN-namespaces, lint 0 errors/8 warnings, Webpack-productiebuild 225 routes en `git diff --check`. De standaard Turbopack-build faalde aanvankelijk vóór compilatie door worktree-package-resolutie; de geslaagde productiebuild is expliciet met Webpack uitgevoerd.
+
+Authenticated localhost acceptance is deels uitgevoerd op 390×844 met een bestaande lokale HR-sessie. DEMO-035 personal edit/dirty-discard/real PATCH-herstel, notes CRUD, address CRUD-cleanup en avatar-confirmation zijn groen; startpage compact/volledig en geen horizontale overflow zijn gecontroleerd. Default (Liquid Navy) en LinkedHR zijn via persoonlijke instellingen gewisseld en teruggezet. Manager en Employee bereikten op company-data en authorization de geen-toegangssurface. Employment wizard, absence entry en process-studio entry zijn geopend zonder productdata te bewaren.
+
+De document-upload blijft RED: zowel een toegestaan TXT-bestand als de minimale PDF eindigden op `POST /api/employees/<employeeId>/documents` `400` met `DOCUMENT_METADATA_FAILED`; er is geen tijdelijk document achtergebleven. Volledige acceptance van document CRUD, absence mutation/recovery/capacity, employment create, HR authorization create/coverage en process publish/retire is daarom nog niet bewezen. Er is niet naar `main` gemerged.
+
 ## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
 
 Op `work/ux-v1-2-foundation-polish`, vanaf `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`, zijn alleen de authorization-subflows en startpage-presentatie gepolijst. Create role gebruikt de bestaande `FormDrawer` met dirty protection, saving en foutstatus; coverage gebruikt de centrale `Dialog` met focus/Escape/restore. Startpage behoudt compact/uitgebreid, widgets, quick-action-scroll, drag/reorder, scopes en voorkeuren, maar gebruikt Foundation-radius/surfaces zonder zware shadows of hover-lift. Geen API-, database-, RLS-, permission- of businesslogicawijziging.

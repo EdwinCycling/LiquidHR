@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## UX v1.2 final integration & acceptance — 2026-08-21
+
+- Branch/worktree: `work/ux-v1-2-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ux-v1-2-integration`, gestart vanaf exact `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`. Batch 4 → 3 → 1 → 2 is in exact opdrachtvolgorde geïntegreerd; docs-conflicten zijn union-resolved. Main is niet gewijzigd.
+- Scope: uitsluitend integration van de acht aangewezen presentatie-/interaction-commits plus deze status/evidence-update. Geen nieuwe API-, schema-, RLS-, permission-, auth- of businesslogicawijziging; de centrale Foundation is behouden.
+- Gates: volledige hr-suite `213/213` testbestanden en `833/833` tests, strict TypeScript, i18n `33` gelijke NL/EN-namespaces, lint `0 errors / 8 warnings`, Webpack-build `225` routes en `git diff --check` groen. Turbopack faalde eerst vóór compilatie op package-resolutie in de worktree; Webpack is de geslaagde productievariant.
+- Browserstatus op de exacte localhost:3000 integration-runtime, authenticated en 390×844: DEMO-035 personal PATCH-herstel, notes POST/PATCH/DELETE, address POST/PATCH/DELETE-cleanup, personal dirty-discard en avatar-confirmation groen; startpage compact/volledig en `scrollWidth=390` groen. Default/Liquid Navy en LinkedHR zijn gewisseld en LinkedHR is hersteld. Manager en Employee krijgen op `/settings/company-data` en `/authorization` geen toegang.
+- Partial acceptance: `/absence/new`, de employment wizard en `/settings/process-automation` zijn als entry/read/dirty-cancel-surface geopend zonder nieuwe records te bewaren. HR authorization create/coverage, absence report/recovery/capacity, employment create/real mutation en process publish/retire/changelog/retire-cleanup zijn niet volledig uitgevoerd.
+- Open RED-evidence: document upload faalt met een toegestaan TXT-bestand en een minimale PDF op `POST /api/employees/<employeeId>/documents` `400`, response-code `DOCUMENT_METADATA_FAILED`. De route/service en migraties zijn bestaand baseline-contract en daarom niet aangepast binnen deze integration-only opdracht. Er is geen tijdelijk document achtergebleven.
+- Auth: lokale `.env.local` is ignored en niet getrackt; de standaard fixture-password-reset is niet uitgevoerd omdat die remote mutatie vereist. De bestaande lokale HR-sessie werkte; secrets zijn niet in docs, commit of push opgenomen. Gegenereerde browser/runtimebestanden blijven ignored en worden vóór afronding gecontroleerd.
+- Next action: document RPC/storage/fixture-oorzaak apart onderzoeken en de ontbrekende acceptanceblokken uitvoeren. Deze integration branch mag worden gepusht voor review, maar is niet release-ready en niet GREEN.
+
 ## UX v1.2 Correction Batch 4 — Foundation polish — 2026-08-21
 
 - Branch: `work/ux-v1-2-foundation-polish`, exact baseline `origin/main` `a65d1daaa9444602f4be52c2d32933cffd285dd0`; commit `219b00f` staat op origin; geen main-merge.
