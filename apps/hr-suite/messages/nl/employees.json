@@ -230,6 +230,7 @@
   "employmentOptional": "Dienstverband is optioneel",
   "employmentOptionalHelp": "Ook externen, beveiligers en toekomstige medewerkers kunnen zonder dienstverband als persoon worden vastgelegd.",
   "previous": "Vorige",
+  "next": "Volgende",
   "continue": "Verder",
   "createEmployee": "Medewerker aanmaken",
   "updateExistingEmployee": "Medewerker bijwerken",

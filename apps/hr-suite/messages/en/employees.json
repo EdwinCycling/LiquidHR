@@ -230,6 +230,7 @@
   "employmentOptional": "Employment is optional",
   "employmentOptionalHelp": "External workers, security staff and future employees can be recorded as a person without an employment.",
   "previous": "Previous",
+  "next": "Next",
   "continue": "Continue",
   "createEmployee": "Create employee",
   "updateExistingEmployee": "Update employee",
