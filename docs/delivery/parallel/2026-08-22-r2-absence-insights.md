@@ -49,3 +49,15 @@ Geen push, merge of deploy uitgevoerd.
 - De canonical repo bevat in `apps/hr-suite` alleen `.env.example`; er is geen alternatieve env gebruikt en geen secret gelezen, gelogd of gecommit.
 - Doelcontrole: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r2-absence-insights\apps\hr-suite\.env.local` bestaat niet (`Test-Path = False`), omdat de verplichte `Copy-Item -Force` niet veilig kon worden uitgevoerd.
 - Fixture-auth preflight, serverstart op 3104 en browser/API/persona/responsive/theme acceptance zijn hierdoor **BLOCKED BY ENVIRONMENT**; er zijn in deze retry geen HTTP-requests of testdata-mutaties uitgevoerd.
+
+## Acceptance retry — canonical env hersteld — 2026-08-22
+
+- De opgegeven bron met de bedoelde separator, `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local`, is gekopieerd met `Copy-Item -Force`; doel `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r2-absence-insights\apps\hr-suite\.env.local` gaf `Test-Path = True`. Inhoud en secrets zijn niet getoond, gelogd of gecommit.
+- `fixtures:talent-auth` werkte uitsluitend de drie canonical fixtures bij: `hr-admin`, `manager`, `employee`.
+- Exacte worktree-server op poort `3104`: authenticated fixture-login HTTP 200 voor TEST HR, TEST MANAGER en TEST EMPLOYEE.
+- TEST HR positive: absence, Bradford en frequent absence report/API HTTP 200 met echte backendrijen; Excel-export HTTP 200 met `application/vnd.ms-excel`; employee/verzuimdossier-readback HTTP 200.
+- Filters/readback: alle drie query-URL's behielden periode en afdeling na refresh, reload HTTP 200; Consultancy gaf 0 rijen. Bradford zero-search gaf 0 rijen en een echte empty state.
+- TEST MANAGER en TEST EMPLOYEE negative: report-API's HTTP 403 voor alle drie reports; geen export- of dossierlinks. De report-shell bleef HTTP 200 zonder data, passend bij permission filtering.
+- Default (`liquid-navy`) en LinkedHR: alle drie reports HTTP 200 op desktop en 390×844; bij 390 was `documentWidth=390`, geen page overflow en interne tabelscroll actief. TEST HR reportflows registreerden 0 console-errors; TEST EMPLOYEE 0.
+- TEST MANAGER gaf één bestaande algemene-layout console-error voor een `storage://...jpg` branding-URL (`ERR_UNKNOWN_URL_SCHEME`). Dit is buiten de absence-report-scope; geen generieke Foundation- of brandingfix uitgevoerd. Daardoor blijft de strikte volledige console-0 acceptance **BLOCKED** door deze out-of-scope runtime-resource.
+- Geen tijdelijke records aangemaakt; geen database-/schema-/remote writes uitgevoerd buiten de expliciet toegestane fixture-password preflight. TEST HR stond na de controle weer op Default (`Thema: Liquid Navy`).
