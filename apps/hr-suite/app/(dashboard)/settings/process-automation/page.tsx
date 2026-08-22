@@ -19,6 +19,8 @@ import {
 import { listCertifiedRecipes } from '@/lib/process-automation/recipe-service'
 import { getTranslator } from '@/lib/i18n/server'
 
+export const dynamic = 'force-dynamic'
+
 async function can(permission: string): Promise<boolean> {
   try {
     await requirePermission(permission)
