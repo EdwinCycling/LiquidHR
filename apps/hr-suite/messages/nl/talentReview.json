@@ -69,5 +69,22 @@
   "noHistory": "Er is geen vorige score beschikbaar.",
   "readOnly": "Deze campagne is alleen-lezen.",
   "saved": "Opgeslagen",
-  "failed": "Opslaan is niet gelukt. Probeer het opnieuw."
+  "failed": "Opslaan is niet gelukt. Probeer het opnieuw.",
+  "openProfile": "Open werknemersprofiel",
+  "place": "Plaats",
+  "selectEmployeeFirst": "Selecteer eerst een medewerker",
+  "emptyCell": "Nog leeg",
+  "movement": "Beweging",
+  "movementUp": "Omhoog",
+  "movementDown": "Omlaag",
+  "movementStable": "Gelijk",
+  "movementNew": "Nieuw",
+  "confirmAction": "Bevestigen",
+  "cancelAction": "Annuleren",
+  "confirmStartDescription": "Start de campagne en leg de actuele teamtoewijzingen vast.",
+  "confirmCloseDescription": "Sluit de campagne. Daarna kunnen managers geen scores meer wijzigen.",
+  "confirmReopenDescription": "Heropen de campagne voor verdere correcties door managers.",
+  "confirmSubmitTitle": "Team indienen",
+  "confirmSubmitDescription": "Dien de volledige teamscore in. Daarna is de teamtoewijzing niet meer wijzigbaar zonder HR-heropening.",
+  "confirmSubmit": "Team indienen"
 }

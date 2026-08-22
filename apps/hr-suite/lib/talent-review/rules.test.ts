@@ -16,7 +16,10 @@ describe('talent review rules', () => {
 
   it('derives a cell and a simple movement direction', () => {
     expect(deriveGridCell('HIGH', 'NORMAL')).toBe('HIGH_NORMAL')
+    expect(deriveGridCell(null, 'HIGH')).toBeNull()
     expect(movementDirection('LOW_LOW', 'HIGH_NORMAL')).toBe('UP')
+    expect(movementDirection('HIGH_HIGH', 'NORMAL_LOW')).toBe('DOWN')
+    expect(movementDirection('NORMAL_LOW', 'LOW_NORMAL')).toBe('STABLE')
     expect(movementDirection(null, 'HIGH_HIGH')).toBe('NEW')
   })
 

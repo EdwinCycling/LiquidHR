@@ -69,5 +69,22 @@
   "noHistory": "No previous score is available.",
   "readOnly": "This campaign is read-only.",
   "saved": "Saved",
-  "failed": "Could not save. Please try again."
+  "failed": "Could not save. Please try again.",
+  "openProfile": "Open employee profile",
+  "place": "Place",
+  "selectEmployeeFirst": "Select an employee first",
+  "emptyCell": "Empty",
+  "movement": "Movement",
+  "movementUp": "Up",
+  "movementDown": "Down",
+  "movementStable": "Stable",
+  "movementNew": "New",
+  "confirmAction": "Confirm",
+  "cancelAction": "Cancel",
+  "confirmStartDescription": "Start the campaign and capture the current team assignments.",
+  "confirmCloseDescription": "Close the campaign. Managers will no longer be able to change scores.",
+  "confirmReopenDescription": "Reopen the campaign for further manager corrections.",
+  "confirmSubmitTitle": "Submit team",
+  "confirmSubmitDescription": "Submit the complete team review. The assignment cannot be changed without an HR reopen.",
+  "confirmSubmit": "Submit team"
 }

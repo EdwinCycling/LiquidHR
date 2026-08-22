@@ -239,6 +239,7 @@ export async function createTalentReviewCampaign(input: TalentReviewCampaignCrea
 
 export async function updateTalentReviewCampaign(campaignId: string, input: TalentReviewCampaignUpdateInput): Promise<string> {
   const context = await requirePermission('talent-review:manage')
+  await requireTenantModule('TALENT')
   const supabase = await createClient()
   const { data, error } = await supabase.from('talent_review_campaigns').update({
     ...(input.name !== undefined ? { name: input.name } : {}),
@@ -348,6 +349,7 @@ export async function submitTalentReviewAssignment(campaignId: string): Promise<
 
 export async function sendTalentReviewReminder(campaignId: string, input: TalentReviewReminderInput): Promise<string> {
   const context = await requirePermission('talent-review:manage')
+  await requireTenantModule('TALENT')
   const supabase = await createClient()
   const { data: assignment, error: assignmentError } = await supabase.from('talent_review_assignments').select('id, campaign_id, manager_employee_id, status, version').eq('tenant_id', context.tenantId).eq('campaign_id', campaignId).eq('id', input.assignmentId).maybeSingle()
   if (assignmentError) throw new TalentReviewError('TALENT_REVIEW_READ_FAILED')
