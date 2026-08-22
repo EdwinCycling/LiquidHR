@@ -29,6 +29,8 @@ De primaire Absence UX is naar de bestaande UX Foundation v1.2 gebracht. De scop
 - `apps/hr-suite/components/absence/absence-case-detail.tsx`
 - `apps/hr-suite/components/absence/absence-case-list.tsx`
 - `apps/hr-suite/components/absence/absence-quick-form.tsx`
+- `apps/hr-suite/components/absence/absence-presentational.ts`
+- `apps/hr-suite/components/absence/absence-presentational.test.ts`
 - `apps/hr-suite/components/employees/employee-dashboard.tsx`
 - `apps/hr-suite/lib/absence/schemas.test.ts`
 - `apps/hr-suite/lib/absence/schemas.ts`
@@ -71,8 +73,41 @@ Dit is een omgevingsblokkade, geen bewezen in-scope product-RED. Na beschikbaar 
 
 Geen remote writes, push, merge of deploy uitgevoerd.
 
-## Acceptance retry — 2026-08-22
+## Acceptance retry — 2026-08-22 — afgerond
 
-De verplichte retry is gestart in dezelfde worktree en branch. Stap 0 kon niet worden voltooid: de opgegeven canonical TEST-bron `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestaat niet. Alleen bestandsaanwezigheid en bestandsnamen zijn gecontroleerd; de env-inhoud is niet gelezen, gelogd of gekopieerd. De worktree-doelcontrole bleef `False`.
+De retry is uitgevoerd in dezelfde worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r2-absence-core`, branch `work/r2-absence-core`, met de bestaande lokale server op poort `3101`.
 
-Daarom zijn fixture-auth, wachtwoordreset, devserver, browser/API/persona-acceptance, echte CRUD-statussen/readbacks, responsive/theme-acceptance en testdata-cleanup niet uitgevoerd. Er is geen alternatieve env gebruikt en er zijn geen accounts, databasegegevens of remote systemen gewijzigd. De retry blijft `BLOCKED` door ontbrekende canonical TEST-configuratie.
+### Verplichte preflight
+
+- Canonical TEST-env gekopieerd met `Copy-Item -Force` vanuit `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` naar de worktree. De controle gaf `Test-Path=True`. Env-inhoud en secrets zijn niet gelezen, gelogd of vastgelegd.
+- Canonical fixture-auth preflight uitgevoerd: alleen `hr-admin`, `manager` en `employee` zijn bijgewerkt.
+- Geen productieaccounts, andere accounts, remote schema apply, push, merge of deploy uitgevoerd.
+
+### Browser/API/persona-evidence
+
+- HR Admin / `hradmin.fixture@liquidhr.test`: report `POST /api/absence/report` `201`; RSC readback na refresh `200`; recovery `POST /api/absence/recovery` `200` en readback `200`. De eerste capacity-submit op dezelfde datum als de bestaande 100%-regel gaf `500 ABSENCE_CAPACITY_FAILED`; de nieuwe default naar de volgende geldige datum gaf in de herhaalde flow `POST /api/absence/capacity` `200` en readback `200`.
+- Manager / `manager.fixture@liquidhr.test`: report voor Maya Bos `201` en readback `200`; negatieve employment-read buiten de directe teamscope `403`; negatieve report buiten de teamscope `403`. De herhaalde flow voor Milan Visser gebruikte de gefixte capacity-default `2026-08-23`, capacity `200` en readback `200`; recovery-cleanup `200` en readback `200`.
+- Employee / `employee.fixture@liquidhr.test`: self employment-read `200`; de bestaande canonical case in het herstelvenster is na refresh zichtbaar. Recovery en capacity zonder self-service capability gaven elk `403`. De report-action bleef terecht verborgen zolang de canonical case in het herstelvenster staat; er is geen extra employee-case aangemaakt.
+- Succesvolle UI/readback-paden hadden geen nieuwe relevante console-errors. De twee console-errors bij de employee-negative checks zijn de verwachte fetch-errors van de bewust uitgevoerde `403`-requests.
+
+### Responsive en thema
+
+- Employee absence detail gecontroleerd op desktop `1440x900`: geen horizontale overflow (`documentScrollWidth=1440`).
+- Hetzelfde detail gecontroleerd op `390x844`: geen horizontale overflow (`documentScrollWidth=390`), mobiele navigatie en case-detail bleven bruikbaar.
+- In persoonlijke instellingen zijn Default (`data-theme=liquid-navy`, zichtbaar als Liquid Navy) en LinkedHR (`data-theme=linkedhr`) opgeslagen en gecontroleerd. De voorkeur is na afloop teruggezet naar LinkedHR.
+
+### Productfixes tijdens retry
+
+- Absence-id-validatie gebruikt nu de bestaande database-UUID-validator, zodat deterministische TEST-fixture-id's worden geaccepteerd.
+- Absence target authorization controleert naast de bestaande permission ook de directe teamscope; Manager kan daardoor geen dossier of report buiten de eigen teamscope lezen of muteren.
+- De capacity-form kiest bij een bestaande capacity-row de eerstvolgende geldige datum. Daarmee wordt de eerder gereproduceerde same-day `500` in de normale UI-flow voorkomen; de herhaalde echte flow eindigde met `200`.
+- Geen generieke Foundation-componenten, schema's, RLS of migrations gewijzigd.
+
+### Technische verificatie en cleanup
+
+- Gerichte absence-/insights-tests na de fixes: GREEN — 5 testbestanden, 21 tests.
+- Strict TypeScript: GREEN — `npm.cmd run type-check --workspace @liquid-hr/hr-suite`.
+- Gerichte ESLint op de gewijzigde absence TypeScript/TSX-bestanden: GREEN.
+- Bestaande i18n-gate blijft GREEN — 33 namespaces met gelijke NL/EN-sleutels.
+- Tijdelijke TEST-data is uitsluitend via het productcontract hersteld: de HR-case, Maya-case en Milan-case zijn beter gemeld; de ondersteunde recovery window blijft zichtbaar tot `2026-09-19`. Er is geen directe database-delete gebruikt omdat daarvoor geen productcontract bestaat. De bestaande Noah-canonical recovery-window case is niet gewijzigd.
+- Geen resterende authenticated browser/API-blocker vastgesteld. Devserver wordt na overdracht gestopt; de lokale worktree wordt clean gecontroleerd.

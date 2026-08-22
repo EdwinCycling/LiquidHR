@@ -65,3 +65,15 @@ export function buildAbsenceCapacityPayload(caseId: string, effectiveOn: string,
     idempotencyKey,
   }
 }
+
+export function getDefaultAbsenceCapacityEffectiveOn(currentCase: { spells: Array<{ capacityEffectiveOn: string | null }> } | null | undefined, now = new Date()): string {
+  const today = now.toISOString().slice(0, 10)
+  const latestCapacityDate = (currentCase?.spells ?? []).reduce<string | null>((latest, spell) => {
+    if (!spell.capacityEffectiveOn) return latest
+    return latest === null || spell.capacityEffectiveOn > latest ? spell.capacityEffectiveOn : latest
+  }, null)
+  const baseDate = latestCapacityDate !== null && latestCapacityDate >= today ? latestCapacityDate : today
+  const nextDate = new Date(`${baseDate}T00:00:00.000Z`)
+  if (baseDate === latestCapacityDate) nextDate.setUTCDate(nextDate.getUTCDate() + 1)
+  return nextDate.toISOString().slice(0, 10)
+}

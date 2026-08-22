@@ -32,6 +32,17 @@ describe('absence schemas', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepteert deterministische database-UUIDs van testfixtures', () => {
+    const result = absenceCaseCreateSchema.safeParse({
+      employeeId: '01c349f0-be6f-01dc-4d96-b5bf66085a56',
+      employmentId: 'b407c312-3293-7830-5c49-f2c8514ac32f',
+      startDate: '2026-08-22',
+      absencePercentage: 100,
+      idempotencyKey: 'fixture-manager-report',
+    })
+    expect(result.success).toBe(true)
+  })
+
   it('valideert percentagewijziging en herstel', () => {
     expect(absenceCapacityChangeSchema.safeParse({ caseId: employeeId, effectiveOn: '2026-07-27', absencePercentage: 50, idempotencyKey: 'capacity-change-2026-07-26' }).success).toBe(true)
     expect(absenceRecoverySchema.safeParse({ caseId: employeeId, recoveredOn: '2026-07-30', idempotencyKey: 'recovery-2026-07-26' }).success).toBe(true)

@@ -3,6 +3,7 @@ import {
   buildAbsenceCapacityPayload,
   buildAbsenceRecoveryPayload,
   buildAbsenceReportPayload,
+  getDefaultAbsenceCapacityEffectiveOn,
   toIndicator,
 } from './absence-presentational'
 
@@ -59,5 +60,11 @@ describe('absence presentation payload contracts', () => {
   it('keeps recovery and partial-capacity payloads unchanged', () => {
     expect(buildAbsenceRecoveryPayload('case-1', '2026-08-22', 'recovery-2026-08-22')).toEqual({ caseId: 'case-1', recoveredOn: '2026-08-22', idempotencyKey: 'recovery-2026-08-22' })
     expect(buildAbsenceCapacityPayload('case-1', '2026-08-23', '37.5', 'capacity-2026-08-23')).toEqual({ caseId: 'case-1', effectiveOn: '2026-08-23', absencePercentage: 37.5, expectedNextReviewOn: null, idempotencyKey: 'capacity-2026-08-23' })
+  })
+
+  it('defaults capacity changes to the next date after the latest capacity row', () => {
+    expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-22' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-23')
+    expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-21' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')
+    expect(getDefaultAbsenceCapacityEffectiveOn(null, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')
   })
 })

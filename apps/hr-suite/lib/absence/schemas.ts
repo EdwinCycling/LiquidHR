@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'ABSENCE_DATE_INVALID')
-const uuid = z.string().uuid('ABSENCE_ID_INVALID')
+const uuid = databaseUuid
 const idempotencyKey = z.string().trim().min(8).max(160)
 const indicator = z.boolean().nullable().optional()
 

@@ -10,7 +10,7 @@ import { FormDrawer } from '@/components/patterns/form-drawer'
 import { FormField } from '@/components/patterns/form-field'
 import type { AbsenceCaseSummary } from '@/lib/absence/service'
 import type { LeaveEmploymentOption } from '@/lib/leave/employment-resolver'
-import { buildAbsenceCapacityPayload, buildAbsenceRecoveryPayload, buildAbsenceReportPayload, type IndicatorValue } from './absence-presentational'
+import { buildAbsenceCapacityPayload, buildAbsenceRecoveryPayload, buildAbsenceReportPayload, getDefaultAbsenceCapacityEffectiveOn, type IndicatorValue } from './absence-presentational'
 
 interface AbsenceQuickFormProps {
   employeeId: string
@@ -41,7 +41,7 @@ export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, 
   const [workAccident, setWorkAccident] = useState<IndicatorValue>('UNKNOWN')
   const [thirdPartyAccident, setThirdPartyAccident] = useState<IndicatorValue>('UNKNOWN')
   const [recoveredOn, setRecoveredOn] = useState(new Date().toISOString().slice(0, 10))
-  const [capacityEffectiveOn, setCapacityEffectiveOn] = useState(new Date().toISOString().slice(0, 10))
+  const [capacityEffectiveOn, setCapacityEffectiveOn] = useState(() => getDefaultAbsenceCapacityEffectiveOn(currentCase))
   const [capacityPercentage, setCapacityPercentage] = useState('50')
   const [selectedEmploymentId, setSelectedEmploymentId] = useState(employmentOptions.length > 1 ? '' : employmentId ?? (employmentOptions.length === 1 ? employmentOptions[0]?.id ?? '' : ''))
   const [availableEmploymentOptions, setAvailableEmploymentOptions] = useState(employmentOptions)

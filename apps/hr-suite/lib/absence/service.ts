@@ -1,8 +1,9 @@
 import 'server-only'
 
-import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { resolveLeaveEmployment, type LeaveEmploymentOption } from '@/lib/leave/employment-resolver'
+import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { absenceCaseCreateSchema, absenceCapacityChangeSchema, absenceRecoverySchema } from './schemas'
 
 export class AbsenceServiceError extends Error {
@@ -17,6 +18,19 @@ export class AbsenceEmploymentRequiredError extends AbsenceServiceError {
     super('ABSENCE_EMPLOYMENT_REQUIRED', 409)
     this.name = 'AbsenceEmploymentRequiredError'
   }
+}
+
+const globalAbsenceRoles = new Set(['TENANT_ADMIN', 'HR_ADMIN'])
+
+async function requireAbsenceTargetPermission(permissionCode: string, employeeId: string) {
+  const auth = await requirePermission(permissionCode, employeeId)
+  if (auth.employeeId === employeeId || auth.activeRoles.some((role) => globalAbsenceRoles.has(role))) return auth
+  if (auth.activeRoles.includes('DIRECT_MANAGER')) {
+    const supabase = await createClient()
+    const teamEmployeeIds = await listDirectTeamEmployeeIds(auth, supabase)
+    if (teamEmployeeIds.includes(employeeId)) return auth
+  }
+  throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
 }
 
 export interface AbsenceSpellSummary {
@@ -93,7 +107,7 @@ function mapCase(row: {
 }
 
 export async function listEmployeeAbsence(employeeId: string): Promise<AbsenceCaseSummary[]> {
-  const auth = await requirePermission('absence:read', employeeId)
+  const auth = await requireAbsenceTargetPermission('absence:read', employeeId)
   const hrGroupId = requireHrGroupId(auth)
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -163,7 +177,7 @@ export async function resolveEmployeeAbsenceEmployment(
   requestedEmploymentId: string | undefined,
   asOfDate: string,
 ) {
-  const auth = await requirePermission('absence:write', employeeId)
+  const auth = await requireAbsenceTargetPermission('absence:write', employeeId)
   const supabase = await createClient()
   return resolveLeaveEmployment(supabase, auth, employeeId, requestedEmploymentId, asOfDate)
 }
@@ -174,7 +188,7 @@ export async function listEmployeeAbsenceEmploymentOptions(employeeId: string) {
 }
 
 export async function reportEmployeeAbsence(employeeId: string, input: unknown): Promise<string> {
-  const auth = await requirePermission('absence:write', employeeId)
+  const auth = await requireAbsenceTargetPermission('absence:write', employeeId)
   const hrGroupId = requireHrGroupId(auth)
   const parsed = absenceCaseCreateSchema.parse({ ...(typeof input === 'object' && input !== null ? input : {}), employeeId })
   const supabase = await createClient()
