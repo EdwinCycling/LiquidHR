@@ -42,3 +42,10 @@ De server startte vanuit exact deze worktree op poort `3104`, maar de worktree b
 Daarom zijn de volgende acceptance-items **BLOCKED BY ENVIRONMENT** en niet als productbewijs geclaimd: echte absence/Bradford/frequent data, filters, zero-results, employee/dossierlinks, export, positieve/negatieve persona-permissions, desktop, 390×844, Default, LinkedHR en console-errors 0. Geen credentials of testdata zijn gekopieerd of gemuteerd.
 
 Geen push, merge of deploy uitgevoerd.
+
+## Acceptance retry — 2026-08-22
+
+- Verplichte broncontrole: `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestaat niet (`Test-Path = False`).
+- De canonical repo bevat in `apps/hr-suite` alleen `.env.example`; er is geen alternatieve env gebruikt en geen secret gelezen, gelogd of gecommit.
+- Doelcontrole: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r2-absence-insights\apps\hr-suite\.env.local` bestaat niet (`Test-Path = False`), omdat de verplichte `Copy-Item -Force` niet veilig kon worden uitgevoerd.
+- Fixture-auth preflight, serverstart op 3104 en browser/API/persona/responsive/theme acceptance zijn hierdoor **BLOCKED BY ENVIRONMENT**; er zijn in deze retry geen HTTP-requests of testdata-mutaties uitgevoerd.
