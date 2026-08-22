@@ -70,7 +70,7 @@ De vier nieuwe organization-labels zijn paritair toegevoegd in `messages/nl/orga
 
 Heropen uitsluitend met de canonical TEST-auth/runtimeconfiguratie beschikbaar in deze worktree. Voer daarna de volledige Coverage acceptance uit via echte browser/API-interactie, inclusief HTTP-status en readback na reload, beide negatieve persona's, desktop/390x844 en Default/LinkedHR. Maak geen rol buiten die gecontroleerde run en deactiveer de unieke testrol altijd aan het einde.
 
-## Acceptance retry 2026-08-22
+## Acceptance retry — initial environment blocker 2026-08-22 (historical)
 
 De retry is gestopt vóór runtime/browser-start bij de verplichte Stap 0. De expliciet aangewezen canonical bron
 `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestond niet (`Test-Path = False`). Het doelbestand
@@ -80,6 +80,9 @@ als vervanging gebruikt.
 Omdat de canonical TEST-env ontbreekt, zijn in deze retry geen fixture-wachtwoorden gewijzigd, geen dev-server gestart,
 geen browser/API/persona-acceptance uitgevoerd en geen TEST-data aangemaakt. De open Coverage acceptance blijft daarmee
 `BLOCKED BY ENVIRONMENT`; er zijn geen nieuwe HTTP-statussen, readbacks, responsive/theme-resultaten of cleanup-acties.
+
+Deze blokkade is historische evidence van vóór het herstel van de canonical TEST-env en wordt vervangen door de GREEN
+closure hieronder.
 
 ## Acceptance retry — GREEN closure 2026-08-22
 
