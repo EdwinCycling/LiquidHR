@@ -8,7 +8,7 @@ export default async function AuthorizationPage() {
   await requirePermission('authorization:read')
   const [matrix, t, settings] = await Promise.all([listAuthorizationMatrix(), getTranslator('organization'), getTranslator('settings')])
   const labelKeys: (keyof AuthorizationLabels)[] = [
-    'roles', 'newRole', 'roleCode', 'roleName', 'roleDescription', 'createRole', 'roleCreateDescription', 'close', 'cancel', 'discardTitle', 'discardDescription', 'discardConfirm', 'discardCancel', 'systemRole', 'tenantRole',
+    'roles', 'newRole', 'roleCode', 'roleName', 'roleDescription', 'createRole', 'roleCreateDescription', 'close', 'cancel', 'discardTitle', 'discardDescription', 'discardConfirm', 'discardCancel', 'permissionDiscardTitle', 'permissionDiscardDescription', 'permissionDiscardConfirm', 'permissionDiscardCancel', 'systemRole', 'tenantRole',
     'roleOrganizationScoped', 'permissions', 'selectRole', 'savePermissions', 'placements', 'managementAssignments', 'employee', 'department',
     'role', 'jobTitle', 'effectiveFrom', 'addPlacement', 'addManagement', 'saved', 'failed', 'tabPermissions',
     'tabOverview', 'tabAssignments', 'roleSearch', 'permissionSearch', 'totalRoles', 'activeTenantRoles',

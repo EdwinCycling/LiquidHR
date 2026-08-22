@@ -3,12 +3,13 @@
 import type { Database } from '@scope/db'
 import { KeyRound, Layers3, Network, Plus, RotateCcw, Save, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog } from '@/components/ui/dialog'
 import { TextInput } from '@/components/ui/text-input'
 import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { FormDrawer } from '@/components/patterns/form-drawer'
 import { FormField } from '@/components/patterns/form-field'
 import {
@@ -30,6 +31,7 @@ const emptyCreateRoleValues: CreateRoleValues = { code: '', name: '', descriptio
 export interface AuthorizationLabels {
   roles: string; newRole: string; roleCode: string; roleName: string; roleDescription: string; createRole: string
   roleCreateDescription: string; close: string; cancel: string; discardTitle: string; discardDescription: string; discardConfirm: string; discardCancel: string
+  permissionDiscardTitle: string; permissionDiscardDescription: string; permissionDiscardConfirm: string; permissionDiscardCancel: string
   systemRole: string; tenantRole: string; roleOrganizationScoped: string; permissions: string; selectRole: string; savePermissions: string
   placements: string; managementAssignments: string; employee: string; department: string; role: string
   jobTitle: string; effectiveFrom: string; addPlacement: string; addManagement: string; saved: string; failed: string
@@ -71,10 +73,14 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
   const [highlightedCategory, setHighlightedCategory] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [coverageDialog, setCoverageDialog] = useState<{ roleId: string; category: string } | null>(null)
+  const [coverageDialogOpen, setCoverageDialogOpen] = useState(false)
+  const [coverageDiscardOpen, setCoverageDiscardOpen] = useState(false)
   const [createRoleOpen, setCreateRoleOpen] = useState(false)
   const [createRoleValues, setCreateRoleValues] = useState<CreateRoleValues>(emptyCreateRoleValues)
   const [createRoleSaving, setCreateRoleSaving] = useState(false)
   const [createRoleError, setCreateRoleError] = useState<string | null>(null)
+  const [permissionSaving, setPermissionSaving] = useState(false)
+  const [permissionSaveError, setPermissionSaveError] = useState<string | null>(null)
 
   const groups = useMemo(() => Map.groupBy(permissions, (permission) => permission.category), [permissions])
   const overview = useMemo(() => buildAuthorizationOverview({
@@ -105,6 +111,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     setSavedPermissionIds(next)
     setPermissionIds(next)
     setMessage(null)
+    setPermissionSaveError(null)
     setHighlightedCategory(null)
   }
 
@@ -113,14 +120,20 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     ? (groups.get(coverageDialog.category) ?? []).map((permission) => ({ permission, checked: permissionIds.has(permission.id) }))
     : []
 
-  async function send(url: string, method: string, body: object): Promise<boolean> {
+  useEffect(() => {
+    if (coverageDialog && !coverageDialogOpen && !coverageDiscardOpen) setCoverageDialog(null)
+  }, [coverageDialog, coverageDialogOpen, coverageDiscardOpen])
+
+  async function send(url: string, method: string, body: object, onFailure?: (message: string) => void): Promise<boolean> {
     setMessage(null)
     try {
       const response = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       if (!response.ok) {
         const payload: unknown = await response.json().catch(() => null)
         const code = payload && typeof payload === 'object' && 'error' in payload ? payload.error : null
-        setMessage(code === 'SELF_AUTHORIZATION_LOCKOUT' ? labels.selfAuthorizationLockout : labels.failed)
+        const failureMessage = code === 'SELF_AUTHORIZATION_LOCKOUT' ? labels.selfAuthorizationLockout : labels.failed
+        setMessage(failureMessage)
+        onFailure?.(failureMessage)
         return false
       }
       setMessage(labels.saved)
@@ -128,6 +141,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
       return true
     } catch {
       setMessage(labels.failed)
+      onFailure?.(labels.failed)
       return false
     }
   }
@@ -154,9 +168,31 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     setCreateRoleValues((current) => ({ ...current, [key]: value }))
     setCreateRoleError(null)
   }
-  async function savePermissions(): Promise<void> {
-    if (!selectedRoleId || !editable) return
-    if (await send(`/api/roles/${selectedRoleId}/permissions`, 'PUT', { permissionIds: [...permissionIds] })) setSavedPermissionIds(new Set(permissionIds))
+  async function savePermissions(): Promise<boolean> {
+    if (!selectedRoleId || !editable || permissionSaving) return false
+    setPermissionSaving(true)
+    setPermissionSaveError(null)
+    try {
+      const success = await send(`/api/roles/${selectedRoleId}/permissions`, 'PUT', { permissionIds: [...permissionIds] }, setPermissionSaveError)
+      if (success) setSavedPermissionIds(new Set(permissionIds))
+      return success
+    } finally {
+      setPermissionSaving(false)
+    }
+  }
+
+  function requestCoverageClose(): void {
+    if (permissionSaving) return
+    if (dirty) {
+      setCoverageDiscardOpen(true)
+      return
+    }
+    setCoverageDialogOpen(false)
+  }
+
+  function updatePermissionIds(updater: (current: Set<string>) => Set<string>): void {
+    setPermissionSaveError(null)
+    setPermissionIds(updater)
   }
 
   return <div className="space-y-6">
@@ -175,7 +211,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
         <div className="mt-4 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
           {filteredRoles.map((role) => {
             const count = rolePermissionSet(role.id, rolePermissions).size
-            return <button aria-pressed={selectedRoleId === role.id} className={`w-full rounded-md border px-3 py-3 text-left transition ${selectedRoleId === role.id ? 'border-primary bg-accent text-accent-foreground shadow-sm' : 'bg-background text-foreground hover:border-primary/40'}`} key={role.id} onClick={() => selectRole(role.id)} type="button">
+            return <button aria-pressed={selectedRoleId === role.id} className={`w-full rounded-md border px-3 py-3 text-left transition ${selectedRoleId === role.id ? 'border-primary bg-accent text-accent-foreground shadow-sm' : 'bg-background text-foreground hover:border-primary/40'}`} disabled={permissionSaving} key={role.id} onClick={() => selectRole(role.id)} type="button">
               <span className="flex items-start justify-between gap-3"><span><span className="block font-medium">{role.name}</span><span className="mt-0.5 block text-xs text-muted-foreground">{role.code} · {role.is_system ? labels.systemRole : labels.tenantRole}</span></span><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{count}</span></span>
               <span className="mt-2 block text-xs text-muted-foreground">{role.is_active ? labels.activeRole : labels.inactiveRole}</span>
             </button>
@@ -215,27 +251,38 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
             const coverage = permissionCoverage(permissionIds, groupIds)
             return <fieldset className={`min-w-0 rounded-lg border bg-background p-4 transition ${highlightedCategory === category ? 'border-primary ring-2 ring-primary/15' : ''}`} key={category}>
               <legend className="sr-only">{category}</legend>
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-semibold text-foreground">{category}</h3><p className="mt-0.5 text-xs text-muted-foreground">{coverage.assigned} / {coverage.total} Â· {coverage.percentage}%</p></div>{editable ? <button aria-pressed={coverage.percentage === 100} className="shrink-0 rounded-lg border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40" onClick={() => setPermissionIds((current) => togglePermissionGroup(current, groupIds))} type="button">{coverage.percentage === 100 ? labels.clearAll : labels.selectAll}</button> : null}</div>
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-semibold text-foreground">{category}</h3><p className="mt-0.5 text-xs text-muted-foreground">{coverage.assigned} / {coverage.total} Â· {coverage.percentage}%</p></div>{editable ? <button aria-pressed={coverage.percentage === 100} className="shrink-0 rounded-lg border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40" disabled={permissionSaving} onClick={() => updatePermissionIds((current) => togglePermissionGroup(current, groupIds))} type="button">{coverage.percentage === 100 ? labels.clearAll : labels.selectAll}</button> : null}</div>
               <div aria-label={`${labels.coverage} ${coverage.percentage}%`} className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={coverage.percentage}><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${coverage.percentage}%` }} /></div>
-              <div className="mt-4 space-y-2">{visibleItems.map((permission) => <label className={`flex items-start gap-3 rounded-md border p-3 text-sm ${permissionIds.has(permission.id) ? 'border-primary/30 bg-accent' : 'bg-surface'} ${editable ? 'cursor-pointer' : 'cursor-default'}`} key={permission.id}><input checked={permissionIds.has(permission.id)} className="mt-1 size-4 accent-primary" disabled={!editable} onChange={(event) => setPermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span className="min-w-0"><span className="block font-medium text-foreground">{permission.name}</span>{permission.description ? <span className="mt-0.5 block leading-5 text-muted-foreground">{permission.description}</span> : null}<span className="mt-1 block truncate font-mono text-[0.7rem] text-muted-foreground"><span className="sr-only">{labels.permissionCode}: </span>{permission.code}</span></span></label>)}</div>
+              <div className="mt-4 space-y-2">{visibleItems.map((permission) => <label className={`flex items-start gap-3 rounded-md border p-3 text-sm ${permissionIds.has(permission.id) ? 'border-primary/30 bg-accent' : 'bg-surface'} ${editable ? 'cursor-pointer' : 'cursor-default'}`} key={permission.id}><input checked={permissionIds.has(permission.id)} className="mt-1 size-4 accent-primary" disabled={!editable || permissionSaving} onChange={(event) => updatePermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span className="min-w-0"><span className="block font-medium text-foreground">{permission.name}</span>{permission.description ? <span className="mt-0.5 block leading-5 text-muted-foreground">{permission.description}</span> : null}<span className="mt-1 block truncate font-mono text-[0.7rem] text-muted-foreground"><span className="sr-only">{labels.permissionCode}: </span>{permission.code}</span></span></label>)}</div>
             </fieldset>
           })}</div>
-          {editable ? <div className="sticky bottom-4 mt-6 flex flex-col gap-3 rounded-xl border bg-surface/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between"><p aria-live="polite" className="text-sm font-medium text-foreground">{dirty ? `${changedCount} ${labels.unsavedChanges}` : labels.saved}</p><div className="flex gap-2"><button className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-40 sm:flex-none" disabled={!dirty} onClick={() => setPermissionIds(new Set(savedPermissionIds))} type="button"><RotateCcw className="size-4" />{labels.resetChanges}</button><button className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40 sm:flex-none" disabled={!dirty} onClick={savePermissions} type="button"><Save className="size-4" />{labels.savePermissions}</button></div></div> : null}
+          {editable ? <div className="sticky bottom-4 mt-6 flex flex-col gap-3 rounded-xl border bg-surface/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between"><p aria-live="polite" className="text-sm font-medium text-foreground">{dirty ? `${changedCount} ${labels.unsavedChanges}` : labels.saved}</p><div className="flex gap-2"><button className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-40 sm:flex-none" disabled={!dirty || permissionSaving} onClick={() => { setPermissionSaveError(null); setPermissionIds(new Set(savedPermissionIds)) }} type="button"><RotateCcw className="size-4" />{labels.resetChanges}</button><Button className="flex-1 sm:flex-none" disabled={!dirty} loading={permissionSaving} onClick={() => { void savePermissions() }} type="button"><Save aria-hidden="true" />{labels.savePermissions}</Button></div></div> : null}
         </> : <p className="text-sm text-muted-foreground">{labels.selectRole}</p>}
       </section>
     </div> : null}
 
-    {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={(roleId, category) => { selectRole(roleId); setCoverageDialog({ roleId, category }) }} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
+     {activeTab === 'overview' ? <AuthorizationHeatmap labels={labels} onInspectCoverage={(roleId, category) => { selectRole(roleId); setCoverageDialog({ roleId, category }); setCoverageDialogOpen(true) }} permissions={permissions} rolePermissions={rolePermissions} roles={roles} /> : null}
     {coverageDialog && coverageRole ? <Dialog
       closeLabel={labels.close}
       description={labels.coverageExplanation}
-      footer={<div className="flex flex-wrap justify-end gap-2"><Button onClick={() => { setPermissionIds(new Set(savedPermissionIds)); setCoverageDialog(null) }} size="sm" type="button" variant="secondary">{labels.resetChanges}</Button>{editable ? <Button disabled={!dirty} onClick={() => { void savePermissions().then(() => setCoverageDialog(null)) }} size="sm" type="button">{labels.savePermissions}</Button> : null}</div>}
-      onOpenChange={(nextOpen) => { if (!nextOpen) setCoverageDialog(null) }}
-      open
+       footer={<div className="flex flex-wrap justify-end gap-2"><Button disabled={permissionSaving} onClick={() => { setPermissionSaveError(null); setPermissionIds(new Set(savedPermissionIds)); setCoverageDialogOpen(false) }} size="sm" type="button" variant="secondary">{labels.resetChanges}</Button>{editable ? <Button disabled={!dirty} loading={permissionSaving} onClick={() => { void savePermissions().then((success) => { if (success) setCoverageDialogOpen(false) }) }} size="sm" type="button">{labels.savePermissions}</Button> : null}</div>}
+       onOpenChange={(nextOpen) => { if (!nextOpen) requestCoverageClose() }}
+       open={coverageDialogOpen}
       title={`${coverageRole.name} — ${coverageDialog.category}`}
     >
-      <div className="space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-[var(--radius-control)] border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><input checked={checked} disabled={!editable || selectedRoleId !== coverageRole.id} onChange={(event) => setPermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
-    </Dialog> : null}
+       {permissionSaveError ? <p aria-live="assertive" className="mb-4 border border-destructive/40 bg-destructive-surface px-3 py-2 text-sm text-destructive" role="alert">{permissionSaveError}</p> : null}
+       <div className="space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-[var(--radius-control)] border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><input checked={checked} disabled={!editable || selectedRoleId !== coverageRole.id || permissionSaving} onChange={(event) => updatePermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
+     </Dialog> : null}
+    <ConfirmDialog
+      cancelLabel={labels.permissionDiscardCancel}
+      confirmLabel={labels.permissionDiscardConfirm}
+      description={labels.permissionDiscardDescription}
+      destructive
+      onConfirm={() => { setPermissionSaveError(null); setPermissionIds(new Set(savedPermissionIds)); setCoverageDiscardOpen(false); setCoverageDialogOpen(false) }}
+      onOpenChange={setCoverageDiscardOpen}
+      open={coverageDiscardOpen}
+      title={labels.permissionDiscardTitle}
+    />
 
   </div>
 }
