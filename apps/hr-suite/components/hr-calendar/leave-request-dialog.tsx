@@ -11,10 +11,13 @@ import type { LeaveRequestPreview } from '@/lib/leave/request-service'
 
 type RequestMode = 'PRIORITY' | 'DIRECT'
 type TimeMode = 'FULL_DAY' | 'MORNING' | 'AFTERNOON' | 'SPECIFIC_HOURS'
+type EmploymentOption = LeaveRequestPreview['employmentSelection']['options'][number]
 
 type Labels = {
   title: string
   description: string
+  employment: string
+  employmentRequired: string
   viaPriority: string
   withoutPriority: string
   leaveType: string
@@ -68,22 +71,36 @@ export function LeaveRequestDialog({
   const [specificStart, setSpecificStart] = useState('09:00')
   const [specificEnd, setSpecificEnd] = useState('17:00')
   const [preview, setPreview] = useState<LeaveRequestPreview | null>(null)
+  const [employmentId, setEmploymentId] = useState('')
+  const [employmentOptions, setEmploymentOptions] = useState<EmploymentOption[]>([])
   const [leaveTypeId, setLeaveTypeId] = useState('')
   const [priorityRuleId, setPriorityRuleId] = useState('')
-  const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'success' | 'error'>('loading')
+  const [state, setState] = useState<'loading' | 'selecting' | 'ready' | 'saving' | 'success' | 'error'>('loading')
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
     const params = new URLSearchParams({ employeeId, startDate, mode })
     if (endDate) params.set('endDate', endDate)
+    if (employmentId) params.set('employmentId', employmentId)
     fetch(`/api/leave/request/preview?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) throw new Error('preview')
-        const body = (await response.json()) as { data: LeaveRequestPreview }
-        setPreview(body.data)
-        setLeaveTypeId((current) => current || body.data.types[0]?.id || '')
-        setPriorityRuleId((current) => current || body.data.priorityRules[0]?.id || '')
+        const body = await response.json() as unknown
+        if (!response.ok) {
+          const options = employmentOptionsFromError(body)
+          if (response.status === 409 && options.length > 0) {
+            setPreview(null)
+            setEmploymentOptions(options)
+            setState('selecting')
+            return
+          }
+          throw new Error('preview')
+        }
+        const data = (body as { data: LeaveRequestPreview }).data
+        setPreview(data)
+        setEmploymentOptions([])
+        setLeaveTypeId((current) => current || data.types[0]?.id || '')
+        setPriorityRuleId((current) => current || data.priorityRules[0]?.id || '')
         setState('ready')
       })
       .catch((error: unknown) => {
@@ -91,7 +108,7 @@ export function LeaveRequestDialog({
         setState('error')
       })
     return () => controller.abort()
-  }, [employeeId, startDate, endDate, mode])
+  }, [employeeId, startDate, endDate, employmentId, mode])
 
   const selectedType = useMemo(() => preview?.types.find((type) => type.id === leaveTypeId) ?? null, [leaveTypeId, preview])
   const totalMinutes = timeMode === 'FULL_DAY'
@@ -165,6 +182,7 @@ export function LeaveRequestDialog({
       open
       saveLabel={labels.confirm}
       saving={state === 'saving'}
+      disabled={state !== 'ready'}
       title={labels.title}
     >
       {state === 'success' ? (
@@ -192,6 +210,18 @@ export function LeaveRequestDialog({
             <FormField control={<TextInput readOnly type="date" value={startDate} />} label={labels.startDate} />
             <FormField control={<TextInput min={startDate} onChange={(event) => updateEndDate(event.currentTarget.value)} type="date" value={endDate} />} label={labels.endDate} />
           </div>
+
+          {employmentOptions.length ? (
+            <FormField
+              control={(
+                <DropdownSelect aria-label={labels.employment} onChange={(event) => { markDirty(); setEmploymentId(event.currentTarget.value); setState('loading') }} placeholder={labels.employmentRequired} searchable searchPlaceholder={labels.employment} value={employmentId}>
+                  <option value="">{labels.employmentRequired}</option>
+                  {employmentOptions.map((option) => <option key={option.id} value={option.id}>{option.employmentNumber ?? option.id} · {option.startsOn} · {option.administrationName ?? '—'}{option.functionName ? ` · ${option.functionName}` : ''}</option>)}
+                </DropdownSelect>
+              )}
+              label={labels.employment}
+            />
+          ) : null}
 
           {mode === 'DIRECT' ? (
             <FormField
@@ -245,11 +275,33 @@ export function LeaveRequestDialog({
             {selectedType?.status === 'NO_BALANCE' ? <span className="ml-2 text-destructive">{labels.noBalance}</span> : null}
           </div>
           {state === 'loading' ? <p className="text-sm text-muted-foreground" role="status">{labels.loading}</p> : null}
+          {state === 'selecting' ? <p className="text-sm text-muted-foreground" role="status">{labels.employmentRequired}</p> : null}
           {state === 'error' ? <p className="rounded-[var(--radius-surface)] bg-destructive/10 p-4 text-sm text-destructive" role="alert">{labels.failed}</p> : null}
         </>
       )}
     </FormDrawer>
   )
+}
+
+function employmentOptionsFromError(value: unknown): EmploymentOption[] {
+  if (!value || typeof value !== 'object') return []
+  const details = (value as { details?: unknown }).details
+  if (!details || typeof details !== 'object') return []
+  const options = (details as { options?: unknown }).options
+  if (!Array.isArray(options)) return []
+  return options.filter(isEmploymentOption)
+}
+
+function isEmploymentOption(value: unknown): value is EmploymentOption {
+  if (!value || typeof value !== 'object') return false
+  const option = value as Record<string, unknown>
+  return typeof option.id === 'string'
+    && (typeof option.employmentNumber === 'string' || option.employmentNumber === null)
+    && typeof option.startsOn === 'string'
+    && (typeof option.endsOn === 'string' || option.endsOn === null)
+    && (typeof option.administrationName === 'string' || option.administrationName === null)
+    && (typeof option.departmentName === 'string' || option.departmentName === null)
+    && (typeof option.functionName === 'string' || option.functionName === null)
 }
 
 function specificMinutes(start: string, end: string): number {

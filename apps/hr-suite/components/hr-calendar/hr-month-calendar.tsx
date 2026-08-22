@@ -91,6 +91,8 @@ interface Labels {
   typeEventHours: string;
   requestTitle: string;
   requestDescription: string;
+  requestEmployment: string;
+  requestEmploymentRequired: string;
   requestViaPriority: string;
   requestWithoutPriority: string;
   requestLeaveType: string;
@@ -791,6 +793,8 @@ export function HrMonthCalendar({
           labels={{
             title: labels.requestTitle,
             description: labels.requestDescription,
+            employment: labels.requestEmployment,
+            employmentRequired: labels.requestEmploymentRequired,
             viaPriority: labels.requestViaPriority,
             withoutPriority: labels.requestWithoutPriority,
             leaveType: labels.requestLeaveType,

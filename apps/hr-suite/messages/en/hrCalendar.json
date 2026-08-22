@@ -74,6 +74,8 @@
   "actionsLater": "Add day action — available in a future module",
   "requestTitle": "Request leave",
   "requestDescription": "Review the period, leave type and calculated hours before booking the request.",
+  "requestEmployment": "Employment",
+  "requestEmploymentRequired": "Choose an employment",
   "requestViaPriority": "Request leave via priority rules",
   "requestWithoutPriority": "Request leave without priority rules",
   "requestLeaveType": "Leave type",

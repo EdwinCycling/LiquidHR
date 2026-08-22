@@ -74,6 +74,8 @@
   "actionsLater": "Dagactie toevoegen — volgt in een volgende module",
   "requestTitle": "Verlof aanvragen",
   "requestDescription": "Controleer de periode, het verloftype en de berekende uren voordat je de aanvraag boekt.",
+  "requestEmployment": "Dienstverband",
+  "requestEmploymentRequired": "Kies een dienstverband",
   "requestViaPriority": "Verlof aanvragen via voorrangsregels",
   "requestWithoutPriority": "Verlof aanvragen zonder voorrangsregels",
   "requestLeaveType": "Verloftype",

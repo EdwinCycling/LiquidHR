@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
@@ -18,6 +19,7 @@ import { calendarQuerySchema } from '@/lib/hr-calendar/schemas'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getStoredHrCalendarFilterPanelOpen } from '@/lib/preferences/hr-calendar'
 import { getUserPreferences } from '@/lib/preferences/server'
+import { AuthorizationError } from '@/lib/auth/permissions'
 
 interface Props {
   searchParams: Promise<{
@@ -83,8 +85,15 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     showDayOccupancy: rawQuery.showDayOccupancy === '1' ? '1' : '0',
   })
 
-  const [data, t, locale, filterPanelOpen, preferences] = await Promise.all([
-    loadUnifiedCalendar(month),
+  let data: Awaited<ReturnType<typeof loadUnifiedCalendar>>
+  try {
+    data = await loadUnifiedCalendar(month)
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+
+  const [t, locale, filterPanelOpen, preferences] = await Promise.all([
     getTranslator('hrCalendar'),
     getLocale(),
     getStoredHrCalendarFilterPanelOpen(),
@@ -336,6 +345,8 @@ export default async function HrCalendarPage({ searchParams }: Props) {
            typeEventHours: t('typeEventHours'),
            requestTitle: t('requestTitle'),
            requestDescription: t('requestDescription'),
+           requestEmployment: t('requestEmployment'),
+           requestEmploymentRequired: t('requestEmploymentRequired'),
            requestViaPriority: t('requestViaPriority'),
            requestWithoutPriority: t('requestWithoutPriority'),
            requestLeaveType: t('requestLeaveType'),

@@ -81,7 +81,7 @@ export function HrCalendarWeekSelect({
       >
         <option value="">{labels.weekSelectPlaceholder}</option>
         {options.map((option) => (
-          <option key={`${currentYear}-${option.weekNumber}`} value={option.weekNumber}>
+          <option key={`${currentYear}-${option.weekNumber}`} value={String(option.weekNumber)}>
             {labels.week} {option.weekNumber}
           </option>
         ))}
