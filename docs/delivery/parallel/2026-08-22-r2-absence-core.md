@@ -70,3 +70,9 @@ Dit is een omgevingsblokkade, geen bewezen in-scope product-RED. Na beschikbaar 
 - `BLOCKED`: authenticated browser/API acceptance is geblokkeerd door ontbrekende lokale Supabase-configuratie.
 
 Geen remote writes, push, merge of deploy uitgevoerd.
+
+## Acceptance retry — 2026-08-22
+
+De verplichte retry is gestart in dezelfde worktree en branch. Stap 0 kon niet worden voltooid: de opgegeven canonical TEST-bron `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestaat niet. Alleen bestandsaanwezigheid en bestandsnamen zijn gecontroleerd; de env-inhoud is niet gelezen, gelogd of gekopieerd. De worktree-doelcontrole bleef `False`.
+
+Daarom zijn fixture-auth, wachtwoordreset, devserver, browser/API/persona-acceptance, echte CRUD-statussen/readbacks, responsive/theme-acceptance en testdata-cleanup niet uitgevoerd. Er is geen alternatieve env gebruikt en er zijn geen accounts, databasegegevens of remote systemen gewijzigd. De retry blijft `BLOCKED` door ontbrekende canonical TEST-configuratie.
