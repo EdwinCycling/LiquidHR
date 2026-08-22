@@ -1,37 +1,51 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useState } from "react";
-import type { Locale } from "@/lib/i18n/config";
-import type { LeaveRequestPreview } from "@/lib/leave/request-service";
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { RadioGroup } from '@/components/ui/radio-group'
+import { TextInput } from '@/components/ui/text-input'
+import type { Locale } from '@/lib/i18n/config'
+import type { LeaveRequestPreview } from '@/lib/leave/request-service'
 
-type RequestMode = "PRIORITY" | "DIRECT";
-type TimeMode = "FULL_DAY" | "MORNING" | "AFTERNOON" | "SPECIFIC_HOURS";
+type RequestMode = 'PRIORITY' | 'DIRECT'
+type TimeMode = 'FULL_DAY' | 'MORNING' | 'AFTERNOON' | 'SPECIFIC_HOURS'
 
 type Labels = {
-  title: string;
-  viaPriority: string;
-  withoutPriority: string;
-  leaveType: string;
-  priorityRule: string;
-  noPriorityRules: string;
-  currentBalance: string;
-  projectedBalance: string;
-  unlimited: string;
-  fullDay: string;
-  morning: string;
-  afternoon: string;
-  specificHours: string;
-  startDate: string;
-  endDate: string;
-  totalTime: string;
-  confirm: string;
-  cancel: string;
-  close: string;
-  loading: string;
-  success: string;
-  failed: string;
-  noBalance: string;
-};
+  title: string
+  description: string
+  viaPriority: string
+  withoutPriority: string
+  leaveType: string
+  noLeaveTypes: string
+  priorityRule: string
+  noPriorityRules: string
+  currentBalance: string
+  projectedBalance: string
+  unlimited: string
+  timeMode: string
+  fullDay: string
+  morning: string
+  afternoon: string
+  specificHours: string
+  startDate: string
+  endDate: string
+  timeStart: string
+  timeEnd: string
+  totalTime: string
+  confirm: string
+  cancel: string
+  close: string
+  loading: string
+  success: string
+  failed: string
+  noBalance: string
+  discardTitle: string
+  discardDescription: string
+  keepEditing: string
+  discardChanges: string
+}
 
 export function LeaveRequestDialog({
   employeeId,
@@ -41,130 +55,206 @@ export function LeaveRequestDialog({
   labels,
   onClose,
 }: {
-  employeeId: string;
-  startDate: string;
-  initialMode: RequestMode;
-  locale: Locale;
-  labels: Labels;
-  onClose: () => void;
+  employeeId: string
+  startDate: string
+  initialMode: RequestMode
+  locale: Locale
+  labels: Labels
+  onClose: () => void
 }) {
-  const [mode, setMode] = useState<RequestMode>(initialMode);
-  const [endDate, setEndDate] = useState(startDate);
-  const [timeMode, setTimeMode] = useState<TimeMode>("FULL_DAY");
-  const [specificStart, setSpecificStart] = useState("09:00");
-  const [specificEnd, setSpecificEnd] = useState("17:00");
-  const [preview, setPreview] = useState<LeaveRequestPreview | null>(null);
-  const [leaveTypeId, setLeaveTypeId] = useState("");
-  const [priorityRuleId, setPriorityRuleId] = useState("");
-  const [state, setState] = useState<"loading" | "ready" | "saving" | "success" | "error">("loading");
+  const [mode, setMode] = useState<RequestMode>(initialMode)
+  const [endDate, setEndDate] = useState(startDate)
+  const [timeMode, setTimeMode] = useState<TimeMode>('FULL_DAY')
+  const [specificStart, setSpecificStart] = useState('09:00')
+  const [specificEnd, setSpecificEnd] = useState('17:00')
+  const [preview, setPreview] = useState<LeaveRequestPreview | null>(null)
+  const [leaveTypeId, setLeaveTypeId] = useState('')
+  const [priorityRuleId, setPriorityRuleId] = useState('')
+  const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'success' | 'error'>('loading')
+  const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
-    const controller = new AbortController();
-    const params = new URLSearchParams({ employeeId, startDate, endDate, mode });
+    const controller = new AbortController()
+    const params = new URLSearchParams({ employeeId, startDate, mode })
+    if (endDate) params.set('endDate', endDate)
     fetch(`/api/leave/request/preview?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) throw new Error("preview");
-        const body = (await response.json()) as { data: LeaveRequestPreview };
-        setPreview(body.data);
-        setLeaveTypeId((current) => current || body.data.types[0]?.id || "");
-        setPriorityRuleId((current) => current || body.data.priorityRules[0]?.id || "");
-        setState("ready");
+        if (!response.ok) throw new Error('preview')
+        const body = (await response.json()) as { data: LeaveRequestPreview }
+        setPreview(body.data)
+        setLeaveTypeId((current) => current || body.data.types[0]?.id || '')
+        setPriorityRuleId((current) => current || body.data.priorityRules[0]?.id || '')
+        setState('ready')
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setState("error");
-      });
-    return () => controller.abort();
-  }, [employeeId, startDate, endDate, mode]);
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setState('error')
+      })
+    return () => controller.abort()
+  }, [employeeId, startDate, endDate, mode])
 
-  const selectedType = useMemo(() => preview?.types.find((type) => type.id === leaveTypeId) ?? null, [leaveTypeId, preview]);
-  const totalMinutes = timeMode === "FULL_DAY" ? preview?.fullDayMinutes ?? 0 : timeMode === "MORNING" || timeMode === "AFTERNOON" ? preview?.halfDayMinutes ?? 0 : specificMinutes(specificStart, specificEnd);
-  const totalHours = (totalMinutes / 60).toLocaleString(locale === "nl" ? "nl-NL" : "en-GB", { maximumFractionDigits: 2 });
+  const selectedType = useMemo(() => preview?.types.find((type) => type.id === leaveTypeId) ?? null, [leaveTypeId, preview])
+  const totalMinutes = timeMode === 'FULL_DAY'
+    ? preview?.fullDayMinutes ?? 0
+    : timeMode === 'MORNING' || timeMode === 'AFTERNOON'
+      ? preview?.halfDayMinutes ?? 0
+      : specificMinutes(specificStart, specificEnd)
+  const totalHours = (totalMinutes / 60).toLocaleString(locale === 'nl' ? 'nl-NL' : 'en-GB', { maximumFractionDigits: 2 })
 
-  async function confirm() {
-    if (!preview || state === "saving") return;
-    setState("saving");
-    const idempotencyKey = `${employeeId}:${preview.employmentId}:${startDate}:${endDate}:${mode}:${leaveTypeId || priorityRuleId}:${timeMode}`;
-    const response = await fetch("/api/leave/request", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        employeeId,
-        employmentId: preview.employmentId,
-        mode,
-        leaveTypeId: mode === "DIRECT" ? leaveTypeId : null,
-        priorityRuleId: mode === "PRIORITY" ? priorityRuleId : null,
-        startDate,
-        endDate,
-        timeMode,
-        specificStart: timeMode === "SPECIFIC_HOURS" ? specificStart : null,
-        specificEnd: timeMode === "SPECIFIC_HOURS" ? specificEnd : null,
-        idempotencyKey,
-      }),
-    });
-    if (!response.ok) {
-      setState("error");
-      return;
+  function markDirty(): void {
+    setDirty(true)
+  }
+
+  function updateEndDate(value: string): void {
+    markDirty()
+    setState('loading')
+    setEndDate(value || startDate)
+    if (value !== startDate) setTimeMode('FULL_DAY')
+  }
+
+  async function confirm(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!preview || state !== 'ready') return
+    setState('saving')
+    const selectedOption = mode === 'DIRECT' ? leaveTypeId : priorityRuleId
+    const idempotencyKey = `${employeeId}:${preview.employmentId}:${startDate}:${endDate}:${mode}:${selectedOption}:${timeMode}:${specificStart}:${specificEnd}`
+    try {
+      const response = await fetch('/api/leave/request', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          employeeId,
+          employmentId: preview.employmentId,
+          mode,
+          leaveTypeId: mode === 'DIRECT' ? leaveTypeId : null,
+          priorityRuleId: mode === 'PRIORITY' ? priorityRuleId : null,
+          startDate,
+          endDate: endDate || startDate,
+          timeMode,
+          specificStart: timeMode === 'SPECIFIC_HOURS' ? specificStart : null,
+          specificEnd: timeMode === 'SPECIFIC_HOURS' ? specificEnd : null,
+          idempotencyKey,
+        }),
+      })
+      if (!response.ok) {
+        setState('error')
+        return
+      }
+      setDirty(false)
+      setState('success')
+    } catch {
+      setState('error')
     }
-    setState("success");
   }
 
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-foreground/30 p-4">
-      <section aria-modal="true" className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-surface p-5 shadow-2xl" role="dialog">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">{labels.title}</p>
-            <h2 className="mt-2 text-xl font-semibold">{startDate}</h2>
+    <FormDrawer
+      cancelLabel={labels.cancel}
+      closeLabel={labels.close}
+      description={labels.description}
+      dirty={dirty && state !== 'success'}
+      dirtyProtection={{
+        title: labels.discardTitle,
+        description: labels.discardDescription,
+        discardLabel: labels.discardChanges,
+        keepEditingLabel: labels.keepEditing,
+      }}
+      onDiscard={() => setDirty(false)}
+      onOpenChange={(open) => { if (!open) onClose() }}
+      onSubmit={(event) => { void confirm(event) }}
+      open
+      saveLabel={labels.confirm}
+      saving={state === 'saving'}
+      title={labels.title}
+    >
+      {state === 'success' ? (
+        <p className="rounded-[var(--radius-surface)] bg-success-surface p-4 text-sm font-semibold text-success-foreground" role="status">{labels.success}</p>
+      ) : (
+        <>
+          <RadioGroup
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+            legend={labels.title}
+            name="leave-request-mode"
+            onValueChange={(value) => {
+              if (value !== 'PRIORITY' && value !== 'DIRECT') return
+              markDirty()
+              setState('loading')
+              setMode(value)
+            }}
+            options={[
+              { value: 'PRIORITY', label: labels.viaPriority },
+              { value: 'DIRECT', label: labels.withoutPriority },
+            ]}
+            value={mode}
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField control={<TextInput readOnly type="date" value={startDate} />} label={labels.startDate} />
+            <FormField control={<TextInput min={startDate} onChange={(event) => updateEndDate(event.currentTarget.value)} type="date" value={endDate} />} label={labels.endDate} />
           </div>
-          <button aria-label={labels.close} className="button-ghost" onClick={onClose} type="button">×</button>
-        </div>
-        {state === "success" ? (
-          <div className="mt-6 space-y-4">
-            <p className="rounded-xl bg-success-surface p-4 text-sm font-semibold text-success-foreground">{labels.success}</p>
-            <button className="button-primary w-full justify-center" onClick={onClose} type="button">{labels.close}</button>
+
+          {mode === 'DIRECT' ? (
+            <FormField
+              control={(
+                <DropdownSelect aria-label={labels.leaveType} onChange={(event) => { markDirty(); setLeaveTypeId(event.currentTarget.value) }} placeholder={labels.noLeaveTypes} searchable searchPlaceholder={labels.leaveType} value={leaveTypeId}>
+                  <option value="">{labels.noLeaveTypes}</option>
+                  {preview?.types.map((type) => <option key={type.id} value={type.id}>{type.name} — {type.status === 'UNLIMITED' ? labels.unlimited : `${type.currentBalanceHours ?? 0}u ${labels.currentBalance} · ${type.projectedEndBalanceHours ?? 0}u ${labels.projectedBalance}`}</option>)}
+                </DropdownSelect>
+              )}
+              label={labels.leaveType}
+            />
+          ) : (
+            <FormField
+              control={(
+                <DropdownSelect aria-label={labels.priorityRule} disabled={!preview?.priorityRules.length} onChange={(event) => { markDirty(); setPriorityRuleId(event.currentTarget.value) }} placeholder={labels.noPriorityRules} searchable searchPlaceholder={labels.priorityRule} value={priorityRuleId}>
+                  <option value="">{labels.noPriorityRules}</option>
+                  {preview?.priorityRules.map((rule) => <option key={rule.id} value={rule.id}>{rule.name} · {rule.itemCount}</option>)}
+                </DropdownSelect>
+              )}
+              label={labels.priorityRule}
+            />
+          )}
+
+          <RadioGroup
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+            legend={labels.timeMode}
+            name="leave-request-time-mode"
+            onValueChange={(value) => {
+              if (value !== 'FULL_DAY' && value !== 'MORNING' && value !== 'AFTERNOON' && value !== 'SPECIFIC_HOURS') return
+              markDirty()
+              setTimeMode(value)
+            }}
+            options={[
+              { value: 'FULL_DAY', label: labels.fullDay },
+              { disabled: endDate !== startDate, value: 'MORNING', label: labels.morning },
+              { disabled: endDate !== startDate, value: 'AFTERNOON', label: labels.afternoon },
+              { disabled: endDate !== startDate, value: 'SPECIFIC_HOURS', label: labels.specificHours },
+            ]}
+            value={timeMode}
+          />
+
+          {timeMode === 'SPECIFIC_HOURS' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField control={<TextInput onChange={(event) => { markDirty(); setSpecificStart(event.currentTarget.value) }} type="time" value={specificStart} />} label={labels.timeStart} />
+              <FormField control={<TextInput onChange={(event) => { markDirty(); setSpecificEnd(event.currentTarget.value) }} type="time" value={specificEnd} />} label={labels.timeEnd} />
+            </div>
+          ) : null}
+
+          <div className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface-subtle p-4 text-sm">
+            <span className="font-semibold">{labels.totalTime}: </span>{totalHours}u
+            {selectedType?.status === 'NO_BALANCE' ? <span className="ml-2 text-destructive">{labels.noBalance}</span> : null}
           </div>
-        ) : (
-          <>
-            <div className="mt-5 grid grid-cols-2 rounded-xl border p-1">
-              <button className={mode === "PRIORITY" ? "button-primary justify-center" : "button-ghost justify-center"} onClick={() => { setState("loading"); setMode("PRIORITY"); }} type="button">{labels.viaPriority}</button>
-              <button className={mode === "DIRECT" ? "button-primary justify-center" : "button-ghost justify-center"} onClick={() => { setState("loading"); setMode("DIRECT"); }} type="button">{labels.withoutPriority}</button>
-            </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-sm font-medium">{labels.startDate}<input className="form-field" type="date" value={startDate} readOnly /></label>
-              <label className="grid gap-1.5 text-sm font-medium">{labels.endDate}<input className="form-field" min={startDate} onChange={(event) => { setState("loading"); setEndDate(event.target.value); }} type="date" value={endDate} /></label>
-            </div>
-            {mode === "DIRECT" ? (
-              <label className="mt-4 grid gap-1.5 text-sm font-medium">{labels.leaveType}
-                <select className="form-field" onChange={(event) => setLeaveTypeId(event.target.value)} value={leaveTypeId}>
-                  {preview?.types.map((type) => <option key={type.id} value={type.id}>{type.name} — {type.status === "UNLIMITED" ? labels.unlimited : `${type.currentBalanceHours ?? 0}u ${labels.currentBalance} · ${type.projectedEndBalanceHours ?? 0}u ${labels.projectedBalance}`}</option>)}
-                </select>
-              </label>
-            ) : (
-              <label className="mt-4 grid gap-1.5 text-sm font-medium">{labels.priorityRule}
-                <select className="form-field" disabled={!preview?.priorityRules.length} onChange={(event) => setPriorityRuleId(event.target.value)} value={priorityRuleId}>
-                  {preview?.priorityRules.length ? preview.priorityRules.map((rule) => <option key={rule.id} value={rule.id}>{rule.name} · {rule.itemCount}</option>) : <option value="">{labels.noPriorityRules}</option>}
-                </select>
-              </label>
-            )}
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {([['FULL_DAY', labels.fullDay], ['MORNING', labels.morning], ['AFTERNOON', labels.afternoon], ['SPECIFIC_HOURS', labels.specificHours]] as const).map(([value, label]) => <button className={timeMode === value ? "button-primary justify-center" : "button-secondary justify-center"} disabled={endDate !== startDate && value !== "FULL_DAY"} key={value} onClick={() => setTimeMode(value)} type="button">{label}</button>)}
-            </div>
-            {timeMode === "SPECIFIC_HOURS" ? <div className="mt-4 grid grid-cols-2 gap-4"><label className="grid gap-1.5 text-sm font-medium">{labels.startDate}<input className="form-field" onChange={(event) => setSpecificStart(event.target.value)} type="time" value={specificStart} /></label><label className="grid gap-1.5 text-sm font-medium">{labels.endDate}<input className="form-field" onChange={(event) => setSpecificEnd(event.target.value)} type="time" value={specificEnd} /></label></div> : null}
-            <div className="mt-5 rounded-xl bg-muted p-4 text-sm"><span className="font-semibold">{labels.totalTime}: </span>{totalHours}u{selectedType?.status === "NO_BALANCE" ? <span className="ml-2 text-destructive">{labels.noBalance}</span> : null}</div>
-            {state === "loading" ? <p className="mt-4 text-sm text-muted-foreground">{labels.loading}</p> : null}
-            {state === "error" ? <p className="mt-4 rounded-xl bg-destructive/10 p-4 text-sm text-destructive">{labels.failed}</p> : null}
-            <div className="mt-5 flex justify-end gap-2"><button className="button-secondary" onClick={onClose} type="button">{labels.cancel}</button><button className="button-primary" disabled={state !== "ready" || (mode === "DIRECT" && !leaveTypeId) || (mode === "PRIORITY" && !priorityRuleId)} onClick={() => void confirm()} type="button">{state === "saving" ? labels.loading : labels.confirm}</button></div>
-          </>
-        )}
-      </section>
-    </div>
-  );
+          {state === 'loading' ? <p className="text-sm text-muted-foreground" role="status">{labels.loading}</p> : null}
+          {state === 'error' ? <p className="rounded-[var(--radius-surface)] bg-destructive/10 p-4 text-sm text-destructive" role="alert">{labels.failed}</p> : null}
+        </>
+      )}
+    </FormDrawer>
+  )
 }
 
 function specificMinutes(start: string, end: string): number {
-  const [startHour, startMinute] = start.split(":").map(Number);
-  const [endHour, endMinute] = end.split(":").map(Number);
-  const minutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-  return minutes > 0 ? minutes : 0;
+  const [startHour, startMinute] = start.split(':').map(Number)
+  const [endHour, endMinute] = end.split(':').map(Number)
+  const minutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute)
+  return minutes > 0 ? minutes : 0
 }

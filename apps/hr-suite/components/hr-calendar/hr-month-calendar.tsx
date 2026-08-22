@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BriefcaseBusiness, CalendarDays, ChevronDown, Clock3, HeartPulse, Timer, Umbrella, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, ChevronDown, Clock3, HeartPulse, Timer, Umbrella } from "lucide-react";
+import { Drawer } from "@/components/ui/drawer";
 import {
   buildMonthDays,
   formatScheduledHours,
@@ -89,20 +90,25 @@ interface Labels {
   overtimeType: string;
   typeEventHours: string;
   requestTitle: string;
+  requestDescription: string;
   requestViaPriority: string;
   requestWithoutPriority: string;
   requestLeaveType: string;
+  requestNoLeaveTypes: string;
   requestPriorityRule: string;
   requestNoPriorityRules: string;
   requestCurrentBalance: string;
   requestProjectedBalance: string;
   requestUnlimited: string;
+  requestTimeMode: string;
   requestFullDay: string;
   requestMorning: string;
   requestAfternoon: string;
   requestSpecificHours: string;
   requestStartDate: string;
   requestEndDate: string;
+  requestTimeStart: string;
+  requestTimeEnd: string;
   requestTotalTime: string;
   requestConfirm: string;
   requestCancel: string;
@@ -110,6 +116,10 @@ interface Labels {
   requestSuccess: string;
   requestFailed: string;
   requestNoBalance: string;
+  requestDiscardTitle: string;
+  requestDiscardDescription: string;
+  requestKeepEditing: string;
+  requestDiscardChanges: string;
 }
 type Selection =
   | { type: "week"; weekNumber: number; startDate: string; endDate: string }
@@ -256,6 +266,22 @@ export function HrMonthCalendar({
     selection?.type === "day"
       ? generalReminders.filter((reminder) => reminder.date === selection.date)
       : [];
+  const selectionTitle = !selection
+    ? labels.dayDetails
+    : selection.type === "week"
+      ? `${labels.weekOverview} · ${labels.week} ${selection.weekNumber}`
+      : selection.type === "employee" || selection.type === "employee-summary"
+        ? `${selection.employee.first_name} ${selection.employee.birth_name}`
+        : labels.dayDetails;
+  const selectionDescription = !selection
+    ? undefined
+    : selection.type === "week"
+      ? `${selection.startDate} — ${selection.endDate}`
+      : selection.type === "employee"
+        ? `${labels.employeeDayDetails} · ${selection.date}`
+        : selection.type === "day"
+          ? selection.date
+          : undefined;
   useEffect(() => {
     const targetDate = selectedWeekStartDate ?? (isCurrentMonth ? todayDate : undefined);
     if (!targetDate || !scrollRef.current) return;
@@ -464,42 +490,13 @@ export function HrMonthCalendar({
         </p>
       ) : null}
       {selection ? (
-        <aside className="fixed inset-y-0 right-0 z-50 w-[min(32rem,calc(100vw-1rem))] overflow-y-auto border-l bg-surface p-5 shadow-2xl lg:w-2/3 lg:max-w-[72rem]">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">
-                {selection.type === "week"
-                  ? labels.weekOverview
-                  : selection.type === "day"
-                    ? labels.dayDetails
-                    : selection.type === "employee"
-                      ? labels.employeeDayDetails
-                      : labels.employeeSection}
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">
-                {selection.type === "week"
-                  ? `${labels.week} ${selection.weekNumber}`
-                  : selection.type === "employee"
-                    ? `${selection.employee.first_name} ${selection.employee.birth_name} · `
-                    : selection.type === "employee-summary"
-                      ? `${selection.employee.first_name} ${selection.employee.birth_name}`
-                      : ""}
-                {selection.type === "week"
-                  ? `${selection.startDate} — ${selection.endDate}`
-                  : selection.type === "employee-summary"
-                    ? ""
-                    : selection.date}
-              </h2>
-            </div>
-            <button
-              aria-label={labels.close}
-              className="grid size-9 place-items-center rounded-lg hover:bg-muted"
-              onClick={() => setSelection(null)}
-              type="button"
-            >
-              <X size={18} />
-            </button>
-          </div>
+        <Drawer
+          closeLabel={labels.close}
+          description={selectionDescription}
+          onOpenChange={(open) => { if (!open) setSelection(null) }}
+          open
+          title={selectionTitle}
+        >
           {selectedHoliday ? (
             <div className="mt-5 rounded-xl bg-accent p-4">
               <p className="text-xs font-semibold uppercase tracking-wide">
@@ -785,9 +782,51 @@ export function HrMonthCalendar({
               </div>
             </>
           )}
-        </aside>
+        </Drawer>
       ) : null}
-      {requestTarget ? <LeaveRequestDialog employeeId={requestTarget.employeeId} initialMode={requestTarget.mode} labels={{ title: labels.requestTitle, viaPriority: labels.requestViaPriority, withoutPriority: labels.requestWithoutPriority, leaveType: labels.requestLeaveType, priorityRule: labels.requestPriorityRule, noPriorityRules: labels.requestNoPriorityRules, currentBalance: labels.requestCurrentBalance, projectedBalance: labels.requestProjectedBalance, unlimited: labels.requestUnlimited, fullDay: labels.requestFullDay, morning: labels.requestMorning, afternoon: labels.requestAfternoon, specificHours: labels.requestSpecificHours, startDate: labels.requestStartDate, endDate: labels.requestEndDate, totalTime: labels.requestTotalTime, confirm: labels.requestConfirm, cancel: labels.requestCancel, close: labels.close, loading: labels.requestLoading, success: labels.requestSuccess, failed: labels.requestFailed, noBalance: labels.requestNoBalance }} locale={locale} onClose={() => setRequestTarget(null)} startDate={requestTarget.date} /> : null}
+      {requestTarget ? (
+        <LeaveRequestDialog
+          employeeId={requestTarget.employeeId}
+          initialMode={requestTarget.mode}
+          labels={{
+            title: labels.requestTitle,
+            description: labels.requestDescription,
+            viaPriority: labels.requestViaPriority,
+            withoutPriority: labels.requestWithoutPriority,
+            leaveType: labels.requestLeaveType,
+            noLeaveTypes: labels.requestNoLeaveTypes,
+            priorityRule: labels.requestPriorityRule,
+            noPriorityRules: labels.requestNoPriorityRules,
+            currentBalance: labels.requestCurrentBalance,
+            projectedBalance: labels.requestProjectedBalance,
+            unlimited: labels.requestUnlimited,
+            timeMode: labels.requestTimeMode,
+            fullDay: labels.requestFullDay,
+            morning: labels.requestMorning,
+            afternoon: labels.requestAfternoon,
+            specificHours: labels.requestSpecificHours,
+            startDate: labels.requestStartDate,
+            endDate: labels.requestEndDate,
+            timeStart: labels.requestTimeStart,
+            timeEnd: labels.requestTimeEnd,
+            totalTime: labels.requestTotalTime,
+            confirm: labels.requestConfirm,
+            cancel: labels.requestCancel,
+            close: labels.close,
+            loading: labels.requestLoading,
+            success: labels.requestSuccess,
+            failed: labels.requestFailed,
+            noBalance: labels.requestNoBalance,
+            discardTitle: labels.requestDiscardTitle,
+            discardDescription: labels.requestDiscardDescription,
+            keepEditing: labels.requestKeepEditing,
+            discardChanges: labels.requestDiscardChanges,
+          }}
+          locale={locale}
+          onClose={() => setRequestTarget(null)}
+          startDate={requestTarget.date}
+        />
+      ) : null}
     </div>
   );
 }

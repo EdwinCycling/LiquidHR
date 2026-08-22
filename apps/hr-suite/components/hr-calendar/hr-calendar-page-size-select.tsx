@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 
 interface HrCalendarPageSizeSelectProps {
   month: string
@@ -55,15 +56,16 @@ export function HrCalendarPageSizeSelect({
   return (
     <label className="flex items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
       <span className="truncate">{labels.pageSize}</span>
-      <select
-        className="form-field h-8 min-h-8 w-20 px-2 text-xs sm:w-24 sm:text-sm"
+      <DropdownSelect
+        aria-label={labels.pageSize}
+        className="min-h-8 w-20 px-2 text-xs sm:w-24 sm:text-sm"
         onChange={(event) => updateSize(event.currentTarget.value as '10' | '25' | 'all')}
         value={currentSize}
       >
         <option value="10">10</option>
         <option value="25">25</option>
         <option value="all">{labels.allMax100}</option>
-      </select>
+      </DropdownSelect>
     </label>
   )
 }

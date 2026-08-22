@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
 
 interface HrCalendarWeekSelectProps {
   currentYear: number
@@ -28,6 +29,7 @@ interface HrCalendarWeekSelectProps {
   labels: {
     week: string
     weekSelectPlaceholder: string
+    searchWeek: string
   }
 }
 
@@ -68,10 +70,13 @@ export function HrCalendarWeekSelect({
   return (
     <label className="flex items-center gap-2 text-sm text-muted-foreground">
       <span className="sr-only">{labels.week}</span>
-      <select
+      <DropdownSelect
         aria-label={labels.week}
-        className="form-field h-10 min-h-10 min-w-36"
+        className="min-w-36"
         onChange={(event) => updateWeek(event.currentTarget.value)}
+        placeholder={labels.weekSelectPlaceholder}
+        searchable
+        searchPlaceholder={labels.searchWeek}
         value={selectedWeek ? String(selectedWeek) : ''}
       >
         <option value="">{labels.weekSelectPlaceholder}</option>
@@ -80,7 +85,7 @@ export function HrCalendarWeekSelect({
             {labels.week} {option.weekNumber}
           </option>
         ))}
-      </select>
+      </DropdownSelect>
     </label>
   )
 }

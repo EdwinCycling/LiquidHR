@@ -1,5 +1,9 @@
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/patterns/page-header'
+import { PageToolbar } from '@/components/patterns/page-toolbar'
+import { buttonClasses } from '@/components/ui/button'
 import { HrCalendarFilterPanel } from '@/components/hr-calendar/hr-calendar-filter-panel'
 import { HrMonthCalendar } from '@/components/hr-calendar/hr-month-calendar'
 import { HrCalendarPageSizeSelect } from '@/components/hr-calendar/hr-calendar-page-size-select'
@@ -58,8 +62,8 @@ export default async function HrCalendarPage({ searchParams }: Props) {
   const rawQuery = await searchParams
   const currentDate = new Date().toISOString().slice(0, 10)
   const currentMonth = currentDate.slice(0, 7)
-  const currentYear = Number(currentDate.slice(0, 4))
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawQuery.month ?? '') ? rawQuery.month! : currentMonth
+  const calendarYear = Number(month.slice(0, 4))
 
   const parsed = calendarQuerySchema.parse({
     month,
@@ -87,7 +91,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     getUserPreferences(),
   ])
 
-  const weekOptions = getCalendarWeekOptions(currentYear, preferences.weekNumberingSystem)
+  const weekOptions = getCalendarWeekOptions(calendarYear, preferences.weekNumberingSystem)
   const selectedWeekNumber = parsed.showWeekNumbers === '1' && parsed.week
     ? Number(parsed.week)
     : undefined
@@ -96,6 +100,19 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     : undefined
   const selectedWeekStartDate = selectedWeekOption?.startDate
 
+  const eventLabels = {
+    EMPLOYMENT_STARTED: t('eventEmploymentStarted'),
+    EMPLOYMENT_ENDED: t('eventEmploymentEnded'),
+    INCOME_RELATIONSHIP_CHANGED: t('eventIncomeRelationship'),
+    ORGANIZATION_CHANGED: t('eventOrganization'),
+    LABOR_CONDITIONS_CHANGED: t('eventLabor'),
+    SCHEDULE_CHANGED: t('eventSchedule'),
+    SALARY_CHANGED: t('eventSalary'),
+    COST_ALLOCATION_CHANGED: t('eventCost'),
+    DOCUMENT_ADDED: t('eventDocumentAdded'),
+    DOCUMENT_EXPIRES: t('eventDocumentExpires'),
+  }
+  const eventTypes = Object.entries(eventLabels).map(([value, label]) => ({ value, label }))
   const q = parsed.q.toLocaleLowerCase('nl-NL')
   const filtered = data.employees.filter((employee) => (
     (!parsed.department || employee.departmentId === parsed.department)
@@ -122,19 +139,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
   const calendarEvents = data.calendarEvents.filter((event) => visibleIds.has(event.employeeId))
   const reminders = data.reminders.filter((reminder) => reminder.employeeId && visibleIds.has(reminder.employeeId))
 
-  const eventLabels = {
-    EMPLOYMENT_STARTED: t('eventEmploymentStarted'),
-    EMPLOYMENT_ENDED: t('eventEmploymentEnded'),
-    INCOME_RELATIONSHIP_CHANGED: t('eventIncomeRelationship'),
-    ORGANIZATION_CHANGED: t('eventOrganization'),
-    LABOR_CONDITIONS_CHANGED: t('eventLabor'),
-    SCHEDULE_CHANGED: t('eventSchedule'),
-    SALARY_CHANGED: t('eventSalary'),
-    COST_ALLOCATION_CHANGED: t('eventCost'),
-    DOCUMENT_ADDED: t('eventDocumentAdded'),
-    DOCUMENT_EXPIRES: t('eventDocumentExpires'),
-  }
-
   const base = {
     month,
     q: parsed.q || undefined,
@@ -154,58 +158,69 @@ export default async function HrCalendarPage({ searchParams }: Props) {
   } satisfies Record<string, string | string[] | undefined>
 
   return (
-    <section className="w-full px-4 py-7 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 border-b pb-6 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="eyebrow">{t('eyebrow')}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t('title')}</h1>
-        </div>
-        <nav className="flex flex-wrap items-center gap-2">
-          <Link className="button-secondary" href={href({ ...base, month: currentMonth, page: undefined, week: undefined })}>
-            {t('today')}
-          </Link>
-          <Link className="button-secondary" href={href({ ...base, month: shift(month, -1), week: undefined })}>
-            {t('previousMonth')}
-          </Link>
-          <span className="rounded-lg bg-muted px-4 py-2 font-semibold">
-            {formatCalendarMonth(month, locale)}
-          </span>
-          <Link className="button-secondary" href={href({ ...base, month: shift(month, 1), week: undefined })}>
-            {t('nextMonth')}
-          </Link>
-          {parsed.showWeekNumbers === '1' ? (
-            <HrCalendarWeekSelect
-              currentYear={currentYear}
-              labels={{
-                week: t('week'),
-                weekSelectPlaceholder: t('weekSelectPlaceholder'),
-              }}
-              month={month}
-              options={weekOptions}
-              query={{
-                q: parsed.q,
-                department: parsed.department,
-                employee: parsed.employee,
-                jobGroup: parsed.jobGroup,
-                job: parsed.job,
-                type: parsed.type,
-                size: parsed.size,
-                page: parsed.page,
-                showWeekendsAndHolidays: parsed.showWeekendsAndHolidays === '1',
-                showReminders: parsed.showReminders === '1',
-                showScheduledHours: parsed.showScheduledHours === '1',
-                showWeekNumbers: true,
-                showDayOccupancy: parsed.showDayOccupancy === '1',
-              }}
-              selectedWeek={selectedWeekOption?.weekNumber}
-            />
-          ) : null}
-        </nav>
-      </header>
+    <PageShell className="py-6 sm:py-7" width="wide">
+      <PageHeader
+        description={t('description')}
+        title={(
+          <div>
+            <span className="eyebrow mb-1 block">{t('eyebrow')}</span>
+            <span>{t('title')}</span>
+          </div>
+        )}
+      />
+
+      <PageToolbar
+        className="mt-5"
+        end={parsed.showWeekNumbers === '1' ? (
+          <HrCalendarWeekSelect
+            currentYear={calendarYear}
+            labels={{
+              week: t('week'),
+              weekSelectPlaceholder: t('weekSelectPlaceholder'),
+              searchWeek: t('search'),
+            }}
+            month={month}
+            options={weekOptions}
+            query={{
+              q: parsed.q,
+              department: parsed.department,
+              employee: parsed.employee,
+              jobGroup: parsed.jobGroup,
+              job: parsed.job,
+              type: parsed.type,
+              size: parsed.size,
+              page: parsed.page,
+              showWeekendsAndHolidays: parsed.showWeekendsAndHolidays === '1',
+              showReminders: parsed.showReminders === '1',
+              showScheduledHours: parsed.showScheduledHours === '1',
+              showWeekNumbers: true,
+              showDayOccupancy: parsed.showDayOccupancy === '1',
+            }}
+            selectedWeek={selectedWeekOption?.weekNumber}
+          />
+        ) : undefined}
+        start={(
+          <nav aria-label={t('title')} className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <Link className={buttonClasses({ variant: 'secondary', className: 'order-1 min-w-0 flex-1 px-3 text-xs sm:order-none sm:flex-none sm:text-sm' })} href={href({ ...base, month: currentMonth, page: undefined, week: undefined })}>
+              {t('today')}
+            </Link>
+            <Link className={buttonClasses({ variant: 'secondary', className: 'order-2 min-w-0 flex-1 px-3 text-xs sm:order-none sm:flex-none sm:text-sm' })} href={href({ ...base, month: shift(month, -1), week: undefined })}>
+              {t('previousMonth')}
+            </Link>
+            <span className="order-first flex basis-full items-center justify-center rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle px-3 py-2 text-sm font-semibold sm:order-none sm:basis-auto">
+              {formatCalendarMonth(month, locale)}
+            </span>
+            <Link className={buttonClasses({ variant: 'secondary', className: 'order-3 min-w-0 flex-1 px-3 text-xs sm:order-none sm:flex-none sm:text-sm' })} href={href({ ...base, month: shift(month, 1), week: undefined })}>
+              {t('nextMonth')}
+            </Link>
+          </nav>
+        )}
+      />
 
       <HrCalendarFilterPanel
         departments={data.departments}
         employees={data.employees}
+        eventTypes={eventTypes}
         initialOpen={filterPanelOpen}
         jobGroups={data.jobGroups}
         jobs={data.jobs}
@@ -219,6 +234,8 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           employee: t('employee'),
           all: t('all'),
           dataToShow: t('dataToShow'),
+          eventTypes: t('eventTypes'),
+          activeFilters: t('activeFilters'),
           weekNumbers: t('weekNumbers'),
           weekNumbersHint: t('weekNumbersHint'),
           dayOccupancy: t('dayOccupancy'),
@@ -258,7 +275,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
       />
 
       {data.generalReminders.length ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border bg-surface px-4 py-3">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[var(--radius-surface)] border border-border-subtle bg-surface px-4 py-3">
           <span className="inline-flex items-center gap-2 text-sm font-semibold">
             <Bell size={15} />
             {t('generalReminders')}
@@ -318,20 +335,25 @@ export default async function HrCalendarPage({ searchParams }: Props) {
            overtimeType: t('overtimeType'),
            typeEventHours: t('typeEventHours'),
            requestTitle: t('requestTitle'),
+           requestDescription: t('requestDescription'),
            requestViaPriority: t('requestViaPriority'),
            requestWithoutPriority: t('requestWithoutPriority'),
            requestLeaveType: t('requestLeaveType'),
+           requestNoLeaveTypes: t('requestNoLeaveTypes'),
            requestPriorityRule: t('requestPriorityRule'),
            requestNoPriorityRules: t('requestNoPriorityRules'),
            requestCurrentBalance: t('requestCurrentBalance'),
            requestProjectedBalance: t('requestProjectedBalance'),
            requestUnlimited: t('requestUnlimited'),
+           requestTimeMode: t('requestTimeMode'),
            requestFullDay: t('requestFullDay'),
            requestMorning: t('requestMorning'),
            requestAfternoon: t('requestAfternoon'),
            requestSpecificHours: t('requestSpecificHours'),
            requestStartDate: t('requestStartDate'),
            requestEndDate: t('requestEndDate'),
+           requestTimeStart: t('requestTimeStart'),
+           requestTimeEnd: t('requestTimeEnd'),
            requestTotalTime: t('requestTotalTime'),
            requestConfirm: t('requestConfirm'),
            requestCancel: t('requestCancel'),
@@ -339,6 +361,10 @@ export default async function HrCalendarPage({ searchParams }: Props) {
            requestSuccess: t('requestSuccess'),
            requestFailed: t('requestFailed'),
            requestNoBalance: t('requestNoBalance'),
+           requestDiscardTitle: t('requestDiscardTitle'),
+           requestDiscardDescription: t('requestDiscardDescription'),
+           requestKeepEditing: t('requestKeepEditing'),
+           requestDiscardChanges: t('requestDiscardChanges'),
          }}
         locale={locale}
         month={month}
@@ -399,6 +425,6 @@ export default async function HrCalendarPage({ searchParams }: Props) {
           </Link>
         </nav>
       </footer>
-    </section>
+    </PageShell>
   )
 }
