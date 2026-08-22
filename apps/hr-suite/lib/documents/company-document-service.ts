@@ -87,7 +87,8 @@ export async function deleteCompanyDocument(documentId: string): Promise<void> {
   const context = await requirePermission('company-document:delete')
   const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
-  const query = supabase.from('company_documents').update({ deleted_at: new Date().toISOString() }).eq('id', documentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null)
-  const { data, error } = await query.select('id').maybeSingle()
-  if (error || !data) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_NOT_FOUND', 404)
+  const existing = await supabase.from('company_documents').select('id').eq('id', documentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null).maybeSingle()
+  if (existing.error || !existing.data) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_NOT_FOUND', 404)
+  const { error } = await supabase.from('company_documents').update({ deleted_at: new Date().toISOString() }).eq('id', documentId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('deleted_at', null)
+  if (error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_DELETE_FAILED', 500)
 }
