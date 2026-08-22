@@ -59,3 +59,11 @@ Because the route failed before authentication and before Startpage render, no p
 ## Result
 
 Acceptance is **BLOCKED BY ENVIRONMENT**, not GREEN. The remaining work is to provide the canonical local test environment (`apps/hr-suite/.env.local` with the approved fixture keys) and rerun this exact matrix. No source bugfix was justified by the available evidence.
+
+## Herverificatie op 2026-08-22
+
+- Preflight bevestigd: `apps/hr-suite/.env.local` ontbreekt en de process-environment bevatte geen canonical Supabase- of `TALENT_*_PASSWORD`-keys. `fixtures:talent-auth` eindigde met exit 9 (`node: .env.local: not found`).
+- De huidige worktree-HEAD is `4cfe002f42db43a8c3d3c17af5ffbcbf44a17967`, exact één docs-only commit boven baseline `abfa0bbb7db628f588faa3d4818a4f4663f27b46`; er zijn geen source changes tussen baseline en deze HEAD.
+- Exacte Webpack-runtime op `http://localhost:3108` was ready vanuit deze worktree. Zowel `/login` als `/dashboard/start` gaven HTTP 500 vóór productrender met de expliciete ontbrekende Supabase URL/Key-fout uit `apps/hr-suite/proxy.ts:19`.
+- Playwright bevestigde desktop en viewport `390×844`; de Startpage-controls, authenticated session en preferences waren niet bereikbaar. Er is geen preference-read of `PATCH /api/preferences/start-page` uitgevoerd, dus de bestaande voorkeuren zijn niet gewijzigd en er was niets te herstellen.
+- Geen Startpage/preferences-bugfix uitgevoerd: de enige waargenomen fouten waren environment-/runtime-preflightfouten vóór Startpage-render. De open acceptance-items blijven daarom **BLOCKED BY ENVIRONMENT**, niet **RED**.
