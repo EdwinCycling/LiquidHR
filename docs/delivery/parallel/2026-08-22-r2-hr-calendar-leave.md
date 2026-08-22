@@ -35,15 +35,15 @@
 
 ## Browser/API acceptance status
 
-`BLOCKED BY ENVIRONMENT` before authenticated acceptance. The exact worktree has no `apps/hr-suite/.env.local`; the canonical `fixtures:talent-auth` preflight stops with `node: .env.local: not found`. No env values were printed or created.
+`BLOCKED BY ENVIRONMENT` before authenticated acceptance, including the acceptance retry. Step 0 was attempted with `Copy-Item -Force` from the required canonical source path, but the source did not exist (`Test-Path=False`) and the exact-worktree target consequently did not exist either (`Test-Path=False`). No env values were printed, logged or committed. The canonical `fixtures:talent-auth` preflight was rerun and stops with `node: .env.local: not found`.
 
-With the exact worktree dev server on port 3102, unauthenticated requests returned:
+With the exact worktree dev server restarted on port 3102 for the retry, unauthenticated requests returned:
 
 - `/dashboard/start`: HTTP 500
 - `/hr-calendar`: HTTP 500
 - `/login`: HTTP 500
 
-The server and Playwright console identify the blocker as the missing Supabase URL/key in `proxy.ts`, not a calendar/leave assertion. Playwright opened the exact `/hr-calendar` route and saw the Next runtime error overlay with 3 console errors (including the expected 500/resource failure); authenticated desktop, 390×844, Default, LinkedHR, filter persistence, day detail, employee link, real leave create/readback/cleanup and permission-negative evidence therefore remain unexecuted.
+The server and Playwright console identify the blocker as the missing Supabase URL/key in `proxy.ts`, not a calendar/leave assertion. Playwright opened the exact retry URL `/login` and recorded HTTP 500, the Next runtime error overlay and 3 console errors (including the expected 500/resource failure). Authenticated desktop, 390×844, Default, LinkedHR, filter persistence, day detail, employee link, real leave create/readback/cleanup and permission-negative evidence therefore remain unexecuted. The retry server and browser were stopped afterward.
 
 No R2 test records were created, so no cleanup was required.
 
