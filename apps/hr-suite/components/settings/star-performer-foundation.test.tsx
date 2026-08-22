@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
+import { starPerformerAssessmentSchema, starPerformerQuerySchema } from '@/lib/star-performers/schemas'
 import type { StarPerformerWorkspace } from '@/lib/star-performers/service'
 import { StarPerformerManager } from './star-performer-manager'
 import { StarPerformerTagManager } from './star-performer-tag-manager'
@@ -133,5 +134,18 @@ describe('Roadmap 3 Star Performer Foundation flow', () => {
     expect(markup).toContain('href="/employees/11111111-1111-4111-8111-111111111111"')
     expect(markup).toContain('Alleen lezen')
     expect(markup).not.toContain('Tags wijzigen')
+  })
+
+  it('accepts database UUID text used by existing job-group fixtures', () => {
+    const jobGroupId = 'a9c11a31-9082-571c-1a3e-24a211db2c62'
+
+    expect(starPerformerQuerySchema.safeParse({ jobGroupId, level: 'job' }).success).toBe(true)
+    expect(starPerformerAssessmentSchema.safeParse({
+      criticalityLevel: 4,
+      employeeId: workspace.employees[0].id,
+      jobGroupId,
+      tagIds: workspace.tags.map((tag) => tag.id),
+    }).success).toBe(true)
+    expect(starPerformerQuerySchema.safeParse({ jobGroupId: 'not-a-uuid', level: 'job' }).success).toBe(false)
   })
 })

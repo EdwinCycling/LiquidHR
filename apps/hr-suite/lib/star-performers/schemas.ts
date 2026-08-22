@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
+const databaseUuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+
 export const starPerformerQuerySchema = z.object({
   level: z.enum(['job', 'job-group']).default('job'),
   q: z.string().trim().max(100).default(''),
-  jobId: z.string().uuid().optional(),
-  jobGroupId: z.string().uuid().optional(),
-  tagId: z.string().uuid().optional(),
+  jobId: databaseUuidSchema.optional(),
+  jobGroupId: databaseUuidSchema.optional(),
+  tagId: databaseUuidSchema.optional(),
   minStars: z.enum(['1', '2', '3', '4', '5']).optional(),
 }).strict()
 
@@ -19,11 +21,11 @@ export const starPerformerTagUpdateSchema = z.object({
 }).strict()
 
 export const starPerformerAssessmentSchema = z.object({
-  employeeId: z.string().uuid(),
-  jobId: z.string().uuid().optional(),
-  jobGroupId: z.string().uuid().optional(),
+  employeeId: databaseUuidSchema,
+  jobId: databaseUuidSchema.optional(),
+  jobGroupId: databaseUuidSchema.optional(),
   criticalityLevel: z.number().int().min(1).max(5),
-  tagIds: z.array(z.string().uuid()).max(25).default([]),
+  tagIds: z.array(databaseUuidSchema).max(25).default([]),
 }).strict().superRefine((value, context) => {
   const scopeCount = Number(Boolean(value.jobId)) + Number(Boolean(value.jobGroupId))
   if (scopeCount !== 1) {
