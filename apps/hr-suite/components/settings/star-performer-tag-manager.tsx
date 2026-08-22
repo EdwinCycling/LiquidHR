@@ -1,8 +1,20 @@
 'use client'
 
-import { type FormEvent, useMemo, useState } from 'react'
-import { PencilLine, Tag } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import { PencilLine, Plus, Search, Tag } from 'lucide-react'
 import type { StarPerformerTag } from '@/lib/star-performers/service'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Surface } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
+import { TextInput } from '@/components/ui/text-input'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { CollectionToolbar } from '@/components/patterns/collection-toolbar'
+import { EmptyState } from '@/components/ui/empty-state'
+import { EntityList } from '@/components/patterns/entity-list'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
+import { RowActions } from '@/components/patterns/row-actions'
 
 interface StarPerformerTagManagerLabels {
   tagManagerCardTitle: string
@@ -19,178 +31,216 @@ interface StarPerformerTagManagerLabels {
   tagEmpty: string
   tagSaved: string
   tagSaveFailed: string
+  moreActions: string
+  cancel: string
+  close: string
+  saving: string
+  discardTitle: string
+  discardDescription: string
+  discardConfirm: string
+  discardCancel: string
+  deactivateTitle: string
+  deactivateDescription: string
+  deactivateConfirm: string
+  activate: string
+  deactivate: string
+  writeRequired: string
+}
+
+type EditorState = {
+  id: string | null
+  name: string
+  isActive: boolean
+  initialValues: string
+}
+
+function editorValues(id: string | null, name: string, isActive: boolean): string {
+  return JSON.stringify({ id, name, isActive })
 }
 
 export function StarPerformerTagManager({
+  canWrite,
   initialTags,
   labels,
 }: {
+  canWrite: boolean
   initialTags: StarPerformerTag[]
   labels: StarPerformerTagManagerLabels
 }) {
   const [tags, setTags] = useState(initialTags)
   const [search, setSearch] = useState('')
-  const [editingTagId, setEditingTagId] = useState<string | null>(null)
-  const [name, setName] = useState('')
-  const [isActive, setIsActive] = useState(true)
+  const [editor, setEditor] = useState<EditorState | null>(null)
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [toggleCandidate, setToggleCandidate] = useState<StarPerformerTag | null>(null)
 
   const visibleTags = useMemo(() => {
-    const q = search.trim().toLocaleLowerCase('nl-NL')
-    if (!q) return tags
-    return tags.filter((tag) => tag.name.toLocaleLowerCase('nl-NL').includes(q))
+    const query = search.trim().toLocaleLowerCase('nl-NL')
+    return tags.filter((tag) => !query || tag.name.toLocaleLowerCase('nl-NL').includes(query))
   }, [search, tags])
 
-  function startEdit(tag: StarPerformerTag) {
-    setEditingTagId(tag.id)
-    setName(tag.name)
-    setIsActive(tag.isActive)
+  function openCreate(): void {
+    const name = ''
+    const isActive = true
+    setFeedback(null)
+    setEditor({ id: null, name, isActive, initialValues: editorValues(null, name, isActive) })
+  }
+
+  function openEdit(tag: StarPerformerTag): void {
+    setFeedback(null)
+    setEditor({ id: tag.id, name: tag.name, isActive: tag.isActive, initialValues: editorValues(tag.id, tag.name, tag.isActive) })
+  }
+
+  function closeEditor(): void {
+    setEditor(null)
     setFeedback(null)
   }
 
-  function resetForm() {
-    setEditingTagId(null)
-    setName('')
-    setIsActive(true)
+  function updateEditor(next: Partial<Pick<EditorState, 'name' | 'isActive'>>): void {
+    setEditor((current) => current ? { ...current, ...next } : current)
+    setFeedback(null)
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+    if (!editor || saving || !canWrite) return
+
     setSaving(true)
     setFeedback(null)
-
-    const response = await fetch(
-      editingTagId ? `/api/star-performer-tags/${editingTagId}` : '/api/star-performer-tags',
-      {
-        method: editingTagId ? 'PATCH' : 'POST',
+    try {
+      const response = await fetch(editor.id ? `/api/star-performer-tags/${editor.id}` : '/api/star-performer-tags', {
+        method: editor.id ? 'PATCH' : 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(editingTagId ? { name, isActive } : { name }),
-      },
-    )
+        body: JSON.stringify(editor.id ? { name: editor.name, isActive: editor.isActive } : { name: editor.name }),
+      })
 
-    setSaving(false)
-    if (!response.ok) {
+      if (!response.ok) {
+        setFeedback(labels.tagSaveFailed)
+        return
+      }
+
+      if (editor.id) {
+        setTags((current) => current.map((tag) => tag.id === editor.id ? { ...tag, name: editor.name.trim(), isActive: editor.isActive } : tag))
+      } else {
+        const payload = await response.json() as { data: { id: string } }
+        setTags((current) => [...current, { id: payload.data.id, name: editor.name.trim(), isActive: true, usageCount: 0 }].sort((left, right) => left.name.localeCompare(right.name, 'nl-NL')))
+      }
+
+      closeEditor()
+      setFeedback(labels.tagSaved)
+    } catch {
       setFeedback(labels.tagSaveFailed)
-      return
+    } finally {
+      setSaving(false)
     }
-
-    if (editingTagId) {
-      setTags((current) => current.map((tag) => (
-        tag.id === editingTagId
-          ? { ...tag, name: name.trim(), isActive }
-          : tag
-      )))
-    } else {
-      const payload = await response.json() as { data: { id: string } }
-      setTags((current) => [...current, {
-        id: payload.data.id,
-        name: name.trim(),
-        isActive: true,
-        usageCount: 0,
-      }].sort((left, right) => left.name.localeCompare(right.name, 'nl-NL')))
-    }
-
-    setFeedback(labels.tagSaved)
-    resetForm()
   }
 
+  async function setActive(tag: StarPerformerTag, isActive: boolean): Promise<void> {
+    if (saving || !canWrite) return
+    setSaving(true)
+    setFeedback(null)
+    try {
+      const response = await fetch(`/api/star-performer-tags/${tag.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: tag.name, isActive }),
+      })
+      if (!response.ok) {
+        setFeedback(labels.tagSaveFailed)
+        return
+      }
+      setTags((current) => current.map((item) => item.id === tag.id ? { ...item, isActive } : item))
+      setFeedback(labels.tagSaved)
+    } catch {
+      setFeedback(labels.tagSaveFailed)
+    } finally {
+      setSaving(false)
+      setToggleCandidate(null)
+    }
+  }
+
+  const dirty = editor ? editorValues(editor.id, editor.name, editor.isActive) !== editor.initialValues : false
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[24rem_minmax(0,1fr)]">
-      <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-xl bg-accent text-primary">
-            <Tag size={20} />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold">{labels.tagManagerCardTitle}</h2>
-            <button
-              className="mt-1 text-sm font-semibold text-primary"
-              onClick={resetForm}
-              type="button"
-            >
-              {labels.newTag}
-            </button>
+    <div className="space-y-6">
+      <Surface className="p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-accent text-primary">
+                <Tag className="size-4" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">{labels.tagManagerCardTitle}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{tags.length} · {labels.tagListTitle}</p>
+              </div>
+            </div>
+            {!canWrite ? <p className="mt-4 border border-warning/40 bg-warning-surface px-3 py-2 text-sm text-warning" role="status">{labels.writeRequired}</p> : null}
           </div>
+          {canWrite ? <Button onClick={openCreate} size="sm" type="button"><Plus aria-hidden="true" />{labels.newTag}</Button> : null}
         </div>
+      </Surface>
 
-        <form className="mt-5 space-y-4" onSubmit={(event) => void submit(event)}>
-          <label className="block text-sm font-medium">
-            {labels.tagName}
-            <input
-              className="form-field mt-1 h-10 min-h-10 w-full"
-              onChange={(event) => setName(event.currentTarget.value)}
-              required
-              value={name}
-            />
-          </label>
+      <CollectionToolbar
+        createAction={canWrite ? <Button onClick={openCreate} size="sm" type="button"><Plus aria-hidden="true" />{labels.createTag}</Button> : undefined}
+        search={<TextInput aria-label={labels.tagSearchPlaceholder} leadingIcon={<Search aria-hidden="true" />} onChange={(event) => setSearch(event.currentTarget.value)} placeholder={labels.tagSearchPlaceholder} value={search} />}
+      />
 
-          <label className="flex items-center justify-between rounded-xl border bg-background/70 px-4 py-3 text-sm">
-            <span>{labels.tagActive}</span>
-            <input
-              checked={isActive}
-              className="size-4"
-              onChange={(event) => setIsActive(event.currentTarget.checked)}
-              type="checkbox"
-            />
-          </label>
+      {feedback ? <p aria-live="polite" className="border border-subtle bg-surface px-4 py-3 text-sm text-muted-foreground">{feedback}</p> : null}
 
-          <button
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-            disabled={saving}
-            type="submit"
-          >
-            {saving ? labels.updateTag : editingTagId ? labels.updateTag : labels.createTag}
-          </button>
-        </form>
-
-        {feedback ? (
-          <p className="mt-4 rounded-xl border px-4 py-3 text-sm">{feedback}</p>
-        ) : null}
+      <section aria-labelledby="star-performer-tag-list-title">
+        <h2 className="sr-only" id="star-performer-tag-list-title">{labels.tagListTitle}</h2>
+        <EntityList
+          ariaLabel={labels.tagListTitle}
+          empty={<EmptyState icon={<Tag />} title={labels.tagEmpty} />}
+          items={visibleTags.map((tag) => ({
+            actions: canWrite ? <RowActions
+              menuItems={[{
+                destructive: tag.isActive,
+                id: tag.isActive ? 'deactivate' : 'activate',
+                label: tag.isActive ? labels.deactivate : labels.activate,
+                onSelect: () => tag.isActive ? setToggleCandidate(tag) : void setActive(tag, true),
+              }]}
+              menuLabel={labels.moreActions}
+              primaryAction={<Button onClick={() => openEdit(tag)} size="sm" type="button" variant="secondary"><PencilLine aria-hidden="true" />{labels.editTag}</Button>}
+            /> : undefined,
+            badges: <Badge tone={tag.isActive ? 'success' : 'neutral'}>{tag.isActive ? labels.tagActive : labels.inactive}</Badge>,
+            id: tag.id,
+            primary: tag.name,
+            secondary: `${labels.usageCount}: ${tag.usageCount}`,
+          }))}
+        />
       </section>
 
-      <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-lg font-semibold">{labels.tagListTitle}</h2>
-          <input
-            className="form-field h-10 min-h-10 w-full md:w-72"
-            onChange={(event) => setSearch(event.currentTarget.value)}
-            placeholder={labels.tagSearchPlaceholder}
-            value={search}
-          />
-        </div>
+      {editor ? <FormDrawer
+        cancelLabel={labels.cancel}
+        closeLabel={labels.close}
+        description={labels.tagManagerCardTitle}
+        dirty={dirty}
+        dirtyProtection={{ description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.discardCancel, title: labels.discardTitle }}
+        onDiscard={closeEditor}
+        onOpenChange={(open) => { if (!open && !dirty) closeEditor() }}
+        onSubmit={(event) => void submit(event)}
+        open
+        saveLabel={editor.id ? labels.updateTag : labels.createTag}
+        saving={saving}
+        title={editor.id ? labels.editTag : labels.newTag}
+      >
+        <FormField control={<TextInput maxLength={80} onChange={(event) => updateEditor({ name: event.currentTarget.value })} required value={editor.name} />} label={labels.tagName} required />
+        {editor.id ? <FormField control={<Switch checked={editor.isActive} onChange={(event) => updateEditor({ isActive: event.currentTarget.checked })} />} label={labels.tagActive} /> : null}
+      </FormDrawer> : null}
 
-        <div className="mt-5 space-y-3">
-          {visibleTags.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{labels.tagEmpty}</p>
-          ) : (
-            visibleTags.map((tag) => (
-              <article className="flex flex-col gap-3 rounded-2xl border bg-background/60 p-4 md:flex-row md:items-center md:justify-between" key={tag.id}>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold">{tag.name}</p>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tag.isActive ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}>
-                      {tag.isActive ? labels.tagActive : labels.inactive}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {labels.usageCount}: {tag.usageCount}
-                  </p>
-                </div>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold"
-                  onClick={() => startEdit(tag)}
-                  type="button"
-                >
-                  <PencilLine size={16} />
-                  {labels.editTag}
-                </button>
-              </article>
-            ))
-          )}
-        </div>
-      </section>
+      <ConfirmDialog
+        cancelLabel={labels.cancel}
+        confirmLabel={labels.deactivateConfirm}
+        description={labels.deactivateDescription}
+        destructive
+        onConfirm={() => toggleCandidate ? setActive(toggleCandidate, false) : Promise.resolve()}
+        onOpenChange={(open) => { if (!open && !saving) setToggleCandidate(null) }}
+        open={toggleCandidate !== null}
+        pending={saving}
+        title={labels.deactivateTitle}
+      />
     </div>
   )
 }

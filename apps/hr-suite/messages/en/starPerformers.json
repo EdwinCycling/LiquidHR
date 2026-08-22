@@ -54,5 +54,21 @@
   "tagEmpty": "No cloud tags stored yet.",
   "tagSaved": "Cloud tag saved.",
   "tagSaveFailed": "Saving cloud tag failed.",
-  "currentContext": "Current context"
+  "currentContext": "Current context",
+  "moreActions": "More actions",
+  "cancel": "Cancel",
+  "close": "Close",
+  "discardTitle": "Discard changes?",
+  "discardDescription": "Unsaved changes will be lost.",
+  "discardConfirm": "Discard changes",
+  "discardCancel": "Keep editing",
+  "deactivateTitle": "Deactivate cloud tag?",
+  "deactivateDescription": "The tag stays stored and existing assignments remain visible, but the tag cannot be assigned again.",
+  "deactivateConfirm": "Deactivate",
+  "activate": "Activate",
+  "deactivate": "Deactivate",
+  "writeRequired": "You have read-only access. Management actions are hidden.",
+  "moreTags": "Close tags",
+  "openEmployee": "Open the name to view the employee profile.",
+  "readOnly": "Read only"
 }

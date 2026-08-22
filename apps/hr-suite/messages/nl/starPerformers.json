@@ -54,5 +54,21 @@
   "tagEmpty": "Nog geen cloud tags vastgelegd.",
   "tagSaved": "Cloud tag opgeslagen.",
   "tagSaveFailed": "Cloud tag opslaan is niet gelukt.",
-  "currentContext": "Huidige context"
+  "currentContext": "Huidige context",
+  "moreActions": "Meer acties",
+  "cancel": "Annuleren",
+  "close": "Sluiten",
+  "discardTitle": "Wijzigingen negeren?",
+  "discardDescription": "Niet-opgeslagen wijzigingen gaan verloren.",
+  "discardConfirm": "Wijzigingen negeren",
+  "discardCancel": "Verder bewerken",
+  "deactivateTitle": "Cloud tag deactiveren?",
+  "deactivateDescription": "De tag blijft bewaard en bestaande koppelingen blijven zichtbaar, maar de tag kan niet opnieuw worden toegewezen.",
+  "deactivateConfirm": "Deactiveren",
+  "activate": "Activeren",
+  "deactivate": "Deactiveren",
+  "writeRequired": "Je hebt alleen-lezen toegang. Beheeracties zijn verborgen.",
+  "moreTags": "Tags sluiten",
+  "openEmployee": "Open de naam voor het medewerkerprofiel.",
+  "readOnly": "Alleen lezen"
 }
