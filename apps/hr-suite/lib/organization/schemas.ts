@@ -2,18 +2,19 @@ import { z } from 'zod'
 
 const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const nullableText = (maximum: number) => z.string().trim().max(maximum).nullable().optional()
+const departmentParentId = z.guid().nullable().optional()
 
 export const departmentCreateSchema = z.object({
   code: z.string().trim().min(1).max(40).regex(/^[A-Za-z0-9_-]+$/),
   name: z.string().trim().min(1).max(160),
   description: nullableText(500),
-  parentId: z.uuid().nullable().optional(),
+  parentId: departmentParentId,
 }).strict()
 
 export const departmentUpdateSchema = z.object({
   name: z.string().trim().min(1).max(160).optional(),
   description: nullableText(500),
-  parentId: z.uuid().nullable().optional(),
+  parentId: departmentParentId,
   isActive: z.boolean().optional(),
 }).strict().refine((value) => Object.keys(value).length > 0)
 

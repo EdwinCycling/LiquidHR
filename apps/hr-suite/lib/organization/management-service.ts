@@ -39,10 +39,18 @@ export async function updateDepartment(id: string, input: DepartmentUpdateInput)
   const context = await requirePermission('department:write')
   const groupId = hrGroupId(context.hrGroupId)
   const supabase = await createClient()
-  const { error } = await supabase.from('departments').update({
-    name: input.name, description: input.description, parent_id: input.parentId, is_active: input.isActive,
-  }).eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('id', id)
+  const updates: Database['public']['Tables']['departments']['Update'] = {}
+  if ('name' in input) updates.name = input.name
+  if ('description' in input) updates.description = input.description ?? null
+  if ('parentId' in input) updates.parent_id = input.parentId ?? null
+  if ('isActive' in input) updates.is_active = input.isActive
+
+  const { data, error } = await supabase.from('departments').update(updates)
+    .eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).eq('id', id)
+    .select('id').maybeSingle()
+  if (conflict(error)) throw new OrganizationServiceError('DEPARTMENT_CONFLICT', 409)
   if (error) throw new OrganizationServiceError('DEPARTMENT_UPDATE_FAILED', 500)
+  if (!data) throw new OrganizationServiceError('DEPARTMENT_NOT_FOUND', 404)
 }
 
 export async function listAuthorizationMatrix(): Promise<{

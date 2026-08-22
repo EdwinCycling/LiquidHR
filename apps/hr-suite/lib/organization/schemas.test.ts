@@ -19,6 +19,12 @@ describe('organisatiebeheer-validatie', () => {
     expect(roleCreateSchema.safeParse({ code: 'R2-AUTH-20260822-1954', name: 'Authorization Coverage acceptance retry' }).success).toBe(true)
   })
 
+  it('accepteert bestaande database-guides als parent van een afdeling', () => {
+    expect(departmentCreateSchema.safeParse({
+      code: 'CHILD', name: 'Child department', parentId: 'b551dc4c-0482-3911-5e7a-5b40cf8fe113',
+    }).success).toBe(true)
+  })
+
   it('weigert een plaatsing waarbij medewerker eigen manager is', () => {
     expect(placementCreateSchema.safeParse({
       employeeId: ids.employee, departmentId: ids.department,

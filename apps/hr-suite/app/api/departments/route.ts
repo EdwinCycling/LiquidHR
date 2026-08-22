@@ -9,6 +9,7 @@ interface DepartmentNode {
   code: string
   name: string
   description: string | null
+  is_active: boolean
   children: DepartmentNode[]
 }
 
@@ -25,17 +26,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
       const context = await requirePermission('department:read')
       const groupId = requireHrGroupId(context)
       const supabase = await createClient()
+    const includeInactive = new URL(request.url).searchParams.get('includeInactive') === 'true'
     const query = supabase
       .from('departments')
-        .select('id, code, name, description, parent_id')
+        .select('id, code, name, description, parent_id, is_active')
         .eq('tenant_id', context.tenantId)
         .eq('hr_group_id', groupId)
-        .eq('is_active', true)
+    if (!includeInactive) query.eq('is_active', true)
 
     const { data, error } = await query
       .order('name')
