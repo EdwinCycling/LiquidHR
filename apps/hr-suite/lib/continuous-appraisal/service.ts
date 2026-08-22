@@ -131,12 +131,30 @@ function toEmployeeOption(employee: EmployeeRow, jobTitle: string | null = null)
 
 async function canWriteTarget(employeeId: string): Promise<boolean> {
   try {
-    await requirePermission('continuous-appraisal:write', employeeId)
-    return true
+    const context = await requirePermission('continuous-appraisal:write', employeeId)
+    await assertContinuousAppraisalTargetAccess(context, employeeId, 'continuous-appraisal:write')
+    return context.employeeId !== null
   } catch (error) {
     if (error instanceof AuthorizationError) return false
     throw error
   }
+}
+
+async function assertContinuousAppraisalTargetAccess(context: AuthContext, employeeId: string, permission: 'continuous-appraisal:read' | 'continuous-appraisal:write'): Promise<void> {
+  if (context.employeeId === employeeId || context.permissions.includes('continuous-appraisal:manage')) return
+  if (!context.employeeId || !context.permissions.includes(permission)) throw new AuthorizationError('Je hebt geen toegang tot deze medewerker.')
+
+  const today = new Date().toISOString().slice(0, 10)
+  const { data, error } = await (await createClient())
+    .from('employee_organizations')
+    .select('employee_id')
+    .eq('tenant_id', context.tenantId)
+    .eq('employee_id', employeeId)
+    .eq('direct_manager_id', context.employeeId)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .limit(1)
+  if (error || !data?.length) throw new AuthorizationError('Je hebt geen toegang tot deze medewerker.')
 }
 
 async function currentManagerId(context: AuthContext, employeeId: string): Promise<string | null> {
@@ -189,21 +207,37 @@ function toItem(row: ItemRow, comments: ContinuousAppraisalComment[], attachment
 export async function listContinuousAppraisalEmployeeOptions(): Promise<ContinuousAppraisalEmployeeOption[]> {
   const context = await requirePermission('continuous-appraisal:read')
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let accessibleEmployeeIds: string[] | null = null
+  if (!context.permissions.includes('continuous-appraisal:manage')) {
+    if (!context.employeeId) return []
+    const today = new Date().toISOString().slice(0, 10)
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('employee_organizations')
+      .select('employee_id')
+      .eq('tenant_id', context.tenantId)
+      .eq('direct_manager_id', context.employeeId)
+      .lte('effective_from', today)
+      .or(`effective_to.is.null,effective_to.gte.${today}`)
+    if (assignmentError) databaseError(assignmentError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
+    accessibleEmployeeIds = [...new Set((assignments ?? []).map((assignment) => assignment.employee_id))]
+    if (accessibleEmployeeIds.length === 0) return []
+  }
+  let employeesQuery = supabase
     .from('employees')
     .select('id, first_name, birth_name, employee_number, avatar_url')
     .eq('tenant_id', context.tenantId)
     .eq('is_active', true)
     .eq('is_archived', false)
     .is('deleted_at', null)
-    .order('first_name')
-    .limit(500)
+  if (accessibleEmployeeIds) employeesQuery = employeesQuery.in('id', accessibleEmployeeIds)
+  const { data, error } = await employeesQuery.order('first_name').limit(500)
   if (error) databaseError(error.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
   return (data ?? []).map((employee) => toEmployeeOption(employee))
 }
 
 export async function listContinuousAppraisalWorkspace(targetEmployeeId: string, query: ContinuousAppraisalListQuery = {}): Promise<ContinuousAppraisalWorkspace> {
   const context = await requirePermission('continuous-appraisal:read', targetEmployeeId)
+  await assertContinuousAppraisalTargetAccess(context, targetEmployeeId, 'continuous-appraisal:read')
   const employee = await employeeProfile(context, targetEmployeeId)
   const supabase = await createClient()
   let itemsQuery = supabase
@@ -250,7 +284,7 @@ export async function listContinuousAppraisalWorkspace(targetEmployeeId: string,
     employee: toEmployeeOption(employee),
     items: filteredRows.map((row) => toItem(row, commentsByItem.get(row.id) ?? [], attachmentsByItem.get(row.id) ?? [], context.employeeId ?? '')),
     canWrite,
-    canCreateFeedback: context.permissions.includes('continuous-appraisal:write'),
+    canCreateFeedback: context.employeeId !== null && context.permissions.includes('continuous-appraisal:write'),
   }
 }
 
@@ -282,10 +316,11 @@ export async function getContinuousAppraisalSummary(dependencies?: ContinuousApp
 
 export async function createContinuousAppraisalItem(input: ContinuousAppraisalCreateInput): Promise<{ id: string }> {
   const context = await requirePermission('continuous-appraisal:write', input.employeeId)
+  await assertContinuousAppraisalTargetAccess(context, input.employeeId, 'continuous-appraisal:write')
   if (input.itemType === 'FEEDBACK' && context.employeeId === input.employeeId) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_FEEDBACK_MANAGER_ONLY', 403)
   const ownerEmployeeId = input.ownerEmployeeId ?? (input.itemType === 'ACTION' ? context.employeeId : null)
   if (ownerEmployeeId && ownerEmployeeId !== input.employeeId && ownerEmployeeId !== context.employeeId) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_OWNER_INVALID', 400)
-  if (!context.employeeId) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  if (!context.employeeId) throw new AuthorizationError('Je hebt geen gekoppelde medewerker voor deze actie.')
   const [actor, target, managerId] = await Promise.all([
     employeeProfile(context, context.employeeId),
     employeeProfile(context, input.employeeId),
@@ -325,6 +360,7 @@ export async function updateContinuousAppraisalItem(itemId: string, input: Conti
   if (currentError) databaseError(currentError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
   if (!current) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
   const context = await requirePermission('continuous-appraisal:write', current.employee_id)
+  await assertContinuousAppraisalTargetAccess(context, current.employee_id, 'continuous-appraisal:write')
   if (current.created_by_employee_id !== context.employeeId || current.item_type === 'SYSTEM_EVENT') throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_WRITE_FAILED', 403)
   const today = new Date().toISOString().slice(0, 10)
   if (current.occurred_on < today) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_PAST_IMMUTABLE', 409)
@@ -353,7 +389,8 @@ export async function addContinuousAppraisalComment(itemId: string, input: Conti
   if (itemError) databaseError(itemError.message, 'CONTINUOUS_APPRAISAL_READ_FAILED')
   if (!item) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
   const context = await requirePermission('continuous-appraisal:write', item.employee_id)
-  if (!context.employeeId) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_WRITE_FAILED')
+  await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
+  if (!context.employeeId) throw new AuthorizationError('Je hebt geen gekoppelde medewerker voor deze actie.')
   const actor = await employeeProfile(context, context.employeeId)
   const { data, error } = await supabase.from('continuous_appraisal_item_comments').insert({
     tenant_id: item.tenant_id,
@@ -385,8 +422,10 @@ export async function createContinuousAppraisalAttachment(itemId: string, file: 
   if (!item) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ITEM_NOT_FOUND', 404)
 
   const context = await requirePermission('continuous-appraisal:write', item.employee_id)
+  await assertContinuousAppraisalTargetAccess(context, item.employee_id, 'continuous-appraisal:write')
   if (item.occurred_on < new Date().toISOString().slice(0, 10)) throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_PAST_IMMUTABLE', 409)
-  if (!context.employeeId || !file.name.trim() || file.size < 1 || file.size > CONTINUOUS_APPRAISAL_ATTACHMENT_MAX_SIZE || !CONTINUOUS_APPRAISAL_ATTACHMENT_TYPES.has(file.type) || file.name.length > 255) {
+  if (!context.employeeId) throw new AuthorizationError('Je hebt geen gekoppelde medewerker voor deze actie.')
+  if (!file.name.trim() || file.size < 1 || file.size > CONTINUOUS_APPRAISAL_ATTACHMENT_MAX_SIZE || !CONTINUOUS_APPRAISAL_ATTACHMENT_TYPES.has(file.type) || file.name.length > 255) {
     throw new ContinuousAppraisalError('CONTINUOUS_APPRAISAL_ATTACHMENT_INVALID', 400)
   }
 

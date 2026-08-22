@@ -6,5 +6,8 @@ export function continuousAppraisalErrorResponse(error: unknown, fallback = 'CON
   const permission = permissionErrorResponse(error)
   if (permission) return permission
   if (error instanceof ContinuousAppraisalError) return NextResponse.json({ error: error.code }, { status: error.status })
+  if (error && typeof error === 'object' && 'status' in error && (error.status === 401 || error.status === 403) && 'message' in error && typeof error.message === 'string') {
+    return NextResponse.json({ error: error.message }, { status: error.status })
+  }
   return NextResponse.json({ error: fallback }, { status: 500 })
 }

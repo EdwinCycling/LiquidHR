@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { ContinuousAppraisalWorkspace } from '@/components/continuous-appraisal/continuous-appraisal-workspace'
 import type { ContinuousAppraisalFilter, ContinuousAppraisalInitialFilters } from '@/components/continuous-appraisal/continuous-appraisal-workspace'
-import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
+import { requireAuthContext } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { listContinuousAppraisalEmployeeOptions, listContinuousAppraisalWorkspace } from '@/lib/continuous-appraisal/service'
 
@@ -38,19 +38,10 @@ function continuousAppraisalFilters(params: Awaited<PageProps['searchParams']>):
 }
 
 async function resolveMode(): Promise<'manager' | 'hr'> {
-  try {
-    await requirePermission('continuous-appraisal:manage')
-    return 'hr'
-  } catch (error) {
-    if (!(error instanceof AuthorizationError)) throw error
-  }
-  try {
-    await requirePermission('continuous-appraisal:read')
-    return 'manager'
-  } catch (error) {
-    if (error instanceof AuthorizationError) redirect('/geen-toegang')
-    throw error
-  }
+  const context = await requireAuthContext()
+  if (context.permissions.includes('continuous-appraisal:manage')) return 'hr'
+  if (context.permissions.includes('continuous-appraisal:read')) return 'manager'
+  redirect('/geen-toegang')
 }
 
 function continuousAppraisalLabels(t: Awaited<ReturnType<typeof import('@/lib/i18n/server').getTranslator>>) {
