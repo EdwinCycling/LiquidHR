@@ -9,7 +9,7 @@ export const absenceCaseCreateSchema = z.object({
   employeeId: uuid,
   employmentId: uuid.optional(),
   startDate: isoDate,
-  absencePercentage: z.number().finite().gt(0).lte(100),
+  absencePercentage: z.number().finite().gt(0).lte(100).optional(),
   expectedRecoveryOn: isoDate.nullable().optional(),
   reportedAt: z.string().datetime({ offset: true }).optional(),
   hasSicknessBenefitSafetyNet: indicator,

@@ -23,6 +23,15 @@ describe('absence schemas', () => {
     expect(result.success).toBe(false)
   })
 
+  it('accepteert een smalle self-service ziekmelding zonder casusvelden', () => {
+    const result = absenceCaseCreateSchema.safeParse({
+      employeeId,
+      startDate: '2026-07-26',
+      idempotencyKey: 'self-report-2026-07-26',
+    })
+    expect(result.success).toBe(true)
+  })
+
   it('valideert percentagewijziging en herstel', () => {
     expect(absenceCapacityChangeSchema.safeParse({ caseId: employeeId, effectiveOn: '2026-07-27', absencePercentage: 50, idempotencyKey: 'capacity-change-2026-07-26' }).success).toBe(true)
     expect(absenceRecoverySchema.safeParse({ caseId: employeeId, recoveredOn: '2026-07-30', idempotencyKey: 'recovery-2026-07-26' }).success).toBe(true)

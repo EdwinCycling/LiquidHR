@@ -189,7 +189,7 @@ export async function reportEmployeeAbsence(employeeId: string, input: unknown):
     requested_employee_id: employeeId,
     requested_employment_id: selection.employment.id,
     requested_start_date: parsed.startDate,
-    requested_absence_percentage: parsed.absencePercentage,
+    requested_absence_percentage: parsed.absencePercentage ?? 100,
     requested_expected_recovery_on: parsed.expectedRecoveryOn ?? undefined,
     requested_has_sickness_benefit_safety_net: parsed.hasSicknessBenefitSafetyNet ?? undefined,
     requested_is_work_accident: parsed.isWorkAccident ?? undefined,

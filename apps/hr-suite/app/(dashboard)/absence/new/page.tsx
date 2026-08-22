@@ -1,7 +1,13 @@
 import Link from 'next/link'
-import { ArrowLeft, ClipboardPlus } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/patterns/page-header'
+import { SectionHeader } from '@/components/patterns/section-header'
+import { FormField } from '@/components/patterns/form-field'
+import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { Surface } from '@/components/ui/surface'
 import { resolveEmployeeAbsenceEmployment } from '@/lib/absence/service'
 import { requireAnyPermission } from '@/lib/auth/permissions'
 import { getEmployeeEmploymentDetail, listEmployeesOverview } from '@/lib/employment/employment-service'
@@ -21,30 +27,25 @@ export default async function NewAbsencePage({ searchParams }: NewAbsencePagePro
   const today = new Date().toISOString().slice(0, 10)
   const employmentSelection = selectedEmployee ? await resolveEmployeeAbsenceEmployment(selectedEmployee.id, undefined, today) : null
 
-  return <main className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
+  return <PageShell width="reading" className="py-7 lg:py-10">
     <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href="/dashboard/start"><ArrowLeft aria-hidden="true" className="size-4" />{t('absenceCreateBack')}</Link>
-    <header className="mt-6 rounded-3xl border bg-primary p-6 text-primary-foreground shadow-[0_1.6rem_4rem_color-mix(in_srgb,var(--primary)_18%,transparent)] sm:p-8">
-      <span className="grid size-11 place-items-center rounded-2xl bg-primary-foreground/10"><ClipboardPlus aria-hidden="true" className="size-5" /></span>
-      <p className="eyebrow mt-5 text-primary-foreground/70">{t('absenceTab')}</p>
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight">{t('absenceCreateTitle')}</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/75">{t('absenceCreateSubtitle')}</p>
-    </header>
+    <PageHeader className="mt-6" title={t('absenceCreateTitle')} description={t('absenceCreateSubtitle')} />
 
-    <section className="mt-6 rounded-3xl border bg-surface p-5 shadow-sm sm:p-6">
+    <Surface className="mt-6 p-5 sm:p-6">
       <form className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" method="get">
-        <label className="text-sm font-semibold" htmlFor="absence-employee">{t('absenceCreateEmployee')}
-          <DropdownSelect className="mt-1" defaultValue={selectedEmployee?.id ?? ''} emptyLabel={t('absenceCreateNoEmployees')} id="absence-employee" name="employeeId" placeholder={t('absenceCreateEmployeePlaceholder')} required searchPlaceholder={t('absenceCreateSearch')} searchable>
-            <option disabled value="">{t('absenceCreateEmployeePlaceholder')}</option>
-            {employees.map((employee) => <option key={employee.id} value={employee.id}>{[employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')}</option>)}
-          </DropdownSelect>
-        </label>
-        <button className="button-secondary" type="submit">{t('absenceCreateSelect')}</button>
+        <FormField label={t('absenceCreateEmployee')} required control={<DropdownSelect defaultValue={selectedEmployee?.id ?? ''} emptyLabel={t('absenceCreateNoEmployees')} id="absence-employee" name="employeeId" placeholder={t('absenceCreateEmployeePlaceholder')} required searchPlaceholder={t('absenceCreateSearch')} searchable>
+          <option disabled value="">{t('absenceCreateEmployeePlaceholder')}</option>
+          {employees.map((employee) => <option key={employee.id} value={employee.id}>{[employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')}</option>)}
+        </DropdownSelect>} />
+        <Button variant="secondary" type="submit">{t('absenceCreateSelect')}</Button>
       </form>
-    </section>
+    </Surface>
 
-    {selectedEmployee && detail ? <section className="mt-6 rounded-3xl border bg-surface p-5 shadow-sm sm:p-6">
-      <div className="mb-5 border-b pb-5"><p className="eyebrow text-primary">{t('absenceCreateSelected')}</p><h2 className="mt-1 text-xl font-semibold">{[selectedEmployee.firstName, selectedEmployee.birthNamePrefix, selectedEmployee.birthName].filter(Boolean).join(' ')}</h2><p className="mt-1 text-sm text-muted-foreground">{selectedEmployee.departmentName ?? t('notRecorded')}</p></div>
+    {selectedEmployee && detail ? <Surface className="mt-6 p-5 sm:p-6">
+      <SectionHeader title={t('absenceCreateSelected')} description={<><span className="font-semibold text-foreground">{[selectedEmployee.firstName, selectedEmployee.birthNamePrefix, selectedEmployee.birthName].filter(Boolean).join(' ')}</span><span className="ml-2">{selectedEmployee.departmentName ?? t('notRecorded')}</span></>} />
+      <div className="mt-5 border-t border-border-subtle pt-5">
       <AbsenceQuickForm employeeId={selectedEmployee.id} employmentId={employmentSelection?.employment?.id} employmentOptions={employmentSelection?.options} recoveryMode="hidden" labels={{ report: t('absenceReport'), startDate: t('absenceStartDate'), percentage: t('absencePercentage'), expectedRecovery: t('absenceExpectedRecovery'), hasSafetyNet: t('absenceHasSafetyNet'), workAccident: t('absenceWorkAccident'), thirdPartyAccident: t('absenceThirdPartyAccident'), unknown: t('absenceUnknown'), yes: t('absenceYes'), no: t('absenceNo'), submit: t('absenceSubmit'), recover: t('absenceRecover'), partialRecover: t('absencePartialRecover'), recoveredOn: t('absenceRecoveredOn'), capacityEffectiveOn: t('absenceCaseCapacityEffectiveOn'), failed: t('absenceSaveFailed'), close: t('absenceClose'), discardTitle: t('absenceDiscardTitle'), discardDescription: t('absenceDiscardDescription'), discardConfirm: t('absenceDiscardConfirm'), discardCancel: t('absenceDiscardCancel'), employment: t('absenceEmployment'), employmentPlaceholder: t('absenceEmploymentPlaceholder'), employmentSearch: t('absenceEmploymentSearch'), saving: t('saving') }} />
-    </section> : <p className="mt-6 rounded-2xl border border-dashed bg-surface/70 px-5 py-8 text-center text-sm text-muted-foreground">{t('absenceCreateEmployeePlaceholder')}</p>}
-  </main>
+      </div>
+    </Surface> : <p className="mt-6 rounded-[var(--radius-surface)] border border-dashed border-border-subtle px-5 py-8 text-center text-sm text-muted-foreground">{t('absenceCreateEmployeePlaceholder')}</p>}
+  </PageShell>
 }

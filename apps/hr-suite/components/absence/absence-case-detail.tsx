@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { ArrowLeft, CalendarDays, CheckCircle2, ChevronDown, HeartPulse, ShieldAlert } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
+import { DetailColumns } from '@/components/layout/detail-columns'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
@@ -62,6 +64,8 @@ interface AbsenceCaseDetailProps {
     discardDescription?: string
     discardConfirm?: string
     discardCancel?: string
+    canRecover?: boolean
+    canChangeCapacity?: boolean
   }
 }
 
@@ -73,17 +77,11 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
       : labels.nowNotSick
   const backHref = `/employees/${employeeId}?tab=absence&view=${compact ? 'compact' : 'expanded'}`
   const resolvedEmploymentId = absenceCase.employmentId ?? employmentId
+  const canRecover = labels.canRecover ?? true
+  const canChangeCapacity = labels.canChangeCapacity ?? true
+  const hasActions = absenceCase.status === 'ACTIVE' && (canRecover || canChangeCapacity)
 
-  return <div className="space-y-5">
-    <Link prefetch={false} href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-      <ArrowLeft aria-hidden="true" className="h-4 w-4" />{labels.back}
-    </Link>
-    <SectionHeader
-      title={labels.heading.replace('{date}', formatDate(absenceCase.firstAbsenceOn, { locale, dateFormat }))}
-      description={labels.dossier}
-      actions={<Badge tone={absenceCase.status === 'ACTIVE' ? 'danger' : absenceCase.status === 'RECOVERY_WINDOW' ? 'info' : 'success'}>{statusLabel}</Badge>}
-    />
-
+  const caseContent: ReactNode = <>
     <Surface className="p-5">
       <SectionHeader title={<span className="flex items-center gap-2"><CalendarDays aria-hidden="true" className="h-5 w-5 text-primary" />{labels.status}</span>} />
       <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -110,9 +108,9 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
           const reportedAt = formatDate(spell.reportedAt, { locale, dateFormat })
           const expectedRecovery = spell.expectedRecoveryOn ? formatDate(spell.expectedRecoveryOn, { locale, dateFormat }) : labels.noValue
           const status = spell.recoveredOn ? <Badge tone="success"><CheckCircle2 aria-hidden="true" className="mr-1 inline size-3.5" />{labels.recoveredOn}</Badge> : <Badge tone="danger">{labels.nowSick}</Badge>
-          return <details key={spell.id} className="group rounded-xl border border-border/70 bg-background">
+          return <details key={spell.id} className="group rounded-[var(--radius-control)] border border-border/70 bg-background">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
-              <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 font-semibold"><span>{startedOn}</span>{status}</span><span className="mt-1 block text-xs text-muted-foreground">{labels.reportedAt}: {reportedAt} · {labels.expectedRecovery}: {expectedRecovery} · {labels.capacity}: {spell.absencePercentage === null ? labels.noValue : `${spell.absencePercentage}%`}</span></span>
+              <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 font-semibold"><span>{startedOn}</span>{status}</span><span className="mt-1 block break-words text-xs text-muted-foreground">{labels.reportedAt}: {reportedAt} · {labels.expectedRecovery}: {expectedRecovery} · {labels.capacity}: {spell.absencePercentage === null ? labels.noValue : `${spell.absencePercentage}%`}</span></span>
               <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
             </summary>
             <div className="border-t border-border/70 px-4 pb-4 pt-4"><dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -127,8 +125,26 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
         })}
       </div>
     </Surface>
+  </>
 
-    <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
+  const actionPanel = hasActions ? <Surface className="p-5 lg:sticky lg:top-5">
+    <SectionHeader title={labels.better} />
+    <div className="mt-4">
+      <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} canRecover={canRecover} canChangeCapacity={canChangeCapacity} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
+    </div>
+  </Surface> : null
+
+  return <div className="space-y-5">
+    <Link prefetch={false} href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+      <ArrowLeft aria-hidden="true" className="h-4 w-4" />{labels.back}
+    </Link>
+    <SectionHeader
+      title={labels.heading.replace('{date}', formatDate(absenceCase.firstAbsenceOn, { locale, dateFormat }))}
+      description={labels.dossier}
+      actions={<Badge tone={absenceCase.status === 'ACTIVE' ? 'danger' : absenceCase.status === 'RECOVERY_WINDOW' ? 'info' : 'success'}>{statusLabel}</Badge>}
+    />
+
+    {actionPanel ? <DetailColumns main={<div className="space-y-5">{caseContent}</div>} aside={actionPanel} /> : <div className="space-y-5">{caseContent}</div>}
   </div>
 }
 

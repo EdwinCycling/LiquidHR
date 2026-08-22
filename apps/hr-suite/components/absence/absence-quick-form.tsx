@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 import { Button, buttonClasses } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
@@ -18,6 +19,9 @@ interface AbsenceQuickFormProps {
   currentCase?: AbsenceCaseSummary | null
   recoveryMode?: 'link' | 'form' | 'hidden'
   showReportAction?: boolean
+  canReport?: boolean
+  canRecover?: boolean
+  canChangeCapacity?: boolean
   selfService?: boolean
   labels: {
     report: string; startDate: string; percentage: string; expectedRecovery: string; hasSafetyNet: string; workAccident: string; thirdPartyAccident: string
@@ -27,7 +31,8 @@ interface AbsenceQuickFormProps {
   }
 }
 
-export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, selfService = false, labels }: AbsenceQuickFormProps) {
+export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, selfService = false, labels }: AbsenceQuickFormProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
   const [percentage, setPercentage] = useState('100')
@@ -57,7 +62,7 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
     try {
       const response = await fetch('/api/absence/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       if (!response.ok) { setError(true); return }
-      setOpen(false); window.location.reload()
+      setOpen(false); router.refresh()
     } catch { setError(true) } finally { setSaving(false) }
   }
 
@@ -66,7 +71,7 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
     try {
       const response = await fetch('/api/absence/recovery', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(buildAbsenceRecoveryPayload(currentCase.id, recoveredOn, crypto.randomUUID())) })
       if (!response.ok) { setError(true); return }
-      window.location.reload()
+      router.refresh()
     } catch { setError(true) } finally { setSaving(false) }
   }
 
@@ -75,7 +80,7 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
     try {
       const response = await fetch('/api/absence/capacity', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(buildAbsenceCapacityPayload(currentCase.id, capacityEffectiveOn, capacityPercentage, crypto.randomUUID())) })
       if (!response.ok) { setError(true); return }
-      window.location.reload()
+      router.refresh()
     } catch { setError(true) } finally { setSaving(false) }
   }
 
@@ -100,13 +105,16 @@ export function AbsenceQuickForm({ employeeId, employmentId, employmentOptions =
   const isOpen = currentCase?.status === 'ACTIVE' || currentCase?.status === 'RECOVERY_WINDOW'
   const isActive = currentCase?.status === 'ACTIVE'
 
+  const showRecoveryAction = canRecover && !selfService
+  const showCapacityAction = canChangeCapacity && !selfService
+
   return <>
     <div className="flex flex-wrap items-end gap-3">
-      {showReportAction && !isOpen ? <Button type="button" disabled={saving} onClick={() => void openReport()}>{labels.report}</Button> : null}
-      {isOpen && recoveryMode === 'link' ? <Link prefetch={false} href={`/employees/${employeeId}?tab=absence&view=expanded&caseId=${currentCase?.id}`} className={buttonClasses({ variant: 'secondary' })}>{labels.recover}</Link> : null}
-      {isActive && recoveryMode === 'form' ? <>
-        <form onSubmit={submitRecovery} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><FormField className="min-w-[10rem] flex-1" label={labels.recoveredOn} required control={<TextInput id="recovered-on" required type="date" value={recoveredOn} onChange={(event) => setRecoveredOn(event.target.value)} />} /><Button loading={saving} type="submit" disabled={saving} variant="secondary">{labels.recover}</Button></form>
-        <form onSubmit={submitCapacity} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><FormField className="min-w-[10rem] flex-1" label={labels.capacityEffectiveOn ?? labels.recoveredOn} required control={<TextInput id="absence-capacity-effective-on" required type="date" value={capacityEffectiveOn} onChange={(event) => setCapacityEffectiveOn(event.target.value)} />} /><FormField className="min-w-[8rem] flex-1" label={labels.percentage} required control={<TextInput id="absence-capacity-percentage" required min="0.01" max="100" step="0.01" type="number" value={capacityPercentage} onChange={(event) => setCapacityPercentage(event.target.value)} />} /><Button loading={saving} type="submit" disabled={saving} variant="secondary">{labels.partialRecover ?? labels.recover}</Button></form>
+      {showReportAction && canReport && !isOpen ? <Button type="button" disabled={saving} onClick={() => void openReport()}>{labels.report}</Button> : null}
+      {isOpen && recoveryMode === 'link' && showRecoveryAction ? <Link prefetch={false} href={`/employees/${employeeId}?tab=absence&view=expanded&caseId=${currentCase?.id}`} className={buttonClasses({ variant: 'secondary' })}>{labels.recover}</Link> : null}
+      {isActive && recoveryMode === 'form' && (showRecoveryAction || showCapacityAction) ? <>
+        {showRecoveryAction ? <form onSubmit={submitRecovery} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><FormField className="min-w-[10rem] flex-1" label={labels.recoveredOn} required control={<TextInput id="recovered-on" required type="date" value={recoveredOn} onChange={(event) => setRecoveredOn(event.target.value)} />} /><Button loading={saving} type="submit" disabled={saving} variant="secondary">{labels.recover}</Button></form> : null}
+        {showCapacityAction ? <form onSubmit={submitCapacity} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><FormField className="min-w-[10rem] flex-1" label={labels.capacityEffectiveOn ?? labels.recoveredOn} required control={<TextInput id="absence-capacity-effective-on" required type="date" value={capacityEffectiveOn} onChange={(event) => setCapacityEffectiveOn(event.target.value)} />} /><FormField className="min-w-[8rem] flex-1" label={labels.percentage} required control={<TextInput id="absence-capacity-percentage" required min="0.01" max="100" step="0.01" type="number" value={capacityPercentage} onChange={(event) => setCapacityPercentage(event.target.value)} />} /><Button loading={saving} type="submit" disabled={saving} variant="secondary">{labels.partialRecover ?? labels.recover}</Button></form> : null}
       </> : null}
     </div>
     {error && !open ? <p role="alert" className="text-sm font-medium text-destructive">{labels.failed}</p> : null}
