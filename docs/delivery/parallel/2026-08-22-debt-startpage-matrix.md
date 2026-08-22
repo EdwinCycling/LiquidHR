@@ -67,3 +67,11 @@ Acceptance is **BLOCKED BY ENVIRONMENT**, not GREEN. The remaining work is to pr
 - Exacte Webpack-runtime op `http://localhost:3108` was ready vanuit deze worktree. Zowel `/login` als `/dashboard/start` gaven HTTP 500 vóór productrender met de expliciete ontbrekende Supabase URL/Key-fout uit `apps/hr-suite/proxy.ts:19`.
 - Playwright bevestigde desktop en viewport `390×844`; de Startpage-controls, authenticated session en preferences waren niet bereikbaar. Er is geen preference-read of `PATCH /api/preferences/start-page` uitgevoerd, dus de bestaande voorkeuren zijn niet gewijzigd en er was niets te herstellen.
 - Geen Startpage/preferences-bugfix uitgevoerd: de enige waargenomen fouten waren environment-/runtime-preflightfouten vóór Startpage-render. De open acceptance-items blijven daarom **BLOCKED BY ENVIRONMENT**, niet **RED**.
+
+## Acceptance retry — stap 0 geblokkeerd
+
+- Retry uitgevoerd op dezelfde branch/worktree: `work/debt-startpage-matrix`, `42ef38a7aee919d48c8427b129a5636e0606d126`.
+- De verplichte bron `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestaat niet. Read-only controle met `Get-Item -Force` en `Test-Path` bevestigde dat de bron ontbreekt; het doelbestand is niet aangemaakt.
+- `Copy-Item -Force` is daarom niet uitgevoerd, om geen andere env-bron te zoeken of credentials buiten de expliciet aangewezen bron te gebruiken. Er zijn geen secrets gelezen, gelogd of gecommit.
+- Door deze stap-0-blocker zijn fixture-auth, preference snapshot/restore, serverstart op 3108, browser/API/persona/theme acceptance en cleanup in deze retry niet uitgevoerd. Er is geen remote write, productfix of gebruikersvoorkeurwijziging uitgevoerd.
+- Status van deze retry: **BLOCKED BY ENVIRONMENT**. De eerder vastgelegde technische gates en vorige 3108/Playwright-bevindingen blijven ongewijzigd; nieuwe authenticated acceptance vereist dat de canonical TEST-env op de aangewezen bronlocatie beschikbaar is.
