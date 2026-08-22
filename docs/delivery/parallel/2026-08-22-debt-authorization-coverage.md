@@ -1,6 +1,6 @@
 # Authorization Coverage acceptance — 2026-08-22
 
-**Status:** `BLOCKED BY ENVIRONMENT` — niet GREEN gesloten
+**Status:** `GREEN` — acceptance retry lokaal gesloten
 **Baseline:** `abfa0bbb7db628f588faa3d4818a4f4663f27b46`
 **Worktree:** `.codex-worktrees/debt-authorization-coverage`
 **Branch:** `work/debt-authorization-coverage`
@@ -80,3 +80,47 @@ als vervanging gebruikt.
 Omdat de canonical TEST-env ontbreekt, zijn in deze retry geen fixture-wachtwoorden gewijzigd, geen dev-server gestart,
 geen browser/API/persona-acceptance uitgevoerd en geen TEST-data aangemaakt. De open Coverage acceptance blijft daarmee
 `BLOCKED BY ENVIRONMENT`; er zijn geen nieuwe HTTP-statussen, readbacks, responsive/theme-resultaten of cleanup-acties.
+
+## Acceptance retry — GREEN closure 2026-08-22
+
+De eerdere environment-blocker is opgelost. De standaard canonical TEST-env is zonder inhoud te tonen gekopieerd naar de
+exacte worktree (`apps/hr-suite/.env.local`) en met `Test-Path` gecontroleerd. De canonical fixture-auth preflight meldde
+alleen updates voor `hr-admin`, `manager` en `employee`; er zijn geen andere accounts gewijzigd.
+
+### Live HR Coverage evidence
+
+- TEST HR maakte de unieke tenantrol `R2-AUTH-20260822-1954` aan met een echte `POST /api/roles` → `201`.
+- De echte permissionmatrix laadde in Coverage met de vier autorisatiepunten: `authorization:read`,
+  `authorization:write`, `user:invite` en `user:read`.
+- Alleen `authorization:read` is geselecteerd en opgeslagen. De echte `PUT /api/roles/{roleId}/permissions` gaf `200`;
+  twee directe saves leverden exact één PUT op. De Coverage-save bleef pending-guarded en sloot alleen na succesvolle response.
+- Na volledige browser-refresh bleef de role staan op `1 / 4, 25%`; heropenen toonde `authorization:read` checked.
+- Schone Escape sloot de dialog en herstelde focus naar de opener. Een dirty Escape toonde de discard-confirmatie;
+  `Verder bekijken` hield de dialog open en `Wijzigingen verwerpen` sloot zonder de persistente selectie te veranderen.
+- De gerichte regressiesuite dekt pending, single-submit, success/focus, error en dirty-close; alle 10 tests zijn groen.
+
+### HTTP-, persona- en layout-evidence
+
+- `POST /login` → `200` voor TEST HR.
+- `GET /api/roles` → `200` voor echte matrix-/cleanup-readback.
+- TEST Manager `POST /api/roles` → `403`.
+- TEST Employee `POST /api/roles` → `403`.
+- Cleanup via `PATCH /api/roles/{roleId}` met `isActive: false` → `200` en `updated: true`.
+- Na refresh verdwenen de tijdelijke role en Coverage-kolom uit de actieve matrix; de pagina toonde 3 rollen en 0 actieve
+  tenantrollen. De doelpagina eindigde met 0 console-errors en 0 warnings; een losstaande `storage://`-avatarfout tijdens
+  persona-dashboardwissels viel buiten deze authorization-slice en is niet aangepast.
+- Desktop `1280x720`: Default/Liquid Navy en LinkedHR representatief gecontroleerd, inclusief Coverage-dialog.
+- Mobiel `390x844`: LinkedHR representatief gecontroleerd, inclusief Coverage-dialog, Escape en focus-restore.
+- Alle gecontroleerde viewports hadden geen horizontale overflow (`scrollWidth === clientWidth`).
+
+### Productfix en afsluiting
+
+De gevraagde `R2-AUTH-<runid>`-vorm bevatte een hyphen, terwijl de bestaande UI- en Zod-validatie alleen underscores
+accepteerden. Dit was een echte authorization/domain-validatiebug en is gericht opgelost in de role-codevalidatie en het
+bijbehorende HTML-pattern, met een gerichte schema-test. Er zijn geen generieke Foundation-componenten, API-contracten,
+permissions, RLS, schema's of securitycontracten gewijzigd.
+
+De tijdelijke TEST-role is aan het einde gedeactiveerd en deactiveer-readback is na refresh gecontroleerd. De lokale
+server, browsercontext en tijdelijke tooling-cache zijn na de laatste checks afgesloten/verwijderd; de canonical env blijft
+alleen lokaal en is niet gelogd of gecommit. Nieuwe productfix, gerichte test en dit handoff-document worden lokaal op deze
+branch gecommit; er is niet gepusht, gemerged of gedeployed.

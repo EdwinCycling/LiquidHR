@@ -18,7 +18,7 @@ export const departmentUpdateSchema = z.object({
 }).strict().refine((value) => Object.keys(value).length > 0)
 
 export const roleCreateSchema = z.object({
-  code: z.string().trim().min(2).max(50).regex(/^[A-Z][A-Z0-9_]+$/),
+  code: z.string().trim().min(2).max(50).regex(/^[A-Z][A-Z0-9_-]+$/),
   name: z.string().trim().min(1).max(120),
   description: nullableText(500),
   deputyRoleId: z.uuid().nullable().optional(),

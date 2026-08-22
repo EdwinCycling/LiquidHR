@@ -16,6 +16,7 @@ describe('organisatiebeheer-validatie', () => {
   it('accepteert een veilige afdeling en tenantrol', () => {
     expect(departmentCreateSchema.safeParse({ code: 'HR_NL', name: 'HR Nederland' }).success).toBe(true)
     expect(roleCreateSchema.safeParse({ code: 'HR_ADVISOR', name: 'HR-adviseur' }).success).toBe(true)
+    expect(roleCreateSchema.safeParse({ code: 'R2-AUTH-20260822-1954', name: 'Authorization Coverage acceptance retry' }).success).toBe(true)
   })
 
   it('weigert een plaatsing waarbij medewerker eigen manager is', () => {

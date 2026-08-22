@@ -121,7 +121,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
     : []
 
   useEffect(() => {
-    if (coverageDialog && !coverageDialogOpen && !coverageDiscardOpen) setCoverageDialog(null)
+    if (coverageDialog && !coverageDialogOpen && !coverageDiscardOpen) queueMicrotask(() => setCoverageDialog(null))
   }, [coverageDialog, coverageDialogOpen, coverageDiscardOpen])
 
   async function send(url: string, method: string, body: object, onFailure?: (message: string) => void): Promise<boolean> {
@@ -233,7 +233,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
           title={labels.newRole}
         >
           {createRoleError ? <p className="border border-destructive/40 bg-destructive-surface px-3 py-2 text-sm text-destructive" role="alert">{createRoleError}</p> : null}
-          <FormField control={<TextInput maxLength={64} onChange={(event) => updateCreateRole('code', event.target.value)} pattern="[A-Z][A-Z0-9_]+" required value={createRoleValues.code} />} label={labels.roleCode} required />
+          <FormField control={<TextInput maxLength={64} onChange={(event) => updateCreateRole('code', event.target.value)} pattern="[A-Z][A-Z0-9_\-]+" required value={createRoleValues.code} />} label={labels.roleCode} required />
           <FormField control={<TextInput maxLength={160} onChange={(event) => updateCreateRole('name', event.target.value)} required value={createRoleValues.name} />} label={labels.roleName} required />
           <FormField control={<Textarea maxLength={4000} onChange={(event) => updateCreateRole('description', event.target.value)} value={createRoleValues.description} />} label={labels.roleDescription} />
           <Checkbox checked={createRoleValues.isOrganizationScoped} label={labels.roleOrganizationScoped} name="isOrganizationScoped" onChange={(event) => updateCreateRole('isOrganizationScoped', event.target.checked)} />
