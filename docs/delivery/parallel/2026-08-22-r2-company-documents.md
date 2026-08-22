@@ -42,3 +42,7 @@ Authenticated acceptance is `BLOCKED BY ENVIRONMENT` in this execution context. 
 Playwright opened `http://localhost:3103/login` and received 500. The runtime error was the missing Supabase project URL/key in `proxy.ts`; the browser reported 3 errors and 0 warnings, including the same runtime error and a favicon 404. The Company Documents route did not render, so no authenticated desktop/390×844 flow, Default/LinkedHR comparison, real CRUD, negative persona, unique `R2-COMPANY-DOC-<runid>` record, HTTP POST/DELETE evidence or storage cleanup can be claimed. No test record or storage object was created, so there is nothing to clean up.
 
 Final local commit SHA: reported in the handoff response after the commit is finalized.
+
+## Acceptance retry — 2026-08-22
+
+Step 0 was blocked before authentication: the required canonical source `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` does not exist. `Copy-Item -Force` was attempted exactly for that source and the exact worktree target; the command reported the missing source and `target-exists=False`. Only `.env.example` is present in the canonical source directory. No env content was read, logged or committed. The fixture-auth preflight, server restart, HTTP/browser acceptance, persona checks, responsive/theme checks and CRUD cleanup were not run because the mandatory environment preflight could not be completed. No remote or test-data mutation occurred.
