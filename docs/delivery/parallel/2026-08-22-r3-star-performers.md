@@ -44,3 +44,11 @@ De bestaande tag-API ondersteunt geen DELETE en de koppeltabel heeft een restric
 De lokale server startte op poort 3112, maar `/login` en de R3-route gaven HTTP 500 omdat in deze worktree geen Supabase URL/key-runtimeconfiguratie beschikbaar was. Daardoor konden authenticated browser-proof en echte CRUD met unieke `R3-STAR-<runid>` niet veilig worden uitgevoerd.
 
 Niet bewezen door deze environment-blocker: create → readback → edit → toewijzing → readback → cleanup, positieve en negatieve persona, Default en LinkedHR, desktop en echte 390px viewport, en de eis van nul relevante runtime-console-errors. De server en browser zijn vóór afronding gestopt/gesloten.
+
+## Acceptance retry — 2026-08-22
+
+- Verplichte broncontrole: `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` bestaat niet (`Test-Path=False`).
+- `Copy-Item -Force` kon daarom niet uitvoeren; doelbestand in deze worktree bestaat niet (`Test-Path=False`).
+- Geen env-inhoud of secrets gelezen, gelogd of gecommit.
+- Geen fixture-auth preflight, wachtwoordreset, serverstart, browser/API-call of CRUD uitgevoerd; zonder de canonical TEST-env zou dat geen geldige acceptance zijn.
+- De eerder vastgestelde acceptance-blocker blijft actief: canonical TEST-runtimeconfiguratie ontbreekt.
