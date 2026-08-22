@@ -75,3 +75,36 @@ Acceptance is **BLOCKED BY ENVIRONMENT**, not GREEN. The remaining work is to pr
 - `Copy-Item -Force` is daarom niet uitgevoerd, om geen andere env-bron te zoeken of credentials buiten de expliciet aangewezen bron te gebruiken. Er zijn geen secrets gelezen, gelogd of gecommit.
 - Door deze stap-0-blocker zijn fixture-auth, preference snapshot/restore, serverstart op 3108, browser/API/persona/theme acceptance en cleanup in deze retry niet uitgevoerd. Er is geen remote write, productfix of gebruikersvoorkeurwijziging uitgevoerd.
 - Status van deze retry: **BLOCKED BY ENVIRONMENT**. De eerder vastgelegde technische gates en vorige 3108/Playwright-bevindingen blijven ongewijzigd; nieuwe authenticated acceptance vereist dat de canonical TEST-env op de aangewezen bronlocatie beschikbaar is.
+
+## Acceptance retry — canonical TEST-env en authenticated matrix — 2026-08-22
+
+- Exacte worktree en branch: `.codex-worktrees/debt-startpage-matrix`, `work/debt-startpage-matrix`. De canonical TEST-env is met `Copy-Item -Force` vanuit `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local` naar `apps/hr-suite/.env.local` gekopieerd; `Test-Path` op het doel was `True`. De inhoud is niet gelezen, gelogd of gecommit.
+- Canonical fixture-auth preflight: GREEN. Alleen de drie canonical TEST-fixtures HR, Manager en Employee zijn opnieuw ingesteld via `npm.cmd run fixtures:talent-auth -w @liquid-hr/hr-suite`.
+- Exacte Webpack-runtime uit deze worktree: ready op `http://localhost:3108`. Geen remote schema/database apply, push, merge of deploy.
+
+### Preference snapshot en herstel
+
+- TEST HR snapshot: thema `liquid-navy` (Default), `viewMode=compact`, wide layout `teamAvailability, continuousAppraisal, leave, documents, absenceCases, events, kpis`, narrow layout `reminders, workInProgress, journeys`.
+- TEST Manager snapshot: thema `liquid-navy` (Default), `viewMode=full`, wide layout `teamAvailability, leave, continuousAppraisal, absenceCases, events, documents, kpis`, narrow layout `reminders, workInProgress, journeys`.
+- Beide snapshots zijn na de acceptance via de bestaande preference-flow hersteld en na refresh uit de echte app read back. Er zijn geen willekeurige gebruikersvoorkeuren achtergelaten.
+
+### Browser/API evidence
+
+- TEST HR authenticated op desktop `1280x720` en Playwright `390x844`: Default en LinkedHR, compact en expanded. Widgets, kalendertegel, quick action `Nieuw ziektegeval`, operationele cards, keyboard/focus en page-level overflow zijn gecontroleerd; `document.scrollWidth === body.scrollWidth === viewport width` in alle gecontroleerde runs. Relevant console-resultaat na fresh reload: 0 errors.
+- TEST Manager authenticated op desktop `1280x720` en `390x844`: Default, compact en expanded. Team availability, continuous appraisal, reminders, journeys, process work, quick actions (`Mijn gegevens`, `Mijn team`, `Nieuw ziektegeval`), kalenderdatum en team-operationele cards zijn gecontroleerd; geen page-level horizontal overflow en 0 relevante console-errors na de fix.
+- TEST Manager heeft in deze persona geen Startpage scope-switch control; de enige gevonden `role=group` was de availability-weergave. Daarmee is scope-switch gecontroleerd als niet beschikbaar voor deze persona, conform permission/persona-contract.
+- Reële HTTP-statussen: `GET /login=200`, authenticated login `POST /login=200`, `GET /dashboard/start=200`, `PATCH /api/preferences/start-page=200`, personal-settings `POST /personal-settings=200`, quick-action/calendar/card routes `GET=200`, avatar proxy `GET /api/employees/{employeeId}/avatar=200`.
+- Preference/layout readback na refresh is voor HR en Manager uitgevoerd. Move controls gaven echte `PATCH /api/preferences/start-page=200`; de gewijzigde order bleef na refresh behouden en is daarna teruggezet. Een bounded Playwright `dragstart` → `dragover` → `drop`-sequence op de echte expanded Manager-pagina gaf eveneens `PATCH /api/preferences/start-page=200` en persistente order-readback. De native pointer-drag primitive leverde daarnaast in deze runtime geen native events op; dat is als toolingcaveat vastgelegd, niet als product-RED. De toegankelijke move-controls en drag-event reorder-flow zijn GREEN.
+
+### In-scope productfix
+
+- `apps/hr-suite/lib/startpage/service.ts` normaliseert nu `storage://`-avatarwaarden voor Startpage leave/active-absence cards naar de bestaande `/api/employees/{id}/avatar` proxy. Dit voorkwam een echte relevante console-error op het Manager Startpage; na de fix waren de avatar requests HTTP 200 en relevante console-errors 0. Geen generieke Foundation-, theme- of journey-only code gewijzigd.
+
+### Testdata en cleanup
+
+- Er is geen tijdelijke TEST-data aangemaakt. Er was daarom geen product-cleanup nodig; alleen de drie geautoriseerde canonical fixture-passwords zijn tijdens preflight opnieuw ingesteld. Alle Startpage- en theme-preferences zijn hersteld.
+- Scope-notitie bij destination smoke: een directe `/hr-calendar`-request gaf HTTP 200, maar de serverlog toonde voor een TEST-fixture-context een bestaande `AuthorizationError` op `hr-calendar:read`. De Startpage-kalenderdata zelf renderde correct en de browserconsole bleef op 0 errors. Dit route/permission-contract valt buiten de toegestane Startpage/preferences-only bugfixscope en is niet gewijzigd.
+
+## Retry-resultaat
+
+- Startpage acceptance retry: **GREEN**. De resterende authenticated acceptance is uitgevoerd; de enige productfix was de Startpage-avatar-proxy-normalisatie. De oude environment-blocker is met de canonical TEST-env opgelost. Geen remote schema apply, push, merge of deploy.
