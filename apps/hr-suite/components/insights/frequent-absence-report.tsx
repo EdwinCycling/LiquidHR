@@ -1,13 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { AlertTriangle, Download } from 'lucide-react'
+import { AlertTriangle, Download, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonClasses } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
+import { DataTableShell } from '@/components/patterns/data-table-shell'
+import { FilterBar } from '@/components/patterns/filter-bar'
+import { SectionHeader } from '@/components/patterns/section-header'
+import { ActiveFilters, ReportEmpty, ReportKpi, type ActiveReportFilter } from '@/components/insights/absence-report'
 import type { FrequentAbsenceQuery } from '@/lib/insights/frequent-absence-query'
 import type { FrequentAbsenceReport } from '@/lib/insights/frequent-absence-report'
 
 interface FrequentAbsenceLabels {
-  title: string; description: string; exportExcel: string; period: string; last12Months: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; search: string; searchPlaceholder: string; employee: string; reportCount: string; sickDays: string; frequent: string; threshold: string; thresholdDescription: string; totalEmployees: string; frequentCount: string; totalReports: string; noResults: string; yearLabel: string
+  title: string; description: string; exportExcel: string; period: string; last12Months: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; search: string; searchPlaceholder: string; employee: string; reportCount: string; sickDays: string; frequent: string; threshold: string; thresholdDescription: string; totalEmployees: string; frequentCount: string; totalReports: string; noResults: string; yearLabel: string; activeFilters?: string
 }
 
 function periodLabel(query: FrequentAbsenceQuery, labels: FrequentAbsenceLabels): string {
@@ -22,50 +32,51 @@ export function FrequentAbsenceReportView({ report, query, labels }: { report: F
   const exportParams = new URLSearchParams({ report: 'absence-frequent', period: query.period, format: 'excel' })
   if (query.departmentId) exportParams.set('department', query.departmentId)
   const rows = useMemo(() => report.rows.filter((row) => (!showFrequentOnly || row.isFrequent) && row.employeeName.toLocaleLowerCase('nl-NL').includes(search.trim().toLocaleLowerCase('nl-NL'))), [report.rows, search, showFrequentOnly])
+  const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
+  const activeFilters: ActiveReportFilter[] = [
+    { label: labels.period, value: periodLabel(query, labels) },
+    ...(selectedDepartment ? [{ label: labels.team, value: selectedDepartment }] : []),
+    ...(search.trim() ? [{ label: labels.search, value: search.trim() }] : []),
+    ...(showFrequentOnly ? [{ text: labels.frequent }] : []),
+  ]
 
   return <section className="space-y-5">
-    <form action="/insights" className="flex flex-col gap-3 rounded-xl border bg-muted/35 p-4 lg:flex-row lg:items-end" method="get">
-      <input name="report" type="hidden" value="absence-frequent" />
-      <label className="flex min-w-44 flex-1 flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><select className="h-11 rounded-lg border bg-background px-3 font-normal" defaultValue={query.period} name="period"><option value="12-months">{labels.last12Months}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></select></label>
-      <label className="flex min-w-52 flex-[1.4] flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><select className="h-11 rounded-lg border bg-background px-3 font-normal" defaultValue={query.departmentId ?? ''} name="department"><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
-      <div className="flex min-w-52 flex-1 flex-col gap-1.5"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.search}</span><input className="h-11 rounded-lg border bg-background px-3 font-normal" onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchPlaceholder} type="search" value={search} /></div>
-      <button className="button-primary h-11 whitespace-nowrap" type="submit">{labels.applyFilters}</button>
-      <a className="button-secondary inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap" download href={`/api/insights/absence?${exportParams.toString()}`}><Download aria-hidden="true" size={16} />{labels.exportExcel}</a>
+    <form action="/insights" method="get">
+      <FilterBar actions={<div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <Button size="md" type="submit">{labels.applyFilters}</Button>
+        <a className={buttonClasses({ size: 'md', variant: 'secondary' })} download href={`/api/insights/absence?${exportParams.toString()}`}><Download aria-hidden="true" />{labels.exportExcel}</a>
+      </div>}>
+        <input name="report" type="hidden" value="absence-frequent" />
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} defaultValue={query.period} name="period"><option value="12-months">{labels.last12Months}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} defaultValue={query.departmentId ?? ''} name="department" searchable searchPlaceholder={labels.team}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-[1.2] flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.search}</span><TextInput leadingIcon={<Search aria-hidden="true" />} onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchPlaceholder} type="search" value={search} /></label>
+        <div className="flex min-h-10 min-w-0 basis-full items-center sm:basis-auto sm:min-w-44"><Checkbox checked={showFrequentOnly} label={labels.frequent} onChange={(event) => setShowFrequentOnly(event.target.checked)} /></div>
+      </FilterBar>
     </form>
+    <ActiveFilters filters={activeFilters} label={labels.activeFilters} />
 
     <div className="grid gap-3 sm:grid-cols-3">
-      <Kpi label={labels.totalEmployees} value={String(report.totalEmployees)} />
-      <Kpi label={labels.totalReports} value={String(report.totalReports)} />
-      <Kpi label={labels.frequentCount} value={String(report.frequentCount)} tone="rose" />
+      <ReportKpi featured label={labels.frequentCount} tone="danger" value={String(report.frequentCount)} />
+      <ReportKpi label={labels.totalEmployees} tone="info" value={String(report.totalEmployees)} />
+      <ReportKpi label={labels.totalReports} value={String(report.totalReports)} />
     </div>
 
-    <div className="flex items-start gap-3 rounded-xl border border-destructive/25 bg-destructive-surface p-4 text-sm leading-6 text-muted-foreground">
-      <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0 text-destructive" size={16} />
-      <p>{labels.thresholdDescription.replace('{threshold}', String(report.threshold))}</p>
-    </div>
+    <Surface className="flex items-start gap-3 p-4 text-sm leading-6 text-muted-foreground" variant="subtle"><AlertTriangle aria-hidden="true" className="mt-1 shrink-0 text-warning" size={17} /><p>{labels.thresholdDescription.replace('{threshold}', String(report.threshold))}</p></Surface>
 
-    <section className="overflow-hidden rounded-xl border bg-background">
-      <header className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{periodLabel(query, labels)}</p><h3 className="mt-1 font-semibold">{labels.title}</h3></div>
-        <div className="flex items-center gap-4"><label className="flex items-center gap-2 text-sm font-medium"><input checked={showFrequentOnly} className="size-4 accent-destructive" onChange={() => setShowFrequentOnly(!showFrequentOnly)} type="checkbox" />{labels.frequent}</label><span className="text-sm text-muted-foreground">{rows.length} / {report.rows.length}</span></div>
-      </header>
-      {rows.length ? <ul className="divide-y">{rows.map((row) => <li className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-6 ${row.isFrequent ? 'bg-destructive/5' : ''}`} key={row.employeeId}>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <Link className="font-semibold text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link>
-            {row.isFrequent ? <span className="inline-flex items-center rounded-full bg-destructive px-2 py-0.5 text-xs font-semibold text-destructive-foreground">{labels.frequent}</span> : null}
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{row.departmentName ?? labels.allDepartments}</p>
-        </div>
-        <div className="flex items-center gap-6 text-sm sm:justify-end">
-          <span className="tabular-nums"><strong className={row.isFrequent ? 'text-destructive' : ''}>{row.reportCount}</strong> {labels.reportCount.toLowerCase()}</span>
-          <span className="tabular-nums"><strong>{row.totalSickDays.toFixed(1)}</strong> {labels.sickDays.toLowerCase()}</span>
-        </div>
-      </li>)}</ul> : <p className="p-8 text-center text-sm text-muted-foreground">{labels.noResults}</p>}
-    </section>
+    <div className="space-y-3">
+      <SectionHeader actions={<span className="text-sm text-muted-foreground">{rows.length} / {report.rows.length}</span>} description={periodLabel(query, labels)} title={labels.title} />
+      <DataTableShell caption={labels.title} state={rows.length ? 'ready' : 'empty'} stateContent={<ReportEmpty title={labels.noResults} />}>
+        <thead className="bg-surface-subtle text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr>
+          <th className="px-4 py-3 sm:px-5">{labels.employee}</th><th className="px-4 py-3 sm:px-5">{labels.team}</th><th className="px-4 py-3 text-right sm:px-5">{labels.reportCount}</th><th className="px-4 py-3 text-right sm:px-5">{labels.sickDays}</th><th className="px-4 py-3 sm:px-5">{labels.frequent}</th>
+        </tr></thead>
+        <tbody className="divide-y divide-border-subtle">{rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
+          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link></td>
+          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
+          <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">{row.reportCount}</td>
+          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.totalSickDays.toFixed(1)}</td>
+          <td className="px-4 py-3 sm:px-5">{row.isFrequent ? <Badge tone="danger">{labels.frequent}</Badge> : null}</td>
+        </tr>)}</tbody>
+      </DataTableShell>
+    </div>
   </section>
-}
-
-function Kpi({ label, value, tone = 'blue' }: { label: string; value: string; tone?: 'blue' | 'rose' }) {
-  return <article className={`rounded-xl border p-4 ${tone === 'rose' ? 'border-destructive/25 bg-destructive-surface' : 'border-chart-1/25 bg-chart-1/10'}`}><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p><p className={`mt-2 text-2xl font-semibold tabular-nums ${tone === 'rose' ? 'text-destructive' : 'text-chart-1'}`}>{value}</p></article>
 }

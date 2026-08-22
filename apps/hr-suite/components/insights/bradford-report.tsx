@@ -1,13 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Download, Info, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ArrowRight, Download, Info, Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import type { BadgeTone } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonClasses } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/dialog'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { TextInput } from '@/components/ui/text-input'
+import { DataTableShell } from '@/components/patterns/data-table-shell'
+import { FilterBar } from '@/components/patterns/filter-bar'
+import { SectionHeader } from '@/components/patterns/section-header'
+import { ActiveFilters, ReportEmpty, ReportKpi, type ActiveReportFilter } from '@/components/insights/absence-report'
 import type { BradfordInsightQuery } from '@/lib/insights/bradford-query'
 import type { BradfordInsightReport, BradfordBand } from '@/lib/insights/bradford-report'
 
 interface BradfordReportLabels {
-  title: string; description: string; backToAbsence: string; exportExcel: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string
+  title: string; description: string; backToAbsence: string; exportExcel: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string; activeFilters?: string
 }
 
 function periodLabel(query: BradfordInsightQuery, labels: BradfordReportLabels): string {
@@ -22,10 +32,21 @@ function bandLabel(band: BradfordBand, labels: BradfordReportLabels): string {
   return labels.lowRisk
 }
 
-function bandStyle(band: BradfordBand): string {
-  if (band === 'HIGH') return 'bg-destructive text-destructive-foreground'
-  if (band === 'MEDIUM') return 'bg-chart-4 text-white'
-  return 'bg-chart-2 text-white'
+function bandTone(band: BradfordBand): BadgeTone {
+  if (band === 'HIGH') return 'danger'
+  if (band === 'MEDIUM') return 'warning'
+  return 'success'
+}
+
+function bandBarClass(band: BradfordBand): string {
+  if (band === 'HIGH') return 'bg-destructive'
+  if (band === 'MEDIUM') return 'bg-warning'
+  return 'bg-success'
+}
+
+function dateLabel(value: string): string {
+  const [year, month, day] = value.split('-')
+  return `${day}/${month}/${year}`
 }
 
 export function BradfordReportView({ report, query, labels }: { report: BradfordInsightReport; query: BradfordInsightQuery; labels: BradfordReportLabels }) {
@@ -36,30 +57,68 @@ export function BradfordReportView({ report, query, labels }: { report: Bradford
   if (query.departmentId) exportParams.set('department', query.departmentId)
   const maxScore = Math.max(1, ...report.rows.map((row) => row.score))
   const rows = useMemo(() => report.rows.filter((row) => (risk === 'ALL' || row.band === risk) && row.employeeName.toLocaleLowerCase('nl-NL').includes(search.trim().toLocaleLowerCase('nl-NL'))), [report.rows, risk, search])
-  useEffect(() => {
-    if (!infoOpen) return
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setInfoOpen(false) }
-    document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
-  }, [infoOpen])
+  const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
+  const activeFilters: ActiveReportFilter[] = [
+    { label: labels.period, value: periodLabel(query, labels) },
+    ...(selectedDepartment ? [{ label: labels.team, value: selectedDepartment }] : []),
+    ...(risk !== 'ALL' ? [{ label: labels.risk, value: bandLabel(risk, labels) }] : []),
+    ...(search.trim() ? [{ label: labels.search, value: search.trim() }] : []),
+  ]
+
   return <section className="space-y-5">
-    <header className="flex flex-col gap-4 border-b pb-6 lg:flex-row lg:items-start lg:justify-between"><div><Link className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary" href="/insights?report=absence"><ArrowLeft aria-hidden="true" size={16} />{labels.backToAbsence}</Link><h1 className="text-3xl font-semibold tracking-tight">{labels.title}</h1><p className="mt-2 max-w-2xl text-muted-foreground">{labels.description}</p></div><div className="flex flex-wrap gap-2"><button aria-controls="bradford-info" aria-expanded={infoOpen} className="button-secondary inline-flex items-center gap-2" onClick={() => setInfoOpen(true)} type="button"><Info aria-hidden="true" size={16} />{labels.info}</button><a className="button-primary inline-flex items-center gap-2" download href={`/api/insights/absence?${exportParams.toString()}`}><Download aria-hidden="true" size={16} />{labels.exportExcel}</a></div></header>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Link className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary" href="/insights?report=absence"><ArrowLeft aria-hidden="true" size={16} />{labels.backToAbsence}</Link>
+      <p className="max-w-xl text-right text-sm text-muted-foreground">{labels.description}</p>
+    </div>
 
-    <form action="/insights" className="flex flex-col gap-3 rounded-xl border bg-muted/35 p-4 lg:flex-row lg:items-end" method="get"><input name="report" type="hidden" value="absence-bradford" /><label className="flex min-w-44 flex-1 flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><select className="h-11 rounded-lg border bg-background px-3 font-normal" name="period" defaultValue={query.period}><option value="52-weeks">{labels.last52Weeks}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></select></label><label className="flex min-w-52 flex-[1.4] flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><select className="h-11 rounded-lg border bg-background px-3 font-normal" name="department" defaultValue={query.departmentId ?? ''}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label><label className="flex min-w-44 flex-1 flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.risk}</span><select className="h-11 rounded-lg border bg-background px-3 font-normal" onChange={(event) => setRisk(event.target.value as 'ALL' | BradfordBand)} value={risk}><option value="ALL">{labels.allRisks}</option><option value="LOW">{labels.lowRisk}</option><option value="MEDIUM">{labels.mediumRisk}</option><option value="HIGH">{labels.highRisk}</option></select></label><div className="flex min-w-52 flex-1 flex-col gap-1.5"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.search}</span><input className="h-11 rounded-lg border bg-background px-3 font-normal" onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchPlaceholder} type="search" value={search} /></div><button className="button-primary h-11 whitespace-nowrap" type="submit">{labels.applyFilters}</button></form>
+    <form action="/insights" method="get">
+      <FilterBar actions={<div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <Button size="md" type="button" variant="secondary" onClick={() => setInfoOpen(true)}><Info aria-hidden="true" />{labels.info}</Button>
+        <Button size="md" type="submit">{labels.applyFilters}</Button>
+        <a className={buttonClasses({ size: 'md', variant: 'secondary' })} download href={`/api/insights/absence?${exportParams.toString()}`}><Download aria-hidden="true" />{labels.exportExcel}</a>
+      </div>}>
+        <input name="report" type="hidden" value="absence-bradford" />
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} defaultValue={query.period} name="period"><option value="52-weeks">{labels.last52Weeks}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} defaultValue={query.departmentId ?? ''} name="department" searchable searchPlaceholder={labels.team}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.risk}</span><DropdownSelect aria-label={labels.risk} onChange={(event) => setRisk(event.target.value as 'ALL' | BradfordBand)} value={risk}><option value="ALL">{labels.allRisks}</option><option value="LOW">{labels.lowRisk}</option><option value="MEDIUM">{labels.mediumRisk}</option><option value="HIGH">{labels.highRisk}</option></DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-[1.2] flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.search}</span><TextInput leadingIcon={<Search aria-hidden="true" />} onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchPlaceholder} type="search" value={search} /></label>
+      </FilterBar>
+    </form>
+    <ActiveFilters filters={activeFilters} label={labels.activeFilters} />
 
-    <div className="grid gap-3 sm:grid-cols-3"><Kpi label={labels.period} value={periodLabel(query, labels)} /><Kpi label={labels.occurrences} value={String(report.totalOccurrences)} /><Kpi label={labels.days} value={report.totalSickDays.toFixed(1)} /></div>
-    <div className="flex flex-wrap items-center gap-4 rounded-xl border bg-background px-4 py-3 text-sm"><span className="font-medium">{labels.distribution}</span><Legend band="LOW" labels={labels} /><Legend band="MEDIUM" labels={labels} /><Legend band="HIGH" labels={labels} /></div>
+    <div className="grid gap-3 sm:grid-cols-3">
+      <ReportKpi featured label={labels.period} tone="primary" value={periodLabel(query, labels)} />
+      <ReportKpi label={labels.occurrences} tone="info" value={String(report.totalOccurrences)} />
+      <ReportKpi label={labels.days} tone="warning" value={report.totalSickDays.toFixed(1)} />
+    </div>
 
-    <section className="overflow-hidden rounded-xl border bg-background"><header className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.groupBy}</p><h2 className="mt-1 font-semibold">{labels.person}</h2></div><span className="text-sm text-muted-foreground">{rows.length} / {report.rows.length}</span></header>{rows.length ? <ul className="divide-y">{rows.map((row) => <li className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1.8fr)_6rem] sm:items-center" key={row.employeeId}><div className="min-w-0"><Link className="font-semibold text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link><p className="mt-1 text-sm text-muted-foreground">{row.departmentName ?? labels.allDepartments} · {labels.occurrences}: {row.absenceOccurrences} · {labels.days}: {row.sickDays.toFixed(1)}</p></div><div><div aria-label={`${labels.distribution}: ${row.score}`} className="h-5 overflow-hidden rounded-md bg-muted"><div className={`h-full min-w-1 rounded-md ${bandStyle(row.band)}`} style={{ width: `${Math.max(row.score ? 2 : 0, row.score / maxScore * 100)}%` }} /></div><span className="sr-only">{bandLabel(row.band, labels)}</span></div><div className="text-right"><strong className="block text-lg tabular-nums">{row.score}</strong><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${bandStyle(row.band)}`}>{bandLabel(row.band, labels)}</span></div></li>)}</ul> : <p className="p-8 text-center text-sm text-muted-foreground">{labels.noResults}</p>}</section>
+    <div className="flex flex-wrap items-center gap-2 text-sm"><span className="mr-1 font-medium text-muted-foreground">{labels.distribution}</span><BradfordLegend band="LOW" labels={labels} /><BradfordLegend band="MEDIUM" labels={labels} /><BradfordLegend band="HIGH" labels={labels} /></div>
 
-    {infoOpen ? <div aria-labelledby="bradford-info-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4" id="bradford-info" role="dialog"><div className="max-h-[min(85vh,42rem)] w-full max-w-xl overflow-y-auto rounded-2xl border bg-background p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><h2 className="text-xl font-semibold" id="bradford-info-title">{labels.infoTitle}</h2><button aria-label={labels.close} className="grid size-9 place-items-center rounded-full border hover:bg-muted" onClick={() => setInfoOpen(false)} type="button"><X aria-hidden="true" size={17} /></button></div><div className="mt-5 space-y-4 text-sm leading-6 text-muted-foreground"><p>{labels.infoFormula}</p><p>{labels.infoInterpretation}</p><ul className="list-disc space-y-1 pl-5"><li>{labels.infoLow}</li><li>{labels.infoMedium}</li><li>{labels.infoHigh}</li></ul><p>{labels.infoCaveat}</p><a className="font-medium text-primary underline" href="https://www.ucu.org.uk/media/5329/Sickness-absence-the-Bradford-Factor---UCU-factsheet/pdf/ucufactsheet_sicknessabsence_theBradfordFactor_jul12.pdf" rel="noreferrer" target="_blank">{labels.infoSource}</a></div><div className="mt-6 flex justify-end"><button className="button-primary" onClick={() => setInfoOpen(false)} type="button">{labels.close}</button></div></div></div> : null}
+    <div className="space-y-3">
+      <SectionHeader actions={<span className="text-sm text-muted-foreground">{rows.length} / {report.rows.length}</span>} description={periodLabel(query, labels)} title={labels.person} />
+      <DataTableShell caption={labels.title} state={rows.length ? 'ready' : 'empty'} stateContent={<ReportEmpty title={labels.noResults} />}>
+        <thead className="bg-surface-subtle text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr>
+          <th className="px-4 py-3 sm:px-5">{labels.employee}</th><th className="px-4 py-3 sm:px-5">{labels.team}</th><th className="px-4 py-3 sm:px-5">{labels.since}</th><th className="px-4 py-3 text-right sm:px-5">{labels.occurrences}</th><th className="px-4 py-3 text-right sm:px-5">{labels.days}</th><th className="min-w-56 px-4 py-3 sm:px-5">{labels.distribution}</th><th className="px-4 py-3 text-right sm:px-5">{labels.score}</th><th className="px-4 py-3 sm:px-5">{labels.dossier}</th>
+        </tr></thead>
+        <tbody className="divide-y divide-border-subtle">{rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
+          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link></td>
+          <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
+          <td className="px-4 py-3 sm:px-5">{dateLabel(row.firstAbsenceOn)}</td>
+          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.absenceOccurrences}</td>
+          <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays.toFixed(1)}</td>
+          <td className="min-w-56 px-4 py-3 sm:px-5"><div aria-label={`${labels.distribution}: ${row.score}`} className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${bandBarClass(row.band)}`} style={{ width: `${Math.max(row.score ? 2 : 0, row.score / maxScore * 100)}%` }} /></div></td>
+          <td className="px-4 py-3 text-right sm:px-5"><div className="flex flex-col items-end gap-1"><strong className="text-lg tabular-nums">{row.score}</strong><Badge tone={bandTone(row.band)}>{bandLabel(row.band, labels)}</Badge></div></td>
+          <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
+        </tr>)}</tbody>
+      </DataTableShell>
+    </div>
+
+    <Dialog closeLabel={labels.close} description={labels.infoInterpretation} footer={<div className="flex justify-end"><Button type="button" onClick={() => setInfoOpen(false)}>{labels.close}</Button></div>} onOpenChange={setInfoOpen} open={infoOpen} title={labels.infoTitle}>
+      <div className="space-y-4 text-sm leading-6 text-muted-foreground"><p>{labels.infoFormula}</p><ul className="list-disc space-y-1 pl-5"><li>{labels.infoLow}</li><li>{labels.infoMedium}</li><li>{labels.infoHigh}</li></ul><p>{labels.infoCaveat}</p><a className="font-medium text-primary underline" href="https://www.ucu.org.uk/media/5329/Sickness-absence-the-Bradford-Factor---UCU-factsheet/pdf/ucufactsheet_sicknessabsence_theBradfordFactor_jul12.pdf" rel="noreferrer" target="_blank">{labels.infoSource}</a></div>
+    </Dialog>
   </section>
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
-  return <article className="rounded-xl border border-chart-1/25 bg-chart-1/10 p-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold tabular-nums text-chart-1">{value}</p></article>
-}
-
-function Legend({ band, labels }: { band: BradfordBand; labels: BradfordReportLabels }) {
-  return <span className="inline-flex items-center gap-2"><span aria-hidden="true" className={`size-3 rounded-full ${bandStyle(band)}`} />{bandLabel(band, labels)}</span>
+function BradfordLegend({ band, labels }: { band: BradfordBand; labels: BradfordReportLabels }) {
+  return <Badge tone={bandTone(band)}>{bandLabel(band, labels)}</Badge>
 }
