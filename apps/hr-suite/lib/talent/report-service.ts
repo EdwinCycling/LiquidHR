@@ -14,6 +14,7 @@ export class TalentReportError extends Error {
 }
 
 export type TalentReportGoalRow = {
+  employeeId: string
   employeeLabel: string | null
   title: string
   status: string
@@ -24,6 +25,7 @@ export type TalentReportGoalRow = {
 }
 
 export type TalentReportCapabilityRow = {
+  employeeId: string
   employeeLabel: string
   capabilityCode: string
   capabilityName: string
@@ -38,6 +40,12 @@ export type TalentReportCapabilityRow = {
 
 export type TalentReportWorkspace = {
   mode: TalentReportMode
+  query: TalentReportQuery
+  population: {
+    scope: 'tenant' | 'manager' | 'self'
+    employeeCount: number
+    rowCount: number
+  }
   goals: TalentReportGoalRow[]
   capabilities: TalentReportCapabilityRow[]
 }
@@ -50,6 +58,7 @@ async function authorize(mode: TalentReportMode): Promise<AuthContext> {
 
 function mapGoal(goal: TalentGoal): TalentReportGoalRow {
   return {
+    employeeId: goal.employee_id,
     employeeLabel: goal.employeeLabel,
     title: goal.title,
     status: goal.status,
@@ -62,6 +71,7 @@ function mapGoal(goal: TalentGoal): TalentReportGoalRow {
 
 function mapCapability(record: TalentEmployeeCapabilityRecord): TalentReportCapabilityRow {
   return {
+    employeeId: record.employeeId,
     employeeLabel: record.employeeLabel,
     capabilityCode: record.capabilityCode,
     capabilityName: record.capabilityName,
@@ -81,20 +91,58 @@ function overlapsPeriod(start: string, end: string | null, periodFrom?: string, 
   return true
 }
 
-export async function listTalentReport(mode: TalentReportMode, query: TalentReportQuery = { mode }): Promise<TalentReportWorkspace> {
-  await authorize(mode)
-  await requireTenantModule('TALENT')
-  const employeeId = mode === 'self' ? undefined : query.employeeId
-  const [goalWorkspace, capabilityRecords] = await Promise.all([
-    listTalentGoals(mode, { employeeId, status: query.goalStatus }, { includeOptions: false }),
-    mode === 'self'
-      ? listMyTalentEmployeeCapabilityRecords()
-      : listTalentEmployeeCapabilityRecords({ employeeId, status: query.recordStatus }),
-  ])
+export function matchesTalentReportTimeframe(start: string, end: string | null, timeframe: TalentReportQuery['timeframe'], today: string): boolean {
+  if (timeframe === 'all') return true
+  const isCurrent = start <= today && (!end || end >= today)
+  return timeframe === 'current' ? isCurrent : Boolean(end && end < today)
+}
+
+function normalizedQuery(mode: TalentReportMode, query: TalentReportQuery): TalentReportQuery {
   return {
     mode,
-    goals: goalWorkspace.goals.filter((goal) => overlapsPeriod(goal.period_start, goal.period_end, query.periodFrom, query.periodTo)).map(mapGoal),
-    capabilities: capabilityRecords.filter((record) => overlapsPeriod(record.validFrom, record.validUntil, query.periodFrom, query.periodTo)).map(mapCapability),
+    reportType: query.reportType ?? 'all',
+    timeframe: query.timeframe ?? 'all',
+    employeeId: query.employeeId,
+    goalStatus: query.goalStatus,
+    recordStatus: query.recordStatus,
+    periodFrom: query.periodFrom,
+    periodTo: query.periodTo,
+  }
+}
+
+export async function listTalentReport(mode: TalentReportMode, query: TalentReportQuery = { mode, reportType: 'all', timeframe: 'all' }): Promise<TalentReportWorkspace> {
+  await authorize(mode)
+  await requireTenantModule('TALENT')
+  const filters = normalizedQuery(mode, query)
+  const employeeId = mode === 'self' ? undefined : query.employeeId
+  const goalWorkspace = filters.reportType === 'capabilities'
+    ? { goals: [] as TalentGoal[] }
+    : await listTalentGoals(mode, { employeeId, status: filters.goalStatus }, { includeOptions: false })
+  const capabilityRecords = filters.reportType === 'goals'
+    ? [] as TalentEmployeeCapabilityRecord[]
+    : mode === 'self'
+      ? await listMyTalentEmployeeCapabilityRecords()
+      : await listTalentEmployeeCapabilityRecords({ employeeId, status: filters.recordStatus })
+  const today = new Date().toISOString().slice(0, 10)
+  const goals = filters.reportType === 'capabilities' ? [] : goalWorkspace.goals
+    .filter((goal) => overlapsPeriod(goal.period_start, goal.period_end, filters.periodFrom, filters.periodTo))
+    .filter((goal) => matchesTalentReportTimeframe(goal.period_start, goal.period_end, filters.timeframe, today))
+    .map(mapGoal)
+  const capabilities = filters.reportType === 'goals' ? [] : capabilityRecords
+    .filter((record) => overlapsPeriod(record.validFrom, record.validUntil, filters.periodFrom, filters.periodTo))
+    .filter((record) => matchesTalentReportTimeframe(record.validFrom, record.validUntil, filters.timeframe, today))
+    .map(mapCapability)
+  const employeeIds = new Set([...goals.map((goal) => goal.employeeId), ...capabilities.map((record) => record.employeeId)])
+  return {
+    mode,
+    query: filters,
+    population: {
+      scope: mode === 'admin' ? 'tenant' : mode === 'manager' ? 'manager' : 'self',
+      employeeCount: employeeIds.size,
+      rowCount: goals.length + capabilities.length,
+    },
+    goals,
+    capabilities,
   }
 }
 
@@ -119,11 +167,13 @@ export async function auditTalentReportExport(mode: TalentReportMode, query: Tal
   const context = await requireAuthContext()
   const supabase = await createClient()
   const changes = {
-    format: 'csv',
-    scope: mode,
-    record_count: recordCount,
-    filters: {
-      employee_filtered: Boolean(query.employeeId && mode !== 'self'),
+      format: 'csv',
+      scope: mode,
+      record_count: recordCount,
+      filters: {
+        report_type: query.reportType ?? 'all',
+        timeframe: query.timeframe ?? 'all',
+        employee_filtered: Boolean(query.employeeId && mode !== 'self'),
       goal_status: query.goalStatus ?? null,
       record_status: query.recordStatus ?? null,
       period_from: query.periodFrom ?? null,
