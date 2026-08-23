@@ -80,7 +80,9 @@ Delete is niet uitgevoerd: de bestaande API heeft geen DELETE-contract en de kop
 ### Personas, negative path en theme/responsive
 
 - TEST HR Admin: GREEN voor tagbeheer, star-performer assessment, tag assignment, refresh/readback en permission-aware HR-acties.
-- TEST Manager en TEST Employee: loginpoging uitgevoerd, maar beide sessions eindigden op `/geen-toegang` (document 200) wegens `Nog geen toegang — Je account is ingelogd, maar nog niet aan een klantomgeving gekoppeld.`. De HR test-role switcher gaf voor Manager **403** (`TEST_ROLE_SWITCH_FORBIDDEN`). Geen workaround of andere accountwijziging uitgevoerd.
+- TEST Manager en TEST Employee: afzonderlijk authenticated op `/dashboard/start` (document 200); `/api/context` gaf voor beide **200**, dus actuele tenant-context was aanwezig.
+- Permission probes: voor beide gaf `GET /api/star-performer-tags` **403** (`Je hebt onvoldoende rechten voor deze actie.`) en een geldige `POST /api/star-performer-tags` **403** met dezelfde fout. Daarmee zijn `star-performer:read` en `star-performer:write` voor beide persona's niet aanwezig.
+- Negative acceptance is daarom **GREEN**: `/workforce/star-performers` eindigde voor beide op `/geen-toegang` (document 200). Geen workaround, role-switch of andere accountwijziging uitgevoerd.
 - LinkedHR: desktop 1440x900 en 390x844, beide `scrollWidth` gelijk aan viewport; R3-route console `0` errors / `0` warnings (alleen React/HMR-info).
 - Default/Liquid Navy: desktop 1440x900 en 390x844, beide `scrollWidth` gelijk aan viewport; R3-route console `0` errors / `0` warnings (alleen React/HMR-info).
 - Clickthrough naar employee identity, scanbare tags, filters en geen overmatige card-layout zijn browsermatig gecontroleerd.
@@ -94,6 +96,6 @@ Delete is niet uitgevoerd: de bestaande API heeft geen DELETE-contract en de kop
 
 ### Eindstatus retry
 
-- R3 Acceptance: **GREEN voor TEST HR Admin**.
-- Persona-matrix is niet volledig sluitend voor Manager/Employee door de bestaande ontbrekende tenant-context; dit blijft een omgevings-/fixtureblokker buiten de R3-productfix.
+- R3 Acceptance: **GREEN** — TEST HR Admin positieve flow en TEST Manager/Employee correcte negative permission-flow.
+- De eerdere Manager/Employee-contextvermelding was stale; de retry van 2026-08-23 bevestigt context 200 en ontbrekende R3-permissions via echte API-probes. Er is geen persona-productbug vastgesteld.
 - Tijdelijke data is volgens bestaand contract gedeactiveerd en refresh/readback gecontroleerd; geen tijdelijke tag is actief achtergelaten.
