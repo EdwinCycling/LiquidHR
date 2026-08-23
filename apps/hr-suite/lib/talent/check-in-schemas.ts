@@ -11,6 +11,7 @@ export const talentCheckInCreateSchema = z.object({
 }).strict().superRefine((value, context) => {
   if (value.entryType === 'FOLLOW_UP' && !value.followUpTitle) context.addIssue({ code: 'custom', path: ['followUpTitle'], message: 'TALENT_CHECKIN_FOLLOW_UP_TITLE_REQUIRED' })
   if (value.entryType !== 'FOLLOW_UP' && value.followUpTitle) context.addIssue({ code: 'custom', path: ['followUpTitle'], message: 'TALENT_CHECKIN_FOLLOW_UP_TITLE_NOT_ALLOWED' })
+  if (value.entryType !== 'FOLLOW_UP' && value.followUpDueOn) context.addIssue({ code: 'custom', path: ['followUpDueOn'], message: 'TALENT_CHECKIN_FOLLOW_UP_DUE_NOT_ALLOWED' })
 })
 
 export const talentCheckInUpdateSchema = z.object({

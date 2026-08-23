@@ -13,9 +13,11 @@ function modeFromRequest(request: Request): GoalMode {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
-    const parsed = talentGoalListQuerySchema.safeParse({ employeeId: url.searchParams.get('employeeId') ?? undefined, status: url.searchParams.get('status') ?? undefined })
+    const parsed = talentGoalListQuerySchema.safeParse({ goalId: undefined, employeeId: url.searchParams.get('employeeId') ?? undefined, status: url.searchParams.get('status') ?? undefined })
     if (!parsed.success) return NextResponse.json({ error: 'TALENT_GOAL_INPUT_INVALID' }, { status: 400 })
-    return NextResponse.json({ data: await listTalentGoals(modeFromRequest(request), parsed.data) })
+    const includeEmployeeOptions = url.searchParams.get('includeEmployeeOptions') !== 'false'
+    const includeCapabilityOptions = url.searchParams.get('includeCapabilityOptions') === 'true'
+    return NextResponse.json({ data: await listTalentGoals(modeFromRequest(request), parsed.data, { includeOptions: false, includeEmployeeOptions, includeCapabilityOptions }) })
   } catch (error) {
     return talentErrorResponse(error, 'TALENT_GOAL_READ_FAILED')
   }
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const parsed = talentGoalCreateSchema.safeParse(await request.json())
+    const parsed = talentGoalCreateSchema.safeParse(await request.json().catch(() => null) as unknown)
     if (!parsed.success) return NextResponse.json({ error: 'TALENT_GOAL_INPUT_INVALID' }, { status: 400 })
     return NextResponse.json({ data: { id: await createTalentGoal(parsed.data) } }, { status: 201 })
   } catch (error) {

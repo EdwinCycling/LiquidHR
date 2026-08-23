@@ -17,13 +17,24 @@ export class TalentCheckInError extends Error {
   }
 }
 
-async function goalContext(goalId: string): Promise<{ context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>>; employeeId: string }> {
+function checkInDatabaseError(message: string, fallback: string, databaseCode?: string): never {
+  const normalized = message.toLocaleUpperCase('en-US')
+  const explicitCode = normalized.match(/TALENT_[A-Z0-9_]+/)?.[0]
+  if (explicitCode) {
+    const status = explicitCode.includes('FORBIDDEN') ? 403 : explicitCode.includes('NOT_FOUND') ? 404 : explicitCode.includes('CONFLICT') || explicitCode.includes('LOCKED') ? 409 : 400
+    throw new TalentCheckInError(explicitCode, status)
+  }
+  if (databaseCode === '42501') throw new TalentCheckInError('TALENT_CHECKIN_FORBIDDEN', 403)
+  throw new TalentCheckInError(fallback)
+}
+
+async function goalContext(goalId: string): Promise<{ context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>>; employeeId: string; goalStatus: string }> {
   const context = await requireAuthContext()
   await requireTenantModule('TALENT')
   const supabase = await createClient()
   const { data: goal, error } = await supabase
     .from('talent_development_goals')
-    .select('employee_id')
+    .select('employee_id,status')
     .eq('tenant_id', context.tenantId)
     .eq('id', goalId)
     .maybeSingle()
@@ -33,7 +44,7 @@ async function goalContext(goalId: string): Promise<{ context: AuthContext; supa
   } catch {
     throw new TalentCheckInError('TALENT_CHECKIN_FORBIDDEN', 403)
   }
-  return { context, supabase, employeeId: goal.employee_id }
+  return { context, supabase, employeeId: goal.employee_id, goalStatus: goal.status }
 }
 
 function mapCheckIn(row: CheckInRow): TalentGoalCheckIn {
@@ -66,7 +77,8 @@ export async function listTalentGoalCheckIns(goalId: string): Promise<TalentGoal
 }
 
 export async function createTalentGoalCheckIn(goalId: string, input: TalentCheckInCreateInput): Promise<string> {
-  const { context, supabase, employeeId } = await goalContext(goalId)
+  const { context, supabase, employeeId, goalStatus } = await goalContext(goalId)
+  if (goalStatus !== 'ACTIVE') throw new TalentCheckInError('TALENT_CHECKIN_GOAL_NOT_ACTIVE', 409)
   const isAdmin = context.permissions.includes('talent-goal:manage')
   const isSelf = context.employeeId === employeeId
   if (!isAdmin && (isSelf ? input.entryType !== 'EMPLOYEE_REFLECTION' : input.entryType === 'EMPLOYEE_REFLECTION')) {
@@ -86,7 +98,10 @@ export async function createTalentGoalCheckIn(goalId: string, input: TalentCheck
     status: 'OPEN',
   }
   const { data, error } = await supabase.from('talent_goal_check_ins').insert(insert).select('id').single()
-  if (error || !data) throw new TalentCheckInError(error?.message?.includes('VERSION') ? 'TALENT_CHECKIN_VERSION_CONFLICT' : 'TALENT_CHECKIN_CREATE_FAILED', error?.code === '42501' ? 403 : 400)
+  if (error || !data) {
+    if (error) checkInDatabaseError(error.message, 'TALENT_CHECKIN_CREATE_FAILED', error.code)
+    throw new TalentCheckInError('TALENT_CHECKIN_CREATE_FAILED', 400)
+  }
   return data.id
 }
 
@@ -111,6 +126,9 @@ export async function updateTalentGoalCheckIn(checkInId: string, input: TalentCh
   if (!isAdmin && (isSelf ? current.entry_type !== 'EMPLOYEE_REFLECTION' : current.entry_type === 'EMPLOYEE_REFLECTION')) {
     throw new TalentCheckInError('TALENT_CHECKIN_ENTRY_TYPE_FORBIDDEN', 403)
   }
+  if (current.status !== 'OPEN') throw new TalentCheckInError('TALENT_CHECKIN_STATUS_LOCKED', 409)
+  if (current.entry_type !== 'FOLLOW_UP' && (input.followUpTitle || input.followUpDueOn)) throw new TalentCheckInError('TALENT_CHECKIN_FOLLOW_UP_NOT_ALLOWED', 400)
+  if (current.entry_type === 'FOLLOW_UP' && input.followUpTitle === null) throw new TalentCheckInError('TALENT_CHECKIN_FOLLOW_UP_TITLE_REQUIRED', 400)
   const update: CheckInUpdate = { version: input.version + 1 }
   if (input.body !== undefined) update.body = input.body
   if (input.followUpTitle !== undefined) update.follow_up_title = input.followUpTitle
@@ -124,6 +142,6 @@ export async function updateTalentGoalCheckIn(checkInId: string, input: TalentCh
     .eq('version', input.version)
     .select('id')
     .maybeSingle()
-  if (error) throw new TalentCheckInError(error.message.includes('VERSION') ? 'TALENT_CHECKIN_VERSION_CONFLICT' : 'TALENT_CHECKIN_UPDATE_FAILED', error.code === '42501' ? 403 : 400)
+  if (error) checkInDatabaseError(error.message, 'TALENT_CHECKIN_UPDATE_FAILED', error.code)
   if (!data) throw new TalentCheckInError('TALENT_CHECKIN_VERSION_CONFLICT', 409)
 }

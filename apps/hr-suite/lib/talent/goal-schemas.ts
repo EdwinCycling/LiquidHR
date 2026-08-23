@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
-const uuid = z.string().uuid()
+const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const goalStatus = z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'ARCHIVED'])
+export const talentGoalIdSchema = uuid
 
 export const talentGoalCreateSchema = z.object({
   employeeId: uuid.optional(),
@@ -31,6 +32,7 @@ export const talentGoalUpdateSchema = z.object({
 })
 
 export const talentGoalListQuerySchema = z.object({
+  goalId: uuid.optional(),
   employeeId: uuid.optional(),
   status: goalStatus.optional(),
 }).strict()

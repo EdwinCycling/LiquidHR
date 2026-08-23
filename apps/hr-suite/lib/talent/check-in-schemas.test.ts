@@ -8,6 +8,7 @@ describe('talent check-in schemas', () => {
 
   it('keeps employee reflection separate from follow-up fields', () => {
     expect(talentCheckInCreateSchema.safeParse({ entryType: 'EMPLOYEE_REFLECTION', body: 'Terugblik', followUpTitle: 'Niet toegestaan' }).success).toBe(false)
+    expect(talentCheckInCreateSchema.safeParse({ entryType: 'EMPLOYEE_REFLECTION', body: 'Terugblik', followUpDueOn: '2026-09-01' }).success).toBe(false)
   })
 
   it('requires optimistic versioning on updates', () => {
