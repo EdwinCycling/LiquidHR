@@ -1,4 +1,5 @@
 import type { Database, Json } from '@scope/db'
+import { resolveStoredImageUrl } from '@/lib/storage/image-url'
 import { deriveEmploymentStatus, type EmploymentStatus } from './employment-status'
 
 export interface EmployeeOverview {
@@ -55,11 +56,6 @@ function parseEmploymentHistory(value: Json): EmployeeOverviewEmployment[] {
   })
 }
 
-function employeeAvatarHref(employeeId: string, storedValue: string | null): string | null {
-  if (!storedValue) return null
-  return storedValue.startsWith('storage://') ? `/api/employees/${employeeId}/avatar` : storedValue
-}
-
 export function mapEmployeeOverviewRpcRow(row: EmployeeOverviewRpcRow, today: string): EmployeeOverview {
   const periods = parseEmploymentHistory(row.employment_history).map((employment) => ({
     startsOn: employment.starts_on,
@@ -75,7 +71,7 @@ export function mapEmployeeOverviewRpcRow(row: EmployeeOverviewRpcRow, today: st
     departmentName: row.department_name,
     jobTitle: row.job_title,
     workEmail: row.work_email,
-    avatarUrl: employeeAvatarHref(row.id, row.avatar_url),
+    avatarUrl: resolveStoredImageUrl(row.avatar_url, { kind: 'employee-avatar', employeeId: row.id }),
     isArchived: row.is_archived,
     status: deriveEmploymentStatus(periods, today),
     employmentCount: periods.length,

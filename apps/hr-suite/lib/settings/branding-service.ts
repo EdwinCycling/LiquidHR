@@ -4,6 +4,7 @@ import { loadActiveContext } from '@/lib/context/server-context'
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { CompanyBranding } from '@/lib/preferences/user-preferences'
+import { normalizeStorageObjectPath, resolveStoredImageUrl } from '@/lib/storage/image-url'
 
 const brandingColorsSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -19,7 +20,7 @@ function brandingFromRow(row: Pick<BrandingRow, 'primary_color' | 'accent_color'
     primaryColor: row.primary_color,
     accentColor: row.accent_color,
     sidebarColor: row.sidebar_color,
-    logoUrl: row.logo_storage_path ? '/api/settings/company-branding/logo' : null,
+    logoUrl: resolveStoredImageUrl(row.logo_storage_path, { kind: 'company-branding' }),
   }
 }
 
@@ -99,7 +100,7 @@ export async function saveHrGroupBranding(input: {
     primaryColor: values.primaryColor,
     accentColor: values.accentColor,
     sidebarColor: values.sidebarColor,
-    logoUrl: logoStoragePath ? '/api/settings/company-branding/logo' : null,
+    logoUrl: resolveStoredImageUrl(logoStoragePath, { kind: 'company-branding' }),
   }
 }
 
@@ -118,7 +119,9 @@ export async function getActiveHrGroupBrandingLogo(): Promise<{ body: ArrayBuffe
     .eq('hr_group_id', hrGroupId)
     .maybeSingle()
   if (error || !data?.logo_storage_path) return null
-  const signed = await supabase.storage.from('administration-branding').createSignedUrl(data.logo_storage_path, 300)
+  const storagePath = normalizeStorageObjectPath(data.logo_storage_path)
+  if (!storagePath) return null
+  const signed = await supabase.storage.from('administration-branding').createSignedUrl(storagePath, 300)
   if (signed.error || !signed.data?.signedUrl) return null
   const response = await fetch(signed.data.signedUrl)
   if (!response.ok) return null

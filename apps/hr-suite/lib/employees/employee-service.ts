@@ -6,6 +6,7 @@ import { decryptPii, encryptPii } from '@/lib/security/pii-crypto'
 import { EmployeeServiceError } from './errors'
 import { compactEmployeeAvatar } from './avatar-image'
 import { createEmployeeSystemActivity } from './employee-activity-service'
+import { parseStorageReference, resolveStoredImageUrl } from '@/lib/storage/image-url'
 import {
   isPostgresConflict,
   toEmployeeInsert,
@@ -308,8 +309,7 @@ export async function setEmployeeArchived(employeeId: string, archived: boolean)
 }
 
 export function employeeAvatarHref(employeeId: string, storedValue: string | null): string | null {
-  if (!storedValue) return null
-  return storedValue.startsWith('storage://') ? `/api/employees/${employeeId}/avatar` : storedValue
+  return resolveStoredImageUrl(storedValue, { kind: 'employee-avatar', employeeId })
 }
 
 export async function uploadEmployeeAvatar(employeeId: string, file: File): Promise<void> {
@@ -326,7 +326,8 @@ export async function uploadEmployeeAvatar(employeeId: string, file: File): Prom
     await supabase.storage.from('employee-avatars').remove([path])
     throw new EmployeeServiceError('EMPLOYEE_AVATAR_SAVE_FAILED', 500)
   }
-  if (current.avatar_url?.startsWith('storage://')) await supabase.storage.from('employee-avatars').remove([current.avatar_url.slice('storage://'.length)])
+  const currentPath = parseStorageReference(current.avatar_url)
+  if (currentPath) await supabase.storage.from('employee-avatars').remove([currentPath])
 }
 
 export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
@@ -336,7 +337,8 @@ export async function deleteEmployeeAvatar(employeeId: string): Promise<void> {
   if (error || !data) throw new EmployeeServiceError('EMPLOYEE_NOT_FOUND', 404)
   const { error: updateError } = await supabase.from('employees').update({ avatar_url: null }).eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId)
   if (updateError) throw new EmployeeServiceError('EMPLOYEE_AVATAR_SAVE_FAILED', 500)
-  if (data.avatar_url?.startsWith('storage://')) await supabase.storage.from('employee-avatars').remove([data.avatar_url.slice('storage://'.length)])
+  const currentPath = parseStorageReference(data.avatar_url)
+  if (currentPath) await supabase.storage.from('employee-avatars').remove([currentPath])
 }
 
 export async function getEmployeeAvatar(employeeId: string): Promise<{ body: ArrayBuffer; contentType: string } | { url: string } | null> {
@@ -344,8 +346,11 @@ export async function getEmployeeAvatar(employeeId: string): Promise<{ body: Arr
   const supabase = await createClient()
   const { data, error } = await supabase.from('employees').select('avatar_url').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('id', employeeId).is('deleted_at', null).maybeSingle()
   if (error || !data?.avatar_url) return null
-  if (!data.avatar_url.startsWith('storage://')) return { url: data.avatar_url }
-  const path = data.avatar_url.slice('storage://'.length)
+  const path = parseStorageReference(data.avatar_url)
+  if (!path) {
+    const url = resolveStoredImageUrl(data.avatar_url, { kind: 'employee-avatar', employeeId })
+    return url ? { url } : null
+  }
   const signed = await supabase.storage.from('employee-avatars').createSignedUrl(path, 300)
   if (signed.error || !signed.data?.signedUrl) return null
   const response = await fetch(signed.data.signedUrl)

@@ -14,6 +14,7 @@ import { loadTeamAvailability, type StartPageTeamAvailability } from './team-ava
 import { getUpcomingCalendarItems, type CalendarHeaderItem } from '@/lib/company-activities/service'
 import { listJourneyProjectionsForContext } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
+import { resolveStoredImageUrl } from '@/lib/storage/image-url'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -125,11 +126,6 @@ interface StartPageCountdowns {
 
 type StartPageEmployeeScope = string[] | null
 
-function startPageAvatarHref(employeeId: string, storedValue: string | null): string | null {
-  if (!storedValue) return null
-  return storedValue.startsWith('storage://') ? `/api/employees/${employeeId}/avatar` : storedValue
-}
-
 function listStartPageWorkforceLinks(permissions: string[], personalOnly: boolean): StartPageWorkforceLink[] {
   const links: StartPageWorkforceLink[] = []
   if (personalOnly) {
@@ -198,7 +194,7 @@ async function listLeaveAbsences(auth: AuthContext, employeeScope: StartPageEmpl
     const employeeIds = [...new Set(data.map((row) => row.employee_id))]
     const { data: employees, error: empError } = await supabase.from('employees').select('id, first_name, birth_name, avatar_url').eq('tenant_id', auth.tenantId).in('id', employeeIds).is('deleted_at', null)
     if (empError || !employees) return []
-    return employees.map((employee) => ({ employeeId: employee.id, employeeName: [employee.first_name, employee.birth_name].filter((p): p is string => Boolean(p?.trim())).join(' ').trim() || 'Onbekend', avatarUrl: startPageAvatarHref(employee.id, employee.avatar_url) }))
+    return employees.map((employee) => ({ employeeId: employee.id, employeeName: [employee.first_name, employee.birth_name].filter((p): p is string => Boolean(p?.trim())).join(' ').trim() || 'Onbekend', avatarUrl: resolveStoredImageUrl(employee.avatar_url, { kind: 'employee-avatar', employeeId: employee.id }) }))
   }
 
   const [todayResult, tomorrowResult] = await Promise.all([queryDay(todayStr), queryDay(tomorrowStr)])
@@ -240,7 +236,7 @@ async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmp
     const firstDate = new Date(`${item.first_absence_on}T00:00:00Z`)
     const days = Math.max(1, Math.floor((today.getTime() - firstDate.getTime()) / 86_400_000) + 1)
     const employeeName = [employee.first_name, employee.birth_name].filter((part): part is string => Boolean(part?.trim())).join(' ').trim()
-    return [{ caseId: item.id, employeeId: item.employee_id, employeeName: employeeName || 'Onbekende medewerker', avatarUrl: startPageAvatarHref(employee.id, employee.avatar_url), firstAbsenceOn: item.first_absence_on, status: item.status as 'ACTIVE' | 'RECOVERY_WINDOW', days }]
+    return [{ caseId: item.id, employeeId: item.employee_id, employeeName: employeeName || 'Onbekende medewerker', avatarUrl: resolveStoredImageUrl(employee.avatar_url, { kind: 'employee-avatar', employeeId: employee.id }), firstAbsenceOn: item.first_absence_on, status: item.status as 'ACTIVE' | 'RECOVERY_WINDOW', days }]
   })
   items.sort((a, b) => a.days - b.days)
   return { items, total: total ?? 0 }
