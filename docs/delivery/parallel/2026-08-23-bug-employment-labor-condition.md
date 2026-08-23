@@ -8,7 +8,7 @@
 - Port: `3128`
 - Weight: HIGH; parallel group: BUGFIX
 - Scope stayed limited to employment labor-condition mutation, its schema migration, and regression test.
-- No UX Foundation, central documentation, version, production, push, merge, deploy, or remote schema apply was performed.
+- No UX Foundation, central documentation, version, production, push, merge, or deploy was touched. Remote schema apply was performed only on TEST after explicit follow-up authorization.
 
 ## Preflight and fixture
 
@@ -71,11 +71,13 @@ Regression test:
 apps/hr-suite/supabase/tests/employment_labor_condition_mutation.sql
 ```
 
-The pgTAP test covers RPC existence/security/execute privileges and successful standalone plus combined labor-condition insertion with HR-group and contract scope. A pre-apply remote transaction probe showed both mutation paths failing (`2/2`), and rolled back; the migration was not applied remotely.
+The pgTAP test covers RPC existence/security/execute privileges and successful standalone plus combined labor-condition insertion with HR-group and contract scope. A pre-apply remote transaction probe showed both mutation paths failing (`2/2`), and rolled back. After explicit authorization, migration `20260823122852_fix_employment_labor_condition_mutation_hr_group_scope` was applied to TEST and the full pgTAP suite passed (`14/14`).
 
 ## Authorization and restore evidence
 
 - HR Admin: authenticated API probe reached the mutation and reproduced the pre-fix HTTP 400.
+- HR Admin post-apply: authenticated API mutation returned HTTP 201 with a change-set ID; readback showed the new condition, canonical HR group, contract ID, and `status = APPLIED`.
+- HR Admin restore: the existing rollback API returned HTTP 200; the final employment timeline contains only the original labor-condition row.
 - Manager: same endpoint returned HTTP 403, `Je hebt onvoldoende rechten voor deze actie.`
 - Employee: same endpoint returned HTTP 403, `Je hebt geen selfservice-recht voor deze actie.`
 - Final readback: the original labor-condition row remains `Bedrijfseigen regeling`, valid from `2024-01-15`, with `change_set_id = null`; probe rows and changed rows are both `0`.
@@ -86,12 +88,13 @@ The pgTAP test covers RPC existence/security/execute privileges and successful s
 - Strict TypeScript: passed.
 - Lint: passed with 0 errors and 8 pre-existing warnings outside this change.
 - `git diff --check`: passed.
-- Remote migration apply: deliberately not executed.
+- Supabase migration apply: TEST only, completed after explicit authorization.
+- Supabase advisors: checked; only existing project-wide notices were returned.
 
 ## Handoff status
 
-**READY FOR TEST SCHEMA APPLY**
+**GREEN**
 
 Root cause: both employment timeline RPCs omitted the required HR-group scope, while the pre-RLS normalizer only filled contract scope; the HR-group boundary policy consequently rejected the insert.
 
-After explicit TEST schema apply of migration `20260823122852_fix_employment_labor_condition_mutation_hr_group_scope.sql`, rerun the pgTAP test and the authenticated HR positive mutation/readback/timeline/restore matrix. Do not apply this migration to production from this handoff.
+TEST apply and the authenticated positive/negative mutation matrix are complete. The migration has not been applied to production.

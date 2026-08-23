@@ -57,6 +57,7 @@ select set_config(
 set local role authenticated;
 
 select lives_ok($$
+do $mutation$
 declare
   target_employment uuid;
   target_effective_on date;
@@ -85,6 +86,7 @@ begin
     '{}'::jsonb
   );
 end
+$mutation$;
 $$, 'HR kan een labor-condition-tijdlijnblok toevoegen zonder RLS-fout.');
 
 select is(
@@ -112,6 +114,7 @@ select is(
 );
 
 select lives_ok($$
+do $mutation$
 declare
   target_employment uuid;
   target_effective_on date;
@@ -134,13 +137,15 @@ begin
     target_employment,
     target_effective_on,
     '[
-      {"timeline":"LABOR_CONDITIONS","payload":{"conditionGroup":"pgTAP combined labor-condition mutation"}}
+      {"timeline":"LABOR_CONDITIONS","payload":{"conditionGroup":"pgTAP combined labor-condition mutation"}},
+      {"timeline":"SCHEDULE","payload":{"scheduleType":"HOURS_AND_AVG_DAYS","startWeek":1,"averageDaysPerWeek":4,"averageHoursPerWeek":32,"partTimeFactor":0.8,"timeForTimeAccrual":0}}
     ]'::jsonb,
     'pgTAP combined labor-condition mutation',
     array[]::text[],
     '{}'::jsonb
   );
 end
+$mutation$;
 $$, 'HR kan ook de gecombineerde labor-condition-tijdlijn toepassen zonder RLS-fout.');
 
 select is(
