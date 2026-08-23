@@ -36,6 +36,27 @@ export const talentAssessmentCycleUpdateSchema = z.object({
   if (value.opensOn && value.closesOn && value.closesOn <= value.opensOn) context.addIssue({ code: 'custom', path: ['closesOn'], message: 'ASSESSMENT_CLOSE_MUST_BE_AFTER_OPEN' })
 })
 
+const talentAssessmentItemFields = z.object({
+  title: z.string().trim().min(1).max(160),
+  prompt: z.string().trim().min(1).max(2000),
+  capabilityId: uuid.nullable().optional(),
+  sortOrder: z.number().int().min(1).max(100),
+  maxScore: z.number().int().min(1).max(10),
+  isRequired: z.boolean().default(true),
+}).strict()
+
+export const talentAssessmentItemCreateSchema = talentAssessmentItemFields
+
+export const talentAssessmentItemUpdateSchema = talentAssessmentItemFields.extend({
+}).partial({
+  title: true,
+  prompt: true,
+  capabilityId: true,
+  sortOrder: true,
+  maxScore: true,
+  isRequired: true,
+}).strict()
+
 export const talentAssessmentResponseSaveSchema = z.object({
   cycleId: uuid,
   responseId: uuid.optional(),
@@ -59,10 +80,13 @@ export const talentAssessmentResponseCommandSchema = z.object({
 export const talentAssessmentListQuerySchema = z.object({
   cycleId: uuid.optional(),
   responseType: responseType.optional(),
+  mode: z.enum(['admin', 'manager', 'self']).optional(),
 }).strict()
 
 export type TalentAssessmentCycleCreateInput = z.infer<typeof talentAssessmentCycleCreateSchema>
 export type TalentAssessmentCycleUpdateInput = z.infer<typeof talentAssessmentCycleUpdateSchema>
+export type TalentAssessmentItemCreateInput = z.infer<typeof talentAssessmentItemCreateSchema>
+export type TalentAssessmentItemUpdateInput = z.infer<typeof talentAssessmentItemUpdateSchema>
 export type TalentAssessmentResponseSaveInput = z.infer<typeof talentAssessmentResponseSaveSchema>
 export type TalentAssessmentResponseCommandInput = z.infer<typeof talentAssessmentResponseCommandSchema>
 export type TalentAssessmentListQuery = z.infer<typeof talentAssessmentListQuerySchema>

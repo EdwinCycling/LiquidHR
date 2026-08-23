@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { talentAssessmentCycleCreateSchema, talentAssessmentResponseSaveSchema } from './assessment-schemas'
+import { talentAssessmentCycleCreateSchema, talentAssessmentItemCreateSchema, talentAssessmentItemUpdateSchema, talentAssessmentResponseSaveSchema } from './assessment-schemas'
 
 describe('Talent assessment contracts', () => {
   it('accepts a cycle with an explicit item and bounded dates', () => {
@@ -48,4 +48,13 @@ describe('Talent assessment contracts', () => {
     })
     expect(result.success).toBe(true)
   })
+
+  it('accepts a second question and keeps item edits optimistic', () => {
+    const created = talentAssessmentItemCreateSchema.safeParse({ title: 'Samenwerking', prompt: 'Geef een concreet voorbeeld.', sortOrder: 2, maxScore: 5, isRequired: false })
+    const updated = talentAssessmentItemUpdateSchema.safeParse({ prompt: 'Beschrijf het voorbeeld.', maxScore: 4 })
+
+    expect(created.success).toBe(true)
+    expect(updated.success).toBe(true)
+  })
+
 })

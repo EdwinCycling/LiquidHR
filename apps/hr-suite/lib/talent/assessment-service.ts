@@ -2,10 +2,11 @@ import type { Database } from '@scope/db'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
-import { listTalentTeamMatrix } from './team-service'
 import type {
   TalentAssessmentCycleCreateInput,
   TalentAssessmentCycleUpdateInput,
+  TalentAssessmentItemCreateInput,
+  TalentAssessmentItemUpdateInput,
   TalentAssessmentListQuery,
   TalentAssessmentResponseCommandInput,
   TalentAssessmentResponseSaveInput,
@@ -77,6 +78,41 @@ async function assessmentContext(mode: 'admin' | 'manager' | 'self'): Promise<Au
   return requirePermission('self:talent-assessment:read')
 }
 
+async function listAssessmentParticipants(context: AuthContext, mode: 'admin' | 'manager'): Promise<Array<{ id: string; label: string }>> {
+  await requirePermission('talent-team:read')
+  const supabase = await createClient()
+  const today = new Date().toISOString().slice(0, 10)
+  let placementQuery = supabase
+    .from('employee_organizations')
+    .select('employee_id,effective_from,effective_to')
+    .eq('tenant_id', context.tenantId)
+    .lte('effective_from', today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .order('effective_from', { ascending: false })
+    .limit(5000)
+  if (mode === 'manager') {
+    if (!context.employeeId) throw new TalentAssessmentError('TALENT_ASSESSMENT_EMPLOYEE_CONTEXT_REQUIRED', 403)
+    placementQuery = placementQuery.eq('direct_manager_id', context.employeeId)
+  }
+  const { data: placements, error: placementError } = await placementQuery
+  if (placementError) throw new TalentAssessmentError('TALENT_ASSESSMENT_PARTICIPANT_READ_FAILED')
+  const employeeIds = [...new Set((placements ?? []).map((placement) => placement.employee_id))]
+  if (employeeIds.length === 0) return []
+  const { data: employees, error: employeeError } = await supabase
+    .from('employees')
+    .select('id,employee_number,first_name,birth_name')
+    .eq('tenant_id', context.tenantId)
+    .is('deleted_at', null)
+    .in('id', employeeIds)
+  if (employeeError) throw new TalentAssessmentError('TALENT_ASSESSMENT_PARTICIPANT_READ_FAILED')
+  const employeeById = new Map((employees ?? []).map((employee) => [employee.id, employee]))
+  return employeeIds.flatMap((employeeId) => {
+    const employee = employeeById.get(employeeId)
+    const label = employee ? employeeLabel(employee.first_name, employee.birth_name, employee.employee_number) : null
+    return employee && label ? [{ id: employee.id, label }] : []
+  })
+}
+
 export async function listTalentAssessmentWorkspace(mode: 'admin' | 'manager' | 'self', query: TalentAssessmentListQuery = {}): Promise<TalentAssessmentWorkspace> {
   const context = await assessmentContext(mode)
   await requireTenantModule('TALENT')
@@ -88,8 +124,8 @@ export async function listTalentAssessmentWorkspace(mode: 'admin' | 'manager' | 
   if (cyclesError) throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_READ_FAILED')
   const cycleRows = cycles ?? []
   const cycleIds = cycleRows.map((cycle) => cycle.id)
-  const participants = mode === 'self' ? [] : (await listTalentTeamMatrix()).rows.map((row) => ({ id: row.employeeId, label: row.employeeLabel }))
-  if (cycleIds.length === 0) return { cycles: [], items: [], responses: [], participants }
+  if (cycleIds.length === 0) return { cycles: [], items: [], responses: [], participants: [] }
+  const participants = mode === 'self' ? [] : await listAssessmentParticipants(context, mode)
 
   const [itemsResult, responsesResult] = await Promise.all([
     supabase.from('talent_assessment_items').select('*').eq('tenant_id', context.tenantId).in('cycle_id', cycleIds).order('sort_order').limit(5000),
@@ -187,6 +223,55 @@ export async function createTalentAssessmentCycle(input: TalentAssessmentCycleCr
   return cycle.id
 }
 
+export async function createTalentAssessmentItem(cycleId: string, input: TalentAssessmentItemCreateInput) {
+  const context = await assessmentContext('admin')
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  const { data: cycle, error: cycleError } = await supabase.from('talent_assessment_cycles').select('id,status').eq('tenant_id', context.tenantId).eq('id', cycleId).maybeSingle()
+  if (cycleError) databaseError(cycleError.message, 'TALENT_ASSESSMENT_CYCLE_READ_FAILED')
+  if (!cycle) throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_NOT_FOUND', 404)
+  if (cycle.status !== 'DRAFT') throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_NOT_EDITABLE', 409)
+  const { data, error } = await supabase.from('talent_assessment_items').insert({
+    tenant_id: context.tenantId,
+    cycle_id: cycleId,
+    capability_id: input.capabilityId ?? null,
+    title: input.title,
+    prompt: input.prompt,
+    sort_order: input.sortOrder,
+    max_score: input.maxScore,
+    is_required: input.isRequired,
+    created_by_user_id: context.userId,
+    updated_by_user_id: context.userId,
+  }).select('id').single()
+  if (error || !data) databaseError(error?.message ?? 'TALENT_ASSESSMENT_ITEM_CREATE_FAILED', 'TALENT_ASSESSMENT_ITEM_CREATE_FAILED')
+  return data.id
+}
+
+export async function updateTalentAssessmentItem(itemId: string, input: TalentAssessmentItemUpdateInput) {
+  const context = await assessmentContext('admin')
+  await requireTenantModule('TALENT')
+  const supabase = await createClient()
+  const { data: existing, error: existingError } = await supabase.from('talent_assessment_items').select('id,cycle_id').eq('tenant_id', context.tenantId).eq('id', itemId).maybeSingle()
+  if (existingError) databaseError(existingError.message, 'TALENT_ASSESSMENT_ITEM_READ_FAILED')
+  if (!existing) throw new TalentAssessmentError('TALENT_ASSESSMENT_ITEM_NOT_FOUND', 404)
+  const { data: cycle, error: cycleError } = await supabase.from('talent_assessment_cycles').select('status').eq('tenant_id', context.tenantId).eq('id', existing.cycle_id).maybeSingle()
+  if (cycleError) databaseError(cycleError.message, 'TALENT_ASSESSMENT_CYCLE_READ_FAILED')
+  if (!cycle) throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_NOT_FOUND', 404)
+  if (cycle.status !== 'DRAFT') throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_NOT_EDITABLE', 409)
+  const { data, error } = await supabase.from('talent_assessment_items').update({
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.prompt !== undefined ? { prompt: input.prompt } : {}),
+    ...(input.capabilityId !== undefined ? { capability_id: input.capabilityId } : {}),
+    ...(input.sortOrder !== undefined ? { sort_order: input.sortOrder } : {}),
+    ...(input.maxScore !== undefined ? { max_score: input.maxScore } : {}),
+    ...(input.isRequired !== undefined ? { is_required: input.isRequired } : {}),
+    updated_by_user_id: context.userId,
+  }).eq('tenant_id', context.tenantId).eq('id', itemId).select('id').maybeSingle()
+  if (error) databaseError(error.message, 'TALENT_ASSESSMENT_ITEM_UPDATE_FAILED')
+  if (!data) throw new TalentAssessmentError('TALENT_ASSESSMENT_ITEM_NOT_FOUND', 404)
+  return data.id
+}
+
 export async function updateTalentAssessmentCycle(cycleId: string, input: TalentAssessmentCycleUpdateInput) {
   const context = await assessmentContext('admin')
   await requireTenantModule('TALENT')
@@ -214,11 +299,29 @@ export async function saveTalentAssessmentResponse(input: TalentAssessmentRespon
   if (!context.employeeId) throw new TalentAssessmentError('EMPLOYEE_CONTEXT_REQUIRED', 403)
   const supabase = await createClient()
   const resolvedSubjectId = subjectEmployeeId ?? context.employeeId
-  const { data: cycle, error: cycleError } = await supabase.from('talent_assessment_cycles').select('id').eq('tenant_id', context.tenantId).eq('id', input.cycleId).maybeSingle()
+  const { data: cycle, error: cycleError } = await supabase.from('talent_assessment_cycles').select('id,status,opens_on,closes_on').eq('tenant_id', context.tenantId).eq('id', input.cycleId).maybeSingle()
   if (cycleError) throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_READ_FAILED')
   if (!cycle) throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_NOT_FOUND', 404)
+  const today = new Date().toISOString().slice(0, 10)
+  if (cycle.status !== 'OPEN' || today < cycle.opens_on || today >= cycle.closes_on) throw new TalentAssessmentError('TALENT_ASSESSMENT_CYCLE_CLOSED', 409)
+  const { data: itemRows, error: itemError } = await supabase.from('talent_assessment_items').select('id,max_score,is_required').eq('tenant_id', context.tenantId).eq('cycle_id', input.cycleId)
+  if (itemError) throw new TalentAssessmentError('TALENT_ASSESSMENT_ITEM_READ_FAILED')
+  const itemsById = new Map((itemRows ?? []).map((item) => [item.id, item]))
+  for (const answer of input.answers) {
+    const item = itemsById.get(answer.itemId)
+    if (!item) throw new TalentAssessmentError('TALENT_ASSESSMENT_ANSWER_ITEM_INVALID', 400)
+    if (answer.score !== null && answer.score !== undefined && answer.score > item.max_score) throw new TalentAssessmentError('TALENT_ASSESSMENT_SCORE_INVALID', 400)
+  }
+  if (input.status === 'SUBMITTED') {
+    for (const item of itemRows ?? []) {
+      const answer = input.answers.find((candidate) => candidate.itemId === item.id)
+      const hasAnswer = answer && (answer.score !== null && answer.score !== undefined || Boolean(answer.answerText?.trim()))
+      if (item.is_required && !hasAnswer) throw new TalentAssessmentError('TALENT_ASSESSMENT_REQUIRED_ANSWER_MISSING', 400)
+    }
+  }
   const { data: existing, error: existingError } = await supabase.from('talent_assessment_responses').select('*').eq('tenant_id', context.tenantId).eq('cycle_id', input.cycleId).eq('subject_employee_id', resolvedSubjectId).eq('assessor_employee_id', context.employeeId).eq('response_type', input.responseType).maybeSingle()
   if (existingError) throw new TalentAssessmentError('TALENT_ASSESSMENT_RESPONSE_READ_FAILED')
+  if (input.responseId && (!existing || existing.id !== input.responseId)) throw new TalentAssessmentError('TALENT_ASSESSMENT_RESPONSE_CONFLICT', 409)
   let response = existing
   if (!response) {
     const { data: created, error: createError } = await supabase.from('talent_assessment_responses').insert({
@@ -235,6 +338,7 @@ export async function saveTalentAssessmentResponse(input: TalentAssessmentRespon
   }
   if (!response) throw new TalentAssessmentError('TALENT_ASSESSMENT_RESPONSE_CREATE_FAILED')
   if (input.version !== undefined && input.version !== response.version) throw new TalentAssessmentError('TALENT_ASSESSMENT_VERSION_CONFLICT', 409)
+  if (response.status !== 'DRAFT') throw new TalentAssessmentError('TALENT_ASSESSMENT_RESPONSE_LOCKED', 409)
   if (input.answers.length > 0) {
     const { error: answerError } = await supabase.from('talent_assessment_answers').upsert(input.answers.map((answer) => ({
       tenant_id: context.tenantId,
@@ -272,6 +376,11 @@ export async function commandTalentAssessmentResponse(responseId: string, input:
   const context = await assessmentContext('admin')
   await requireTenantModule('TALENT')
   const supabase = await createClient()
+  const { data: current, error: currentError } = await supabase.from('talent_assessment_responses').select('status').eq('tenant_id', context.tenantId).eq('id', responseId).maybeSingle()
+  if (currentError) databaseError(currentError.message, 'TALENT_ASSESSMENT_RESPONSE_READ_FAILED')
+  if (!current) throw new TalentAssessmentError('TALENT_ASSESSMENT_RESPONSE_NOT_FOUND', 404)
+  const validTransition = (current.status === 'SUBMITTED' && (input.status === 'LOCKED' || input.status === 'DRAFT')) || (current.status === 'LOCKED' && input.status === 'FINALIZED')
+  if (!validTransition) throw new TalentAssessmentError('TALENT_ASSESSMENT_TRANSITION_INVALID', 409)
   const payload: Database['public']['Tables']['talent_assessment_responses']['Update'] = {
     status: input.status,
     version: input.version + 1,

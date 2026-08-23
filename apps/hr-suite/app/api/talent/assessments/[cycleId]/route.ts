@@ -9,7 +9,7 @@ export async function GET(request: Request, context: { params: Promise<{ cycleId
     const params = Object.fromEntries(new URL(request.url).searchParams.entries())
     const parsed = talentAssessmentListQuerySchema.safeParse({ ...params, cycleId })
     if (!parsed.success) return NextResponse.json({ error: 'TALENT_ASSESSMENT_INPUT_INVALID' }, { status: 400 })
-    const mode = parsed.data.responseType === 'SELF' ? 'self' : 'manager'
+    const mode = parsed.data.mode ?? (parsed.data.responseType === 'SELF' ? 'self' : 'manager')
     return NextResponse.json({ data: await listTalentAssessmentWorkspace(mode, parsed.data) })
   } catch (error) {
     return talentErrorResponse(error, 'TALENT_ASSESSMENT_READ_FAILED')

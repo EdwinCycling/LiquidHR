@@ -44,5 +44,25 @@ begin
   if not exists (select 1 from pg_trigger where tgname = 'validate_talent_assessment_response') then raise exception 'M23_RESPONSE_GUARD_MISSING'; end if;
   if not exists (select 1 from pg_trigger where tgname = 'audit_talent_assessment_responses') then raise exception 'M23_AUDIT_TRIGGER_MISSING'; end if;
   if not exists (select 1 from public.permissions where code in ('talent-assessment:manage', 'talent-assessment:read', 'talent-assessment:write', 'self:talent-assessment:read', 'self:talent-assessment:write', 'talent-team:read') group by category having count(*) = 6) then raise exception 'M23_PERMISSION_SEED_MISSING'; end if;
+
+  if exists (
+    select 1
+    from public.management_roles management_role
+    cross join (values
+      ('TENANT_ADMIN', 'talent-assessment:manage'),
+      ('TENANT_ADMIN', 'talent-assessment:read'),
+      ('TENANT_ADMIN', 'talent-team:read'),
+      ('DIRECT_MANAGER', 'talent-assessment:read'),
+      ('DIRECT_MANAGER', 'talent-assessment:write'),
+      ('DIRECT_MANAGER', 'talent-team:read'),
+      ('EMPLOYEE', 'self:talent-assessment:read'),
+      ('EMPLOYEE', 'self:talent-assessment:write')
+    ) required(role_code, permission_code)
+    left join public.permissions permission on permission.code = required.permission_code
+    left join public.role_permissions role_permission on role_permission.management_role_id = management_role.id and role_permission.permission_id = permission.id
+    where management_role.tenant_id is not null
+      and management_role.code = required.role_code
+      and role_permission.management_role_id is null
+  ) then raise exception 'M23_TENANT_ROLE_PERMISSION_LINK_MISSING'; end if;
 end;
 $$;
