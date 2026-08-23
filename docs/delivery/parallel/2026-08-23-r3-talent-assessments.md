@@ -23,6 +23,7 @@
 - Admin-mode wordt expliciet via query doorgegeven zodat refresh na create niet naar manager-scope terugvalt.
 - Lege assessmentlijsten roepen geen team-capabilitymatrix meer aan. Participantselectie leest alleen actieve employee-organizations en medewerkers binnen de assessmentscope.
 - Minimale lokale migration `20260823124115_align_talent_assessment_role_overrides.sql` vult assessmentrechten aan op bestaande tenant-specifieke role overrides.
+- TEST-migration `fix_talent_assessment_audit` herstelt de assessment-audit naar het bestaande `audit_logs`-contract: geen ongeldige `change_set_id` en alleen toegestane audit-acties.
 - SQL-contracttest controleert nu ook tenant-specifieke assessmentpermission-links.
 
 ## Acceptance matrix
@@ -37,9 +38,9 @@
 | Employee self read | GREEN | Echte Employee-sessie: `/my-talent/assessments` → `200`; `GET /api/talent/assessments?mode=self` → `200` met lege workspace. |
 | Employee manager negative | GREEN | Echte Employee-sessie eindigt op `/geen-toegang` voor `/workforce/talent/assessments`. |
 | Manager admin negative | GREEN | Echte Manager-sessie eindigt op `/geen-toegang` voor `/settings/talent/assessments`. |
-| HR admin admin access | BLOCKED BY REMOTE PERMISSION STATE | Tenant-specifieke `TENANT_ADMIN` mist remote `talent-assessment:manage`, `talent-assessment:read` en `talent-team:read`; settings route gaat naar `/geen-toegang`. Lokale migration gemaakt, niet remote toegepast conform opdracht. |
-| Echte CRUD / lifecycle | BLOCKED BY REMOTE PERMISSION STATE | Geen R3-cycle aangemaakt omdat de HR-admin gate remote ontbreekt. Create/open/close/archive, item CRUD, response save/readback, lock/finalize/reopen en cleanup konden daardoor niet muterend worden uitgevoerd. |
-| Tijdelijke data | GREEN | Read-only remote check: `R3-ASSESS-%` cycles = `0`; er is niets aangemaakt en dus niets te archiveren/deactiveren. |
+| HR admin admin access | GREEN (TEST) | Na TEST-apply van `align_talent_assessment_role_overrides`: echte HR Admin-session opent `/settings/talent/assessments`; contracttest meldt geen ontbrekende tenant-role permission-links. |
+| Echte CRUD / lifecycle | GREEN (TEST) | `R3-ASSESS-20260823-1547`: create/open, item readback, Manager draft save/readback, submit, HR reopen, opnieuw submit, lock, finalize, close en archive. App API: response save `201`, response commands `200`, cycle transitions `200`; refresh/readback `GET` `200`. |
+| Tijdelijke data | GREEN | De tijdelijke cyclus is via de bestaande UI gearchiveerd. Eindstatus remote: cycle `ARCHIVED`, response `FINALIZED`, 1 answer en 1 private manager note. |
 | Desktop + 390x844 | GREEN / PARTIAL | Manager empty state gecontroleerd op desktop en 390x844 in Default/Liquid Navy; LinkedHR gecontroleerd op 390x844. |
 | Default + LinkedHR | GREEN / PARTIAL | Default/Liquid Navy en LinkedHR beide echt geopend; Manager-voorkeur na test teruggezet naar oorspronkelijke Liquid Navy. |
 | Console/runtime | GREEN AFTER FIX | LinkedHR legde eerst een bestaande assessmentservice-bug bloot (`TALENT_TEAM_CAPABILITY_READ_FAILED` op lege lijst); na de in-scope correctie rendert de lege state zonder fout-overlay. |
@@ -51,10 +52,11 @@
 - `npm.cmd run check:i18n` — GREEN, 33 namespaces met gelijke NL/EN-sleutels.
 - Gerichte ESLint op assessment-workspace, service, schema, tests, route en drie pagina’s — GREEN.
 - `git diff --check` — GREEN; alleen gebruikelijke LF/CRLF-waarschuwingen.
-- Productiebuild en remote Supabase migration/advisors zijn niet uitgevoerd; remote schema apply was expliciet uitgesloten.
+- Remote TEST schema apply — GREEN; `align_talent_assessment_role_overrides` en `fix_talent_assessment_audit` toegepast.
+- Remote assessment-contracttest — GREEN; security- en performance-advisor hadden geen assessment-relevante meldingen.
+- Productiebuild niet uitgevoerd; geen remote apply buiten TEST.
 
 ## Handoff
 
-1. Laat de lokale migration `20260823124115_align_talent_assessment_role_overrides.sql` via de goedgekeurde remote migration-flow toepassen.
-2. Herhaal daarna de HR-admin echte CRUD/lifecycle matrix met tijdelijke code `R3-ASSESS-<runid>`, inclusief refresh/readback en cleanup volgens het bestaande contract.
-3. Voer geen push, merge of deploy uit vanuit deze branch.
+1. De TEST-schema apply en lifecycle-retest zijn afgerond; productie/andere omgevingen zijn niet toegepast.
+2. Voer geen push, merge of deploy uit vanuit deze branch.

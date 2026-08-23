@@ -43,6 +43,8 @@ begin
 
   if not exists (select 1 from pg_trigger where tgname = 'validate_talent_assessment_response') then raise exception 'M23_RESPONSE_GUARD_MISSING'; end if;
   if not exists (select 1 from pg_trigger where tgname = 'audit_talent_assessment_responses') then raise exception 'M23_AUDIT_TRIGGER_MISSING'; end if;
+  if position('gen_random_uuid()' in pg_get_functiondef('internal_security.audit_talent_assessment_response()'::regprocedure)) > 0 then raise exception 'M23_AUDIT_CHANGE_SET_MUST_BE_NULL'; end if;
+  if position('SUBMIT' in pg_get_functiondef('internal_security.audit_talent_assessment_response()'::regprocedure)) > 0 then raise exception 'M23_AUDIT_ACTION_CONTRACT_INVALID'; end if;
   if not exists (select 1 from public.permissions where code in ('talent-assessment:manage', 'talent-assessment:read', 'talent-assessment:write', 'self:talent-assessment:read', 'self:talent-assessment:write', 'talent-team:read') group by category having count(*) = 6) then raise exception 'M23_PERMISSION_SEED_MISSING'; end if;
 
   if exists (
