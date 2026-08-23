@@ -2,17 +2,23 @@
 
 ## Centrale R2/R3 GREEN-integratie — 2026-08-23 — actuele status
 
-**Status: TECHNICAL GREEN — AUTHENTICATED BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT**
+**Status: TEST-TRUNK: GREEN — RELEASE / PRODUCTION: AMBER**
 
-`work/r2-r3-integration` is vanaf exact `abfa0bbb7db628f588faa3d4818a4f4663f27b46` opgebouwd met de volledige relevante delta van 11 aangewezen GREEN-branches. De enige overlap betrof `lib/organization/schemas.ts` en de bijbehorende test; beide semantische wijzigingen zijn behouden. De actuele Process-branchtip `f53cabf` is meegenomen naast de opgegeven `5953f22`, omdat deze de direct relevante `force-dynamic` acceptance-fix bevat.
+`work/r2-r3-integration` staat op `d65d74fa0ec3378bb1b082d9dd366e38244a97d6` en is vanaf exact `abfa0bbb7db628f588faa3d4818a4f4663f27b46` opgebouwd met de volledige relevante delta van 11 aangewezen GREEN-branches. De enige overlap betrof `lib/organization/schemas.ts` en de bijbehorende test; beide semantische wijzigingen zijn behouden. De actuele Process-branchtip `f53cabf` is meegenomen naast de opgegeven `5953f22`, omdat deze de direct relevante `force-dynamic` acceptance-fix bevat.
 
 Roadmap 2 (Absence Core, Absence Insights en HR Calendar + Leave) en Roadmap 3 (Organization/Departments, Continuous Appraisal, Star Performers en 9-grid) zijn lokaal technisch geïntegreerd. Authorization Coverage, Startpage, Process Automation lifecycle en Company Documents zijn eveneens geïntegreerd. De twee opgegeven TEST-migrations waren al toegepast; de migrationbestanden zijn onderdeel van de code-integratie, maar zijn niet opnieuw remote uitgevoerd.
 
 De technische gates zijn volledig groen: `219/219` testbestanden, `857/857` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-build met `224` gegenereerde static pages/routes en `git diff --check`. Er zijn geen verboden generated/env/secrets-bestanden geïntegreerd.
 
-Canonical `apps/hr-suite/.env.local` bestaat en is alleen op key-aanwezigheid gecontroleerd. De fixture-auth reset kon niet worden uitgevoerd door de veiligheidscontrole; daarom zijn protected browsercontent en persona-acceptance niet als GREEN geclaimd. Anonieme route-sanity gaf voor alle tien gevraagde routes de verwachte HTTP 307 naar login; `/login` gaf HTTP 200 zonder relevante console-errors. De 390x844-sanity is niet uitgevoerd door een resize-beperking van de gebruikte browsertool.
+Canonical `apps/hr-suite/.env.local` bestaat; de fixture-auth reset is GREEN uitgevoerd voor uitsluitend de drie canonical TEST-fixtures. Authenticated TEST HR-route-sanity gaf voor alle tien gevraagde routes HTTP 200 met zichtbare content en zonder relevante console/runtime-errors. Manager/Employee spot-checks, 390x844 responsive checks en Liquid Navy/LinkedHR theme checks zijn GREEN. De Employee unauthorized pagina's `/absence/new` en `/authorization` tonen een generieke `AuthorizationError`-pagina; independent review heeft dit bevestigd als bestaande debt en geen integration regression.
 
-Resterende debt: `employment labor-condition` blijft buiten deze integratie; daarnaast blijft de authenticated browsermatrix voor de gecombineerde batch open. Er is niet naar `main` gemerged, gepusht of gedeployed. **READY TO INTEGRATE INTO MAIN = NO — wacht op review en authenticated acceptance.**
+Open debt voor een volgende bugfix-batch:
+
+1. Employment labor-condition mutation.
+2. Employee `/absence/new` unauthorized route toont generic AuthorizationError page (bestaande debt, geen integration regression).
+3. Employee `/authorization` unauthorized route toont generic AuthorizationError page (bestaande debt, geen integration regression).
+
+**Eindclassificatie: TEST-TRUNK: GREEN; RELEASE / PRODUCTION: AMBER.** Deze branch is gereed voor fast-forward-integratie naar `main`; geen production database-mutaties, schema apply of deploy.
 
 ## UX v1.2 final integration & acceptance — 2026-08-21 — actuele status
 
