@@ -111,9 +111,17 @@ type TalentReadRequirement = Database['public']['Tables']['job_profile_capabilit
   targetLevel: Pick<TalentLevelRow, 'id' | 'code' | 'name'> | null
 }
 
+export type TalentWorkforceEmployee = {
+  id: string
+  label: string
+  employeeNumber: string
+  jobId: string
+}
+
 export type TalentWorkforceProfile = {
   profile: TalentProfileReadModelRow
   requirements: TalentReadRequirement[]
+  employees: TalentWorkforceEmployee[]
 }
 
 export type MyTalentProfile = Database['public']['Functions']['get_my_talent_profile']['Returns'][number] & {
@@ -158,13 +166,53 @@ export async function listTalentProfilesForWorkforce(): Promise<TalentWorkforceP
   if (profileRows.length === 0) return []
 
   const profileVersionIds = profileRows.map((profile) => profile.profile_version_id as string)
-  const { data: requirements, error: requirementError } = await supabase
-    .from('job_profile_capability_requirements')
-    .select('*')
-    .eq('tenant_id', context.tenantId)
-    .in('profile_version_id', profileVersionIds)
-    .order('sort_order')
-  if (requirementError) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  const profileJobIds = [...new Set(profileRows.flatMap((profile) => profile.job_id ? [profile.job_id] : []))]
+  const today = new Date().toISOString().slice(0, 10)
+  const [requirementsResult, organizationsResult] = await Promise.all([
+    supabase
+      .from('job_profile_capability_requirements')
+      .select('*')
+      .eq('tenant_id', context.tenantId)
+      .in('profile_version_id', profileVersionIds)
+      .order('sort_order'),
+    supabase
+      .from('employee_organizations')
+      .select('employee_id,job_id')
+      .eq('tenant_id', context.tenantId)
+      .in('job_id', profileJobIds)
+      .lte('effective_from', today)
+      .or(`effective_to.is.null,effective_to.gt.${today}`),
+  ])
+  if (requirementsResult.error || organizationsResult.error) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  const requirements = requirementsResult.data
+  const organizations = organizationsResult.data ?? []
+  const employeeIds = [...new Set(organizations.map((organization) => organization.employee_id))]
+  const employeesResult = employeeIds.length > 0
+    ? await supabase
+      .from('employees')
+      .select('id,first_name,birth_name,employee_number')
+      .eq('tenant_id', context.tenantId)
+      .eq('is_active', true)
+      .is('deleted_at', null)
+      .in('id', employeeIds)
+    : { data: [], error: null }
+  if (employeesResult.error) throw new TalentServiceError('TALENT_WORKFORCE_READ_FAILED')
+  const employeesById = new Map((employeesResult.data ?? []).map((employee) => [employee.id, employee]))
+  const employeesByJob = new Map<string, TalentWorkforceEmployee[]>()
+  for (const organization of organizations) {
+    if (!organization.job_id) continue
+    const employee = employeesById.get(organization.employee_id)
+    if (!employee) continue
+    const current = employeesByJob.get(organization.job_id) ?? []
+    if (current.some((item) => item.id === employee.id)) continue
+    current.push({
+      id: employee.id,
+      label: [employee.first_name, employee.birth_name].filter((value) => value.trim().length > 0).join(' ') || employee.employee_number,
+      employeeNumber: employee.employee_number,
+      jobId: organization.job_id,
+    })
+    employeesByJob.set(organization.job_id, current)
+  }
 
   const capabilityIds = [...new Set((requirements ?? []).map((requirement) => requirement.capability_id))]
   const levelIds = [...new Set((requirements ?? []).map((requirement) => requirement.target_level_id).filter((levelId): levelId is string => Boolean(levelId)))]
@@ -193,6 +241,7 @@ export async function listTalentProfilesForWorkforce(): Promise<TalentWorkforceP
   return profileRows.map((profile) => ({
     profile,
     requirements: requirementsByVersion.get(profile.profile_version_id as string) ?? [],
+    employees: profile.job_id ? employeesByJob.get(profile.job_id) ?? [] : [],
   }))
 }
 
