@@ -9,9 +9,10 @@ Scope: `/workforce/talent/goals`, `TalentGoalWorkspace`, `TalentGoalCheckIns`, g
 ## Status
 
 - IMPLEMENTED: manager/HR goal flow met create, read/refresh, edit, activate, progress, check-ins, follow-up/due date, complete check-in, complete/cancel/archive en readback.
+- PRODUCT FLOW GREEN: de authenticated Goals-flow is bewezen tegen het huidige TEST-schema en is onafhankelijk van de verwijderde schema-hardeningmigration.
 - LOCALLY VERIFIED: TypeScript, tests, i18n, lint, diff-check en Webpack production build.
 - AUTHENTICATED BROWSER/API VERIFIED: manager, employee en HR fixture-persona's; positieve en negatieve permission-paden; desktop en 390x844 in Default en LinkedHR.
-- REMOTE MIGRATION: niet uitgevoerd. De lokale Supabase-container was niet beschikbaar door een ontbrekende Docker Linux engine; advisors en gegenereerde DB-types konden daarom niet lokaal worden gedraaid.
+- REMOTE MIGRATION: geen schemawijziging uitgevoerd of toegestaan. De onbewezen hardeningmigration is uit deze featurebranch verwijderd.
 - RELEASE: geen push, merge, deploy of version bump uitgevoerd.
 
 ## Implementatie
@@ -20,9 +21,19 @@ Scope: `/workforce/talent/goals`, `TalentGoalWorkspace`, `TalentGoalCheckIns`, g
 - Check-in-weergave en acties voor reflection, observation en follow-up, inclusief due date, complete-status en history/readback.
 - API uitgebreid met single-goal GET, duidelijke 400/403/409/500-mappings, UUID/body-validatie, optimistic version conflicts en terminal/status-transition checks.
 - Check-ins accepteren alleen geldige follow-up-data op follow-up entries, nieuwe check-ins alleen op ACTIVE goals en terminale check-ins/goals blijven server-side vergrendeld volgens contract.
-- Migration en SQL-contracttest toegevoegd voor trigger-, constraint- en RLS-policy-hardening. Deze migration is code-only en niet remote toegepast.
 - Goal-list maakt capability-catalogus opt-in en laadt voor bestaande goals alleen gerefereerde capability-identiteit; dit voorkomt dat een brede capability-query de manager-workspace blokkeert.
 - Alleen minimale `goal...`/`checkIn...`-sleutels toegevoegd in NL en EN. Geen generic Foundation of central docs gewijzigd.
+
+## DEFERRED SECURITY HARDENING — aparte debt
+
+De volgende punten zijn tijdens migration review gevonden en bewust niet in deze featurebranch opgelost:
+
+- P1: terminale goals moeten open check-ins locken.
+- P2: `completed_at` en `archived_at` moeten server-controlled timestamps zijn.
+- P2: manager/HR update-policy en `author_user_id`-immutability moeten op één contract worden gebracht.
+- P2: `SECURITY DEFINER` met `search_path = public, pg_temp` vraagt een aparte public-schema/search-path hardening review.
+
+De verwijderde migration `20260823121852_harden_talent_goals_product_flow.sql` en de uitsluitend daarbij horende incomplete SQL-contracttest zijn geen onderdeel van de bewezen productflow.
 
 ## Verificatie
 
@@ -47,4 +58,4 @@ De standaard Turbopack-build bleef geblokkeerd door de bekende worktree/package-
 
 Alle aangemaakte `R3-GOAL-*`-records zijn via de toegestane HR-flow gearchiveerd en opnieuw gelezen. Er is geen delete-contract gebruikt.
 
-Voor vervolgacceptatie: start Docker/Supabase lokaal, voer de migration alleen uit na expliciete toestemming, draai daarna Supabase advisors en genereer `packages/db/types.ts` opnieuw. Voer vervolgens de relevante authenticated acceptance opnieuw uit tegen de bijgewerkte lokale database.
+Voor vervolgacceptatie blijft de bestaande Goals-flow tegen het huidige TEST-schema leidend. De vier security-hardeningpunten krijgen een aparte migration-review en een nieuwe forward migration; daarvoor is in deze branch geen oplossing of remote apply uitgevoerd.
