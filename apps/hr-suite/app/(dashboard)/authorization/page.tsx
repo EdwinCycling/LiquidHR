@@ -1,11 +1,17 @@
+import { redirect } from 'next/navigation'
 import { AuthorizationManager, type AuthorizationLabels } from '@/components/organization/authorization-manager'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
-import { requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 import { listAuthorizationMatrix } from '@/lib/organization/management-service'
 
 export default async function AuthorizationPage() {
-  await requirePermission('authorization:read')
+  try {
+    await requirePermission('authorization:read')
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
   const [matrix, t, settings] = await Promise.all([listAuthorizationMatrix(), getTranslator('organization'), getTranslator('settings')])
   const labelKeys: (keyof AuthorizationLabels)[] = [
     'roles', 'newRole', 'roleCode', 'roleName', 'roleDescription', 'createRole', 'roleCreateDescription', 'close', 'cancel', 'discardTitle', 'discardDescription', 'discardConfirm', 'discardCancel', 'permissionDiscardTitle', 'permissionDiscardDescription', 'permissionDiscardConfirm', 'permissionDiscardCancel', 'systemRole', 'tenantRole',

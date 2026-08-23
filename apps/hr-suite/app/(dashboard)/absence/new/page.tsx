@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { PageShell } from '@/components/layout/page-shell'
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { Surface } from '@/components/ui/surface'
 import { resolveEmployeeAbsenceEmployment } from '@/lib/absence/service'
-import { requireAnyPermission } from '@/lib/auth/permissions'
+import { AuthorizationError, requireAnyPermission } from '@/lib/auth/permissions'
 import { getEmployeeEmploymentDetail, listEmployeesOverview } from '@/lib/employment/employment-service'
 import { getTranslator } from '@/lib/i18n/server'
 
@@ -18,7 +19,13 @@ interface NewAbsencePageProps {
 }
 
 export default async function NewAbsencePage({ searchParams }: NewAbsencePageProps) {
-  const auth = await requireAnyPermission(['absence:write'])
+  let auth: Awaited<ReturnType<typeof requireAnyPermission>>
+  try {
+    auth = await requireAnyPermission(['absence:write'])
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
   const { employeeId } = await searchParams
   const scope = auth.activeRoles.includes('DIRECT_MANAGER') ? 'team' : 'all'
   const [employees, t] = await Promise.all([listEmployeesOverview('active', scope), getTranslator('employees')])
