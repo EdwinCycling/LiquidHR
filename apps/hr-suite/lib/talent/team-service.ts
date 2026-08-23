@@ -2,6 +2,10 @@ import type { Database } from '@scope/db'
 import { requirePermission } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
+import type { TalentTeamMatrixFilters } from './team-schemas'
+import { filterTalentTeamMatrixRows, type TalentTeamMatrix, type TalentTeamMatrixCapability } from './team-model'
+
+export type { TalentTeamMatrix, TalentTeamMatrixCapability, TalentTeamMatrixRow } from './team-model'
 
 export class TalentTeamError extends Error {
   constructor(public readonly code: string, public readonly status = 500) {
@@ -10,42 +14,23 @@ export class TalentTeamError extends Error {
   }
 }
 
-type CapabilityRecordRow = Database['public']['Tables']['talent_employee_capability_records']['Row']
-
-export type TalentTeamMatrixCapability = Pick<CapabilityRecordRow, 'id' | 'capability_id' | 'status' | 'source_type' | 'valid_from' | 'valid_until' | 'certificate_status' | 'evidence_status' | 'certificate_code'> & {
-  capabilityName: string
-  capabilityCode: string
-  capabilityType: string
-}
-
-export type TalentTeamMatrixRow = {
-  employeeId: string
-  employeeNumber: string
-  employeeLabel: string
-  jobTitle: string | null
-  departmentId: string
-  capabilities: TalentTeamMatrixCapability[]
-}
-
-export type TalentTeamMatrix = {
-  rows: TalentTeamMatrixRow[]
-  scopeCount: number
-  aggregatePolicy: 'DISABLED'
-  aggregateMinimumGroupSize: 5
-}
-
 type Placement = Pick<Database['public']['Tables']['employee_organizations']['Row'], 'employee_id' | 'job_title' | 'department_id' | 'job_id' | 'effective_from'>
 
 function label(firstName: string, birthName: string, employeeNumber: string): string {
   return [firstName, birthName].filter((value) => value.trim().length > 0).join(' ').trim() || employeeNumber
 }
 
-export async function listTalentTeamMatrix(): Promise<TalentTeamMatrix> {
+function emptyTalentTeamMatrix(scopeType: 'TEAM' | 'TENANT'): TalentTeamMatrix {
+  return { rows: [], scopeCount: 0, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
+}
+
+export async function listTalentTeamMatrix(filters: TalentTeamMatrixFilters = {}): Promise<TalentTeamMatrix> {
   const context = await requirePermission('talent-team:read')
   await requireTenantModule('TALENT')
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const canReadTenant = context.permissions.includes('talent:manage')
+  const scopeType = canReadTenant ? 'TENANT' : 'TEAM'
   let placementQuery = supabase
     .from('employee_organizations')
     .select('employee_id,job_title,department_id,job_id,effective_from')
@@ -65,7 +50,7 @@ export async function listTalentTeamMatrix(): Promise<TalentTeamMatrix> {
     if (!placements.has(placement.employee_id)) placements.set(placement.employee_id, placement)
   }
   const employeeIds = [...placements.keys()]
-  if (employeeIds.length === 0) return { rows: [], scopeCount: 0, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5 }
+  if (employeeIds.length === 0) return emptyTalentTeamMatrix(scopeType)
 
   const visibleStatuses = canReadTenant ? ['DRAFT', 'RELEASED', 'EXPIRED'] : ['RELEASED', 'EXPIRED']
   const [employeesResult, recordsResult] = await Promise.all([
@@ -114,5 +99,5 @@ export async function listTalentTeamMatrix(): Promise<TalentTeamMatrix> {
       capabilities: recordsByEmployee.get(employeeId) ?? [],
     }]
   })
-  return { rows, scopeCount: rows.length, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5 }
+  return { rows: filterTalentTeamMatrixRows(rows, filters), scopeCount: rows.length, scopeType, aggregatePolicy: 'DISABLED', aggregateMinimumGroupSize: 5, aggregateDisabled: true }
 }
