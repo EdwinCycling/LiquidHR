@@ -72,6 +72,29 @@ begin
     raise exception 'Anonymous/public Talent review command grant exists';
   end if;
 
+  if not exists (
+    select 1
+    from pg_proc function_row
+    join pg_namespace namespace_row on namespace_row.oid = function_row.pronamespace
+    where namespace_row.nspname = 'public'
+      and function_row.proname = 'start_talent_review_campaign'
+      and pg_get_function_identity_arguments(function_row.oid) = 'uuid'
+      and function_row.prosecdef
+  ) then
+    raise exception 'Start command must be SECURITY DEFINER for assignment materialization';
+  end if;
+  if not exists (
+    select 1
+    from pg_proc function_row
+    join pg_namespace namespace_row on namespace_row.oid = function_row.pronamespace
+    where namespace_row.nspname = 'public'
+      and function_row.proname = 'start_talent_review_campaign'
+      and pg_get_function_identity_arguments(function_row.oid) = 'uuid'
+      and pg_get_functiondef(function_row.oid) ilike '%distinct on (placement.employee_id)%'
+  ) then
+    raise exception 'Start command must materialize one current placement per employee';
+  end if;
+
   if not exists (select 1 from public.permissions where code = 'talent-review:manage')
     or not exists (select 1 from public.permissions where code = 'talent-review:read')
     or not exists (select 1 from public.permissions where code = 'talent-review:write') then
