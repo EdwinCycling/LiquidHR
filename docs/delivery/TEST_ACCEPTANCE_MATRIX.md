@@ -2,6 +2,18 @@
 
 **ACTIVE — REQUIRED FOR LOCAL AND BROWSER ACCEPTANCE**
 
+## Latest integration run — Talent + Bugfix — 2026-08-23
+
+- Target: TEST project `wnpfloqpjvaacobppbpk`, exact integration branch/worktree `work/talent-bugfix-integration`, baseline `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`.
+- Integrated scope: unauthorized route handling, storage image URL resolution, employment labor-condition mutation, Talent Overview, Assessments, Comparison, Goals + Check-ins, Role Explorer, Team Talent Matrix en Talent Reports.
+- Migration history: remote TEST registreert `20260823134108_fix_employment_labor_condition_mutation_hr_group_scope`, `20260823134149_align_talent_assessment_role_overrides` en `20260823135555_fix_talent_assessment_audit`; lokale filenames zijn daarop genormaliseerd. Goals hardening is bewust niet aanwezig. Geen remote apply.
+- Technical gates: `234/234` test files, `899/899` tests, strict TypeScript, i18n `33` equal NL/EN namespaces, ESLint `0 errors / 8 warnings`, Webpack build `224/224` generated pages/routes and `git diff --check` green.
+- Browser runtime: exact root worktree served the local app on `http://localhost:3000`; the existing Next lock identified the active directory as `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite`. No process was killed. Canonical TEST HR, Manager and Employee sessions were each isolated in agent-browser.
+- Authenticated matrix: HR general + Talent-settings routes; Manager all seven `/workforce/talent/*` routes; Employee self Talent routes plus negative workforce/settings checks. Positive pages showed expected main content and negative routes ended at `/geen-toegang`.
+- Responsive/themes: 390×844 Overview, Goals, Assessments and Team all had `innerWidth=390`, `scrollWidth=390`, `overflow=false`. Liquid Navy and LinkedHR were checked on general and Talent routes; preference restored to Liquid Navy.
+- Storage/avatar sanity: no `storage://` browser URL was observed. The initial HR request to manager-only workforce pages was classified as an invalid persona-route combination; the permission-first re-smoke with Manager was green. Initial dev HMR parse/runtime messages during conflict compilation were not present in fresh warm snapshots.
+- Acceptance classification: **TECHNICAL GREEN / AUTHENTICATED COMBINED SANITY GREEN / RELEASE-PRODUCTION AMBER**. This authorizes review for local integration into `main`, not the integration itself.
+
 ## Latest integration run — 2026-08-23
 
 - Target: TEST project `wnpfloqpjvaacobppbpk`, exact worktree `work/r2-r3-integration`, baseline `abfa0bbb7db628f588faa3d4818a4f4663f27b46`, integration HEAD `479b5b3156b59e99333ca486d2fc2237a31f09ed`.

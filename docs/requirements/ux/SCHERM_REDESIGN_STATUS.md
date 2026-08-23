@@ -2,6 +2,25 @@
 
 Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesignskill worden aangepakt. Werk dit document bij wanneer een schermvoorstel, implementatie of verificatie is afgerond.
 
+## Centrale Talent + Bugfix-integratie — 2026-08-23 — actuele run
+
+De tien aangewezen GREEN-branchdelta's zijn lokaal geïntegreerd op `work/talent-bugfix-integration` vanaf `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`. De technische gate is GREEN; de branch is klaar voor lokale integratie naar `main`, maar er is in deze run niet gemerged, gepusht of gedeployed.
+
+| Geïntegreerd scherm/domein | Route | Status | Resterend |
+|---|---|---|---|
+| Talent Overview | `/workforce/talent` | GEVERIFIEERD / HR | Manager-profieldata blijft fixture-scope-afhankelijk |
+| Talent Assessments | `/workforce/talent/assessments`, `/settings/talent/assessments`, `/my-talent/assessments` | GEVERIFIEERD / persona-sanity | Volledige nieuwe CRUD-lifecycle is branch-level bewezen |
+| Talent Comparison | `/workforce/talent/comparison`, `/settings/talent/comparison` | GEVERIFIEERD / persona-sanity | Geen open integratiepunt |
+| Talent Goals + Check-ins | `/workforce/talent/goals`, `/settings/talent/goals`, `/my-talent/goals` | GEVERIFIEERD / persona-sanity | Deferred security hardening blijft aparte debt |
+| Role Explorer | `/workforce/talent/role-explorer`, `/settings/talent/role-explorer`, `/my-talent/role-explorer` | GEVERIFIEERD / persona-sanity | Manager targetprofielen blijven TEST-fixture-scope-afhankelijk |
+| Team Talent Matrix | `/workforce/talent/team`, `/settings/talent/team` | GEVERIFIEERD / persona-sanity | Geen open integratiepunt |
+| Talent Reports | `/workforce/talent/reports`, `/settings/talent/reports`, `/my-talent/reports` | GEVERIFIEERD / persona-sanity | Geen open integratiepunt |
+| Unauthorized route handling | `/absence/new`, `/authorization` | GEVERIFIEERD | Geen open integratiepunt in deze batch |
+| Storage image URL | avatar/layout image consumers | GEVERIFIEERD | Geen `storage://`-leak in sanity |
+| Employment labor-condition | employment labor-condition mutation | GEVERIFIEERD / TEST | Productie-apply en releasegate blijven buiten deze run |
+
+Responsive spot checks op 390×844 zijn uitgevoerd voor Talent Overview, Goals, Assessments en Team zonder horizontale overflow. Liquid Navy en LinkedHR zijn gecontroleerd; de preference is teruggezet naar Liquid Navy. De bestaande globale UX-redesignstatus hieronder blijft historische context.
+
 ## Centrale R2/R3-integratie — 2026-08-23 — actuele run
 
 De 11 aangewezen GREEN-branchdelta's zijn lokaal geïntegreerd op `work/r2-r3-integration`, vanaf baseline `abfa0bbb7db628f588faa3d4818a4f4663f27b46`, met integration HEAD `479b5b3156b59e99333ca486d2fc2237a31f09ed`. Roadmap 2 **Absence & HR Operations** en Roadmap 3 **Organization & Talent** zijn technisch GREEN op de integratiebranch. De authenticated browsermatrix is `BLOCKED BY ENVIRONMENT`: de canonical TEST-env bestaat, maar fixture-auth kon niet worden gereset; alleen anonieme login/redirect-sanity is daarom bewezen. Employment labor-condition is bewust niet geïntegreerd.

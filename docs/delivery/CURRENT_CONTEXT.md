@@ -1,5 +1,18 @@
 # Actuele overdracht Liquid HR
 
+## Centrale Talent + Bugfix GREEN-integratie — 2026-08-23 — actuele overdracht
+
+- Branch/worktree: `work/talent-bugfix-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR`; baseline exact `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`; main is niet gewijzigd.
+- Geïntegreerd: `work/bug-unauthorized-routes` (`73d51f3`), `work/bug-storage-image-url` (`96d505c`), `work/bug-employment-labor-condition` (`c837c30^..a0c195d`), `work/r3-talent-overview` (`3ef0190`), `work/r3-talent-assessments` (`1d69c35^..e52790a`), `work/r3-talent-comparison` (`5f9b085`), `work/r3-talent-goals` (`da5d08d^..b89ce7b`), `work/r3-role-explorer` (`d1a0195`), `work/r3-team-talent` (`f3fde0b`) en `work/r3-talent-reports` (`c31e0f3`).
+- Conflictoplossing: uitsluitend NL/EN `apps/hr-suite/messages/*/talent.json`; de keysets van alle zeven Talent-slices zijn semantisch samengevoegd, zonder duplicate keys. `check:i18n` bevestigt 33 gelijke namespaces.
+- Migration governance: TEST-project `wnpfloqpjvaacobppbpk` registreert employment als `20260823134108_fix_employment_labor_condition_mutation_hr_group_scope`, assessments als `20260823134149_align_talent_assessment_role_overrides` en `20260823135555_fix_talent_assessment_audit`. De lokale SQL is inhoudelijk gecontroleerd tegen de remote functie-/permissionstaat en naar die geregistreerde filenames genormaliseerd. Goals-hardeningmigration en incomplete contracttest zijn niet aanwezig. Geen remote apply.
+- Scopecontrole: geen generic Foundation-uitbreiding, `.env*`, secrets, `next-env.d.ts` of caches geïntegreerd. Unauthorized route debt, storage-image URL debt en employment labor-condition mutation zijn onderdeel van deze batch; Goals security hardening blijft deferred.
+- Lokale gates: `234/234` testbestanden en `899/899` tests, strict TypeScript, i18n `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-productiebuild `224/224` static pages/routes en `git diff --check` groen.
+- Authenticated sanity: de exacte root-worktree integration-runtime op localhost:3000 is gebruikt. HR Admin op `/dashboard/start`, `/absence/new`, `/authorization`, `/workforce/talent` en Talent-settings; Manager op alle zeven `/workforce/talent/*`-routes; Employee op self-routes en negatieve workforce/settings-routes. Zichtbare hoofdcontent en permission boundaries zijn groen. 390x844 Overview, Goals, Assessments en Team hadden `scrollWidth=390` bij `innerWidth=390`; Liquid Navy en LinkedHR zijn gecontroleerd en de voorkeur is teruggezet naar Liquid Navy. Geen `storage://`-URL is aangetroffen.
+- Browsernuance: `/workforce/talent/{assessments,goals,role-explorer,reports}` is de manager-workspace en is daarom met TEST Manager getest; HR-positive gebruikt de corresponderende `/settings/talent/*`-routes. De eerste parallelle dev-HMR-compilatie gaf tijdelijke parse/runtime-output; frisse, warme snapshots na correcte persona-routing waren groen.
+- Versioning: authoritative `apps/hr-suite/lib/app-version.ts`, huidige zichtbare versie `1.20260816.1`; formaat `1.<YYYYMMDD>.<volgnummer>`. Een latere release bump wijzigt die file en de exacte verwachting in `apps/hr-suite/lib/app-version.test.ts`; packageversie `0.1.2` is technische metadata. Geen bump in deze run.
+- Eindstatus: **TEST-TRUNK: GREEN; RELEASE / PRODUCTION: AMBER**. `READY TO INTEGRATE INTO MAIN = YES`; geen main-merge, push, Vercel-deploy, productieactie, remote schema apply of branch cleanup uitgevoerd.
+
 ## Centrale R2/R3 GREEN-integratie — 2026-08-23 — actuele overdracht
 
 - Branch/worktree: `work/r2-r3-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR`, integration HEAD `d65d74fa0ec3378bb1b082d9dd366e38244a97d6`, gebaseerd op `abfa0bbb7db628f588faa3d4818a4f4663f27b46`.

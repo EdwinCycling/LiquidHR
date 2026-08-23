@@ -1,5 +1,19 @@
 # Implementatiestatus Liquid HR
 
+## Centrale Talent + Bugfix GREEN-integratie — 2026-08-23 — actuele status
+
+**Status: TEST-TRUNK: GREEN — READY TO INTEGRATE INTO MAIN: YES — RELEASE / PRODUCTION: AMBER**
+
+`work/talent-bugfix-integration` is vanaf exact `main` `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21` opgebouwd met de volledige tien aangewezen branchdelta's. De drie bugfixes en zeven Talent-feature-islands zijn lokaal geïntegreerd; de enige mergeconflicten zaten in NL/EN `talent.json` en zijn opgelost door alle feature-keysets te behouden. Geen generic Foundation-bestanden zijn gewijzigd.
+
+TEST-migration history is read-only gecontroleerd op project `wnpfloqpjvaacobppbpk`. Employment is lokaal genormaliseerd naar `20260823134108_fix_employment_labor_condition_mutation_hr_group_scope`; assessments naar `20260823134149_align_talent_assessment_role_overrides` en `20260823135555_fix_talent_assessment_audit`. De remote functie-/permissionstaat matcht de lokale SQL-contracten. De verwijderde Goals-hardeningmigration en incomplete contracttest zijn niet opnieuw ingevoerd. Geen remote schema apply.
+
+De volledige lokale gate is groen: `234/234` testbestanden, `899/899` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-build `224/224` routes/pages en `git diff --check`. Authenticated TEST sanity is permission-first uitgevoerd met HR Admin voor general/settings, Manager voor workforce Talent en Employee voor self/negative routes. Desktop en 390x844 zijn gecontroleerd; Liquid Navy en LinkedHR zijn getest en de preference is hersteld. Geen storage-scheme-leak is waargenomen.
+
+De open Goals-security-debt blijft apart: terminal goal lock, server-controlled terminal timestamps, manager/HR update-policy versus `author_user_id`, en `SECURITY DEFINER` `search_path` review. Versioning blijft ongewijzigd: `apps/hr-suite/lib/app-version.ts`, huidige `1.20260816.1`, conventie `1.<YYYYMMDD>.<volgnummer>`, met de bijbehorende testverwachting in `apps/hr-suite/lib/app-version.test.ts`; package `0.1.2` is niet leidend.
+
+Geen push, merge naar `main`, deploy, production write, remote migration apply, version bump of branch cleanup uitgevoerd.
+
 ## Centrale R2/R3 GREEN-integratie — 2026-08-23 — actuele status
 
 **Status: TEST-TRUNK: GREEN — RELEASE / PRODUCTION: AMBER**

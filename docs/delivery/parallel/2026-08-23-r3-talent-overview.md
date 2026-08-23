@@ -1,9 +1,9 @@
 # R3 Talent Overview — handoff
 
-Datum: 2026-08-23  
-Branch: `work/r3-talent-overview`  
-Worktree: `.codex-worktrees/r3-talent-overview`  
-Baseline: `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`  
+Datum: 2026-08-23
+Branch: `work/r3-talent-overview`
+Worktree: `.codex-worktrees/r3-talent-overview`
+Baseline: `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`
 Lokale poort: `3121`
 
 ## Opgeleverd
