@@ -73,6 +73,8 @@ apps/hr-suite/supabase/tests/employment_labor_condition_mutation.sql
 
 The pgTAP test covers RPC existence/security/execute privileges and successful standalone plus combined labor-condition insertion with HR-group and contract scope. A pre-apply remote transaction probe showed both mutation paths failing (`2/2`), and rolled back. After explicit authorization, migration `20260823122852_fix_employment_labor_condition_mutation_hr_group_scope` was applied to TEST and the full pgTAP suite passed (`14/14`).
 
+The Supabase MCP assigned the applied remote history entry the server timestamp `20260823134108` with the same migration name; the committed local source remains `20260823122852_fix_employment_labor_condition_mutation_hr_group_scope.sql`.
+
 ## Authorization and restore evidence
 
 - HR Admin: authenticated API probe reached the mutation and reproduced the pre-fix HTTP 400.
