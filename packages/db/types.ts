@@ -16873,6 +16873,10 @@ export type Database = {
         }
         Returns: string
       }
+      soft_delete_company_document: {
+        Args: { requested_document_id: string }
+        Returns: undefined
+      }
       create_group_leave_accrual_rule: {
         Args: {
           requested_accrual_amount: number
