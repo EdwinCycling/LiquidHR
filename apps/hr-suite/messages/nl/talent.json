@@ -491,5 +491,17 @@
   "checkInDiscardDescription": "Niet-opgeslagen wijzigingen gaan verloren.",
   "checkInDiscardConfirm": "Wijzigingen weggooien",
   "checkInDiscardKeep": "Verder bewerken",
-  "checkInConfirmComplete": "Check-in afronden"
+  "checkInConfirmComplete": "Check-in afronden",
+  "roleExplorerProfileValidity": "Geldigheid functieversie",
+  "roleExplorerRadarUnavailable": "De radar wordt niet getoond: deze vergelijking bevat ontbrekende of niet-vergelijkbare niveaudata. De tabel is de betrouwbare bron.",
+  "roleExplorerNextAction": "Volgende stap",
+  "roleExplorerCurrentProfile": "Huidige functieversie",
+  "roleExplorerNoCurrentProfile": "Geen actuele vrijgegeven functieversie",
+  "roleExplorerNoEmployees": "Geen medewerkers beschikbaar binnen deze scope.",
+  "roleExplorerNoProfiles": "Geen actieve functieversies beschikbaar binnen deze scope.",
+  "roleExplorerNoRequirements": "Voor deze functieversie zijn geen capabilityvereisten vastgelegd.",
+  "roleExplorerActionMatch": "Bron is actueel en voldoet aan de vastgelegde vereiste.",
+  "roleExplorerActionGap": "Bespreek het verschil met de vastgelegde vereiste.",
+  "roleExplorerActionMissingEvidence": "Controleer of het vereiste bewijs kan worden vrijgegeven.",
+  "roleExplorerActionUnknown": "Controleer de actuele vrijgegeven bron voordat je conclusies trekt."
 }

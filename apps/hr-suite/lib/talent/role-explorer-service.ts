@@ -20,6 +20,8 @@ export type TalentRoleExplorerProfileOption = {
   jobCode: string
   jobGroupName: string | null
   profileVersion: number
+  validFrom: string | null
+  validUntil: string | null
 }
 
 export type TalentRoleExplorerEmployeeOption = {
@@ -28,6 +30,9 @@ export type TalentRoleExplorerEmployeeOption = {
   employeeLabel: string
   jobId: string | null
   jobTitle: string | null
+  currentJobCode: string | null
+  currentProfileVersionId: string | null
+  currentProfileVersion: number | null
 }
 
 export type TalentRoleExplorerAxis = {
@@ -67,6 +72,18 @@ export type TalentRoleExplorerWorkspace = {
   comparison: TalentRoleExplorerComparison | null
 }
 
+export type TalentRoleExplorerOutcomeInput = {
+  capabilityAvailable: boolean
+  recordStatus: string | null
+  isCurrentRecord: boolean
+  isCertificate: boolean
+  evidenceStatus: string | null
+  targetLevelRank: number | null
+  currentLevelRank: number | null
+  targetLanguageLevel: string | null
+  currentLanguageLevel: string | null
+}
+
 function employeeLabel(employee: EmployeeRow): string {
   return [employee.first_name, employee.birth_name].filter((value) => value.trim().length > 0).join(' ').trim() || employee.employee_number
 }
@@ -97,25 +114,36 @@ function recordPriority(record: RecordRow, today: string): number {
   return 1
 }
 
-function outcome(requirement: RequirementRow, capability: CapabilityRow | undefined, record: RecordRow | undefined, levels: LevelRow[], today: string): TalentComparisonOutcome {
-  if (!capability || !record) return 'GAP'
-  if (record.status !== 'RELEASED' || !isCurrent(record.valid_from, record.valid_until, today)) return 'UNKNOWN'
-  if (capability.capability_type === 'CERTIFICATE' && record.evidence_status !== 'VERIFIED') return 'MISSING_EVIDENCE'
-  const targetRank = levelRank(levels, requirement.target_level_id)
-  if (targetRank !== null) {
-    const currentRank = levelRank(levels, record.talent_level_id)
-    if (currentRank === null || currentRank < targetRank) return 'GAP'
-  }
-  if (requirement.language_level) {
-    const currentLanguageRank = languageRank(record.language_level)
-    const targetLanguageRank = languageRank(requirement.language_level)
+export function evaluateTalentRoleExplorerOutcome(input: TalentRoleExplorerOutcomeInput): TalentComparisonOutcome {
+  if (!input.capabilityAvailable || input.recordStatus !== 'RELEASED' || !input.isCurrentRecord) return 'UNKNOWN'
+  if (input.isCertificate && input.evidenceStatus !== 'VERIFIED') return 'MISSING_EVIDENCE'
+  if (input.targetLevelRank !== null && (input.currentLevelRank === null || input.currentLevelRank < input.targetLevelRank)) return 'GAP'
+  if (input.targetLanguageLevel) {
+    const currentLanguageRank = languageRank(input.currentLanguageLevel)
+    const targetLanguageRank = languageRank(input.targetLanguageLevel)
     if (currentLanguageRank === null || targetLanguageRank === null) return 'UNKNOWN'
     if (currentLanguageRank < targetLanguageRank) return 'GAP'
   }
   return 'MATCH'
 }
 
+function outcome(requirement: RequirementRow, capability: CapabilityRow | undefined, record: RecordRow | undefined, levels: LevelRow[], today: string): TalentComparisonOutcome {
+  const isReleasedCurrent = Boolean(record && record.status === 'RELEASED' && isCurrent(record.valid_from, record.valid_until, today))
+  return evaluateTalentRoleExplorerOutcome({
+    capabilityAvailable: Boolean(capability),
+    recordStatus: record?.status ?? null,
+    isCurrentRecord: isReleasedCurrent,
+    isCertificate: capability?.capability_type === 'CERTIFICATE',
+    evidenceStatus: record?.evidence_status ?? null,
+    targetLevelRank: levelRank(levels, requirement.target_level_id),
+    currentLevelRank: isReleasedCurrent ? levelRank(levels, record?.talent_level_id ?? null) : null,
+    targetLanguageLevel: requirement.language_level,
+    currentLanguageLevel: isReleasedCurrent ? record?.language_level ?? null : null,
+  })
+}
+
 async function authorize(mode: TalentRoleExplorerMode): Promise<AuthContext> {
+  if (mode === 'admin') return requirePermission('talent:manage')
   if (mode !== 'self') return requirePermission('talent-comparison:read')
   const context = await requireAuthContext()
   if (!context.employeeId) throw new TalentRoleExplorerError('EMPLOYEE_CONTEXT_REQUIRED', 403)
@@ -166,7 +194,7 @@ export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMo
   const [profilesResult, placementsResult] = await Promise.all([profilesQuery, placementsQuery])
   if (profilesResult.error || placementsResult.error) throw new TalentRoleExplorerError('TALENT_ROLE_EXPLORER_SCOPE_READ_FAILED')
 
-  const profiles = (profilesResult.data ?? []).flatMap((profile): TalentRoleExplorerProfileOption[] => {
+  const allProfiles = (profilesResult.data ?? []).flatMap((profile): TalentRoleExplorerProfileOption[] => {
     if (!profile.profile_version_id || !profile.job_id || !profile.job_code) return []
     return [{
       profileVersionId: profile.profile_version_id,
@@ -174,6 +202,8 @@ export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMo
       jobCode: profile.job_code,
       jobGroupName: profile.job_group_name,
       profileVersion: profile.version_number ?? 0,
+      validFrom: profile.valid_from,
+      validUntil: profile.valid_until,
     }]
   })
   const placementByEmployee = new Map<string, PlacementRow>()
@@ -188,14 +218,23 @@ export async function listTalentRoleExplorerWorkspace(mode: TalentRoleExplorerMo
   const employees = (employeesResult.data ?? []).flatMap((employee): TalentRoleExplorerEmployeeOption[] => {
     const placement = placementByEmployee.get(employee.id)
     if (mode !== 'self' && !placement) return []
+    const currentProfile = placement?.job_id ? allProfiles.find((profile) => profile.jobId === placement.job_id) : undefined
     return [{
       employeeId: employee.id,
       employeeNumber: employee.employee_number,
       employeeLabel: employeeLabel(employee),
       jobId: placement?.job_id ?? null,
       jobTitle: placement?.job_title ?? null,
+      currentJobCode: currentProfile?.jobCode ?? null,
+      currentProfileVersionId: currentProfile?.profileVersionId ?? null,
+      currentProfileVersion: currentProfile?.profileVersion ?? null,
     }]
   })
+
+  const selfEmployee = mode === 'self' ? employees[0] : undefined
+  const profiles = mode === 'self' && selfEmployee?.jobId
+    ? allProfiles.filter((profile) => profile.jobId !== selfEmployee.jobId)
+    : allProfiles
 
   const selectedEmployeeId = mode === 'self'
     ? context.employeeId

@@ -491,5 +491,17 @@
   "checkInDiscardDescription": "Unsaved changes will be lost.",
   "checkInDiscardConfirm": "Discard changes",
   "checkInDiscardKeep": "Keep editing",
-  "checkInConfirmComplete": "Complete check-in"
+  "checkInConfirmComplete": "Complete check-in",
+  "roleExplorerProfileValidity": "Profile version validity",
+  "roleExplorerRadarUnavailable": "The radar is not shown: this comparison contains missing or non-comparable level data. The table is the reliable source.",
+  "roleExplorerNextAction": "Next step",
+  "roleExplorerCurrentProfile": "Current profile version",
+  "roleExplorerNoCurrentProfile": "No current released profile version",
+  "roleExplorerNoEmployees": "No employees are available within this scope.",
+  "roleExplorerNoProfiles": "No active profile versions are available within this scope.",
+  "roleExplorerNoRequirements": "No capability requirements are recorded for this profile version.",
+  "roleExplorerActionMatch": "The source is current and meets the recorded requirement.",
+  "roleExplorerActionGap": "Discuss the difference from the recorded requirement.",
+  "roleExplorerActionMissingEvidence": "Check whether the required evidence can be released.",
+  "roleExplorerActionUnknown": "Check the current released source before drawing conclusions."
 }
