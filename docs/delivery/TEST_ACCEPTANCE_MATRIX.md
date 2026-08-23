@@ -2,13 +2,16 @@
 
 **ACTIVE — REQUIRED FOR LOCAL AND BROWSER ACCEPTANCE**
 
-## Latest integration run — 2026-08-21
+## Latest integration run — 2026-08-23
 
-- Target: TEST project `wnpfloqpjvaacobppbpk`, exact worktree `work/ux-v1-2-integration`, localhost:3000 PID 33660.
-- Database fix: forward migration `fix_employee_document_metadata_rls` applied; remote document-RLS regression test green. Read policies remained unchanged.
-- Technical gates: 213/213 test files and 833/833 tests, typecheck, i18n, lint (0 errors/8 warnings), Webpack build (225 routes) and diff-check green.
-- Browser evidence: fresh HR login and `/dashboard/start` sanity green; critical absence/employment/authorization/process routes returned 200 without relevant console errors; documents PDF/TXT upload returned 201, PDF was visible after reload, download route returned 307; 390×844 documents had no horizontal overflow.
-- Acceptance remains `RED`: signed-storage follow-up and document delete were not reliably proven, four temporary acceptance records/objects could not be remotely deleted in this run, and the full absence/employment/authorization/process mutation matrix plus complete persona/theme matrix remains open. Do not treat this run as release evidence.
+- Target: TEST project `wnpfloqpjvaacobppbpk`, exact worktree `work/r2-r3-integration`, baseline `abfa0bbb7db628f588faa3d4818a4f4663f27b46`, integration HEAD `479b5b3156b59e99333ca486d2fc2237a31f09ed`.
+- Integrated scope: Authorization Coverage, Startpage, Organization/Departments, Continuous Appraisal, Star Performers, 9-grid, Absence Core, Absence Insights, HR Calendar + Leave, Process Automation lifecycle and Company Documents. Employment labor-condition is excluded.
+- Environment preflight: check `Test-Path apps/hr-suite/.env.local` before starting browser/API acceptance; inspect only required key names, never values; use only canonical TEST fixture-auth; do not copy or commit `.env.local`; reset TEST fixture passwords only when authenticated acceptance requires it; never use production accounts/data.
+- Technical gates: `219/219` test files and `857/857` tests, strict TypeScript, i18n `33` equal NL/EN namespaces, ESLint `0 errors / 8 warnings`, Webpack build with `224` generated static pages/routes and `git diff --check` green.
+- Schema/migration scope: 9-grid `20260823110000_fix_talent_review_start_rpc_rls.sql` and Company Documents `20260823073015_company_document_soft_delete_rls.sql` are included as code and were already applied on TEST; no remote migration was run in this integration.
+- Browser evidence: `/login` HTTP 200 with 0 relevant console-errors. All ten protected sanity routes returned HTTP 307 to `/login?next=...` anonymously, with normal routing and no relevant console-errors.
+- Authenticated acceptance: `BLOCKED BY ENVIRONMENT` because the canonical fixture-auth reset was rejected by the safety control; no password or account mutation was performed. 390x844 is `NOT EXECUTED — TOOLING LIMITATION` because the installed agent-browser has no viewport resize command.
+- Acceptance classification: **TECHNICAL GREEN / AUTHENTICATED BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT**. This is not release evidence and does not authorize merge/push/deploy.
 
 Dit document is de centrale bron voor alle Codex/agent browser- en functionele acceptance.
 

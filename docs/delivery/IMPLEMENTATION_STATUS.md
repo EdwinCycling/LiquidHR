@@ -1,5 +1,19 @@
 # Implementatiestatus Liquid HR
 
+## Centrale R2/R3 GREEN-integratie — 2026-08-23 — actuele status
+
+**Status: TECHNICAL GREEN — AUTHENTICATED BROWSER ACCEPTANCE BLOCKED BY ENVIRONMENT**
+
+`work/r2-r3-integration` is vanaf exact `abfa0bbb7db628f588faa3d4818a4f4663f27b46` opgebouwd met de volledige relevante delta van 11 aangewezen GREEN-branches. De enige overlap betrof `lib/organization/schemas.ts` en de bijbehorende test; beide semantische wijzigingen zijn behouden. De actuele Process-branchtip `f53cabf` is meegenomen naast de opgegeven `5953f22`, omdat deze de direct relevante `force-dynamic` acceptance-fix bevat.
+
+Roadmap 2 (Absence Core, Absence Insights en HR Calendar + Leave) en Roadmap 3 (Organization/Departments, Continuous Appraisal, Star Performers en 9-grid) zijn lokaal technisch geïntegreerd. Authorization Coverage, Startpage, Process Automation lifecycle en Company Documents zijn eveneens geïntegreerd. De twee opgegeven TEST-migrations waren al toegepast; de migrationbestanden zijn onderdeel van de code-integratie, maar zijn niet opnieuw remote uitgevoerd.
+
+De technische gates zijn volledig groen: `219/219` testbestanden, `857/857` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-build met `224` gegenereerde static pages/routes en `git diff --check`. Er zijn geen verboden generated/env/secrets-bestanden geïntegreerd.
+
+Canonical `apps/hr-suite/.env.local` bestaat en is alleen op key-aanwezigheid gecontroleerd. De fixture-auth reset kon niet worden uitgevoerd door de veiligheidscontrole; daarom zijn protected browsercontent en persona-acceptance niet als GREEN geclaimd. Anonieme route-sanity gaf voor alle tien gevraagde routes de verwachte HTTP 307 naar login; `/login` gaf HTTP 200 zonder relevante console-errors. De 390x844-sanity is niet uitgevoerd door een resize-beperking van de gebruikte browsertool.
+
+Resterende debt: `employment labor-condition` blijft buiten deze integratie; daarnaast blijft de authenticated browsermatrix voor de gecombineerde batch open. Er is niet naar `main` gemerged, gepusht of gedeployed. **READY TO INTEGRATE INTO MAIN = NO — wacht op review en authenticated acceptance.**
+
 ## UX v1.2 final integration & acceptance — 2026-08-21 — actuele status
 
 **Status: TEST-TRUNK: GREEN — RELEASE / PRODUCTION ACCEPTANCE: AMBER**
