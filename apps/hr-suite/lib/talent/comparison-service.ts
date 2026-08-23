@@ -43,9 +43,14 @@ export type TalentComparisonRequirement = {
   capabilityType: string
   requirementType: string
   targetLevelCode: string | null
+  currentLevelCode: string | null
   languageLevel: string | null
+  currentLanguageLevel: string | null
   rationale: string | null
   outcome: TalentComparisonOutcome
+  sourceType: string | null
+  validFrom: string | null
+  validUntil: string | null
   sourceRecordId: string | null
 }
 
@@ -57,6 +62,7 @@ export type TalentComparisonResult = {
 }
 
 export type TalentComparisonWorkspace = {
+  asOf: string
   profiles: TalentComparisonProfileOption[]
   employees: TalentComparisonEmployeeOption[]
   selectedEmployeeId: string | null
@@ -80,6 +86,11 @@ function levelRank(levels: LevelRow[], id: string | null): number | null {
   if (!id) return null
   const level = levels.find((item) => item.id === id)
   return level?.sort_order ?? null
+}
+
+function levelCode(levels: LevelRow[], id: string | null): string | null {
+  if (!id) return null
+  return levels.find((item) => item.id === id)?.code ?? null
 }
 
 function languageRank(value: string | null): number | null {
@@ -169,7 +180,7 @@ export async function listTalentComparisonWorkspace(query: TalentComparisonListQ
 
   const selectedEmployeeId = query.employeeId && employees.some((employee) => employee.employeeId === query.employeeId) ? query.employeeId : null
   const selectedProfileVersionId = query.profileVersionId && profiles.some((profile) => profile.profileVersionId === query.profileVersionId) ? query.profileVersionId : null
-  if (!selectedEmployeeId || !selectedProfileVersionId) return { profiles, employees, selectedEmployeeId, selectedProfileVersionId, comparison: null }
+  if (!selectedEmployeeId || !selectedProfileVersionId) return { asOf: today, profiles, employees, selectedEmployeeId, selectedProfileVersionId, comparison: null }
 
   const selectedProfile = profiles.find((profile) => profile.profileVersionId === selectedProfileVersionId)
   const selectedEmployee = employees.find((employee) => employee.employeeId === selectedEmployeeId)
@@ -185,6 +196,7 @@ export async function listTalentComparisonWorkspace(query: TalentComparisonListQ
   ])
   if (capabilitiesResult.error || levelsResult.error || recordsResult.error) throw new TalentComparisonError('TALENT_COMPARISON_DATA_READ_FAILED')
   const capabilityById = new Map((capabilitiesResult.data ?? []).map((capability) => [capability.id, capability]))
+  const levelRows = levelsResult.data ?? []
   const recordByCapability = new Map<string, RecordRow>()
   for (const record of recordsResult.data ?? []) {
     const current = recordByCapability.get(record.capability_id)
@@ -193,6 +205,7 @@ export async function listTalentComparisonWorkspace(query: TalentComparisonListQ
   const requirements = (requirementsResult.data ?? []).map((requirement) => {
     const capability = capabilityById.get(requirement.capability_id)
     const record = recordByCapability.get(requirement.capability_id)
+    const isReleasedCurrent = Boolean(record && record.status === 'RELEASED' && isCurrent(record.valid_from, record.valid_until, today))
     return {
       requirementId: requirement.id,
       capabilityId: requirement.capability_id,
@@ -200,12 +213,17 @@ export async function listTalentComparisonWorkspace(query: TalentComparisonListQ
       capabilityName: capability?.name ?? requirement.capability_id,
       capabilityType: capability?.capability_type ?? 'UNKNOWN',
       requirementType: requirement.requirement_type,
-      targetLevelCode: levelsResult.data?.find((level) => level.id === requirement.target_level_id)?.code ?? null,
+      targetLevelCode: levelCode(levelRows, requirement.target_level_id),
+      currentLevelCode: isReleasedCurrent ? levelCode(levelRows, record?.talent_level_id ?? null) : null,
       languageLevel: requirement.language_level,
+      currentLanguageLevel: isReleasedCurrent ? record?.language_level ?? null : null,
       rationale: requirement.rationale,
-      outcome: calculateOutcome(requirement, capability, record, levelsResult.data ?? [], today),
-      sourceRecordId: record && record.status === 'RELEASED' && isCurrent(record.valid_from, record.valid_until, today) ? record.id : null,
+      outcome: calculateOutcome(requirement, capability, record, levelRows, today),
+      sourceType: isReleasedCurrent ? record?.source_type ?? null : null,
+      validFrom: isReleasedCurrent ? record?.valid_from ?? null : null,
+      validUntil: isReleasedCurrent ? record?.valid_until ?? null : null,
+      sourceRecordId: isReleasedCurrent ? record?.id ?? null : null,
     }
   })
-  return { profiles, employees, selectedEmployeeId, selectedProfileVersionId, comparison: { employee: selectedEmployee, profile: selectedProfile, requirements, sourceVersion: selectedProfile.profileVersion } }
+  return { asOf: today, profiles, employees, selectedEmployeeId, selectedProfileVersionId, comparison: { employee: selectedEmployee, profile: selectedProfile, requirements, sourceVersion: selectedProfile.profileVersion } }
 }
