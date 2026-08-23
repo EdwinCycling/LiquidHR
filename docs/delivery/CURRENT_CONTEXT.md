@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Goals security hardening — 2026-08-23 — actuele overdracht
+
+- Branch/worktree: `work/goals-security-hardening`, exact baseline `main` `e8cc329dfaf026919d7996b74470ee9380f83828`; geen push, merge, deploy of version bump.
+- Opgelost in forward migration `20260823172440_talent_goals_security_hardening.sql`: terminale goals blokkeren inhoudelijke updates van open check-ins; bestaande SELECT/history blijft toegestaan; terminale timestamps worden server-side bepaald en historische waarden blijven behouden; HR/Manager RLS-scope en `author_user_id`-immutability zijn consistent; vijf Goals `SECURITY DEFINER` functies gebruiken `search_path=''`, expliciete schema's en revoke van publieke execute.
+- Test-first: `talent_goals_security_hardening.sql` is op TEST groen met 18/18 pgTAP-asserties. Remote TEST project `wnpfloqpjvaacobppbpk` heeft de migration geregistreerd als `20260823172732`; rollbackbare fixtures lieten 8 goals/7 check-ins intact en 0 hardening-records achter.
+- Lokale gates: volledige hr-suite `234/234` testbestanden en `899/899` tests, gerichte Goals-tests `9/9`, strict TypeScript, lint `0 errors / 8 warnings`, Supabase advisors/types en `git diff --check` groen. Geen i18n- of app-codewijziging.
+- Authenticated browser sanity: `/login` renderde lokaal, maar agent-browser verloor de CDP-response channel bij de loginactie en een nieuwe geïsoleerde sessie; HR/Manager/Employee browser/API sanity is daarom **NOT EXECUTED — TOOLING LIMITATION**, niet releasebewijs. Geen processen gestopt en geen secrets gelogd.
+- Eindstatus: **TECHNICAL GREEN; TEST DATABASE GREEN; AUTHENTICATED BROWSER ACCEPTANCE BLOCKED; RELEASE/PRODUCTION AMBER**. Productie is niet geraakt.
+
 ## Centrale Talent + Bugfix GREEN-integratie — 2026-08-23 — actuele overdracht
 
 - Branch/worktree: `work/talent-bugfix-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR`; baseline exact `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`; main is niet gewijzigd.

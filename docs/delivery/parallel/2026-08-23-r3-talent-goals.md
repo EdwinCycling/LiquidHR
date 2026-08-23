@@ -24,16 +24,16 @@ Scope: `/workforce/talent/goals`, `TalentGoalWorkspace`, `TalentGoalCheckIns`, g
 - Goal-list maakt capability-catalogus opt-in en laadt voor bestaande goals alleen gerefereerde capability-identiteit; dit voorkomt dat een brede capability-query de manager-workspace blokkeert.
 - Alleen minimale `goal...`/`checkIn...`-sleutels toegevoegd in NL en EN. Geen generic Foundation of central docs gewijzigd.
 
-## DEFERRED SECURITY HARDENING — aparte debt
+## SECURITY HARDENING — separate forward migration completed
 
-De volgende punten zijn tijdens migration review gevonden en bewust niet in deze featurebranch opgelost:
+De volgende vier punten zijn na de featurebranch als één minimale forward migration opgelost:
 
-- P1: terminale goals moeten open check-ins locken.
-- P2: `completed_at` en `archived_at` moeten server-controlled timestamps zijn.
-- P2: manager/HR update-policy en `author_user_id`-immutability moeten op één contract worden gebracht.
-- P2: `SECURITY DEFINER` met `search_path = public, pg_temp` vraagt een aparte public-schema/search-path hardening review.
+- terminale goals (`COMPLETED`, `CANCELLED`, `ARCHIVED`) blokkeren inhoudelijke updates van open check-ins; bestaande SELECT/history-operaties blijven read-only toegestaan;
+- `completed_at`, `archived_at` en check-in `completed_at` worden bij nieuwe terminale overgangen door de server bepaald; bestaande historische waarden worden behouden;
+- HR/Manager RLS blijft permission- en scopegebonden, terwijl bestaande `author_user_id` niet wordt gewijzigd of onbedoeld geldige updates blokkeert;
+- de vijf Goals `SECURITY DEFINER` functies gebruiken `search_path=''`, expliciete schema's en beperkte execute-rechten.
 
-De verwijderde migration `20260823121852_harden_talent_goals_product_flow.sql` en de uitsluitend daarbij horende incomplete SQL-contracttest zijn geen onderdeel van de bewezen productflow.
+De forward migration is `20260823172440_talent_goals_security_hardening.sql`; remote TEST registreerde deze als `20260823172732`. De nieuwe pgTAP-contracttest is groen met `18/18`. De eerder verwijderde migration `20260823121852_harden_talent_goals_product_flow.sql` en incomplete contracttest zijn niet hersteld.
 
 ## Verificatie
 
@@ -44,10 +44,12 @@ De verwijderde migration `20260823121852_harden_talent_goals_product_flow.sql` e
 | `check:i18n` | GREEN, 33 namespaces met gelijke NL/EN-sleutels |
 | ESLint | exit 0, 8 bestaande warnings buiten deze scope, 0 errors |
 | `git diff --check` | GREEN |
+| `talent_goals_security_hardening.sql` | GREEN, pgTAP `18/18` op TEST; rollbackbare fixtures opgeschoond |
+| Supabase security/performance advisors | Geen Goals-specifieke security finding; bestaande performance-info over ongebruikte indexen |
 | `npm run build --workspace @liquid-hr/hr-suite -- --webpack` | GREEN, compile/TypeScript/static generation 224/224 |
-| Authenticated manager flow | HTTP 201 create, 200 edit/activate/progress/check-in/complete, 200 readback; archive door manager 403 |
-| Authenticated employee flow | eigen goal/check-in HTTP 200/201; niet-toegestane observation 403; manager-workspace 403 |
-| Authenticated HR flow | goals zichtbaar en archive HTTP 200 met ARCHIVED readback; R3-testdata gearchiveerd |
+| Authenticated manager flow | Bestaande featureflow eerder bewezen; deze hardening-run kon nieuwe browser/API persona-sanity niet uitvoeren door agent-browser CDP tooling failure |
+| Authenticated employee flow | Bestaande featureflow eerder bewezen; nieuwe hardening-run persona-sanity niet uitgevoerd door toolinglimitation |
+| Authenticated HR flow | Bestaande featureflow eerder bewezen; remote pgTAP bewijst HR archive/timestamps/RLS-contract, nieuwe browser-sanity geblokkeerd |
 | Negative concurrency/terminal | stale goal update 409 `TALENT_GOAL_VERSION_CONFLICT`; terminal check-in update 409 `TALENT_CHECKIN_STATUS_LOCKED` |
 | UI readback | manager check-in history toonde gewijzigde observation, follow-up action, due date en afgeronde statussen |
 | Mobile/theme | 390x844, Default en LinkedHR, geen horizontale overflow; dirty-close protection bevestigd |
@@ -58,4 +60,4 @@ De standaard Turbopack-build bleef geblokkeerd door de bekende worktree/package-
 
 Alle aangemaakte `R3-GOAL-*`-records zijn via de toegestane HR-flow gearchiveerd en opnieuw gelezen. Er is geen delete-contract gebruikt.
 
-Voor vervolgacceptatie blijft de bestaande Goals-flow tegen het huidige TEST-schema leidend. De vier security-hardeningpunten krijgen een aparte migration-review en een nieuwe forward migration; daarvoor is in deze branch geen oplossing of remote apply uitgevoerd.
+Voor vervolgacceptatie blijft de bestaande Goals-flow tegen het huidige TEST-schema leidend. De vier security-hardeningpunten zijn nu technisch opgelost en op TEST via forward migration/regressietest bewezen. Authenticated browser/API persona-sanity blijft open totdat de CDP-tooling hersteld is; productie is niet geraakt.

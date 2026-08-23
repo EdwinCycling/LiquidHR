@@ -2,6 +2,13 @@
 
 **ACTIVE — REQUIRED FOR LOCAL AND BROWSER ACCEPTANCE**
 
+## Latest run — Goals security hardening — 2026-08-23
+
+- Target: TEST project `wnpfloqpjvaacobppbpk`; branch `work/goals-security-hardening`, baseline `e8cc329dfaf026919d7996b74470ee9380f83828`.
+- Migration `20260823172440_talent_goals_security_hardening.sql` is remote-applied and registered as `20260823172732`; pgTAP `talent_goals_security_hardening.sql` is green `18/18`. Remote cleanup is green: baseline `8 goals / 7 check-ins`, `0` temporary hardening goals.
+- Technical gates: targeted Goals `9/9`, full suite `234/234` files and `899/899` tests, strict TypeScript, lint `0 errors / 8 warnings`, advisors/types and `git diff --check` green. No i18n or app-code change.
+- Browser: anonymous `/login` rendered, but the isolated agent-browser session failed with `CDP response channel closed` during login/recovery. HR/Manager/Employee authenticated API/browser sanity is **NOT EXECUTED — TOOLING LIMITATION**; this is not authenticated release evidence. No production or process mutation.
+
 ## Latest integration run — Talent + Bugfix — 2026-08-23
 
 - Target: TEST project `wnpfloqpjvaacobppbpk`, exact integration branch/worktree `work/talent-bugfix-integration`, baseline `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`.

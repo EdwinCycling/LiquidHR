@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Goals security hardening — 2026-08-23 — actuele status
+
+**Status: TECHNICAL GREEN — TEST DATABASE GREEN — AUTHENTICATED BROWSER BLOCKED — RELEASE / PRODUCTION AMBER**
+
+Op branch `work/goals-security-hardening` vanaf `e8cc329dfaf026919d7996b74470ee9380f83828` is de forward migration `20260823172440_talent_goals_security_hardening.sql` toegevoegd. De migration hardent terminal-goal/check-in locking, server-controlled terminal timestamps, het bestaande HR/Manager scopecontract zonder onbedoelde author-blokkade en alle vijf Goals `SECURITY DEFINER` functies met lege `search_path`, expliciete schema's en beperkte execute-rechten. Read-only history/SELECT van terminale doelen en check-ins blijft toegestaan.
+
+De pgTAP-regressietest is op TEST groen met `18/18`; de remote migration is geregistreerd als `20260823172732`. Testdata is rollbackbaar en de baseline bleef `8 goals / 7 check-ins`, zonder hardening-records. Lokaal zijn `234/234` testbestanden en `899/899` tests, de gerichte Goals-tests `9/9`, strict TypeScript, lint `0 errors / 8 warnings` en `git diff --check` groen. Browser persona-sanity kon door een CDP-channel failure niet worden uitgevoerd; productie, push, merge, deploy en version bump zijn niet gedaan.
+
 ## Centrale Talent + Bugfix GREEN-integratie — 2026-08-23 — actuele status
 
 **Status: TEST-TRUNK: GREEN — READY TO INTEGRATE INTO MAIN: YES — RELEASE / PRODUCTION: AMBER**
