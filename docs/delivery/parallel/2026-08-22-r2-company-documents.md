@@ -98,4 +98,20 @@ Local gates for this patch:
 - targeted ESLint for `company-document-service.ts`: GREEN;
 - package lint: GREEN, exit `0`, with 8 pre-existing warnings outside this patch;
 - `git diff --check`: GREEN;
-- Supabase `db lint --local`: BLOCKED because no local Postgres is running on `54322` (Docker/local Supabase was not started); no remote substitute or apply was used.
+- Supabase `db lint --local`: BLOCKED because no local Postgres is running on `54322` (Docker/local Supabase was not started); no remote substitute was used for this local gate. TEST apply was performed later only after explicit authorization.
+
+## TEST schema apply and post-apply verification — 2026-08-23
+
+After explicit TEST-only authorization, `company_document_soft_delete_rls` was applied to the TEST Supabase project. The recorded remote migration version is `20260823093210`. No production, push, merge or deployment action was performed.
+
+Post-apply catalog verification was GREEN: `public.soft_delete_company_document(uuid)` exists as `SECURITY DEFINER` with an empty search path; `authenticated` has execute; and the single `company_documents_read_group_scoped` SELECT policy remains unchanged with `deleted_at IS NULL`. The transaction/rollback pgTAP regression test passed all six planned assertions, including HR allowed soft-delete, Employee denial, hidden soft-deleted readback and no extra SELECT policy.
+
+Real post-apply browser/API evidence used TEST HR Admin in Playwright session `r2company3` against the exact worktree on port `3103`:
+
+- `DELETE /api/company-documents/c492787d-ded0-4462-97ec-c3e48f09a715`: `200 OK`;
+- refreshed `/company-documents`: `200 OK`, the temporary title was absent and the empty state was shown;
+- SQL readback: record remains with `deleted_at IS NOT NULL`, and the storage object count remains `1`, matching the existing soft-delete contract (no storage deletion is performed by the current service);
+- real TEST Employee browser probe against the same DELETE endpoint: `403 Forbidden`;
+- HR delete/readback flow: no browser console errors or warnings. The only later console error was the expected browser resource error from the intentional Employee `403` probe.
+
+The local dev server was stopped after verification. The branch was committed locally and the worktree was clean at the final handoff.
