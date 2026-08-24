@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildJourneyActivationPreview,
   deriveJourneyAttention,
+  deriveJourneyProgress,
   validateJourneyActivation,
   type JourneyActivationTemplate,
 } from './runtime-domain'
@@ -62,5 +63,9 @@ describe('Journey runtime domain', () => {
     expect(deriveJourneyAttention({ status: 'ACTIVE', nextMomentOn: '2026-08-20', overdueRequiredTopics: 0, today: '2026-08-12' })).toBe('UPCOMING')
     expect(deriveJourneyAttention({ status: 'PAUSED', nextMomentOn: null, overdueRequiredTopics: 4, today: '2026-08-12' })).toBe('PAUSED')
     expect(deriveJourneyAttention({ status: 'COMPLETED', nextMomentOn: null, overdueRequiredTopics: 0, today: '2026-08-12' })).toBe('COMPLETED')
+  })
+
+  it('berekent HR-overviewprogress uit de bestaande topicstatussen', () => {
+    expect(deriveJourneyProgress([{ status: 'COMPLETED' }, { status: 'PENDING' }, { status: 'SKIPPED' }])).toEqual({ completed: 1, total: 3 })
   })
 })

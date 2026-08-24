@@ -21,6 +21,7 @@ export interface JourneyRuntimeListItem {
   readonly nextMomentOn: string | null
   readonly nextMomentName: { nl: string; en: string } | null
   readonly overdueRequiredTopics: number
+  readonly progress: { readonly completed: number; readonly total: number }
   readonly participantNames: readonly string[]
 }
 
