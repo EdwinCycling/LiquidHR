@@ -1,9 +1,9 @@
 import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
 import { AuthorizationError, getRequestAuthorizationContext, requireAnyPermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 import { ModuleError, requireTenantModule } from '@/lib/modules/module-service'
-import { listRecruitmentVacancies } from '@/lib/recruitment/vacancy-service'
+import { RecruitmentOverviewDashboard } from '@/components/recruitment/recruitment-overview-dashboard'
+import { getRecruitmentOverview, getRecruitmentOverviewCapabilities, type RecruitmentOverviewData } from '@/lib/recruitment/overview-service'
 
 export default async function RecruitmentOverviewPage() {
   try {
@@ -19,29 +19,62 @@ export default async function RecruitmentOverviewPage() {
     if (error instanceof AuthorizationError) redirect('/geen-toegang')
     throw error
   }
+
   const [{ context, supabase }, t] = await Promise.all([getRequestAuthorizationContext(), getTranslator('recruitment')])
-  const vacancies = await listRecruitmentVacancies(context, supabase)
-  const openVacancies = vacancies.filter((vacancy) => vacancy.status === 'ACTIVE').length
-  const openApplications = vacancies.reduce((total, vacancy) => total + vacancy.activeApplicationCount, 0)
+  const capabilities = getRecruitmentOverviewCapabilities(context.permissions)
+  let overview: RecruitmentOverviewData = { vacancies: [], analytics: null, analyticsError: false }
+  let loadError = false
+
+  try {
+    overview = await getRecruitmentOverview(context, supabase)
+  } catch {
+    loadError = true
+  }
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-10">
-      <header className="flex flex-wrap items-end justify-between gap-5">
-        <div>
-        <p className="eyebrow">{t('eyebrow')}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t('overview.title')}</h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">{t('overview.description')}</p>
-        </div>
-        <Link className="button-primary" href="/recruitment/vacancies/new">{t('overview.newVacancy')}</Link>
-      </header>
-      <section className="mt-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border bg-surface p-5"><p className="text-sm text-muted-foreground">{t('overview.vacancies')}</p><p className="mt-2 text-3xl font-semibold">{vacancies.length}</p></div>
-        <div className="rounded-xl border bg-surface p-5"><p className="text-sm text-muted-foreground">{t('overview.open')}</p><p className="mt-2 text-3xl font-semibold">{openVacancies}</p></div>
-        <div className="rounded-xl border bg-surface p-5"><p className="text-sm text-muted-foreground">{t('overview.applications')}</p><p className="mt-2 text-3xl font-semibold">{openApplications}</p></div>
-      </section>
-      <section className="mt-8 rounded-xl border bg-surface">
-        <div className="border-b px-5 py-4"><h2 className="font-semibold">{t('overview.vacancies')}</h2></div>
-        {vacancies.length === 0 ? <p className="p-6 text-sm text-muted-foreground">{t('overview.empty')}</p> : <div className="divide-y">{vacancies.map((vacancy) => <Link className="flex flex-wrap items-center justify-between gap-4 px-5 py-5 transition hover:bg-muted/30" href={`/recruitment/vacancies/${vacancy.id}`} key={vacancy.id}><div><p className="font-semibold">{vacancy.title}</p><p className="mt-1 text-sm text-muted-foreground">{vacancy.locationLabel ?? '—'} · {vacancy.activeApplicationCount} {t('overview.openApplications')}</p></div><div className="flex items-center gap-3 text-sm"><span className="rounded-full border px-2.5 py-1">{vacancy.publication?.status === 'OPEN' ? t('overview.open') : vacancy.status === 'DRAFT' ? t('overview.draft') : t('overview.closed')}</span><span className="font-semibold text-primary">{t('overview.view')}</span></div></Link>)}</div>}
-      </section>
-    </div>
+    <RecruitmentOverviewDashboard
+      analytics={overview.analytics}
+      analyticsError={overview.analyticsError}
+      canCreateVacancy={capabilities.canCreateVacancy}
+      canManageSettings={capabilities.canManageSettings}
+      canReadAssigned={capabilities.canReadAssigned}
+      loadError={loadError}
+      vacancies={overview.vacancies}
+      labels={{
+        eyebrow: t('eyebrow'),
+        title: t('overview.title'),
+        description: t('overview.description'),
+        newVacancy: t('overview.newVacancy'),
+        summaryTitle: t('overview.summaryTitle'),
+        vacancies: t('overview.vacancies'),
+        openVacancies: t('overview.openVacancies'),
+        activeApplications: t('overview.activeApplications'),
+        newApplications: t('overview.newApplications'),
+        applications: t('overview.applications'),
+        open: t('overview.open'),
+        draft: t('overview.draft'),
+        closed: t('overview.closed'),
+        archived: t('overview.archived'),
+        vacancyListTitle: t('overview.vacancyListTitle'),
+        vacancyListDescription: t('overview.vacancyListDescription'),
+        pipelineTitle: t('overview.pipelineTitle'),
+        pipelineDescription: t('overview.pipelineDescription'),
+        openPipeline: t('overview.openPipeline'),
+        openApplications: t('overview.openApplications'),
+        noApplications: t('overview.noApplications'),
+        hiredCount: t('overview.hiredCount'),
+        rejectedCount: t('overview.rejectedCount'),
+        settings: t('overview.settings'),
+        assigned: t('overview.assigned'),
+        empty: t('overview.empty'),
+        emptyDescription: t('overview.emptyDescription'),
+        noCandidateAccess: t('overview.noCandidateAccess'),
+        analyticsUnavailable: t('overview.analyticsUnavailable'),
+        loadErrorTitle: t('overview.loadErrorTitle'),
+        loadErrorDescription: t('overview.loadErrorDescription'),
+        retry: t('overview.retry'),
+        notAvailable: t('overview.notAvailable'),
+      }}
+    />
   )
 }
