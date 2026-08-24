@@ -104,5 +104,14 @@
   "topicDetails": "Topic details",
   "openTopicAction": "Open action",
   "outcomeSaved": "Saved",
-  "topicActionFailed": "The topic action could not be saved."
+  "topicActionFailed": "The topic action could not be saved.",
+  "participantDetailTitle": "Participant detail",
+  "participantDetailSubtitle": "View the Journey from the assigned participant and track the available actions.",
+  "statusLabel": "Status",
+  "hrView": "HR view",
+  "selfView": "My view",
+  "participantView": "Participant view",
+  "noTopics": "This Journey does not have any topics yet.",
+  "noParticipants": "There are no active participants yet.",
+  "unknownParticipant": "Unknown participant"
 }

@@ -25,6 +25,16 @@ export {
   type JourneyProjectionTopic,
   type JourneyTopicOutcomeResult,
 } from './projection-domain'
+export {
+  createJourneyParticipantService,
+  findJourneyParticipantAssignment,
+  getJourneyParticipantDetail,
+  listJourneyParticipantAssignments,
+  recordJourneyParticipantProgress,
+  type JourneyParticipantAssignment,
+  type JourneyParticipantProgressInput,
+  type JourneyParticipantServiceDependencies,
+} from './participant-service'
 
 export const journeyTemplates = createJourneyTemplateService({
   repository: supabaseJourneyTemplateRepository,
