@@ -29,7 +29,7 @@ export interface JourneyRuntimeDetail extends JourneyRuntimeListItem {
   readonly phases: readonly { id: string; key: string; name: { nl: string; en: string }; sortOrder: number }[]
   readonly participants: readonly { id: string; roleKey: string; roleName: { nl: string; en: string }; employeeId: string; employeeName: string; source: string; status: string; resolutionNote: string | null }[]
   readonly moments: readonly { id: string; phaseId: string; key: string; name: { nl: string; en: string }; scheduledOn: string; availableOn: string; sortOrder: number }[]
-  readonly topics: readonly { id: string; momentId: string; key: string; title: { nl: string; en: string }; topicType: string; isRequired: boolean; status: string; ownerRoleKey: string; ownerNames: readonly string[] }[]
+  readonly topics: readonly { id: string; momentId: string; key: string; title: { nl: string; en: string }; body: { nl: string; en: string }; topicType: string; isRequired: boolean; status: string; actionUrl: string | null; ownerRoleKey: string; ownerNames: readonly string[] }[]
   readonly changes: readonly { id: string; previousParticipantId: string; replacementParticipantId: string; reason: string; changedAt: string }[]
 }
 
