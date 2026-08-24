@@ -13,8 +13,8 @@
   "status": "Status", "version": "Version", "draftRevision": "Draft revision", "updated": "Updated",
   "draft": "Draft", "published": "Published", "retired": "Retired",
   "create": "Create template", "cancel": "Cancel", "save": "Save draft", "saving": "Saving…", "saved": "Draft saved.",
-  "publish": "Publish version", "publishConfirm": "Publish a new immutable version of this draft?", "publishing": "Publishing…",
-  "publishedMessage": "New version published.", "retire": "Retire template", "failed": "The operation failed.",
+  "publish": "Publish version", "publishConfirm": "Publish a new immutable version of this draft?", "publishNeedsSave": "Save the changes before publishing.", "publishing": "Publishing…",
+  "publishedMessage": "New version published.", "retire": "Retire template", "retireConfirm": "This template and any further publications will be retired. Continue?", "failed": "The operation failed.",
   "invalid": "Review the highlighted template details.", "nl": "Dutch", "en": "English",
   "phases": "Phases", "roles": "Roles", "moments": "Moments", "topics": "Topics", "audience": "Audience",
   "addPhase": "Add phase", "addRole": "Add role", "addMoment": "Add moment", "addTopic": "Add topic", "remove": "Remove", "moveUp": "Move up", "moveDown": "Move down",
@@ -104,5 +104,12 @@
   "topicDetails": "Topic details",
   "openTopicAction": "Open action",
   "outcomeSaved": "Saved",
-  "topicActionFailed": "The topic action could not be saved."
+  "topicActionFailed": "The topic action could not be saved.",
+  "keepEditing": "Keep editing",
+  "discardChanges": "Discard changes",
+  "discardDescription": "Unsaved changes will be lost.",
+  "discardChangesTitle": "Discard changes?",
+  "readOnlyDescription": "You have read-only access to this template; editing, saving and lifecycle actions are disabled.",
+  "noTopics": "No topics have been added to this template yet.",
+  "cannotRemoveInUse": "This item is still used by another item."
 }

@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
-import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { TemplateDesigner } from '@/components/journeys/template-designer'
+import { PageShell } from '@/components/layout/page-shell'
 import { AuthorizationError, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
 import { journeyTemplates, JourneyTemplateServiceError } from '@/lib/journeys'
 import { getLocale } from '@/lib/i18n/server'
@@ -35,5 +35,5 @@ export default async function JourneyTemplateDesignerPage({ params }: { params: 
     supabase.from('employees').select('id,first_name,birth_name,employee_number').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId!).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).order('first_name').limit(500),
     supabase.from('management_roles').select('code,name').eq('is_active', true).is('deleted_at', null).order('name').limit(250),
   ])
-  return <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-10"><AdminSettingsPageHeader backHref="/settings/journeys" backLabel={labels.backToCatalog} eyebrow={labels.eyebrow} subtitle={labels.designerSubtitle} title={`${labels.designerTitle} · ${template.draft.name.nl}`} /><TemplateDesigner canPublish={canPublish} canWrite={canWrite} employeeOptions={(employees.data ?? []).map((employee) => ({ id: employee.id, label: `${employee.first_name} ${employee.birth_name} · ${employee.employee_number}` }))} labels={labels} locale={locale} managementRoleOptions={(managementRoles.data ?? []).map((role) => ({ code: role.code, label: role.name }))} template={template} /></div>
+  return <PageShell className="py-6 sm:py-8" width="wide"><TemplateDesigner canPublish={canPublish} canWrite={canWrite} employeeOptions={(employees.data ?? []).map((employee) => ({ id: employee.id, label: `${employee.first_name} ${employee.birth_name} · ${employee.employee_number}` }))} labels={labels} locale={locale} managementRoleOptions={(managementRoles.data ?? []).map((role) => ({ code: role.code, label: role.name }))} template={template} /></PageShell>
 }
