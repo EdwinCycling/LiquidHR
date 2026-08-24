@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildDefaultVacancySections,
+  canUpdateRecruitmentPublication,
   createVacancySlug,
+  publicationRequestSchema,
   vacancyInputSchema,
 } from './vacancy-service'
 
@@ -34,5 +36,19 @@ describe('vacancy service contract', () => {
       sections: buildDefaultVacancySections(),
     }).success).toBe(true)
     expect(vacancyInputSchema.safeParse({ title: '', workMode: 'HYBRID' }).success).toBe(false)
+  })
+
+  it('valideert publicatiepayload en vereist een veilige slug voor openen', () => {
+    const payload = { companyName: 'LiquidHR', sections: buildDefaultVacancySections(), formConfig: { phone: 'OPTIONAL', cv: 'OPTIONAL', motivation: 'REQUIRED' } }
+    expect(publicationRequestSchema.safeParse({ status: 'CLOSED', slug: 'test-vacature', payload }).success).toBe(true)
+    expect(publicationRequestSchema.safeParse({ status: 'OPEN', slug: 'Test vacature', payload }).success).toBe(false)
+    expect(publicationRequestSchema.safeParse({ status: 'OPEN', payload }).success).toBe(false)
+  })
+
+  it('blokkeert herpublicatie van een gearchiveerde vacature', () => {
+    expect(canUpdateRecruitmentPublication('DRAFT', 'OPEN')).toBe(true)
+    expect(canUpdateRecruitmentPublication('ACTIVE', 'CLOSED')).toBe(true)
+    expect(canUpdateRecruitmentPublication('ARCHIVED', 'OPEN')).toBe(false)
+    expect(canUpdateRecruitmentPublication('ARCHIVED', 'ARCHIVED')).toBe(true)
   })
 })
