@@ -9,8 +9,8 @@ export async function getJourneyLabels() {
   const t = await getTranslator('journeys')
   const keys = [
     'eyebrow', 'catalogTitle', 'catalogSubtitle', 'designerTitle', 'designerSubtitle', 'backToSettings', 'backToCatalog',
-    'search', 'newTemplate', 'noTemplates', 'name', 'description', 'key', 'type', 'anchor', 'status', 'version',
-    'draftRevision', 'updated', 'draft', 'published', 'retired', 'create', 'cancel', 'save', 'saving', 'saved',
+    'search', 'newTemplate', 'noTemplates', 'noResults', 'name', 'description', 'key', 'type', 'anchor', 'status', 'version',
+    'draftRevision', 'updated', 'draft', 'published', 'retired', 'create', 'cancel', 'close', 'discardTitle', 'discardDescription', 'discardConfirm', 'discardCancel', 'save', 'saving', 'saved',
     'publish', 'publishConfirm', 'publishing', 'publishedMessage', 'retire', 'failed', 'invalid', 'nl', 'en', 'phases',
     'roles', 'moments', 'topics', 'audience', 'addPhase', 'addRole', 'addMoment', 'addTopic', 'remove', 'required',
     'moveUp', 'moveDown', 'optional', 'sortOrder', 'phase', 'moment', 'ownerRole', 'resolver', 'cardinality', 'resolverRole', 'specificEmployee',
