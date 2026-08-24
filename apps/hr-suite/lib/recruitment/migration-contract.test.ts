@@ -72,9 +72,15 @@ describe('guided recruitment migration contract', () => {
 
   it('legt de remote gevonden intakefix en advisor-hardening duurzaam vast', () => {
     const fix = migration('guided_recruitment_public_intake_ambiguity_fix')
+    const manualFix = migration('guided_recruitment_manual_application_ambiguity_fix')
+    const archiveFix = migration('guided_recruitment_archive_draft_fix')
     const hardening = migration('guided_recruitment_advisor_hardening')
     const replayFix = migration('guided_recruitment_idempotency_replay_fix')
     expect(fix).toContain('candidate_normalized_email')
+    expect(manualFix).toContain('create or replace function public.create_recruitment_application')
+    expect(manualFix).toContain('candidate_normalized_email')
+    expect(archiveFix).toContain('create or replace function public.publish_recruitment_vacancy')
+    expect(archiveFix).toContain('archived_at')
     expect(hardening).toContain('recruitment_public_intake_limits_deny_all')
     expect(hardening).toContain('recruitment_applications_candidate_fk_idx')
     expect(replayFix).toContain("return replay_result || jsonb_build_object('idempotentreplay', true)")
