@@ -55,6 +55,32 @@ export interface VacancyDetail extends VacancySummary {
   readonly sections: VacancyInput['sections']
 }
 
+export const VACANCY_LIST_PAGE_SIZE = 10
+
+export const VACANCY_LIST_STATUSES = ['ALL', 'DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED'] as const
+export type VacancyListStatus = typeof VACANCY_LIST_STATUSES[number]
+
+export const VACANCY_LIST_PUBLICATIONS = ['ALL', 'UNPUBLISHED', 'OPEN', 'CLOSED', 'ARCHIVED'] as const
+export type VacancyListPublication = typeof VACANCY_LIST_PUBLICATIONS[number]
+
+export const VACANCY_LIST_SORTS = ['UPDATED_DESC', 'TITLE_ASC', 'APPLICATIONS_DESC'] as const
+export type VacancyListSort = typeof VACANCY_LIST_SORTS[number]
+
+export interface RecruitmentVacancyListQuery {
+  readonly q: string
+  readonly status: VacancyListStatus
+  readonly publication: VacancyListPublication
+  readonly sort: VacancyListSort
+  readonly page: number
+}
+
+export interface RecruitmentVacancyListResult {
+  readonly items: VacancySummary[]
+  readonly total: number
+  readonly page: number
+  readonly pageCount: number
+}
+
 type SupabaseServerClient = SupabaseClient<Database>
 type RpcClient = SupabaseServerClient & {
   rpc(name: string, args: Record<string, unknown>): Promise<{ readonly data: unknown; readonly error: { readonly message: string } | null }>
@@ -122,6 +148,65 @@ function rpc(supabase: SupabaseServerClient): RpcClient {
   return supabase as unknown as RpcClient
 }
 
+function firstQueryValue(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] ?? '' : value ?? ''
+}
+
+function parsePositivePage(value: string): number {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
+}
+
+function queryEnum<T extends readonly string[]>(value: string, options: T, fallback: T[number]): T[number] {
+  return (options as readonly string[]).includes(value) ? value as T[number] : fallback
+}
+
+export function parseRecruitmentVacancyListQuery(input: Record<string, string | string[] | undefined>): RecruitmentVacancyListQuery {
+  return {
+    q: firstQueryValue(input.q).trim(),
+    status: queryEnum(firstQueryValue(input.status), VACANCY_LIST_STATUSES, 'ALL'),
+    publication: queryEnum(firstQueryValue(input.publication), VACANCY_LIST_PUBLICATIONS, 'ALL'),
+    sort: queryEnum(firstQueryValue(input.sort), VACANCY_LIST_SORTS, 'UPDATED_DESC'),
+    page: parsePositivePage(firstQueryValue(input.page)),
+  }
+}
+
+function publicationFilterValue(vacancy: VacancySummary): VacancyListPublication {
+  return vacancy.publication?.status ?? 'UNPUBLISHED'
+}
+
+export function filterAndSortRecruitmentVacancies(vacancies: readonly VacancySummary[], query: Pick<RecruitmentVacancyListQuery, 'q' | 'status' | 'publication' | 'sort'>): VacancySummary[] {
+  const normalizedQuery = query.q.toLocaleLowerCase('nl-NL')
+  const filtered = vacancies.filter((vacancy) => {
+    const searchable = `${vacancy.title} ${vacancy.locationLabel ?? ''}`.toLocaleLowerCase('nl-NL')
+    return (query.status === 'ALL' || vacancy.status === query.status)
+      && (query.publication === 'ALL' || publicationFilterValue(vacancy) === query.publication)
+      && (!normalizedQuery || searchable.includes(normalizedQuery))
+  })
+  const collator = new Intl.Collator('nl', { sensitivity: 'base' })
+  return [...filtered].sort((left, right) => {
+    if (query.sort === 'TITLE_ASC') {
+      const titleComparison = collator.compare(left.title, right.title)
+      return titleComparison !== 0 ? titleComparison : right.updatedAt.localeCompare(left.updatedAt)
+    }
+    if (query.sort === 'APPLICATIONS_DESC') {
+      const applicationComparison = right.activeApplicationCount - left.activeApplicationCount
+      if (applicationComparison !== 0) return applicationComparison
+      return right.updatedAt.localeCompare(left.updatedAt)
+    }
+    const updatedComparison = right.updatedAt.localeCompare(left.updatedAt)
+    return updatedComparison !== 0 ? updatedComparison : collator.compare(left.title, right.title)
+  })
+}
+
+export function paginateRecruitmentVacancies(vacancies: readonly VacancySummary[], query: RecruitmentVacancyListQuery): RecruitmentVacancyListResult {
+  const filtered = filterAndSortRecruitmentVacancies(vacancies, query)
+  const pageCount = Math.max(1, Math.ceil(filtered.length / VACANCY_LIST_PAGE_SIZE))
+  const page = Math.min(query.page, pageCount)
+  const start = (page - 1) * VACANCY_LIST_PAGE_SIZE
+  return { items: filtered.slice(start, start + VACANCY_LIST_PAGE_SIZE), total: filtered.length, page, pageCount }
+}
+
 function parseRpcResult(result: { readonly data: unknown; readonly error: { readonly message: string } | null }): Record<string, unknown> {
   if (result.error) throw recruitmentDatabaseError(result.error)
   if (typeof result.data !== 'object' || result.data === null || Array.isArray(result.data)) throw new RecruitmentError('RECRUITMENT_OPERATION_FAILED', 500)
@@ -157,6 +242,14 @@ export async function listRecruitmentVacancies(context: { readonly tenantId: str
       publication: publication ? { id: publication.id, slug: publication.slug, status: publication.status, payload: publication.published_payload } : null,
     }
   })
+}
+
+export async function listRecruitmentVacancyPage(
+  context: { readonly tenantId: string; readonly hrGroupId?: string },
+  supabase: SupabaseServerClient,
+  query: RecruitmentVacancyListQuery,
+): Promise<RecruitmentVacancyListResult> {
+  return paginateRecruitmentVacancies(await listRecruitmentVacancies(context, supabase), query)
 }
 
 export async function getRecruitmentVacancy(context: { readonly tenantId: string; readonly hrGroupId?: string }, vacancyId: string, supabase: SupabaseServerClient): Promise<VacancyDetail | null> {
