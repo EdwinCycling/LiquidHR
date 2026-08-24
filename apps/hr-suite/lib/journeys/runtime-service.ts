@@ -2,8 +2,10 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import type { ToggleableModuleCode } from '@/lib/modules/module-catalog'
 import { buildJourneyActivationPreview, type JourneyActivationResolution, type JourneyActivationTemplate } from './runtime-domain'
 
+export type JourneyAnchorRule = 'EMPLOYMENT_START_DATE' | 'MANUAL_DATE'
+
 export interface JourneyStartOptions {
-  readonly templates: readonly { id: string; versionId: string; versionNumber: number; name: { nl: string; en: string }; journeyType: string }[]
+  readonly templates: readonly { id: string; versionId: string; versionNumber: number; name: { nl: string; en: string }; journeyType: string; anchorRule: JourneyAnchorRule }[]
   readonly employees: readonly { id: string; name: string; employeeNumber: string }[]
   readonly employments: readonly { id: string; employeeId: string; employmentNumber: string; startsOn: string; endsOn: string | null; isPrimary: boolean }[]
 }
