@@ -20,7 +20,6 @@ export default async function RecruitmentVacancyDetailPage({ params }: { readonl
   const [{ context, supabase }, t] = await Promise.all([getRequestAuthorizationContext(), getTranslator('recruitment')])
   const vacancy = await getRecruitmentVacancy(context, vacancyId, supabase)
   if (!vacancy) notFound()
-
   const canReadCandidates = context.permissions.includes('recruitment-candidate:read')
   const applications = canReadCandidates ? await listRecruitmentApplications(context, vacancy.id, supabase) : []
 
@@ -33,6 +32,7 @@ export default async function RecruitmentVacancyDetailPage({ params }: { readonl
       labels={{
         eyebrow: t('eyebrow'),
         back: t('detail.back'),
+        promote: t('promote.open'),
         edit: t('vacancy.editTitle'),
         status: t('detail.status'),
         statusDraft: t('vacancy.statusDraft'),

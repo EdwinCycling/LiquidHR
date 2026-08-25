@@ -22,13 +22,14 @@ import type { ApplicationCard } from '@/lib/recruitment/application-service'
 import { vacancyInputSchema, type VacancyDetail, type VacancyInput } from '@/lib/recruitment/vacancy-service'
 import { ManualApplicationForm } from './manual-application-form'
 import { PipelineBoard } from './pipeline-board'
-import { PublicationPanel, type PublicationPanelLabels } from './publication-panel'
+import { VacancyPublicationPanel, type PublicationPanelLabels } from './publication-panel'
 
 type WorkMode = NonNullable<VacancyInput['workMode']>
 
 type VacancyDetailLabels = {
   readonly eyebrow: string
   readonly back: string
+  readonly promote: string
   readonly edit: string
   readonly status: string
   readonly statusDraft: string
@@ -300,6 +301,7 @@ export function RecruitmentVacancyDetail({ applications, canManageApplications, 
       <PageHeader
         actions={<div className="flex flex-wrap items-center gap-2">
           <Link className={buttonClasses({ className: 'gap-2', variant: 'secondary' })} href="/recruitment"><ArrowLeft aria-hidden="true" />{labels.back}</Link>
+          {canPublish ? <Link className={buttonClasses({ variant: 'secondary' })} href={`/recruitment/vacancies/${vacancy.id}/promote`}>{labels.promote}</Link> : null}
           {canWrite ? <Button onClick={() => setEditorOpen(true)} type="button" variant="primary"><Edit3 aria-hidden="true" />{labels.edit}</Button> : null}
         </div>}
         description={<div className="flex flex-wrap items-center gap-x-3 gap-y-2"><Badge tone={statusTone(vacancy.status)}>{status}</Badge><span>{vacancy.locationLabel ?? '—'}</span><span>{vacancy.activeApplicationCount} {labels.applications}</span></div>}
@@ -308,7 +310,7 @@ export function RecruitmentVacancyDetail({ applications, canManageApplications, 
 
       <DetailColumns
         aside={<aside className="space-y-6">
-          <PublicationPanel canPublish={canPublish} labels={labels.publication} publication={vacancy.publication} sections={vacancy.sections} vacancyId={vacancy.id} vacancyTitle={vacancy.title} />
+          <VacancyPublicationPanel canPublish={canPublish} labels={labels.publication} publication={vacancy.publication} sections={vacancy.sections} vacancyId={vacancy.id} vacancyTitle={vacancy.title} />
           <Surface className="p-5">
             <SectionHeader title={labels.vacancyData} />
             <InfoList className="mt-5" columns={1} items={[

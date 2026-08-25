@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildDefaultVacancySections,
+  canUpdateRecruitmentPublication,
   createVacancySlug,
   filterAndSortRecruitmentVacancies,
   paginateRecruitmentVacancies,
@@ -10,6 +11,7 @@ import {
   type RecruitmentVacancyListQuery,
   type VacancySummary,
   updateRecruitmentPublication,
+  publicationRequestSchema,
   vacancyInputSchema,
 } from './vacancy-service'
 
@@ -138,5 +140,19 @@ describe('vacancy service contract', () => {
     expect(rpc).toHaveBeenCalledWith('publish_recruitment_vacancy', {
       requested_vacancy_id: '11111111-1111-4111-8111-111111111111', requested_status: 'ARCHIVED', requested_slug: null, requested_payload: {},
     })
+  })
+
+  it('valideert publicatiepayload en vereist een veilige slug voor openen', () => {
+    const payload = { companyName: 'LiquidHR', sections: buildDefaultVacancySections(), formConfig: { phone: 'OPTIONAL', cv: 'OPTIONAL', motivation: 'REQUIRED' } }
+    expect(publicationRequestSchema.safeParse({ status: 'CLOSED', slug: 'test-vacature', payload }).success).toBe(true)
+    expect(publicationRequestSchema.safeParse({ status: 'OPEN', slug: 'Test vacature', payload }).success).toBe(false)
+    expect(publicationRequestSchema.safeParse({ status: 'OPEN', payload }).success).toBe(false)
+  })
+
+  it('blokkeert herpublicatie van een gearchiveerde vacature', () => {
+    expect(canUpdateRecruitmentPublication('DRAFT', 'OPEN')).toBe(true)
+    expect(canUpdateRecruitmentPublication('ACTIVE', 'CLOSED')).toBe(true)
+    expect(canUpdateRecruitmentPublication('ARCHIVED', 'OPEN')).toBe(false)
+    expect(canUpdateRecruitmentPublication('ARCHIVED', 'ARCHIVED')).toBe(true)
   })
 })

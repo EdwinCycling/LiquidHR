@@ -6,6 +6,38 @@ import { recruitmentDatabaseError, RecruitmentError } from './errors'
 
 const sectionTypes = ['INTRODUCTION', 'ROLE', 'PROFILE', 'OFFER', 'PROCESS', 'CONTACT'] as const
 export type VacancySectionType = typeof sectionTypes[number]
+export type VacancyStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED' | 'ARCHIVED'
+const publicationStatuses = ['OPEN', 'CLOSED', 'ARCHIVED'] as const
+export type PublicationStatus = typeof publicationStatuses[number]
+const publicationFieldValues = ['HIDDEN', 'OPTIONAL', 'REQUIRED'] as const
+
+const vacancySectionSchema = z.object({
+  sectionType: z.enum(sectionTypes),
+  title: z.string().trim().min(1).max(180),
+  content: z.string().max(20_000),
+  sortOrder: z.number().int().min(0).max(5),
+  isVisible: z.boolean(),
+}).strict()
+
+export const publicationPayloadSchema = z.object({
+  companyName: z.string().trim().min(1).max(120),
+  sections: z.array(vacancySectionSchema).length(6),
+  formConfig: z.object({
+    phone: z.enum(publicationFieldValues),
+    cv: z.enum(publicationFieldValues),
+    motivation: z.enum(publicationFieldValues),
+  }).strict(),
+}).strict()
+
+export const publicationRequestSchema = z.object({
+  status: z.enum(publicationStatuses),
+  slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).nullable().optional(),
+  payload: publicationPayloadSchema,
+}).strict().superRefine((value, context) => {
+  if (value.status === 'OPEN' && !value.slug) context.addIssue({ code: 'custom', path: ['slug'], message: 'RECRUITMENT_PUBLICATION_SLUG_INVALID' })
+})
+
+export type PublicationPayload = z.infer<typeof publicationPayloadSchema>
 
 export const vacancyInputSchema = z.object({
   title: z.string().trim().min(1).max(180),
@@ -17,13 +49,7 @@ export const vacancyInputSchema = z.object({
   salaryMin: z.number().min(0).nullable().default(null),
   salaryMax: z.number().min(0).nullable().default(null),
   salaryVisible: z.boolean().default(false),
-  sections: z.array(z.object({
-    sectionType: z.enum(sectionTypes),
-    title: z.string().trim().min(1).max(180),
-    content: z.string().max(20_000),
-    sortOrder: z.number().int().min(0).max(5),
-    isVisible: z.boolean(),
-  }).strict()).length(6),
+  sections: z.array(vacancySectionSchema).length(6),
 }).strict().superRefine((value, context) => {
   if (value.minHours !== null && value.maxHours !== null && value.minHours > value.maxHours) context.addIssue({ code: 'custom', path: ['maxHours'], message: 'VACANCY_HOURS_INVALID' })
   if (value.salaryMin !== null && value.salaryMax !== null && value.salaryMin > value.salaryMax) context.addIssue({ code: 'custom', path: ['salaryMax'], message: 'VACANCY_SALARY_INVALID' })
@@ -37,7 +63,7 @@ export interface VacancySummary {
   readonly title: string
   readonly locationLabel: string | null
   readonly workMode: 'ON_SITE' | 'HYBRID' | 'REMOTE' | null
-  readonly status: 'DRAFT' | 'ACTIVE' | 'CLOSED' | 'ARCHIVED'
+  readonly status: VacancyStatus
   readonly updatedAt: string
   readonly version: number
   readonly applicationCount: number
@@ -132,6 +158,11 @@ export function createVacancySlug(value: string): string {
   const slug = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 160)
   return slug || 'vacature'
+}
+
+export function canUpdateRecruitmentPublication(vacancyStatus: VacancyStatus, requestedStatus: PublicationStatus): boolean {
+  if (vacancyStatus === 'ARCHIVED') return requestedStatus === 'ARCHIVED'
+  return true
 }
 
 function toJsonSections(sections: VacancyInput['sections']): Json[] {
@@ -297,9 +328,18 @@ export async function saveRecruitmentVacancy(context: { readonly tenantId: strin
   return { id, version }
 }
 
-export async function updateRecruitmentPublication(context: { readonly tenantId: string; readonly hrGroupId?: string }, vacancyId: string, status: 'OPEN' | 'CLOSED' | 'ARCHIVED', slug: string | null, payload: Record<string, unknown>, supabase: SupabaseServerClient): Promise<{ readonly id: string; readonly status: string; readonly slug: string }> {
+export async function updateRecruitmentPublication(context: { readonly tenantId: string; readonly hrGroupId?: string }, vacancyId: string, status: PublicationStatus, slug: string | null, payload: PublicationPayload, supabase: SupabaseServerClient): Promise<{ readonly id: string; readonly status: string; readonly slug: string }> {
   if (!context.hrGroupId) throw new RecruitmentError('RECRUITMENT_HR_GROUP_REQUIRED', 403)
-  const result = await rpc(supabase).rpc('publish_recruitment_vacancy', { requested_vacancy_id: vacancyId, requested_status: status, requested_slug: slug, requested_payload: payload })
+  const parsedRequest = publicationRequestSchema.safeParse({ status, slug, payload })
+  if (!parsedRequest.success) {
+    if (status === 'OPEN' && (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))) throw new RecruitmentError('RECRUITMENT_PUBLICATION_SLUG_INVALID', 422)
+    throw new RecruitmentError('RECRUITMENT_PUBLICATION_INPUT_INVALID', 400)
+  }
+  const vacancy = await getRecruitmentVacancy(context, vacancyId, supabase)
+  if (!vacancy) throw new RecruitmentError('RECRUITMENT_VACANCY_NOT_FOUND', 404)
+  if (!canUpdateRecruitmentPublication(vacancy.status, status)) throw new RecruitmentError('RECRUITMENT_VACANCY_STATUS_INVALID', 422)
+  if (!vacancy.publication && status !== 'OPEN') throw new RecruitmentError('RECRUITMENT_PUBLICATION_STATUS_INVALID', 422)
+  const result = await rpc(supabase).rpc('publish_recruitment_vacancy', { requested_vacancy_id: vacancyId, requested_status: parsedRequest.data.status, requested_slug: parsedRequest.data.slug ?? null, requested_payload: parsedRequest.data.payload })
   const data = parseRpcResult(result)
   if (typeof data.id !== 'string' || typeof data.status !== 'string' || typeof data.slug !== 'string') throw new RecruitmentError('RECRUITMENT_OPERATION_FAILED', 500)
   return { id: data.id, status: data.status, slug: data.slug }
