@@ -12,7 +12,6 @@ export default async function JourneyLivePage({ searchParams }: { searchParams: 
     const [projections, labels, locale] = await Promise.all([listJourneyProjections(), getJourneyLabels(), getLocale()])
     return <JourneyLiveOverview items={projections} labels={labels} locale={locale} mode="projection" query={query} />
   }
-
   const [items, labels, locale, canWrite] = await Promise.all([
     journeyRuntime.list(),
     getJourneyLabels(),
