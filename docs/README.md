@@ -1,5 +1,13 @@
 # Liquid HR documentatie-index
 
+## R4 Recruitment + Journeys centrale integratie — 2026-08-25
+
+**Status: TEST-TRUNK GREEN; AUTHENTICATED COMBINED SANITY GREEN; READY FOR MAIN INTEGRATION**
+
+De 15 approved R4-slices zijn semantisch geïntegreerd op `work/r4-recruitment-journeys-integration` vanaf exact baseline `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64`. De lokale gate is groen met `253/253` testbestanden, `971/971` tests, strict TypeScript, i18n `33` namespaces, lint `0 errors / 8 warnings`, Webpack `226/226` routes en diff-check. Authenticated HR/Manager/Employee sanity op desktop `1440x900` en mobiel `390x844` is groen voor de in-scope Recruitment- en Journeys-routes; geen horizontale overflow en geen relevante finale console-errors.
+
+De vier lokale migrations zijn read-only exact vergeleken en genormaliseerd naar remote TEST timestamps `20260825140121`, `20260825140137`, `20260825153223` en `20260825134000`. Er is geen migration rerun, remote apply, publication, Hire, merge, push of deployment uitgevoerd. Remote history bevat een bestaande dubbele Journey-registratie op `20260825150000`; die is bewust niet op afstand gewijzigd. Zichtbare versie: `1.20260825.1`.
+
 ## UX v1.2 final integration & acceptance — 2026-08-21
 
 **Status: INTEGRATION COMPLEET; ACCEPTANCE RED / NIET GREEN**

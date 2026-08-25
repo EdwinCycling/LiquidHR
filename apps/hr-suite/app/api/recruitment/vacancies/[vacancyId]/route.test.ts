@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   getRecruitmentVacancy: vi.fn(),
   getRequestAuthorizationContext: vi.fn(),
-  permissionErrorResponse: vi.fn(() => null),
+  permissionErrorResponse: vi.fn<() => Response | null>(() => null),
   requireAnyPermission: vi.fn(),
   requirePermission: vi.fn(),
   requireTenantModule: vi.fn(),

@@ -32,13 +32,15 @@ export interface JourneyParticipantDetailProps {
 
 export function JourneyParticipantDetail(props: JourneyParticipantDetailProps | JourneyParticipantStepsProps) {
   if ('participantDetailTitle' in props.labels) {
-    return <ParticipantDetailClient backHref={props.backHref ?? '/dashboard/start'} labels={props.labels} locale={props.locale} participantAssignments={props.participantAssignments} projection={props.projection} selectedAssignment={props.selectedAssignment} selectedParticipantId={props.selectedParticipantId} />
+    const detailProps = props as JourneyParticipantDetailProps
+    return <ParticipantDetailClient backHref={detailProps.backHref ?? '/dashboard/start'} labels={detailProps.labels} locale={detailProps.locale} participantAssignments={detailProps.participantAssignments} projection={detailProps.projection} selectedAssignment={detailProps.selectedAssignment} selectedParticipantId={detailProps.selectedParticipantId} />
   }
 
+  const stepsProps = props as JourneyParticipantStepsProps
   const stepLabels: JourneyStepsLabels = {
-    ...props.labels,
-    title: props.labels.participantTitle,
-    subtitle: props.labels.participantSubtitle,
+    ...stepsProps.labels,
+    title: stepsProps.labels.participantTitle,
+    subtitle: stepsProps.labels.participantSubtitle,
   }
-  return <JourneySteps backHref={props.backHref ?? '/dashboard/start'} labels={stepLabels} locale={props.locale} mode="participant" projection={props.projection} />
+  return <JourneySteps backHref={stepsProps.backHref ?? '/dashboard/start'} labels={stepLabels} locale={stepsProps.locale} mode="participant" projection={stepsProps.projection} />
 }

@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { AuthorizationError, getRequestAuthorizationContext, requireAnyPermission } from '@/lib/auth/permissions'
-import { getTranslator } from '@/lib/i18n/server'
+import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { ModuleError, requireTenantModule } from '@/lib/modules/module-service'
 import { getRecruitmentVacancy } from '@/lib/recruitment/vacancy-service'
 import { listRecruitmentApplications } from '@/lib/recruitment/application-service'
@@ -17,7 +17,7 @@ export default async function RecruitmentVacancyDetailPage({ params }: { readonl
   }
 
   const { vacancyId } = await params
-  const [{ context, supabase }, t] = await Promise.all([getRequestAuthorizationContext(), getTranslator('recruitment')])
+  const [{ context, supabase }, t, locale] = await Promise.all([getRequestAuthorizationContext(), getTranslator('recruitment'), getLocale()])
   const vacancy = await getRecruitmentVacancy(context, vacancyId, supabase)
   if (!vacancy) notFound()
   const canReadCandidates = context.permissions.includes('recruitment-candidate:read')
@@ -129,6 +129,7 @@ export default async function RecruitmentVacancyDetailPage({ params }: { readonl
           confirm: t('vacancy.confirm'),
         },
       }}
+      locale={locale}
       vacancy={vacancy}
     />
   )

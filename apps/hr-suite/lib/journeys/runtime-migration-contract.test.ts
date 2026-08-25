@@ -6,7 +6,7 @@ const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260812
 const reminderFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260812143000_fix_journey_reminder_administration.sql'), 'utf8')
 const reminderPublishFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260812143500_fix_journey_reminder_publish_sequence.sql'), 'utf8')
 const participantProjectionFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260812153435_journeys_step3_employee_projection_participants.sql'), 'utf8')
-const versionConflictFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260825150000_fix_journey_version_conflict_retry.sql'), 'utf8')
+const versionConflictFix = readFileSync(join(process.cwd(), 'supabase/migrations/20260825134000_fix_journey_version_conflict_retry.sql'), 'utf8')
 
 describe('Journeys stap 2 migratiecontract', () => {
   const tables = [

@@ -15,6 +15,7 @@ const detail: JourneyRuntimeDetail = {
   nextMomentOn: '2026-08-20',
   nextMomentName: { nl: 'Eerste week', en: 'First week' },
   overdueRequiredTopics: 1,
+  progress: { completed: 1, total: 2 },
   participantNames: ['Noah Hendriks', 'Yara Meijer'],
   employmentId: null,
   phases: [{ id: '33333333-3333-4333-8333-333333333333', key: 'start', name: { nl: 'Start', en: 'Start' }, sortOrder: 1 }],
@@ -24,8 +25,8 @@ const detail: JourneyRuntimeDetail = {
   ],
   moments: [{ id: '77777777-7777-4777-8777-777777777777', phaseId: '33333333-3333-4333-8333-333333333333', key: 'welcome', name: { nl: 'Welkom', en: 'Welcome' }, scheduledOn: '2026-08-10', availableOn: '2026-08-03', sortOrder: 1 }],
   topics: [
-    { id: '88888888-8888-4888-8888-888888888888', momentId: '77777777-7777-4777-8777-777777777777', key: 'intro', title: { nl: 'Kennismaken', en: 'Meet' }, topicType: 'ACTION', isRequired: true, status: 'PENDING', ownerRoleKey: 'buddy', ownerNames: ['Yara Meijer'] },
-    { id: '99999999-9999-4999-8999-999999999999', momentId: '77777777-7777-4777-8777-777777777777', key: 'info', title: { nl: 'Informatie', en: 'Information' }, topicType: 'INFORMATION', isRequired: false, status: 'COMPLETED', ownerRoleKey: 'employee', ownerNames: ['Noah Hendriks'] },
+    { id: '88888888-8888-4888-8888-888888888888', momentId: '77777777-7777-4777-8777-777777777777', key: 'intro', title: { nl: 'Kennismaken', en: 'Meet' }, body: { nl: 'Kennismaken', en: 'Meet' }, topicType: 'ACTION', isRequired: true, status: 'PENDING', actionUrl: null, ownerRoleKey: 'buddy', ownerNames: ['Yara Meijer'] },
+    { id: '99999999-9999-4999-8999-999999999999', momentId: '77777777-7777-4777-8777-777777777777', key: 'info', title: { nl: 'Informatie', en: 'Information' }, body: { nl: 'Informatie', en: 'Information' }, topicType: 'INFORMATION', isRequired: false, status: 'COMPLETED', actionUrl: null, ownerRoleKey: 'employee', ownerNames: ['Noah Hendriks'] },
   ],
   changes: [],
 }

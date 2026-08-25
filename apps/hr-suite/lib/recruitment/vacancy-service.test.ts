@@ -31,6 +31,59 @@ function vacancy(overrides: Partial<VacancySummary> = {}): VacancySummary {
   }
 }
 
+function publicationClient(
+  vacancyId: string,
+  vacancyStatus: VacancySummary['status'],
+  publication: { readonly id: string; readonly slug: string; readonly status: 'OPEN' | 'CLOSED' | 'ARCHIVED' } | null,
+  rpc: ReturnType<typeof vi.fn>,
+): Parameters<typeof updateRecruitmentPublication>[5] {
+  const query = (result: { readonly data: unknown; readonly error: null }) => {
+    const builder = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      order: vi.fn(),
+      maybeSingle: vi.fn(),
+      limit: vi.fn(),
+    }
+    builder.select.mockReturnValue(builder)
+    builder.eq.mockReturnValue(builder)
+    builder.order.mockResolvedValue(result)
+    builder.maybeSingle.mockResolvedValue(result)
+    builder.limit.mockResolvedValue(result)
+    return builder
+  }
+  const from = vi.fn((table: string) => {
+    if (table === 'recruitment_vacancies') {
+      return query({
+        data: {
+          id: vacancyId, title: 'Recruiter', job_id: null, location_label: 'Amsterdam', work_mode: 'HYBRID',
+          min_hours: 32, max_hours: 40, salary_min: null, salary_max: null, salary_visible: false,
+          status: vacancyStatus, version: 1, updated_at: '2026-08-25T12:00:00.000Z',
+        }, error: null,
+      })
+    }
+    if (table === 'recruitment_vacancy_sections') {
+      return query({
+        data: buildDefaultVacancySections().map((section) => ({
+          section_type: section.sectionType, title: section.title, content: section.content,
+          sort_order: section.sortOrder, is_visible: section.isVisible,
+        })), error: null,
+      })
+    }
+    if (table === 'recruitment_publications') {
+      return query({ data: publication ? { ...publication, vacancy_id: vacancyId, published_payload: {} } : null, error: null })
+    }
+    return query({ data: [], error: null })
+  })
+  return { from, rpc } as unknown as Parameters<typeof updateRecruitmentPublication>[5]
+}
+
+const validPublicationPayload = {
+  companyName: 'LiquidHR',
+  sections: buildDefaultVacancySections(),
+  formConfig: { phone: 'OPTIONAL' as const, cv: 'OPTIONAL' as const, motivation: 'REQUIRED' as const },
+}
+
 describe('vacancy service contract', () => {
   it('biedt exact zes vaste contentblokken in een stabiele volgorde', () => {
     expect(buildDefaultVacancySections()).toEqual([
@@ -109,18 +162,18 @@ describe('vacancy service contract', () => {
 
   it('stuurt bestaande publicatiestatussen ongewijzigd naar het RPC-contract', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: { id: '11111111-1111-4111-8111-111111111111', status: 'CLOSED', slug: 'test-recruitment-vacancy' }, error: null })
-    const supabase = { rpc } as unknown as Parameters<typeof updateRecruitmentPublication>[5]
+    const supabase = publicationClient('44444444-4444-4444-8444-444444444444', 'ACTIVE', { id: '55555555-5555-4555-8555-555555555555', slug: 'test-recruitment-vacancy', status: 'CLOSED' }, rpc)
 
     await expect(updateRecruitmentPublication(
       { tenantId: '22222222-2222-4222-8222-222222222222', hrGroupId: '33333333-3333-4333-8333-333333333333' },
       '44444444-4444-4444-8444-444444444444',
       'CLOSED',
       null,
-      {},
+      validPublicationPayload,
       supabase,
     )).resolves.toEqual({ id: '11111111-1111-4111-8111-111111111111', status: 'CLOSED', slug: 'test-recruitment-vacancy' })
     expect(rpc).toHaveBeenCalledWith('publish_recruitment_vacancy', {
-      requested_payload: {},
+      requested_payload: validPublicationPayload,
       requested_slug: null,
       requested_status: 'CLOSED',
       requested_vacancy_id: '44444444-4444-4444-8444-444444444444',
@@ -132,13 +185,13 @@ describe('vacancy service contract', () => {
       data: { id: '33333333-3333-4333-8333-333333333333', status: 'ARCHIVED', slug: 'vacancy-11111111' },
       error: null,
     })
-    const client = { rpc } as unknown as SupabaseClient<Database>
+    const client = publicationClient('11111111-1111-4111-8111-111111111111', 'ACTIVE', { id: '77777777-7777-4777-8777-777777777777', slug: 'vacancy-11111111', status: 'CLOSED' }, rpc) as SupabaseClient<Database>
 
-    await expect(updateRecruitmentPublication({ tenantId: '55555555-5555-4555-8555-555555555555', hrGroupId: '66666666-6666-4666-8666-666666666666' }, '11111111-1111-4111-8111-111111111111', 'ARCHIVED', null, {}, client)).resolves.toEqual({
+    await expect(updateRecruitmentPublication({ tenantId: '55555555-5555-4555-8555-555555555555', hrGroupId: '66666666-6666-4666-8666-666666666666' }, '11111111-1111-4111-8111-111111111111', 'ARCHIVED', null, validPublicationPayload, client)).resolves.toEqual({
       id: '33333333-3333-4333-8333-333333333333', status: 'ARCHIVED', slug: 'vacancy-11111111',
     })
     expect(rpc).toHaveBeenCalledWith('publish_recruitment_vacancy', {
-      requested_vacancy_id: '11111111-1111-4111-8111-111111111111', requested_status: 'ARCHIVED', requested_slug: null, requested_payload: {},
+      requested_vacancy_id: '11111111-1111-4111-8111-111111111111', requested_status: 'ARCHIVED', requested_slug: null, requested_payload: validPublicationPayload,
     })
   })
 

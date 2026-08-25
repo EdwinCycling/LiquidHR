@@ -25,7 +25,7 @@ The supported manual application contract was exercised with an own vacancy and 
 
 `column reference "normalized_email" is ambiguous`
 
-The forward migration `apps/hr-suite/supabase/migrations/20260824172115_recruitment_application_normalized_email_fix.sql` qualifies the normalized-email variable in `create_recruitment_application`. It was not applied remotely. The own applicant transaction rolled back; no own application or candidate ID exists.
+The canonical forward migration `apps/hr-suite/supabase/migrations/20260825140121_recruitment_application_normalized_email_fix.sql` qualifies the normalized-email variable in `create_recruitment_application`. It is already registered on TEST under this canonical timestamp; no migration was applied in this integration run. The own applicant transaction rolled back; no own application or candidate ID exists.
 
 Required next step: apply and verify this migration in the approved test database, then rerun applicant creation and all positive applicant-action/readback checks. This task must remain `NEEDS TEST MIGRATION APPROVAL` until that happens.
 

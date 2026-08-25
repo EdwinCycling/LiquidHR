@@ -213,7 +213,6 @@ interface PublicationPanelProps {
     readonly confirmPublishTitle: string; readonly confirmPublishDescription: string; readonly confirmCloseTitle: string; readonly confirmCloseDescription: string; readonly confirmArchiveTitle: string; readonly confirmArchiveDescription: string; readonly confirm: string; readonly cancel: string
   }
 }
-}
 
 function fieldValue(payload: Record<string, unknown> | null, field: 'phone' | 'cv' | 'motivation'): FieldValue {
   const config = payload?.formConfig

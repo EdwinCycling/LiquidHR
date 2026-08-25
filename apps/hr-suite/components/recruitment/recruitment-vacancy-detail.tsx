@@ -18,6 +18,7 @@ import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { Textarea } from '@/components/ui/textarea'
+import type { Locale } from '@/lib/i18n/config'
 import type { ApplicationCard } from '@/lib/recruitment/application-service'
 import { vacancyInputSchema, type VacancyDetail, type VacancyInput } from '@/lib/recruitment/vacancy-service'
 import { ManualApplicationForm } from './manual-application-form'
@@ -122,6 +123,15 @@ function toDraft(vacancy: VacancyDetail): Draft {
     salaryVisible: vacancy.salaryVisible,
     sections: vacancy.sections,
   }
+}
+
+function formatUpdatedAt(value: string, locale: Locale): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.valueOf())) return '—'
+  return new Intl.DateTimeFormat(locale === 'nl' ? 'nl-NL' : 'en-GB', {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  }).format(date)
 }
 
 function toInput(draft: Draft, jobId: string | null): unknown {
@@ -282,12 +292,13 @@ function VacancyEditorDrawer({
   )
 }
 
-export function RecruitmentVacancyDetail({ applications, canManageApplications, canPublish, canWrite, labels, vacancy }: {
+export function RecruitmentVacancyDetail({ applications, canManageApplications, canPublish, canWrite, labels, locale, vacancy }: {
   readonly applications: readonly ApplicationCard[]
   readonly canManageApplications: boolean
   readonly canPublish: boolean
   readonly canWrite: boolean
   readonly labels: VacancyDetailLabels
+  readonly locale: Locale
   readonly vacancy: VacancyDetail
 }): ReactElement {
   const router = useRouter()
@@ -320,7 +331,7 @@ export function RecruitmentVacancyDetail({ applications, canManageApplications, 
               { label: labels.hours, value: vacancy.minHours === null && vacancy.maxHours === null ? '—' : `${vacancy.minHours ?? '—'} – ${vacancy.maxHours ?? '—'}` },
               { label: labels.salary, value: salary },
               { label: labels.version, value: vacancy.version },
-              { label: labels.updatedAt, value: new Date(vacancy.updatedAt).toLocaleString() },
+              { label: labels.updatedAt, value: formatUpdatedAt(vacancy.updatedAt, locale) },
             ]} />
           </Surface>
         </aside>}

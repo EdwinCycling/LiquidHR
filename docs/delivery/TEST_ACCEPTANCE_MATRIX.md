@@ -2,6 +2,15 @@
 
 **ACTIVE — REQUIRED FOR LOCAL AND BROWSER ACCEPTANCE**
 
+## Latest run — R4 Recruitment + Journeys centrale integratie — 2026-08-25
+
+- Target: TEST project `wnpfloqpjvaacobppbpk`; integration worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r4-integration`; exact baseline `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64`.
+- Scope: `15/15` approved Recruitment/Journeys slices integrated; root `main` unchanged. Visible version `1.20260825.1`.
+- Migration history: read-only SQL comparison is exact for all four canonical repository files: `20260825140121`, `20260825140137`, `20260825153223`, `20260825134000`. Local semantic duplicates `0`; remote duplicate registration `20260825150000` already existed and remains unchanged, so remote `duplicate migrations 0` is **NO**. No migration rerun, remote apply or broad `db push`.
+- Technical gates: `253/253` test files, `971/971` tests, strict TypeScript, i18n `33` equal namespaces, ESLint `0 errors / 8 warnings`, Webpack build `226/226` pages/routes and `git diff --check` green.
+- Browser matrix: HR Recruitment/Journeys positive routes, one vacancy detail/pipeline, Applicant Detail, Journey overview/participants/steps and template catalog/designer were checked at `1440x900` and `390x844`. Manager and Employee Recruitment deny plus Journey scoped/self detail were checked at both sizes. Final route responses were HTTP `200`, `scrollWidth` matched viewport width and no relevant console-errors remained.
+- Safety boundaries: no external publication, no Hire, no new migration and no production action. Release/merge/push evidence remains open until the authorized local-main/Vercel steps are completed.
+
 ## Latest run — Goals security hardening — 2026-08-23
 
 - Target: TEST project `wnpfloqpjvaacobppbpk`; hardening is fast-forward geïntegreerd op `main` vanaf `057f762eaab9f17b353a7600858ec174bedaa824`, met baseline `e8cc329dfaf026919d7996b74470ee9380f83828`.

@@ -23,7 +23,7 @@ Scope: `/recruitment/vacancies/[vacancyId]/candidates`, `RecruitmentVacancyPipel
 - `RecruitmentVacancyPipeline` uses Foundation primitives, active-stage filtering, terminal outcome columns, wrapping cards, mobile vertical representation, and response-aware `409`/`422` mutation feedback before `router.refresh()`.
 - Manual application submission captures the form element before awaiting the API response, preventing the browser `currentTarget` null failure after a successful `201`.
 - Pipeline application cards expose stable React keys, keeping the populated pipeline console-clean.
-- The pipeline trusts the canonical Applicant Detail application migration `20260824172115_recruitment_application_normalized_email_fix.sql` after integration; its duplicate `20260824183000_guided_recruitment_manual_application_ambiguity_fix.sql` is intentionally absent. `20260824183100_guided_recruitment_archive_draft_fix.sql` supports cleanup of an empty DRAFT vacancy and returns its effective slug on insert.
+- The pipeline trusts the canonical Applicant Detail application migration `20260825140121_recruitment_application_normalized_email_fix.sql` after integration; its duplicate `20260824183000_guided_recruitment_manual_application_ambiguity_fix.sql` is intentionally absent. `20260825140137_guided_recruitment_archive_draft_fix.sql` supports cleanup of an empty DRAFT vacancy and returns its effective slug on insert.
 - Added direct application/stage service and migration contract tests; NL/EN recruitment keys remain symmetric.
 
 ## Verificatie

@@ -2,6 +2,22 @@
 
 Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesignskill worden aangepakt. Werk dit document bij wanneer een schermvoorstel, implementatie of verificatie is afgerond.
 
+## R4 Recruitment + Journeys centrale integratie — 2026-08-25
+
+De 15 approved slices zijn geïntegreerd op `work/r4-recruitment-journeys-integration` vanaf baseline `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64`. De Foundation-UI, routes, permissions en bestaande data-contracten zijn semantisch samengevoegd; er is geen nieuwe generieke UI-familie toegevoegd.
+
+| Geïntegreerd scherm/domein | Route | Status | Resterend |
+|---|---|---|---|
+| Recruitment overview | `/recruitment` | GEVERIFIEERD / HR | Geen open integratiepunt |
+| Vacancies | `/recruitment/vacancies` | GEVERIFIEERD / HR | Geen open integratiepunt |
+| Vacancy detail, pipeline, report, promote | `/recruitment/vacancies/[vacancyId]/*` | GEVERIFIEERD / HR | External publication bewust niet uitgevoerd |
+| Applicant detail + candidates | `/recruitment/candidates`, `/recruitment/applications/[applicationId]` | GEVERIFIEERD / HR | Hire bewust niet uitgevoerd |
+| Journeys overview/detail | `/journeys`, `/journeys/[journeyId]/overview` | GEVERIFIEERD / HR + scoped personas | Geen open integratiepunt |
+| Journey participants/steps | `/journeys/[journeyId]/participants`, `/journeys/[journeyId]/steps` | GEVERIFIEERD / HR + self/participant | Geen participant-mutatie uitgevonden |
+| Template catalog/designer | `/settings/journeys`, `/settings/journeys/templates/[templateId]` | GEVERIFIEERD / HR | Geen open integratiepunt |
+
+Desktop `1440x900` en mobiel `390x844` zijn gecontroleerd zonder horizontale overflow en zonder relevante finale console-errors. Manager en Employee Recruitment-deny en Journey self/participant-scope zijn op beide viewports gecontroleerd. De integratie is lokaal GREEN en klaar voor main-integratie; releasebewijs volgt pas na de aparte merge/push/Vercel-gate.
+
 ## Centrale Talent + Bugfix-integratie — 2026-08-23 — actuele run
 
 De tien aangewezen GREEN-branchdelta's zijn lokaal geïntegreerd op `work/talent-bugfix-integration` vanaf `7ef5e39dae8995eafbefcd8f2c0d9eb950c75e21`. De technische gate is GREEN; de branch is klaar voor lokale integratie naar `main`, maar er is in deze run niet gemerged, gepusht of gedeployed.

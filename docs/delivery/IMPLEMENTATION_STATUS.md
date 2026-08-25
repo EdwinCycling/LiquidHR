@@ -1,5 +1,19 @@
 # Implementatiestatus Liquid HR
 
+## R4 Recruitment + Journeys centrale integratie — 2026-08-25
+
+**Status: TEST-TRUNK GREEN — AUTHENTICATED COMBINED SANITY GREEN — READY TO INTEGRATE INTO MAIN — RELEASE PENDING**
+
+De integratiebranch `work/r4-recruitment-journeys-integration` is vanaf exact baseline `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64` opgebouwd in `.codex-worktrees/r4-integration`. De 15 aangewezen Recruitment- en Journeys-slices zijn semantisch geïntegreerd, inclusief de bestaande Foundation-contracten en zonder nieuwe generieke componentfamilie. Root `main` is niet gewijzigd tijdens de integratie.
+
+De read-only TEST migration reconciliation is afgerond. De vier lokale SQL-bestanden zijn inhoudelijk exact gelijk aan de toegepaste remote SQL en dragen nu de canonical timestamps `20260825140121`, `20260825140137`, `20260825153223` en `20260825134000`. Lokale repository-equivalenten zijn `4/4` met `0` lokale semantische duplicates. Remote history heeft al een tweede registratie op `20260825150000` met dezelfde Journey-migrationnaam en een ontbrekende afsluitende puntkomma; daarom is `duplicate migrations 0` voor de remote history **NO**. Dit is niet remote gerepareerd omdat deze run geen remote write toestaat.
+
+Technisch is de branch GREEN met `253/253` testbestanden, `971/971` tests, strict TypeScript, `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack-build `226/226` en `git diff --check`. De Vacancy Detail hydration mismatch door locale-afhankelijke `toLocaleString()` is opgelost met deterministische NL/EN UTC-formattering.
+
+Authenticated TEST-sanity is gecombineerd bewezen: HR op Recruitment/Journeys desktop `1440x900` en mobiel `390x844`, inclusief overview, vacancy detail/pipeline/report/promote, Applicant Detail, Journey overview/participants/steps en template catalog/designer; Manager/Employee Recruitment deny en Journey self/participant scope zijn gecontroleerd. Alle finale routechecks hadden HTTP `200`, geen horizontale overflow en geen relevante console-errors. External publication en Hire zijn bewust niet uitgevoerd.
+
+Zichtbare versie: `1.20260825.1`. De branch is klaar voor lokale integratie naar `main`; merge, push en Vercel-release zijn nog niet uitgevoerd.
+
 ## Goals security hardening — 2026-08-23 — actuele status
 
 **Status: TEST-TRUNK GREEN — AUTHENTICATED BROWSER NOT EXECUTED — TOOLING LIMITATION — RELEASE / PRODUCTION AMBER**
