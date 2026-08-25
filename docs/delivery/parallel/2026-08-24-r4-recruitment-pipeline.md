@@ -9,11 +9,11 @@ Scope: `/recruitment/vacancies/[vacancyId]/candidates`, `RecruitmentVacancyPipel
 ## Status
 
 - IMPLEMENTED: vacancy-scoped pipeline read model, zero-count stages, stage/terminal columns, filter, responsive mobile list, mutation status handling and i18n.
-- LOCALLY VERIFIED: targeted recruitment tests `12/12`, full Vitest suite `234 files / 903 tests`, strict TypeScript, i18n, ESLint exit 0, `git diff --check`, Webpack production build.
-- AUTHENTICATED BROWSER/API PARTIAL: own vacancy pipeline GET returned `200` with four existing stages at `applicationCount: 0`; desktop and `390x844` rendered without product console errors. Unauthenticated API returned `401`; authenticated out-of-scope vacancy returned `404 RECRUITMENT_VACANCY_NOT_FOUND`.
-- OPEN / NEEDS TEST MIGRATION APPROVAL: the baseline remote direct-application RPC returns `500 RECRUITMENT_OPERATION_FAILED` because `normalized_email` is ambiguous. The canonical Applicant Detail migration `20260824172115_recruitment_application_normalized_email_fix.sql` owns this fix; the duplicate pipeline migration was removed and no alternative was added.
-- OPEN / CLEANUP BLOCKED: the baseline remote archive RPC returns `500 RECRUITMENT_OPERATION_FAILED` when archiving a DRAFT without a publication because `archived_at` is not set on the insert path. `20260824183100_guided_recruitment_archive_draft_fix.sql` now returns the effective non-null insert slug while preserving the existing update/status paths; the own empty DRAFT vacancy remains until that migration is applied and cleanup is rerun.
-- NOT PROVEN: real application creation, legal stage move, fresh mutation readback, UI stage refresh with an application, and Manager/Employee persona negatives. The role-switch endpoint returned `403 TEST_ROLE_SWITCH_FORBIDDEN`; no external fixture application was mutated.
+- TEST MIGRATIONS APPLIED: only the canonical application migration and corrected archive migration were applied to TEST project `wnpfloqpjvaacobppbpk`, recorded remotely as `20260825140121` and `20260825140137`. The duplicate pipeline migration remains absent.
+- ACCEPTANCE GREEN: isolated vacancy `2634799b-2ce0-42ad-9c1e-3643b5cb24c2` with three synthetic manual applications using `@example.invalid` passed create, pipeline GET, legal move, fresh readback, duplicate contract and archive flow.
+- PRODUCT FIXES: manual application form now retains the form target across the async request before reset; pipeline application list items now have stable React keys. Both were required by real acceptance and are covered by the final gates.
+- CLEANUP: vacancy and its single publication are `ARCHIVED`; `archived_at` is non-null and returned slug is `vacancy-2634799b`. The supported product contract has no destructive vacancy/application delete path, so application and candidate IDs remain as documented residual TEST records.
+- PERSONAS: HR Admin proved positive CRUD; Manager and Employee both received the existing `403 {"error":"Je hebt onvoldoende rechten voor deze actie."}` boundary. Anonymous received `401`; out-of-scope received `404 RECRUITMENT_VACANCY_NOT_FOUND`.
 - RELEASE: no push, merge, deploy or app-version bump. No email, SMS or interview invitation was sent.
 
 ## Implementatie
@@ -21,6 +21,8 @@ Scope: `/recruitment/vacancies/[vacancyId]/candidates`, `RecruitmentVacancyPipel
 - `listRecruitmentVacancyPipeline` returns the vacancy, all existing stages including zero-count stages, and anonymized application cards in tenant/HR-group scope.
 - `/api/recruitment/vacancies/[vacancyId]/applications` now uses the candidate-read permission and returns backward-compatible `data` plus `stages` and `vacancy` metadata with `Cache-Control: no-store`.
 - `RecruitmentVacancyPipeline` uses Foundation primitives, active-stage filtering, terminal outcome columns, wrapping cards, mobile vertical representation, and response-aware `409`/`422` mutation feedback before `router.refresh()`.
+- Manual application submission captures the form element before awaiting the API response, preventing the browser `currentTarget` null failure after a successful `201`.
+- Pipeline application cards expose stable React keys, keeping the populated pipeline console-clean.
 - The pipeline trusts the canonical Applicant Detail application migration `20260824172115_recruitment_application_normalized_email_fix.sql` after integration; its duplicate `20260824183000_guided_recruitment_manual_application_ambiguity_fix.sql` is intentionally absent. `20260824183100_guided_recruitment_archive_draft_fix.sql` supports cleanup of an empty DRAFT vacancy and returns its effective slug on insert.
 - Added direct application/stage service and migration contract tests; NL/EN recruitment keys remain symmetric.
 
@@ -28,26 +30,30 @@ Scope: `/recruitment/vacancies/[vacancyId]/candidates`, `RecruitmentVacancyPipel
 
 | Gate / scenario | Resultaat |
 | --- | --- |
-| Targeted recruitment tests | GREEN, 2 files / 12 tests |
-| Full Vitest suite | GREEN, 234 files / 903 tests |
+| Targeted recruitment tests | GREEN, 16 files / 48 tests |
+| Full Vitest suite | GREEN, 235 files / 905 tests |
 | Strict TypeScript | GREEN |
 | `check:i18n` | GREEN, 33 namespaces with equal NL/EN keys |
 | ESLint | exit 0, 8 pre-existing warnings, 0 errors |
 | Webpack production build | GREEN; compile, TypeScript and static generation `224/224` |
-| Pipeline API GET, own vacancy | `200`; four existing stages and all four zero-count columns returned |
-| Pipeline UI desktop | GREEN; existing stages visible, zero counts preserved |
-| Pipeline UI `390x844` | GREEN; mobile vertical empty state, no forced kanban overflow |
+| Manual application create | `201`; candidate/application IDs returned; event/readback present; normalized email lowercased |
+| Pipeline API GET, own vacancy | `200`; four existing stages returned, counts `2/1/0/0`, plus terminal zero columns |
+| Stage mutation | `200`; `TEST-RECRUITMENT-Nieuw` → existing `TEST-RECRUITMENT-Telefonisch`; fresh readback version `2` |
+| Invalid transition | `422 {"code":"RECRUITMENT_STAGE_INVALID"}` |
+| Duplicate contract | `201` with `possibleDuplicate: true`; normalized email and candidate `possible_duplicate` confirm existing behavior |
+| Pipeline UI desktop `1440x900` | GREEN; moved card visible after refresh, no horizontal overflow, fresh console 0 errors/0 warnings |
+| Pipeline UI `390x844` | GREEN; mobile vertical list, no forced kanban overflow, no horizontal overflow, fresh console 0 errors/0 warnings |
 | Unauthenticated pipeline API | `401 {"error":"Je bent niet ingelogd."}` |
 | Authenticated out-of-scope pipeline API | `404 {"code":"RECRUITMENT_VACANCY_NOT_FOUND"}` |
-| Manual application POST | BLOCKED by remote baseline RPC ambiguity; `500 {"code":"RECRUITMENT_OPERATION_FAILED"}` |
-| Archive cleanup | BLOCKED by remote baseline DRAFT publication check; `500 {"code":"RECRUITMENT_OPERATION_FAILED"}` |
+| Anonymous pipeline API | `401 {"error":"Je bent niet ingelogd."}` |
+| Manager/Employee pipeline API | both `403 {"error":"Je hebt onvoldoende rechten voor deze actie."}` |
+| Authenticated out-of-scope pipeline API | `404 {"code":"RECRUITMENT_VACANCY_NOT_FOUND"}` |
+| Archive cleanup | `200`; vacancy/publication `ARCHIVED`, returned slug non-null, `archived_at` non-null, publication count `1` |
 | Supabase advisors | Read-only run completed; existing project-wide findings, no remote changes |
 
 The standard Turbopack build failed only on the known worktree `node_modules` junction; the required Webpack build is GREEN.
 
 ## Vervolg
 
-1. Integrate the canonical Applicant Detail migration and apply it together with the corrected archive migration through the approved TEST database workflow.
-2. Repeat isolated browser acceptance with two `example.invalid` applications: POST `201`, pipeline GET/readback, legal next-stage transition, invalid transition `422`, UI refresh, filters and mobile populated cards.
-3. Archive the own vacancy through the supported publication contract and verify no `R4-REC-PIPE` records remain.
-4. Only then mark the slice GREEN for integration; this branch has not been pushed or merged.
+1. Review and integrate this branch; no push, merge, deploy or production migration was performed by this task.
+2. Residual TEST application/candidate IDs are retained because cleanup was limited to the supported archive contract; remove them only through a separately approved supported contract if one is introduced.

@@ -134,7 +134,7 @@ export function RecruitmentVacancyPipeline({ pipeline, labels }: { readonly pipe
   function renderApplication(application: ApplicationCard): ReactElement {
     const isPending = pendingApplicationId === application.id
     const moveOptions = activeStages.filter((stage) => stage.id !== application.stageId)
-    return <li className="min-w-0 rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-4">
+    return <li className="min-w-0 rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-4" key={application.id}>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <Link className="block break-words font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={`/recruitment/applications/${application.id}`}>{application.candidateName}</Link>
