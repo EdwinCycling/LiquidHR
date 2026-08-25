@@ -22,6 +22,7 @@ export async function getJourneyLabels() {
     'automatic', 'manualSelection', 'missingRequired', 'missingOptional', 'ambiguous', 'activationBlocked',
     'detailTitle', 'overviewMetadata', 'overviewActions', 'attentionSummary', 'noAttention', 'noNextMoment', 'noParticipants', 'noTopics', 'readOnly', 'readOnlyDescription', 'notAvailable', 'employmentLinked', 'scheduledOn', 'availableOn', 'timeline', 'topicsLabel', 'pause', 'resume', 'complete', 'cancelJourney', 'replaceParticipant',
     'replacement', 'replacementReason', 'saveReplacement', 'history', 'noHistory', 'operationFailed', 'overdueTopics', 'confirmTransition', 'confirm',
+    'stepsTitle', 'stepsSubtitle', 'emptySteps', 'skipConfirmTitle', 'skipConfirmDescription', 'skipConfirm',
     'participantAssigned', 'participantActive', 'participantReplaced', 'participantRemoved',
     'topicPending', 'topicCompleted', 'topicSkipped', 'participantTitle', 'selfJourney', 'participantJourney', 'participantSubtitle', 'progress', 'progressCount', 'nextAction', 'available', 'upcomingTopic',
     'completeTopic', 'skipTopic', 'topicDetails', 'openTopicAction', 'outcomeSaved', 'topicActionFailed',
