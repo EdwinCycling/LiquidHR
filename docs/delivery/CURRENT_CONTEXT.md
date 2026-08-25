@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## R4 Applicant Detail — Guided Interview ON CONFLICT-fix 2026-08-25
+
+- Branch/worktree: `work/r4-recruitment-applicant-detail`; de authenticated TEST-flow reproduceerde `POST /api/recruitment/interviews` als HTTP 500 `RECRUITMENT_OPERATION_FAILED`. De onderliggende RPC-call `public.create_recruitment_interview(uuid,text,timestamptz,uuid,jsonb)` gaf PostgreSQL `42P10: there is no unique or exclusion constraint matching the ON CONFLICT specification`.
+- Read-only remote inspectie bevestigde dat `recruitment_participations` uniek is op `(tenant_id, hr_group_id, application_id, interview_id, employee_id)`, terwijl de bestaande function `(tenant_id, hr_group_id, interview_id, employee_id)` targette. De lokale forward migration `20260825152132_fix_recruitment_guided_interview_participation_conflict.sql` vervangt uitsluitend deze function met het bestaande vijfkolomstarget; geen tabel, index, RLS of grant wordt gewijzigd.
+- Regressie: `guided-interview-migration-contract.test.ts` verifieert de function en het exacte vijfkolomstarget. Na expliciete approval is de migration op TEST geregistreerd als `20260825153223_fix_recruitment_guided_interview_participation_conflict`; de authenticated runtime-flow is daarna groen bewezen: application `201`, Guided Interview `201`, interviews readback `200` en applicant detail readback `200`. Eigen reproductiedata is via archive/privacy/reject opgeruimd en heeft geen actieve application achtergelaten.
+- Gates na wijziging: gerichte Guided Interview `2 testfiles / 3 tests`, volledige hr-suite `237 testfiles / 903 tests`, strict TypeScript, i18n `33` namespaces, lint `0 errors / 8 warnings` en `git diff --check` groen. Hire is niet uitgevoerd wegens `NOT EXECUTED — CROSS-DOMAIN SAFETY BOUNDARY`.
+- Eindstatus: **GUIDED INTERVIEW GREEN; R4 APPLICANT DETAIL GREEN**. Geen `db push`, productieactie, merge, push of version bump.
+
 ## Goals security hardening — 2026-08-23 — actuele overdracht
 
 - Branch/worktree: `main`; Goals-hardening fast-forward geïntegreerd vanaf `057f762eaab9f17b353a7600858ec174bedaa824`, na exacte verificatie van `origin/main` `e8cc329dfaf026919d7996b74470ee9380f83828`.

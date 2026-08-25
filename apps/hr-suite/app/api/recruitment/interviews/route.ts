@@ -3,6 +3,7 @@ import { getRequestAuthorizationContext, requireAnyPermission, requirePermission
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
 import { createGuidedInterview, listGuidedInterviews } from '@/lib/recruitment/guided-service'
+import { interviewInputSchema } from '@/lib/recruitment/interview-service'
 import { guidedErrorResponse, invalidGuidedInput } from '../guided-route'
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -21,7 +22,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     await requireTenantModule('RECRUITMENT')
     await requirePermission('recruitment-candidate:write')
     const body = await request.json().catch(() => null)
-    if (body === null) return invalidGuidedInput()
-    return NextResponse.json({ data: await createGuidedInterview(body, await createClient()) }, { status: 201 })
+    const parsed = interviewInputSchema.safeParse(body)
+    if (!parsed.success) return invalidGuidedInput('RECRUITMENT_INTERVIEW_INPUT_INVALID')
+    return NextResponse.json({ data: await createGuidedInterview(parsed.data, await createClient()) }, { status: 201 })
   } catch (error) { return guidedErrorResponse(error) }
 }
