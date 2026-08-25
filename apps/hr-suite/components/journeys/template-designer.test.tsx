@@ -20,7 +20,7 @@ const labels = {
   types: { ONBOARDING: 'Onboarding' }, anchors: { EMPLOYMENT_START_DATE: 'Startdatum' }, phases: 'Fases', addPhase: 'Fase toevoegen', roles: 'Rollen', addRole: 'Rol toevoegen',
   moments: 'Momenten', addMoment: 'Moment toevoegen', topics: 'Topics', addTopic: 'Topic toevoegen', noTopics: 'Geen topics.', remove: 'Verwijderen', phase: 'Fase', moment: 'Moment',
   topicType: 'Topictype', ownerRole: 'Eigenaarrol', moveUp: 'Omhoog', moveDown: 'Omlaag', required: 'Verplicht', resolver: 'Resolver', cardinality: 'Deelnemers', one: 'Eén', many: 'Meerdere',
-  resolvers: { TARGET_EMPLOYEE: 'Target-medewerker' }, audience: 'Audience', cancel: 'Annuleren', save: 'Opslaan', publish: 'Publiceren', retire: 'Uitfaseren', publishConfirm: 'Nieuwe versie publiceren?', retireConfirm: 'Template uitfaseren?',
+  resolvers: { TARGET_EMPLOYEE: 'Target-medewerker' }, topicTypes: { INFORMATION: 'Informatie' }, audience: 'Audience', cancel: 'Annuleren', save: 'Opslaan', publish: 'Publiceren', retire: 'Uitfaseren', publishConfirm: 'Nieuwe versie publiceren?', retireConfirm: 'Template uitfaseren?',
   keepEditing: 'Terug naar formulier', discardChanges: 'Wijzigingen negeren', discardDescription: 'Niet-opgeslagen wijzigingen gaan verloren.', discardChangesTitle: 'Wijzigingen negeren?', readOnlyDescription: 'Alleen-lezen.', invalid: 'Ongeldig.', failed: 'Mislukt.',
   version: 'Versie', publishedMessage: 'Gepubliceerd.', dateOffset: 'Dagoffset', availabilityOffset: 'Beschikbaar vanaf', body: 'Inhoud', actionUrl: 'Actielink', cannotRemoveInUse: 'In gebruik.', saving: 'Opslaan…', publishing: 'Publiceren…', saved: 'Opgeslagen.',
   operationFailed: 'Mislukt.',
@@ -33,7 +33,8 @@ const template: JourneyTemplateDetail = {
     name: { nl: 'Onboarding', en: 'Onboarding' }, description: { nl: 'Start', en: 'Start' }, journeyType: 'ONBOARDING', anchorRule: 'EMPLOYMENT_START_DATE',
     phases: [{ key: 'start', name: { nl: 'Start', en: 'Start' }, sortOrder: 10 }],
     roles: [{ key: 'employee', name: { nl: 'Medewerker', en: 'Employee' }, required: true, cardinality: 'ONE', resolverType: 'TARGET_EMPLOYEE', resolverRoleCode: null, resolverEmployeeId: null, sortOrder: 10 }],
-    moments: [{ key: 'welcome', phaseKey: 'start', name: { nl: 'Welkom', en: 'Welcome' }, dateOffsetDays: 0, availabilityOffsetDays: 0, sortOrder: 10 }], topics: [],
+    moments: [{ key: 'welcome', phaseKey: 'start', name: { nl: 'Welkom', en: 'Welcome' }, dateOffsetDays: 0, availabilityOffsetDays: 0, sortOrder: 10 }],
+    topics: [{ key: 'welcome', momentKey: 'welcome', ownerRoleKey: 'employee', topicType: 'INFORMATION', title: { nl: 'Welkom', en: 'Welcome' }, body: { nl: 'Welkom.', en: 'Welcome.' }, actionUrl: null, required: true, sortOrder: 10, audienceRoleKeys: ['employee'] }],
   },
   versions: [],
 }
@@ -81,6 +82,17 @@ describe('TemplateDesigner Foundation migration', () => {
     act(() => back.click())
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain(labels.discardChangesTitle)
     expect(push).not.toHaveBeenCalled()
+    unmount(host, root)
+  })
+
+  it('gebruikt een Chromium-v geldige sleutelregex voor structurele controls', () => {
+    const { host, root } = mount(<TemplateDesigner canPublish canWrite employeeOptions={[]} labels={labels} locale="nl" managementRoleOptions={[]} template={template} />)
+    const patterns = Array.from(host.querySelectorAll('input[pattern]')).map((input) => input.getAttribute('pattern'))
+    expect(patterns).toHaveLength(4)
+    patterns.forEach((pattern) => {
+      expect(pattern).toContain('\\-')
+      expect(new RegExp(pattern ?? '', 'v').test('phase-1')).toBe(true)
+    })
     unmount(host, root)
   })
 })

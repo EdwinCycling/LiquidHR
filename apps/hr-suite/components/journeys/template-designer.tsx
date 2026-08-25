@@ -22,6 +22,8 @@ type Phase = JourneyTemplateDraft['phases'][number]
 type Role = JourneyTemplateDraft['roles'][number]
 type Moment = JourneyTemplateDraft['moments'][number]
 type Topic = JourneyTemplateDraft['topics'][number]
+
+const templateKeyPattern = '[a-z][a-z0-9_\\-]*'
 type OperationState = 'idle' | 'saving' | 'publishing' | 'retiring' | 'saved' | 'published' | 'failed'
 type Confirmation = 'publish' | 'retire' | 'discard' | null
 
@@ -349,7 +351,7 @@ export function TemplateDesigner({
                   </div>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(12rem,0.35fr)_minmax(0,1fr)]">
-                  <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setPhases(replaceAt(draft.phases, index, { ...phase, key: event.target.value }))} pattern="[a-z][a-z0-9_-]*" required value={phase.key} />} label={labels.key} required />
+                  <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setPhases(replaceAt(draft.phases, index, { ...phase, key: event.target.value }))} pattern={templateKeyPattern} required value={phase.key} />} label={labels.key} required />
                   <LocalizedFields disabled={!canWrite} fieldLabel={labels.name} labels={labels} onChange={(name) => setPhases(replaceAt(draft.phases, index, { ...phase, name }))} value={phase.name} />
                 </div>
               </article>
@@ -368,7 +370,7 @@ export function TemplateDesigner({
                   {canWrite && draft.roles.length > 1 ? <Button aria-label={`${labels.remove}: ${role.key}`} disabled={busy || inUse} onClick={() => setRoles(draft.roles.filter((_, itemIndex) => itemIndex !== index))} size="sm" title={inUse ? labels.cannotRemoveInUse : undefined} type="button" variant="danger"><Trash2 aria-hidden="true" />{labels.remove}</Button> : null}
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setRoles(replaceAt(draft.roles, index, { ...role, key: event.target.value }))} pattern="[a-z][a-z0-9_-]*" required value={role.key} />} label={labels.key} required />
+                  <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setRoles(replaceAt(draft.roles, index, { ...role, key: event.target.value }))} pattern={templateKeyPattern} required value={role.key} />} label={labels.key} required />
                   <Checkbox checked={role.required} disabled={!canWrite} label={labels.required} onChange={(event) => setRoles(replaceAt(draft.roles, index, { ...role, required: event.target.checked }))} />
                   <div className="lg:col-span-2"><LocalizedFields disabled={!canWrite} fieldLabel={labels.name} labels={labels} onChange={(name) => setRoles(replaceAt(draft.roles, index, { ...role, name }))} value={role.name} /></div>
                   <FormField control={<DropdownSelect aria-label={labels.cardinality} disabled={!canWrite} onChange={(event) => setRoles(replaceAt(draft.roles, index, { ...role, cardinality: event.target.value as Role['cardinality'] }))} searchable value={role.cardinality}><option value="ONE">{labels.one}</option><option value="MANY">{labels.many}</option></DropdownSelect>} label={labels.cardinality} required />
@@ -396,7 +398,7 @@ export function TemplateDesigner({
                   {canWrite && draft.moments.length > 1 ? <Button aria-label={`${labels.remove}: ${moment.key}`} disabled={busy || inUse} onClick={() => setMoments(draft.moments.filter((_, itemIndex) => itemIndex !== index))} size="sm" title={inUse ? labels.cannotRemoveInUse : undefined} type="button" variant="danger"><Trash2 aria-hidden="true" />{labels.remove}</Button> : null}
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setMoments(replaceAt(draft.moments, index, { ...moment, key: event.target.value }))} pattern="[a-z][a-z0-9_-]*" required value={moment.key} />} label={labels.key} required />
+                  <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setMoments(replaceAt(draft.moments, index, { ...moment, key: event.target.value }))} pattern={templateKeyPattern} required value={moment.key} />} label={labels.key} required />
                   <FormField control={<DropdownSelect aria-label={labels.phase} disabled={!canWrite} onChange={(event) => setMoments(replaceAt(draft.moments, index, { ...moment, phaseKey: event.target.value }))} searchable value={moment.phaseKey}>{draft.phases.map((phase) => <option key={phase.key} value={phase.key}>{phase.name[locale]}</option>)}</DropdownSelect>} label={labels.phase} required />
                   <div className="lg:col-span-2"><LocalizedFields disabled={!canWrite} fieldLabel={labels.name} labels={labels} onChange={(name) => setMoments(replaceAt(draft.moments, index, { ...moment, name }))} value={moment.name} /></div>
                   <FormField control={<TextInput disabled={!canWrite} max="730" min="-730" onChange={(event) => setMoments(replaceAt(draft.moments, index, { ...moment, dateOffsetDays: Number(event.target.value) }))} required type="number" value={moment.dateOffsetDays} />} label={labels.dateOffset} required />
@@ -416,7 +418,7 @@ export function TemplateDesigner({
                 {canWrite ? <Button aria-label={`${labels.remove}: ${topic.key}`} disabled={busy} onClick={() => setTopics(draft.topics.filter((_, itemIndex) => itemIndex !== index))} size="sm" type="button" variant="danger"><Trash2 aria-hidden="true" />{labels.remove}</Button> : null}
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
-                <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setTopics(replaceAt(draft.topics, index, { ...topic, key: event.target.value }))} pattern="[a-z][a-z0-9_-]*" required value={topic.key} />} label={labels.key} required />
+                <FormField control={<TextInput disabled={!canWrite} onChange={(event) => setTopics(replaceAt(draft.topics, index, { ...topic, key: event.target.value }))} pattern={templateKeyPattern} required value={topic.key} />} label={labels.key} required />
                 <Checkbox checked={topic.required} disabled={!canWrite} label={labels.required} onChange={(event) => setTopics(replaceAt(draft.topics, index, { ...topic, required: event.target.checked }))} />
                 <FormField control={<DropdownSelect aria-label={labels.moment} disabled={!canWrite} onChange={(event) => setTopics(replaceAt(draft.topics, index, { ...topic, momentKey: event.target.value }))} searchable value={topic.momentKey}>{draft.moments.map((moment) => <option key={moment.key} value={moment.key}>{moment.name[locale]}</option>)}</DropdownSelect>} label={labels.moment} required />
                 <FormField control={<DropdownSelect aria-label={labels.ownerRole} disabled={!canWrite} onChange={(event) => setTopics(replaceAt(draft.topics, index, { ...topic, ownerRoleKey: event.target.value }))} searchable value={topic.ownerRoleKey}>{draft.roles.map((role) => <option key={role.key} value={role.key}>{role.name[locale]}</option>)}</DropdownSelect>} label={labels.ownerRole} required />
