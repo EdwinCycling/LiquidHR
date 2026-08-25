@@ -55,6 +55,21 @@ export interface ApplicationCard {
   readonly version: number
 }
 
+export interface RecruitmentPipelineStage {
+  readonly id: string
+  readonly name: string
+  readonly sortOrder: number
+  readonly isActive: boolean
+  readonly applicationCount: number
+}
+
+export interface RecruitmentVacancyPipeline {
+  readonly vacancyId: string
+  readonly vacancyTitle: string
+  readonly stages: readonly RecruitmentPipelineStage[]
+  readonly applications: readonly ApplicationCard[]
+}
+
 export interface ApplicationDetail extends ApplicationCard {
   readonly privateEmail: string | null
   readonly phone: string | null
@@ -87,7 +102,8 @@ const applicationRowSchema = z.object({
 })
 
 const candidateRowSchema = z.object({ id: recruitmentGuidSchema, first_name: z.string(), last_name: z.string(), private_email: z.string().nullable(), phone: z.string().nullable() })
-const stageRowSchema = z.object({ id: recruitmentGuidSchema, name: z.string() })
+const stageNameRowSchema = z.object({ id: recruitmentGuidSchema, name: z.string() })
+const stageRowSchema = z.object({ id: recruitmentGuidSchema, name: z.string(), sort_order: z.number().int(), is_active: z.boolean() })
 
 function rpc(supabase: SupabaseServerClient): RpcClient {
   return supabase as unknown as RpcClient
@@ -99,23 +115,38 @@ function parseRpcObject(result: { readonly data: unknown; readonly error: { read
   return result.data as Record<string, unknown>
 }
 
-export async function listRecruitmentApplications(context: Pick<AuthContext, 'tenantId' | 'hrGroupId'>, vacancyId: string, supabase: SupabaseServerClient): Promise<ApplicationCard[]> {
+export function buildRecruitmentPipelineStages(
+  stages: readonly Omit<RecruitmentPipelineStage, 'applicationCount'>[],
+  applications: readonly Pick<ApplicationCard, 'stageId'>[],
+): RecruitmentPipelineStage[] {
+  const counts = new Map<string, number>()
+  for (const application of applications) {
+    if (application.stageId) counts.set(application.stageId, (counts.get(application.stageId) ?? 0) + 1)
+  }
+  return stages.map((stage) => ({ ...stage, applicationCount: counts.get(stage.id) ?? 0 }))
+}
+
+export async function listRecruitmentVacancyPipeline(context: Pick<AuthContext, 'tenantId' | 'hrGroupId'>, vacancyId: string, supabase: SupabaseServerClient): Promise<RecruitmentVacancyPipeline> {
   if (!context.hrGroupId) throw new RecruitmentError('RECRUITMENT_HR_GROUP_REQUIRED', 403)
-  const [applications, candidates, vacancies, stages] = await Promise.all([
-    supabase.from('recruitment_applications').select('id,candidate_id,vacancy_id,active_stage_id,terminal_outcome,source,motivation,terminal_reason,terminal_note,created_at,version').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('vacancy_id', vacancyId).order('created_at', { ascending: false }).limit(500),
-    supabase.from('recruitment_candidates').select('id,first_name,last_name,private_email,phone').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).limit(500),
+  const [applications, vacancies, stages] = await Promise.all([
+    supabase.from('recruitment_applications').select('id,candidate_id,vacancy_id,active_stage_id,terminal_outcome,source,motivation,terminal_reason,terminal_note,created_at,version').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('vacancy_id', vacancyId).is('anonymized_at', null).order('created_at', { ascending: false }).limit(500),
     supabase.from('recruitment_vacancies').select('id,title').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('id', vacancyId).maybeSingle(),
-    supabase.from('recruitment_pipeline_stages').select('id,name').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).order('sort_order').limit(100),
+    supabase.from('recruitment_pipeline_stages').select('id,name,sort_order,is_active').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).order('sort_order').order('id').limit(100),
   ])
   if (applications.error) throw recruitmentDatabaseError(applications.error)
-  if (candidates.error) throw recruitmentDatabaseError(candidates.error)
   if (vacancies.error) throw recruitmentDatabaseError(vacancies.error)
   if (stages.error) throw recruitmentDatabaseError(stages.error)
   if (!vacancies.data) throw new RecruitmentError('RECRUITMENT_VACANCY_NOT_FOUND', 404)
+  const candidateIds = [...new Set(applications.data.map((row) => row.candidate_id))]
+  const candidates = candidateIds.length > 0
+    ? await supabase.from('recruitment_candidates').select('id,first_name,last_name,private_email,phone').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).in('id', candidateIds)
+    : { data: [], error: null }
+  if (candidates.error) throw recruitmentDatabaseError(candidates.error)
   const candidateById = new Map(candidates.data.map((row) => [row.id, candidateRowSchema.parse(row)]))
-  const stageById = new Map(stages.data.map((row) => [row.id, stageRowSchema.parse(row)]))
+  const stageRows = stages.data.map((row) => stageRowSchema.parse(row))
+  const stageById = new Map(stageRows.map((row) => [row.id, row]))
   const vacancyTitle = vacancies.data.title
-  return applications.data.map((row) => {
+  const applicationCards = applications.data.map((row) => {
     const application = applicationRowSchema.parse(row)
     const candidate = candidateById.get(application.candidate_id)
     if (!candidate) throw new RecruitmentError('RECRUITMENT_OPERATION_FAILED', 500)
@@ -125,6 +156,17 @@ export async function listRecruitmentApplications(context: Pick<AuthContext, 'te
       terminalOutcome: application.terminal_outcome, source: application.source, createdAt: application.created_at, version: application.version,
     }
   })
+  return {
+    vacancyId: vacancies.data.id,
+    vacancyTitle,
+    stages: buildRecruitmentPipelineStages(stageRows.map((stage) => ({ id: stage.id, name: stage.name, sortOrder: stage.sort_order, isActive: stage.is_active })), applicationCards),
+    applications: applicationCards,
+  }
+}
+
+export async function listRecruitmentApplications(context: Pick<AuthContext, 'tenantId' | 'hrGroupId'>, vacancyId: string, supabase: SupabaseServerClient): Promise<ApplicationCard[]> {
+  const pipeline = await listRecruitmentVacancyPipeline(context, vacancyId, supabase)
+  return [...pipeline.applications]
 }
 
 export async function getRecruitmentApplication(context: Pick<AuthContext, 'tenantId' | 'hrGroupId'>, applicationId: string, supabase: SupabaseServerClient): Promise<ApplicationDetail | null> {
@@ -146,7 +188,7 @@ export async function getRecruitmentApplication(context: Pick<AuthContext, 'tena
   const candidate = candidateResult.data ? candidateRowSchema.parse(candidateResult.data) : null
   const vacancy = vacancyResult.data
   if (!candidate || !vacancy) throw new RecruitmentError('RECRUITMENT_OPERATION_FAILED', 500)
-  const stage = stageResult.data ? stageRowSchema.parse(stageResult.data) : null
+  const stage = stageResult.data ? stageNameRowSchema.parse(stageResult.data) : null
   const other = otherResult.data as Array<{ id: string; vacancy_id: string; terminal_outcome: string | null; active_stage_id: string | null }>
   const otherVacancyIds = [...new Set(other.map((row) => row.vacancy_id))]
   const otherVacancies = otherVacancyIds.length > 0 ? await supabase.from('recruitment_vacancies').select('id,title').in('id', otherVacancyIds).eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId) : { data: [], error: null }

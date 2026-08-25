@@ -2,29 +2,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  permissionErrorResponse: vi.fn((): Response | null => null),
   requirePermission: vi.fn(),
   requireTenantModule: vi.fn(),
   updateRecruitmentPublication: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/permissions', () => ({
-  permissionErrorResponse: vi.fn(() => null),
+  permissionErrorResponse: mocks.permissionErrorResponse,
   requirePermission: mocks.requirePermission,
 }))
 vi.mock('@/lib/modules/module-service', () => ({ requireTenantModule: mocks.requireTenantModule }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }))
-vi.mock('@/lib/recruitment/vacancy-service', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/recruitment/vacancy-service')>('@/lib/recruitment/vacancy-service')
-  return { ...actual, updateRecruitmentPublication: mocks.updateRecruitmentPublication }
-})
+vi.mock('@/lib/recruitment/vacancy-service', () => ({ updateRecruitmentPublication: mocks.updateRecruitmentPublication }))
 
 import { PATCH } from './route'
 
-describe('vacancy publication API contract', () => {
+describe('PATCH /api/recruitment/vacancies/[vacancyId]/publication', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.permissionErrorResponse.mockReturnValue(null)
     mocks.requireTenantModule.mockResolvedValue(undefined)
-    mocks.requirePermission.mockResolvedValue({ tenantId: 'tenant', hrGroupId: 'group' })
+    mocks.requirePermission.mockResolvedValue({ tenantId: 'tenant-1', hrGroupId: 'hr-group-1' })
     mocks.createClient.mockResolvedValue({})
     mocks.updateRecruitmentPublication.mockResolvedValue({ id: 'publication', status: 'OPEN', slug: 'test-recruitment-vacancy' })
   })
@@ -41,6 +40,19 @@ describe('vacancy publication API contract', () => {
     const response = await PATCH(new Request('https://example.test', { body: JSON.stringify({ payload: { marker: 'TEST-RECRUITMENT' }, slug: 'test-recruitment-vacancy', status }), method: 'PATCH' }), { params: Promise.resolve({ vacancyId: '11111111-1111-4111-8111-111111111111' }) })
 
     expect(response.status).toBe(200)
-    expect(mocks.updateRecruitmentPublication).toHaveBeenCalledWith({ tenantId: 'tenant', hrGroupId: 'group' }, '11111111-1111-4111-8111-111111111111', status, 'test-recruitment-vacancy', { marker: 'TEST-RECRUITMENT' }, {})
+    expect(mocks.updateRecruitmentPublication).toHaveBeenCalledWith({ tenantId: 'tenant-1', hrGroupId: 'hr-group-1' }, '11111111-1111-4111-8111-111111111111', status, 'test-recruitment-vacancy', { marker: 'TEST-RECRUITMENT' }, {})
+
+  it('geeft DRAFT zonder publicatie door als succesvolle ARCHIVED-response', async () => {
+    const client = { rpc: vi.fn() }
+    mocks.createClient.mockResolvedValue(client)
+    mocks.updateRecruitmentPublication.mockResolvedValue({ id: 'publication-1', status: 'ARCHIVED', slug: 'vacancy-11111111' })
+
+    const response = await PATCH(new Request('http://localhost/api/recruitment/vacancies/vacancy-1/publication', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'ARCHIVED' }),
+    }), { params: Promise.resolve({ vacancyId: 'vacancy-1' }) })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ data: { id: 'publication-1', status: 'ARCHIVED', slug: 'vacancy-11111111' } })
+    expect(mocks.updateRecruitmentPublication).toHaveBeenCalledWith({ tenantId: 'tenant-1', hrGroupId: 'hr-group-1' }, 'vacancy-1', 'ARCHIVED', null, {}, client)
   })
 })

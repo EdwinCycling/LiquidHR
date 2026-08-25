@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server'
-import { getRequestAuthorizationContext, permissionErrorResponse, requireAnyPermission, requirePermission } from '@/lib/auth/permissions'
+import { getRequestAuthorizationContext, permissionErrorResponse, requirePermission } from '@/lib/auth/permissions'
 import { requireTenantModule } from '@/lib/modules/module-service'
 import { createClient } from '@/lib/supabase/server'
-import { createManualRecruitmentApplication, listRecruitmentApplications, manualApplicationInputSchema } from '@/lib/recruitment/application-service'
+import { createManualRecruitmentApplication, listRecruitmentVacancyPipeline, manualApplicationInputSchema } from '@/lib/recruitment/application-service'
 import { RecruitmentError } from '@/lib/recruitment/errors'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ vacancyId: string }> }): Promise<NextResponse> {
   try {
     await requireTenantModule('RECRUITMENT')
     const requestContext = await getRequestAuthorizationContext()
-    await requireAnyPermission(['recruitment-candidate:read', 'recruitment-vacancy:read'])
+    await requirePermission('recruitment-candidate:read')
     const { vacancyId } = await params
-    const data = await listRecruitmentApplications(requestContext.context, vacancyId, requestContext.supabase)
-    return NextResponse.json({ data }, { headers: { 'Cache-Control': 'no-store' } })
+    const pipeline = await listRecruitmentVacancyPipeline(requestContext.context, vacancyId, requestContext.supabase)
+    return NextResponse.json({ data: pipeline.applications, stages: pipeline.stages, vacancy: { id: pipeline.vacancyId, title: pipeline.vacancyTitle } }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return responseFor(error)
   }
