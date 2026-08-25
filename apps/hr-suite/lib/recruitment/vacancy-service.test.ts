@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import type { Database } from '@scope/db'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { describe, expect, it, vi } from 'vitest'
 import {
   buildDefaultVacancySections,
   createVacancySlug,
+  updateRecruitmentPublication,
   vacancyInputSchema,
 } from './vacancy-service'
 
@@ -34,5 +37,20 @@ describe('vacancy service contract', () => {
       sections: buildDefaultVacancySections(),
     }).success).toBe(true)
     expect(vacancyInputSchema.safeParse({ title: '', workMode: 'HYBRID' }).success).toBe(false)
+  })
+
+  it('geeft de archive-publicatie door als succesvolle service-response met slug', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: { id: '33333333-3333-4333-8333-333333333333', status: 'ARCHIVED', slug: 'vacancy-11111111' },
+      error: null,
+    })
+    const client = { rpc } as unknown as SupabaseClient<Database>
+
+    await expect(updateRecruitmentPublication({ tenantId: '55555555-5555-4555-8555-555555555555', hrGroupId: '66666666-6666-4666-8666-666666666666' }, '11111111-1111-4111-8111-111111111111', 'ARCHIVED', null, {}, client)).resolves.toEqual({
+      id: '33333333-3333-4333-8333-333333333333', status: 'ARCHIVED', slug: 'vacancy-11111111',
+    })
+    expect(rpc).toHaveBeenCalledWith('publish_recruitment_vacancy', {
+      requested_vacancy_id: '11111111-1111-4111-8111-111111111111', requested_status: 'ARCHIVED', requested_slug: null, requested_payload: {},
+    })
   })
 })

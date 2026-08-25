@@ -11,8 +11,8 @@ Scope: `/recruitment/vacancies/[vacancyId]/candidates`, `RecruitmentVacancyPipel
 - IMPLEMENTED: vacancy-scoped pipeline read model, zero-count stages, stage/terminal columns, filter, responsive mobile list, mutation status handling and i18n.
 - LOCALLY VERIFIED: targeted recruitment tests `12/12`, full Vitest suite `234 files / 903 tests`, strict TypeScript, i18n, ESLint exit 0, `git diff --check`, Webpack production build.
 - AUTHENTICATED BROWSER/API PARTIAL: own vacancy pipeline GET returned `200` with four existing stages at `applicationCount: 0`; desktop and `390x844` rendered without product console errors. Unauthenticated API returned `401`; authenticated out-of-scope vacancy returned `404 RECRUITMENT_VACANCY_NOT_FOUND`.
-- OPEN / NEEDS TEST MIGRATION APPROVAL: the baseline remote direct-application RPC returns `500 RECRUITMENT_OPERATION_FAILED` because `normalized_email` is ambiguous. A local forward migration fixes this; remote migration apply was not authorized.
-- OPEN / CLEANUP BLOCKED: the baseline remote archive RPC returns `500 RECRUITMENT_OPERATION_FAILED` when archiving a DRAFT without a publication because `archived_at` is not set on the insert path. A local forward migration fixes this; the own empty DRAFT vacancy remains until that migration is applied and cleanup is rerun.
+- OPEN / NEEDS TEST MIGRATION APPROVAL: the baseline remote direct-application RPC returns `500 RECRUITMENT_OPERATION_FAILED` because `normalized_email` is ambiguous. The canonical Applicant Detail migration `20260824172115_recruitment_application_normalized_email_fix.sql` owns this fix; the duplicate pipeline migration was removed and no alternative was added.
+- OPEN / CLEANUP BLOCKED: the baseline remote archive RPC returns `500 RECRUITMENT_OPERATION_FAILED` when archiving a DRAFT without a publication because `archived_at` is not set on the insert path. `20260824183100_guided_recruitment_archive_draft_fix.sql` now returns the effective non-null insert slug while preserving the existing update/status paths; the own empty DRAFT vacancy remains until that migration is applied and cleanup is rerun.
 - NOT PROVEN: real application creation, legal stage move, fresh mutation readback, UI stage refresh with an application, and Manager/Employee persona negatives. The role-switch endpoint returned `403 TEST_ROLE_SWITCH_FORBIDDEN`; no external fixture application was mutated.
 - RELEASE: no push, merge, deploy or app-version bump. No email, SMS or interview invitation was sent.
 
@@ -21,7 +21,7 @@ Scope: `/recruitment/vacancies/[vacancyId]/candidates`, `RecruitmentVacancyPipel
 - `listRecruitmentVacancyPipeline` returns the vacancy, all existing stages including zero-count stages, and anonymized application cards in tenant/HR-group scope.
 - `/api/recruitment/vacancies/[vacancyId]/applications` now uses the candidate-read permission and returns backward-compatible `data` plus `stages` and `vacancy` metadata with `Cache-Control: no-store`.
 - `RecruitmentVacancyPipeline` uses Foundation primitives, active-stage filtering, terminal outcome columns, wrapping cards, mobile vertical representation, and response-aware `409`/`422` mutation feedback before `router.refresh()`.
-- Added `20260824183000_guided_recruitment_manual_application_ambiguity_fix.sql` for the direct application RPC and `20260824183100_guided_recruitment_archive_draft_fix.sql` for supported cleanup of an empty DRAFT vacancy.
+- The pipeline trusts the canonical Applicant Detail application migration `20260824172115_recruitment_application_normalized_email_fix.sql` after integration; its duplicate `20260824183000_guided_recruitment_manual_application_ambiguity_fix.sql` is intentionally absent. `20260824183100_guided_recruitment_archive_draft_fix.sql` supports cleanup of an empty DRAFT vacancy and returns its effective slug on insert.
 - Added direct application/stage service and migration contract tests; NL/EN recruitment keys remain symmetric.
 
 ## Verificatie
@@ -47,7 +47,7 @@ The standard Turbopack build failed only on the known worktree `node_modules` ju
 
 ## Vervolg
 
-1. Apply the two forward migrations through the approved TEST database workflow.
+1. Integrate the canonical Applicant Detail migration and apply it together with the corrected archive migration through the approved TEST database workflow.
 2. Repeat isolated browser acceptance with two `example.invalid` applications: POST `201`, pipeline GET/readback, legal next-stage transition, invalid transition `422`, UI refresh, filters and mobile populated cards.
 3. Archive the own vacancy through the supported publication contract and verify no `R4-REC-PIPE` records remain.
 4. Only then mark the slice GREEN for integration; this branch has not been pushed or merged.
