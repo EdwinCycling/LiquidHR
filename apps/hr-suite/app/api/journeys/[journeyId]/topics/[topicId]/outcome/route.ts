@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { recordJourneyTopicOutcome, JourneyProjectionServiceError } from '@/lib/journeys/projection-service'
+import { JourneyProjectionServiceError } from '@/lib/journeys/projection-service'
+import { recordJourneyParticipantProgress } from '@/lib/journeys/participant-service'
 import { journeyIdSchema } from '@/lib/journeys/api'
 
 const outcomeSchema = z.object({
@@ -20,7 +21,7 @@ export async function POST(
     try { payload = await request.json() } catch { return NextResponse.json({ error: 'JOURNEY_TOPIC_OUTCOME_INPUT_INVALID' }, { status: 400 }) }
     const body = outcomeSchema.safeParse(payload)
     if (!journeyId.success || !topicId.success || !body.success) return NextResponse.json({ error: 'JOURNEY_TOPIC_OUTCOME_INPUT_INVALID' }, { status: 400 })
-    return NextResponse.json({ data: await recordJourneyTopicOutcome({ journeyId: journeyId.data, topicId: topicId.data, outcomeType: body.data.outcomeType, note: body.data.note }) })
+    return NextResponse.json({ data: await recordJourneyParticipantProgress({ journeyId: journeyId.data, topicId: topicId.data, outcomeType: body.data.outcomeType, note: body.data.note }) })
   } catch (error) {
     if (error instanceof JourneyProjectionServiceError) return NextResponse.json({ error: error.code }, { status: error.status })
     return NextResponse.json({ error: 'JOURNEY_TOPIC_OUTCOME_FAILED' }, { status: 500 })
