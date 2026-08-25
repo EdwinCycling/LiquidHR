@@ -39,6 +39,56 @@
     "notAvailable": "Niet beschikbaar",
     "view": "Bekijken"
   },
+  "vacancies": {
+    "title": "Vacatures",
+    "description": "Beheer vacatures vanuit één compacte werkplek met heldere status- en publicatie-informatie.",
+    "newVacancy": "Nieuwe vacature",
+    "search": "Zoeken",
+    "searchPlaceholder": "Zoek op functietitel of locatie",
+    "applyFilters": "Toepassen",
+    "clearFilters": "Wis filters",
+    "status": "Vacaturestatus",
+    "allStatuses": "Alle statussen",
+    "statuses": {
+      "DRAFT": "Concept",
+      "ACTIVE": "Actief",
+      "CLOSED": "Gesloten",
+      "ARCHIVED": "Gearchiveerd"
+    },
+    "publication": "Publicatie",
+    "allPublications": "Alle publicatiestatussen",
+    "publications": {
+      "UNPUBLISHED": "Niet gepubliceerd",
+      "OPEN": "Gepubliceerd",
+      "CLOSED": "Publicatie gesloten",
+      "ARCHIVED": "Publicatie gearchiveerd"
+    },
+    "sort": "Sorteren",
+    "sorts": {
+      "UPDATED_DESC": "Laatst bijgewerkt",
+      "TITLE_ASC": "Functietitel A–Z",
+      "APPLICATIONS_DESC": "Meeste actieve sollicitaties"
+    },
+    "resultCount": "{count} vacatures",
+    "updated": "Bijgewerkt",
+    "applications": "sollicitaties",
+    "activeApplications": "actieve sollicitaties",
+    "notSet": "Niet ingesteld",
+    "edit": "Bewerken",
+    "view": "Open vacature",
+    "emptyTitle": "Nog geen vacatures",
+    "emptyDescription": "Maak de eerste vacature aan voor deze HR-groep.",
+    "noResultsTitle": "Geen vacatures gevonden",
+    "noResultsDescription": "Pas je zoekopdracht of filters aan.",
+    "previousPage": "Vorige pagina",
+    "nextPage": "Volgende pagina",
+    "pageOf": "van",
+    "workModes": {
+      "ON_SITE": "Op locatie",
+      "HYBRID": "Hybride",
+      "REMOTE": "Op afstand"
+    }
+  },
   "vacancy": {
     "newTitle": "Nieuwe vacature",
     "editTitle": "Vacature bewerken",

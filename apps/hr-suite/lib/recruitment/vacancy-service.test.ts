@@ -2,8 +2,29 @@ import { describe, expect, it } from 'vitest'
 import {
   buildDefaultVacancySections,
   createVacancySlug,
+  filterAndSortRecruitmentVacancies,
+  paginateRecruitmentVacancies,
+  parseRecruitmentVacancyListQuery,
+  type RecruitmentVacancyListQuery,
+  type VacancySummary,
   vacancyInputSchema,
 } from './vacancy-service'
+
+function vacancy(overrides: Partial<VacancySummary> = {}): VacancySummary {
+  return {
+    id: 'vacancy-1',
+    title: 'Recruiter',
+    locationLabel: 'Amsterdam',
+    workMode: 'HYBRID',
+    status: 'ACTIVE',
+    updatedAt: '2026-08-24T12:00:00.000Z',
+    version: 1,
+    applicationCount: 3,
+    activeApplicationCount: 2,
+    publication: { id: 'publication-1', slug: 'recruiter', status: 'OPEN', payload: {} },
+    ...overrides,
+  }
+}
 
 describe('vacancy service contract', () => {
   it('biedt exact zes vaste contentblokken in een stabiele volgorde', () => {
@@ -34,5 +55,44 @@ describe('vacancy service contract', () => {
       sections: buildDefaultVacancySections(),
     }).success).toBe(true)
     expect(vacancyInputSchema.safeParse({ title: '', workMode: 'HYBRID' }).success).toBe(false)
+  })
+
+  it('normaliseert URL-state en valt veilig terug op de eerste pagina en bekende opties', () => {
+    expect(parseRecruitmentVacancyListQuery({ q: '  R4-REC-LIST ', status: 'DRAFT', publication: 'UNPUBLISHED', sort: 'TITLE_ASC', page: '3' })).toEqual({
+      q: 'R4-REC-LIST', status: 'DRAFT', publication: 'UNPUBLISHED', sort: 'TITLE_ASC', page: 3,
+    })
+    expect(parseRecruitmentVacancyListQuery({ status: 'unknown', publication: 'unknown', sort: 'unknown', page: '0' })).toEqual({
+      q: '', status: 'ALL', publication: 'ALL', sort: 'UPDATED_DESC', page: 1,
+    })
+  })
+
+  it('filtert op titel/locatie, vacaturestatus en publicatiestatus', () => {
+    const vacancies = [
+      vacancy({ id: 'active', title: 'Recruiter', locationLabel: 'Amsterdam', status: 'ACTIVE', publication: { id: 'p1', slug: 'recruiter', status: 'OPEN', payload: {} } }),
+      vacancy({ id: 'draft', title: 'HR assistent', locationLabel: 'Utrecht', status: 'DRAFT', publication: null }),
+      vacancy({ id: 'closed', title: 'Recruitment lead', locationLabel: 'Rotterdam', status: 'CLOSED', publication: { id: 'p3', slug: 'lead', status: 'CLOSED', payload: {} } }),
+    ]
+
+    expect(filterAndSortRecruitmentVacancies(vacancies, { q: 'utrecht', status: 'ALL', publication: 'ALL', sort: 'UPDATED_DESC' }).map((item) => item.id)).toEqual(['draft'])
+    expect(filterAndSortRecruitmentVacancies(vacancies, { q: '', status: 'DRAFT', publication: 'UNPUBLISHED', sort: 'UPDATED_DESC' }).map((item) => item.id)).toEqual(['draft'])
+    expect(filterAndSortRecruitmentVacancies(vacancies, { q: '', status: 'ALL', publication: 'OPEN', sort: 'UPDATED_DESC' }).map((item) => item.id)).toEqual(['active'])
+  })
+
+  it('sorteert en pagineert zonder URL-state te verliezen', () => {
+    const vacancies = Array.from({ length: 11 }, (_, index) => vacancy({
+      id: `vacancy-${index}`,
+      title: `Vacancy ${String(index).padStart(2, '0')}`,
+      updatedAt: `2026-08-${String(index + 1).padStart(2, '0')}T12:00:00.000Z`,
+      activeApplicationCount: index,
+    }))
+    const query: RecruitmentVacancyListQuery = { q: '', status: 'ALL', publication: 'ALL', sort: 'APPLICATIONS_DESC', page: 2 }
+    const result = paginateRecruitmentVacancies(vacancies, query)
+
+    expect(result.total).toBe(11)
+    expect(result.pageCount).toBe(2)
+    expect(result.page).toBe(2)
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]?.activeApplicationCount).toBe(0)
+    expect(paginateRecruitmentVacancies(vacancies, { ...query, page: 99 }).page).toBe(2)
   })
 })

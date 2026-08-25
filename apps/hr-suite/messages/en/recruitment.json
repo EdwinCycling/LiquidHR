@@ -39,6 +39,56 @@
     "notAvailable": "Not available",
     "view": "View"
   },
+  "vacancies": {
+    "title": "Vacancies",
+    "description": "Manage vacancies from one compact workspace with clear status and publication context.",
+    "newVacancy": "New vacancy",
+    "search": "Search",
+    "searchPlaceholder": "Search by job title or location",
+    "applyFilters": "Apply",
+    "clearFilters": "Clear filters",
+    "status": "Vacancy status",
+    "allStatuses": "All statuses",
+    "statuses": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "CLOSED": "Closed",
+      "ARCHIVED": "Archived"
+    },
+    "publication": "Publication",
+    "allPublications": "All publication states",
+    "publications": {
+      "UNPUBLISHED": "Not published",
+      "OPEN": "Published",
+      "CLOSED": "Publication closed",
+      "ARCHIVED": "Publication archived"
+    },
+    "sort": "Sort",
+    "sorts": {
+      "UPDATED_DESC": "Recently updated",
+      "TITLE_ASC": "Job title A–Z",
+      "APPLICATIONS_DESC": "Most active applications"
+    },
+    "resultCount": "{count} vacancies",
+    "updated": "Updated",
+    "applications": "applications",
+    "activeApplications": "active applications",
+    "notSet": "Not set",
+    "edit": "Edit",
+    "view": "Open vacancy",
+    "emptyTitle": "No vacancies yet",
+    "emptyDescription": "Create the first vacancy for this HR group.",
+    "noResultsTitle": "No vacancies found",
+    "noResultsDescription": "Adjust your search or filters.",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "pageOf": "of",
+    "workModes": {
+      "ON_SITE": "On site",
+      "HYBRID": "Hybrid",
+      "REMOTE": "Remote"
+    }
+  },
   "vacancy": {
     "newTitle": "New vacancy",
     "editTitle": "Edit vacancy",
