@@ -91,6 +91,15 @@ export type JourneyActivationPreview = ReturnType<typeof buildJourneyActivationP
 
 export type JourneyAttention = 'PLANNED' | 'UPCOMING' | 'ATTENTION' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
 
+export type JourneyTopicProgressStatus = 'PENDING' | 'COMPLETED' | 'SKIPPED'
+
+export function deriveJourneyProgress(topics: readonly { readonly status: JourneyTopicProgressStatus }[]) {
+  return {
+    completed: topics.filter((topic) => topic.status === 'COMPLETED').length,
+    total: topics.length,
+  }
+}
+
 export function deriveJourneyAttention(input: {
   readonly status: 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
   readonly nextMomentOn: string | null

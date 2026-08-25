@@ -32,6 +32,11 @@ const journeyPhaseSchema = z.object({
   moments: z.array(journeyMomentSchema),
 }).strict()
 
+const journeyProgressSchema = z.object({
+  completed: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+}).strict()
+
 const journeyNextActionSchema = journeyTopicSchema.extend({
   momentId: z.string().uuid(),
   momentName: localizedTextSchema,
@@ -54,7 +59,7 @@ export const journeyProjectionSchema = z.object({
   anchorDate: z.string(),
   targetEmployeeName: z.string().nullable(),
   relationship: z.enum(['HR', 'SELF', 'PARTICIPANT']),
-  progress: z.object({ completed: z.number().int().nonnegative(), total: z.number().int().nonnegative() }).strict(),
+  progress: journeyProgressSchema,
   nextAction: journeyNextActionSchema.nullable(),
   participants: z.array(journeyParticipantSchema),
   phases: z.array(journeyPhaseSchema),
@@ -70,6 +75,7 @@ export const journeyTopicOutcomeResultSchema = z.object({
 
 export type JourneyProjection = z.infer<typeof journeyProjectionSchema>
 export type JourneyProjectionList = z.infer<typeof journeyProjectionListSchema>
+export type JourneyProgress = z.infer<typeof journeyProgressSchema>
 export type JourneyProjectionTopic = z.infer<typeof journeyTopicSchema>
 export type JourneyProjectionNextAction = z.infer<typeof journeyNextActionSchema>
 export type JourneyTopicOutcomeResult = z.infer<typeof journeyTopicOutcomeResultSchema>

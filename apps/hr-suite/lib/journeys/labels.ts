@@ -15,7 +15,7 @@ export async function getJourneyLabels() {
     'roles', 'moments', 'topics', 'audience', 'addPhase', 'addRole', 'addMoment', 'addTopic', 'remove', 'required',
     'moveUp', 'moveDown', 'optional', 'sortOrder', 'phase', 'moment', 'ownerRole', 'resolver', 'cardinality', 'resolverRole', 'specificEmployee',
     'dateOffset', 'availabilityOffset', 'topicType', 'body', 'actionUrl', 'one', 'many', 'languageHint', 'immutableHint',
-    'moduleDisabled', 'liveTitle', 'liveSubtitle', 'startJourney', 'searchJourneys', 'allStatuses', 'noJourneys',
+    'moduleDisabled', 'liveTitle', 'liveSubtitle', 'participantOverviewEyebrow', 'participantOverviewTitle', 'participantOverviewSubtitle', 'startJourney', 'searchJourneys', 'clearFilters', 'resultCount', 'noResultsDescription', 'allStatuses', 'noJourneys',
     'targetEmployee', 'participantsLabel', 'anchorDate', 'nextMoment', 'attention', 'planned', 'active', 'paused',
     'completed', 'cancelled', 'upcoming', 'newTitle', 'newSubtitle', 'selectTemplate', 'selectEmployee',
     'selectEmployment', 'noEmployment', 'continue', 'back', 'resolveTeam', 'preview', 'activate', 'activating',
@@ -23,7 +23,7 @@ export async function getJourneyLabels() {
     'detailTitle', 'timeline', 'topicsLabel', 'pause', 'resume', 'complete', 'cancelJourney', 'replaceParticipant',
     'replacement', 'replacementReason', 'saveReplacement', 'history', 'noHistory', 'operationFailed', 'overdueTopics',
     'participantAssigned', 'participantActive', 'participantReplaced', 'participantRemoved',
-    'topicPending', 'topicCompleted', 'topicSkipped', 'participantTitle', 'participantSubtitle', 'progress', 'nextAction', 'available', 'upcomingTopic',
+    'topicPending', 'topicCompleted', 'topicSkipped', 'participantTitle', 'selfJourney', 'participantJourney', 'participantSubtitle', 'progress', 'progressCount', 'nextAction', 'available', 'upcomingTopic',
     'completeTopic', 'skipTopic', 'topicDetails', 'openTopicAction', 'outcomeSaved', 'topicActionFailed',
   ] as const
   return {

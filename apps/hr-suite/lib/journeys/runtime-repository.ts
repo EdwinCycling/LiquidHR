@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { AmbiguousManagerError, ManagerNotFoundError, resolveManagerForEmployee } from '@/lib/organization/manager-resolver'
 import { createClient } from '@/lib/supabase/server'
 import { journeyTemplateDraftSchema, resolveJourneyRole } from './domain'
-import { type JourneyActivationResolution, type JourneyActivationTemplate, type JourneyParticipantSource } from './runtime-domain'
+import { deriveJourneyProgress, type JourneyActivationResolution, type JourneyActivationTemplate, type JourneyParticipantSource } from './runtime-domain'
 import { JourneyRuntimeServiceError, type JourneyRuntimeDetail, type JourneyRuntimeListItem, type JourneyRuntimeRepository } from './runtime-service'
 
 type JourneyRow = Database['public']['Tables']['journeys']['Row']
@@ -172,12 +172,14 @@ function listItem(row: JourneyRow, targetName: string, employeeNumber: string, m
   const journeyMoments = moments.filter((moment) => moment.journey_id === row.id).sort((left, right) => left.scheduled_on.localeCompare(right.scheduled_on) || left.sort_order - right.sort_order)
   const next = journeyMoments.find((moment) => moment.scheduled_on >= today) ?? null
   const momentById = new Map(journeyMoments.map((moment) => [moment.id, moment]))
-  const overdueRequiredTopics = topics.filter((topic) => topic.journey_id === row.id && topic.is_required && topic.status === 'PENDING' && (momentById.get(topic.moment_id)?.scheduled_on ?? today) < today).length
+  const journeyTopics = topics.filter((topic) => topic.journey_id === row.id)
+  const overdueRequiredTopics = journeyTopics.filter((topic) => topic.is_required && topic.status === 'PENDING' && (momentById.get(topic.moment_id)?.scheduled_on ?? today) < today).length
   return {
     id: row.id, templateName: localized(row.template_name), templateVersionNumber: row.template_version_number,
     targetEmployeeId: row.target_employee_id, targetEmployeeName: targetName, targetEmployeeNumber: employeeNumber,
     anchorDate: row.anchor_date, status: row.status, version: row.version,
     nextMomentOn: next?.scheduled_on ?? null, nextMomentName: next ? localized(next.name) : null, overdueRequiredTopics,
+    progress: deriveJourneyProgress(journeyTopics),
     participantNames: [...new Set(participants.filter((participant) => participant.journey_id === row.id && (participant.status === 'ACTIVE' || participant.status === 'ASSIGNED')).map((participant) => names.get(participant.employee_id) ?? participant.employee_id))],
   }
 }
