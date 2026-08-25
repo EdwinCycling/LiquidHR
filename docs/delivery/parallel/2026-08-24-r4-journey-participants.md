@@ -75,9 +75,9 @@ Target: `Test Validatie · 100006`; manager: `Yara Meijer`; no Noah canonical da
 - Duplicate-input Journey `1a65afff-1fde-4edc-ae9a-85c73c8a3fca`: cleaned up through supported `CANCEL`, HTTP `200`; terminal participant readback had no progress/action buttons.
 - Primary progress-test Journey `0345ea3e-4727-41dd-87d1-542bff584b75`: after a fresh detail readback supplied `expectedVersion=2`, the supported `CANCEL` returned HTTP `200` with `status=CANCELLED`, `version=3`; the final detail readback was terminal and read-only.
 - Root-cause repro Journey `e009c002-bf38-4d20-bfc5-8000f9283a70`: activation returned HTTP `201`, the supported topic `COMPLETE` returned HTTP `200` and readback showed `ACTIVE`, `version=2`, topic `COMPLETED`; stale `CANCEL` with `expectedVersion=1` returned after 2.1 minutes as HTTP `500` with `JOURNEY_OPERATION_FAILED`, while the correct `expectedVersion=2` returned HTTP `200`, `CANCELLED`, `version=3`. The Journey was cleaned up through the supported transition.
-- Root cause: `transition_journey_internal` raised the expected optimistic version conflict as PostgreSQL `40001` (`serialization_failure`). The Supabase Data API treats transient failures as retryable, so the stale business conflict was retried until the generic 500. Local forward migration `20260825150000_fix_journey_version_conflict_retry.sql` changes only this lifecycle conflict to non-retryable `P0001`; it was not applied remotely.
-- Current final status: `NEEDS TEST MIGRATION APPROVAL`. After approval and test migration apply, repeat the stale `CANCEL` request and verify a fast HTTP `409` with `JOURNEY_VERSION_CONFLICT`, then repeat the full acceptance matrix.
-- The existing runtime contract exposes activation, lifecycle transition and participant replacement, but no participant add/remove endpoint or RPC. Therefore participant removal could not be proven or safely invented in this slice. The active participant rows on the failed-cleanup Journey are residual test data, not canonical employee data.
+- Post-migration repro Journey `62e73ecc-cafe-46ab-85d3-e3ff38ff44ac`: activation returned HTTP `201`; topic `COMPLETE` returned HTTP `200` and readback showed `ACTIVE`, `version=2`, topic `COMPLETED`, two active participants; stale `CANCEL` with `expectedVersion=1` returned HTTP `409` with `JOURNEY_VERSION_CONFLICT` in 2.6 seconds; correct `expectedVersion=2` returned HTTP `200`, `CANCELLED`, `version=3` in 0.8 seconds. Final Journey and participant-detail readback were terminal/read-only, with `1/1 · 100%` progress and no normal-route console errors.
+- Root cause: `transition_journey_internal` raised the expected optimistic version conflict as PostgreSQL `40001` (`serialization_failure`). The Supabase Data API treats transient failures as retryable, so the stale business conflict was retried until the generic 500. Forward migration `20260825150000_fix_journey_version_conflict_retry.sql` changes only this lifecycle conflict to non-retryable `P0001`; it was applied to the test Supabase project and migration history was repaired for this exact version.
+- Current blocker status: GREEN. The participant add/remove contract remains separate: the existing runtime contract exposes activation, lifecycle transition and participant replacement, but no participant add/remove endpoint or RPC. No direct table mutation was invented.
 
 ## Verification
 
@@ -88,10 +88,11 @@ Target: `Test Validatie · 100006`; manager: `Yara Meijer`; no Noah canonical da
 - `npm.cmd run lint`: passed with 0 errors and 8 pre-existing warnings outside this slice.
 - `git diff --check`: passed; only Git's LF/CRLF normalization warnings were emitted.
 - `npm.cmd run test -- --run lib/journeys/runtime-migration-contract.test.ts`: passed; migration contract includes the non-retryable lifecycle conflict regression guard.
-- No production build, remote migration, push, merge, deploy or version bump was performed in this parallel slice.
+- Remote test migration function readback confirmed `P0001` and no `40001`; no production migration, push, merge, deploy or version bump was performed.
+- Post-migration browser acceptance: HR Journey detail and participant detail were read back at desktop viewport; normal routes had zero console errors. The single direct stale request produced the expected HTTP 409 resource console entry.
 
 ## Integration notes
 
 - Keep the existing actor-safe Journey projection and RLS contracts as the source of truth; the new participant service delegates to them rather than reading participant tables directly.
-- Central integration should apply the local forward migration only after explicit test-migration approval, then re-run the route/browser acceptance after verifying stale-version `CANCEL` returns HTTP `409` instead of timing out.
+- Central integration can use the already committed migration and post-migration evidence; do not broaden the remote migration history repair to unrelated drift.
 - The participant delete contract remains a separate follow-up; do not add a direct table mutation or bypass the existing security-invoker/RLS write paths.
