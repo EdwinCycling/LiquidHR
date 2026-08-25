@@ -16,6 +16,7 @@
   "create": "Create template", "cancel": "Cancel", "close": "Close", "discardTitle": "Discard changes?", "discardDescription": "Unsaved template details will be lost.", "discardConfirm": "Discard changes", "discardCancel": "Keep editing", "save": "Save draft", "saving": "Saving…", "saved": "Draft saved.",
   "publish": "Publish version", "publishConfirm": "Publish a new immutable version of this draft?", "publishing": "Publishing…",
   "publishedMessage": "New version published.", "retire": "Retire template", "failed": "The operation failed.",
+  "publishNeedsSave": "Save the changes before publishing.", "retireConfirm": "This template and any further publications will be retired. Continue?",
   "invalid": "Review the highlighted template details.", "nl": "Dutch", "en": "English",
   "phases": "Phases", "roles": "Roles", "moments": "Moments", "topics": "Topics", "audience": "Audience",
   "addPhase": "Add phase", "addRole": "Add role", "addMoment": "Add moment", "addTopic": "Add topic", "remove": "Remove", "moveUp": "Move up", "moveDown": "Move down",
@@ -142,7 +143,10 @@
   "hrView": "HR view",
   "selfView": "My view",
   "participantView": "Participant view",
-  "noTopics": "This Journey does not have any topics yet.",
   "noParticipants": "There are no active participants yet.",
-  "unknownParticipant": "Unknown participant"
+  "unknownParticipant": "Unknown participant",
+  "keepEditing": "Keep editing",
+  "discardChanges": "Discard changes",
+  "discardChangesTitle": "Discard changes?",
+  "cannotRemoveInUse": "This item is still used by another item."
 }

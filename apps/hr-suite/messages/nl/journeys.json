@@ -34,9 +34,11 @@
   "saved": "Concept opgeslagen.",
   "publish": "Versie publiceren",
   "publishConfirm": "Publiceer een nieuwe immutable versie van deze draft?",
+  "publishNeedsSave": "Sla de wijzigingen eerst op voordat je publiceert.",
   "publishing": "Publiceren…",
   "publishedMessage": "Nieuwe versie gepubliceerd.",
   "retire": "Template uitfaseren",
+  "retireConfirm": "Deze template en haar verdere publicaties worden uitgefaseerd. Doorgaan?",
   "failed": "De bewerking is niet gelukt.",
   "invalid": "Controleer de gemarkeerde templategegevens.",
   "nl": "Nederlands",
@@ -189,7 +191,10 @@
   "hrView": "HR-weergave",
   "selfView": "Mijn weergave",
   "participantView": "Participantweergave",
-  "noTopics": "Er zijn nog geen topics in deze Journey.",
   "noParticipants": "Er zijn nog geen actieve deelnemers.",
-  "unknownParticipant": "Onbekende deelnemer"
+  "unknownParticipant": "Onbekende deelnemer",
+  "keepEditing": "Terug naar formulier",
+  "discardChanges": "Wijzigingen negeren",
+  "discardChangesTitle": "Wijzigingen negeren?",
+  "cannotRemoveInUse": "Dit onderdeel wordt nog gebruikt door een ander onderdeel."
 }

@@ -12,12 +12,13 @@ export async function getJourneyLabels() {
     'search', 'newTemplate', 'noTemplates', 'noResults', 'name', 'description', 'key', 'type', 'anchor', 'status', 'version',
     'draftRevision', 'updated', 'draft', 'published', 'retired', 'create', 'cancel', 'close', 'discardTitle', 'discardDescription', 'discardConfirm', 'discardCancel', 'save', 'saving', 'saved',
     'publish', 'publishConfirm', 'publishing', 'publishedMessage', 'retire', 'failed', 'invalid', 'nl', 'en', 'phases',
+    'publishNeedsSave', 'retireConfirm',
     'roles', 'moments', 'topics', 'audience', 'addPhase', 'addRole', 'addMoment', 'addTopic', 'remove', 'required',
     'moveUp', 'moveDown', 'optional', 'sortOrder', 'phase', 'moment', 'ownerRole', 'resolver', 'cardinality', 'resolverRole', 'specificEmployee',
     'dateOffset', 'availabilityOffset', 'topicType', 'body', 'actionUrl', 'one', 'many', 'languageHint', 'immutableHint',
     'moduleDisabled', 'liveTitle', 'liveSubtitle', 'participantOverviewEyebrow', 'participantOverviewTitle', 'participantOverviewSubtitle', 'startJourney', 'searchJourneys', 'clearFilters', 'resultCount', 'noResultsDescription', 'allStatuses', 'noJourneys',
     'targetEmployee', 'participantsLabel', 'anchorDate', 'nextMoment', 'attention', 'planned', 'active', 'paused',
-    'completed', 'cancelled', 'upcoming', 'newTitle', 'newSubtitle', 'selectTemplate', 'selectEmployee',
+    'completed', 'cancelled', 'upcoming', 'newTitle', 'newSubtitle', 'selectTemplate', 'selectEmployee', 'keepEditing',
     'selectEmployment', 'noEmployment', 'continue', 'back', 'resolveTeam', 'preview', 'activate', 'activating',
     'automatic', 'manualSelection', 'missingRequired', 'missingOptional', 'ambiguous', 'activationBlocked',
     'detailTitle', 'overviewMetadata', 'overviewActions', 'attentionSummary', 'noAttention', 'noNextMoment', 'noParticipants', 'noTopics', 'readOnly', 'readOnlyDescription', 'notAvailable', 'employmentLinked', 'scheduledOn', 'availableOn', 'timeline', 'topicsLabel', 'pause', 'resume', 'complete', 'cancelJourney', 'replaceParticipant',
@@ -27,6 +28,7 @@ export async function getJourneyLabels() {
     'topicPending', 'topicCompleted', 'topicSkipped', 'participantTitle', 'selfJourney', 'participantJourney', 'participantSubtitle', 'progress', 'progressCount', 'nextAction', 'available', 'upcomingTopic',
     'completeTopic', 'skipTopic', 'topicDetails', 'openTopicAction', 'outcomeSaved', 'topicActionFailed',
     'participantDetailTitle', 'participantDetailSubtitle', 'statusLabel', 'hrView', 'selfView', 'participantView', 'unknownParticipant',
+    'discardChanges', 'discardChangesTitle', 'cannotRemoveInUse',
   ] as const
   return {
     ...Object.fromEntries(keys.map((key) => [key, t(key)])) as Record<(typeof keys)[number], string>,
