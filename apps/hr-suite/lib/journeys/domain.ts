@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 
 export const localizedJourneyTextSchema = z.object({
   nl: z.string().trim().min(1).max(5000),
@@ -20,7 +21,7 @@ export const journeyTemplateDraftSchema = z.object({
     cardinality: z.enum(['ONE', 'MANY']),
     resolverType: z.enum(['TARGET_EMPLOYEE', 'DIRECT_MANAGER', 'DEPARTMENT_MANAGER', 'SPECIFIC_EMPLOYEE', 'MANUAL']),
     resolverRoleCode: z.string().trim().min(1).max(80).nullable(),
-    resolverEmployeeId: z.string().uuid().nullable(),
+    resolverEmployeeId: databaseUuid.nullable(),
     sortOrder: z.number().int().nonnegative(),
   }).strict()).min(1).max(50),
   moments: z.array(z.object({

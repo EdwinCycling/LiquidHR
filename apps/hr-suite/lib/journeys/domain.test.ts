@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   calculateJourneyDate,
+  journeyTemplateDraftSchema,
   resolveJourneyRole,
   validateJourneyTemplate,
   type JourneyTemplateDraft,
@@ -40,6 +41,14 @@ describe('Journey domain', () => {
 
   it('accepteert een volledige tweetalige, genormaliseerde template', () => {
     expect(validateJourneyTemplate(validDraft)).toEqual([])
+  })
+
+  it('accepteert deterministische PostgreSQL-ID\'s voor een specifieke resolver', () => {
+    const result = journeyTemplateDraftSchema.safeParse({
+      ...validDraft,
+      roles: [...validDraft.roles, { key: 'buddy', name: { nl: 'Buddy', en: 'Buddy' }, required: false, cardinality: 'ONE', resolverType: 'SPECIFIC_EMPLOYEE', resolverRoleCode: null, resolverEmployeeId: 'c6b1c7a9-c250-3d19-b1a0-87e317e80b13', sortOrder: 30 }],
+    })
+    expect(result.success).toBe(true)
   })
 
   it('blokkeert ongeldige verwijzingen, ontbrekende audiences en availability na het moment', () => {

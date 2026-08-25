@@ -3,6 +3,7 @@ import type { Database, Json } from '@scope/db'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { AmbiguousManagerError, ManagerNotFoundError, resolveManagerForEmployee } from '@/lib/organization/manager-resolver'
 import { createClient } from '@/lib/supabase/server'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 import { journeyTemplateDraftSchema, resolveJourneyRole } from './domain'
 import { deriveJourneyProgress, type JourneyActivationResolution, type JourneyActivationTemplate, type JourneyParticipantSource } from './runtime-domain'
 import { JourneyRuntimeServiceError, type JourneyRuntimeDetail, type JourneyRuntimeListItem, type JourneyRuntimeRepository } from './runtime-service'
@@ -32,9 +33,9 @@ async function runtimeClient(): Promise<SupabaseClient<RuntimeDatabase>> {
   return await createClient() as unknown as SupabaseClient<RuntimeDatabase>
 }
 
-const activateResultSchema = z.object({ id: z.string().uuid(), version: z.number().int().positive(), idempotentReplay: z.boolean() })
-const transitionResultSchema = z.object({ id: z.string().uuid(), status: z.string(), version: z.number().int().positive() })
-const replaceResultSchema = z.object({ id: z.string().uuid(), participantId: z.string().uuid(), version: z.number().int().positive() })
+const activateResultSchema = z.object({ id: databaseUuid, version: z.number().int().positive(), idempotentReplay: z.boolean() })
+const transitionResultSchema = z.object({ id: databaseUuid, status: z.string(), version: z.number().int().positive() })
+const replaceResultSchema = z.object({ id: databaseUuid, participantId: databaseUuid, version: z.number().int().positive() })
 
 function localized(value: Json): { nl: string; en: string } {
   const parsed = z.object({ nl: z.string(), en: z.string() }).safeParse(value)
@@ -54,7 +55,8 @@ function databaseError(message: string): never {
   const code = errorCode(message)
   const status = code.includes('FORBIDDEN') || code.includes('MODULE_DISABLED') ? 403
     : code.includes('NOT_FOUND') || code.includes('NOT_PUBLISHED') ? 404
-      : code.includes('CONFLICT') || code.includes('INVALID') || code.includes('BLOCKED') || code.includes('MISSING') || code.includes('CARDINALITY') ? 409
+      : code.includes('CONFLICT') ? 409
+        : code.includes('INVALID') || code.includes('BLOCKED') || code.includes('MISSING') || code.includes('CARDINALITY') || code.includes('REQUIRED') ? 422
         : 500
   throw new JourneyRuntimeServiceError(code, status)
 }
@@ -105,6 +107,18 @@ async function resolveParticipants(input: Parameters<JourneyRuntimeRepository['r
   const targetResult = await supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name').eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('id', input.targetEmployeeId).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).maybeSingle()
   if (targetResult.error) databaseError(targetResult.error.message)
   if (!targetResult.data) throw new JourneyRuntimeServiceError('JOURNEY_TARGET_NOT_FOUND', 404)
+  if (input.template.anchorRule === 'EMPLOYMENT_START_DATE' && !input.employmentId) {
+    throw new JourneyRuntimeServiceError('JOURNEY_EMPLOYMENT_REQUIRED_FOR_ANCHOR', 422)
+  }
+  const employmentResult = input.employmentId
+    ? await supabase.from('employments').select('id,employee_id,starts_on').eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('id', input.employmentId).is('deleted_at', null).maybeSingle()
+    : null
+  if (employmentResult?.error) databaseError(employmentResult.error.message)
+  if (input.employmentId && !employmentResult?.data) throw new JourneyRuntimeServiceError('JOURNEY_EMPLOYMENT_NOT_FOUND', 404)
+  if (employmentResult?.data && employmentResult.data.employee_id !== input.targetEmployeeId) throw new JourneyRuntimeServiceError('JOURNEY_EMPLOYMENT_TARGET_MISMATCH', 422)
+  if (input.template.anchorRule === 'EMPLOYMENT_START_DATE' && employmentResult?.data?.starts_on !== input.anchorDate) {
+    throw new JourneyRuntimeServiceError('JOURNEY_ANCHOR_DATE_MISMATCH', 422)
+  }
   let placementQuery = supabase.from('employee_organizations').select('employee_id,department_id,direct_manager_id,direct_manager_deputy_id,effective_from,effective_to,employment_id').eq('tenant_id', input.tenantId).eq('hr_group_id', input.hrGroupId).eq('employee_id', input.targetEmployeeId).lte('effective_from', input.anchorDate).or(`effective_to.is.null,effective_to.gte.${input.anchorDate}`).limit(20)
   if (input.employmentId) placementQuery = placementQuery.eq('employment_id', input.employmentId)
   const resolverRoleCodes = [...new Set(input.template.roles.map((role) => role.resolverRoleCode).filter((value): value is string => value !== null))]
@@ -193,11 +207,11 @@ export const supabaseJourneyRuntimeRepository: JourneyRuntimeRepository = {
     const error = [templates.error, employees.error, employments.error].find(Boolean)
     if (error) databaseError(error.message)
     const versionIds = (templates.data ?? []).flatMap((template) => template.current_published_version_id ? [template.current_published_version_id] : [])
-    const versions = await supabase.from('journey_template_versions').select('id,version_number').in('id', versionIds.length ? versionIds : ['00000000-0000-0000-0000-000000000000']).limit(250)
+    const versions = await supabase.from('journey_template_versions').select('id,version_number,anchor_rule').in('id', versionIds.length ? versionIds : ['00000000-0000-0000-0000-000000000000']).limit(250)
     if (versions.error) databaseError(versions.error.message)
-    const versionById = new Map((versions.data ?? []).map((version) => [version.id, version.version_number]))
+    const versionById = new Map((versions.data ?? []).flatMap((version) => version.version_number === null ? [] : [[version.id, { versionNumber: version.version_number, anchorRule: version.anchor_rule }]]))
     return {
-      templates: (templates.data ?? []).flatMap((template) => template.current_published_version_id && versionById.get(template.current_published_version_id) ? [{ id: template.id, versionId: template.current_published_version_id, versionNumber: versionById.get(template.current_published_version_id)!, name: localized(template.name), journeyType: template.journey_type }] : []),
+      templates: (templates.data ?? []).flatMap((template) => template.current_published_version_id && versionById.get(template.current_published_version_id) ? [{ id: template.id, versionId: template.current_published_version_id, versionNumber: versionById.get(template.current_published_version_id)!.versionNumber, name: localized(template.name), journeyType: template.journey_type, anchorRule: versionById.get(template.current_published_version_id)!.anchorRule }] : []),
       employees: (employees.data ?? []).map((employee) => ({ id: employee.id, name: personName(employee), employeeNumber: employee.employee_number })),
       employments: (employments.data ?? []).map((employment) => ({ id: employment.id, employeeId: employment.employee_id, employmentNumber: employment.employment_number ?? '', startsOn: employment.starts_on, endsOn: employment.ends_on, isPrimary: employment.is_primary })),
     }
