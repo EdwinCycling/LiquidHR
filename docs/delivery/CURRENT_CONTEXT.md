@@ -2,14 +2,14 @@
 
 ## R6-1 Insights query + navigation seam — overdracht 2026-08-26
 
-- Branch/worktree: `work/r6-insights-query-seam` in `C:\Users\Edwin\Documents\Apps\LiquidHR`; exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`. Main is niet gewijzigd. Lokale commit volgt na de laatste diffcontrole.
+- Branch/worktree: `work/r6-insights-query-seam` in `C:\Users\Edwin\Documents\Apps\LiquidHR`; exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`. Main is niet gewijzigd. Implementatiecommit `cffcf04` (`feat: add insights query navigation seam`); een aansluitende documentatiecommit volgt.
 - Afgerond: `lib/insights/query-seam.ts` met typed adapter/frozen seam-contract, canonical report ids, report-owned query-key cleanup, repeated-array canonicalisatie, Apply/report-switch helpers en safe internal drilldown-context. Bestaande report-owned querymodules blijven eigenaar van hun filters/berekeningen.
 - Runtime: Insights gebruikt canonical `report=<kebab-case-id>`, `groupBy`, `sortBy`, repeated arrays en legacy parse aliases. Employee Apply gebruikt `router.push`; presentation `view` gebruikt `router.replace`; employee direct URL state heeft voorrang op preferences/defaults; report switching verwijdert stale state; Upcoming direct URL laadt alleen wanneer het report in de server-side permission-filtered catalog staat.
 - Drilldowns: employee/employment links dragen `from=insights` plus een genormaliseerde interne `returnTo`; externe of niet-Insights return paths vallen veilig terug op `/insights`.
 - Documentatie: `docs/requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md` bevat de exact frozen query-, navigation-, permission- en R6-2 handoff-contracten. README en IMPLEMENTATION_STATUS zijn bijgewerkt.
 - Tests/gates: targeted seam/query `7/7` files, `29/29` tests; typecheck groen; i18n `33` namespaces; lint `0 errors / 8 warnings` (bestaand); build `226` routes/pages; `git diff --check` groen. Volledige suite `253/254` files, `980/981` tests; alleen bestaande `components/journeys/journey-steps.test.tsx` faalt op `Binnenkort beschikbaar`.
 - Browser: branch-runtime `http://localhost:3002` authenticated HR Admin. Canonical employee direct URL, draft-versus-Apply, employee → absence → upcoming → salary, stale cleanup, Back/Forward restoration en employee drilldown return links zijn gecontroleerd. Desktop en `390x844`; mobile `scrollWidth=390`. Bestaande Next-dev dashboard-shell hydration/state-meldingen zijn apart gehouden van de seam-evidence.
-- Governance: geen Supabase migration/schema/RLS/grant, remote write, merge, push, deployment of version bump. Zichtbare versie blijft `1.20260825.1`. R6-2 kan voortbouwen op de frozen seam; de lokale commit-SHA wordt na commit toegevoegd.
+- Governance: geen Supabase migration/schema/RLS/grant, remote write, merge, push, deployment of version bump. Zichtbare versie blijft `1.20260825.1`. R6-2 kan voortbouwen op de frozen seam; de definitieve HEAD-SHA volgt na de documentatiecommit.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
