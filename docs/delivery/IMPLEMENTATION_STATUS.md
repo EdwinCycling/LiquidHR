@@ -8,7 +8,7 @@ Branch `work/r6-insights-query-seam` is vanaf exact `e13c50f418cb327a6e4e99e266d
 
 Verificatie: seam/query-tests `7/7` bestanden en `29/29` tests groen; typecheck groen; i18n `33` NL/EN-namespaces gelijk; lint `0 errors / 8 bestaande warnings`; production build `226` routes/pages; `git diff --check` groen. Volledige suite: `253/254` bestanden, `980/981` tests; de enige failure is de bestaande Journey-test op `Binnenkort beschikbaar`, buiten R6-1. Branch-browser op `localhost:3002`: HR Admin, canonical employee URL/filters, Apply via history, report switch cleanup, Upcoming direct view, Salary, Back/Forward en mobile `390x844` zonder horizontale overflow zijn gecontroleerd. De bestaande Next-dev dashboard-shell geeft hydration/state-consolemeldingen; deze run vond geen R6-1-specifieke consolefout.
 
-Geen schema/migration, remote Supabase-mutatie, remote auth/permissionwijziging, merge, push, deployment of version bump. Zichtbare versie: `1.20260825.1`. Lokale implementatiecommit: `cffcf04` (`feat: add insights query navigation seam`); de aansluitende documentatiecommit volgt.
+Geen schema/migration, remote Supabase-mutatie, remote auth/permissionwijziging, merge, push, deployment of version bump. Zichtbare versie: `1.20260825.1`. Lokale implementatiecommit: `cffcf04` (`feat: add insights query navigation seam`); de documentatie is daarna in `a5d2de9` en `8597bf1` bijgewerkt.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
