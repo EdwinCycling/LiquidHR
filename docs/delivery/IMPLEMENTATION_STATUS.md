@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## R6-1 Insights query + navigation seam — 2026-08-26
+
+**Status: SEAM READY FOR R6-2: YES — LOCAL FEATURE BRANCH — RELEASE / PRODUCTION: NOT TOUCHED**
+
+Branch `work/r6-insights-query-seam` is vanaf exact `e13c50f418cb327a6e4e99e266d58ab7370e4885` opgebouwd. De seam centraliseert typed report-id canonicalisatie, URL query ownership, repeated-array serialization, safe report switching, Apply/history semantics en interne drilldown-returncontext. `upcoming-events` is de canonical report-id; de oude `upcomingEvents` alias wordt alleen geaccepteerd bij parsing. De Upcoming server-loader controleert bovendien de zichtbare, permission-filtered report catalog voordat data wordt geladen. De frozen contract staat in `docs/requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md`.
+
+Verificatie: seam/query-tests `7/7` bestanden en `29/29` tests groen; typecheck groen; i18n `33` NL/EN-namespaces gelijk; lint `0 errors / 8 bestaande warnings`; production build `226` routes/pages; `git diff --check` groen. Volledige suite: `253/254` bestanden, `980/981` tests; de enige failure is de bestaande Journey-test op `Binnenkort beschikbaar`, buiten R6-1. Branch-browser op `localhost:3002`: HR Admin, canonical employee URL/filters, Apply via history, report switch cleanup, Upcoming direct view, Salary, Back/Forward en mobile `390x844` zonder horizontale overflow zijn gecontroleerd. De bestaande Next-dev dashboard-shell geeft hydration/state-consolemeldingen; deze run vond geen R6-1-specifieke consolefout.
+
+Geen schema/migration, remote Supabase-mutatie, remote auth/permissionwijziging, merge, push, deployment of version bump. Zichtbare versie: `1.20260825.1`. De gevraagde lokale branch commit volgt na de laatste staged diffcontrole.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 **Status: TEST-TRUNK GREEN — AUTHENTICATED COMBINED SANITY GREEN — READY TO INTEGRATE INTO MAIN — RELEASE PENDING**

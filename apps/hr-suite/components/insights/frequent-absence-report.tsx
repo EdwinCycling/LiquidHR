@@ -15,6 +15,7 @@ import { SectionHeader } from '@/components/patterns/section-header'
 import { ActiveFilters, ReportEmpty, ReportKpi, type ActiveReportFilter } from '@/components/insights/absence-report'
 import type { FrequentAbsenceQuery } from '@/lib/insights/frequent-absence-query'
 import type { FrequentAbsenceReport } from '@/lib/insights/frequent-absence-report'
+import { insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface FrequentAbsenceLabels {
   title: string; description: string; exportExcel: string; period: string; last12Months: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; search: string; searchPlaceholder: string; employee: string; reportCount: string; sickDays: string; frequent: string; threshold: string; thresholdDescription: string; totalEmployees: string; frequentCount: string; totalReports: string; noResults: string; yearLabel: string; activeFilters?: string
@@ -26,11 +27,11 @@ function periodLabel(query: FrequentAbsenceQuery, labels: FrequentAbsenceLabels)
   return labels.previousYear
 }
 
-export function FrequentAbsenceReportView({ report, query, labels }: { report: FrequentAbsenceReport; query: FrequentAbsenceQuery; labels: FrequentAbsenceLabels }) {
+export function FrequentAbsenceReportView({ report, query, labels, returnTo }: { report: FrequentAbsenceReport; query: FrequentAbsenceQuery; labels: FrequentAbsenceLabels; returnTo: string }) {
   const [search, setSearch] = useState('')
   const [showFrequentOnly, setShowFrequentOnly] = useState(false)
   const exportParams = new URLSearchParams({ report: 'absence-frequent', period: query.period, format: 'excel' })
-  if (query.departmentId) exportParams.set('department', query.departmentId)
+  if (query.departmentId) exportParams.set('departmentId', query.departmentId)
   const rows = useMemo(() => report.rows.filter((row) => (!showFrequentOnly || row.isFrequent) && row.employeeName.toLocaleLowerCase('nl-NL').includes(search.trim().toLocaleLowerCase('nl-NL'))), [report.rows, search, showFrequentOnly])
   const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
   const activeFilters: ActiveReportFilter[] = [
@@ -48,7 +49,7 @@ export function FrequentAbsenceReportView({ report, query, labels }: { report: F
       </div>}>
         <input name="report" type="hidden" value="absence-frequent" />
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} defaultValue={query.period} name="period"><option value="12-months">{labels.last12Months}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></DropdownSelect></label>
-        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} defaultValue={query.departmentId ?? ''} name="department" searchable searchPlaceholder={labels.team}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} defaultValue={query.departmentId ?? ''} name="departmentId" searchable searchPlaceholder={labels.team}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
         <label className="flex min-w-0 basis-full flex-[1.2] flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.search}</span><TextInput leadingIcon={<Search aria-hidden="true" />} onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchPlaceholder} type="search" value={search} /></label>
         <div className="flex min-h-10 min-w-0 basis-full items-center sm:basis-auto sm:min-w-44"><Checkbox checked={showFrequentOnly} label={labels.frequent} onChange={(event) => setShowFrequentOnly(event.target.checked)} /></div>
       </FilterBar>
@@ -70,7 +71,7 @@ export function FrequentAbsenceReportView({ report, query, labels }: { report: F
           <th className="px-4 py-3 sm:px-5">{labels.employee}</th><th className="px-4 py-3 sm:px-5">{labels.team}</th><th className="px-4 py-3 text-right sm:px-5">{labels.reportCount}</th><th className="px-4 py-3 text-right sm:px-5">{labels.sickDays}</th><th className="px-4 py-3 sm:px-5">{labels.frequent}</th>
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
-          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link></td>
+          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{row.employeeName}</Link></td>
           <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
           <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">{row.reportCount}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.totalSickDays.toFixed(1)}</td>

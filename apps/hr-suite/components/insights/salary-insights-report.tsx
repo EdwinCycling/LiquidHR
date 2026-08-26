@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { formatDate } from '@/lib/preferences/formatters'
@@ -20,6 +20,7 @@ import type {
   SalaryInsightRow,
   SalaryInsightSortBy,
 } from '@/lib/insights/salary-insights-types'
+import { buildInsightApplyHref, insightEmploymentDrilldownHref } from '@/lib/insights/query-seam'
 
 export interface SalaryInsightsLabels {
   activeFilters: string
@@ -465,8 +466,8 @@ function tableHeaders(report: SalaryInsightReport['report'], labels: SalaryInsig
   return [...common, <th className="px-5 py-3" key="peer-group">{labels.salaryTablePeerGroup}</th>, <th className="px-5 py-3" key="peer-size">{labels.salaryTablePeerSize}</th>, <th className="px-5 py-3" key="fulltime">{labels.salaryTableFulltimeSalary}</th>, <th className="px-5 py-3" key="median">{labels.salaryTablePeerMedian}</th>, <th className="px-5 py-3" key="average">{labels.salaryTablePeerAverage}</th>, <th className="px-5 py-3" key="delta">{labels.salaryTableMedianDelta}</th>, <th className="px-5 py-3" key="delta-percent">{labels.salaryTableMedianDeltaPercentage}</th>, <th className="px-5 py-3" key="position">{labels.salaryTableRelativePosition}</th>, <th className="px-5 py-3" key="status">{labels.salaryTableComparisonStatus}</th>]
 }
 
-function tableCells(report: SalaryInsightReport['report'], row: SalaryInsightRow, labels: SalaryInsightsLabels, locale: string, dateFormat: DateFormat): ReactNode[] {
-  const salaryHref = `/employees/${row.employeeId}/employments/${row.employmentId}?tab=salary&fromTab=overview`
+function tableCells(report: SalaryInsightReport['report'], row: SalaryInsightRow, labels: SalaryInsightsLabels, locale: string, dateFormat: DateFormat, returnTo: string): ReactNode[] {
+  const salaryHref = insightEmploymentDrilldownHref(row.employeeId, row.employmentId, returnTo, 'salary')
   const employeeCell = <td className="px-5 py-3 font-medium" key="employee"><Link className="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href={salaryHref}>{row.employeeName}</Link></td>
   const common: ReactNode[] = report === 'salary-internal-position'
     ? [employeeCell, <td className="px-5 py-3" key="function">{row.functionName ?? labels.salaryNotAvailable}</td>]
@@ -481,9 +482,9 @@ function tableCells(report: SalaryInsightReport['report'], row: SalaryInsightRow
   return [...common, <td className="px-5 py-3" key="peer-group">{row.peerGroupDefinition ?? labels.salaryNotAvailable}</td>, <td className="px-5 py-3 tabular-nums" key="peer-size">{row.peerGroupSize ?? labels.salaryNotAvailable}</td>, <td className="px-5 py-3" key="fulltime">{formatMoney(row.fulltimeSalary, locale)}</td>, <td className="px-5 py-3" key="median">{formatMoney(row.peerMedian, locale)}</td>, <td className="px-5 py-3" key="average">{formatMoney(row.peerAverage, locale)}</td>, <td className="px-5 py-3" key="delta">{formatMoney(row.medianDelta, locale)}</td>, <td className="px-5 py-3" key="delta-percent">{formatPercentage(row.medianDeltaPercentage)}</td>, <td className="px-5 py-3" key="position">{formatPercentage(row.relativePosition)}</td>, <td className="px-5 py-3" key="status">{row.peerStatus === 'SUFFICIENT' ? labels.salaryPeerSufficient : labels.salaryPeerInsufficient}</td>]
 }
 
-function SalaryTable({ dateFormat, labels, locale, report }: { dateFormat: DateFormat; labels: SalaryInsightsLabels; locale: string; report: SalaryInsightReport }) {
+function SalaryTable({ dateFormat, labels, locale, report, returnTo }: { dateFormat: DateFormat; labels: SalaryInsightsLabels; locale: string; report: SalaryInsightReport; returnTo: string }) {
   const emptyLabel = report.report === 'salary-structure-exceptions' ? labels.salaryNoExceptions : report.report === 'salary-internal-position' ? labels.salaryNoPeerGroup : report.report === 'salary-band-position' ? labels.salaryNoBandRows : labels.salaryNoEmployees
-  return <section className="mt-4 overflow-hidden rounded-xl border bg-background"><div className="border-b px-5 py-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.salaryRows}</p><span className="text-sm text-muted-foreground">{report.total} {labels.people}</span></div></div>{report.rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1250px] text-left text-sm"><thead className="bg-muted/40 text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr>{tableHeaders(report.report, labels)}</tr></thead><tbody className="divide-y">{report.rows.map((row, index) => <tr key={`${row.employeeId}-${row.employmentId}-${row.exceptionType ?? row.salaryStepCode ?? index}`}>{tableCells(report.report, row, labels, locale, dateFormat)}</tr>)}</tbody></table></div> : <p className="p-8 text-center text-sm text-muted-foreground">{emptyLabel}</p>}</section>
+  return <section className="mt-4 overflow-hidden rounded-xl border bg-background"><div className="border-b px-5 py-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.salaryRows}</p><span className="text-sm text-muted-foreground">{report.total} {labels.people}</span></div></div>{report.rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1250px] text-left text-sm"><thead className="bg-muted/40 text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr>{tableHeaders(report.report, labels)}</tr></thead><tbody className="divide-y">{report.rows.map((row, index) => <tr key={`${row.employeeId}-${row.employmentId}-${row.exceptionType ?? row.salaryStepCode ?? index}`}>{tableCells(report.report, row, labels, locale, dateFormat, returnTo)}</tr>)}</tbody></table></div> : <p className="p-8 text-center text-sm text-muted-foreground">{emptyLabel}</p>}</section>
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -495,8 +496,9 @@ function readReport(value: unknown): SalaryInsightReport | null {
   return value.data as unknown as SalaryInsightReport
 }
 
-export function SalaryInsightsReportView({ dateFormat, initialQuery, labels, locale, report }: { dateFormat: DateFormat; initialQuery: SalaryInsightQuery | null; labels: SalaryInsightsLabels; locale: string; report: SalaryInsightReport | null }) {
+export function SalaryInsightsReportView({ dateFormat, initialQuery, labels, locale, report, returnTo }: { dateFormat: DateFormat; initialQuery: SalaryInsightQuery | null; labels: SalaryInsightsLabels; locale: string; report: SalaryInsightReport | null; returnTo: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const requestNumber = useRef(0)
   const fallbackQuery = initialQuery ?? (report ? { report: report.report, ...defaultSalaryInsightFilters(report.report, report.asOfDate) } : null)
   const [query, setQuery] = useState<SalaryInsightQuery | null>(fallbackQuery)
@@ -532,8 +534,8 @@ export function SalaryInsightsReportView({ dateFormat, initialQuery, labels, loc
     setQuery(next)
     setData(null)
     void load(next)
-    router.replace(`/insights?${salaryInsightQueryParams(next).toString()}`, { scroll: false })
-  }, [load, query, router])
+    router.push(buildInsightApplyHref(searchParams, salaryInsightQueryParams(next)), { scroll: false })
+  }, [load, query, router, searchParams])
 
   if (!query) return <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{labels.salaryLoading}</p>
   if (!data) return <div className="rounded-xl border border-dashed bg-muted/30 px-6 py-10 text-center"><p className="font-medium">{error ? labels.salaryLoadFailed : labels.salaryLoading}</p></div>
@@ -561,7 +563,7 @@ export function SalaryInsightsReportView({ dateFormat, initialQuery, labels, loc
       {renderFilterMenus(primaryFiltersByReport[activeQuery.report])}
     </div><details className="mt-4 rounded-xl border bg-background"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium"><span>{labels.salaryMoreFilters}{selectedFilterCount ? ` · ${selectedFilterCount} ${labels.selected}` : ''}</span><ChevronDown aria-hidden="true" className="size-4 text-muted-foreground" /></summary><div className="grid gap-4 border-t p-4 sm:grid-cols-2 xl:grid-cols-3">{renderFilterMenus(secondaryFiltersByReport[activeQuery.report])}</div></details></div>
     <div className={`mt-4 grid gap-4 ${selectionOpen ? 'xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.8fr)]' : 'xl:grid-cols-[minmax(0,1.5fr)_3rem]'}`}>
-      <section className="min-w-0 rounded-xl border bg-background p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm text-muted-foreground"><SlidersHorizontal aria-hidden="true" className="size-4 text-chart-2" />{labels.authorizedData}</div><a className="button-primary inline-flex items-center gap-2" download href={exportHref}><FileSpreadsheet aria-hidden="true" size={16} />{labels.salaryExport}</a></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{data.kpis.map((kpi) => <Kpi dateFormat={dateFormat} id={kpi.id} key={kpi.id} labels={labels} locale={locale} value={kpi.value} />)}</div><ChartView chart={data.chart} labels={labels} />{data.report === 'salary-band-position' && activeQuery.bands.length === 1 ? <BandPositionVisual labels={labels} locale={locale} rows={data.rows} /> : null}<p className="mt-4 text-sm text-muted-foreground">{labels.salaryPrivacy}</p><SalaryTable dateFormat={dateFormat} labels={labels} locale={locale} report={data} />{loading ? <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">{labels.salaryLoading}</p> : null}</section>
+      <section className="min-w-0 rounded-xl border bg-background p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm text-muted-foreground"><SlidersHorizontal aria-hidden="true" className="size-4 text-chart-2" />{labels.authorizedData}</div><a className="button-primary inline-flex items-center gap-2" download href={exportHref}><FileSpreadsheet aria-hidden="true" size={16} />{labels.salaryExport}</a></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{data.kpis.map((kpi) => <Kpi dateFormat={dateFormat} id={kpi.id} key={kpi.id} labels={labels} locale={locale} value={kpi.value} />)}</div><ChartView chart={data.chart} labels={labels} />{data.report === 'salary-band-position' && activeQuery.bands.length === 1 ? <BandPositionVisual labels={labels} locale={locale} rows={data.rows} /> : null}<p className="mt-4 text-sm text-muted-foreground">{labels.salaryPrivacy}</p><SalaryTable dateFormat={dateFormat} labels={labels} locale={locale} report={data} returnTo={returnTo} />{loading ? <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">{labels.salaryLoading}</p> : null}</section>
       {selectionOpen ? <aside className="relative rounded-xl border bg-background p-5"><button aria-label={labels.selectionClose} className="absolute -left-3 top-5 grid size-7 place-items-center rounded-full border bg-surface text-muted-foreground shadow-sm hover:text-primary" onClick={() => setSelectionOpen(false)} type="button"><ChevronRight aria-hidden="true" size={16} /></button><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.activeFilters}</p><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.salaryAsOfDate}</dt><dd className="font-medium">{formatDate(activeQuery.asOfDate, { dateFormat, locale })}</dd></div><div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.groupBy}</dt><dd className="font-medium">{groupLabel ? labels[groupLabel.label] : activeQuery.groupBy}</dd></div><div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.sortBy}</dt><dd className="font-medium">{sortLabel ? labels[sortLabel.label] : activeQuery.sortBy}</dd></div>{filterFields.filter((field) => activeQuery[field.key].length > 0).map((field) => <div className="flex justify-between gap-3" key={`active-${field.key}`}><dt className="text-muted-foreground">{labels[field.label]}</dt><dd className="max-w-[12rem] text-right font-medium">{selectionLabel(activeQuery[field.key], labels)}</dd></div>)}<div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.salaryRows}</dt><dd className="font-medium">{data.total} {labels.people}</dd></div></dl></aside> : <button aria-label={labels.selectionOpen} className="grid min-h-28 place-items-start rounded-xl border bg-background p-3 text-muted-foreground shadow-sm hover:text-primary" onClick={() => setSelectionOpen(true)} type="button"><ChevronLeft aria-hidden="true" size={18} /></button>}
     </div>
   </>

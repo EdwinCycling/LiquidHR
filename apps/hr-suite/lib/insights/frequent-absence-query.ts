@@ -34,8 +34,8 @@ export function parseFrequentAbsenceQuery(params: URLSearchParams): FrequentAbse
   if (period === '12-months') {
     const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
     start.setUTCDate(start.getUTCDate() - 364)
-    return { report: 'absence-frequent', period, year, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'department') ?? null }
+    return { report: 'absence-frequent', period, year, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null }
   }
-  if (period === 'this-year') return { report: 'absence-frequent', period, year, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'department') ?? null }
-  return { report: 'absence-frequent', period, year: year - 1, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'department') ?? null }
+  if (period === 'this-year') return { report: 'absence-frequent', period, year, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null }
+  return { report: 'absence-frequent', period, year: year - 1, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null }
 }

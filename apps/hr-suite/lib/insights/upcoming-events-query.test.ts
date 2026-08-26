@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseUpcomingEventsQuery } from './upcoming-events-query'
+import { parseUpcomingEventsQuery, upcomingEventsQueryParams } from './upcoming-events-query'
 
 describe('parseUpcomingEventsQuery', () => {
   it('gebruikt alle gebeurtenissen en twaalf weken als veilige standaard', () => {
@@ -12,5 +12,13 @@ describe('parseUpcomingEventsQuery', () => {
 
   it('accepteert de periode van twaalf maanden', () => {
     expect(parseUpcomingEventsQuery(new URLSearchParams('period=365')).periodDays).toBe(365)
+  })
+
+  it('serialiseert filters met de canonical report- en arraynamen', () => {
+    const query = parseUpcomingEventsQuery(new URLSearchParams('report=upcoming-events&types=BIRTHDAY&types=STARTER&departmentIds=11111111-1111-1111-8111-111111111111'))
+    const params = upcomingEventsQueryParams(query)
+    expect(params.get('report')).toBe('upcoming-events')
+    expect(params.getAll('types')).toEqual(['BIRTHDAY', 'STARTER'])
+    expect(params.getAll('departmentIds')).toEqual(['11111111-1111-1111-8111-111111111111'])
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseEmployeeInsightQuery } from './query'
+import { employeeInsightQueryParams, employeeInsightQueryToFilters, parseEmployeeInsightQuery } from './query'
 
 describe('employee insight query', () => {
   it('normalises a full-year employee report and keeps scoped filters', () => {
@@ -27,5 +27,13 @@ describe('employee insight query', () => {
 
   it('does not create a report query for unknown report ids', () => {
     expect(parseEmployeeInsightQuery(new URLSearchParams('report=employees'))).toBeNull()
+  })
+
+  it('round-trips canonical repeated filters without corrupting labels', () => {
+    const query = parseEmployeeInsightQuery(new URLSearchParams('report=employee-department&groupBy=team&sortBy=name&year=2024&fullYear=1&teams=IT%20%26%20Development&teams=Marketing&segments=Locatie%20Delft'))
+    expect(query).not.toBeNull()
+    expect(query ? employeeInsightQueryParams(query).getAll('teams') : []).toEqual(['IT & Development', 'Marketing'])
+    expect(query ? employeeInsightQueryParams(query).getAll('segments') : []).toEqual(['Locatie Delft'])
+    expect(query ? employeeInsightQueryToFilters(query).groupBy : null).toBe('team')
   })
 })

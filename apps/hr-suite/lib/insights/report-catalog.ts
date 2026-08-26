@@ -1,7 +1,7 @@
 import type { EmployeeInsightReportId } from './types'
 import { SALARY_INSIGHT_REPORT_IDS, type SalaryInsightReportId } from './salary-insights-types'
 
-export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcomingEvents'
+export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events'
 export type InsightReportCategory = 'employees' | 'leave' | 'absence' | 'salary' | 'other'
 
 export interface InsightReportDefinition {
@@ -16,7 +16,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'employee-gender', category: 'employees', permission: 'report-employee-gender:read', available: true },
   { id: 'employee-age', category: 'employees', permission: 'report-employee-age:read', available: true },
   { id: 'terminations', category: 'employees', permission: 'report-terminations:read', available: true },
-  { id: 'upcomingEvents', category: 'employees', permission: 'report-upcoming-events:read', available: true },
+  { id: 'upcoming-events', category: 'employees', permission: 'report-upcoming-events:read', available: true },
   { id: 'leave', category: 'leave', permission: 'report-leave:read', available: false },
   { id: 'absence', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-bradford', category: 'absence', permission: 'report-absence:read', available: true },

@@ -12,6 +12,7 @@ import { DataTableShell } from '@/components/patterns/data-table-shell'
 import { FilterBar } from '@/components/patterns/filter-bar'
 import { SectionHeader } from '@/components/patterns/section-header'
 import type { AbsenceInsightQuery, AbsenceInsightReport } from '@/lib/insights/absence-report'
+import { insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface AbsenceReportLabels {
   period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; exportExcel: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; monthlyTrend: string; yearLabel: string; activeFilters?: string
@@ -72,10 +73,10 @@ function periodLabel(query: AbsenceInsightQuery, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(`${query.year}-${String(query.month).padStart(2, '0')}-01T00:00:00Z`))
 }
 
-export function AbsenceReportView({ report, query, labels, locale }: { report: AbsenceInsightReport; query: AbsenceInsightQuery; labels: AbsenceReportLabels; locale: string }) {
+export function AbsenceReportView({ report, query, labels, locale, returnTo }: { report: AbsenceInsightReport; query: AbsenceInsightQuery; labels: AbsenceReportLabels; locale: string; returnTo: string }) {
   const months = [labels.jan, labels.feb, labels.mar, labels.apr, labels.may, labels.jun, labels.jul, labels.aug, labels.sep, labels.oct, labels.nov, labels.dec]
   const exportParams = new URLSearchParams({ report: 'absence', period: query.period, year: String(query.year), month: String(query.month), format: 'excel' })
-  if (query.departmentId) exportParams.set('department', query.departmentId)
+  if (query.departmentId) exportParams.set('departmentId', query.departmentId)
   const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
   const selectedFilters: ActiveReportFilter[] = [
     { label: labels.period, value: periodLabel(query, locale) },
@@ -92,7 +93,7 @@ export function AbsenceReportView({ report, query, labels, locale }: { report: A
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-36"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} defaultValue={query.period} name="period"><option value="month">{labels.month}</option><option value="year">{labels.year}</option></DropdownSelect></label>
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-28"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.yearLabel}</span><DropdownSelect aria-label={labels.yearLabel} defaultValue={String(query.year)} name="year">{Array.from({ length: 7 }, (_, index) => query.year - 3 + index).map((year) => <option key={year} value={year}>{year}</option>)}</DropdownSelect></label>
         {query.period === 'month' ? <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-36"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.month}</span><DropdownSelect aria-label={labels.month} defaultValue={String(query.month)} name="month">{months.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}</DropdownSelect></label> : null}
-        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.department}</span><DropdownSelect aria-label={labels.department} defaultValue={query.departmentId ?? ''} name="department" searchable searchPlaceholder={labels.department}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.department}</span><DropdownSelect aria-label={labels.department} defaultValue={query.departmentId ?? ''} name="departmentId" searchable searchPlaceholder={labels.department}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
       </FilterBar>
     </form>
     <ActiveFilters filters={selectedFilters} label={labels.activeFilters} />
@@ -123,14 +124,14 @@ export function AbsenceReportView({ report, query, labels, locale }: { report: A
           <th className="px-4 py-3 sm:px-5">{labels.employee}</th><th className="px-4 py-3 sm:px-5">{labels.department}</th><th className="px-4 py-3 sm:px-5">{labels.status}</th><th className="px-4 py-3 sm:px-5">{labels.firstAbsenceOn}</th><th className="px-4 py-3 text-right sm:px-5">{labels.days}</th><th className="px-4 py-3 text-right sm:px-5">{labels.hours}</th><th className="px-4 py-3 text-right sm:px-5">{labels.absenceRate}</th><th className="px-4 py-3 sm:px-5">{labels.dossier}</th>
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{report.rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
-          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link></td>
+          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{row.employeeName}</Link></td>
           <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
           <td className="px-4 py-3 sm:px-5"><Badge tone={statusTone(row.status)}>{statusLabel(row.status, labels)}</Badge></td>
           <td className="px-4 py-3 sm:px-5">{dateLabel(row.firstAbsenceOn, locale)}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays.toFixed(1)}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickHours.toFixed(1)}</td>
           <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">{row.absenceRate.toFixed(2)}%</td>
-          <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
+          <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
         </tr>)}</tbody>
       </DataTableShell>
     </div>

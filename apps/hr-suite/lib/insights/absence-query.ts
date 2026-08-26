@@ -26,6 +26,6 @@ export function parseAbsenceInsightQuery(params: URLSearchParams): AbsenceInsigh
   const endDate = period === 'year'
     ? `${year}-12-31`
     : new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10)
-  const departmentId = value(params, 'department') ?? null
+  const departmentId = value(params, 'departmentId') ?? value(params, 'department') ?? null
   return { report: 'absence', period, year, month, startDate, endDate, departmentId }
 }

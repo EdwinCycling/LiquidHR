@@ -12,6 +12,10 @@ describe('parseAbsenceInsightQuery', () => {
     expect(result).toMatchObject({ period: 'year', year: 2025, startDate: '2025-01-01', endDate: '2025-12-31' })
   })
 
+  it('accepteert de canonicale departmentId naast de legacy naam', () => {
+    expect(parseAbsenceInsightQuery(new URLSearchParams('report=absence&departmentId=dept-2'))?.departmentId).toBe('dept-2')
+  })
+
   it('negeert onveilige datums en andere rapporten', () => {
     expect(parseAbsenceInsightQuery(new URLSearchParams('report=employees'))).toBeNull()
     expect(parseAbsenceInsightQuery(new URLSearchParams('report=absence&year=1900&month=99'))?.year).toBe(new Date().getUTCFullYear())

@@ -13,6 +13,7 @@ import { getUpcomingEventsReport } from '@/lib/insights/upcoming-events'
 import { parseUpcomingEventsQuery } from '@/lib/insights/upcoming-events-query'
 import { parseSalaryInsightQuery } from '@/lib/insights/salary-insights-query'
 import { getSalaryInsightsReport } from '@/lib/insights/salary-insights-service'
+import { canonicalInsightReportId } from '@/lib/insights/query-seam'
 import { getTranslator } from '@/lib/i18n/server'
 import { getInsightsPreferences } from '@/lib/preferences/insights'
 import { getUserPreferences } from '@/lib/preferences/server'
@@ -27,9 +28,10 @@ function toSearchParams(values: Record<string, string | string[] | undefined>): 
 
 export default async function InsightsPage({ searchParams }: InsightsPageProps) {
   const [t, rawParams, context, preferences, userPreferences] = await Promise.all([getTranslator('insights'), searchParams, requireAuthContext(), getInsightsPreferences(), getUserPreferences()])
+  const params = toSearchParams(rawParams)
+  const requestedReport = canonicalInsightReportId(params.get('report'))
   const isHrAdmin = context.activeRoles.includes('TENANT_ADMIN') || context.activeRoles.includes('HR_ADMIN')
   const reports = INSIGHT_REPORTS.filter((report) => context.permissions.includes(report.permission) && (report.id !== 'salary-internal-position' || isHrAdmin))
-  const params = toSearchParams(rawParams)
   const query = parseEmployeeInsightQuery(params)
   const reportData = query && reports.some((report) => report.id === query.report) && isEmployeeInsightReportId(query.report) ? await getEmployeeInsightReport(query) : null
   const absenceQuery = parseAbsenceInsightQuery(params)
@@ -39,11 +41,11 @@ export default async function InsightsPage({ searchParams }: InsightsPageProps) 
   const frequentQuery = parseFrequentAbsenceQuery(params)
   const frequentReport = frequentQuery && reports.some((report) => report.id === 'absence-frequent') ? await getFrequentAbsenceReport(frequentQuery) : null
   const upcomingQuery = parseUpcomingEventsQuery(params)
-  const upcomingReport = params.get('report') === 'upcomingEvents' ? await getUpcomingEventsReport(upcomingQuery) : null
+  const upcomingReport = requestedReport === 'upcoming-events' && reports.some((report) => report.id === 'upcoming-events') ? await getUpcomingEventsReport(upcomingQuery) : null
   const salaryQuery = parseSalaryInsightQuery(params)
   const salaryReport = salaryQuery && reports.some((report) => report.id === salaryQuery.report) ? await getSalaryInsightsReport(salaryQuery) : null
   const locale = userPreferences.locale === 'nl' ? 'nl-NL' : 'en-US'
-  return <InsightsWorkspace absenceQuery={absenceQuery} absenceReport={absenceReport} bradfordQuery={bradfordQuery} bradfordReport={bradfordReport} frequentQuery={frequentQuery} frequentReport={frequentReport} upcomingQuery={upcomingQuery} upcomingReport={upcomingReport} labels={{
+  return <InsightsWorkspace absenceQuery={absenceQuery} absenceReport={absenceReport} bradfordQuery={bradfordQuery} bradfordReport={bradfordReport} employeeQuery={query} frequentQuery={frequentQuery} frequentReport={frequentReport} upcomingQuery={upcomingQuery} upcomingReport={upcomingReport} labels={{
     eyebrow: t('eyebrow'), title: t('title'), intro: t('intro'), reportsAvailable: t('reportsAvailable'), available: t('available'), planned: t('planned'), openReport: t('openReport'), closeReport: t('closeReport'),
     leaveTitle: t('leaveTitle'), leaveDescription: t('leaveDescription'), employeesDepartmentTitle: t('employeesDepartmentTitle'), employeesDepartmentDescription: t('employeesDepartmentDescription'), employeesGenderTitle: t('employeesGenderTitle'), employeesGenderDescription: t('employeesGenderDescription'), employeesAgeTitle: t('employeesAgeTitle'), employeesAgeDescription: t('employeesAgeDescription'), terminationsTitle: t('terminationsTitle'), terminationsDescription: t('terminationsDescription'), upcomingEventsTitle: t('upcoming-eventsTitle'), upcomingEventsDescription: t('upcoming-eventsDescription'), absenceTitle: t('absenceTitle'), absenceDescription: t('absenceDescription'), absenceBradfordTitle: t('absenceBradfordTitle'), absenceBradfordDescription: t('absenceBradfordDescription'), absenceFrequentTitle: t('absenceFrequentTitle'), absenceFrequentDescription: t('absenceFrequentDescription'), salaryExceptionsTitle: t('salaryExceptionsTitle'), salaryExceptionsDescription: t('salaryExceptionsDescription'), provisionTitle: t('provisionTitle'), provisionDescription: t('provisionDescription'), wvpTitle: t('wvpTitle'), wvpDescription: t('wvpDescription'),
     absenceActiveCases: t('absenceActiveCases'), absenceReports: t('absenceReports'), absenceSickDays: t('absenceSickDays'), absenceSickHours: t('absenceSickHours'), absenceAvailableDays: t('absenceAvailableDays'), absenceRate: t('absenceRate'), absenceCurrentData: t('absenceCurrentData'), absenceFirstDay: t('absenceFirstDay'), absenceStatus: t('absenceStatus'), absenceDays: t('absenceDays'), absenceHours: t('absenceHours'), absenceDossier: t('absenceDossier'), absenceRecoveryWindow: t('absenceRecoveryWindow'), absenceClosed: t('absenceClosed'), absenceFormulaHint: t('absenceFormulaHint'), absenceMonthlyTrend: t('absenceMonthlyTrend'), month: t('month'), year: t('year'), applyFilters: t('applyFilters'),

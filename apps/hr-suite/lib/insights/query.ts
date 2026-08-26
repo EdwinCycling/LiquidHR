@@ -6,7 +6,7 @@ function first(params: URLSearchParams, key: string): string | undefined {
 }
 
 function list(params: URLSearchParams, key: string): string[] {
-  return (first(params, key) ?? '').split(',').map((value) => value.trim()).filter(Boolean)
+  return [...new Set(params.getAll(key).flatMap((value) => value.split(',').map((item) => item.trim()).filter(Boolean)))]
 }
 
 function reportId(value: string | undefined): EmployeeInsightReportId | null {
@@ -38,7 +38,7 @@ export function parseEmployeeInsightQuery(params: URLSearchParams): EmployeeInsi
   const dates = dateRange(params)
   const yearsValue = Number(first(params, 'years'))
   const status = first(params, 'employeeStatus')
-  const sortBy = first(params, 'sort')
+  const sortBy = first(params, 'sortBy') ?? first(params, 'sort')
   return {
     report,
     ...dates,
@@ -46,8 +46,80 @@ export function parseEmployeeInsightQuery(params: URLSearchParams): EmployeeInsi
     segments: list(params, 'segments'),
     reasons: list(params, 'reasons'),
     employeeStatus: status === 'active' || status === 'former' ? status : 'all',
-    groupBy: groupBy(first(params, 'group'), report),
+    groupBy: groupBy(first(params, 'groupBy') ?? first(params, 'group'), report),
     sortBy: sortBy === 'name' || sortBy === 'trend' ? sortBy : 'total',
     yearSpan: yearsValue === 3 || yearsValue === 5 ? yearsValue : 1,
+  }
+}
+
+export interface EmployeeInsightFilterState {
+  groupBy?: string
+  year?: number
+  month?: number
+  fullYear?: boolean
+  yearSpan?: 1 | 3 | 5
+  sortBy?: string
+  teams?: string[]
+  segments?: string[]
+  reasons?: string[]
+  employeeStatus?: 'all' | 'active' | 'former'
+}
+
+export function employeeInsightQueryParams(query: EmployeeInsightQuery): URLSearchParams {
+  const endYear = Number(query.endDate.slice(0, 4))
+  const params = new URLSearchParams({
+    report: query.report,
+    groupBy: query.groupBy,
+    sortBy: query.sortBy,
+    year: String(endYear),
+  })
+  if (query.yearSpan > 1) {
+    params.set('fullYear', '1')
+    params.set('years', String(query.yearSpan))
+  } else if (query.startDate.endsWith('-01-01') && query.endDate.endsWith('-12-31')) {
+    params.set('fullYear', '1')
+  } else {
+    params.set('month', String(Number(query.startDate.slice(5, 7))))
+  }
+  if (query.teams.length) for (const value of query.teams) params.append('teams', value)
+  if (query.segments.length) for (const value of query.segments) params.append('segments', value)
+  if (query.reasons.length) for (const value of query.reasons) params.append('reasons', value)
+  if (query.employeeStatus !== 'all') params.set('employeeStatus', query.employeeStatus)
+  return params
+}
+
+export function employeeInsightQueryFromFilters(report: EmployeeInsightReportId, filters: EmployeeInsightFilterState): EmployeeInsightQuery {
+  const params = new URLSearchParams({
+    report,
+    groupBy: filters.groupBy ?? 'person',
+    sortBy: filters.sortBy ?? 'total',
+    year: String(filters.year ?? new Date().getFullYear()),
+    month: String(filters.month ?? new Date().getMonth() + 1),
+  })
+  if (filters.fullYear) params.set('fullYear', '1')
+  if (filters.yearSpan && filters.yearSpan > 1) params.set('years', String(filters.yearSpan))
+  for (const [key, values] of [['teams', filters.teams], ['segments', filters.segments], ['reasons', filters.reasons]] as const) {
+    for (const value of values ?? []) params.append(key, value)
+  }
+  if (filters.employeeStatus && filters.employeeStatus !== 'all') params.set('employeeStatus', filters.employeeStatus)
+  const query = parseEmployeeInsightQuery(params)
+  if (!query) throw new Error('INSIGHTS_EMPLOYEE_QUERY_INVALID')
+  return query
+}
+
+export function employeeInsightQueryToFilters(query: EmployeeInsightQuery): EmployeeInsightFilterState {
+  const year = Number(query.endDate.slice(0, 4))
+  const fullYear = query.startDate.endsWith('-01-01') && query.endDate.endsWith('-12-31')
+  return {
+    groupBy: query.groupBy,
+    year,
+    month: Number(query.startDate.slice(5, 7)),
+    fullYear,
+    yearSpan: query.yearSpan,
+    sortBy: query.sortBy,
+    teams: query.teams,
+    segments: query.segments,
+    reasons: query.reasons,
+    employeeStatus: query.employeeStatus,
   }
 }

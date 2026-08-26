@@ -37,10 +37,10 @@ export function parseBradfordInsightQuery(params: URLSearchParams): BradfordInsi
   if (period === '52-weeks') {
     const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
     start.setUTCDate(start.getUTCDate() - 363)
-    return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'department') ?? null }
+    return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null }
   }
-  if (period === 'this-year') return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'department') ?? null }
-  return { report: 'absence-bradford', period, year: year - 1, month: 12, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'department') ?? null }
+  if (period === 'this-year') return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null }
+  return { report: 'absence-bradford', period, year: year - 1, month: 12, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null }
 }
 
 export function toAbsenceInsightQuery(query: BradfordInsightQuery): AbsenceInsightQuery {

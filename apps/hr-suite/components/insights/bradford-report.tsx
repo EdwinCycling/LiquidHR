@@ -15,6 +15,7 @@ import { SectionHeader } from '@/components/patterns/section-header'
 import { ActiveFilters, ReportEmpty, ReportKpi, type ActiveReportFilter } from '@/components/insights/absence-report'
 import type { BradfordInsightQuery } from '@/lib/insights/bradford-query'
 import type { BradfordInsightReport, BradfordBand } from '@/lib/insights/bradford-report'
+import { insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface BradfordReportLabels {
   title: string; description: string; backToAbsence: string; exportExcel: string; period: string; last52Weeks: string; thisYear: string; previousYear: string; team: string; allDepartments: string; applyFilters: string; groupBy: string; person: string; search: string; searchPlaceholder: string; risk: string; allRisks: string; lowRisk: string; mediumRisk: string; highRisk: string; employee: string; distribution: string; score: string; occurrences: string; days: string; since: string; dossier: string; info: string; infoTitle: string; infoFormula: string; infoInterpretation: string; infoLow: string; infoMedium: string; infoHigh: string; infoCaveat: string; infoSource: string; close: string; noResults: string; activeFilters?: string
@@ -49,12 +50,12 @@ function dateLabel(value: string): string {
   return `${day}/${month}/${year}`
 }
 
-export function BradfordReportView({ report, query, labels }: { report: BradfordInsightReport; query: BradfordInsightQuery; labels: BradfordReportLabels }) {
+export function BradfordReportView({ report, query, labels, returnTo }: { report: BradfordInsightReport; query: BradfordInsightQuery; labels: BradfordReportLabels; returnTo: string }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [risk, setRisk] = useState<'ALL' | BradfordBand>('ALL')
   const exportParams = new URLSearchParams({ report: 'absence-bradford', period: query.period, format: 'excel' })
-  if (query.departmentId) exportParams.set('department', query.departmentId)
+  if (query.departmentId) exportParams.set('departmentId', query.departmentId)
   const maxScore = Math.max(1, ...report.rows.map((row) => row.score))
   const rows = useMemo(() => report.rows.filter((row) => (risk === 'ALL' || row.band === risk) && row.employeeName.toLocaleLowerCase('nl-NL').includes(search.trim().toLocaleLowerCase('nl-NL'))), [report.rows, risk, search])
   const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
@@ -79,7 +80,7 @@ export function BradfordReportView({ report, query, labels }: { report: Bradford
       </div>}>
         <input name="report" type="hidden" value="absence-bradford" />
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} defaultValue={query.period} name="period"><option value="52-weeks">{labels.last52Weeks}</option><option value="this-year">{labels.thisYear}</option><option value="previous-year">{labels.previousYear}</option></DropdownSelect></label>
-        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} defaultValue={query.departmentId ?? ''} name="department" searchable searchPlaceholder={labels.team}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.team}</span><DropdownSelect aria-label={labels.team} defaultValue={query.departmentId ?? ''} name="departmentId" searchable searchPlaceholder={labels.team}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
         <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-44"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.risk}</span><DropdownSelect aria-label={labels.risk} onChange={(event) => setRisk(event.target.value as 'ALL' | BradfordBand)} value={risk}><option value="ALL">{labels.allRisks}</option><option value="LOW">{labels.lowRisk}</option><option value="MEDIUM">{labels.mediumRisk}</option><option value="HIGH">{labels.highRisk}</option></DropdownSelect></label>
         <label className="flex min-w-0 basis-full flex-[1.2] flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.search}</span><TextInput leadingIcon={<Search aria-hidden="true" />} onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchPlaceholder} type="search" value={search} /></label>
       </FilterBar>
@@ -101,14 +102,14 @@ export function BradfordReportView({ report, query, labels }: { report: Bradford
           <th className="px-4 py-3 sm:px-5">{labels.employee}</th><th className="px-4 py-3 sm:px-5">{labels.team}</th><th className="px-4 py-3 sm:px-5">{labels.since}</th><th className="px-4 py-3 text-right sm:px-5">{labels.occurrences}</th><th className="px-4 py-3 text-right sm:px-5">{labels.days}</th><th className="min-w-56 px-4 py-3 sm:px-5">{labels.distribution}</th><th className="px-4 py-3 text-right sm:px-5">{labels.score}</th><th className="px-4 py-3 sm:px-5">{labels.dossier}</th>
         </tr></thead>
         <tbody className="divide-y divide-border-subtle">{rows.map((row) => <tr className="whitespace-nowrap" key={row.employeeId}>
-          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{row.employeeName}</Link></td>
+          <td className="px-4 py-3 font-medium sm:px-5"><Link className="text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{row.employeeName}</Link></td>
           <td className="px-4 py-3 text-muted-foreground sm:px-5">{row.departmentName ?? labels.allDepartments}</td>
           <td className="px-4 py-3 sm:px-5">{dateLabel(row.firstAbsenceOn)}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.absenceOccurrences}</td>
           <td className="px-4 py-3 text-right tabular-nums sm:px-5">{row.sickDays.toFixed(1)}</td>
           <td className="min-w-56 px-4 py-3 sm:px-5"><div aria-label={`${labels.distribution}: ${row.score}`} className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${bandBarClass(row.band)}`} style={{ width: `${Math.max(row.score ? 2 : 0, row.score / maxScore * 100)}%` }} /></div></td>
           <td className="px-4 py-3 text-right sm:px-5"><div className="flex flex-col items-end gap-1"><strong className="text-lg tabular-nums">{row.score}</strong><Badge tone={bandTone(row.band)}>{bandLabel(row.band, labels)}</Badge></div></td>
-          <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={`/employees/${row.employeeId}?tab=absence`}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
+          <td className="px-4 py-3 sm:px-5"><Link aria-label={`${labels.dossier}: ${row.employeeName}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline" href={insightEmployeeDrilldownHref(row.employeeId, returnTo, 'absence')}>{labels.dossier}<ArrowRight aria-hidden="true" size={15} /></Link></td>
         </tr>)}</tbody>
       </DataTableShell>
     </div>

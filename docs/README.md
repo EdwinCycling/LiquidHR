@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## R6-1 Insights query + navigation seam — 2026-08-26
+
+**Status: SEAM READY FOR R6-2: YES — LOCAL FEATURE BRANCH — NO REMOTE ACTIONS**
+
+Op `work/r6-insights-query-seam`, vanaf exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`, is de typed Insights query/navigation seam toegevoegd. De canonical URL gebruikt `report=<kebab-case-id>`, `groupBy`, `sortBy`, herhaalde arrayparameters en report-owned query keys; legacy aliases worden alleen bij parsing geaccepteerd. Rapportwissels ruimen stale state op, Apply gebruikt `router.push`, presentatie gebruikt `router.replace`, en employee/employment drilldowns behouden alleen een veilige interne Insights-returncontext. Upcoming direct URL rendering blijft achter dezelfde server-side catalog permission gate.
+
+De frozen contract staat in [`requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md`](requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md). Targeted seam/query-tests zijn groen: `7` bestanden, `29` tests. TypeScript, i18n (`33` gelijke namespaces), lint (`0 errors / 8 bestaande warnings`), productiebuild (`226` routes/pages) en `git diff --check` zijn groen. De volledige suite heeft `253/254` testbestanden en `980/981` tests gehaald; alleen de bestaande Journey-test `components/journeys/journey-steps.test.tsx` faalt op ontbrekende tekst `Binnenkort beschikbaar`, buiten deze wijziging.
+
+Authenticated HR browser-evidence op de branch-runtime `localhost:3002` bevestigt canonical employee-state, draft zonder URL-mutatie, Apply/history, stale cleanup bij Verzuim/Upcoming/Salaris en Back/Forward-herstel. Desktop en `390x844` zijn gecontroleerd; mobiel had `scrollWidth=390`. De dev-console bevat bestaande dashboard-shell hydration/state-meldingen; er is geen seam-specifieke fout vastgesteld. Geen migration, remote database-write, merge, push, deploy of version bump; zichtbare versie blijft `1.20260825.1`. De lokale branch commit volgt na deze documentatie-/diffcheck.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 **Status: TEST-TRUNK GREEN; AUTHENTICATED COMBINED SANITY GREEN; READY FOR MAIN INTEGRATION**
