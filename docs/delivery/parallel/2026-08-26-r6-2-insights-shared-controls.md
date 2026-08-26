@@ -2,7 +2,7 @@
 
 ## Status
 
-**LOKAAL IMPLEMENTED — TECHNICAL GATES GREEN — AUTHENTICATED BROWSER BLOCKED BY ENVIRONMENT — NO MAIN/REMOTE ACTIONS**
+**LOKAAL IMPLEMENTED — TECHNICAL GATES GREEN — AUTHENTICATED BROWSER GREEN — NO MAIN/REMOTE ACTIONS**
 
 - Branch: `work/r6-insights-shared-controls`
 - Worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r6-insights-shared-controls`
@@ -30,8 +30,8 @@
 
 ## Browser/evidence
 
-De authenticated HR-browsergate is **BLOCKED BY ENVIRONMENT**. De worktree heeft geen `apps/hr-suite/.env.local`; de lokale Playwright-run op `http://localhost:3003/login` eindigde in HTTP `500` door ontbrekende Supabase URL/key in `proxy.ts`, met console-error `Your project's URL and Key are required...`. Daardoor zijn desktop `1440x900`, mobiel `390x844`, echte report-readback, Back/Forward en console/theme-evidence voor deze branch niet als browserresultaat geclaimd. De nieuwe DOM-interactie is wel via happy-dom componenttests afgedekt.
+De canonical `apps/hr-suite/.env.local` is naar de worktree gekopieerd; aanwezigheid en SHA-256 zijn gelijk gecontroleerd zonder waarden te tonen. Authenticated Playwright-acceptatie is groen op desktop `1440x900` en mobiel `390x844`: employee searchable multiselect, Apply, Reset, active-filter remove, Clear all, Back/Forward, refresh, absence, Bradford, Upcoming en salary primary/secondary filters, exportdownloads, drilldown return-context, keyboard/Escape/focus restore en page-level overflow zijn gecontroleerd. Browserconsole eindigde op `0` errors en `0` warnings. Twee echte R6-2-fouten zijn minimaal gecorrigeerd: employee active-filter actions schrijven nu de canonical URL bij en Upcoming toont `Afdeling` in plaats van `undefined`.
 
 ## Handoff
 
-De branch is technisch klaar voor review/integratie, met de bestaande Journey-baselinefailure en authenticated browsergate als expliciete open punten. Merge naar `main`, push, remote database-acties en deployment blijven bewust buiten deze slice.
+De branch is technisch klaar voor review/integratie. De bestaande Journey-baselinefailure blijft buiten scope; merge naar `main`, push, remote database-acties en deployment blijven bewust buiten deze slice.
