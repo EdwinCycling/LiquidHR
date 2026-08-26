@@ -69,7 +69,7 @@ Deze controls zijn de centrale contracten voor volgende HR Suite-slices. Ze beva
 
 ### FOUNDATION_GAP-kandidaten uit het vooronderzoek
 
-- **Multiselect — LATER.** Concrete native multiple-selects bestaan in custom fields, reminders en documenten. De huidige Foundation kan deze native contracten behouden, maar biedt geen zoekbare selectie, chips, bulkacties of duidelijke keyboard-UX. Minimale latere API: opties, geselecteerde waarden, zoeken, selecteer/wis alles, `onChange` en native form-submissie.
+- **Multiselect — OPGELOST in R6-2.** `components/ui/multi-select.tsx` levert de minimale Foundation-API met opties, geselecteerde waarden, zoeken, selecteer/wis alles, `onChange`, hidden native form values, loading/no-options en keyboard-/focus-/portalgedrag. Insights gebruikt deze primitive voor employee-, salary- en Upcoming-filters; rapportsemantiek blijft report-owned.
 - **Datepicker — LATER.** Er zijn concrete native `date`-inputs in employee-, organization- en calendarflows. `TextInput type="date"` is nu voldoende; een kalenderoverlay zou extra focus-, locale- en keyboardcontracten vereisen.
 - **Dialog — LATER.** Er zijn meerdere bestaande domeinmodalen/-dialogen voor bevestiging, instellingen, reminders en documentpreview. Een generiek contract moet portal, focus trap, Escape, labelled title/description en restore-focus correct afhandelen; daarom niet speculatief in v1.1.
 - **Tooltip — LATER/geen huidige gap.** Bestaande icon-acties hebben toegankelijke labels en waar nodig `title`; er is nu geen herhaald inhoudelijk tooltipcontract dat een nieuwe primitive rechtvaardigt.

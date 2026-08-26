@@ -1,10 +1,13 @@
 'use client'
 
-import { ChevronDown, ChevronLeft, ChevronRight, FileSpreadsheet, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState, useTransition, type ReactNode } from 'react'
+import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select'
+import { InsightsActiveFilters, InsightsExportAction, InsightsFilterBar, type InsightActiveFilter } from '@/components/insights/shared-controls'
 import { formatDate } from '@/lib/preferences/formatters'
 import type { DateFormat } from '@/lib/preferences/user-preferences'
 import { defaultSalaryInsightFilters } from '@/lib/insights/salary-insights-calculations'
@@ -24,6 +27,8 @@ import { buildInsightApplyHref, insightEmploymentDrilldownHref } from '@/lib/ins
 
 export interface SalaryInsightsLabels {
   activeFilters: string
+  applyFilters: string
+  clearFilters: string
   authorizedData: string
   employee: string
   filterStatus: string
@@ -58,6 +63,9 @@ export interface SalaryInsightsLabels {
   salaryExceptionNoValidBand: string
   salaryExceptionType: string
   salaryExport: string
+  exportPreparing: string
+  exportSuccess: string
+  exportFailed: string
   salaryFte: string
   salaryFteFullOrMore: string
   salaryFteHalfToFull: string
@@ -118,6 +126,8 @@ export interface SalaryInsightsLabels {
   salaryPreviousMonth: string
   salaryPrivacy: string
   salaryResetDate: string
+  resetFilters: string
+  removeFilter: string
   salaryRoute: string
   salaryRouteManual: string
   salaryRouteMinimumWage: string
@@ -302,10 +312,6 @@ function displayOption(option: SalaryInsightOption, labels: SalaryInsightsLabels
   return labelForCode(option.value, labels) ?? option.label
 }
 
-function selectionLabel(selected: readonly string[], labels: SalaryInsightsLabels): string {
-  return selected.length ? labels.filterStatus.replace('{count}', String(selected.length)) : labels.salaryAll
-}
-
 function shiftMonth(value: string, amount: number): string {
   const parsed = new Date(`${value}T00:00:00Z`)
   if (Number.isNaN(parsed.getTime())) return value
@@ -338,38 +344,6 @@ function displayStatus(row: SalaryInsightRow, labels: SalaryInsightsLabels): str
 
 function displayException(value: SalaryInsightExceptionType | null, labels: SalaryInsightsLabels): string {
   return value ? labelForCode(value, labels) ?? labels.salaryNotAvailable : labels.salaryNotAvailable
-}
-
-function FilterMenu({ allOptions, fieldLabel, labels, onChange, selected }: { allOptions: SalaryInsightOption[]; fieldLabel: string; labels: SalaryInsightsLabels; onChange: (values: string[]) => void; selected: string[] }) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const menuRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    function closeOnEscape(event: KeyboardEvent): void {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    function closeOnOutside(event: PointerEvent): void {
-      if (event.target instanceof Node && !menuRef.current?.contains(event.target)) setOpen(false)
-    }
-    document.addEventListener('keydown', closeOnEscape)
-    document.addEventListener('pointerdown', closeOnOutside)
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape)
-      document.removeEventListener('pointerdown', closeOnOutside)
-    }
-  }, [open])
-  const visible = allOptions.filter((option) => displayOption(option, labels).toLocaleLowerCase().includes(search.toLocaleLowerCase()))
-  const selectedAll = allOptions.length > 0 && allOptions.every((option) => selected.includes(option.value))
-  return <div className="relative min-w-44 flex-1" ref={menuRef}>
-    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{fieldLabel}</span>
-    <button aria-expanded={open} aria-haspopup="dialog" className="dropdown-trigger mt-1 font-normal" onClick={() => setOpen((value) => !value)} type="button"><span className="truncate">{selectionLabel(selected, labels)}</span><ChevronDown aria-hidden="true" className={`size-4 text-muted-foreground ${open ? 'rotate-180' : ''}`} /></button>
-    {open ? <div aria-label={fieldLabel} className="dropdown-menu absolute left-0 top-full z-40 mt-2 w-72 p-3" role="dialog">
-      <input aria-label={labels.search} className="form-field mb-2 min-h-10 font-normal" onChange={(event) => setSearch(event.target.value)} placeholder={labels.searchOptions} value={search} />
-      <label className="dropdown-option border-b pb-2 font-medium"><input checked={selectedAll} className="size-4 accent-primary" onChange={() => onChange(selectedAll ? [] : allOptions.map((option) => option.value))} type="checkbox" />{labels.selectAll}</label>
-      <div className="mt-2 max-h-56 space-y-1 overflow-y-auto">{visible.map((option) => <label className="dropdown-option font-normal" key={option.value}><input checked={selected.includes(option.value)} className="size-4 accent-primary" onChange={() => onChange(selected.includes(option.value) ? selected.filter((value) => value !== option.value) : [...selected, option.value])} type="checkbox" />{displayOption(option, labels)}</label>)}{visible.length === 0 ? <p className="px-3 py-3 text-sm font-normal text-muted-foreground">{labels.noOptions}</p> : null}</div>
-    </div> : null}
-  </div>
 }
 
 function DateControl({ date, labels, onChange }: { date: string; labels: SalaryInsightsLabels; onChange: (date: string) => void }) {
@@ -487,58 +461,32 @@ function SalaryTable({ dateFormat, labels, locale, report, returnTo }: { dateFor
   return <section className="mt-4 overflow-hidden rounded-xl border bg-background"><div className="border-b px-5 py-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.salaryRows}</p><span className="text-sm text-muted-foreground">{report.total} {labels.people}</span></div></div>{report.rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1250px] text-left text-sm"><thead className="bg-muted/40 text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr>{tableHeaders(report.report, labels)}</tr></thead><tbody className="divide-y">{report.rows.map((row, index) => <tr key={`${row.employeeId}-${row.employmentId}-${row.exceptionType ?? row.salaryStepCode ?? index}`}>{tableCells(report.report, row, labels, locale, dateFormat, returnTo)}</tr>)}</tbody></table></div> : <p className="p-8 text-center text-sm text-muted-foreground">{emptyLabel}</p>}</section>
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function readReport(value: unknown): SalaryInsightReport | null {
-  if (!isRecord(value) || !isRecord(value.data) || typeof value.data.report !== 'string') return null
-  return value.data as unknown as SalaryInsightReport
-}
-
 export function SalaryInsightsReportView({ dateFormat, initialQuery, labels, locale, report, returnTo }: { dateFormat: DateFormat; initialQuery: SalaryInsightQuery | null; labels: SalaryInsightsLabels; locale: string; report: SalaryInsightReport | null; returnTo: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const requestNumber = useRef(0)
   const fallbackQuery = initialQuery ?? (report ? { report: report.report, ...defaultSalaryInsightFilters(report.report, report.asOfDate) } : null)
   const [query, setQuery] = useState<SalaryInsightQuery | null>(fallbackQuery)
-  const [data, setData] = useState<SalaryInsightReport | null>(report)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
+  const [data] = useState<SalaryInsightReport | null>(report)
   const [selectionOpen, setSelectionOpen] = useState(true)
-
-  const load = useCallback(async (next: SalaryInsightQuery) => {
-    const currentRequest = requestNumber.current + 1
-    requestNumber.current = currentRequest
-    setLoading(true)
-    setError(false)
-    try {
-      const response = await fetch(`/api/insights/salary?${salaryInsightQueryParams(next).toString()}`, { cache: 'no-store' })
-      if (!response.ok) throw new Error('SALARY_INSIGHTS_LOAD_FAILED')
-      const payload: unknown = await response.json()
-      const nextReport = readReport(payload)
-      if (!nextReport) throw new Error('SALARY_INSIGHTS_PAYLOAD_INVALID')
-      if (requestNumber.current === currentRequest) setData(nextReport)
-    } catch {
-      if (requestNumber.current === currentRequest) { setData(null); setError(true) }
-    } finally {
-      if (requestNumber.current === currentRequest) setLoading(false)
-    }
-  }, [])
-
+  const [isApplying, startTransition] = useTransition()
   const options = data?.filterOptions ?? emptyFilterOptions
   const selectedFilterCount = useMemo(() => query ? filterFields.reduce((total, field) => total + query[field.key].length, 0) : 0, [query])
-  const updateQuery = useCallback((patch: Partial<SalaryInsightFilters>) => {
+  const updateQuery = (patch: Partial<SalaryInsightFilters>): void => setQuery((current) => current ? { ...current, ...patch } : current)
+  const applyQuery = (next: SalaryInsightQuery): void => startTransition(() => router.push(buildInsightApplyHref(searchParams, salaryInsightQueryParams(next)), { scroll: false }))
+  const resetQuery = (): void => {
     if (!query) return
-    const next: SalaryInsightQuery = { ...query, ...patch }
+    const next: SalaryInsightQuery = { report: query.report, ...defaultSalaryInsightFilters(query.report) }
     setQuery(next)
-    setData(null)
-    void load(next)
-    router.push(buildInsightApplyHref(searchParams, salaryInsightQueryParams(next)), { scroll: false })
-  }, [load, query, router, searchParams])
+    applyQuery(next)
+  }
+  const clearFilters = (): void => {
+    const cleared = Object.fromEntries(filterFields.map((field) => [field.key, []])) as unknown as Pick<SalaryInsightFilters, FilterField>
+    setQuery((current) => current ? { ...current, ...cleared } : current)
+  }
+  const removeFilterValue = (field: FilterField, value: string): void => setQuery((current) => current ? { ...current, [field]: current[field].filter((item) => item !== value) } : current)
 
   if (!query) return <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{labels.salaryLoading}</p>
-  if (!data) return <div className="rounded-xl border border-dashed bg-muted/30 px-6 py-10 text-center"><p className="font-medium">{error ? labels.salaryLoadFailed : labels.salaryLoading}</p></div>
+  if (!data) return <div className="rounded-xl border border-dashed bg-muted/30 px-6 py-10 text-center"><p className="font-medium">{labels.salaryLoadFailed}</p></div>
 
   const activeQuery: SalaryInsightQuery = query
   const availableGroupBy = salaryInsightGroupByOptions(activeQuery.report)
@@ -550,21 +498,31 @@ export function SalaryInsightsReportView({ dateFormat, initialQuery, labels, loc
   const renderFilterMenus = (fields: readonly FilterField[]) => fields.map((key) => {
     const field = filterFields.find((item) => item.key === key)
     if (!field) return null
-    return <FilterMenu allOptions={options[field.key]} fieldLabel={labels[field.label]} key={field.key} labels={labels} onChange={(values) => updateQuery({ [field.key]: values } as Partial<SalaryInsightFilters>)} selected={activeQuery[field.key]} />
+    const multiOptions: MultiSelectOption[] = options[field.key].map((option) => ({ label: displayOption(option, labels), searchLabel: displayOption(option, labels), value: option.value }))
+    return <label className="flex min-w-0 min-w-44 flex-1 flex-col gap-1.5 text-sm font-medium" key={field.key}><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels[field.label]}</span><MultiSelect aria-label={labels[field.label]} emptySelectionLabel={labels.salaryAll} listLabel={labels[field.label]} loadingLabel={labels.salaryLoading} noOptionsLabel={labels.noOptions} onChange={(values) => updateQuery({ [field.key]: values } as Partial<SalaryInsightFilters>)} options={multiOptions} searchPlaceholder={labels.searchOptions} selectAllLabel={labels.selectAll} selectedCountLabel={labels.filterStatus} showSelectAll value={activeQuery[field.key]} /></label>
   })
 
-  const exportHref = `/api/insights/salary?${salaryInsightQueryParams(activeQuery, 'csv').toString()}`
+  const appliedQuery: SalaryInsightQuery | null = report ? { report: report.report, ...report.filters } : initialQuery
+  const exportHref = `/api/insights/salary?${salaryInsightQueryParams(appliedQuery ?? activeQuery, 'csv').toString()}`
+  const activeFilters: InsightActiveFilter[] = [
+    { key: 'asOfDate', label: labels.salaryAsOfDate, value: formatDate(activeQuery.asOfDate, { dateFormat, locale }), onRemove: () => updateQuery({ asOfDate: defaultSalaryInsightFilters(activeQuery.report).asOfDate }) },
+    { key: 'groupBy', label: labels.groupBy, value: groupLabel ? labels[groupLabel.label] : activeQuery.groupBy, onRemove: () => updateQuery({ groupBy: defaultSalaryInsightFilters(activeQuery.report).groupBy }) },
+    { key: 'sortBy', label: labels.sortBy, value: sortLabel ? labels[sortLabel.label] : activeQuery.sortBy, onRemove: () => updateQuery({ sortBy: defaultSalaryInsightFilters(activeQuery.report).sortBy }) },
+    ...filterFields.flatMap((field) => activeQuery[field.key].map((value) => ({ key: `${field.key}-${value}`, label: labels[field.label], value: displayOption(options[field.key].find((option) => option.value === value) ?? { value, label: value }, labels), onRemove: () => removeFilterValue(field.key, value) }))),
+  ]
 
   return <>
-    <div className="rounded-xl border bg-muted/35 p-4"><div className="flex flex-col gap-4 xl:flex-row xl:flex-wrap">
+    <InsightsFilterBar actions={<><Button loading={isApplying} onClick={() => applyQuery(activeQuery)} size="md" type="button">{labels.applyFilters}</Button><Button onClick={resetQuery} size="md" type="button" variant="secondary">{labels.resetFilters}</Button><InsightsExportAction fileName={`${activeQuery.report}.csv`} href={exportHref} label={labels.salaryExport} labels={{ error: labels.exportFailed, loading: labels.exportPreparing, success: labels.exportSuccess }} /></>}>
       <DateControl date={activeQuery.asOfDate} labels={labels} onChange={(asOfDate) => updateQuery({ asOfDate })} />
       <label className="min-w-52 flex-1"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.groupBy}</span><DropdownSelect aria-label={labels.groupBy} className="mt-1" onChange={(event) => updateQuery({ groupBy: event.target.value as SalaryInsightGroupBy })} value={activeQuery.groupBy}>{reportGroupOptions.map((option) => <option key={option.value} value={option.value}>{labels[option.label]}</option>)}</DropdownSelect></label>
       <label className="min-w-52 flex-1"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.sortBy}</span><DropdownSelect aria-label={labels.sortBy} className="mt-1" onChange={(event) => updateQuery({ sortBy: event.target.value as SalaryInsightSortBy })} value={activeQuery.sortBy}>{reportSortOptions.map((option) => <option key={option.value} value={option.value}>{labels[option.label]}</option>)}</DropdownSelect></label>
       {renderFilterMenus(primaryFiltersByReport[activeQuery.report])}
-    </div><details className="mt-4 rounded-xl border bg-background"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium"><span>{labels.salaryMoreFilters}{selectedFilterCount ? ` · ${selectedFilterCount} ${labels.selected}` : ''}</span><ChevronDown aria-hidden="true" className="size-4 text-muted-foreground" /></summary><div className="grid gap-4 border-t p-4 sm:grid-cols-2 xl:grid-cols-3">{renderFilterMenus(secondaryFiltersByReport[activeQuery.report])}</div></details></div>
+    </InsightsFilterBar>
+    <InsightsActiveFilters clearLabel={labels.clearFilters} filters={activeFilters} label={labels.activeFilters} onClear={clearFilters} onReset={resetQuery} removeLabel={labels.removeFilter} resetLabel={labels.resetFilters} selectedCountLabel={labels.filterStatus} />
+    <div className="mt-4 rounded-[var(--radius-surface)] border border-border bg-surface-subtle p-4"><details><summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>{labels.salaryMoreFilters}{selectedFilterCount ? ` · ${selectedFilterCount} ${labels.selected}` : ''}</span><ChevronDown aria-hidden="true" className="size-4 text-muted-foreground" /></summary><div className="mt-4 grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 xl:grid-cols-3">{renderFilterMenus(secondaryFiltersByReport[activeQuery.report])}</div></details></div>
     <div className={`mt-4 grid gap-4 ${selectionOpen ? 'xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.8fr)]' : 'xl:grid-cols-[minmax(0,1.5fr)_3rem]'}`}>
-      <section className="min-w-0 rounded-xl border bg-background p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm text-muted-foreground"><SlidersHorizontal aria-hidden="true" className="size-4 text-chart-2" />{labels.authorizedData}</div><a className="button-primary inline-flex items-center gap-2" download href={exportHref}><FileSpreadsheet aria-hidden="true" size={16} />{labels.salaryExport}</a></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{data.kpis.map((kpi) => <Kpi dateFormat={dateFormat} id={kpi.id} key={kpi.id} labels={labels} locale={locale} value={kpi.value} />)}</div><ChartView chart={data.chart} labels={labels} />{data.report === 'salary-band-position' && activeQuery.bands.length === 1 ? <BandPositionVisual labels={labels} locale={locale} rows={data.rows} /> : null}<p className="mt-4 text-sm text-muted-foreground">{labels.salaryPrivacy}</p><SalaryTable dateFormat={dateFormat} labels={labels} locale={locale} report={data} returnTo={returnTo} />{loading ? <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">{labels.salaryLoading}</p> : null}</section>
-      {selectionOpen ? <aside className="relative rounded-xl border bg-background p-5"><button aria-label={labels.selectionClose} className="absolute -left-3 top-5 grid size-7 place-items-center rounded-full border bg-surface text-muted-foreground shadow-sm hover:text-primary" onClick={() => setSelectionOpen(false)} type="button"><ChevronRight aria-hidden="true" size={16} /></button><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.activeFilters}</p><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.salaryAsOfDate}</dt><dd className="font-medium">{formatDate(activeQuery.asOfDate, { dateFormat, locale })}</dd></div><div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.groupBy}</dt><dd className="font-medium">{groupLabel ? labels[groupLabel.label] : activeQuery.groupBy}</dd></div><div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.sortBy}</dt><dd className="font-medium">{sortLabel ? labels[sortLabel.label] : activeQuery.sortBy}</dd></div>{filterFields.filter((field) => activeQuery[field.key].length > 0).map((field) => <div className="flex justify-between gap-3" key={`active-${field.key}`}><dt className="text-muted-foreground">{labels[field.label]}</dt><dd className="max-w-[12rem] text-right font-medium">{selectionLabel(activeQuery[field.key], labels)}</dd></div>)}<div className="flex justify-between gap-3"><dt className="text-muted-foreground">{labels.salaryRows}</dt><dd className="font-medium">{data.total} {labels.people}</dd></div></dl></aside> : <button aria-label={labels.selectionOpen} className="grid min-h-28 place-items-start rounded-xl border bg-background p-3 text-muted-foreground shadow-sm hover:text-primary" onClick={() => setSelectionOpen(true)} type="button"><ChevronLeft aria-hidden="true" size={18} /></button>}
+      <section className="min-w-0 rounded-xl border bg-background p-5"><div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><SlidersHorizontal aria-hidden="true" className="size-4 text-chart-2" />{labels.authorizedData}</div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{data.kpis.map((kpi) => <Kpi dateFormat={dateFormat} id={kpi.id} key={kpi.id} labels={labels} locale={locale} value={kpi.value} />)}</div><ChartView chart={data.chart} labels={labels} />{data.report === 'salary-band-position' && data.filters.bands.length === 1 ? <BandPositionVisual labels={labels} locale={locale} rows={data.rows} /> : null}<p className="mt-4 text-sm text-muted-foreground">{labels.salaryPrivacy}</p><SalaryTable dateFormat={dateFormat} labels={labels} locale={locale} report={data} returnTo={returnTo} />{isApplying ? <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">{labels.salaryLoading}</p> : null}</section>
+      {selectionOpen ? <aside className="relative rounded-xl border bg-background p-5"><button aria-label={labels.selectionClose} className="absolute -left-3 top-5 grid size-7 place-items-center rounded-full border bg-surface text-muted-foreground shadow-sm hover:text-primary" onClick={() => setSelectionOpen(false)} type="button"><ChevronRight aria-hidden="true" size={16} /></button><InsightsActiveFilters clearLabel={labels.clearFilters} filters={activeFilters} label={labels.activeFilters} onClear={clearFilters} onReset={resetQuery} removeLabel={labels.removeFilter} resetLabel={labels.resetFilters} selectedCountLabel={labels.filterStatus} /></aside> : <button aria-label={labels.selectionOpen} className="grid min-h-28 place-items-start rounded-xl border bg-background p-3 text-muted-foreground shadow-sm hover:text-primary" onClick={() => setSelectionOpen(true)} type="button"><ChevronLeft aria-hidden="true" size={18} /></button>}
     </div>
   </>
 }

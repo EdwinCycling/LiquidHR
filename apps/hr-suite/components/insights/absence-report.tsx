@@ -1,32 +1,32 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Download, HeartPulse } from 'lucide-react'
+import { ArrowRight, HeartPulse } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import type { BadgeTone } from '@/components/ui/badge'
 import { Badge } from '@/components/ui/badge'
-import { Button, buttonClasses } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { DataTableShell } from '@/components/patterns/data-table-shell'
-import { FilterBar } from '@/components/patterns/filter-bar'
 import { SectionHeader } from '@/components/patterns/section-header'
+import { InsightsActiveFilters, InsightsExportAction, InsightsFilterBar, type InsightActiveFilter } from '@/components/insights/shared-controls'
 import type { AbsenceInsightQuery, AbsenceInsightReport } from '@/lib/insights/absence-report'
-import { insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
+import { absenceInsightQueryParams, parseAbsenceInsightQuery } from '@/lib/insights/absence-query'
+import { buildInsightApplyHref, insightEmployeeDrilldownHref } from '@/lib/insights/query-seam'
 
 interface AbsenceReportLabels {
-  period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; exportExcel: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; monthlyTrend: string; yearLabel: string; activeFilters?: string
+  period: string; month: string; year: string; department: string; allDepartments: string; applyFilters: string; resetFilters: string; clearFilters: string; removeFilter: string; filterStatus: string; exportExcel: string; exportPreparing: string; exportSuccess: string; exportFailed: string; activeCases: string; reports: string; sickDays: string; sickHours: string; availableDays: string; absenceRate: string; currentData: string; employee: string; firstAbsenceOn: string; status: string; days: string; hours: string; dossier: string; active: string; recoveryWindow: string; closed: string; noResults: string; formulaHint: string; monthlyTrend: string; yearLabel: string; activeFilters?: string
   jan: string; feb: string; mar: string; apr: string; may: string; jun: string; jul: string; aug: string; sep: string; oct: string; nov: string; dec: string
 }
 
-export type ActiveReportFilter = { text: string } | { label: string; value: string }
+export type ActiveReportFilter = InsightActiveFilter
 
-export function ActiveFilters({ filters, label }: { filters: readonly ActiveReportFilter[]; label?: string }) {
-  if (!filters.length) return null
-  return <div aria-label={label || undefined} className="flex flex-wrap items-center gap-2 text-sm">
-    {label ? <span className="font-medium text-muted-foreground">{label}</span> : null}
-    {filters.map((filter, index) => <Badge key={`${'text' in filter ? filter.text : filter.label}-${index}`} tone="info">{'text' in filter ? filter.text : `${filter.label}: ${filter.value}`}</Badge>)}
-  </div>
+export function ActiveFilters({ filters, label, onClear, onReset, clearLabel, resetLabel, removeLabel, selectedCountLabel }: { filters: readonly ActiveReportFilter[]; label?: string; onClear?: () => void; onReset?: () => void; clearLabel?: string; resetLabel?: string; removeLabel?: string; selectedCountLabel?: string }) {
+  if (!label) return null
+  return <InsightsActiveFilters clearLabel={clearLabel} filters={filters} label={label} onClear={onClear} onReset={onReset} removeLabel={removeLabel ?? '{filter}'} resetLabel={resetLabel} selectedCountLabel={selectedCountLabel} />
 }
 
 type ReportKpiTone = 'primary' | 'info' | 'neutral' | 'success' | 'warning' | 'danger'
@@ -74,29 +74,36 @@ function periodLabel(query: AbsenceInsightQuery, locale: string): string {
 }
 
 export function AbsenceReportView({ report, query, labels, locale, returnTo }: { report: AbsenceInsightReport; query: AbsenceInsightQuery; labels: AbsenceReportLabels; locale: string; returnTo: string }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const months = [labels.jan, labels.feb, labels.mar, labels.apr, labels.may, labels.jun, labels.jul, labels.aug, labels.sep, labels.oct, labels.nov, labels.dec]
-  const exportParams = new URLSearchParams({ report: 'absence', period: query.period, year: String(query.year), month: String(query.month), format: 'excel' })
-  if (query.departmentId) exportParams.set('departmentId', query.departmentId)
-  const selectedDepartment = query.departmentId ? report.departments.find((department) => department.id === query.departmentId)?.name ?? query.departmentId : null
+  const [draft, setDraft] = useState(query)
+  const defaultQuery = (): AbsenceInsightQuery => {
+    const parsed = parseAbsenceInsightQuery(new URLSearchParams({ report: 'absence' }))
+    if (!parsed) throw new Error('INSIGHTS_ABSENCE_DEFAULT_INVALID')
+    return parsed
+  }
+  const apply = (next: AbsenceInsightQuery): void => router.push(buildInsightApplyHref(searchParams, absenceInsightQueryParams(next)), { scroll: false })
+  const reset = (): void => { const next = defaultQuery(); setDraft(next); apply(next) }
+  const selectedDepartment = draft.departmentId ? report.departments.find((department) => department.id === draft.departmentId)?.name ?? draft.departmentId : null
   const selectedFilters: ActiveReportFilter[] = [
-    { label: labels.period, value: periodLabel(query, locale) },
-    ...(selectedDepartment ? [{ label: labels.department, value: selectedDepartment }] : []),
+    { key: 'period', label: labels.period, value: periodLabel(draft, locale), onRemove: reset },
+    ...(selectedDepartment ? [{ key: 'department', label: labels.department, value: selectedDepartment, onRemove: () => setDraft((current) => ({ ...current, departmentId: null })) }] : []),
   ]
+  const exportParams = absenceInsightQueryParams(query, 'excel')
 
   return <section className="space-y-5">
-    <form action="/insights" method="get">
-      <FilterBar actions={<div className="flex w-full flex-wrap gap-2 sm:w-auto">
-        <Button size="md" type="submit">{labels.applyFilters}</Button>
-        <a className={buttonClasses({ size: 'md', variant: 'secondary' })} download href={`/api/insights/absence?${exportParams.toString()}`}><Download aria-hidden="true" />{labels.exportExcel}</a>
-      </div>}>
-        <input name="report" type="hidden" value="absence" />
-        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-36"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} defaultValue={query.period} name="period"><option value="month">{labels.month}</option><option value="year">{labels.year}</option></DropdownSelect></label>
-        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-28"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.yearLabel}</span><DropdownSelect aria-label={labels.yearLabel} defaultValue={String(query.year)} name="year">{Array.from({ length: 7 }, (_, index) => query.year - 3 + index).map((year) => <option key={year} value={year}>{year}</option>)}</DropdownSelect></label>
-        {query.period === 'month' ? <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-36"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.month}</span><DropdownSelect aria-label={labels.month} defaultValue={String(query.month)} name="month">{months.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}</DropdownSelect></label> : null}
-        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.department}</span><DropdownSelect aria-label={labels.department} defaultValue={query.departmentId ?? ''} name="departmentId" searchable searchPlaceholder={labels.department}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
-      </FilterBar>
-    </form>
-    <ActiveFilters filters={selectedFilters} label={labels.activeFilters} />
+      <InsightsFilterBar actions={<>
+        <Button onClick={() => apply(draft)} size="md" type="button">{labels.applyFilters}</Button>
+        <Button onClick={reset} size="md" type="button" variant="secondary">{labels.resetFilters}</Button>
+        <InsightsExportAction fileName="absence.xlsx" href={`/api/insights/absence?${exportParams.toString()}`} label={labels.exportExcel} labels={{ error: labels.exportFailed, loading: labels.exportPreparing, success: labels.exportSuccess }} />
+      </>}>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-36"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} onChange={(event) => setDraft((current) => ({ ...current, period: event.currentTarget.value as AbsenceInsightQuery['period'] }))} value={draft.period}><option value="month">{labels.month}</option><option value="year">{labels.year}</option></DropdownSelect></label>
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-28"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.yearLabel}</span><DropdownSelect aria-label={labels.yearLabel} onChange={(event) => setDraft((current) => ({ ...current, year: Number(event.currentTarget.value) }))} value={String(draft.year)}>{Array.from({ length: 7 }, (_, index) => draft.year - 3 + index).map((year) => <option key={year} value={year}>{year}</option>)}</DropdownSelect></label>
+        {draft.period === 'month' ? <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-36"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.month}</span><DropdownSelect aria-label={labels.month} onChange={(event) => setDraft((current) => ({ ...current, month: Number(event.currentTarget.value) }))} value={String(draft.month)}>{months.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}</DropdownSelect></label> : null}
+        <label className="flex min-w-0 basis-full flex-1 flex-col gap-1.5 text-sm font-medium sm:basis-auto sm:min-w-52"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.department}</span><DropdownSelect aria-label={labels.department} onChange={(event) => setDraft((current) => ({ ...current, departmentId: event.currentTarget.value || null }))} searchable searchPlaceholder={labels.department} value={draft.departmentId ?? ''}><option value="">{labels.allDepartments}</option>{report.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label>
+      </InsightsFilterBar>
+      <ActiveFilters clearLabel={labels.clearFilters} filters={selectedFilters} label={labels.activeFilters} onClear={reset} onReset={reset} removeLabel={labels.removeFilter} resetLabel={labels.resetFilters} selectedCountLabel={labels.filterStatus} />
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <ReportKpi featured label={labels.absenceRate} tone="primary" value={`${report.absenceRate.toFixed(2)}%`} />

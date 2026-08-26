@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## R6-2 gedeelde Insights-controls — 2026-08-26
+
+**Status: LOKAAL TECHNISCH GROEN — AUTHENTICATED BROWSERGATE BLOCKED BY ENVIRONMENT — RELEASE / PRODUCTION: NOT TOUCHED**
+
+De branch `work/r6-insights-shared-controls` is vanaf exact R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701` opgebouwd. De Foundation multiselect en shared Insights-controls zijn toegevoegd; employee FacetFilter, Salary FilterMenu, Upcoming FilterDropdown en absence active summaries gebruiken nu dezelfde zoekbare/selecteerbare interaction mechanics. Report-owned filters, serializers, berekeningen, privacy, permissions, loaders en exportsemantiek zijn behouden. Applied URL-state blijft canonical met lokale draft, `router.push` voor Apply en bestaande veilige drilldown-returncontext.
+
+Technische verificatie is groen: nieuwe shared tests `7/7`, targeted Insights `53/53`, strict TypeScript, i18n `33` gelijke namespaces, ESLint `0 errors` met bestaande warnings, Webpack-build `226` routes/pages en `git diff --check`. De volledige suite heeft `257` bestanden en `988` tests uitgevoerd; `987` zijn groen en alleen de bestaande Journey-test faalt op `Binnenkort beschikbaar`, ook op baseline `e13c50f` en buiten scope.
+
+Authenticated browseracceptance is **BLOCKED BY ENVIRONMENT**: `apps/hr-suite/.env.local` ontbreekt; lokale Playwright `/login` op poort `3003` geeft HTTP `500` door ontbrekende Supabase URL/key. Desktop/mobile/theme/console/readback-evidence is daarom niet geclaimd. Geen migration, remote schema/RLS/permission/auth-wijziging, merge, push, deployment of version bump. Zie `docs/delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md`.
+
 ## R6-1 Insights query + navigation seam — 2026-08-26
 
 **Status: SEAM READY FOR R6-2: YES — LOCAL FEATURE BRANCH — RELEASE / PRODUCTION: NOT TOUCHED**

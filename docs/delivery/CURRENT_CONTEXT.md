@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## R6-2 gedeelde Insights-controls — overdracht 2026-08-26
+
+- Branch/worktree: `work/r6-insights-shared-controls` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r6-insights-shared-controls`, gestart vanaf exact R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701`.
+- Afgerond: Foundation `MultiSelect`, shared Insights filter bar/active chips/export shell, en migratie van employee FacetFilter, salary FilterMenu, Upcoming FilterDropdown en absence summaries. URL blijft applied canonical state; draft is lokaal, Apply gebruikt `router.push`, exports gebruiken applied query en report-owned serializers, drilldowns behouden return context.
+- Verificatie: nieuwe shared tests `7/7`, targeted Insights `53/53`, typecheck, i18n `33` namespaces, lint `0 errors` en Webpack build `226` routes groen; full suite `987/988` met uitsluitend de bestaande Journey-assertion `Binnenkort beschikbaar`, ook rood op baseline `e13c50f`.
+- Browser: **BLOCKED BY ENVIRONMENT**. `.env.local` ontbreekt; `/login` op lokale poort `3003` gaf HTTP `500` door ontbrekende Supabase URL/key. Geen authenticated desktop/mobile evidence geclaimd.
+- Geen migration, remote write, RLS/permission/auth wijziging, version bump, merge, push of deploy. Zie [`docs/delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md`](parallel/2026-08-26-r6-2-insights-shared-controls.md).
+
 ## R6-1 Insights query + navigation seam — overdracht 2026-08-26
 
 - Branch/worktree: `work/r6-insights-query-seam` in `C:\Users\Edwin\Documents\Apps\LiquidHR`; exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`. Main is niet gewijzigd. Implementatiecommit `cffcf04`; documentatiecommits `a5d2de9` en `8597bf1` volgen daarop.

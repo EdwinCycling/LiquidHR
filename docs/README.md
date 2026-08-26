@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## R6-2 gedeelde Insights-controls — 2026-08-26
+
+**Status: LOKAAL TECHNISCH GROEN — AUTHENTICATED BROWSERGATE BLOCKED BY ENVIRONMENT — GEEN MAIN/REMOTE ACTIES**
+
+Vanaf exact R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701` levert `work/r6-insights-shared-controls` de gedeelde Foundation multiselect, responsive Insights-filterbar, active-filterchips, export shell en report-owned canonical queryserializers. Employee, Salary, Upcoming en Absence gebruiken dezelfde interaction mechanics zonder wijziging van reportsemantiek, privacy, berekeningen of server-authorisatie. Nieuwe tests, typecheck, i18n, lint, Webpack-build en diff-check zijn groen. De full-suite heeft alleen de bestaande Journey-failure op `Binnenkort beschikbaar`; exact gereproduceerd op baseline. Authenticated browsercontrole is geblokkeerd omdat `.env.local` ontbreekt en `/login` daardoor HTTP 500 geeft. Zie [`delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md`](delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md).
+
 ## R6-1 Insights query + navigation seam — 2026-08-26
 
 **Status: SEAM READY FOR R6-2: YES — LOCAL FEATURE BRANCH — NO REMOTE ACTIONS**
