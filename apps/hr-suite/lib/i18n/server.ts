@@ -32,6 +32,7 @@ import researchEn from '@/messages/en/research.json'
 import teamCompassEn from '@/messages/en/teamCompass.json'
 import journeysEn from '@/messages/en/journeys.json'
 import recruitmentEn from '@/messages/en/recruitment.json'
+import setupAssistantEn from '@/messages/en/setupAssistant.json'
 import authNl from '@/messages/nl/auth.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
@@ -64,6 +65,7 @@ import researchNl from '@/messages/nl/research.json'
 import teamCompassNl from '@/messages/nl/teamCompass.json'
 import journeysNl from '@/messages/nl/journeys.json'
 import recruitmentNl from '@/messages/nl/recruitment.json'
+import setupAssistantNl from '@/messages/nl/setupAssistant.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -105,6 +107,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     teamCompass: teamCompassNl,
     journeys: journeysNl,
     recruitment: recruitmentNl,
+    setupAssistant: setupAssistantNl,
   },
   en: {
     auth: authEn,
@@ -139,6 +142,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     teamCompass: teamCompassEn,
     journeys: journeysEn,
     recruitment: recruitmentEn,
+    setupAssistant: setupAssistantEn,
   },
 }
 

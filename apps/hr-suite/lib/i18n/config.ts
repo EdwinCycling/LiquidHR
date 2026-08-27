@@ -37,6 +37,7 @@ export const MESSAGE_NAMESPACES = [
   'teamCompass',
   'journeys',
   'recruitment',
+  'setupAssistant',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

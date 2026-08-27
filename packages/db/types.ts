@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -4414,10 +4414,12 @@ export type Database = {
           hourly_rate: number | null
           hr_group_id: string
           id: string
+          minimum_wage_scheme:
+            | Database["public"]["Enums"]["minimum_wage_scheme"]
+            | null
           parttime_amount: number | null
           payment_frequency: Database["public"]["Enums"]["salary_frequency"]
           payment_type: Database["public"]["Enums"]["salary_payment_type"]
-          minimum_wage_scheme: Database["public"]["Enums"]["minimum_wage_scheme"] | null
           salary_band_id: string | null
           salary_basis: Database["public"]["Enums"]["salary_basis"]
           salary_frequency_id: string
@@ -4444,10 +4446,12 @@ export type Database = {
           hourly_rate?: number | null
           hr_group_id?: string
           id?: string
+          minimum_wage_scheme?:
+            | Database["public"]["Enums"]["minimum_wage_scheme"]
+            | null
           parttime_amount?: number | null
           payment_frequency: Database["public"]["Enums"]["salary_frequency"]
           payment_type: Database["public"]["Enums"]["salary_payment_type"]
-          minimum_wage_scheme?: Database["public"]["Enums"]["minimum_wage_scheme"] | null
           salary_band_id?: string | null
           salary_basis: Database["public"]["Enums"]["salary_basis"]
           salary_frequency_id: string
@@ -4474,10 +4478,12 @@ export type Database = {
           hourly_rate?: number | null
           hr_group_id?: string
           id?: string
+          minimum_wage_scheme?:
+            | Database["public"]["Enums"]["minimum_wage_scheme"]
+            | null
           parttime_amount?: number | null
           payment_frequency?: Database["public"]["Enums"]["salary_frequency"]
           payment_type?: Database["public"]["Enums"]["salary_payment_type"]
-          minimum_wage_scheme?: Database["public"]["Enums"]["minimum_wage_scheme"] | null
           salary_band_id?: string | null
           salary_basis?: Database["public"]["Enums"]["salary_basis"]
           salary_frequency_id?: string
@@ -4492,6 +4498,13 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employment_salaries_band_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_band_id"]
+            isOneToOne: false
+            referencedRelation: "salary_bands"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
           {
             foreignKeyName: "employment_salaries_change_set_id_fkey"
             columns: ["change_set_id"]
@@ -4538,10 +4551,24 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
           {
+            foreignKeyName: "employment_salaries_scale_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_scale_id"]
+            isOneToOne: false
+            referencedRelation: "salary_scales"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
             foreignKeyName: "employment_salaries_scale_step_fkey"
             columns: ["tenant_id", "hr_group_id", "salary_scale_step_id"]
             isOneToOne: false
             referencedRelation: "salary_scale_steps"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "employment_salaries_structure_fkey"
+            columns: ["tenant_id", "hr_group_id", "salary_structure_id"]
+            isOneToOne: false
+            referencedRelation: "salary_structures"
             referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
@@ -13262,6 +13289,105 @@ export type Database = {
           },
         ]
       }
+      setup_guide_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          guide_code: string
+          hr_group_id: string
+          is_enabled: boolean
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          guide_code: string
+          hr_group_id: string
+          is_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          guide_code?: string
+          hr_group_id?: string
+          is_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setup_guide_settings_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "setup_guide_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      setup_step_completion: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          guide_code: string
+          hr_group_id: string
+          is_completed: boolean
+          step_key: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          guide_code: string
+          hr_group_id: string
+          is_completed?: boolean
+          step_key: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          guide_code?: string
+          hr_group_id?: string
+          is_completed?: boolean
+          step_key?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setup_step_completion_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "setup_step_completion_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       star_performer_assessment_tags: {
         Row: {
           assessment_id: string
@@ -16580,6 +16706,17 @@ export type Database = {
         }
         Returns: string
       }
+      apply_combined_salary_application_change: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_mutations: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: string
+      }
       apply_employment_cost_allocation: {
         Args: {
           requested_acknowledgements?: Json
@@ -16602,44 +16739,6 @@ export type Database = {
           requested_warning_codes?: string[]
         }
         Returns: string
-      }
-      apply_salary_application_change: {
-        Args: {
-          requested_acknowledgements?: Json
-          requested_effective_on: string
-          requested_employment_id: string
-          requested_payload: Json
-          requested_reason: string
-          requested_warning_codes?: string[]
-        }
-        Returns: Json
-      }
-      get_salary_insights_projection: {
-        Args: {
-          requested_as_of: string
-          requested_hr_group_id: string
-          requested_tenant_id: string
-        }
-        Returns: Json
-      }
-      apply_combined_salary_application_change: {
-        Args: {
-          requested_acknowledgements?: Json
-          requested_effective_on: string
-          requested_employment_id: string
-          requested_mutations: Json
-          requested_reason: string
-          requested_warning_codes?: string[]
-        }
-        Returns: string
-      }
-      save_administration_salary_settings: {
-        Args: {
-          requested_administration_id: string
-          requested_routes: Database["public"]["Enums"]["salary_application_route"][]
-          requested_structure_ids: string[]
-        }
-        Returns: Json
       }
       apply_group_leave_manual_adjustment: {
         Args: {
@@ -16668,6 +16767,17 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: string
+      }
+      apply_salary_application_change: {
+        Args: {
+          requested_acknowledgements?: Json
+          requested_effective_on: string
+          requested_employment_id: string
+          requested_payload: Json
+          requested_reason: string
+          requested_warning_codes?: string[]
+        }
+        Returns: Json
       }
       attach_process_output_document: {
         Args: {
@@ -16872,10 +16982,6 @@ export type Database = {
           requested_payload: Json
         }
         Returns: string
-      }
-      soft_delete_company_document: {
-        Args: { requested_document_id: string }
-        Returns: undefined
       }
       create_group_leave_accrual_rule: {
         Args: {
@@ -17381,6 +17487,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_salary_insights_projection: {
+        Args: {
+          requested_as_of: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       get_team_compass_team_projection: {
         Args: {
           requested_campaign_id: string
@@ -17772,6 +17886,14 @@ export type Database = {
         }
         Returns: Json
       }
+      save_administration_salary_settings: {
+        Args: {
+          requested_administration_id: string
+          requested_routes: Database["public"]["Enums"]["salary_application_route"][]
+          requested_structure_ids: string[]
+        }
+        Returns: Json
+      }
       save_group_leave_type: {
         Args: {
           requested_allow_limit_overrun: boolean
@@ -17875,6 +17997,10 @@ export type Database = {
           requested_stage_id: string
         }
         Returns: Json
+      }
+      soft_delete_company_document: {
+        Args: { requested_document_id: string }
+        Returns: undefined
       }
       start_document_acknowledgement: {
         Args: {
@@ -18239,6 +18365,7 @@ export type Database = {
         | "REGISTERED_PARTNERSHIP"
         | "DIVORCED"
         | "WIDOWED"
+      minimum_wage_scheme: "REGULAR" | "BBL"
       name_usage:
         | "BIRTH_NAME"
         | "PARTNER_NAME"
@@ -18290,9 +18417,18 @@ export type Database = {
       reminder_status: "DRAFT" | "PUBLISHED" | "CANCELLED"
       reminder_target_type: "SELF" | "EVERYONE" | "DEPARTMENTS" | "EMPLOYEES"
       reminder_type: "PERSONAL" | "HR"
+      salary_application_route:
+        | "MANUAL"
+        | "MINIMUM_WAGE"
+        | "SCALE_WITH_STEPS"
+        | "SALARY_BAND"
       salary_band_input_method: "MIDPOINT_SPREAD" | "MIN_MAX" | "MANUAL_ANCHORS"
-      salary_application_route: "MANUAL" | "MINIMUM_WAGE" | "SCALE_WITH_STEPS" | "SALARY_BAND"
-      salary_basis: "MANUAL" | "MINIMUM_WAGE" | "CUSTOM_SCALE" | "CAO_SCALE" | "SALARY_BAND"
+      salary_basis:
+        | "MANUAL"
+        | "MINIMUM_WAGE"
+        | "CUSTOM_SCALE"
+        | "CAO_SCALE"
+        | "SALARY_BAND"
       salary_frequency: "MONTHLY" | "FOUR_WEEKLY"
       salary_payment_type: "PERIODIC_FIXED" | "HOURLY_VARIABLE"
       salary_progression_type: "MANUAL" | "TIME_IN_STEP" | "FIXED_DATE"
@@ -18305,7 +18441,6 @@ export type Database = {
         | "HOURLY"
       salary_structure_migration_status: "OPEN" | "RESOLVED" | "IGNORED"
       salary_structure_type: "SCALE_WITH_STEPS" | "SALARY_BAND"
-      minimum_wage_scheme: "REGULAR" | "BBL"
       schedule_type:
         | "HOURS_PER_DAY"
         | "HOURS_AND_AVG_DAYS"
@@ -18645,6 +18780,7 @@ export const Constants = {
         "DIVORCED",
         "WIDOWED",
       ],
+      minimum_wage_scheme: ["REGULAR", "BBL"],
       name_usage: [
         "BIRTH_NAME",
         "PARTNER_NAME",
@@ -18702,13 +18838,24 @@ export const Constants = {
       reminder_status: ["DRAFT", "PUBLISHED", "CANCELLED"],
       reminder_target_type: ["SELF", "EVERYONE", "DEPARTMENTS", "EMPLOYEES"],
       reminder_type: ["PERSONAL", "HR"],
+      salary_application_route: [
+        "MANUAL",
+        "MINIMUM_WAGE",
+        "SCALE_WITH_STEPS",
+        "SALARY_BAND",
+      ],
       salary_band_input_method: [
         "MIDPOINT_SPREAD",
         "MIN_MAX",
         "MANUAL_ANCHORS",
       ],
-      salary_application_route: ["MANUAL", "MINIMUM_WAGE", "SCALE_WITH_STEPS", "SALARY_BAND"],
-      salary_basis: ["MANUAL", "MINIMUM_WAGE", "CUSTOM_SCALE", "CAO_SCALE", "SALARY_BAND"],
+      salary_basis: [
+        "MANUAL",
+        "MINIMUM_WAGE",
+        "CUSTOM_SCALE",
+        "CAO_SCALE",
+        "SALARY_BAND",
+      ],
       salary_frequency: ["MONTHLY", "FOUR_WEEKLY"],
       salary_payment_type: ["PERIODIC_FIXED", "HOURLY_VARIABLE"],
       salary_progression_type: ["MANUAL", "TIME_IN_STEP", "FIXED_DATE"],
@@ -18722,7 +18869,6 @@ export const Constants = {
       ],
       salary_structure_migration_status: ["OPEN", "RESOLVED", "IGNORED"],
       salary_structure_type: ["SCALE_WITH_STEPS", "SALARY_BAND"],
-      minimum_wage_scheme: ["REGULAR", "BBL"],
       schedule_type: [
         "HOURS_PER_DAY",
         "HOURS_AND_AVG_DAYS",

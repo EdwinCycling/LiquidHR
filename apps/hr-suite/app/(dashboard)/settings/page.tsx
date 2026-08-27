@@ -124,16 +124,18 @@ function SettingsLinkTile({
 }
 
 export default async function AdminSettingsPage({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
+  let settingsAuth: Awaited<ReturnType<typeof requirePermission>>
   try {
-    await requirePermission('settings:read')
+    settingsAuth = await requirePermission('settings:read')
   } catch (error) {
     if (error instanceof AuthorizationError) redirect('/geen-toegang')
     throw error
   }
 
-  const [{ section }, messages, capabilities, enabledModules] = await Promise.all([
+  const [{ section }, messages, setupMessages, capabilities, enabledModules] = await Promise.all([
     searchParams,
     getTranslator('settings'),
+    getTranslator('setupAssistant'),
     Promise.all([
       allowed('authorization:read'),
       allowed('custom-fields:write'),
@@ -181,6 +183,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     journeyTemplateRead,
     recruitmentSettings,
   ] = capabilities
+  const canUseSetupAssistant = settingsAuth.activeRoles.includes('TENANT_ADMIN')
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
     {
@@ -372,6 +375,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     {
       title: messages('admin.sections.platform'),
       items: [
+        {
+          kind: 'link',
+          href: '/settings/setup-assistant',
+          icon: ClipboardCheck,
+          title: setupMessages('settingsTileTitle'),
+          description: setupMessages('settingsTileDescription'),
+          visible: canUseSetupAssistant,
+        },
         {
           kind: 'link',
           href: '/settings/business-structure',
