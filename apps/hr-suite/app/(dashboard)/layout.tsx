@@ -17,6 +17,9 @@ import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { TEST_ROLE_SWITCH_TARGETS, isTestRoleSwitchAccount, isTestRoleSwitchEnabled } from '@/lib/auth/test-role-switch'
 import type { TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { resolveResearchAccess } from '@/lib/research/access'
+import { SetupAssistantFloating } from '@/components/setup-assistant/setup-assistant-floating'
+import { canUseSetupAssistant, getSetupAssistantState } from '@/lib/setup-assistant/service'
+import { createSetupAssistantLabels } from '@/lib/setup-assistant/labels'
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let requestContext
@@ -44,16 +47,19 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     || (authContext.employeeId !== null && authContext.permissions.includes('self:employee:read'))
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
   const canReadSettings = authContext.permissions.includes('settings:read')
+  const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
   const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
-  const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, reminders, enabledModules, productUpdates, profile] = await Promise.all([
+  const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
     getRequestUserPreferences(),
     getTranslator('common'),
     getTranslator('navigation'),
     getTranslator('auth'),
     getTranslator('reminders'),
     getTranslator('productUpdates'),
+    getTranslator('setupAssistant'),
+    canShowSetupAssistant ? getSetupAssistantState() : Promise.resolve(null),
     listMyReminders(20, { context: authContext, supabase }).catch(() => []),
     getEnabledTenantModules({ auth: authContext, supabase }),
     getProductUpdateDashboardData({ context: authContext, supabase }),
@@ -92,6 +98,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     manage: productUpdateMessages('manage'),
     seen: productUpdateMessages('seen'),
   }
+  const setupAssistantLabels = createSetupAssistantLabels(setupAssistantMessages)
 
   return (
     <div className="fixed inset-0 flex h-dvh min-h-0 overflow-hidden bg-background">
@@ -183,6 +190,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pt-16 md:h-dvh md:pt-0"><ProductUpdateBanner labels={updateSurfaceLabels} updates={productUpdates.bannerUpdates} />{children}</main>
       {enabledModules.includes('HERA') ? <HeRaFloating labels={createHeRaLabels(preferences.locale)} /> : null}
+      {setupAssistant?.isEnabled ? <SetupAssistantFloating labels={setupAssistantLabels} state={setupAssistant} /> : null}
       <ProductUpdateLoginPopup labels={updateSurfaceLabels} locale={preferences.locale} updates={productUpdates.loginPopupUpdates} />
     </div>
   )

@@ -2,6 +2,7 @@
 
 import { MessageCircleHeart, PanelRight, PanelRightClose, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { announceAssistantOpen, subscribeToAssistantOpen } from '@/components/layout/assistant-overlay-events'
 import { HeRaChat, type HeRaLabels } from './hera-chat'
 import { clampHeRaWidth, parseHeRaDockState, type HeRaDockState } from './hera-floating-state'
 
@@ -22,6 +23,10 @@ export function HeRaFloating({ labels }: { labels: HeRaLabels }) {
     return () => window.clearTimeout(timer)
   }, [])
 
+  useEffect(() => subscribeToAssistantOpen((kind) => {
+    if (kind === 'setup') setOpen(false)
+  }), [])
+
   function toggleDock() {
     const next = dock === 'docked' ? 'overlay' : 'docked'
     setDock(next)
@@ -34,10 +39,15 @@ export function HeRaFloating({ labels }: { labels: HeRaLabels }) {
     window.localStorage.setItem(WIDTH_KEY, String(next))
   }
 
+  function openHeRa() {
+    announceAssistantOpen('hera')
+    setOpen(true)
+  }
+
   return (
     <>
       {!open ? (
-        <button aria-label={labels.title} className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" onClick={() => setOpen(true)} type="button">
+        <button aria-label={labels.title} className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2" onClick={openHeRa} type="button">
           <MessageCircleHeart aria-hidden="true" size={23} />
         </button>
       ) : null}
