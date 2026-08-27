@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## R5 Shared TEST dataset — 2026-08-26
+
+- Branch/worktree: `work/r5-shared-test-dataset` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r5-shared-test-dataset`; exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`; zichtbare versie ongewijzigd `1.20260825.1`.
+- De helper `apps/hr-suite/scripts/r5-shared-test-dataset.mjs` plus contracttest gebruikt bestaande P9/P10 APIs/RPC's, `R5-TEST` idempotency keys en setup/readback/cleanup-modes. Remote TEST-project is `wnpfloqpjvaacobppbpk`; geen migration, production, version bump, Vercel, main-merge of main-push.
+- Remote readback: vijf R5-definities (`PUBLISHED` internal/document/overdue, `DRAFT`, `RETIRED`), een `CLAIMED` Manager work item, `REJECTED` en `REQUEST_CHANGES`, Employee acknowledgement `OPEN` en `COMPLETED`, plus output `AVAILABLE` en job `SUCCEEDED`. De actuele `TODO`-service-readback gaf HR 7 items, Manager 3 direct-report items en Employee 3 self-items. De setup is tweemaal rerunnable uitgevoerd met stabiel 5 definitions, 7 instances en 12 work items.
+- Hard cleanup is op het gekoppelde TEST-project/tenant uitgevoerd via storage-API plus één exact gescopeerde transactionele SQL-delete, omdat append-only triggers REST-hard-delete blokkeren. Before/after: 59 documenten en 59 audiences in scope vóór cleanup, alle geïnventariseerde records daarna `0`; storage-readback 0 scoped objects. Daarna is de canonical dataset opnieuw opgebouwd en bewust in TEST achtergelaten. Geen migration, production, main-merge/push, version bump of Vercel.
+- RED blockers: same-manager HR route geeft `409 NO_ASSIGNEE`; published SLA geeft `deadlineAt: null` door remote trigger-path drift; blocked candidate geeft `400 PROCESS_RUNTIME_INPUT_INVALID`; de echte non-self negative persona ontbreekt veilig beschikbaar. De Employee-read op Manager approval van het eigen Employee-subject gaf `200` en is correct self-scope, geen negative cross-scope bewijs. `/api/process-work` heeft daarnaast strikte `z.uuid()`-queryvalidatie; rolreadback gebruikt daarom de bestaande service-RPC.
+- Browserbewijs op `/work` is uitgevoerd voor HR/Manager/Employee op desktop `1440x900` en mobiel `390x844`; de populated states staan in `.artifacts/r5-hard-cleanup-*-work-*.png`, met `scrollWidth` gelijk aan de viewportbreedte en zonder relevante console-errors. De definitieve runstatus is **R5 SHARED DATASET RED / NOT SAFE AS SHARED FIXTURE** totdat bovenstaande contractblokkades zijn opgelost; zie [`R5_SHARED_TEST_DATASET.md`](R5_SHARED_TEST_DATASET.md).
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 - Branch/worktree: `work/r4-recruitment-journeys-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r4-integration`; baseline exact `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64`. Alle 15 approved R4-slices zijn semantisch geïntegreerd; root `main` bleef tijdens deze run ongewijzigd.

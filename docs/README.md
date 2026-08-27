@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## R5 Shared TEST dataset — 2026-08-26
+
+**Status: RED — fixture helper committed; shared-dataset safety blocked by current remote TEST contracts**
+
+De `R5-TEST`-fixture voor Roadmap 5 Work & Automation gebruikt uitsluitend bestaande P9/P10 process-, work-item-, document- en job-contracten. De helper maakt/ leest de vijf R5-process definitions en de bereikbare `CLAIMED`, `REJECTED`, `REQUEST_CHANGES`, Employee acknowledgement en succesvolle output-cases idempotent terug. `OPEN_HR_QUEUE_UNCLAIMED`, deadlines, `BLOCKED` en echte non-self cross-scope negatives blijven expliciet onbewezen door remote runtime/RLS-contractblokkades; er zijn geen migrations, productieacties, version bump, main-merge, main-push of Vercel-acties uitgevoerd. Zie [`delivery/R5_SHARED_TEST_DATASET.md`](delivery/R5_SHARED_TEST_DATASET.md) en [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 **Status: TEST-TRUNK GREEN; AUTHENTICATED COMBINED SANITY GREEN; READY FOR MAIN INTEGRATION**

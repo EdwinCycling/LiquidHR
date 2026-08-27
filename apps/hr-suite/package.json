@@ -11,6 +11,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "audit:axe": "node scripts/axe-audit.mjs",
     "audit:talent-release": "node scripts/talent-release-gate.mjs",
+    "fixtures:r5": "node --env-file=.env.local scripts/r5-shared-test-dataset.mjs",
     "fixtures:talent-auth": "node --env-file=.env.local scripts/set-talent-fixture-passwords.mjs",
     "test": "vitest run",
     "type-check": "tsc --noEmit",
