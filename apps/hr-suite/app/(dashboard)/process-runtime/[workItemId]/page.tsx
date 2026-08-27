@@ -1,36 +1,21 @@
-import { FormRuntimeRenderer } from '@/components/process-automation/form-runtime-renderer'
+import { ProcessWorkDetailView } from '@/components/process-automation/process-work-detail'
 import { getProcessFormProjection } from '@/lib/process-automation/form-runtime-service'
+import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-work-detail-labels'
+import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail } from '@/lib/process-automation/work-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
-interface Params {
+interface ProcessRuntimePageProps {
   params: Promise<{ workItemId: string }>
 }
 
-export default async function ProcessRuntimePage({ params }: Params) {
+export default async function ProcessRuntimePage({ params }: ProcessRuntimePageProps) {
   const { workItemId } = await params
   const locale = await getLocale()
-  const [projection, t] = await Promise.all([
+  const t = await getTranslator('processAutomation', locale)
+  const detail = await getProcessWorkItemDetail(workItemId, locale)
+  const [form, assignmentOptions] = await Promise.all([
     getProcessFormProjection(workItemId, locale),
-    getTranslator('processAutomation', locale),
+    detail.canReassign ? getProcessWorkItemAssignmentOptions(workItemId).catch(() => []) : Promise.resolve([]),
   ])
-  return <FormRuntimeRenderer initialProjection={projection} locale={locale} labels={{
-    currentValue: t('currentValue'),
-    newValue: t('newValue'),
-    saving: t('saving'),
-    saved: t('saved'),
-    saveError: t('saveError'),
-    stale: t('stale'),
-    save: t('save'),
-    errorSummary: t('errorSummary'),
-    required: t('required'),
-    invalid: t('invalid'),
-    readOnly: t('readOnly'),
-    noValue: t('noValue'),
-    booleanTrue: t('booleanTrue'),
-    booleanFalse: t('booleanFalse'),
-    referenceSearch: t('referenceSearch'),
-    referenceLoading: t('referenceLoading'),
-    referenceNoOptions: t('referenceNoOptions'),
-    scrollHint: t('scrollHint'),
-  }} />
+  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref="/work" detail={detail} form={form} locale={locale} labels={createProcessWorkDetailLabels(t)} operations={null} outputs={null} />
 }

@@ -72,6 +72,22 @@ const detailWorkItemSchema = z.object({
   deadlineAt: z.string().nullable(),
 }).strict()
 
+const assignmentCandidateRowSchema = z.object({
+  employee_id: databaseUuidSchema,
+  management_role_code: z.string().nullable(),
+  resolution_date: z.string(),
+  resolution_revision: z.number().int().nonnegative(),
+  resolution_source: z.string(),
+  is_eligible: z.boolean(),
+}).strict()
+
+const assignmentEmployeeRowSchema = z.object({
+  id: databaseUuidSchema,
+  employee_number: z.string(),
+  first_name: z.string(),
+  birth_name: z.string(),
+}).strict()
+
 const workDetailSchema = z.object({
   workItemId: databaseUuidSchema,
   processInstanceId: databaseUuidSchema,
@@ -114,6 +130,14 @@ const workDetailSchema = z.object({
 export type ProcessWorkItem = z.infer<typeof workItemSchema>
 export type ProcessWorkList = z.infer<typeof workListSchema>
 export type ProcessWorkDetail = z.infer<typeof workDetailSchema>
+export interface ProcessWorkAssignmentOption {
+  readonly id: string
+  readonly employeeNumber: string
+  readonly name: string
+  readonly resolutionDate: string
+  readonly resolutionSource: string
+  readonly managementRoleCode: string | null
+}
 export type ProcessWorkTab = 'TODO' | 'CLAIMED' | 'WAITING' | 'COMPLETED' | 'ALL'
 export type ProcessWorkSort = 'NEEDS_ACTION' | 'DEADLINE'
 
@@ -281,6 +305,62 @@ export async function getProcessWorkItemDetail(workItemId: string, language: 'nl
   const parsed = workDetailSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
   return parsed.data
+}
+
+export async function getProcessWorkItemAssignmentOptions(workItemId: string): Promise<ReadonlyArray<ProcessWorkAssignmentOption>> {
+  const { supabase } = await authorizedClient()
+  const { data: detailData, error: detailError } = await supabase.rpc('get_process_work_item_detail', {
+    requested_work_item_id: workItemId,
+    requested_language: 'nl',
+  })
+  if (detailError) throwRpcError(detailError.message)
+  const parsedDetail = workDetailSchema.safeParse(detailData)
+  if (!parsedDetail.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
+  if (!parsedDetail.data.canReassign) throw new ProcessWorkError('FORBIDDEN', 403)
+
+  const { data: candidateData, error: candidateError } = await supabase
+    .from('process_work_item_candidates')
+    .select('employee_id, management_role_code, resolution_date, resolution_revision, resolution_source, is_eligible')
+    .eq('work_item_id', workItemId)
+    .eq('is_eligible', true)
+    .order('resolution_revision', { ascending: false })
+    .order('resolution_date', { ascending: false })
+  if (candidateError) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500, candidateError.message)
+  const parsedCandidates = z.array(assignmentCandidateRowSchema).safeParse(candidateData ?? [])
+  if (!parsedCandidates.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
+
+  const latestCandidates = new Map<string, z.infer<typeof assignmentCandidateRowSchema>>()
+  for (const candidate of parsedCandidates.data) {
+    if (!latestCandidates.has(candidate.employee_id)) latestCandidates.set(candidate.employee_id, candidate)
+  }
+  const employeeIds = [...latestCandidates.keys()]
+  if (employeeIds.length === 0) return []
+
+  const { data: employeeData, error: employeeError } = await supabase
+    .from('employees')
+    .select('id, employee_number, first_name, birth_name')
+    .in('id', employeeIds)
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .is('deleted_at', null)
+  if (employeeError) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500, employeeError.message)
+  const parsedEmployees = z.array(assignmentEmployeeRowSchema).safeParse(employeeData ?? [])
+  if (!parsedEmployees.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
+  const employees = new Map(parsedEmployees.data.map((employee) => [employee.id, employee]))
+
+  return employeeIds.flatMap((employeeId) => {
+    const candidate = latestCandidates.get(employeeId)
+    const employee = employees.get(employeeId)
+    if (!candidate || !employee) return []
+    return [{
+      id: employee.id,
+      employeeNumber: employee.employee_number,
+      name: [employee.first_name, employee.birth_name].filter((part) => part.trim()).join(' '),
+      resolutionDate: candidate.resolution_date,
+      resolutionSource: candidate.resolution_source,
+      managementRoleCode: candidate.management_role_code,
+    }]
+  })
 }
 
 export function processWorkErrorResponse(error: unknown): NextResponse | null {

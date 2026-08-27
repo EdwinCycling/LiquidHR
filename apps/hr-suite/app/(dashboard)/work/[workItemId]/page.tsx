@@ -1,117 +1,40 @@
-import { ProcessWorkDetailView, type ProcessWorkDetailLabels } from '@/components/process-automation/process-work-detail'
+import { ProcessWorkDetailView } from '@/components/process-automation/process-work-detail'
 import { getProcessFormProjection } from '@/lib/process-automation/form-runtime-service'
 import { getProcessAutomationOperations, getProcessOutputProjection } from '@/lib/process-automation/output-service'
-import { getProcessWorkItemDetail } from '@/lib/process-automation/work-service'
+import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-work-detail-labels'
+import { getProcessWorkItemAssignmentOptions, getProcessWorkItemDetail } from '@/lib/process-automation/work-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 
 interface WorkDetailPageProps {
   readonly params: Promise<{ workItemId: string }>
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
+function first(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] ?? '' : value ?? ''
+}
+
+function workBackHref(query: Record<string, string | string[] | undefined>): string {
+  const params = new URLSearchParams()
+  for (const key of ['tab', 'search', 'status', 'processDefinitionId', 'administrationId', 'sort']) {
+    const value = first(query[key])
+    if (value) params.set(key, value)
+  }
+  const encoded = params.toString()
+  return encoded ? `/work?${encoded}` : '/work'
+}
+
+export default async function WorkDetailPage({ params, searchParams }: WorkDetailPageProps) {
   const { workItemId } = await params
+  const query = await searchParams
   const locale = await getLocale()
   const t = await getTranslator('processAutomation', locale)
   const detail = await getProcessWorkItemDetail(workItemId, locale)
-  const [form, outputs, operations] = await Promise.all([
+  const [form, outputs, operations, assignmentOptions] = await Promise.all([
     getProcessFormProjection(workItemId, locale).catch(() => null),
     getProcessOutputProjection(detail.processInstanceId, locale).catch(() => null),
     getProcessAutomationOperations(detail.processInstanceId).catch(() => null),
+    detail.canReassign ? getProcessWorkItemAssignmentOptions(workItemId).catch(() => []) : Promise.resolve([]),
   ])
-  const labels: ProcessWorkDetailLabels = {
-    process: t('columnsProcess'),
-    subject: t('subject'),
-    step: t('step'),
-    status: t('status'),
-    assignment: t('assignment'),
-    assignmentMode: t('assignmentMode'),
-    assignmentSource: t('assignmentSource'),
-    assignmentDate: t('assignmentDate'),
-    assignmentRole: t('assignmentRole'),
-    progress: t('progress'),
-    timeline: t('timeline'),
-    form: t('form'),
-    output: t('output'),
-    deadline: t('deadline'),
-    overdue: t('overdue'),
-    availableAt: t('availableAt'),
-    claimedBy: t('claimedBy'),
-    unassigned: t('unassigned'),
-    claim: t('claim'),
-    release: t('release'),
-    reassign: t('reassign'),
-    action: t('action'),
-    success: t('success'),
-    stale: t('stale'),
-    denied: t('denied'),
-    blocked: t('blocked'),
-    errorClaimRace: t('errorClaimRace'),
-    errorStale: t('errorStale'),
-    errorDenied: t('errorDenied'),
-    errorBlocked: t('errorBlocked'),
-    errorGeneric: t('errorGeneric'),
-    unknown: t('unknown'),
-    download: t('download'),
-    downloadUnavailable: t('downloadUnavailable'),
-    outputPending: t('outputPending'),
-    outputAvailable: t('outputAvailable'),
-    outputFailed: t('outputFailed'),
-    operations: t('operations'),
-    lastAttempt: t('lastAttempt'),
-    recovery: t('recovery'),
-    retry: t('retry'),
-    actionSubmit: t('actionSubmit'),
-    actionApprove: t('actionApprove'),
-    actionReject: t('actionReject'),
-    actionRequestChanges: t('actionRequestChanges'),
-    actionAcknowledge: t('actionAcknowledge'),
-    actionComplete: t('actionComplete'),
-    actionCancel: t('actionCancel'),
-    formCurrentValue: t('currentValue'),
-    formNewValue: t('newValue'),
-    formSaving: t('saving'),
-    formSaved: t('saved'),
-    formSaveError: t('saveError'),
-    formStale: t('stale'),
-    formSave: t('save'),
-    formErrorSummary: t('errorSummary'),
-    formRequired: t('required'),
-    formInvalid: t('invalid'),
-    formReadOnly: t('readOnly'),
-    formNoValue: t('noValue'),
-    formBooleanTrue: t('booleanTrue'),
-    formBooleanFalse: t('booleanFalse'),
-    formReferenceSearch: t('referenceSearch'),
-    formReferenceLoading: t('referenceLoading'),
-    formReferenceNoOptions: t('referenceNoOptions'),
-    formScrollHint: t('scrollHint'),
-    documentDownload: t('p10.documentDownload'),
-    documentChecksum: t('p10.documentChecksum'),
-    documentAcknowledgementRequired: t('p10.confirmationRequired'),
-    confirmAction: t('confirmAction'),
-    requestChangesReason: t('requestChangesReason'),
-    requestChangesReasonRequired: t('requestChangesReasonRequired'),
-    requestChangesSubmit: t('requestChangesSubmit'),
-    internalTransferPreview: t('p9.preview'),
-    internalTransferPreviewDescription: t('p9.previewDescription'),
-    internalTransferCurrent: t('p9.current'),
-    internalTransferProposed: t('p9.proposed'),
-    internalTransferDepartment: t('p9.department'),
-    internalTransferJob: t('p9.job'),
-    internalTransferManager: t('p9.manager'),
-    internalTransferBlockers: t('p9.blockers'),
-    internalTransferWarnings: t('p9.warnings'),
-    internalTransferPreviewSuccess: t('p9.previewSuccess'),
-    internalTransferPreviewWarning: t('p9.previewWarning'),
-    internalTransferPreviewBlocking: t('p9.previewBlocking'),
-    internalTransferCommit: t('p9.commit'),
-    internalTransferCommitConfirm: t('p9.commitConfirm'),
-    internalTransferCommitting: t('p9.committing'),
-    internalTransferCommitFailed: t('p9.commitFailed'),
-    internalTransferChanged: t('p9.changed'),
-    internalTransferNoSalary: t('p9.noSalary'),
-    internalTransferLoading: t('loading'),
-    internalTransferFailed: t('p9.commitFailed'),
-  }
-  return <ProcessWorkDetailView detail={detail} form={form} outputs={outputs} operations={operations} locale={locale} labels={labels} />
+  return <ProcessWorkDetailView assignmentOptions={assignmentOptions} backHref={workBackHref(query)} detail={detail} form={form} outputs={outputs} operations={operations} locale={locale} labels={createProcessWorkDetailLabels(t)} />
 }

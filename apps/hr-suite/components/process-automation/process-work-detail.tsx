@@ -6,7 +6,9 @@ import { useState } from 'react'
 import type { Locale } from '@/lib/i18n/config'
 import type { FormProjection } from '@/lib/process-automation/form-runtime'
 import type { ProcessAutomationOperations, ProcessOutputProjection } from '@/lib/process-automation/output-service'
-import type { ProcessWorkDetail } from '@/lib/process-automation/work-service'
+import type { ProcessWorkAssignmentOption, ProcessWorkDetail } from '@/lib/process-automation/work-service'
+import { Button, buttonClasses } from '../ui/button'
+import { DropdownSelect } from '../ui/dropdown-select'
 import { FormRuntimeRenderer } from './form-runtime-renderer'
 import { InternalTransferCommitPanel } from './internal-transfer-commit-panel'
 
@@ -32,6 +34,11 @@ export interface ProcessWorkDetailLabels {
   readonly claim: string
   readonly release: string
   readonly reassign: string
+  readonly reResolve: string
+  readonly reassignEmployee: string
+  readonly reassignSubmit: string
+  readonly assignmentOptionsEmpty: string
+  readonly backToWork: string
   readonly action: string
   readonly success: string
   readonly stale: string
@@ -113,6 +120,8 @@ interface ProcessWorkDetailProps {
   readonly operations: ProcessAutomationOperations | null
   readonly locale: Locale
   readonly labels: ProcessWorkDetailLabels
+  readonly assignmentOptions: ReadonlyArray<ProcessWorkAssignmentOption>
+  readonly backHref: string
 }
 
 function date(value: string | null, locale: Locale): string {
@@ -148,12 +157,14 @@ function outputStatusLabel(status: string, labels: ProcessWorkDetailLabels): str
   return labels.outputPending
 }
 
-export function ProcessWorkDetailView({ detail, form, outputs, operations, locale, labels }: ProcessWorkDetailProps) {
+export function ProcessWorkDetailView({ detail, form, outputs, operations, locale, labels, assignmentOptions, backHref }: ProcessWorkDetailProps) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [requestChangesOpen, setRequestChangesOpen] = useState(false)
   const [requestChangesReason, setRequestChangesReason] = useState('')
+  const [reassignOpen, setReassignOpen] = useState(false)
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState(detail.assigneeEmployeeId ?? assignmentOptions[0]?.id ?? '')
 
   async function post(path: string, body: Record<string, unknown>, actionKey: string): Promise<void> {
     setBusy(actionKey)
@@ -209,9 +220,16 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
     await post(`/api/process-work-items/${detail.workItemId}/request-changes`, { ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId, reason }, 'request-changes')
   }
 
+  async function submitReassign(): Promise<void> {
+    if (!selectedAssigneeId) return
+    setReassignOpen(false)
+    await post(`/api/process-work-items/${detail.workItemId}/reassign`, { ...expected, employeeId: selectedAssigneeId }, 'reassign')
+  }
+
   return (
     <section className="mx-auto w-full max-w-[92rem] px-4 py-8 sm:px-6 lg:px-10">
-      <header className="rounded-3xl border border-border bg-surface p-6 shadow-sm sm:p-8">
+      <Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'mb-4 -ml-3' })} href={backHref}>{labels.backToWork}</Link>
+      <header className="rounded-[var(--radius-surface)] border border-border bg-surface p-6 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div><p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">{detail.processKey}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{detail.processTitle}</h1>{detail.processDescription ? <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{detail.processDescription}</p> : null}</div>
           <div className="flex flex-wrap gap-2 text-sm"><span className="rounded-full bg-muted px-3 py-1.5 font-semibold text-muted-foreground">{detail.status}</span>{detail.isOverdue ? <span className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive">{labels.overdue}</span> : null}</div>
@@ -224,12 +242,15 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
         </dl>
       </header>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-muted/30 p-4" aria-label={labels.action}>
-        {detail.canClaim ? <button className="min-h-10 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/claim`, expected, 'claim') }} type="button">{labels.claim}</button> : null}
-        {detail.canRelease ? <button className="min-h-10 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/release`, expected, 'release') }} type="button">{labels.release}</button> : null}
-        {detail.canReassign ? <button className="min-h-10 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/re-resolve`, expected, 'reassign') }} type="button">{labels.reassign}</button> : null}
-        {actionButtons.map(({ action, label }) => <button className="min-h-10 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-semibold text-primary disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" disabled={busy !== null} key={action} onClick={() => runAction(action)} type="button">{label}</button>)}
-        {requestChangesOpen ? <div className="basis-full rounded-xl border border-border bg-surface p-4"><label className="grid gap-2 text-sm font-semibold" htmlFor="request-changes-reason">{labels.requestChangesReason}<textarea className="form-field min-h-24 font-normal" id="request-changes-reason" onChange={(event) => setRequestChangesReason(event.target.value)} value={requestChangesReason} /></label><div className="mt-3 flex flex-wrap justify-end gap-2"><button className="button-secondary" disabled={busy !== null} onClick={() => { setRequestChangesOpen(false); setRequestChangesReason('') }} type="button">{labels.actionCancel}</button><button className="button-primary" disabled={busy !== null} onClick={() => { void submitRequestChanges() }} type="button">{labels.requestChangesSubmit}</button></div></div> : null}
+      <div className="mt-5 flex flex-wrap items-center gap-2 rounded-[var(--radius-surface)] border border-border bg-muted/30 p-4" aria-label={labels.action}>
+        {detail.canClaim ? <Button disabled={busy !== null} loading={busy === 'claim'} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/claim`, expected, 'claim') }} type="button">{labels.claim}</Button> : null}
+        {detail.canRelease ? <Button disabled={busy !== null} loading={busy === 'release'} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/release`, expected, 'release') }} type="button" variant="secondary">{labels.release}</Button> : null}
+        {detail.canReassign && assignmentOptions.length > 0 ? <Button disabled={busy !== null} onClick={() => setReassignOpen((current) => !current)} type="button" variant="secondary">{labels.reassign}</Button> : null}
+        {detail.status === 'BLOCKED' && detail.canReassign ? <Button disabled={busy !== null} loading={busy === 're-resolve'} onClick={() => { void post(`/api/process-work-items/${detail.workItemId}/re-resolve`, expected, 're-resolve') }} type="button" variant="secondary">{labels.reResolve}</Button> : null}
+        {actionButtons.map(({ action, label }) => <Button disabled={busy !== null} key={action} loading={busy === action} onClick={() => runAction(action)} type="button" variant="secondary">{label}</Button>)}
+        {reassignOpen ? <div className="basis-full grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:grid-cols-[minmax(0,1fr)_auto]"><label className="grid min-w-0 gap-2 text-sm font-semibold" htmlFor="reassign-employee">{labels.reassignEmployee}<DropdownSelect aria-label={labels.reassignEmployee} id="reassign-employee" onChange={(event) => setSelectedAssigneeId(event.target.value)} searchable searchPlaceholder={labels.reassignEmployee} value={selectedAssigneeId}><option disabled value="">{labels.assignmentOptionsEmpty}</option>{assignmentOptions.map((option) => <option key={`${option.id}-${option.resolutionDate}`} value={option.id}>{option.name} · {option.employeeNumber}</option>)}</DropdownSelect></label><div className="flex items-end gap-2"><Button disabled={busy !== null || !selectedAssigneeId} loading={busy === 'reassign'} onClick={() => { void submitReassign() }} type="button">{labels.reassignSubmit}</Button><Button disabled={busy !== null} onClick={() => setReassignOpen(false)} type="button" variant="ghost">{labels.actionCancel}</Button></div></div> : null}
+        {detail.canReassign && assignmentOptions.length === 0 ? <p className="basis-full text-sm text-muted-foreground">{labels.assignmentOptionsEmpty}</p> : null}
+        {requestChangesOpen ? <div className="basis-full rounded-[var(--radius-surface)] border border-border bg-surface p-4"><label className="grid gap-2 text-sm font-semibold" htmlFor="request-changes-reason">{labels.requestChangesReason}<textarea className="form-field min-h-24 font-normal" id="request-changes-reason" onChange={(event) => setRequestChangesReason(event.target.value)} value={requestChangesReason} /></label><div className="mt-3 flex flex-wrap justify-end gap-2"><Button disabled={busy !== null} onClick={() => { setRequestChangesOpen(false); setRequestChangesReason('') }} type="button" variant="ghost">{labels.actionCancel}</Button><Button disabled={busy !== null} loading={busy === 'request-changes'} onClick={() => { void submitRequestChanges() }} type="button" variant="secondary">{labels.requestChangesSubmit}</Button></div></div> : null}
         {feedback ? <p aria-live="polite" className="basis-full text-sm font-medium text-muted-foreground">{feedback}</p> : null}
       </div>
       {detail.status === 'BLOCKED' ? <p className="mt-3 rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-warning" role="status">{labels.blocked}</p> : null}
@@ -237,7 +258,7 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-6">
-          <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.assignment}</h2><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">{labels.assignmentMode}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.assignmentMode ?? detail.assignmentMode}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentSource}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.source ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentDate}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.resolutionDate ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentRole}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.roleCode ?? detail.participantKey}</dd></div></dl><p className="mt-4 text-sm text-muted-foreground">{detail.claimedByUserId ? labels.claimedBy : labels.unassigned}: {detail.claimedByUserId ?? labels.unassigned}</p></section>
+          <section className="rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.assignment}</h2><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">{labels.assignmentMode}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.assignmentMode ?? detail.assignmentMode}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentSource}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.source ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentDate}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.resolutionDate ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentRole}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.roleCode ?? detail.participantKey}</dd></div></dl><p className="mt-4 text-sm text-muted-foreground">{detail.assigneeEmployeeId ? `${labels.reassignEmployee}: ${detail.assigneeEmployeeId}` : labels.unassigned}</p>{detail.claimedByUserId ? <p className="mt-1 text-sm text-muted-foreground">{labels.claimedBy}: {detail.claimedByUserId}</p> : null}</section>
           {form ? <section aria-label={labels.form} className="rounded-2xl border border-border bg-surface"><FormRuntimeRenderer initialProjection={form} locale={locale} labels={{ currentValue: labels.formCurrentValue, newValue: labels.formNewValue, saving: labels.formSaving, saved: labels.formSaved, saveError: labels.formSaveError, stale: labels.formStale, save: labels.formSave, errorSummary: labels.formErrorSummary, required: labels.formRequired, invalid: labels.formInvalid, readOnly: labels.formReadOnly, noValue: labels.formNoValue, booleanTrue: labels.formBooleanTrue, booleanFalse: labels.formBooleanFalse, referenceSearch: labels.formReferenceSearch, referenceLoading: labels.formReferenceLoading, referenceNoOptions: labels.formReferenceNoOptions, scrollHint: labels.formScrollHint }} /></section> : null}
           {isDocumentAcknowledgement && documentId ? <section className="rounded-2xl border border-border bg-surface p-5" aria-labelledby="document-acknowledgement-document"><h2 className="text-xl font-semibold" id="document-acknowledgement-document">{labels.documentDownload}</h2><p className="mt-2 text-sm font-medium">{documentLabel ?? labels.formNoValue}</p><p className="mt-2 break-all text-xs text-muted-foreground">{labels.documentChecksum}: {typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.checksumSha256 === 'string' ? documentValue.checksumSha256 : labels.formNoValue}</p><Link className="button-secondary mt-4 inline-flex" href={`/api/process-work-items/${detail.workItemId}/document`}>{labels.documentDownload}</Link></section> : null}
           {outputs ? <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.output}</h2><div className="mt-4 grid gap-4">{outputs.outputs.length === 0 ? <p className="text-sm text-muted-foreground">{labels.downloadUnavailable}</p> : outputs.outputs.map((output) => <article className="rounded-xl border border-border p-4" key={output.id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{output.title}</h3><p className="mt-1 text-xs text-muted-foreground">{outputStatusLabel(output.status, labels)}</p></div>{output.documentId && output.status === 'AVAILABLE' ? <Link className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-primary" href={`/api/process-instances/${detail.processInstanceId}/outputs/${output.id}/download`}>{labels.download}</Link> : null}</div>{output.htmlSummary && output.status === 'AVAILABLE' ? <div className="prose prose-sm mt-4 max-w-none border-t border-border pt-4" dangerouslySetInnerHTML={{ __html: output.htmlSummary }} /> : null}</article>)}</div></section> : null}
