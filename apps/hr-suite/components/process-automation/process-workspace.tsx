@@ -1,8 +1,23 @@
 'use client'
 
 import Link from 'next/link'
+import { ListTodo } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+
+import { CollectionPagination } from '@/components/patterns/collection-pagination'
+import { DataTableShell } from '@/components/patterns/data-table-shell'
+import { FilterBar } from '@/components/patterns/filter-bar'
+import { PageHeader } from '@/components/patterns/page-header'
+import { ScrollableTabs, tabLinkClasses } from '@/components/patterns/scrollable-tabs'
+import { PageShell } from '@/components/layout/page-shell'
+import { Badge, type BadgeTone } from '@/components/ui/badge'
+import { Button, buttonClasses } from '@/components/ui/button'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
 import type { Locale } from '@/lib/i18n/config'
-import type { ProcessWorkFilterOptions, ProcessWorkItem, ProcessWorkList, ProcessWorkSort, ProcessWorkTab } from '@/lib/process-automation/work-service'
+import type { ProcessWorkFilterOptions, ProcessWorkItem, ProcessWorkList, ProcessWorkSort, ProcessWorkTab, ProcessWorkTabCounts } from '@/lib/process-automation/work-service'
 
 export interface ProcessWorkspaceLabels {
   workspaceTitle: string
@@ -45,6 +60,7 @@ export interface ProcessWorkspaceLabels {
   assignmentProcess: string
   unknown: string
   noItems: string
+  noItemsDescription: string
   loading: string
   readError: string
   denied: string
@@ -55,6 +71,15 @@ export interface ProcessWorkspaceLabels {
   claimedBy: string
   unassigned: string
   open: string
+  totalItems: string
+  allProcesses: string
+  allAdministrations: string
+  resultsCount: string
+  pageOf: string
+  previous: string
+  next: string
+  startInternalTransfer: string
+  startDocumentAcknowledgement: string
 }
 
 interface ProcessWorkspaceProps {
@@ -62,49 +87,36 @@ interface ProcessWorkspaceProps {
   readonly labels: ProcessWorkspaceLabels
   readonly data: ProcessWorkList | null
   readonly options: ProcessWorkFilterOptions
+  readonly tabCounts: ProcessWorkTabCounts | null
   readonly tab: ProcessWorkTab
+  readonly page: number
+  readonly pageSize: number
   readonly search: string
   readonly status: string
   readonly processDefinitionId: string
   readonly administrationId: string
   readonly sort: ProcessWorkSort
+  readonly canStartInternalTransfer: boolean
+  readonly canStartDocumentAcknowledgement: boolean
   readonly errorCode?: string
 }
 
+const tabs: readonly ProcessWorkTab[] = ['TODO', 'CLAIMED', 'WAITING', 'COMPLETED', 'ALL']
 const statusLabels: Record<string, keyof ProcessWorkspaceLabels> = {
-  OPEN: 'statusOpen',
-  CLAIMED: 'statusClaimed',
-  BLOCKED: 'statusBlocked',
-  COMPLETED: 'statusCompleted',
-  CANCELLED: 'statusCancelled',
-  EXPIRED: 'statusExpired',
+  OPEN: 'statusOpen', CLAIMED: 'statusClaimed', BLOCKED: 'statusBlocked', COMPLETED: 'statusCompleted', CANCELLED: 'statusCancelled', EXPIRED: 'statusExpired',
 }
 
 function formatDate(value: string | null, locale: Locale): string {
   if (!value) return '—'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date)
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date)
 }
 
 function tabLabel(tab: ProcessWorkTab, labels: ProcessWorkspaceLabels): string {
-  return {
-    TODO: labels.tabsTodo,
-    CLAIMED: labels.tabsClaimed,
-    WAITING: labels.tabsWaiting,
-    COMPLETED: labels.tabsCompleted,
-    ALL: labels.tabsAll,
-  }[tab]
+  return { TODO: labels.tabsTodo, CLAIMED: labels.tabsClaimed, WAITING: labels.tabsWaiting, COMPLETED: labels.tabsCompleted, ALL: labels.tabsAll }[tab]
 }
 
-function buildQuery(input: {
-  tab: ProcessWorkTab
-  search: string
-  status: string
-  processDefinitionId: string
-  administrationId: string
-  sort: ProcessWorkSort
-}): string {
+function buildQuery(input: { tab: ProcessWorkTab; search: string; status: string; processDefinitionId: string; administrationId: string; sort: ProcessWorkSort; page?: number }): string {
   const params = new URLSearchParams()
   if (input.tab !== 'TODO') params.set('tab', input.tab)
   if (input.search) params.set('search', input.search)
@@ -112,23 +124,21 @@ function buildQuery(input: {
   if (input.processDefinitionId) params.set('processDefinitionId', input.processDefinitionId)
   if (input.administrationId) params.set('administrationId', input.administrationId)
   if (input.sort !== 'NEEDS_ACTION') params.set('sort', input.sort)
+  if (input.page && input.page > 1) params.set('page', String(input.page))
   const query = params.toString()
   return query ? `?${query}` : ''
 }
 
 function assignmentText(item: ProcessWorkItem, labels: ProcessWorkspaceLabels): string {
-  const sourceLabels: Record<string, string> = {
-    QUEUE: labels.assignmentQueue,
-    DIRECT: labels.assignmentDirect,
-    SCOPE: labels.assignmentScope,
-    PROCESS: labels.assignmentProcess,
-  }
-  const modeLabels: Record<string, string> = { ANY_ONE: labels.assignmentAnyOne }
-  const rawSource = item.assignmentExplanation.source ?? item.receivedVia
-  const rawMode = item.assignmentExplanation.assignmentMode ?? item.assignmentMode
-  const source = sourceLabels[rawSource] ?? rawSource
-  const mode = modeLabels[rawMode] ?? rawMode
-  return `${mode} · ${source || labels.unknown}`
+  const sources: Record<string, string> = { QUEUE: labels.assignmentQueue, DIRECT: labels.assignmentDirect, SCOPE: labels.assignmentScope, PROCESS: labels.assignmentProcess }
+  const modes: Record<string, string> = { ANY_ONE: labels.assignmentAnyOne }
+  const source = item.assignmentExplanation.source ?? item.receivedVia
+  const mode = item.assignmentExplanation.assignmentMode ?? item.assignmentMode
+  return `${modes[mode] ?? mode} · ${sources[source] ?? (source || labels.unknown)}`
+}
+
+function effectiveStatus(item: ProcessWorkItem): string {
+  return item.instanceStatus === 'BLOCKED' ? 'BLOCKED' : item.status
 }
 
 function workStatusLabel(status: string, labels: ProcessWorkspaceLabels): string {
@@ -136,15 +146,25 @@ function workStatusLabel(status: string, labels: ProcessWorkspaceLabels): string
   return key ? labels[key] : status.replaceAll('_', ' ')
 }
 
+function statusTone(status: string, overdue: boolean): BadgeTone {
+  if (overdue) return 'danger'
+  if (status === 'COMPLETED') return 'success'
+  if (status === 'BLOCKED' || status === 'EXPIRED') return 'warning'
+  if (status === 'CLAIMED') return 'info'
+  return 'neutral'
+}
+
+function StatusBadge({ item, labels }: { item: ProcessWorkItem; labels: ProcessWorkspaceLabels }) {
+  const currentStatus = effectiveStatus(item)
+  return <Badge tone={statusTone(currentStatus, item.isOverdue)}>{item.isOverdue ? labels.overdue : workStatusLabel(currentStatus, labels)}</Badge>
+}
+
 function WorkItemCard({ item, locale, labels }: { item: ProcessWorkItem; locale: Locale; labels: ProcessWorkspaceLabels }) {
   return (
-    <article className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{item.processKey}</p>
-          <h2 className="mt-1 text-base font-semibold text-foreground">{item.processTitle}</h2>
-        </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${item.isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>{item.isOverdue ? labels.overdue : workStatusLabel(item.status, labels)}</span>
+    <Surface className="p-4">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground">{item.processKey}</p><h2 className="mt-1 truncate text-base font-semibold text-foreground">{item.processTitle}</h2></div>
+        <StatusBadge item={item} labels={labels} />
       </div>
       <dl className="mt-4 grid gap-3 text-sm">
         <div><dt className="text-xs text-muted-foreground">{labels.subject}</dt><dd className="font-medium">{item.subjectName ?? labels.unknown}</dd></div>
@@ -152,50 +172,60 @@ function WorkItemCard({ item, locale, labels }: { item: ProcessWorkItem; locale:
         <div><dt className="text-xs text-muted-foreground">{labels.assignment}</dt><dd>{assignmentText(item, labels)}</dd></div>
         <div><dt className="text-xs text-muted-foreground">{labels.deadline}</dt><dd className={item.isOverdue ? 'font-semibold text-destructive' : undefined}>{formatDate(item.deadlineAt, locale)}</dd></div>
       </dl>
-      <Link className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href={`/work/${item.workItemId}`}>{labels.open}</Link>
-    </article>
+      <Link className={`${buttonClasses({ size: 'sm' })} mt-5`} href={`/work/${item.workItemId}`}>{labels.open}</Link>
+    </Surface>
   )
 }
 
-export function ProcessWorkWorkspace({ locale, labels, data, options, tab, search, status, processDefinitionId, administrationId, sort, errorCode }: ProcessWorkspaceProps) {
-  const tabs: ProcessWorkTab[] = ['TODO', 'CLAIMED', 'WAITING', 'COMPLETED', 'ALL']
+export function ProcessWorkWorkspace({ locale, labels, data, options, tabCounts, tab, page, pageSize, search, status, processDefinitionId, administrationId, sort, canStartInternalTransfer, canStartDocumentAcknowledgement, errorCode }: ProcessWorkspaceProps) {
+  const router = useRouter()
   const errorMessage = errorCode === 'FORBIDDEN' ? labels.denied : labels.readError
   const today = new Date().toISOString().slice(0, 10)
   const overdueCount = data?.items.filter((item) => item.isOverdue).length ?? 0
   const dueTodayCount = data?.items.filter((item) => item.deadlineAt?.slice(0, 10) === today && !item.isOverdue).length ?? 0
+  const totalPages = data ? Math.ceil(data.total / pageSize) : 0
+  const resultFrom = data && data.total > 0 ? (page - 1) * pageSize + 1 : 0
+  const resultTo = data ? Math.min(page * pageSize, data.total) : 0
+  const queryState = { tab, search, status, processDefinitionId, administrationId, sort }
 
   return (
-    <section className="mx-auto w-full max-w-[92rem] px-4 py-8 sm:px-6 lg:px-10">
-      <header className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div><p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">{labels.workspaceTitle}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{labels.workspaceTitle}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.workspaceDescription}</p></div>
-        {data ? <div className="flex flex-wrap items-center justify-end gap-2 text-sm" aria-live="polite"><span className="text-muted-foreground">{data.total}</span>{overdueCount ? <span className="rounded-full bg-destructive-surface px-2.5 py-1 text-xs font-semibold text-destructive">{overdueCount} · {labels.overdue}</span> : null}{dueTodayCount ? <span className="rounded-full bg-warning-surface px-2.5 py-1 text-xs font-semibold text-warning">{dueTodayCount} · {labels.dueToday}</span> : null}</div> : null}
-      </header>
+    <PageShell className="py-8" width="wide">
+      <PageHeader
+        title={labels.workspaceTitle}
+        description={labels.workspaceDescription}
+        actions={<><Badge tone="info">{data?.total ?? 0} {labels.totalItems}</Badge>{canStartInternalTransfer ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/work/new/internal-transfer">{labels.startInternalTransfer}</Link> : null}{canStartDocumentAcknowledgement ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/work/new/document-acknowledgement">{labels.startDocumentAcknowledgement}</Link> : null}</>}
+      />
 
-      <nav aria-label={labels.workspaceTitle} className="mt-6 flex gap-2 overflow-x-auto border-b border-border pb-px">
-        {tabs.map((candidate) => {
-          const active = candidate === tab
-          return <Link key={candidate} aria-current={active ? 'page' : undefined} className={`whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'}`} href={`/work${buildQuery({ tab: candidate, search, status, processDefinitionId, administrationId, sort })}`}>{tabLabel(candidate, labels)}</Link>
-        })}
-      </nav>
+      <ScrollableTabs ariaLabel={labels.workspaceTitle} className="mt-6" contentProps={{ role: 'tablist' }} leftLabel={labels.previous} rightLabel={labels.next}>
+        {tabs.map((candidate) => <Link key={candidate} aria-current={candidate === tab ? 'page' : undefined} className={tabLinkClasses({ active: candidate === tab })} href={`/work${buildQuery({ ...queryState, tab: candidate })}`}>{tabLabel(candidate, labels)}{tabCounts ? <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums">{tabCounts[candidate]}</span> : null}</Link>)}
+      </ScrollableTabs>
 
-      <form className="mt-6 grid gap-3 rounded-2xl border border-border bg-muted/30 p-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[minmax(14rem,1.5fr)_repeat(4,minmax(8rem,1fr))_auto]" action="/work" method="get">
-        <label className="md:col-span-1"><span className="sr-only">{labels.searchPlaceholder}</span><input className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20" defaultValue={search} name="search" placeholder={labels.searchPlaceholder} type="search" /></label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>{labels.statusFilter}</span><select className="h-11 rounded-lg border border-input bg-background px-3 text-sm font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" defaultValue={status} name="status"><option value="">{labels.statusAll}</option>{['OPEN', 'CLAIMED', 'BLOCKED', 'COMPLETED', 'CANCELLED', 'EXPIRED'].map((value) => <option key={value} value={value}>{workStatusLabel(value, labels)}</option>)}</select></label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>{labels.processFilter}</span><select className="h-11 rounded-lg border border-input bg-background px-3 text-sm font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" defaultValue={processDefinitionId} name="processDefinitionId"><option value="">{labels.processFilter}</option>{options.processes.map((process) => <option key={process.id} value={process.id}>{process.title}</option>)}</select></label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>{labels.administrationFilter}</span><select className="h-11 rounded-lg border border-input bg-background px-3 text-sm font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" defaultValue={administrationId} name="administrationId"><option value="">{labels.administrationFilter}</option>{options.administrations.map((administration) => <option key={administration.id} value={administration.id}>{administration.name}</option>)}</select></label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground"><span>{labels.sort}</span><select className="h-11 rounded-lg border border-input bg-background px-3 text-sm font-normal text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary" defaultValue={sort} name="sort"><option value="NEEDS_ACTION">{labels.sortNeedsAction}</option><option value="DEADLINE">{labels.sortDeadline}</option></select></label>
-        <input name="tab" type="hidden" value={tab} /><button className="min-h-11 self-end rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="submit">{labels.applyFilters}</button>
-      </form>
+      <FilterBar className="mt-6">
+        <form action="/work" className="contents" method="get">
+          <label className="basis-full min-w-0 flex-1 sm:basis-0"><span className="sr-only">{labels.searchPlaceholder}</span><TextInput defaultValue={search} name="search" placeholder={labels.searchPlaceholder} type="search" /></label>
+          <label className="basis-full min-w-0 flex-1 text-xs font-semibold text-muted-foreground sm:basis-0"><span className="mb-1 block">{labels.statusFilter}</span><DropdownSelect aria-label={labels.statusFilter} defaultValue={status} name="status" placeholder={labels.statusAll} searchable searchPlaceholder={labels.searchPlaceholder}><option value="">{labels.statusAll}</option>{['OPEN', 'CLAIMED', 'BLOCKED', 'COMPLETED', 'CANCELLED', 'EXPIRED'].map((value) => <option key={value} value={value}>{workStatusLabel(value, labels)}</option>)}</DropdownSelect></label>
+          <label className="basis-full min-w-0 flex-1 text-xs font-semibold text-muted-foreground sm:basis-0"><span className="mb-1 block">{labels.processFilter}</span><DropdownSelect aria-label={labels.processFilter} defaultValue={processDefinitionId} name="processDefinitionId" placeholder={labels.allProcesses} searchable searchPlaceholder={labels.searchPlaceholder}><option value="">{labels.allProcesses}</option>{options.processes.map((process) => <option key={process.id} value={process.id}>{process.title}</option>)}</DropdownSelect></label>
+          <label className="basis-full min-w-0 flex-1 text-xs font-semibold text-muted-foreground sm:basis-0"><span className="mb-1 block">{labels.administrationFilter}</span><DropdownSelect aria-label={labels.administrationFilter} defaultValue={administrationId} name="administrationId" placeholder={labels.allAdministrations} searchable searchPlaceholder={labels.searchPlaceholder}><option value="">{labels.allAdministrations}</option>{options.administrations.map((administration) => <option key={administration.id} value={administration.id}>{administration.name}</option>)}</DropdownSelect></label>
+          <label className="basis-full min-w-0 flex-1 text-xs font-semibold text-muted-foreground sm:basis-0"><span className="mb-1 block">{labels.sort}</span><DropdownSelect aria-label={labels.sort} defaultValue={sort} name="sort" placeholder={labels.sortNeedsAction}><option value="NEEDS_ACTION">{labels.sortNeedsAction}</option><option value="DEADLINE">{labels.sortDeadline}</option></DropdownSelect></label>
+          <input name="tab" type="hidden" value={tab} /><input name="page" type="hidden" value="1" />
+          <Button size="sm" type="submit">{labels.applyFilters}</Button>
+        </form>
+      </FilterBar>
 
-      {errorCode ? <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{errorMessage}</div> : null}
-      {!errorCode && data?.items.length === 0 ? <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground" role="status">{labels.noItems}</div> : null}
+      {errorCode ? <Surface className="mt-6 border-destructive/30 bg-destructive-surface p-4 text-sm text-destructive" role="alert">{errorMessage}</Surface> : null}
+      {!errorCode && !data ? <Surface className="mt-6 p-5 text-sm text-muted-foreground" role="status">{labels.loading}</Surface> : null}
+      {!errorCode && data?.items.length === 0 ? <div className="mt-6"><EmptyState description={labels.noItemsDescription} icon={<ListTodo />} title={labels.noItems} /></div> : null}
       {!errorCode && data && data.items.length > 0 ? <>
-        <div className="mt-6 hidden overflow-hidden rounded-2xl border border-border bg-surface shadow-sm md:block">
-          <table className="w-full border-collapse text-left text-sm"><caption className="sr-only">{labels.workspaceTitle}</caption><thead className="bg-muted/50 text-xs uppercase tracking-[.1em] text-muted-foreground"><tr><th className="px-4 py-3 font-semibold">{labels.columnsProcess}</th><th className="px-4 py-3 font-semibold">{labels.subject}</th><th className="px-4 py-3 font-semibold">{labels.step}</th><th className="px-4 py-3 font-semibold">{labels.assignment}</th><th className="px-4 py-3 font-semibold">{labels.status}</th><th className="px-4 py-3 font-semibold">{labels.deadline}</th><th className="px-4 py-3 font-semibold"><span className="sr-only">{labels.actions}</span></th></tr></thead><tbody className="divide-y divide-border">{data.items.map((item) => <tr key={item.workItemId} className="transition hover:bg-muted/30"><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary" href={`/work/${item.workItemId}`}>{item.processTitle}</Link><p className="mt-1 text-xs text-muted-foreground">{item.processKey}</p></td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{assignmentText(item, labels)}</td><td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>{item.isOverdue ? labels.overdue : workStatusLabel(item.status, labels)}</span></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className="rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary" href={`/work/${item.workItemId}`}>{labels.open}</Link></td></tr>)}</tbody></table>
+        <div className="mt-6 hidden md:block">
+          <DataTableShell caption={labels.workspaceTitle}>
+            <thead className="bg-surface-subtle text-xs uppercase tracking-[.1em] text-muted-foreground"><tr>{[labels.columnsProcess, labels.subject, labels.step, labels.assignment, labels.status, labels.deadline, labels.actions].map((heading, index) => <th className="px-4 py-3 font-semibold" key={`${heading}-${index}`}>{index === 6 ? <span className="sr-only">{heading}</span> : heading}</th>)}</tr></thead>
+            <tbody className="divide-y divide-border">{data.items.map((item) => <tr className="transition-colors hover:bg-muted/30" key={item.workItemId}><td className="px-4 py-4"><Link className="font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus" href={`/work/${item.workItemId}`}>{item.processTitle}</Link><p className="mt-1 text-xs text-muted-foreground">{item.processKey}</p></td><td className="px-4 py-4">{item.subjectName ?? labels.unknown}</td><td className="px-4 py-4">{item.stepTitle}</td><td className="px-4 py-4 text-xs">{assignmentText(item, labels)}</td><td className="px-4 py-4"><StatusBadge item={item} labels={labels} /></td><td className={`px-4 py-4 ${item.isOverdue ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>{formatDate(item.deadlineAt, locale)}</td><td className="px-4 py-4 text-right"><Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'text-primary' })} href={`/work/${item.workItemId}`}>{labels.open}</Link></td></tr>)}</tbody>
+          </DataTableShell>
         </div>
         <div className="mt-6 grid gap-4 md:hidden">{data.items.map((item) => <WorkItemCard key={item.workItemId} item={item} locale={locale} labels={labels} />)}</div>
+        <CollectionPagination className="mt-6" resultRange={labels.resultsCount.replace('{from}', String(resultFrom)).replace('{to}', String(resultTo)).replace('{count}', String(data.total))} pageSize={totalPages > 1 ? labels.pageOf.replace('{page}', String(page)).replace('{pages}', String(totalPages)) : undefined} pagination={totalPages > 1 ? { ariaLabel: labels.workspaceTitle, currentPage: page, totalPages, onPageChange: (nextPage) => router.push(`/work${buildQuery({ ...queryState, page: nextPage })}`), previousLabel: labels.previous, nextLabel: labels.next } : undefined} />
       </> : null}
-      {!data && !errorCode ? <div className="mt-6 rounded-2xl border border-border p-6 text-sm text-muted-foreground" role="status">{labels.loading}</div> : null}
-    </section>
+      {data && data.items.length > 0 ? <div aria-live="polite" className="sr-only">{overdueCount ? `${overdueCount} ${labels.overdue}` : ''}{dueTodayCount ? ` ${dueTodayCount} ${labels.dueToday}` : ''}</div> : null}
+    </PageShell>
   )
 }

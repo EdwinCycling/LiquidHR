@@ -6,6 +6,12 @@
 
 De `R5-TEST`-fixture voor Roadmap 5 Work & Automation gebruikt uitsluitend bestaande P9/P10 process-, work-item-, document- en job-contracten. De helper maakt/ leest de vijf R5-process definitions en de bereikbare `CLAIMED`, `REJECTED`, `REQUEST_CHANGES`, Employee acknowledgement en succesvolle output-cases idempotent terug. `OPEN_HR_QUEUE_UNCLAIMED`, deadlines, `BLOCKED` en echte non-self cross-scope negatives blijven expliciet onbewezen door remote runtime/RLS-contractblokkades; er zijn geen migrations, productieacties, version bump, main-merge, main-push of Vercel-acties uitgevoerd. Zie [`delivery/R5_SHARED_TEST_DATASET.md`](delivery/R5_SHARED_TEST_DATASET.md) en [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
 
+## R5-2 Work List + Foundation — 2026-08-26
+
+**Status: R5-2 GREEN; FULL SUITE RED ON EXISTING UNRELATED JOURNEY TEST**
+
+De bestaande `/work`-projection is afgemaakt met Foundation v1.2, vijf tab-counts, URL-veilige filters, correcte service-pagination achter de bestaande administratie-wrapper, populated/no-results states, startpage process cards en Employee Detail → Processen-consistentie. Authenticated HR/Manager/Employee browseracceptance is groen op desktop `1440x900` en mobiel `390x844`; de enige suite-failure blijft de bestaande Journey-test op `Binnenkort beschikbaar`. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de actuele gate-status. Geen migration, merge, push, version bump of Vercel.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 **Status: TEST-TRUNK GREEN; AUTHENTICATED COMBINED SANITY GREEN; READY FOR MAIN INTEGRATION**

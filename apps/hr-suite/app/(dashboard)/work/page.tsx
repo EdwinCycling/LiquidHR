@@ -1,9 +1,9 @@
-import Link from 'next/link'
 import { ProcessWorkWorkspace, type ProcessWorkspaceLabels } from '@/components/process-automation/process-workspace'
+import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { getDocumentAcknowledgementStartData } from '@/lib/process-automation/document-acknowledgement-service'
 import { getInternalTransferStartData } from '@/lib/process-automation/internal-transfer-start-service'
-import { listProcessWork, listProcessWorkFilterOptions, type ProcessWorkSort, type ProcessWorkTab, ProcessWorkError } from '@/lib/process-automation/work-service'
+import { listProcessWork, listProcessWorkFilterOptions, listProcessWorkTabCounts, type ProcessWorkSort, type ProcessWorkTab, ProcessWorkError } from '@/lib/process-automation/work-service'
 
 interface WorkPageProps {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -21,8 +21,16 @@ function sort(value: string): ProcessWorkSort {
   return value === 'DEADLINE' ? 'DEADLINE' : 'NEEDS_ACTION'
 }
 
+function page(value: string): number {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 10000) : 1
+}
+
+const WORK_PAGE_SIZE = 25
+
 export default async function WorkPage({ searchParams }: WorkPageProps) {
   const query = await searchParams
+  const requestContext = await getRequestAuthorizationContext()
   const locale = await getLocale()
   const t = await getTranslator('processAutomation', locale)
   const currentTab = tab(first(query.tab))
@@ -31,6 +39,8 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
   const currentProcessDefinitionId = first(query.processDefinitionId)
   const currentAdministrationId = first(query.administrationId)
   const currentSort = sort(first(query.sort))
+  const currentPage = page(first(query.page))
+  const workDependencies = { supabase: requestContext.supabase, context: requestContext.context }
   const labels: ProcessWorkspaceLabels = {
     workspaceTitle: t('workspaceTitle'),
     workspaceDescription: t('workspaceDescription'),
@@ -82,32 +92,40 @@ export default async function WorkPage({ searchParams }: WorkPageProps) {
     claimedBy: t('claimedBy'),
     unassigned: t('unassigned'),
     open: t('open'),
+    totalItems: t('totalItems'),
+    noItemsDescription: t('noItemsDescription'),
+    allProcesses: t('allProcesses'),
+    allAdministrations: t('allAdministrations'),
+    resultsCount: t('resultsCount'),
+    pageOf: t('pageOf'),
+    previous: t('previous'),
+    next: t('next'),
+    startInternalTransfer: t('p9.startTitle'),
+    startDocumentAcknowledgement: t('p10.startTitle'),
   }
 
   let data = null
+  let tabCounts = null
   let errorCode: string | undefined
   try {
-    data = await listProcessWork({
-      tab: currentTab,
+    const input = {
       search: currentSearch,
       status: currentStatus,
       processDefinitionId: currentProcessDefinitionId || undefined,
       administrationId: currentAdministrationId || undefined,
       language: locale,
       sort: currentSort,
-    })
+    } as const
+    ;[data, tabCounts] = await Promise.all([
+      listProcessWork({ ...input, tab: currentTab, limit: WORK_PAGE_SIZE, offset: (currentPage - 1) * WORK_PAGE_SIZE }, workDependencies),
+      listProcessWorkTabCounts(input, workDependencies),
+    ])
   } catch (error) {
     errorCode = error instanceof ProcessWorkError ? error.code : 'PROCESS_WORK_PROJECTION_FAILED'
   }
 
-  const options = await listProcessWorkFilterOptions().catch(() => ({ processes: [], administrations: [] }))
+  const options = await listProcessWorkFilterOptions(workDependencies, locale).catch(() => ({ processes: [], administrations: [] }))
   const canStartInternalTransfer = await getInternalTransferStartData().then(() => true).catch(() => false)
   const canStartDocumentAcknowledgement = await getDocumentAcknowledgementStartData().then(() => true).catch(() => false)
-  return <>
-    {canStartInternalTransfer || canStartDocumentAcknowledgement ? <div className="mx-auto flex w-full max-w-[92rem] flex-wrap justify-end gap-2 px-4 pt-6 sm:px-6 lg:px-10">
-      {canStartDocumentAcknowledgement ? <Link className="button-secondary" href="/work/new/document-acknowledgement">{t('p10.startTitle')}</Link> : null}
-      {canStartInternalTransfer ? <Link className="button-primary" href="/work/new/internal-transfer">{t('p9.startTitle')}</Link> : null}
-    </div> : null}
-    <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} tab={currentTab} search={currentSearch} status={currentStatus} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} errorCode={errorCode} />
-  </>
+  return <ProcessWorkWorkspace locale={locale} labels={labels} data={data} options={options} tabCounts={tabCounts} tab={currentTab} page={currentPage} pageSize={WORK_PAGE_SIZE} search={currentSearch} status={currentStatus} processDefinitionId={currentProcessDefinitionId} administrationId={currentAdministrationId} sort={currentSort} canStartInternalTransfer={canStartInternalTransfer} canStartDocumentAcknowledgement={canStartDocumentAcknowledgement} errorCode={errorCode} />
 }

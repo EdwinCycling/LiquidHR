@@ -117,6 +117,8 @@ export type ProcessWorkDetail = z.infer<typeof workDetailSchema>
 export type ProcessWorkTab = 'TODO' | 'CLAIMED' | 'WAITING' | 'COMPLETED' | 'ALL'
 export type ProcessWorkSort = 'NEEDS_ACTION' | 'DEADLINE'
 
+export type ProcessWorkTabCounts = Record<ProcessWorkTab, number>
+
 export interface ProcessWorkListInput {
   readonly hrGroupId?: string
   readonly administrationId?: string
@@ -156,6 +158,15 @@ export interface ProcessWorkDependencies {
   readonly context: AuthContext
 }
 
+const processWorkTabs: readonly ProcessWorkTab[] = ['TODO', 'CLAIMED', 'WAITING', 'COMPLETED', 'ALL']
+
+function boundedPagination(input: Pick<ProcessWorkListInput, 'limit' | 'offset'>): { limit: number; offset: number } {
+  return {
+    limit: Math.min(Math.max(input.limit ?? 100, 1), 200),
+    offset: Math.max(input.offset ?? 0, 0),
+  }
+}
+
 function rpcErrorCode(message: string): ProcessWorkErrorCode {
   const candidate = message.split(':', 1)[0]?.trim() ?? ''
   if (candidate === 'AUTHENTICATION_REQUIRED') return 'AUTHENTICATION_REQUIRED'
@@ -183,6 +194,8 @@ async function authorizedClient(dependencies?: ProcessWorkDependencies) {
 
 export async function listProcessWork(input: ProcessWorkListInput, dependencies?: ProcessWorkDependencies): Promise<ProcessWorkList> {
   const { supabase, context } = await authorizedClient(dependencies)
+  const pagination = boundedPagination(input)
+  const administrationFiltered = Boolean(input.administrationId)
   const request = {
     requested_hr_group_id: input.hrGroupId ?? context.hrGroupId!,
     requested_administration_id: input.administrationId,
@@ -192,8 +205,10 @@ export async function listProcessWork(input: ProcessWorkListInput, dependencies?
     requested_process_definition_id: input.processDefinitionId,
     requested_language: input.language,
     requested_sort: input.sort ?? 'NEEDS_ACTION',
-    requested_limit: input.limit ?? 100,
-    requested_offset: input.offset ?? 0,
+    // De bestaande administratie-wrapper filtert pas na het pagineren. Lees
+    // daarom eerst het ondersteunde maximum en pas daarna de gevraagde pagina.
+    requested_limit: administrationFiltered ? 200 : pagination.limit,
+    requested_offset: administrationFiltered ? 0 : pagination.offset,
   }
   const { data, error } = input.subjectEmploymentId
     ? await supabase.rpc('get_process_work_projection_for_employment', {
@@ -207,7 +222,28 @@ export async function listProcessWork(input: ProcessWorkListInput, dependencies?
   if (error) throwRpcError(error.message)
   const parsed = workListSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
-  return parsed.data
+  if (!administrationFiltered) return parsed.data
+
+  const items = parsed.data.items.slice(pagination.offset, pagination.offset + pagination.limit)
+  return {
+    items,
+    total: parsed.data.total,
+    hasMore: parsed.data.total > pagination.offset + pagination.limit,
+  }
+}
+
+export async function listProcessWorkTabCounts(
+  input: Omit<ProcessWorkListInput, 'tab' | 'limit' | 'offset'>,
+  dependencies?: ProcessWorkDependencies,
+): Promise<ProcessWorkTabCounts> {
+  const counts = await Promise.all(processWorkTabs.map(async (tab) => ({
+    tab,
+    total: (await listProcessWork({ ...input, tab, limit: 1, offset: 0 }, dependencies)).total,
+  })))
+  return counts.reduce<ProcessWorkTabCounts>((result, entry) => {
+    result[entry.tab] = entry.total
+    return result
+  }, { TODO: 0, CLAIMED: 0, WAITING: 0, COMPLETED: 0, ALL: 0 })
 }
 
 export interface ProcessWorkFilterOptions {
@@ -215,22 +251,22 @@ export interface ProcessWorkFilterOptions {
   readonly administrations: ReadonlyArray<{ id: string; code: string; name: string }>
 }
 
-function localizedOptionTitle(value: unknown, fallback: string): string {
+function localizedOptionTitle(value: unknown, fallback: string, language: 'nl' | 'en'): string {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return fallback
   const record = value as Record<string, unknown>
-  const languageValue = record.nl ?? record.en
+  const languageValue = record[language] ?? record[language === 'nl' ? 'en' : 'nl']
   return typeof languageValue === 'string' && languageValue.trim() ? languageValue : fallback
 }
 
-export async function listProcessWorkFilterOptions(): Promise<ProcessWorkFilterOptions> {
-  const { supabase, context } = await authorizedClient()
+export async function listProcessWorkFilterOptions(dependencies?: ProcessWorkDependencies, language: 'nl' | 'en' = 'nl'): Promise<ProcessWorkFilterOptions> {
+  const { supabase, context } = await authorizedClient(dependencies)
   const [processes, administrations] = await Promise.all([
     supabase.from('process_definitions').select('id, key, title').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId!).eq('status', 'PUBLISHED').order('key').limit(200),
     supabase.from('administrations').select('id, code, name').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId!).eq('is_active', true).order('name').limit(200),
   ])
   if (processes.error || administrations.error) throw new ProcessWorkError('PROCESS_WORK_FILTER_OPTIONS_FAILED', 500)
   return {
-    processes: processes.data.map((process) => ({ id: process.id, key: process.key, title: localizedOptionTitle(process.title, process.key) })),
+    processes: processes.data.map((process) => ({ id: process.id, key: process.key, title: localizedOptionTitle(process.title, process.key, language) })),
     administrations: administrations.data.map((administration) => ({ id: administration.id, code: administration.code, name: administration.name })),
   }
 }

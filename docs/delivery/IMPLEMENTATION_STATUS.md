@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## R5-2 Work List + Foundation — 2026-08-26
+
+**Status: R5-2 GREEN — FULL SUITE RED ON EXISTING UNRELATED TEST**
+
+`work/r5-work-list` is vanaf exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885` uitgevoerd in de geïsoleerde worktree. `/work` gebruikt de bestaande process-work projection, vijf tabs met counts, URL-state voor filters en tabs, bestaande searchable Foundation-dropdowns, zoek/filter/sortering en offset/limit-pagination. De administratie-wrapper wordt service-side eerst authorization-filtered gelezen binnen de bestaande contractgrens en daarna correct gepagineerd. Startpage process cards en Employee Detail → Processen blijven op dezelfde projectie aangesloten. Geen schema-, migration-, trigger-, scheduler-, runtime-mutation-, fixture-, version-, merge-, push- of Vercel-wijziging.
+
+De lokale slice-gates zijn groen: gerichte Work/service `4/4`, strict TypeScript, i18n `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings` en Webpack `226/226` static pages/routes. `git diff --check` is groen. De volledige suite eindigde op `254` bestanden met `974/975` tests groen; de enige failure is de ongewijzigde `components/journeys/journey-steps.test.tsx`-verwachting voor `Binnenkort beschikbaar`.
+
+Authenticated browser acceptance is groen uitgevoerd op een fresh Webpack-server met de canonical ignored `.env.local`. HR `/work` toonde live TODO/CLAIMED/WAITING/COMPLETED/ALL-counts `7/0/0/14/21`; status/proces/administratie/search/sort, gecombineerde filters, zero-result, URL-refresh, page-reset en detail/back zijn gecontroleerd. Manager zag uitsluitend bestaande direct-report work van Noah Hendriks; Employee uitsluitend self work van Noah Hendriks. Startpage process card en Employee Detail → Processen zijn gecontroleerd. Desktop `1440x900` en mobiel `390x844` hadden op de gecontroleerde routes geen horizontale overflow; browserconsole bevatte geen relevante warnings/errors of hydration errors. De live dataset past met 21 items binnen page-size 25; pagination is daarom live niet afgedwongen, maar wel door de service- en workspace-tests gedekt. Geen credentials of env-bestand is gecommit en geen remote/fixture-mutatie is uitgevoerd.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 **Status: TEST-TRUNK GREEN — AUTHENTICATED COMBINED SANITY GREEN — READY TO INTEGRATE INTO MAIN — RELEASE PENDING**
