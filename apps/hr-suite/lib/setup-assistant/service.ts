@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { AuthorizationError, getRequestAuthorizationContext, permissionErrorResponse, requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { canOpenSetupAssistantRoute, SETUP_ASSISTANT_GUIDE_CODE, getVisibleSetupAssistantSteps } from './guide'
+import { getSetupAssistantSuggestions } from './suggestions'
 import type { SetupAssistantState } from './types'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -78,6 +79,9 @@ export async function getSetupAssistantState(dependencies?: SetupDependencies): 
   if (settingError || completionError) throw new SetupAssistantError('SETUP_ASSISTANT_READ_FAILED', 500)
 
   const visibleSteps = getVisibleSetupAssistantSteps(auth)
+  const suggestions = setting?.is_enabled
+    ? await getSetupAssistantSuggestions({ auth, supabase, visibleSteps })
+    : []
   return {
     guideCode: SETUP_ASSISTANT_GUIDE_CODE,
     isEnabled: setting?.is_enabled ?? false,
@@ -89,7 +93,7 @@ export async function getSetupAssistantState(dependencies?: SetupDependencies): 
     completedStepKeys: (completions ?? [])
       .filter((completion) => completion.is_completed)
       .map((completion) => completion.step_key),
-    suggestions: [],
+    suggestions,
   }
 }
 

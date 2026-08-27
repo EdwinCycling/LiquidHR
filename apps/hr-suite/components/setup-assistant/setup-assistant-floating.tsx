@@ -106,7 +106,7 @@ export function SetupAssistantFloating({
       {!open ? (
         <button
           aria-label={labels.edgeOpen}
-          className="fixed right-0 top-[67%] z-40 rounded-l-lg border border-r-0 border-border bg-primary px-2 py-4 text-xs font-semibold tracking-[0.18em] text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 [writing-mode:vertical-rl]"
+          className="fixed right-0 top-[67%] z-40 rounded-l-lg border border-r-0 border-border bg-primary px-2 py-4 text-xs font-semibold tracking-[0.18em] text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 [writing-mode:vertical-rl]"
           onClick={openAssistant}
           type="button"
         >

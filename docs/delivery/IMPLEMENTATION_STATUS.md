@@ -35,6 +35,17 @@ De twee eigen `R5-STUDIO-20260826-1857` records zijn na afloop hard verwijderd: 
 De enige productwijziging is een minimale servicefix: Postgres SQLSTATE `40001` wordt vertaald naar het bestaande `PROCESS_DEFINITION_DRAFT_CONFLICT`-contract, met twee gerichte regressieasserties. Geen schema-, migration-, `definition-schemas.ts`-, compiler-, engine-, version-, merge-, push- of deploymentwijziging.
 
 Gerichte Studio-tests zijn `10 files / 49 tests` groen; strict TypeScript, i18n `33` gelijke NL/EN-namespaces, lint `0 errors / 8 warnings`, Webpack-build `226` routes en `git diff --check` zijn groen. De volledige suite is `254 files / 973 tests`, waarvan `253/254` files en `972/973` tests groen; één bestaande, niet-gerelateerde Journey-test faalt op ontbrekende tekst `Binnenkort beschikbaar`.
+## Setup Assistent V1 — 2026-08-27
+
+**Status: SETUP ASSISTENT V1 GREEN — READY FOR REVIEW/INTEGRATION — NO MAIN/PRODUCTION RELEASE**
+
+De geïsoleerde branch `work/setup-assistant-v1` is vanaf exact `e13c50f418cb327a6e4e99e266d58ab7370e4885` opgebouwd in `.codex-worktrees/setup-assistant-v1` met drie sequentiële lokale slices. De verticale slice bevat de statische CORE-guide, Setup-instelling en completion API's, tenant/HR-groepgebonden RLS-tabellen, audit, veilige upsert/uncomplete, i18n, edge-tab, Foundation Drawer, responsive mobile surface, HeRa-mutual-exclusion en permission-gated suggestions. Salaris blijft bewust verborgen zonder betrouwbare expliciete resolver.
+
+Op TEST-project `wnpfloqpjvaacobppbpk` zijn uitsluitend de twee Setup-migrations toegepast en gecontroleerd. De remote SQL-contracttest is groen; beide Setup-tabellen hebben RLS, policies, grants, composite keys en audittriggers. De gebruikte TEST-records zijn na de browseracceptatie exact verwijderd; readback is `0/0`. Security-advisor heeft geen Setup-finding; performance toont uitsluitend vier nieuwe `unused_index`-INFO's voor de FK-indexen.
+
+De authenticated browserflow is bewezen voor TEST HR Admin op desktop en `390x844`: enable/readback, suggesties, completion mark/unmark/readback, static 16-step rendering, CTA's, mobile fullscreen en overflow. Manager en Medewerker zijn negatief bewezen met geen edge-tab en Setup-API `403`. Geen productie-DB, production config, version bump, merge, push of deploy.
+
+Lokale Setup-tests zijn `5/5`, typecheck en i18n zijn groen, ESLint is exit `0`, en de Webpack-build is groen. De volledige suite meldt `975/976` tests (`254/255` files); de ene failure is de ongewijzigde bestaande Journey-test `components/journeys/journey-steps.test.tsx` en valt buiten deze Setup-delta.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
