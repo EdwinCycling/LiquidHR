@@ -19,6 +19,16 @@
 - Browserformaten: desktop `1440x900` en mobiel `390x844`; op alle gecontroleerde routes is `scrollWidth === innerWidth`. Consolecontrole gaf geen warnings/errors of hydration errors. Live pagination-controls waren niet nodig omdat de zichtbare dataset 21 items bevat bij page-size 25; service- en workspace-tests dekken pagination en resetcontract.
 - Eindstatus: **R5-2 GREEN; CODE GREEN; FULL SUITE RED door bestaande, niet-gerelateerde Journey-test op `Binnenkort beschikbaar`**.
 
+## R5-4 Process Studio + lifecycle acceptance — 2026-08-26
+
+- Branch/worktree: `work/r5-process-studio`, exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`; `main` is niet gewijzigd. De bestaande Studio/lifecycle is authenticated op TEST doorlopen met eigen records `R5-STUDIO-20260826-1857` en clone.
+- Bewezen: create/fresh readback, edit + autosave revision 2, stale revision HTTP 409, clone HTTP 201/readback, mobile preview, Procesproef HTTP 200 met `writesPerformed:false`, resolver/compilerfeedback, publish + changelog, immutable version/hash/readback, retire met reden, empty publish/retire HTTP 400 en DELETE/PATCH HTTP 405.
+- Minimale productfix: `studio-service.ts` vertaalt Postgres SQLSTATE `40001` naar `PROCESS_DEFINITION_DRAFT_CONFLICT`; gerichte regressietest toegevoegd. Geen schema-, migration-, compiler- of enginewijziging.
+- HR Admin Studio UI: forms-tab/list-first catalog, search/status controls, wizard, pending/dirty guards en version-diff zijn gecontroleerd. Desktop `1440x900` en mobiel `390x844` hadden `scrollWidth=clientWidth`; Tab-focus landde op de navigatieknop. Certified recipes en bestaande activation-buttons zijn read-only als huidig contract bewezen; geen recipe geactiveerd.
+- Manager en Employee: Studio-route `/geen-toegang` en `/api/process-automation/studio` HTTP 403. Eigen TEST-data is na afloop transactioneel hard verwijderd (2 definitions, 4 drafts, 1 version); de immutable-trigger is tijdelijk binnen dezelfde cleanup-transactie uitgeschakeld en vóór commit hersteld. Shared R5 keys lezen nog `r5-test-draft-process=DRAFT`, drie PUBLISHED en `r5-test-retired-process=RETIRED`.
+- Gates: gerichte Studio-tests `10 files / 49 tests` groen; typecheck, i18n `33` gelijke NL/EN-namespaces, lint `0 errors / 8 warnings`, Webpack-build `226` routes en `git diff --check` groen. Full suite `254 files / 973 tests` bevat `253/254` groene files en `972/973` groene tests; één bestaande, niet-gerelateerde Journey-failure (`Binnenkort beschikbaar`).
+- Open: full-suite Journey-testfailure buiten deze scope. Geen migration, main-merge/push, version bump, Vercel of productionactie uitgevoerd.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 - Branch/worktree: `work/r4-recruitment-journeys-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r4-integration`; baseline exact `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64`. Alle 15 approved R4-slices zijn semantisch geïntegreerd; root `main` bleef tijdens deze run ongewijzigd.

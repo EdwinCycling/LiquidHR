@@ -199,8 +199,12 @@ function rpcCode(message: string): string {
   return message.match(/\b[A-Z][A-Z0-9_]{2,80}\b/)?.[0] ?? 'PROCESS_DEFINITION_STUDIO_FAILED'
 }
 
-function throwRpcError(error: { message: string }, fallbackStatus = 409): never {
-  const code = rpcCode(error.message)
+export function studioRpcErrorCode(error: { message: string; code?: string | null }): string {
+  return error.code === '40001' ? 'PROCESS_DEFINITION_DRAFT_CONFLICT' : rpcCode(error.message)
+}
+
+function throwRpcError(error: { message: string; code?: string | null }, fallbackStatus = 409): never {
+  const code = studioRpcErrorCode(error)
   const status = code.includes('FORBIDDEN') ? 403 : code.includes('NOT_FOUND') ? 404 : fallbackStatus
   throw new StudioServiceError(code, status)
 }

@@ -10,6 +10,18 @@ De lokale slice-gates zijn groen: gerichte Work/service `4/4`, strict TypeScript
 
 Authenticated browser acceptance is groen uitgevoerd op een fresh Webpack-server met de canonical ignored `.env.local`. HR `/work` toonde live TODO/CLAIMED/WAITING/COMPLETED/ALL-counts `7/0/0/14/21`; status/proces/administratie/search/sort, gecombineerde filters, zero-result, URL-refresh, page-reset en detail/back zijn gecontroleerd. Manager zag uitsluitend bestaande direct-report work van Noah Hendriks; Employee uitsluitend self work van Noah Hendriks. Startpage process card en Employee Detail → Processen zijn gecontroleerd. Desktop `1440x900` en mobiel `390x844` hadden op de gecontroleerde routes geen horizontale overflow; browserconsole bevatte geen relevante warnings/errors of hydration errors. De live dataset past met 21 items binnen page-size 25; pagination is daarom live niet afgedwongen, maar wel door de service- en workspace-tests gedekt. Geen credentials of env-bestand is gecommit en geen remote/fixture-mutatie is uitgevoerd.
 
+## R5-4 Process Studio + lifecycle acceptance — 2026-08-26
+
+**Status: TEST ACCEPTANCE GREEN — FULL SUITE AMBER DOOR BESTAANDE JOURNEY-FAILURE — MAIN/RELEASE NIET UITGEVOERD**
+
+Op branch `work/r5-process-studio` vanaf exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885` is de bestaande Process Automation Studio/lifecycle authenticated op TEST bewezen. De HR-flow omvat create + fresh readback, edit/autosave revision 2, stale revision HTTP 409, clone, preview, no-write Procesproef, compilerfeedback, publish + changelog, immutable published version/hash, retire met reden en fresh readback. Lege publish/retire-input gaf HTTP 400; DELETE/PATCH bleven HTTP 405. Certified recipes en activation-buttons zijn read-only als bestaand contract gecontroleerd; geen recipe-activatie uitgevoerd.
+
+De twee eigen `R5-STUDIO-20260826-1857` records zijn na afloop hard verwijderd: 2 definitions, 4 drafts en 1 version, strikt op vooraf vastgestelde IDs. De immutable-trigger is uitsluitend binnen de cleanup-transactie tijdelijk uitgeschakeld en vóór commit hersteld. De gedeelde R5-dataset blijft intact met één DRAFT, drie PUBLISHED en één RETIRED definition. Manager en Employee kregen op de route `/geen-toegang` en de Studio-API HTTP 403.
+
+De enige productwijziging is een minimale servicefix: Postgres SQLSTATE `40001` wordt vertaald naar het bestaande `PROCESS_DEFINITION_DRAFT_CONFLICT`-contract, met twee gerichte regressieasserties. Geen schema-, migration-, `definition-schemas.ts`-, compiler-, engine-, version-, merge-, push- of deploymentwijziging.
+
+Gerichte Studio-tests zijn `10 files / 49 tests` groen; strict TypeScript, i18n `33` gelijke NL/EN-namespaces, lint `0 errors / 8 warnings`, Webpack-build `226` routes en `git diff --check` zijn groen. De volledige suite is `254 files / 973 tests`, waarvan `253/254` files en `972/973` tests groen; één bestaande, niet-gerelateerde Journey-test faalt op ontbrekende tekst `Binnenkort beschikbaar`.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 **Status: TEST-TRUNK GREEN — AUTHENTICATED COMBINED SANITY GREEN — READY TO INTEGRATE INTO MAIN — RELEASE PENDING**
