@@ -124,7 +124,7 @@ export function SetupAssistantFloating({
         )}
         onOpenChange={handleOpenChange}
         open={open}
-        panelClassName="sm:max-w-[420px]"
+        panelClassName="sm:!max-w-[420px]"
         title={labels.title}
         description={labels.subtitle}
       >

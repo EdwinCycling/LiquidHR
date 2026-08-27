@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## Centrale R5 Work & Automation + Setup Assistant V1 releasegate — 2026-08-27
+
+**Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH PENDING EXTERNAL GIT-CREDENTIAL CHECK**
+
+- Release-worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r5-setup-release-integration`, `work/r5-setup-release-integration`; exact lokale `main`/`origin/main`-baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`. R5 Work List, Runtime, Process Studio, shared TEST-fixture en Setup Assistant V1 zijn lokaal gecombineerd. De enige extra productwijziging is de Setup-drawerbreedte-override naar `420px` op desktop.
+- Remote TEST Supabase `wnpfloqpjvaacobppbpk` read-only gereconcilieerd: Setup-migrations `20260827065737_setup_assistant_v1` en `20260827072833_setup_assistant_v1_indexes` zijn al toegepast. Geen `db push`, migration apply of productie-DB-mutatie. Readback: beide Setup-tabellen, RLS, acht policies, authenticated CRUD-grants, geen anon-table-grants, audit/update-triggers en nieuwe types-definities aanwezig. Advisors: geen Setup-securityfinding; vier Setup-FK-indexen als `unused_index`-INFO.
+- Lokale gates: R5/Setup gericht `15/15` bestanden en `63/63` tests, strict TypeScript, i18n `34` gelijke namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` pagina's en diff-check groen. Volledige suite: `258/259` bestanden en `986/987` tests groen; alleen de bekende niet-gerelateerde Journey-failure rond `Binnenkort beschikbaar` blijft open.
+- Authenticated Playwright op `127.0.0.1:3003`: HR Admin `/work`, workdetail, `/process-runtime/<workItemId>` en Studio `200`, R5 zichtbaar, desktop `1440x900` zonder overflow. Setup echte enable/readback en cleanup `PATCH 200`; completion mark/unmark `PATCH 200`, refresh/readback `1 → 0`; 16 zichtbare stappen, acht API-suggesties/twee zichtbare suggestiekaarten, drie CTA's, drawer `420px`, mobile `390x844` drawer `390x844`, geen overflow. Setup/HeRa mutual exclusion is in beide eventrichtingen bewezen. Manager/Employee Work/detail/runtime `200`; Studio en Setup route `/geen-toegang`; Studio- en Setup-API `403`; geen Setup-edge-tab. Geïsoleerde routeflows hebben geen onverwachte page errors; 403-resource-consolemeldingen horen bij de expliciete negatieve probes.
+- TEST-fixture blijft canoniek behouden. De R5-helper-classifier `safeAsSharedR5Fixture: NO` blijft de bekende, volgens handoff non-blocking mismatch voor `NO_ASSIGNEE`, deadlines en blocked-candidate. Geen Journey-fix, R6, AI, fixture-classifierfix of extra Setup-scope uitgevoerd.
+- Versie exact éénmaal verhoogd naar `1.20260827.1` in `apps/hr-suite/lib/app-version.ts`; packageversie niet gewijzigd. Main is lokaal nog niet geïntegreerd en er is niet gepusht. Live `git ls-remote` faalt met `SEC_E_NO_CREDENTIALS`; dit is de actuele externe releaseblocker. Geen Vercel-deploy of production write uitgevoerd.
+
 ## Roadmap 5 — lokale Work & Automation-integratie — 2026-08-27
 
 **Status: GREEN FOR SHARED R5 FIXTURE — WITH UNSUPPORTED SCENARIOS**

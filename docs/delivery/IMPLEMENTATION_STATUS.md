@@ -1,5 +1,19 @@
 # Implementatiestatus Liquid HR
 
+## Centrale R5 Work & Automation + Setup Assistant V1 releasegate — 2026-08-27
+
+**Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH PENDING EXTERNAL GIT-CREDENTIAL CHECK**
+
+De release-worktree `work/r5-setup-release-integration` is vanaf exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885` opgebouwd met de aangewezen R5 Work List, Runtime, Process Studio, shared TEST-fixture en Setup Assistant V1. De Setup-drawer heeft daarnaast een minimale in-scope CSS-correctie gekregen naar `420px` op desktop omdat de bestaande Foundation utility-cascade anders `640px` opleverde. Er zijn geen routes, API-contracten, schema's, RLS-policies, permissions of businessregels verbreed.
+
+Remote TEST is uitsluitend read-only gecontroleerd. `20260827065737_setup_assistant_v1` en `20260827072833_setup_assistant_v1_indexes` bestaan al in Supabase-project `wnpfloqpjvaacobppbpk`; geen apply of `db push`. De Setup-contracten lezen groen terug met RLS, acht policies, authenticated CRUD-grants, geen anon-table-grants, composite indexes, audit/update-triggers en gegenereerde types. Security-advisor heeft geen Setup-finding; de vier nieuwe FK-indexen verschijnen als ongebruikte performance-INFO's.
+
+De gecombineerde codegate is groen: `15/15` testbestanden en `63/63` tests voor R5/Setup, strict TypeScript, i18n `34` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` pagina's en `git diff --check`. De volledige suite blijft `258/259` bestanden en `986/987` tests door uitsluitend de bekende ongewijzigde Journey-failure op `Binnenkort beschikbaar`. De R5 shared-fixture classifier mismatch (`safeAsSharedR5Fixture: NO`) betreft alleen de expliciet unsupported `NO_ASSIGNEE`/deadline/blocked-scenario's en blokkeert deze release niet.
+
+Authenticated Playwright is gecombineerd bewezen op desktop `1440x900` en mobile `390x844`: HR Admin Work/detail/runtime/Studio zijn `200` met R5-data en geen horizontale overflow; Setup enable, completion mark/unmark, refresh/readback, suggesties, CTA's, `420px` desktop drawer, `390px` fullscreen mobile drawer en beide Setup/HeRa-overlayrichtingen zijn groen. Manager en Employee behouden scoped Work/detail/runtime `200`, krijgen Studio/Setup route `/geen-toegang`, Studio/Setup API `403` en geen Setup-edge-tab. De geïsoleerde productrouteflows hebben nul onverwachte page errors; negatieve API-probes geven uitsluitend de verwachte 403-resource-events.
+
+De zichtbare applicatieversie is exact éénmaal verhoogd naar `1.20260827.1`; de packageversie blijft `0.1.2`. Main-integratie, push en Vercel TEST-verificatie zijn nog niet uitgevoerd: `git ls-remote` werd geblokkeerd door `SEC_E_NO_CREDENTIALS`. Production DB/configuration en deployments zijn onaangeroerd.
+
 ## Roadmap 5 — lokale Work & Automation-integratie — 2026-08-27
 
 **Status: GREEN FOR SHARED R5 FIXTURE — WITH UNSUPPORTED SCENARIOS**
