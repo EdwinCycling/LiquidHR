@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## Roadmap 5 — lokale Work & Automation-integratie — 2026-08-27
+
+**Status: R5 INTEGRATION RED — lokale codegate groen; TEST-fixture en authenticated browsergate geblokkeerd**
+
+De dedicated branch `work/r5-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r5-integration` is vanaf de lokaal geverifieerde `main`/`origin/main`-baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885` opgebouwd. De gedeelde fixture-range `053c3d2eb759e83413318be5e44ac051d79727c2^..b5b68ffc42b2fc326338631c4ad294eadd80a3d2`, Work List `833b8d2c927d2d555721dc96eadd19d88f2665c1`, Runtime `58226f839a161ab6ea1ce8f6a38c32ab88e67770` en Process Studio `d1f18009ee47ddc8b86c08695458bef79acd49b8` zijn als vier lokale integratieslices opgenomen. Alleen delivery-documentatie conflicteerde; beide R5-handoffs zijn behouden. Er zijn geen migrations, Setup Assistant-, R6- of Journey-wijzigingen, version bump, main-merge/push, Vercel- of productieacties uitgevoerd.
+
+De gerichte R5-testset is groen (`12/12` bestanden, `41/41` tests), strict TypeScript, i18n (`33` gelijke NL/EN-namespaces), ESLint (`0 errors / 8 warnings`), `git diff --check` en Webpack (`226/226` routes) zijn groen. De volledige suite eindigde op `256/257` bestanden en `981/982` tests; de enige failure is de bekende, niet-gerelateerde Journey-test rond `Binnenkort beschikbaar`.
+
+De canonical R5 fixture setup is tweemaal uitgevoerd en de readback eenmaal; beide modes faalden vóór fixture-readback op `FIXTURE_UNEXPECTED_FAILURE: fetch failed`. De helper rapporteerde `migrations: NO` en `safeAsSharedR5Fixture: NO`. Cleanup is niet uitgevoerd omdat deze run geen eigen probe-records heeft aangemaakt. De live `git ls-remote`-controle werd door ontbrekende Git-credentials (`SEC_E_NO_CREDENTIALS`) geblokkeerd; lokale `main` en `origin/main` wijzen beide naar de genoemde baseline. De fresh integration-server kon op poort 3003 starten, maar `agent-browser` verloor de CDP response channel ook na de verplichte éénmalige retry. HR/Manager/Employee authenticated desktop/mobile acceptance is daarom **NOT EXECUTED — TOOLING LIMITATION**.
+
 ## R5 Shared TEST dataset — 2026-08-26
 
 **Status: RED — fixture helper committed; shared-dataset safety blocked by current remote TEST contracts**

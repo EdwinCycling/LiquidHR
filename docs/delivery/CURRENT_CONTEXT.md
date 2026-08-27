@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Roadmap 5 — lokale Work & Automation-integratie — 2026-08-27
+
+- Branch/worktree: `work/r5-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r5-integration`; baseline lokale `main` en `origin/main` `e13c50f418cb327a6e4e99e266d58ab7370e4885`. De live `git ls-remote`-controle faalde met `SEC_E_NO_CREDENTIALS`; `main` is niet gewijzigd.
+- Geïntegreerd als lokale slices: shared fixture `053c3d2^..b5b68ff`, Work List `833b8d2`, Runtime `58226f8` en Process Studio `d1f1800`. De vier integration commits zijn `9339071`, `2bbc38a`, `8ffb70a` en `b1cc24e`; alleen docs-conflicten zijn semantisch samengevoegd met behoud van beide handoffs. Geen migration, generated `next-env.d.ts`, `.env`, Setup Assistant-, R6- of Journey-delta.
+- Lokale gate: gerichte R5-tests `12/12` bestanden, `41/41` tests; volledige suite `256/257` bestanden en `981/982` tests. De ene failure is de bestaande `components/journeys/journey-steps.test.tsx`-verwachting voor `Binnenkort beschikbaar`. Strict TypeScript, i18n `33` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, `git diff --check` en Webpack `226/226` routes zijn groen.
+- Canonical fixture setup is tweemaal uitgevoerd en readback eenmaal met project `wnpfloqpjvaacobppbpk`; beide stopten vóór fixture-readback met `FIXTURE_UNEXPECTED_FAILURE: fetch failed`, `migrations: NO`, `safeAsSharedR5Fixture: NO`. Cleanup is bewust niet uitgevoerd; deze run heeft geen eigen probe-records gemaakt.
+- Browsergate: fresh production server uit deze worktree startte op 3003; poort 3000 had een onbekende bestaande listener en is niet aangeraakt. `agent-browser` opende `/login`, maar interactie en de éénmalige retry na `doctor` faalden met `CDP response channel closed`. HR/Manager/Employee desktop `1440x900`, mobile `390x844`, scope-, mutation-, console-, focus- en overflowacceptance zijn **NOT EXECUTED — TOOLING LIMITATION**. Geen external side effect uitgevoerd.
+- Eindstatus: **R5 INTEGRATION RED** door de TEST-fetchblocker, niet-uitgevoerde authenticated browsermatrix en de apart bekende Journey-suitefailure. Geen main-merge, push, version bump, Vercel, production migration of branch cleanup.
+
 ## R5 Shared TEST dataset — 2026-08-26
 
 - Branch/worktree: `work/r5-shared-test-dataset` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r5-shared-test-dataset`; exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`; zichtbare versie ongewijzigd `1.20260825.1`.

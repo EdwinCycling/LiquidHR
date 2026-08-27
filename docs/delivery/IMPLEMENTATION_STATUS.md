@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## Roadmap 5 — lokale Work & Automation-integratie — 2026-08-27
+
+**Status: R5 INTEGRATION RED — lokale codegate groen; TEST-fixture en authenticated browsergate niet uitvoerbaar**
+
+De dedicated `work/r5-integration`-worktree is gestart vanaf lokale `main`/`origin/main` `e13c50f418cb327a6e4e99e266d58ab7370e4885`. De source ranges zijn shared fixture `053c3d2eb759e83413318be5e44ac051d79727c2^..b5b68ffc42b2fc326338631c4ad294eadd80a3d2`, Work List `833b8d2c927d2d555721dc96eadd19d88f2665c1`, Runtime `58226f839a161ab6ea1ce8f6a38c32ab88e67770` en Process Studio `d1f18009ee47ddc8b86c08695458bef79acd49b8`. Ze zijn vastgelegd in vier lokale integration commits (`9339071`, `2bbc38a`, `8ffb70a`, `b1cc24e`). Alleen de twee delivery-documentconflicten zijn opgelost; Work List en Runtime behouden gezamenlijk tab-counts/pagination, detail/back-context, assignment-options en runtime-acties. Geen nieuwe architectuur, Foundation-redesign, migration, Setup/R6/Journey-code, version bump, main-merge/push, Vercel of productieactie.
+
+De gerichte R5-set is groen met `12/12` testbestanden en `41/41` tests. Strict TypeScript, `check:i18n` (`33` gelijke NL/EN-namespaces), ESLint (`0 errors / 8 warnings`), `git diff --check` en de Webpack-productiebuild (`226/226` routes) zijn groen. De volledige suite is `256/257` bestanden en `981/982` tests groen; de enige failure is de bekende, niet-gerelateerde `components/journeys/journey-steps.test.tsx`-failure op `Binnenkort beschikbaar`.
+
+De canonical R5 fixture setup is tweemaal uitgevoerd en readback eenmaal; beide rapporteerden `FIXTURE_UNEXPECTED_FAILURE: fetch failed` op TEST-project `wnpfloqpjvaacobppbpk`, met `migrations: NO`; de fixture is daardoor niet als shared fixture bewezen. Cleanup is niet uitgevoerd omdat deze run geen eigen probe-records aanmaakte. De live remote-maincontrole faalde door `SEC_E_NO_CREDENTIALS`; lokale `main` en `origin/main` zijn wel gelijk aan de baseline.
+
+Authenticated browseracceptance is **NOT EXECUTED — TOOLING LIMITATION**. De integration-build-server startte op 3003; de bestaande onbekende 3000-listener bleef ongemoeid. `agent-browser` verloor de CDP response channel bij logininteractie en opnieuw bij de ene toegestane retry. Daardoor is geen nieuwe HR/Manager/Employee desktop/mobile-, scope-, mutation-, focus-, console- of overflowevidence verzameld. De exacte HR/Manager/Employee acceptance en externe side effects blijven open.
+
 ## R5-2 Work List + Foundation — 2026-08-26
 
 **Status: R5-2 GREEN — FULL SUITE RED ON EXISTING UNRELATED TEST**
