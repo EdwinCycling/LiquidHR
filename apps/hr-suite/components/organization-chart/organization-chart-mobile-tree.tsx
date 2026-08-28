@@ -31,11 +31,11 @@ function TreeBranch({ node, childrenById, nodeById, labels, depth }: {
   return (
     <li className="min-w-0">
       <details className="group min-w-0" open={depth < 2}>
-        <summary aria-label={interpolate(labels.expandBranch, name)} className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden">
+        <summary aria-label={interpolate(labels.expandBranch, name)} className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[var(--radius-control)] outline-none focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden">
           <ChevronRight aria-hidden="true" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-90" size={18} />
           <div className="min-w-0 flex-1"><OrganizationChartNodeCard labels={labels} node={node} /></div>
         </summary>
-        <ul className={depth < 2 ? 'ml-2 mt-3 space-y-3 border-l pl-5' : 'mt-3 space-y-3 border-l border-dashed pl-0'}>
+        <ul className={depth < 2 ? 'ml-2 mt-3 space-y-3 border-l pl-5' : 'mt-3 space-y-3 border-l pl-0'}>
           {children.map((child) => <TreeBranch childrenById={childrenById} depth={depth + 1} key={child.id} labels={labels} node={child} nodeById={nodeById} />)}
         </ul>
       </details>
@@ -54,7 +54,7 @@ export function OrganizationChartMobileTree({ graph, labels }: OrganizationChart
   const roots = graph.nodes.filter((node) => !targets.has(node.id))
 
   return (
-    <nav aria-label={labels.mobileTreeLabel} className="overflow-hidden rounded-3xl border bg-surface p-4 md:hidden">
+    <nav aria-label={labels.mobileTreeLabel} className="overflow-hidden rounded-[var(--radius-surface)] border bg-surface p-4 md:hidden">
       <ul className="min-w-0 space-y-4">
         {roots.map((root) => <TreeBranch childrenById={childrenById} depth={0} key={root.id} labels={labels} node={root} nodeById={nodeById} />)}
       </ul>

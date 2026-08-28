@@ -1,7 +1,7 @@
-import Link from 'next/link'
-import { ArrowLeft, Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { AdministrationSettingsPicker } from '@/components/settings/administration-settings-picker'
+import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { PageShell } from '@/components/layout/page-shell'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { ACTIVE_ADMINISTRATION_COOKIE, loadActiveContext } from '@/lib/context/server-context'
 import {
@@ -36,28 +36,9 @@ export default async function AdministrationSettingsSelectionPage({
   const safeReturnTo = normalizeAdministrationSettingsReturnPath(returnTo)
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-5 py-8 lg:px-10">
-      <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80" href="/settings">
-        <ArrowLeft aria-hidden="true" size={16} />
-        {translate('administrationSelection.backToSettings')}
-      </Link>
-      <header className="mt-6 rounded-3xl border bg-surface p-6 shadow-sm sm:p-8">
-        <div className="flex items-start gap-4">
-          <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
-            <Building2 size={23} />
-          </span>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{translate('administrationSelection.eyebrow')}</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">{translate('administrationSelection.title')}</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{translate('administrationSelection.description')}</p>
-          </div>
-        </div>
-        <div className="mt-6 rounded-2xl border border-primary/15 bg-primary/[0.05] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{translate('administrationSelection.activeHrGroup')}</p>
-          <p className="mt-1 font-semibold text-foreground">{context.activeHrGroup.name}</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{translate('administrationSelection.instruction')}</p>
-        </div>
-      </header>
+    <PageShell className="py-8 lg:py-10" width="reading">
+      <AdminSettingsPageHeader backLabel={translate('administrationSelection.backToSettings')} eyebrow={translate('administrationSelection.eyebrow')} subtitle={translate('administrationSelection.description')} title={translate('administrationSelection.title')} />
+      <div className="mb-6 border border-primary/20 bg-primary/[0.04] px-4 py-3"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{translate('administrationSelection.activeHrGroup')}</p><p className="mt-1 font-semibold text-foreground">{context.activeHrGroup.name}</p><p className="mt-1 text-sm text-muted-foreground">{translate('administrationSelection.instruction')}</p></div>
 
       <section className="mt-7" aria-labelledby="administration-selection-list">
         <h2 className="sr-only" id="administration-selection-list">{translate('administrationSelection.title')}</h2>
@@ -83,6 +64,6 @@ export default async function AdministrationSettingsSelectionPage({
           </div>
         )}
       </section>
-    </main>
+    </PageShell>
   )
 }

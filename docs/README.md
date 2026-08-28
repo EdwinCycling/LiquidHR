@@ -9,6 +9,17 @@ De dedicated branch `work/setup-assistant-hr-admin-access` is gestart vanaf exac
 De gerichte access-/guide-/schema-/version-tests zijn `14/14` groen, strict TypeScript, targeted ESLint en i18n zijn groen, en de Webpack-build genereert `229/229` routes. De volledige suite is `1015/1016` tests groen; alleen de bestaande, niet-gerelateerde Journey-failure op `Binnenkort beschikbaar` blijft staan.
 
 Authenticated TEST HR Admin op de candidate bereikte `/settings/setup-assistant`, enable gaf echte `PATCH 200` met readback, de Settings-tegel en dashboard-trigger waren zichtbaar, en de drawer toonde 4 categorieën en 16 toegankelijke stappen. Desktopdrawer: `420px`; mobile: `390x844` fullscreen; overflow bleef gelijk aan de viewport en de production-mode console eindigde op `0` errors / `0` warnings. De Setup Assistant-instelling is via de normale UI/API **AAN** gelaten in TEST; completion is niet browsergemuteerd. Geen migration, schema/RLS-wijziging of structurele remote DB-write is uitgevoerd. Zichtbare versie: `1.20260828.3`.
+## Roadmap 7 Slice 2 — Organization, Access & Context Model — 2026-08-28
+
+**Status: R7-2 TEST RELEASE GREEN — MAIN/VERSION/VERCEL VERIFICATION PENDING**
+
+R7-2 is vanuit dedicated worktree `work/r7-organization-access` (`4e34ea4`) eenmaal geïntegreerd vanaf actuele `main`/`origin/main` `54100b4`. De zeven afgesproken Organization/Access/Context-routes gebruiken de bestaande UX Foundation; API-, service-, schema-, RLS-, grant-, permission- en businesscontracten zijn behouden. De centrale gerichte set, Setup Assistant-regressies, strict TypeScript, i18n, ESLint, Webpack en diff-check zijn groen. De full suite blijft alleen amber door de bekende, niet-gerelateerde Journey-failure rond `Binnenkort beschikbaar`.
+
+De aanvullende organogrambeslissing is verwerkt: `/organization-chart` is read-only, `Afdelingen beheren` verwijst naar `/departments`, alleen `Organisatiestructuur` en `Rapportagelijnen` zijn user-facing, oude `?view=job` valt veilig terug, en orthogonale connectors gebruiken employee source-handles zonder arrows, dashed connectors of glow.
+
+Authenticated HR Admin, Manager en Employee browser-sanity is op desktop `1440x900` en mobile `390x844` gecontroleerd; organogram, authorization/role-assignment en Setup Assistant-context bleven intact, zonder horizontale overflow of relevante consolefouten. Geen testdata-mutatie of structurele remote databaseactie.
+
+Zie [`docs/delivery/R7_2_ORGANIZATION_ACCESS_CONTEXT.md`](delivery/R7_2_ORGANIZATION_ACCESS_CONTEXT.md) voor de route/permission/context-matrix en de volledige handoff.
 
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 

@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { LocateFixed, Minus, Plus, Route } from 'lucide-react'
-import { Background, BackgroundVariant, MarkerType, Panel, ReactFlow, useReactFlow, type Edge } from '@xyflow/react'
+import { LocateFixed, Minus, Plus } from 'lucide-react'
+import { Background, BackgroundVariant, Panel, ReactFlow, useReactFlow, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { OrganizationChartGraph, OrganizationChartNode } from '@/lib/organization-chart/types'
 import { organizationChartNodeTypes, type OrganizationChartLabels, type OrganizationFlowNode } from './organization-chart-nodes'
@@ -14,9 +14,6 @@ interface OrganizationChartCanvasProps {
     zoomIn: string
     zoomOut: string
     fitView: string
-    legendRoute: string
-    legendMatch: string
-    legendContext: string
   }
 }
 
@@ -147,23 +144,16 @@ function layoutGraph(graph: OrganizationChartGraph, labels: OrganizationChartLab
 }
 
 function flowEdges(graph: OrganizationChartGraph): Edge[] {
-  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]))
   return graph.edges.map((edge) => {
-    const onRoute = edge.matchState === 'context'
-    const memberEdge = nodeById.get(edge.target)?.type === 'employee'
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
       type: 'smoothstep',
-      pathOptions: { offset: memberEdge ? 18 : 30, stepPosition: 0.5 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: onRoute ? 'var(--accent-foreground)' : 'var(--border)' },
       style: {
-        stroke: onRoute ? 'var(--accent-foreground)' : memberEdge ? 'var(--accent-foreground)' : 'var(--border)',
-        strokeWidth: onRoute ? 3 : memberEdge ? 1.8 : 2.2,
-        strokeDasharray: memberEdge ? '5 4' : undefined,
+        stroke: 'var(--border-strong)',
+        strokeWidth: 2,
         opacity: edge.matchState === 'dimmed' ? 0.2 : 1,
-        filter: onRoute ? 'drop-shadow(0 0 5px var(--accent-foreground))' : undefined,
       },
     }
   })
@@ -174,7 +164,7 @@ function AtlasControls({ labels }: { labels: OrganizationChartCanvasProps['label
   const buttonClass = 'grid size-10 place-items-center border-b border-border bg-surface text-foreground outline-none transition-colors last:border-b-0 hover:bg-muted focus-visible:bg-accent focus-visible:text-accent-foreground'
   const motionDuration = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180
   return (
-    <Panel className="!m-4 overflow-hidden rounded-xl border bg-surface shadow-md" position="bottom-right">
+    <Panel className="!m-4 overflow-hidden rounded-[var(--radius-control)] border bg-surface" position="bottom-right">
       <div aria-label={labels.canvasLabel} role="toolbar">
         <button aria-label={labels.zoomIn} className={buttonClass} onClick={() => flow.zoomIn({ duration: motionDuration() })} title={labels.zoomIn} type="button"><Plus aria-hidden="true" size={17} /></button>
         <button aria-label={labels.zoomOut} className={buttonClass} onClick={() => flow.zoomOut({ duration: motionDuration() })} title={labels.zoomOut} type="button"><Minus aria-hidden="true" size={17} /></button>
@@ -189,8 +179,7 @@ export function OrganizationChartCanvas({ graph, labels }: OrganizationChartCanv
   const edges = useMemo(() => flowEdges(graph), [graph])
 
   return (
-    <div aria-label={labels.canvasLabel} className="relative hidden h-[44rem] overflow-hidden rounded-3xl border bg-surface-raised shadow-[inset_0_1px_0_var(--surface)] md:block" role="region">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,var(--accent),transparent_62%)] opacity-75" />
+    <div aria-label={labels.canvasLabel} className="relative hidden h-[44rem] overflow-hidden rounded-[var(--radius-surface)] border bg-surface-raised md:block" role="region">
       <ReactFlow
         edges={edges}
         elementsSelectable={false}
@@ -208,13 +197,6 @@ export function OrganizationChartCanvas({ graph, labels }: OrganizationChartCanv
         zoomOnDoubleClick={false}
       >
         <Background color="var(--border)" gap={28} size={1} variant={BackgroundVariant.Dots} />
-        <Panel className="!m-4 rounded-2xl border bg-surface/95 px-3.5 py-3 shadow-sm" position="top-left">
-          <div className="flex items-center gap-2 text-xs font-semibold text-foreground"><Route aria-hidden="true" className="text-accent-foreground" size={15} />{labels.legendRoute}</div>
-          <div className="mt-2 flex items-center gap-3 text-[0.65rem] font-medium text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="size-2 rounded-full bg-focus shadow-[0_0_0_3px_var(--accent)]" />{labels.legendMatch}</span>
-            <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="h-0.5 w-5 bg-accent-foreground shadow-[0_0_5px_var(--accent-foreground)]" />{labels.legendContext}</span>
-          </div>
-        </Panel>
         <AtlasControls labels={labels} />
       </ReactFlow>
     </div>

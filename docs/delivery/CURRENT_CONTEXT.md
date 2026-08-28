@@ -9,6 +9,16 @@
 - Verificatie: access/guide/schema/version `14/14` tests groen, strict TypeScript, targeted ESLint, i18n, Webpack-build `229/229` en diff-check groen. Full suite `1015/1016`; alleen de bekende Journey-failure op `Binnenkort beschikbaar` blijft buiten scope.
 - Browser: TEST HR Admin op production-mode candidate `127.0.0.1:3003`; `/settings/setup-assistant` `200`, echte enable `PATCH 200` en GET-readback `200`, Settings-tegel en dashboard-trigger zichtbaar, drawer 4 categorieën/16 stappen, desktop `420px`, mobile `390x844`, `scrollWidth === viewport`, console `0/0`. Setup-instelling bewust AAN gelaten; completion niet gewijzigd.
 - Database/scope: geen migration, schema, RLS of structurele remote DB-write; alleen de bestaande Setup-instelling via de normale product-API gewijzigd. R7-2, AI/HeRa en de dirty root-worktree zijn niet aangeraakt. Zichtbare versie: `1.20260828.3`.
+## Roadmap 7 Slice 2 — Organization, Access & Context Model — 2026-08-28
+
+**Status: R7-2 TEST RELEASE GREEN — MAIN/VERSION/VERCEL VERIFICATION PENDING**
+
+- Dedicated source branch: `work/r7-organization-access` at `4e34ea4`; source baseline `051c57a`. Integrated once in dedicated release-worktree from `main`/`origin/main` `54100b4`.
+- Scope: `/settings/business-structure`, `/settings/hr-groups`, `/settings/administration`, `/authorization`, `/role-assignments`, `/departments`, `/organization-chart`. Existing API/service/schema/RLS/grant/permission/context/business contracts remain unchanged.
+- Organogram: read-only; `Afdelingen beheren` linkt naar `/departments`; alleen `Organisatiestructuur` en `Rapportagelijnen`; legacy `?view=job` valt veilig terug; top-down orthogonale connectors en employee source-handles blijven; mobile tree is behouden.
+- Foundation: canonical PageShell/PageHeader, surfaces, fields, choice controls, collection toolbar/table, drawers, dialogs, row actions and chart surface conventions reused. No migration, schema/RLS/grant or structural remote write.
+- Gates/browser: central R7-2 and Setup Assistant tests, strict TypeScript, i18n, ESLint, Webpack and diff-check are green; full suite has only the known unrelated Journey failure on `Binnenkort beschikbaar`. HR Admin, Manager and Employee sanity was verified on desktop `1440x900` and mobile `390x844`, including overflow/console checks and Setup Assistant access.
+- Handoff: [`R7_2_ORGANIZATION_ACCESS_CONTEXT.md`](R7_2_ORGANIZATION_ACCESS_CONTEXT.md).
 
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 

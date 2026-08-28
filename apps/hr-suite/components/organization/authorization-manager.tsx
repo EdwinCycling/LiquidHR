@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { FormDrawer } from '@/components/patterns/form-drawer'
 import { FormField } from '@/components/patterns/form-field'
+import { TabButton } from '@/components/patterns/scrollable-tabs'
 import {
   buildAuthorizationOverview,
   normalizeAuthorizationTab,
@@ -198,8 +199,8 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
   return <div className="space-y-6">
     <SummaryCards labels={labels} overview={overview} />
     <nav aria-label={labels.permissions} className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-surface p-1.5" role="tablist">
-      <TabButton active={activeTab === 'permissions'} icon={<KeyRound className="size-4" />} label={labels.tabPermissions} onClick={() => setTab('permissions')} />
-      <TabButton active={activeTab === 'overview'} icon={<Network className="size-4" />} label={labels.tabOverview} onClick={() => setTab('overview')} />
+      <TabButton active={activeTab === 'permissions'} onClick={() => setTab('permissions')}><KeyRound aria-hidden="true" className="size-4" />{labels.tabPermissions}</TabButton>
+      <TabButton active={activeTab === 'overview'} onClick={() => setTab('overview')}><Network aria-hidden="true" className="size-4" />{labels.tabOverview}</TabButton>
       <a className="ml-auto inline-flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-accent hover:text-accent-foreground" href="/role-assignments"><UsersRound className="size-4" />{labels.tabAssignments}</a>
     </nav>
     {message ? <p aria-live="polite" className="rounded-md border bg-surface px-4 py-3 text-sm text-muted-foreground">{message}</p> : null}
@@ -253,7 +254,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
               <legend className="sr-only">{category}</legend>
               <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-semibold text-foreground">{category}</h3><p className="mt-0.5 text-xs text-muted-foreground">{coverage.assigned} / {coverage.total} Â· {coverage.percentage}%</p></div>{editable ? <button aria-pressed={coverage.percentage === 100} className="shrink-0 rounded-lg border bg-surface px-2.5 py-1.5 text-xs font-semibold text-foreground hover:border-primary/40" disabled={permissionSaving} onClick={() => updatePermissionIds((current) => togglePermissionGroup(current, groupIds))} type="button">{coverage.percentage === 100 ? labels.clearAll : labels.selectAll}</button> : null}</div>
               <div aria-label={`${labels.coverage} ${coverage.percentage}%`} className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={coverage.percentage}><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${coverage.percentage}%` }} /></div>
-              <div className="mt-4 space-y-2">{visibleItems.map((permission) => <label className={`flex items-start gap-3 rounded-md border p-3 text-sm ${permissionIds.has(permission.id) ? 'border-primary/30 bg-accent' : 'bg-surface'} ${editable ? 'cursor-pointer' : 'cursor-default'}`} key={permission.id}><input checked={permissionIds.has(permission.id)} className="mt-1 size-4 accent-primary" disabled={!editable || permissionSaving} onChange={(event) => updatePermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span className="min-w-0"><span className="block font-medium text-foreground">{permission.name}</span>{permission.description ? <span className="mt-0.5 block leading-5 text-muted-foreground">{permission.description}</span> : null}<span className="mt-1 block truncate font-mono text-[0.7rem] text-muted-foreground"><span className="sr-only">{labels.permissionCode}: </span>{permission.code}</span></span></label>)}</div>
+              <div className="mt-4 space-y-2">{visibleItems.map((permission) => <label className={`flex items-start gap-3 rounded-md border p-3 text-sm ${permissionIds.has(permission.id) ? 'border-primary/30 bg-accent' : 'bg-surface'} ${editable ? 'cursor-pointer' : 'cursor-default'}`} key={permission.id}><Checkbox checked={permissionIds.has(permission.id)} className="mt-1" disabled={!editable || permissionSaving} onChange={(event) => updatePermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} /><span className="min-w-0"><span className="block font-medium text-foreground">{permission.name}</span>{permission.description ? <span className="mt-0.5 block leading-5 text-muted-foreground">{permission.description}</span> : null}<span className="mt-1 block truncate font-mono text-[0.7rem] text-muted-foreground"><span className="sr-only">{labels.permissionCode}: </span>{permission.code}</span></span></label>)}</div>
             </fieldset>
           })}</div>
           {editable ? <div className="sticky bottom-4 mt-6 flex flex-col gap-3 rounded-xl border bg-surface/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between"><p aria-live="polite" className="text-sm font-medium text-foreground">{dirty ? `${changedCount} ${labels.unsavedChanges}` : labels.saved}</p><div className="flex gap-2"><button className="inline-flex flex-1 items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-40 sm:flex-none" disabled={!dirty || permissionSaving} onClick={() => { setPermissionSaveError(null); setPermissionIds(new Set(savedPermissionIds)) }} type="button"><RotateCcw className="size-4" />{labels.resetChanges}</button><Button className="flex-1 sm:flex-none" disabled={!dirty} loading={permissionSaving} onClick={() => { void savePermissions() }} type="button"><Save aria-hidden="true" />{labels.savePermissions}</Button></div></div> : null}
@@ -271,7 +272,7 @@ export function AuthorizationManager({ roles, permissions, rolePermissions, labe
       title={`${coverageRole.name} — ${coverageDialog.category}`}
     >
        {permissionSaveError ? <p aria-live="assertive" className="mb-4 border border-destructive/40 bg-destructive-surface px-3 py-2 text-sm text-destructive" role="alert">{permissionSaveError}</p> : null}
-       <div className="space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-[var(--radius-control)] border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><input checked={checked} disabled={!editable || selectedRoleId !== coverageRole.id || permissionSaving} onChange={(event) => updatePermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} type="checkbox" /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
+       <div className="space-y-2">{coveragePermissions.map(({ permission, checked }) => <label className={`flex gap-3 rounded-[var(--radius-control)] border p-3 text-sm ${checked ? 'border-primary/30 bg-accent' : 'bg-background'} ${editable && selectedRoleId === coverageRole.id ? 'cursor-pointer' : ''}`} key={permission.id}><Checkbox checked={checked} className="mt-1" disabled={!editable || selectedRoleId !== coverageRole.id || permissionSaving} onChange={(event) => updatePermissionIds((current) => { const next = new Set(current); if (event.target.checked) next.add(permission.id); else next.delete(permission.id); return next })} /><span><span className="block font-medium">{permission.name}</span><span className="block text-xs text-muted-foreground">{permission.code}</span></span></label>)}</div>
      </Dialog> : null}
     <ConfirmDialog
       cancelLabel={labels.permissionDiscardCancel}
@@ -305,10 +306,6 @@ function AuthorizationHeatmap({ labels, onInspectCoverage, permissions, rolePerm
   </section>
 }
 
-function TabButton({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label: string; onClick: () => void }) {
-  return <button aria-selected={active} className={`inline-flex items-center gap-2 rounded-md px-3.5 py-2.5 text-sm font-semibold transition ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}`} onClick={onClick} role="tab" type="button">{icon}{label}</button>
-}
-
 function SearchField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
-  return <label className="relative mt-4 block"><span className="sr-only">{label}</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input className="w-full rounded-md border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15" onChange={(event) => onChange(event.target.value)} placeholder={label} type="search" value={value} /></label>
+  return <TextInput aria-label={label} className="mt-4" leadingIcon={<Search aria-hidden="true" />} onChange={(event) => onChange(event.target.value)} placeholder={label} type="search" value={value} />
 }

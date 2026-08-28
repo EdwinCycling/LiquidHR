@@ -9,6 +9,17 @@ De geïsoleerde branch `work/setup-assistant-hr-admin-access` is vanaf exact `ma
 De access-contracttests dekken TENANT_ADMIN en HR Admin read, HR Admin write, read-only settings access, unauthorized access, visible-step filtering en related-route filtering. Gerichte tests zijn `14/14` groen, strict TypeScript, targeted ESLint, `check:i18n` en Webpack-production build (`229/229`) zijn groen. De volledige suite is `1015/1016` groen met uitsluitend de bekende ongewijzigde Journey-failure `components/journeys/journey-steps.test.tsx` op `Binnenkort beschikbaar`.
 
 Authenticated TEST HR Admin acceptance op de production-mode candidate (`127.0.0.1:3003`) is groen: `/settings/setup-assistant` toegankelijk, echte enable-`PATCH 200` en readback, Settings-tegel, dashboard-trigger, drawer met 4 categorieën/16 toegankelijke stappen, desktop `420px`, mobile `390x844`, geen horizontale overflow en `0` console errors/warnings. De bestaande Setup-instelling staat aan in TEST; completion is volgens browsermutatiescope niet gewijzigd. Geen migration, schema/RLS-wijziging of structurele remote DB-write. Zichtbare versie: `1.20260828.3`.
+## Roadmap 7 Slice 2 — Organization, Access & Context Model — 2026-08-28
+
+**Status: R7-2 TEST RELEASE GREEN — MAIN/VERSION/VERCEL VERIFICATION PENDING**
+
+R7-2 is vanuit dedicated worktree `work/r7-organization-access` (`4e34ea4`) eenmaal geïntegreerd vanaf actuele `main`/`origin/main` `54100b4`. De zeven afgesproken Organization/Access/Context-routes gebruiken de bestaande Foundation-patronen voor page shell, forms, collections, drawers, dialogs, row actions en chart surfaces. Route-, API-, service-, schema-, RLS-, grant-, permission-, context- en businesscontracten zijn niet gewijzigd.
+
+De organogrambeslissing is read-only behouden: geen afdeling-CRUD, beheer via `/departments`, alleen `Organisatiestructuur` en `Rapportagelijnen`, veilige fallback van `?view=job`, en orthogonale connectors met employee source-handles. Job/talent-data is niet verwijderd.
+
+De centrale gerichte R7-2- en Setup Assistant-set, strict TypeScript, i18n (`34` gelijke NL/EN-namespaces), ESLint (`0 errors / 8 warnings`), Webpack `229/229` en diff-check zijn groen. De full suite blijft uitsluitend door de bekende ongewijzigde Journey-failure rond `Binnenkort beschikbaar` amber.
+
+Authenticated browser-sanity is op de geïntegreerde candidate gecontroleerd voor HR Admin, Manager en Employee op desktop `1440x900` en mobile `390x844`; de routes, permission/context-scope, organogram, console/overflow en Setup Assistant-access bleven intact. Geen testdata-mutatie, migration of structurele remote DB-write. Zie [`R7_2_ORGANIZATION_ACCESS_CONTEXT.md`](R7_2_ORGANIZATION_ACCESS_CONTEXT.md).
 
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
