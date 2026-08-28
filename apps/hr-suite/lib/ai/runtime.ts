@@ -10,9 +10,10 @@ import { SupabaseBusinessAuditSink, SupabaseTechnicalUsageSink } from './supabas
 import { SupabaseInvocationRepository } from './supabase-invocation-repository'
 import { SupabaseLiquidCreditsService } from './supabase-liquid-credits'
 import { defaultHrGroupTimeZoneResolver } from './timezone'
+import { resolveServerAiProvider } from './provider-resolver'
 
 export function createServerAiRuntimeDependencies<T>(input: {
-  provider: ProviderPort
+  provider?: ProviderPort
   contextLoader: AuthorizedContextLoader
   validator: AiResultValidator<T>
   governance?: AiGovernancePort
@@ -28,7 +29,7 @@ export function createServerAiRuntimeDependencies<T>(input: {
     governance: input.governance ?? new FailClosedGovernancePort(),
     credits: input.credits ?? new SupabaseLiquidCreditsService(),
     contextLoader: input.contextLoader,
-    provider: input.provider,
+    provider: input.provider ?? resolveServerAiProvider(),
     validator: input.validator,
     repository: input.repository ?? new SupabaseInvocationRepository(),
     technicalUsage: input.technicalUsage ?? new SupabaseTechnicalUsageSink(),

@@ -110,6 +110,8 @@ export interface AiInvocationInput {
   qualityProfile?: AiQualityProfile
   writingStyle?: AiWritingStyle | null
   correlationId?: string
+  /** Optionele caller-cancellation; de provider voegt daarnaast zijn eigen timeout toe. */
+  signal?: AbortSignal
 }
 
 export interface AiInvocation {
@@ -225,6 +227,7 @@ export interface AiProviderRequest {
   technicalLimits: AiTechnicalLimits
   authorizedContext: AuthorizedAiContext
   providerMapping: AiProviderMapping
+  signal?: AbortSignal
 }
 
 export interface AiProviderUsage {
@@ -235,6 +238,7 @@ export interface AiProviderUsage {
 export interface AiProviderMetadata {
   providerCode: string
   modelFamily: string
+  modelId?: string | null
   reasoningProfile: string
   requestId: string | null
   usage: AiProviderUsage | null
@@ -376,10 +380,22 @@ export class AiProviderError extends AiExecutionError {
   constructor(
     code: 'PROVIDER_UNAVAILABLE' | 'PROVIDER_FAILED',
     readonly providerMetadata: AiProviderMetadata | null = null,
+    readonly classification: AiProviderFailureClassification = 'UNKNOWN',
   ) {
     super(code)
   }
 }
+
+export type AiProviderFailureClassification =
+  | 'TIMEOUT'
+  | 'ABORTED'
+  | 'AUTHENTICATION'
+  | 'CONFIGURATION'
+  | 'RATE_LIMIT'
+  | 'UNAVAILABLE'
+  | 'INVALID_REQUEST'
+  | 'INVALID_RESPONSE'
+  | 'UNKNOWN'
 
 export type AiExecutionResult<T> =
   | { kind: 'SUCCEEDED'; invocation: AiInvocation; output: T; replayed: false }

@@ -381,6 +381,7 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
       technicalLimits: feature.technicalLimits,
       authorizedContext,
       providerMapping: feature.providerMappingByProfile[gates.qualityProfile],
+      signal: input.signal,
     })
   } catch (error) {
     const provider = providerFailure(error)
