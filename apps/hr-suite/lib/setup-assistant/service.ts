@@ -20,8 +20,8 @@ export class SetupAssistantError extends Error {
   }
 }
 
-export function canUseSetupAssistant(auth: Pick<AuthContext, 'activeRoles' | 'permissions'>): boolean {
-  return auth.activeRoles.includes('TENANT_ADMIN') && auth.permissions.includes('settings:read')
+export function canUseSetupAssistant(auth: Pick<AuthContext, 'permissions'>): boolean {
+  return auth.permissions.includes('settings:read')
 }
 
 function assertSetupReadAccess(auth: AuthContext): void {

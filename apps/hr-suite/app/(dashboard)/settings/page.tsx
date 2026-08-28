@@ -33,6 +33,7 @@ import { getTranslator } from '@/lib/i18n/server'
 import { getEnabledTenantModules } from '@/lib/modules/module-service'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
+import { canUseSetupAssistant as canReadSetupAssistant } from '@/lib/setup-assistant/service'
 
 async function allowed(permission: string) {
   try {
@@ -185,7 +186,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     journeyTemplateRead,
     recruitmentSettings,
   ] = capabilities
-  const canUseSetupAssistant = settingsAuth.activeRoles.includes('TENANT_ADMIN')
+  const canUseSetupAssistant = canReadSetupAssistant(settingsAuth)
 
   const sections: Array<{ title: string; items: SettingsTile[] }> = [
     {

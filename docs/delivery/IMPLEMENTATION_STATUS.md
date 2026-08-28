@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## Setup Assistant HR Admin access-correctie — 2026-08-28
+
+**Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
+
+De geïsoleerde branch `work/setup-assistant-hr-admin-access` is vanaf exact `main`/`origin/main` `051c57a998c33d17a8ac1bef166fe58f5c15b133` opgebouwd. `canUseSetupAssistant` en de Settings-hub gebruiken nu alleen `settings:read` voor read/open; de dashboardlayout, `/settings/setup-assistant` en beide Setup-API's blijven op de bestaande service-permissioncontracten aangesloten. `settings:write` blijft vereist voor enable/disable en completion; guide-step- en related-route-filtering zijn niet verbreed.
+
+De access-contracttests dekken TENANT_ADMIN en HR Admin read, HR Admin write, read-only settings access, unauthorized access, visible-step filtering en related-route filtering. Gerichte tests zijn `14/14` groen, strict TypeScript, targeted ESLint, `check:i18n` en Webpack-production build (`229/229`) zijn groen. De volledige suite is `1015/1016` groen met uitsluitend de bekende ongewijzigde Journey-failure `components/journeys/journey-steps.test.tsx` op `Binnenkort beschikbaar`.
+
+Authenticated TEST HR Admin acceptance op de production-mode candidate (`127.0.0.1:3003`) is groen: `/settings/setup-assistant` toegankelijk, echte enable-`PATCH 200` en readback, Settings-tegel, dashboard-trigger, drawer met 4 categorieën/16 toegankelijke stappen, desktop `420px`, mobile `390x844`, geen horizontale overflow en `0` console errors/warnings. De bestaande Setup-instelling staat aan in TEST; completion is volgens browsermutatiescope niet gewijzigd. Geen migration, schema/RLS-wijziging of structurele remote DB-write. Zichtbare versie: `1.20260828.3`.
+
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
 **Status: R7-1 TEST RELEASE GREEN — MANAGER/EMPLOYEE ACCEPTANCE LIMITED BY TEST FIXTURES**

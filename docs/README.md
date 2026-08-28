@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## Setup Assistant HR Admin access-correctie — 2026-08-28
+
+**Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
+
+De dedicated branch `work/setup-assistant-hr-admin-access` is gestart vanaf exact `main`/`origin/main` `051c57a998c33d17a8ac1bef166fe58f5c15b133`. Setup Assistant read/open vereist nu uitsluitend `settings:read`; `TENANT_ADMIN` is geen voorwaarde meer. Enable/disable en completion blijven server-side beperkt tot `settings:write`, bestaande stap- en related-route-permissionfilters blijven leidend en de disabled-default blijft behouden.
+
+De gerichte access-/guide-/schema-/version-tests zijn `14/14` groen, strict TypeScript, targeted ESLint en i18n zijn groen, en de Webpack-build genereert `229/229` routes. De volledige suite is `1015/1016` tests groen; alleen de bestaande, niet-gerelateerde Journey-failure op `Binnenkort beschikbaar` blijft staan.
+
+Authenticated TEST HR Admin op de candidate bereikte `/settings/setup-assistant`, enable gaf echte `PATCH 200` met readback, de Settings-tegel en dashboard-trigger waren zichtbaar, en de drawer toonde 4 categorieën en 16 toegankelijke stappen. Desktopdrawer: `420px`; mobile: `390x844` fullscreen; overflow bleef gelijk aan de viewport en de production-mode console eindigde op `0` errors / `0` warnings. De Setup Assistant-instelling is via de normale UI/API **AAN** gelaten in TEST; completion is niet browsergemuteerd. Geen migration, schema/RLS-wijziging of structurele remote DB-write is uitgevoerd. Zichtbare versie: `1.20260828.3`.
+
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
 **Status: R7-1 TEST RELEASE GREEN — MANAGER/EMPLOYEE SANITY LIMITED BY TEST FIXTURE**

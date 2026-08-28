@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Setup Assistant HR Admin access-correctie — 2026-08-28
+
+**Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
+
+- Dedicated worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\setup-assistant-hr-admin-access`, `work/setup-assistant-hr-admin-access`; baseline `main`/`origin/main` `051c57a998c33d17a8ac1bef166fe58f5c15b133`.
+- Read/open gebruikt uitsluitend `settings:read`; `TENANT_ADMIN` is verwijderd als harde voorwaarde. Enable/disable/completion gebruiken onveranderd `settings:write`; bestaande CORE-step- en related-route-filtering, disabled-default en data-eigenaarschap zijn behouden.
+- Verificatie: access/guide/schema/version `14/14` tests groen, strict TypeScript, targeted ESLint, i18n, Webpack-build `229/229` en diff-check groen. Full suite `1015/1016`; alleen de bekende Journey-failure op `Binnenkort beschikbaar` blijft buiten scope.
+- Browser: TEST HR Admin op production-mode candidate `127.0.0.1:3003`; `/settings/setup-assistant` `200`, echte enable `PATCH 200` en GET-readback `200`, Settings-tegel en dashboard-trigger zichtbaar, drawer 4 categorieën/16 stappen, desktop `420px`, mobile `390x844`, `scrollWidth === viewport`, console `0/0`. Setup-instelling bewust AAN gelaten; completion niet gewijzigd.
+- Database/scope: geen migration, schema, RLS of structurele remote DB-write; alleen de bestaande Setup-instelling via de normale product-API gewijzigd. R7-2, AI/HeRa en de dirty root-worktree zijn niet aangeraakt. Zichtbare versie: `1.20260828.3`.
+
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
 **Status: R7-1 TEST RELEASE GREEN — MANAGER/EMPLOYEE SANITY LIMITED BY TEST FIXTURE**

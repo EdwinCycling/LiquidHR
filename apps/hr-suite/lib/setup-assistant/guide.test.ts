@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canOpenSetupAssistantRoute,
   SETUP_ASSISTANT_GUIDE,
   getVisibleSetupAssistantSteps,
 } from './guide'
@@ -27,5 +28,16 @@ describe('Setup Assistent guide', () => {
       .find((candidate) => candidate.stepKey === 'EMP-002')
 
     expect(step?.primaryRoute.href).toBe('/settings/employment-contracts')
+  })
+
+  it('filters related destinations with their own permission contract', () => {
+    const step = SETUP_ASSISTANT_GUIDE
+      .flatMap((category) => category.steps)
+      .find((candidate) => candidate.stepKey === 'SET-004')
+
+    if (!step?.relatedRoute) throw new Error('SET-004 related route is missing')
+
+    expect(canOpenSetupAssistantRoute(step.relatedRoute, { permissions: ['settings:read'] })).toBe(true)
+    expect(canOpenSetupAssistantRoute(step.relatedRoute, { permissions: [] })).toBe(false)
   })
 })
