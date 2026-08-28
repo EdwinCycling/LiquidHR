@@ -93,7 +93,11 @@
     "confirmDelete": "Are you sure you want to delete this item?",
     "saved": "Question bank updated.",
     "failed": "The question bank could not be updated.",
-    "empty": "No questions found."
+    "empty": "No questions found.",
+    "discardTitle": "Discard changes?",
+    "discardDescription": "Unsaved changes to this item will be lost.",
+    "discardConfirm": "Discard changes",
+    "keepEditing": "Keep editing"
   },
   "builder": {
     "surveyTitle": "New survey",

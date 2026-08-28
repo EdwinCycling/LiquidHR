@@ -1,10 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { CollectionToolbar } from '@/components/patterns/collection-toolbar'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
 import { ProductUpdateCard, type ProductUpdateSurfaceLabels } from './product-update-surfaces'
 import type { ProductUpdate } from '@/lib/product-updates/service'
 
-export function ProductUpdatesPage({ initial, labels, locale }: { initial: ProductUpdate[]; labels: ProductUpdateSurfaceLabels; locale: string }) {
+type ProductUpdatesPageLabels = ProductUpdateSurfaceLabels & { search: string }
+
+export function ProductUpdatesPage({ initial, labels, locale }: { initial: ProductUpdate[]; labels: ProductUpdatesPageLabels; locale: string }) {
   const [updates] = useState(initial)
   const [query, setQuery] = useState('')
   const visible = useMemo(() => {
@@ -17,5 +22,5 @@ export function ProductUpdatesPage({ initial, labels, locale }: { initial: Produ
     void fetch('/api/product-updates/seen', { method: 'POST' }).then(() => window.dispatchEvent(new CustomEvent('liquidhr-product-updates-seen')))
   }, [updates])
 
-  return <div className="mt-8 grid gap-5"><div className="flex flex-wrap items-center justify-between gap-3"><label className="sr-only" htmlFor="product-update-search">{labels.title}</label><input className="form-field max-w-md" id="product-update-search" onChange={(event) => setQuery(event.target.value)} placeholder={`${labels.title}...`} value={query} /></div>{visible.length === 0 ? <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">—</div> : visible.map((update) => <ProductUpdateCard key={update.id} labels={labels} locale={locale} update={update} />)}</div>
+  return <div className="mt-8 grid gap-5"><CollectionToolbar search={<TextInput aria-label={labels.search} id="product-update-search" onChange={(event) => setQuery(event.target.value)} placeholder={labels.search} type="search" value={query} />} />{visible.length === 0 ? <Surface className="p-8 text-center text-sm text-muted-foreground" variant="subtle"><p>{labels.empty}</p></Surface> : visible.map((update) => <ProductUpdateCard key={update.id} labels={labels} locale={locale} update={update} />)}</div>
 }

@@ -1,12 +1,24 @@
 # Implementatiestatus Liquid HR
 
+## R8 UX Foundation Final Release — 2026-08-28
+
+**Status: INTEGRATED RELEASE CANDIDATE — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
+
+R8 Final Sweep wordt semantisch geïntegreerd vanuit `work/r8-foundation-final-sweep` / `b5aca507e007f2e0900216aaec52ea3093aefa98`, vanaf common baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`, tegen central main `9708617b824a3bc4ca630146609671a0902e48d7`. De bron convergeerde Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail op bestaande Foundation v1.2. De geïntegreerde kandidaat bewaart routes, API/services, permissions, businessregels, lifecycle, URL-state, data-eigendom en AN-0/AN-1.
+
+De doelversie is exact één centrale bump naar `1.20260828.8`. R8 voegt geen Foundation primitive, schemawijziging, migration, RLS/grantwijziging of remote DB-write toe. De AN-forward migration `20260828125223_retire_legacy_dashboard.sql` blijft unapplied; oude Dashboard-runtime en afhankelijkheid van verwijderde Dashboard-tabellen mogen niet terugkeren.
+
+Source-evidence was lokaal GREEN: targeted `15/15` bestanden en `97/97` tests, strict TypeScript, 34 gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en diff-check; full suite `1023/1024` met alleen de bekende niet-gerelateerde Journey-failure op `Binnenkort beschikbaar`. De actuele geïntegreerde gate is éénmaal uitgevoerd vóór de releasecommit: targeted `21/21` bestanden en `97/97` tests, strict TypeScript voor `hr-suite` en `control`, i18n `33` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en diff-check zijn groen. De geïntegreerde full suite is `262/263` bestanden en `1007/1008` tests; alleen dezelfde bekende Journey-failure blijft open. Lokale authenticated browseracceptance bleef geblokkeerd door de bestaande OAuth-redirect; de verplichte browsergate is post-deploy op de exacte Vercel main-SHA.
+
+Zie [`R8_FOUNDATION_FINAL_SWEEP.md`](R8_FOUNDATION_FINAL_SWEEP.md) voor de bronhandoff, uitzonderingen en acceptance-matrix.
+
 ## Liquid Analyse AN-0/AN-1 — 2026-08-28
 
-**Status: AUTHENTICATED LOCAL SANITY BLOCKED — OAUTH REDIRECT TO VERCEL**
+**Status: CENTRALLY INTEGRATED — PRESERVED BY R8**
 
-AN-0/AN-1 is semantically integrated against central main 42066ab64c025e4f8b7653d656e0e3e76cccfaf3, preserving the R7-3 employment/master-data Foundation, Setup Assistant, Sidebar v2, Organogram and R6 Reports. The active global personal Dashboard widget runtime, widget settings/catalogue/API and old Insights Dashboard item are removed; /dashboard and /settings/dashboard-widgets redirect to /insights/analysis, while /dashboard/start and Employee 360 remain intact. The Analyse hub has exactly four options: Nieuwe analyse, Verkennen and Mijn analyses are PLANNED; Rapporten is ACTIVE and links to /insights. AN-2+ is not implemented.
+AN-0/AN-1 blijft centraal actief met Analyse, de `/dashboard`- en `/settings/dashboard-widgets`-redirects en de behouden `/dashboard/start`-Startpagina. De Analyse-hub heeft exact vier opties; alleen Rapporten is actief en linkt naar `/insights`. De legacy persoonlijke Dashboard-widgetruntime, widgetbeheer, dashboard-API's en het oude Insights Dashboard-item zijn retired. AN-2+ is niet geïmplementeerd.
 
-The forward migration 20260828125223_retire_legacy_dashboard.sql is included in code but must remain unapplied in this run. There is no remote migration, schema write, dashboard-table drop or generated DB-types sync. Local authenticated browser sanity is blocked because Google OAuth returns localhost:3004 to the existing Vercel origin; no auth or environment workaround was applied. The integrated quality gate is GREEN, so commit, push and post-deploy Vercel provenance/authenticated sanity are the remaining release steps. Known Journey failure Binnenkort beschikbaar remains non-blocking only if unchanged.
+`20260828125223_retire_legacy_dashboard.sql` blijft unapplied in deze release. Er is geen remote migration, schema write, dashboard-table drop of generated DB-types sync. Deze AN-contracten zijn expliciete R8-preservation checks.
 
 ## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
 

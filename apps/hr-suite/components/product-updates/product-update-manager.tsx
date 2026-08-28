@@ -1,54 +1,241 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Edit3, LoaderCircle, Plus, Trash2, X } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import { Plus } from 'lucide-react'
 import type { ProductUpdate, ProductUpdateAudience, ProductUpdateChannel, ProductUpdateKind, ProductUpdateScope } from '@/lib/product-updates/service'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
+import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { CollectionToolbar } from '@/components/patterns/collection-toolbar'
+import { EntityList } from '@/components/patterns/entity-list'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
+import { RowActions } from '@/components/patterns/row-actions'
 
 interface ManagerLabels {
-  title: string; subtitle: string; add: string; edit: string; delete: string; deleteConfirm: string; titleLabel: string; summaryLabel: string; contentLabel: string; kindLabel: string; channelsLabel: string; audienceLabel: string; activeLabel: string; hrAdmin: string; manager: string; employee: string; newFeature: string; improvement: string; giftWindow: string; loginPopup: string; topBanner: string; dateFrom: string; dateUntil: string; save: string; cancel: string; saving: string; failed: string; invalid: string; noResults: string; scopeLabel: string; globalScope: string; tenantScope: string; readOnly: string; ownerNotice: string
+  title: string
+  subtitle: string
+  add: string
+  edit: string
+  delete: string
+  deleteConfirm: string
+  titleLabel: string
+  summaryLabel: string
+  contentLabel: string
+  kindLabel: string
+  channelsLabel: string
+  audienceLabel: string
+  activeLabel: string
+  hrAdmin: string
+  manager: string
+  employee: string
+  newFeature: string
+  improvement: string
+  giftWindow: string
+  loginPopup: string
+  topBanner: string
+  dateFrom: string
+  dateUntil: string
+  save: string
+  cancel: string
+  saving: string
+  failed: string
+  invalid: string
+  noResults: string
+  scopeLabel: string
+  globalScope: string
+  tenantScope: string
+  readOnly: string
+  ownerNotice: string
+  created: string
+  deleted: string
+  discardTitle: string
+  discardDescription: string
+  discardConfirm: string
+  keepEditing: string
 }
 
-type Draft = { scope: ProductUpdateScope; kind: ProductUpdateKind; title: string; summary: string; content: string; startsAt: string; endsAt: string; displayChannels: ProductUpdateChannel[]; audienceRoles: ProductUpdateAudience[]; isActive: boolean }
+type Draft = {
+  scope: ProductUpdateScope
+  kind: ProductUpdateKind
+  title: string
+  summary: string
+  content: string
+  startsAt: string
+  endsAt: string
+  displayChannels: ProductUpdateChannel[]
+  audienceRoles: ProductUpdateAudience[]
+  isActive: boolean
+}
+
+type EditorState = { id?: string; draft: Draft; original: Draft }
+
 const channels: ProductUpdateChannel[] = ['GIFT_WINDOW', 'LOGIN_POPUP', 'TOP_BANNER']
 const audiences: ProductUpdateAudience[] = ['TENANT_ADMIN', 'DIRECT_MANAGER', 'EMPLOYEE']
 
-function localDateTime(value: string | null): string { return value ? new Date(value).toISOString().slice(0, 16) : '' }
+function localDateTime(value: string | null): string {
+  return value ? new Date(value).toISOString().slice(0, 16) : ''
+}
+
+function copyDraft(draft: Draft): Draft {
+  return { ...draft, displayChannels: [...draft.displayChannels], audienceRoles: [...draft.audienceRoles] }
+}
+
 function draftFromUpdate(update: ProductUpdate | undefined, defaultScope: ProductUpdateScope): Draft {
   return update
-    ? { scope: update.scope, kind: update.kind, title: update.title, summary: update.summary, content: update.content, startsAt: localDateTime(update.startsAt), endsAt: localDateTime(update.endsAt), displayChannels: update.displayChannels, audienceRoles: update.audienceRoles, isActive: update.isActive }
+    ? { scope: update.scope, kind: update.kind, title: update.title, summary: update.summary, content: update.content, startsAt: localDateTime(update.startsAt), endsAt: localDateTime(update.endsAt), displayChannels: [...update.displayChannels], audienceRoles: [...update.audienceRoles], isActive: update.isActive }
     : { scope: defaultScope, kind: 'IMPROVEMENT', title: '', summary: '', content: '', startsAt: '', endsAt: '', displayChannels: ['GIFT_WINDOW'], audienceRoles: ['EMPLOYEE'], isActive: true }
 }
-function payload(draft: Draft): object { return { scope: draft.scope, update: { kind: draft.kind, title: draft.title, summary: draft.summary, content: draft.content, startsAt: draft.startsAt ? new Date(draft.startsAt).toISOString() : null, endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null, displayChannels: draft.displayChannels, audienceRoles: draft.audienceRoles, isActive: draft.isActive } } }
+
+function payload(draft: Draft): object {
+  return {
+    scope: draft.scope,
+    update: {
+      kind: draft.kind,
+      title: draft.title,
+      summary: draft.summary,
+      content: draft.content,
+      startsAt: draft.startsAt ? new Date(draft.startsAt).toISOString() : null,
+      endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
+      displayChannels: draft.displayChannels,
+      audienceRoles: draft.audienceRoles,
+      isActive: draft.isActive,
+    },
+  }
+}
 
 export function ProductUpdateManager({ initial, canManageGlobal, canManageTenant, labels }: { initial: ProductUpdate[]; canManageGlobal: boolean; canManageTenant: boolean; labels: ManagerLabels }) {
   const [items, setItems] = useState(initial)
   const [query, setQuery] = useState('')
-  const [modal, setModal] = useState<{ id?: string; draft: Draft } | null>(null)
+  const [editor, setEditor] = useState<EditorState | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ProductUpdate | null>(null)
   const [state, setState] = useState<'idle' | 'saving' | 'failed'>('idle')
+  const [message, setMessage] = useState<string | null>(null)
   const defaultScope: ProductUpdateScope = canManageGlobal ? 'GLOBAL' : 'TENANT'
-  const visible = useMemo(() => { const value = query.trim().toLocaleLowerCase(); return items.filter((item) => `${item.title} ${item.summary}`.toLocaleLowerCase().includes(value)) }, [items, query])
+  const visible = useMemo(() => {
+    const value = query.trim().toLocaleLowerCase()
+    return items.filter((item) => `${item.title} ${item.summary}`.toLocaleLowerCase().includes(value))
+  }, [items, query])
   const canEdit = (item: ProductUpdate): boolean => item.scope === 'GLOBAL' ? canManageGlobal : canManageTenant
-  const setDraft = (draft: Draft) => setModal((current) => current ? { ...current, draft } : current)
-  const toggle = <T extends string>(list: T[], value: T): T[] => list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
-  async function save(): Promise<void> {
-    if (!modal) return
+
+  function openEditor(update?: ProductUpdate): void {
+    const draft = draftFromUpdate(update, defaultScope)
+    setMessage(null)
+    setState('idle')
+    setEditor({ id: update?.id, draft, original: copyDraft(draft) })
+  }
+
+  function updateDraft(patch: Partial<Draft>): void {
+    setEditor((current) => current ? { ...current, draft: { ...current.draft, ...patch } } : current)
+  }
+
+  function toggle<T extends string>(list: T[], value: T): T[] {
+    return list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!editor) return
     setState('saving')
+    setMessage(null)
     try {
-      const response = await fetch(modal.id ? `/api/product-updates/${modal.id}` : '/api/product-updates', { method: modal.id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload(modal.draft)) })
+      const response = await fetch(editor.id ? `/api/product-updates/${editor.id}` : '/api/product-updates', { method: editor.id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload(editor.draft)) })
       const result = await response.json() as { data?: ProductUpdate }
-      if (!response.ok || !result.data) { setState('failed'); return }
+      if (!response.ok || !result.data) {
+        setState('failed')
+        setMessage(labels.failed)
+        return
+      }
       const saved = result.data
-      setItems((current) => modal.id ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current])
-      setModal(null); setState('idle')
-    } catch { setState('failed') }
+      setItems((current) => editor.id ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current])
+      setEditor(null)
+      setState('idle')
+      setMessage(labels.created)
+    } catch {
+      setState('failed')
+      setMessage(labels.failed)
+    }
   }
-  async function remove(id: string): Promise<void> {
-    if (!window.confirm(labels.deleteConfirm)) return
+
+  async function remove(): Promise<void> {
+    if (!deleteTarget) return
     setState('saving')
-    try { const response = await fetch(`/api/product-updates/${id}`, { method: 'DELETE' }); if (!response.ok) { setState('failed'); return } setItems((current) => current.filter((item) => item.id !== id)); setState('idle') } catch { setState('failed') }
+    setMessage(null)
+    try {
+      const response = await fetch(`/api/product-updates/${deleteTarget.id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        setState('failed')
+        setMessage(labels.failed)
+        return
+      }
+      setItems((current) => current.filter((item) => item.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      setState('idle')
+      setMessage(labels.deleted)
+    } catch {
+      setState('failed')
+      setMessage(labels.failed)
+    }
   }
-  const labelForChannel = (channel: ProductUpdateChannel) => channel === 'GIFT_WINDOW' ? labels.giftWindow : channel === 'LOGIN_POPUP' ? labels.loginPopup : labels.topBanner
-  const labelForAudience = (role: ProductUpdateAudience) => role === 'TENANT_ADMIN' ? labels.hrAdmin : role === 'DIRECT_MANAGER' ? labels.manager : labels.employee
-  const scopeLabel = (scope: ProductUpdateScope) => scope === 'GLOBAL' ? labels.globalScope : labels.tenantScope
-  return <div className="mt-8"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><input aria-label={labels.title} className="form-field max-w-md" onChange={(event) => setQuery(event.target.value)} placeholder={`${labels.title}...`} value={query} /><button className="button-primary inline-flex items-center gap-2" onClick={() => setModal({ draft: draftFromUpdate(undefined, defaultScope) })} type="button"><Plus size={16} />{labels.add}</button></div>{canManageGlobal ? <p className="mb-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">{labels.ownerNotice}</p> : null}<div className="grid gap-3">{visible.length === 0 ? <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{labels.noResults}</div> : visible.map((item) => <article className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border bg-surface p-5" key={item.id}><div className="min-w-0"><div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary"><span>{item.kind === 'NEW_FEATURE' ? labels.newFeature : labels.improvement}</span><span className="rounded-full bg-muted px-2 py-1 normal-case tracking-normal">{scopeLabel(item.scope)}</span><span className={item.isActive ? 'text-success' : 'text-muted-foreground'}>{item.isActive ? labels.activeLabel : '—'}</span></div><h2 className="mt-2 text-lg font-semibold">{item.title}</h2><p className="mt-1 text-sm text-muted-foreground">{item.summary}</p><div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">{item.displayChannels.map((channel) => <span className="rounded-full bg-muted px-2 py-1" key={channel}>{labelForChannel(channel)}</span>)}{item.audienceRoles.map((role) => <span className="rounded-full bg-accent px-2 py-1" key={role}>{labelForAudience(role)}</span>)}</div></div>{canEdit(item) ? <div className="flex shrink-0 gap-2"><button aria-label={`${labels.edit}: ${item.title}`} className="button-secondary" onClick={() => setModal({ id: item.id, draft: draftFromUpdate(item, defaultScope) })} type="button"><Edit3 size={16} /></button><button aria-label={`${labels.delete}: ${item.title}`} className="button-secondary text-destructive" onClick={() => void remove(item.id)} type="button"><Trash2 size={16} /></button></div> : <span className="rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground">{labels.readOnly}</span>}</article>)}</div>{modal ? <div className="fixed inset-0 z-[9999] grid place-items-center bg-sidebar/70 p-4 backdrop-blur-sm" role="presentation"><section aria-modal="true" className="max-h-[min(820px,calc(100vh-2rem))] w-full max-w-3xl overflow-y-auto rounded-2xl border bg-surface p-5 shadow-2xl sm:p-7" role="dialog"><header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.title}</p><h2 className="mt-1 text-2xl font-semibold">{modal.id ? labels.edit : labels.add}</h2></div><button aria-label={labels.cancel} className="button-secondary" onClick={() => setModal(null)} type="button"><X size={17} /></button></header><form className="mt-6 grid gap-4" onSubmit={(event) => { event.preventDefault(); void save() }}><label className="grid gap-1.5 text-sm font-medium"><span>{labels.titleLabel}</span><input className="form-field" required onChange={(event) => setDraft({ ...modal.draft, title: event.target.value })} value={modal.draft.title} /></label><label className="grid gap-1.5 text-sm font-medium"><span>{labels.summaryLabel}</span><input className="form-field" required onChange={(event) => setDraft({ ...modal.draft, summary: event.target.value })} value={modal.draft.summary} /></label><label className="grid gap-1.5 text-sm font-medium"><span>{labels.contentLabel}</span><textarea className="form-field min-h-32" required onChange={(event) => setDraft({ ...modal.draft, content: event.target.value })} value={modal.draft.content} /></label><div className="grid gap-4 sm:grid-cols-2">{!modal.id && canManageGlobal && canManageTenant ? <label className="grid gap-1.5 text-sm font-medium sm:col-span-2"><span>{labels.scopeLabel}</span><select className="form-field" onChange={(event) => setDraft({ ...modal.draft, scope: event.target.value as ProductUpdateScope })} value={modal.draft.scope}><option value="GLOBAL">{labels.globalScope}</option><option value="TENANT">{labels.tenantScope}</option></select></label> : null}<label className="grid gap-1.5 text-sm font-medium"><span>{labels.kindLabel}</span><select className="form-field" onChange={(event) => setDraft({ ...modal.draft, kind: event.target.value as ProductUpdateKind })} value={modal.draft.kind}><option value="NEW_FEATURE">{labels.newFeature}</option><option value="IMPROVEMENT">{labels.improvement}</option></select></label><label className="grid gap-1.5 text-sm font-medium"><span>{labels.activeLabel}</span><span className="flex h-11 items-center gap-2 rounded-xl border px-3"><input checked={modal.draft.isActive} onChange={(event) => setDraft({ ...modal.draft, isActive: event.target.checked })} type="checkbox" />{labels.activeLabel}</span></label><label className="grid gap-1.5 text-sm font-medium"><span>{labels.dateFrom}</span><input className="form-field" onChange={(event) => setDraft({ ...modal.draft, startsAt: event.target.value })} type="datetime-local" value={modal.draft.startsAt} /></label><label className="grid gap-1.5 text-sm font-medium"><span>{labels.dateUntil}</span><input className="form-field" onChange={(event) => setDraft({ ...modal.draft, endsAt: event.target.value })} type="datetime-local" value={modal.draft.endsAt} /></label></div><fieldset className="grid gap-2"><legend className="text-sm font-medium">{labels.channelsLabel}</legend>{channels.map((channel) => <label className="flex items-center gap-2 text-sm" key={channel}><input checked={modal.draft.displayChannels.includes(channel)} onChange={() => setDraft({ ...modal.draft, displayChannels: toggle(modal.draft.displayChannels, channel) })} type="checkbox" />{labelForChannel(channel)}</label>)}</fieldset><fieldset className="grid gap-2"><legend className="text-sm font-medium">{labels.audienceLabel}</legend>{audiences.map((role) => <label className="flex items-center gap-2 text-sm" key={role}><input checked={modal.draft.audienceRoles.includes(role)} onChange={() => setDraft({ ...modal.draft, audienceRoles: toggle(modal.draft.audienceRoles, role) })} type="checkbox" />{labelForAudience(role)}</label>)}</fieldset><div className="flex flex-wrap justify-end gap-2 border-t pt-5"><button className="button-secondary" onClick={() => setModal(null)} type="button">{labels.cancel}</button><button className="button-primary inline-flex items-center gap-2" disabled={state === 'saving'} type="submit">{state === 'saving' ? <><LoaderCircle className="animate-spin" size={16} />{labels.saving}</> : labels.save}</button></div>{state === 'failed' ? <p className="text-sm text-destructive" role="alert">{labels.failed}</p> : null}</form></section></div> : null}</div>
+
+  const labelForChannel = (channel: ProductUpdateChannel): string => channel === 'GIFT_WINDOW' ? labels.giftWindow : channel === 'LOGIN_POPUP' ? labels.loginPopup : labels.topBanner
+  const labelForAudience = (role: ProductUpdateAudience): string => role === 'TENANT_ADMIN' ? labels.hrAdmin : role === 'DIRECT_MANAGER' ? labels.manager : labels.employee
+  const scopeLabel = (scope: ProductUpdateScope): string => scope === 'GLOBAL' ? labels.globalScope : labels.tenantScope
+  const isDirty = editor ? JSON.stringify(editor.draft) !== JSON.stringify(editor.original) : false
+
+  return <div className="mt-8 grid gap-5">
+    <CollectionToolbar
+      createAction={<Button onClick={() => openEditor()} type="button"><Plus aria-hidden="true" />{labels.add}</Button>}
+      search={<TextInput aria-label={labels.title} onChange={(event) => setQuery(event.target.value)} placeholder={`${labels.title}...`} type="search" value={query} />}
+    />
+    {canManageGlobal ? <Surface className="p-4 text-sm text-muted-foreground" variant="subtle"><p>{labels.ownerNotice}</p></Surface> : null}
+    {message ? <p aria-live="polite" className="rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle px-3 py-2 text-sm text-muted-foreground">{message}</p> : null}
+    {visible.length === 0 ? <Surface className="p-8 text-center text-sm text-muted-foreground" variant="subtle"><p>{labels.noResults}</p></Surface> : <EntityList
+      ariaLabel={labels.title}
+      items={visible.map((item) => ({
+        id: item.id,
+        primary: <Button className="justify-start px-0 text-left font-semibold" onClick={() => openEditor(item)} size="sm" type="button" variant="ghost">{item.title}</Button>,
+        secondary: <>{item.summary}<span className="mx-2" aria-hidden="true">·</span>{scopeLabel(item.scope)}</>,
+        badges: <><Badge tone={item.kind === 'NEW_FEATURE' ? 'info' : 'neutral'}>{item.kind === 'NEW_FEATURE' ? labels.newFeature : labels.improvement}</Badge><Badge tone={item.isActive ? 'success' : 'neutral'}>{item.isActive ? labels.activeLabel : labels.readOnly}</Badge>{item.displayChannels.map((channel) => <Badge key={channel}>{labelForChannel(channel)}</Badge>)}</>,
+        actions: canEdit(item) ? <RowActions menuLabel={`${labels.edit}: ${item.title}`} menuItems={[{ id: 'edit', label: labels.edit, onSelect: () => openEditor(item) }, { id: 'delete', label: labels.delete, destructive: true, onSelect: () => setDeleteTarget(item) }]} /> : <Badge>{labels.readOnly}</Badge>,
+      }))}
+    />}
+    {editor ? <FormDrawer
+      cancelLabel={labels.cancel}
+      closeLabel={labels.cancel}
+      description={labels.subtitle}
+      dirty={isDirty}
+      dirtyProtection={{ title: labels.discardTitle, description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.keepEditing }}
+      onDiscard={() => setEditor(null)}
+      onOpenChange={(open) => { if (!open && !isDirty) setEditor(null) }}
+      onSubmit={(event) => void save(event)}
+      open
+      saveLabel={state === 'saving' ? labels.saving : labels.save}
+      saving={state === 'saving'}
+      title={editor.id ? labels.edit : labels.add}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField control={<TextInput onChange={(event) => updateDraft({ title: event.target.value })} required value={editor.draft.title} />} label={labels.titleLabel} required />
+        <FormField control={<TextInput onChange={(event) => updateDraft({ summary: event.target.value })} required value={editor.draft.summary} />} label={labels.summaryLabel} required />
+      </div>
+      <FormField control={<Textarea className="min-h-32" onChange={(event) => updateDraft({ content: event.target.value })} required value={editor.draft.content} />} label={labels.contentLabel} required />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {!editor.id && canManageGlobal && canManageTenant ? <FormField control={<DropdownSelect onChange={(event) => updateDraft({ scope: event.target.value as ProductUpdateScope })} value={editor.draft.scope}><option value="GLOBAL">{labels.globalScope}</option><option value="TENANT">{labels.tenantScope}</option></DropdownSelect>} label={labels.scopeLabel} /> : null}
+        <FormField control={<DropdownSelect onChange={(event) => updateDraft({ kind: event.target.value as ProductUpdateKind })} value={editor.draft.kind}><option value="NEW_FEATURE">{labels.newFeature}</option><option value="IMPROVEMENT">{labels.improvement}</option></DropdownSelect>} label={labels.kindLabel} />
+      </div>
+      <Checkbox checked={editor.draft.isActive} label={labels.activeLabel} onChange={(event) => updateDraft({ isActive: event.target.checked })} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField control={<TextInput onChange={(event) => updateDraft({ startsAt: event.target.value })} type="datetime-local" value={editor.draft.startsAt} />} label={labels.dateFrom} />
+        <FormField control={<TextInput onChange={(event) => updateDraft({ endsAt: event.target.value })} type="datetime-local" value={editor.draft.endsAt} />} label={labels.dateUntil} />
+      </div>
+      <fieldset className="grid gap-3"><legend className="text-sm font-medium text-foreground">{labels.channelsLabel}</legend>{channels.map((channel) => <Checkbox checked={editor.draft.displayChannels.includes(channel)} key={channel} label={labelForChannel(channel)} onChange={() => updateDraft({ displayChannels: toggle(editor.draft.displayChannels, channel) })} />)}</fieldset>
+      <fieldset className="grid gap-3"><legend className="text-sm font-medium text-foreground">{labels.audienceLabel}</legend>{audiences.map((role) => <Checkbox checked={editor.draft.audienceRoles.includes(role)} key={role} label={labelForAudience(role)} onChange={() => updateDraft({ audienceRoles: toggle(editor.draft.audienceRoles, role) })} />)}</fieldset>
+    </FormDrawer> : null}
+    <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.delete} description={labels.deleteConfirm} destructive onConfirm={() => void remove()} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }} open={deleteTarget !== null} pending={state === 'saving'} title={labels.delete} />
+  </div>
 }

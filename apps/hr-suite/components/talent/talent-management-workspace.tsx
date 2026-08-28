@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { SettingsAccordion } from '@/components/settings/settings-accordion'
+import { buttonClasses } from '@/components/ui/button'
+import { Surface } from '@/components/ui/surface'
 import { TalentEmployeeCapabilityRecords } from '@/components/talent/talent-employee-capability-records'
 import { TalentFoundationManager } from '@/components/talent/talent-foundation-manager'
 import { TalentNotificationPanel } from '@/components/talent/talent-notification-panel'
@@ -63,8 +65,8 @@ const initialState: WorkspaceState = {
 }
 
 function loadMessage(status: LoadStatus, labels: TalentManagementWorkspaceLabels) {
-  if (status === 'loading') return <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">{labels.loading}</p>
-  if (status === 'failed') return <p className="rounded-xl border border-dashed border-destructive/40 p-5 text-sm text-destructive">{labels.loadFailed}</p>
+  if (status === 'loading') return <Surface className="border-dashed p-5 text-sm text-muted-foreground" variant="subtle">{labels.loading}</Surface>
+  if (status === 'failed') return <Surface className="border-dashed p-5 text-sm text-destructive" variant="subtle">{labels.loadFailed}</Surface>
   return null
 }
 
@@ -137,7 +139,7 @@ export function TalentManagementWorkspace({ labels }: { labels: TalentManagement
   }
 
   return <SettingsAccordion initialOpen="start" onOpenChange={handleOpenChange} sections={[
-    { id: 'start', title: labels.startTitle, children: <div className="space-y-5"><p className="text-sm text-muted-foreground">{labels.startDescription}</p><nav aria-label={labels.startNavigationTitle} className="flex flex-wrap gap-2"><Link className="button-secondary" href="/settings/talent/assessments">{labels.assessmentTitle}</Link><Link className="button-secondary" href="/settings/talent/team">{labels.teamMatrixTitle}</Link><Link className="button-secondary" href="/settings/talent/comparison">{labels.comparisonTitle}</Link><Link className="button-secondary" href="/settings/talent/role-explorer">{labels.roleExplorerTitle}</Link><Link className="button-secondary" href="/settings/talent/import">{labels.importTitle}</Link><Link className="button-secondary" href="/settings/talent/goals">{labels.goalTitle}</Link><Link className="button-secondary" href="/settings/talent/reports">{labels.reportTitle}</Link></nav><TalentNotificationPanel labels={labels.notifications} /></div> },
+    { id: 'start', title: labels.startTitle, children: <div className="space-y-5"><p className="text-sm text-muted-foreground">{labels.startDescription}</p><nav aria-label={labels.startNavigationTitle} className="flex flex-wrap gap-2"><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/assessments">{labels.assessmentTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/team">{labels.teamMatrixTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/comparison">{labels.comparisonTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/role-explorer">{labels.roleExplorerTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/import">{labels.importTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/goals">{labels.goalTitle}</Link><Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/settings/talent/reports">{labels.reportTitle}</Link></nav><TalentNotificationPanel labels={labels.notifications} /></div> },
     { id: 'profiles', title: labels.profilesSection, children: renderProfiles() },
     { id: 'records', title: labels.recordsSection, children: renderRecords() },
     { id: 'foundation', title: labels.foundationSection, children: renderFoundation() },

@@ -1,8 +1,22 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import type { CustomFieldDefinition } from '@/lib/custom-fields/service'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
+import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { EntityList } from '@/components/patterns/entity-list'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
+import { RowActions } from '@/components/patterns/row-actions'
+import { tabLinkClasses } from '@/components/patterns/tab-link-classes'
 
 const TYPES = ['TEXT', 'TEXTAREA', 'NUMBER', 'DATE', 'BOOLEAN', 'SELECT', 'MULTI_SELECT', 'AUTO_INCREMENT'] as const
 const ACCESS = ['HIDDEN', 'READ', 'WRITE'] as const
@@ -19,44 +33,85 @@ interface Labels {
   inUse: string; activate: string; deactivate: string; sortBy: string; sortLabel: string; sortActive: string
   ascending: string; descending: string; preview: string; previewEmpty: string; previewValue: string
   technicalIdentityHelp: string; cancel: string; types: Record<FieldType, string>; access: Record<Access, string>
+  discardTitle: string; discardDescription: string; discardConfirm: string; keepEditing: string
 }
 
-const inputClass = 'mt-1.5 w-full rounded-lg border bg-background px-3 py-2 text-sm'
+type OptionDraft = { value: string; labelNl: string; labelEn: string }
+type FieldDraft = {
+  key: string
+  labelNl: string
+  labelEn: string
+  countryCode: string
+  fieldType: FieldType
+  required: boolean
+  chartFilter: boolean
+  hrAccess: Access
+  managerAccess: Access
+  selfAccess: Access
+  options: string
+}
+type EditorState = { mode: 'create' | 'edit'; definitionId?: string; draft: FieldDraft; original: FieldDraft }
 
-function parseOptions(value: string): Array<{ value: string; labelNl: string; labelEn: string }> {
+function parseOptions(value: string): OptionDraft[] {
   return value.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
     const [optionValue = '', labelNl = '', labelEn = ''] = line.split(':').map((part) => part.trim())
     return { value: optionValue, labelNl: labelNl || optionValue, labelEn: labelEn || labelNl || optionValue }
   }).filter((option) => option.value)
 }
 
-function PreviewControl({ fieldType, options, labels }: { fieldType: FieldType; options: Array<{ value: string; labelNl: string; labelEn: string }>; labels: Labels }): ReactNode {
-  if (fieldType === 'TEXTAREA') return <textarea className={`${inputClass} min-h-20`} disabled placeholder={labels.previewValue} />
-  if (fieldType === 'BOOLEAN') return <label className="mt-3 flex items-center gap-2 text-sm"><input disabled type="checkbox" />{labels.previewValue}</label>
-  if (fieldType === 'SELECT' || fieldType === 'MULTI_SELECT') return <select className={inputClass} disabled multiple={fieldType === 'MULTI_SELECT'}><option>{options[0]?.labelNl || labels.previewValue}</option></select>
-  if (fieldType === 'AUTO_INCREMENT') return <input className={inputClass} disabled value="1001" readOnly />
-  return <input className={inputClass} disabled placeholder={labels.previewValue} type={fieldType === 'NUMBER' ? 'number' : fieldType === 'DATE' ? 'date' : 'text'} />
+function definitionDraft(definition: CustomFieldDefinition): FieldDraft {
+  return {
+    key: definition.key,
+    labelNl: definition.labelNl,
+    labelEn: definition.labelEn,
+    countryCode: definition.countryCode,
+    fieldType: definition.fieldType,
+    required: definition.isRequired,
+    chartFilter: definition.showInOrganizationChartFilter,
+    hrAccess: definition.hrAccess,
+    managerAccess: definition.managerAccess,
+    selfAccess: definition.employeeSelfAccess,
+    options: definition.options.map((option) => `${option.value}:${option.labelNl}:${option.labelEn}`).join('\n'),
+  }
+}
+
+function newDraft(): FieldDraft {
+  return { key: '', labelNl: '', labelEn: '', countryCode: 'NL', fieldType: 'TEXT', required: false, chartFilter: false, hrAccess: 'WRITE', managerAccess: 'HIDDEN', selfAccess: 'HIDDEN', options: '' }
+}
+
+function PreviewControl({ fieldType, options, labels }: { fieldType: FieldType; options: OptionDraft[]; labels: Labels }): ReactNode {
+  if (fieldType === 'TEXTAREA') return <Textarea disabled placeholder={labels.previewValue} />
+  if (fieldType === 'BOOLEAN') return <Checkbox disabled label={labels.previewValue} />
+  if (fieldType === 'SELECT' || fieldType === 'MULTI_SELECT') return <DropdownSelect disabled multiple={fieldType === 'MULTI_SELECT'} aria-label={labels.previewValue}><option value={options[0]?.value ?? ''}>{options[0]?.labelNl || labels.previewValue}</option></DropdownSelect>
+  if (fieldType === 'AUTO_INCREMENT') return <TextInput disabled readOnly value="1001" />
+  return <TextInput disabled placeholder={labels.previewValue} type={fieldType === 'NUMBER' ? 'number' : fieldType === 'DATE' ? 'date' : 'text'} />
+}
+
+function accessOptions(labels: Labels) {
+  return ACCESS.map((value) => <option key={value} value={value}>{labels.access[value]}</option>)
 }
 
 export function CustomFieldManager({ definitions, entityType, labels }: { definitions: CustomFieldDefinition[]; entityType: 'EMPLOYEE' | 'DOCUMENT'; labels: Labels }) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [fieldType, setFieldType] = useState<FieldType>('TEXT')
-  const [newLabelNl, setNewLabelNl] = useState('')
-  const [newLabelEn, setNewLabelEn] = useState('')
-  const [newOptions, setNewOptions] = useState('')
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const createDetailsRef = useRef<HTMLDetailsElement | null>(null)
-  const createFormRef = useRef<HTMLFormElement | null>(null)
+  const [editor, setEditor] = useState<EditorState | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CustomFieldDefinition | null>(null)
 
-  function resetCreateForm(): void {
-    createFormRef.current?.reset()
-    setFieldType('TEXT')
-    setNewLabelNl('')
-    setNewLabelEn('')
-    setNewOptions('')
-    if (createDetailsRef.current) createDetailsRef.current.open = false
+  function openCreate(): void {
+    const draft = newDraft()
+    setMessage(null)
+    setEditor({ mode: 'create', draft, original: draft })
+  }
+
+  function openEdit(definition: CustomFieldDefinition): void {
+    const draft = definitionDraft(definition)
+    setMessage(null)
+    setEditor({ mode: 'edit', definitionId: definition.id, draft, original: draft })
+  }
+
+  function updateDraft(patch: Partial<FieldDraft>): void {
+    setEditor((current) => current ? { ...current, draft: { ...current.draft, ...patch } } : current)
   }
 
   async function responseMessage(response: Response): Promise<string> {
@@ -65,89 +120,125 @@ export function CustomFieldManager({ definitions, entityType, labels }: { defini
     return payload?.error === 'CUSTOM_FIELD_IN_USE' ? labels.inUse : labels.failed
   }
 
-  async function submit(formData: FormData): Promise<void> {
-    setSaving(true); setMessage(null)
-    const options = parseOptions(String(formData.get('options') ?? '')).map((option, index) => ({ ...option, sortOrder: index }))
+  async function saveEditor(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!editor) return
+    setSaving(true)
+    setMessage(null)
+    const { draft } = editor
+    const options = parseOptions(draft.options).map((option, index) => ({ ...option, sortOrder: index }))
+    const body = editor.mode === 'create'
+      ? { entityType, key: draft.key, labelNl: draft.labelNl, labelEn: draft.labelEn, countryCode: draft.countryCode, fieldType: draft.fieldType, isRequired: draft.required, hrAccess: draft.hrAccess, showInOrganizationChartFilter: draft.chartFilter, managerAccess: draft.managerAccess, employeeSelfAccess: draft.selfAccess, options }
+      : { labelNl: draft.labelNl, labelEn: draft.labelEn, countryCode: draft.countryCode, isRequired: draft.required, showInOrganizationChartFilter: draft.chartFilter, hrAccess: draft.hrAccess, managerAccess: draft.managerAccess, employeeSelfAccess: draft.selfAccess }
     try {
-      const response = await fetch('/api/custom-fields', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
-        entityType, key: formData.get('key'), labelNl: formData.get('labelNl'), labelEn: formData.get('labelEn'), countryCode: formData.get('countryCode'),
-        fieldType, isRequired: formData.get('required') === 'on', hrAccess: formData.get('hrAccess'),
-        showInOrganizationChartFilter: formData.get('chartFilter') === 'on', managerAccess: formData.get('managerAccess'), employeeSelfAccess: formData.get('selfAccess'), options,
-      }) })
+      const response = await fetch(editor.mode === 'create' ? '/api/custom-fields' : `/api/custom-fields/${editor.definitionId}`, { method: editor.mode === 'create' ? 'POST' : 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       const errorMessage = await responseMessage(response)
       if (errorMessage) throw new Error(errorMessage)
-      setMessage(labels.created); resetCreateForm(); router.refresh()
-    } catch (error) { setMessage(error instanceof Error ? error.message : labels.failed) } finally { setSaving(false) }
-  }
-
-  async function updateDefinition(event: FormEvent<HTMLFormElement>, definitionId: string): Promise<void> {
-    event.preventDefault(); setSaving(true); setMessage(null)
-    const formData = new FormData(event.currentTarget)
-    try {
-      const response = await fetch(`/api/custom-fields/${definitionId}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
-        labelNl: formData.get('labelNl'), labelEn: formData.get('labelEn'), countryCode: formData.get('countryCode'),
-        isRequired: formData.get('required') === 'on', showInOrganizationChartFilter: formData.get('chartFilter') === 'on',
-        hrAccess: formData.get('hrAccess'), managerAccess: formData.get('managerAccess'), employeeSelfAccess: formData.get('selfAccess'),
-      }) })
-      const errorMessage = await responseMessage(response)
-      if (errorMessage) throw new Error(errorMessage)
-      setMessage(labels.created); setEditingId(null); router.refresh()
-    } catch (error) { setMessage(error instanceof Error ? error.message : labels.failed) } finally { setSaving(false) }
+      setMessage(labels.created)
+      setEditor(null)
+      router.refresh()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : labels.failed)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function toggleActive(definition: CustomFieldDefinition): Promise<void> {
-    setSaving(true); setMessage(null)
+    setSaving(true)
+    setMessage(null)
     try {
       const response = await fetch(`/api/custom-fields/${definition.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ isActive: !definition.isActive }) })
       const errorMessage = await responseMessage(response)
       if (errorMessage) throw new Error(errorMessage)
       router.refresh()
-    } catch (error) { setMessage(error instanceof Error ? error.message : labels.failed) } finally { setSaving(false) }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : labels.failed)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  async function deleteDefinition(definition: CustomFieldDefinition): Promise<void> {
-    if (!window.confirm(labels.deleteConfirm)) return
-    setSaving(true); setMessage(null)
+  async function deleteDefinition(): Promise<void> {
+    if (!deleteTarget) return
+    setSaving(true)
+    setMessage(null)
     try {
-      const response = await fetch(`/api/custom-fields/${definition.id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/custom-fields/${deleteTarget.id}`, { method: 'DELETE' })
       const errorMessage = await responseMessage(response)
       if (errorMessage) throw new Error(errorMessage)
-      setMessage(labels.deleted); router.refresh()
-    } catch (error) { setMessage(error instanceof Error ? error.message : labels.failed) } finally { setSaving(false) }
+      setDeleteTarget(null)
+      setEditor((current) => current?.definitionId === deleteTarget.id ? null : current)
+      setMessage(labels.deleted)
+      router.refresh()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : labels.failed)
+    } finally {
+      setSaving(false)
+    }
   }
 
+  const isDirty = editor ? JSON.stringify(editor.draft) !== JSON.stringify(editor.original) : false
+
   return <div className="space-y-6">
-    <nav aria-label={labels.entity} className="flex gap-2"><a className={`button-secondary ${entityType === 'EMPLOYEE' ? 'border-primary bg-accent' : ''}`} href="/custom-fields?entity=EMPLOYEE">{labels.employeeEntity}</a><a className={`button-secondary ${entityType === 'DOCUMENT' ? 'border-primary bg-accent' : ''}`} href="/custom-fields?entity=DOCUMENT">{labels.documentEntity}</a></nav>
-    <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-      <p className="eyebrow text-primary">{labels.sortBy}</p>
-      {message ? <p aria-live="polite" className="mt-4 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">{message}</p> : null}
-      {definitions.length === 0 ? <p className="mt-5 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{labels.empty}</p> : <ul className="mt-5 space-y-3">{definitions.map((definition) => <li className="rounded-xl border bg-background/60 p-4" key={definition.id}>
-        <button className="flex w-full cursor-pointer flex-wrap items-start justify-between gap-4 text-left" onClick={() => setEditingId((current) => current === definition.id ? null : definition.id)} type="button">
-          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-foreground">{definition.labelNl}</h3><code className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{definition.key}</code><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">{definition.countryCode}</span></div><p className="mt-1 text-sm text-muted-foreground">{labels.types[definition.fieldType]} · {labels.hrAccess}: {labels.access[definition.hrAccess]}</p></div>
-          <div className="flex flex-wrap items-center justify-end gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${definition.isActive ? 'bg-success-surface text-success' : 'bg-muted text-muted-foreground'}`}>{definition.isActive ? labels.active : labels.inactive}</span></div>
-        </button>
-        {editingId === definition.id ? <form className="mt-4 grid gap-3 rounded-xl bg-muted/40 p-4 sm:grid-cols-2" onSubmit={(event) => void updateDefinition(event, definition.id)}>
-          <label className="text-sm font-medium">{labels.labelNl}<input className={inputClass} defaultValue={definition.labelNl} name="labelNl" required /></label><label className="text-sm font-medium">{labels.labelEn}<input className={inputClass} defaultValue={definition.labelEn} name="labelEn" required /></label>
-          <input name="countryCode" type="hidden" value={definition.countryCode} /><p className="self-end text-xs text-muted-foreground sm:pb-2">{labels.technicalIdentityHelp}</p>
-          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-3">{([['hrAccess', labels.hrAccess, definition.hrAccess], ['managerAccess', labels.managerAccess, definition.managerAccess], ['selfAccess', labels.selfAccess, definition.employeeSelfAccess]] as const).map(([name, label, value]) => <label className="text-sm font-medium" key={name}>{label}<select className={inputClass} defaultValue={value} name={name}>{ACCESS.map((access) => <option key={access} value={access}>{labels.access[access]}</option>)}</select></label>)}</div>
-          <label className="flex items-center gap-2 text-sm"><input defaultChecked={definition.isRequired} name="required" type="checkbox" />{labels.required}</label><label className="flex items-center gap-2 text-sm"><input defaultChecked={definition.showInOrganizationChartFilter} name="chartFilter" type="checkbox" />{labels.chartFilter}</label>
-          <div className="flex flex-wrap justify-end gap-2 sm:col-span-2"><button className="button-secondary" disabled={saving} onClick={() => setEditingId(null)} type="button">{labels.cancel}</button><button className="button-secondary" disabled={saving} onClick={() => void toggleActive(definition)} type="button">{definition.isActive ? labels.deactivate : labels.activate}</button><button className="button-secondary text-destructive" disabled={saving} onClick={() => void deleteDefinition(definition)} type="button">{labels.delete}</button><button className="button-primary" disabled={saving} type="submit">{saving ? labels.savingDefinition : labels.saveDefinition}</button></div>
-        </form> : null}
-      </li>)}</ul>}
-    </section>
-    <details className="group rounded-2xl border bg-surface p-5 shadow-sm" ref={createDetailsRef}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4"><span><span className="eyebrow text-primary">{labels.newField}</span><span className="mt-1 block text-lg font-semibold text-foreground">{labels.create}</span></span><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">+</span></summary>
-      <div className="mt-5 space-y-6">
-        <form action={submit} className="space-y-4" ref={createFormRef}>
-          <label className="block text-sm font-medium">{labels.technicalKey}<input className={inputClass} name="key" pattern="[a-z][a-z0-9_]{1,62}" required /></label><label className="block text-sm font-medium">{labels.labelNl}<input className={inputClass} name="labelNl" onChange={(event) => setNewLabelNl(event.target.value)} required value={newLabelNl} /></label><label className="block text-sm font-medium">{labels.labelEn}<input className={inputClass} name="labelEn" onChange={(event) => setNewLabelEn(event.target.value)} required value={newLabelEn} /></label>
-          <input name="countryCode" type="hidden" value="NL" /><label className="text-sm font-medium">{labels.fieldType}<select className={inputClass} name="fieldType" onChange={(event) => setFieldType(event.target.value as FieldType)} value={fieldType}>{TYPES.map((type) => <option key={type} value={type}>{labels.types[type]}</option>)}</select></label>
-          <div className="grid gap-3 sm:grid-cols-3">{([['hrAccess', labels.hrAccess, 'WRITE'], ['managerAccess', labels.managerAccess, 'HIDDEN'], ['selfAccess', labels.selfAccess, 'HIDDEN']] as const).map(([name, label, initial]) => <label className="block text-sm font-medium" key={name}>{label}<select className={inputClass} defaultValue={initial} name={name}>{ACCESS.map((value) => <option key={value} value={value}>{labels.access[value]}</option>)}</select></label>)}</div>
-          {(fieldType === 'SELECT' || fieldType === 'MULTI_SELECT') ? <label className="block text-sm font-medium">{labels.options}<textarea className={`${inputClass} min-h-28`} name="options" onChange={(event) => setNewOptions(event.target.value)} required value={newOptions} /></label> : null}
-          <label className="flex items-center gap-2 text-sm"><input name="required" type="checkbox" />{labels.required}</label><label className="flex items-start gap-2 rounded-xl border bg-muted/40 p-3 text-sm"><input className="mt-0.5" name="chartFilter" type="checkbox" /><span><span className="font-medium">{labels.chartFilter}</span><span className="mt-0.5 block text-xs text-muted-foreground">{labels.chartFilterHelp}</span></span></label>
-          <div className="grid gap-2 sm:grid-cols-2"><button className="button-secondary" disabled={saving} onClick={resetCreateForm} type="button">{labels.cancel}</button><button className="button-primary" disabled={saving} type="submit">{saving ? labels.creating : labels.create}</button></div>
-        </form>
-        <section aria-label={labels.preview} className="h-fit rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-accent/20 p-5"><p className="eyebrow text-primary">{labels.preview}</p><h3 className="mt-1 text-lg font-semibold">{newLabelNl || labels.previewEmpty}</h3><p className="mt-1 text-sm text-muted-foreground">{labels.types[fieldType]}</p><div className="mt-5"><label className="text-sm font-medium">{newLabelNl || labels.previewValue}<PreviewControl fieldType={fieldType} options={parseOptions(newOptions)} labels={labels} /></label></div></section>
+    <nav aria-label={labels.entity} className="flex min-w-0 overflow-x-auto border-b border-border-subtle">
+      <Link className={tabLinkClasses({ active: entityType === 'EMPLOYEE' })} href="/custom-fields?entity=EMPLOYEE">{labels.employeeEntity}</Link>
+      <Link className={tabLinkClasses({ active: entityType === 'DOCUMENT' })} href="/custom-fields?entity=DOCUMENT">{labels.documentEntity}</Link>
+    </nav>
+    <div>
+      <Surface className="overflow-hidden">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border-subtle p-5 sm:p-6">
+        <div><p className="eyebrow text-primary">{labels.sortBy}</p><p className="mt-1 text-sm text-muted-foreground">{definitions.length} {labels.entity.toLocaleLowerCase()}</p></div>
+        <Button onClick={openCreate} type="button">{labels.create}</Button>
       </div>
-    </details>
+      {message ? <p aria-live="polite" className="mx-5 mt-4 rounded-[var(--radius-control)] border border-border-subtle bg-surface-subtle px-3 py-2 text-sm text-muted-foreground sm:mx-6">{message}</p> : null}
+      </Surface>
+      <EntityList
+        ariaLabel={labels.entity}
+        className="mt-4"
+        empty={<p className="px-5 py-12 text-center text-sm text-muted-foreground sm:px-6">{labels.empty}</p>}
+        items={definitions.map((definition) => ({
+          id: definition.id,
+          primary: <Button className="justify-start px-0 text-left font-semibold" onClick={() => openEdit(definition)} size="sm" type="button" variant="ghost">{definition.labelNl}</Button>,
+          secondary: <><code className="text-xs text-muted-foreground">{definition.key}</code><span className="mx-2" aria-hidden="true">·</span>{labels.types[definition.fieldType]}<span className="mx-2" aria-hidden="true">·</span>{labels.hrAccess}: {labels.access[definition.hrAccess]}</>,
+          badges: <><Badge tone="neutral">{definition.countryCode}</Badge><Badge tone={definition.isActive ? 'success' : 'neutral'}>{definition.isActive ? labels.active : labels.inactive}</Badge></>,
+          actions: <RowActions menuLabel={labels.edit} menuItems={[{ id: 'edit', label: labels.edit, onSelect: () => openEdit(definition) }, { id: 'toggle', label: definition.isActive ? labels.deactivate : labels.activate, onSelect: () => void toggleActive(definition) }, { id: 'delete', label: labels.delete, destructive: true, onSelect: () => setDeleteTarget(definition) }]} />,
+        }))}
+      />
+    </div>
+    {editor ? <FormDrawer
+      cancelLabel={labels.cancel}
+      closeLabel={labels.cancel}
+      description={labels.technicalIdentityHelp}
+      dirty={isDirty}
+      dirtyProtection={{ title: labels.discardTitle, description: labels.discardDescription, discardLabel: labels.discardConfirm, keepEditingLabel: labels.keepEditing }}
+      onDiscard={() => setEditor(null)}
+      onOpenChange={(open) => { if (!open && !isDirty) setEditor(null) }}
+      onSubmit={(event) => void saveEditor(event)}
+      open
+      saveLabel={saving ? labels.savingDefinition : editor.mode === 'create' ? labels.create : labels.saveDefinition}
+      saving={saving}
+      title={editor.mode === 'create' ? labels.newField : labels.editField}
+    >
+      {editor.mode === 'create' ? <FormField control={<TextInput name="key" pattern="[a-z][a-z0-9_]{1,62}" required value={editor.draft.key} onChange={(event) => updateDraft({ key: event.target.value })} />} label={labels.technicalKey} /> : null}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField control={<TextInput name="labelNl" required value={editor.draft.labelNl} onChange={(event) => updateDraft({ labelNl: event.target.value })} />} label={labels.labelNl} />
+        <FormField control={<TextInput name="labelEn" required value={editor.draft.labelEn} onChange={(event) => updateDraft({ labelEn: event.target.value })} />} label={labels.labelEn} />
+      </div>
+      {editor.mode === 'create' ? <FormField control={<DropdownSelect name="fieldType" onChange={(event) => updateDraft({ fieldType: event.target.value as FieldType })} value={editor.draft.fieldType}>{TYPES.map((type) => <option key={type} value={type}>{labels.types[type]}</option>)}</DropdownSelect>} label={labels.fieldType} /> : null}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField control={<DropdownSelect name="hrAccess" onChange={(event) => updateDraft({ hrAccess: event.target.value as Access })} value={editor.draft.hrAccess}>{accessOptions(labels)}</DropdownSelect>} label={labels.hrAccess} />
+        <FormField control={<DropdownSelect name="managerAccess" onChange={(event) => updateDraft({ managerAccess: event.target.value as Access })} value={editor.draft.managerAccess}>{accessOptions(labels)}</DropdownSelect>} label={labels.managerAccess} />
+        <FormField control={<DropdownSelect name="selfAccess" onChange={(event) => updateDraft({ selfAccess: event.target.value as Access })} value={editor.draft.selfAccess}>{accessOptions(labels)}</DropdownSelect>} label={labels.selfAccess} />
+      </div>
+      {(editor.draft.fieldType === 'SELECT' || editor.draft.fieldType === 'MULTI_SELECT') ? <FormField control={<Textarea name="options" required value={editor.draft.options} onChange={(event) => updateDraft({ options: event.target.value })} />} label={labels.options} /> : null}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Checkbox checked={editor.draft.required} label={labels.required} onChange={(event) => updateDraft({ required: event.target.checked })} />
+        <Checkbox checked={editor.draft.chartFilter} description={labels.chartFilterHelp} label={labels.chartFilter} onChange={(event) => updateDraft({ chartFilter: event.target.checked })} />
+      </div>
+      {editor.mode === 'edit' && editor.definitionId ? <div className="flex flex-wrap gap-2 border-t border-border-subtle pt-4"><Button disabled={saving} onClick={() => { const definition = definitions.find((item) => item.id === editor.definitionId); if (definition) void toggleActive(definition) }} type="button" variant="secondary">{definitions.find((item) => item.id === editor.definitionId)?.isActive ? labels.deactivate : labels.activate}</Button><Button disabled={saving} onClick={() => { const definition = definitions.find((item) => item.id === editor.definitionId); if (definition) setDeleteTarget(definition) }} type="button" variant="danger">{labels.delete}</Button></div> : null}
+    </FormDrawer> : null}
+    <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.delete} description={labels.deleteConfirm} destructive onConfirm={() => void deleteDefinition()} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }} open={deleteTarget !== null} title={labels.delete} pending={saving} />
+    <Surface className="p-5 sm:p-6" variant="subtle"><p className="eyebrow text-primary">{labels.preview}</p><h2 className="mt-1 text-lg font-semibold">{editor?.draft.labelNl || labels.previewEmpty}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.types[editor?.draft.fieldType ?? 'TEXT']}</p><div className="mt-5 max-w-xl"><PreviewControl fieldType={editor?.draft.fieldType ?? 'TEXT'} options={parseOptions(editor?.draft.options ?? '')} labels={labels} /></div></Surface>
   </div>
 }

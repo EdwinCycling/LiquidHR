@@ -170,6 +170,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           noUpcoming: reminderMessages('noUpcoming'),
           noOverdue: reminderMessages('noOverdue'),
           dueTitle: reminderMessages('dueTitle'),
+          personal: reminderMessages('personal'),
+          hr: reminderMessages('hr'),
           complete: reminderMessages('complete'),
           saveComplete: reminderMessages('saveComplete'),
           dismiss: reminderMessages('dismiss'),

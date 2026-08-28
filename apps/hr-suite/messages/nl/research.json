@@ -93,7 +93,11 @@
     "confirmDelete": "Weet je zeker dat je dit onderdeel wilt verwijderen?",
     "saved": "Vragenbank bijgewerkt.",
     "failed": "De vragenbank kon niet worden bijgewerkt.",
-    "empty": "Geen vragen gevonden."
+    "empty": "Geen vragen gevonden.",
+    "discardTitle": "Wijzigingen negeren?",
+    "discardDescription": "Niet-opgeslagen wijzigingen aan dit onderdeel gaan verloren.",
+    "discardConfirm": "Wijzigingen negeren",
+    "keepEditing": "Verder bewerken"
   },
   "builder": {
     "surveyTitle": "Nieuwe survey",

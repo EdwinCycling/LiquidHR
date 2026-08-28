@@ -14,7 +14,7 @@ const workspaceKeys = [
   'statusDeclined', 'selectCampaign', 'privacyTitle', 'privacyThreshold', 'privacyConsent', 'aggregateAvailable',
   'teamCompass', 'teamMix', 'namedProfiles', 'noNamedProfiles', 'insight', 'balancedInsight', 'focusedInsight',
   'dimensionAction', 'dimensionVision', 'dimensionHarmony', 'dimensionLogic', 'continueAssessment', 'viewResult',
-  'managementTitle', 'managementSubtitle', 'confirmStart', 'confirmClose', 'confirmArchive',
+  'managementTitle', 'managementSubtitle', 'confirmStart', 'confirmClose', 'confirmArchive', 'discardTitle', 'discardDescription', 'discardConfirm', 'keepEditing',
 ] as const satisfies readonly (keyof TeamCompassLabels)[]
 
 const assessmentKeys = [

@@ -1,17 +1,26 @@
 # Actuele overdracht Liquid HR
 
+## R8 UX Foundation Final Release — 2026-08-28
+
+**Status: INTEGRATED RELEASE CANDIDATE — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
+
+- Source branch/commit: `work/r8-foundation-final-sweep` / `b5aca507e007f2e0900216aaec52ea3093aefa98`; source baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`; central baseline `9708617b824a3bc4ca630146609671a0902e48d7`.
+- De R8-delta is uitsluitend Foundation-convergentie voor Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail. Bestaande routes, API/services, payloads, permissions, businessregels, lifecycle states, URL-state en data-eigendom blijven leidend. Geen nieuwe Foundation primitive.
+- AN-0/AN-1 is behouden: Analyse, `/dashboard`-redirects, `/dashboard/start`, Sidebar v2, Gift Drawer, Setup Assistant, Organogram en R7 employment/master-data blijven intact; geen oude Dashboard-runtime of widget-settingsruntime mag terugkeren.
+- Versieplan: exact één centrale bump van `1.20260828.7` naar `1.20260828.8`; de releasecommit-SHA wordt na de gate vastgelegd.
+- Database: R8 schema change `NO`; migration `NO`; RLS/grants `NO`; remote DB-write `NO`. De AN-forward migration `20260828125223_retire_legacy_dashboard.sql` blijft unapplied en wordt niet opnieuw uitgevoerd. R8-integratie moet ook vrij zijn van runtime-afhankelijkheid op de vier verwijderde Dashboard-tabellen.
+- Source-evidence was lokaal GREEN (`15/15` targeted files, `97/97` tests, strict TypeScript, 34 NL/EN namespaces, ESLint, Webpack `229/229`, diff-check; full suite `1023/1024` met uitsluitend de bekende Journey-failure op `Binnenkort beschikbaar`). De geïntegreerde gate is daarna éénmaal tegen actuele main uitgevoerd: `21/21` targeted bestanden, `97/97` tests, strict TypeScript voor `hr-suite` en `control`, i18n `33` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en diff-check groen. De geïntegreerde full suite is `262/263` bestanden en `1007/1008` tests; alleen dezelfde bekende Journey-failure blijft staan.
+- Browser: lokale authenticated acceptance bleef door bestaande OAuth-redirect beperkt; er wordt geen lokale auth/OAuth/.env/login-fix uitgevoerd. De verplichte authenticated HR Admin acceptance verschuift naar de exacte Vercel main deployment; Manager/Employee zijn compacte sanity-negatives.
+- Geldige uitzonderingen: anchored Time Hub portal, Product Updates branded/public presentation, grafische SVG/canvas/xyflow-internals, native file/date inputs en hidden accessibility/FormData-inputs. Handoff: [`R8_FOUNDATION_FINAL_SWEEP.md`](R8_FOUNDATION_FINAL_SWEEP.md).
+
 ## Liquid Analyse AN-0/AN-1 — 2026-08-28
 
-**Status: AUTHENTICATED LOCAL SANITY BLOCKED — OAUTH REDIRECT TO VERCEL**
+**Status: CENTRALLY INTEGRATED — PRESERVED BY R8**
 
-- Source branch/commit: `work/an-analysis-foundation` / `b4a571f9acf0bd54c36dff2fa6f5dc8fd6059aef`; source baseline `e7e62e75e213a00f804215dae2233a850f438cd3`.
-- Centrale baseline: `42066ab64c025e4f8b7653d656e0e3e76cccfaf3` (prior version 1.20260828.6); this release candidate bumps the visible version to 1.20260828.7. AN-0/AN-1 is semantically integrated while R7-3, Setup Assistant, Sidebar v2, Organogram and R6 Reports remain preserved.
-- Legacy widgetruntime, widgetbeheer, dashboard-API's, dashboard-i18n and the old Insights Dashboard-item are retired from active code. `/dashboard` and `/settings/dashboard-widgets` redirect to `/insights/analysis`; `/dashboard/start` and Employee 360 remain intact.
-- `/insights/analysis` contains exactly four options: Nieuwe analyse, Verkennen and Mijn analyses are `PLANNED`; Rapporten is `ACTIVE` and links to `/insights`. No AN-2+ runtime is included.
-- `20260828125223_retire_legacy_dashboard.sql` remains a local forward migration only. No remote migration apply, schema write, dashboard-table drop or generated DB-types sync is part of this release.
-- The one permitted OAuth inspection confirms the callback uses the runtime app origin and the callback contract preserves the forwarded Vercel host; localhost:3004 therefore returns the Google OAuth flow to the existing Vercel origin. No auth, env or production setting was changed.
-- Local authenticated sanity is blocked by this environment limitation. Post-deploy authenticated evidence on the new Vercel SHA remains the release gate; known Journey baseline failure `Binnenkort beschikbaar` remains non-blocking if unchanged.
-- Handoff: [`LIQUID_ANALYSE_AN0_AN1.md`](../requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
+- AN-0/AN-1 is onderdeel van central main `9708617b824a3bc4ca630146609671a0902e48d7` en blijft inhoudelijk onveranderd door R8. De legacy persoonlijke Dashboard-widgetruntime, widgetbeheer, dashboard-API's, dashboard-i18n en het oude Insights Dashboard-item zijn retired.
+- `/dashboard` en `/settings/dashboard-widgets` redirecten naar `/insights/analysis`; `/dashboard/start` en Employee 360 blijven intact. `/insights/analysis` bevat exact vier opties: Nieuwe analyse, Verkennen en Mijn analyses zijn `PLANNED`; Rapporten is `ACTIVE` en linkt naar `/insights`. AN-2+ is niet geïmplementeerd.
+- `20260828125223_retire_legacy_dashboard.sql` blijft een lokale forward migration only; er is geen remote migration, schema write, dashboard-table drop of generated DB-types sync in deze R8-release.
+- Huidige AN-runtime, redirects en migration file zijn release-blocking preservation checks; oude Dashboard-code mag niet worden hersteld. Zie [`LIQUID_ANALYSE_AN0_AN1.md`](../requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
 
 ## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
 

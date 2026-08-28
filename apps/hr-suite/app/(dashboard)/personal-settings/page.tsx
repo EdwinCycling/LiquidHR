@@ -1,5 +1,7 @@
 import type { SettingsModalLabels } from '@/components/layout/settings-modal'
 import { PersonalSettingsForm } from '@/components/settings/personal-settings-form'
+import { PageHeader } from '@/components/patterns/page-header'
+import { PageShell } from '@/components/layout/page-shell'
 import { getTranslator } from '@/lib/i18n/server'
 import { getUserPreferences } from '@/lib/preferences/server'
 import { UI_THEMES } from '@/lib/preferences/user-preferences'
@@ -20,13 +22,10 @@ export default async function PersonalSettingsPage() {
     themes: Object.fromEntries(UI_THEME_KEYS.map((value) => [value, { name: settings(`themes.${value}`), description: settings(`themeDescriptions.${value}`) }])) as SettingsModalLabels['themes'],
   }
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-10">
-      <header className="mb-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{settings('personalEyebrow')}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{labels.title}</h1>
-      </header>
+    <PageShell className="py-8" width="reading">
+      <PageHeader className="mb-7" description={settings('personalEyebrow')} title={labels.title} />
       <PersonalSettingsForm labels={labels} preferences={preferences} />
-    </div>
+    </PageShell>
   )
 }
 

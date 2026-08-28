@@ -1,12 +1,18 @@
 # Liquid HR documentatie-index
 
-## Liquid Analyse AN-0/AN-1 — 2026-08-28
+## R8 UX Foundation Final Release — 2026-08-28
 
-**Status: LOCAL FEATURE SLICE — NO MAIN/PUSH/REMOTE APPLY**
+**Status: INTEGRATED RELEASE CANDIDATE — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
 
-De dedicated worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an-analysis-foundation` draait op branch `work/an-analysis-foundation` vanaf `origin/main` `e7e62e75e213a00f804215dae2233a850f438cd3`; de zichtbare versie blijft `1.20260828.5`. AN-0 retireert de globale persoonlijke Dashboard-widgetarchitectuur in code. AN-1 activeert `/insights/analysis` met exact vier Analyse-opties; alleen Rapporten is actief en linkt naar `/insights`.
+R8 Final Sweep wordt semantisch geïntegreerd vanuit source `work/r8-foundation-final-sweep` / `b5aca507e007f2e0900216aaec52ea3093aefa98`, vanaf common baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`, tegen de actuele central baseline `9708617b824a3bc4ca630146609671a0902e48d7`. De doelversie is exact één centrale bump naar `1.20260828.8`.
 
-`/dashboard/start` blijft de dagelijkse Startpagina. `/dashboard` en `/settings/dashboard-widgets` redirecten veilig naar Analyse. De forward migration `20260828125223_retire_legacy_dashboard.sql` is lokaal voorbereid maar niet op TEST toegepast; `dashboard:read` blijft het bestaande Analyse-toegangscontract en `dashboard-widget:*` blijft voorlopig inert. AN-2 t/m AN-10 zijn uitsluitend frozen roadmap. Zie [`LIQUID_ANALYSE_AN0_AN1.md`](requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
+R8 convergeert de bestaande Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail op UX Foundation v1.2. API-, service-, permission-, business-, lifecycle-, URL-state- en data-eigendomscontracten blijven behouden. Er worden geen nieuwe Foundation primitives, schemawijzigingen, migrations, RLS/grants of remote databasewrites toegevoegd.
+
+De geïntegreerde releasegate tegen deze actuele central baseline is groen: targeted `21/21` testbestanden en `97/97` tests, strict TypeScript voor `hr-suite` en `control`, i18n `33` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en `git diff --check`. De full suite is `262/263` bestanden en `1007/1008` tests; uitsluitend de bekende, ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan. De ene releasecommit/push, Vercel-provenance en authenticated HR Admin post-deploy acceptance moeten nog tegen de uiteindelijke main-SHA worden bewezen. Geldige uitzonderingen blijven de anchored Time Hub portal, Product Updates branded/public presentation, grafische/native/hidden-control onderdelen en de door AN beheerde `/dashboard`-compatibiliteitsroutes. Zie [`delivery/R8_FOUNDATION_FINAL_SWEEP.md`](delivery/R8_FOUNDATION_FINAL_SWEEP.md).
+
+AN-0/AN-1 blijft centraal behouden: de legacy persoonlijke Dashboard-widgetruntime, widgetbeheer en dashboard-API's blijven retired; `/dashboard` en `/settings/dashboard-widgets` redirecten naar `/insights/analysis`, terwijl `/dashboard/start` de dagelijkse Startpagina blijft. De Analyse-hub houdt exact vier opties, met uitsluitend Rapporten actief naar `/insights`; AN-2+ is niet geïmplementeerd. De forward migration `20260828125223_retire_legacy_dashboard.sql` blijft in deze release unapplied.
+
+`NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft de leidende regel.
 
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
