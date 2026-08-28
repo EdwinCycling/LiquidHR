@@ -1,5 +1,7 @@
 import { MenuOrderForm } from '@/components/settings/menu-order-form'
+import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
 import { getTranslator } from '@/lib/i18n/server'
+import { PageShell } from '@/components/layout/page-shell'
 
 export default async function MenuOrderPage() {
   const [navigation, settings] = await Promise.all([getTranslator('navigation'), getTranslator('settings')])
@@ -11,5 +13,5 @@ export default async function MenuOrderPage() {
     { href: '/insights', label: navigation('insights') }, { href: '/workforce', label: navigation('workforce') },
     { href: '/settings', label: navigation('settings') },
   ]
-  return <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-10"><p className="eyebrow">{settings('admin.sections.platform')}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{settings('admin.menuOrderTitle')}</h1><p className="mt-2 max-w-2xl text-muted-foreground">{settings('admin.menuOrderDescription')}</p><MenuOrderForm items={items} moveDownLabel={settings('admin.menuOrderMoveDown')} moveUpLabel={settings('admin.menuOrderMoveUp')} saveLabel={settings('admin.menuOrderSave')} savedLabel={settings('admin.menuOrderSaved')} /></div>
+  return <PageShell className="py-8 lg:py-10"><AdminSettingsPageHeader backLabel={settings('admin.backToOverview')} eyebrow={settings('admin.sections.platform')} subtitle={settings('admin.menuOrderDescription')} title={settings('admin.menuOrderTitle')} /><MenuOrderForm cancelLabel={settings('admin.menuOrderCancel')} items={items} moveDownLabel={settings('admin.menuOrderMoveDown')} moveUpLabel={settings('admin.menuOrderMoveUp')} saveLabel={settings('admin.menuOrderSave')} savedLabel={settings('admin.menuOrderSaved')} /></PageShell>
 }

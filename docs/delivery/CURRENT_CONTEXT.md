@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
+
+**Status: TECHNICAL GREEN — HR ADMIN BROWSER GREEN — MANAGER/EMPLOYEE ACCEPTANCE BLOCKED BY TEST FIXTURES — MAIN/PUSH/VERCEL NOT TOUCHED**
+
+- Branch/worktree: `work/r7-settings-platform` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r7-settings-platform`; exact baseline `main`/`origin/main` `1fce3e28accd6385abd0a5e54742b0b6e4060098`; zichtbare versie `1.20260828.1`.
+- Scope: `/settings`, `/settings/company-data`, `/settings/company-branding`, `/settings/employee-directory`, `/settings/modules`, `/settings/dashboard-widgets`, `/settings/menu-order`. Existing API/service/schema/RLS/grant/permission/business contracts are untouched. Menu order remains localStorage/self preference; employee directory remains “Komt later”.
+- Foundation convergence: PageShell/PageHeader, Surface, TextInput/Textarea, FormField/FormActions, Checkbox, Switch, Badge, CountryPicker, ScrollableTabs, FormDrawer and ConfirmDialog are reused. Company-data custom portal/`window.confirm`, raw settings toggles, local action buttons and card styling were converged without changing payloads or route semantics.
+- Gates: targeted `8/8` files and `18/18` tests, strict TypeScript, i18n `34` equal namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` and diff-check green. Full suite `263/264` files and `1008/1009` tests; only the known unrelated Journey failure for `Binnenkort beschikbaar` remains.
+- Browser: HR Admin all seven routes green on `1440x900` and `390x844`, no horizontal overflow, company-data location tab and mobile FormDrawer open/cancel verified, console empty. Manager reaches the existing no-customer-environment state; Employee fixture login is rejected. Persona acceptance is blocked by TEST auth/tenant fixtures, not by an R7 code failure. No browser mutation was submitted; no cleanup required.
+- Next action: repair/refresh the local Manager and Employee TEST fixture linkage/credentials, then rerun the authenticated negative route matrix. Do not merge, push, bump version, apply migrations, or deploy from this worktree.
+
 ## Centrale R6 Insights-integratie en TEST-releasegate — 2026-08-28
 
 **Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH/VERCEL VERIFICATION PENDING**

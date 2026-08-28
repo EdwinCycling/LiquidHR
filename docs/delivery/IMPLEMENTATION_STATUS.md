@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
+
+**Status: TECHNICAL GREEN — HR ADMIN BROWSER GREEN — MANAGER/EMPLOYEE ACCEPTANCE BLOCKED BY TEST FIXTURES — MAIN/PUSH/VERCEL NOT TOUCHED**
+
+De dedicated worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r7-settings-platform` en branch `work/r7-settings-platform` zijn vanaf exact `main`/`origin/main` `1fce3e28accd6385abd0a5e54742b0b6e4060098` opgebouwd. De zichtbare versie bleef `1.20260828.1`. R7-1 convergeert `/settings`, `/settings/company-data`, `/settings/company-branding`, `/settings/employee-directory`, `/settings/modules`, `/settings/dashboard-widgets` en `/settings/menu-order` op bestaande Foundation PageShell/PageHeader, Surface, FormField/FormActions, TextInput/Textarea, Checkbox, Switch, Badge, CountryPicker, ScrollableTabs, FormDrawer en ConfirmDialog. Het employee-placeholder en menuvolgorde-localStoragecontract bleven behouden.
+
+Er zijn geen API-, service-, schema-, migration-, RLS-, grant-, permission-, businessregel-, version-bump-, remote- of production-wijzigingen gemaakt. De bestaande routes en payloads blijven leidend; de wijziging is UI/Foundation-convergentie plus NL/EN-sleutels voor cancel/discard states. Nieuwe gerichte tests dekken canonical switches/checkboxes, menu-acties, submit/cancel en het ontbreken van `window.confirm` in de company-data-manager.
+
+Lokale gates: gerichte settings-/regressieset `8/8` bestanden en `18/18` tests groen, strict TypeScript groen, i18n `34` gelijke NL/EN-namespaces groen, ESLint `0 errors / 8 bestaande warnings`, Webpack `229/229` routes en `git diff --check` groen. De volledige suite is `263/264` bestanden en `1008/1009` tests groen; de enige failure is de bekende, niet-gerelateerde Journey-verwachting rond `Binnenkort beschikbaar`.
+
+Authenticated browser: HR Admin heeft alle zeven R7-routes op desktop `1440x900` en mobiel `390x844` gelezen zonder horizontale overflow; de company-data Locaties-tab en mobiele FormDrawer zijn geopend en zonder wijziging gesloten; finale HR Admin-consolecontrole was leeg. Manager bereikte op de settingsroutes de bestaande “geen klantomgeving”-toestand. Employee kon met de beschikbare lokale TEST-fixturecredentials niet aanmelden. Deze twee persona-gates blijven daarom **BLOCKED BY TEST FIXTURE/AUTH ENVIRONMENT**; er zijn geen instellingen opgeslagen, geen testdata gewijzigd en geen cleanup nodig.
+
 ## Centrale R6 Insights-integratie en TEST-releasegate — 2026-08-28
 
 **Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH/VERCEL VERIFICATION PENDING**

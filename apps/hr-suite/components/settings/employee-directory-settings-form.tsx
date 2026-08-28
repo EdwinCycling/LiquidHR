@@ -1,8 +1,11 @@
 'use client'
 
-import { Check, LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
 import type { EmployeeDirectorySettings } from '@/lib/employee-directory/service'
+import { FormActions } from '@/components/patterns/form-actions'
+import { FormField } from '@/components/patterns/form-field'
+import { Surface } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
 
 interface Labels {
   enabled: string
@@ -17,6 +20,7 @@ interface Labels {
   presence: string
   schedule: string
   save: string
+  cancel: string
   saving: string
   saved: string
   failed: string
@@ -46,23 +50,21 @@ export function EmployeeDirectorySettingsForm({ initial, labels }: { initial: Em
   }
 
   return <section className="max-w-3xl space-y-6">
-    <label className="flex items-start gap-3 rounded-2xl border bg-surface p-5 shadow-sm">
-      <input checked={settings.enabled} className="mt-1 size-4 accent-primary" onChange={(event) => { setSettings((current) => ({ ...current, enabled: event.target.checked })); setStatus('idle') }} type="checkbox" />
-      <span><span className="block font-semibold">{labels.enabled}</span><span className="mt-1 block text-sm leading-6 text-muted-foreground">{labels.enabledDescription}</span></span>
-    </label>
-    <div className="rounded-2xl border bg-surface p-5 shadow-sm">
+    <Surface className="p-5">
+      <Switch checked={settings.enabled} description={labels.enabledDescription} label={labels.enabled} onCheckedChange={(checked) => { setSettings((current) => ({ ...current, enabled: checked })); setStatus('idle') }} />
+    </Surface>
+    <Surface className="p-5">
       <h2 className="font-semibold">{labels.fieldsTitle}</h2>
       <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.fieldsDescription}</p>
-      <div className="mt-5 divide-y rounded-xl border bg-background">
-        {FIELD_LABELS.map(({ key, label }) => <label className="flex items-center justify-between gap-4 px-4 py-3 text-sm" key={key}>
-          <span>{labels[label]}{key === 'showName' ? <span className="ml-2 text-xs text-muted-foreground">{labels.nameAlwaysOn}</span> : null}</span>
-          <input checked={key === 'showName' || settings[key] as boolean} className="size-4 accent-primary" disabled={key === 'showName'} onChange={(event) => { setSettings((current) => ({ ...current, [key]: event.target.checked })); setStatus('idle') }} type="checkbox" />
-        </label>)}
+      <div className="mt-5 divide-y divide-border-subtle rounded-[var(--radius-control)] border border-border bg-background">
+        {FIELD_LABELS.map(({ key, label }) => <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm" key={key}>
+          <FormField className="min-w-0" control={<Switch checked={key === 'showName' || settings[key] as boolean} disabled={key === 'showName'} onCheckedChange={(checked) => { setSettings((current) => ({ ...current, [key]: checked })); setStatus('idle') }} />} label={<>{labels[label]}{key === 'showName' ? <span className="ml-2 text-xs text-muted-foreground">{labels.nameAlwaysOn}</span> : null}</>} />
+        </div>)}
       </div>
-      <div className="mt-5 flex min-h-11 items-center justify-between gap-4 border-t pt-5">
-        <p aria-live="polite" className={`text-sm ${status === 'failed' ? 'text-destructive' : 'text-success'}`} role="status">{status === 'saved' ? <><Check className="mr-1 inline" size={16} />{labels.saved}</> : status === 'failed' ? labels.failed : ''}</p>
-        <button className="button-primary inline-flex items-center gap-2" disabled={status === 'saving'} onClick={() => void save()} type="button">{status === 'saving' ? <LoaderCircle className="animate-spin" size={16} /> : null}{status === 'saving' ? labels.saving : labels.save}</button>
-      </div>
-    </div>
+      <form className="mt-5 border-t border-border-subtle pt-5" onSubmit={(event) => { event.preventDefault(); void save() }}>
+        <p aria-live="polite" className={`mb-3 min-h-5 text-sm ${status === 'failed' ? 'text-destructive' : 'text-success'}`} role={status === 'failed' ? 'alert' : 'status'}>{status === 'saved' ? labels.saved : status === 'failed' ? labels.failed : ''}</p>
+        <FormActions cancelLabel={labels.cancel} onCancel={() => { setSettings(initial); setStatus('idle') }} saveLabel={labels.save} saving={status === 'saving'} />
+      </form>
+    </Surface>
   </section>
 }

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/patterns/page-header'
+
 export function AdminSettingsPageHeader({
   backLabel,
   eyebrow,
@@ -17,22 +19,18 @@ export function AdminSettingsPageHeader({
   backHref?: string
 }) {
   return (
-    <header className="mb-8">
+    <div className="mb-8">
       <Link
-        className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80"
+        className="inline-flex min-h-8 items-center gap-2 rounded-[var(--radius-control)] text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         href={backHref}
       >
-        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+        <ArrowLeft aria-hidden="true" className="size-4" />
         {backLabel}
       </Link>
-      {eyebrow ? <p className="eyebrow mt-5">{eyebrow}</p> : null}
-      <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">{title}</h1>
-      {subtitle ? (
-        <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">
-          {subtitle}
-        </p>
-      ) : null}
-      {actions ? <div className="mt-5">{actions}</div> : null}
-    </header>
+      <div className="mt-5">
+        {eyebrow ? <p className="eyebrow mb-2">{eyebrow}</p> : null}
+        <PageHeader actions={actions} description={subtitle} title={title} />
+      </div>
+    </div>
   )
 }

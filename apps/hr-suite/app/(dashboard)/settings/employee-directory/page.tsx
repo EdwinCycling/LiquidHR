@@ -4,11 +4,12 @@ import { EmployeeDirectorySettingsForm } from '@/components/settings/employee-di
 import { getEmployeeDirectorySettings } from '@/lib/employee-directory/service'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireAdministrationSettingsContext } from '@/lib/settings/administration-selection'
+import { PageShell } from '@/components/layout/page-shell'
 
 export default async function EmployeeDirectorySettingsPage() {
   const context = await requireAdministrationSettingsContext('/settings/employee-directory')
   const [settings, messages] = await Promise.all([getEmployeeDirectorySettings(), getTranslator('settings')])
-  return <main className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-10">
+  return <PageShell className="py-8 lg:py-10" width="standard">
     <AdminSettingsPageHeader backLabel={messages('admin.backToOverview')} eyebrow={messages('admin.eyebrow')} title={messages('employeeDirectory.title')} subtitle={messages('employeeDirectory.subtitle')} />
     <AdministrationSettingsContextBar context={context} returnTo="/settings/employee-directory" />
     <EmployeeDirectorySettingsForm initial={settings} labels={{
@@ -23,10 +24,11 @@ export default async function EmployeeDirectorySettingsPage() {
       workPhone: messages('employeeDirectory.workPhone'),
       presence: messages('employeeDirectory.presence'),
       schedule: messages('employeeDirectory.schedule'),
+      cancel: messages('employeeDirectory.cancel'),
       save: messages('employeeDirectory.save'),
       saving: messages('employeeDirectory.saving'),
       saved: messages('employeeDirectory.saved'),
       failed: messages('employeeDirectory.failed'),
     }} />
-  </main>
+  </PageShell>
 }

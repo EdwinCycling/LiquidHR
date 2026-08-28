@@ -31,6 +31,8 @@ import { SettingsAccordion } from '@/components/settings/settings-accordion'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getTranslator } from '@/lib/i18n/server'
 import { getEnabledTenantModules } from '@/lib/modules/module-service'
+import { PageHeader } from '@/components/patterns/page-header'
+import { PageShell } from '@/components/layout/page-shell'
 
 async function allowed(permission: string) {
   try {
@@ -80,14 +82,14 @@ function SettingsLinkTile({
 }) {
   if (pending) {
     return (
-      <div className="flex min-h-36 items-start gap-4 rounded-2xl border border-dashed bg-surface p-5 shadow-sm">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary">
+      <div className="flex min-h-36 items-start gap-4 rounded-[var(--radius-surface)] border border-dashed border-border bg-surface p-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-accent text-primary">
           <Icon size={21} />
         </span>
         <span className="min-w-0">
           <span className="flex items-center gap-2 font-semibold">
             {title}
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
+            <span className="rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
               {pendingLabel}
             </span>
           </span>
@@ -104,10 +106,10 @@ function SettingsLinkTile({
 
   return (
     <Link
-      className="group flex min-h-36 items-start gap-4 rounded-2xl border bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+      className="group flex min-h-36 items-start gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 transition-colors hover:border-primary/40 hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       href={href}
     >
-      <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-primary">
+        <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-accent text-primary">
         <Icon size={21} />
       </span>
       <span className="min-w-0">
@@ -428,15 +430,8 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
   ]
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-10">
-      <header className="mb-9">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-          {messages('admin.eyebrow')}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {messages('admin.title')}
-        </h1>
-      </header>
+    <PageShell className="py-8 lg:py-10">
+      <PageHeader title={messages('admin.title')} />
 
       <SettingsAccordion initialOpen={section} sections={sections.map((section) => ({ id: section.title === messages('admin.sections.organization') ? 'organization' : section.title === messages('admin.sections.hrSetup') ? 'hrSetup' : 'platform', title: section.title, children: (() => {
           const items = section.items.filter((item) => item.visible)
@@ -475,6 +470,6 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
                 })}
               </div>
         })() }))} />
-    </div>
+    </PageShell>
   )
 }

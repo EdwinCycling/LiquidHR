@@ -2,6 +2,20 @@
 
 Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesignskill worden aangepakt. Werk dit document bij wanneer een schermvoorstel, implementatie of verificatie is afgerond.
 
+## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
+
+| Scherm | Route | Status | Resultaat / resterend |
+|---|---|---|---|
+| Settings Hub | `/settings` | TECHNICAL GREEN / HR ADMIN VERIFIED | Foundation PageHeader/PageShell en flat surfaces; Manager/Employee negatieve matrix geblokkeerd door TEST-fixtures |
+| Company data | `/settings/company-data` | HR ADMIN VERIFIED | ScrollableTabs, FormField/FormActions, FormDrawer, ConfirmDialog; mobile drawer open/cancel groen |
+| Company branding | `/settings/company-branding` | HR ADMIN VERIFIED | Surface, TextInput, Button, Badge en loading/error states behouden |
+| Employee directory | `/settings/employee-directory` | HR ADMIN VERIFIED | Canonical Switch, FormField/FormActions; placeholder contract blijft ongewijzigd |
+| Modules | `/settings/modules` | HR ADMIN VERIFIED | Canonical Switch/Badge/FormActions; bestaande module payload en capability blijven leidend |
+| Dashboard widgets | `/settings/dashboard-widgets` | HR ADMIN VERIFIED | Canonical Switch/Checkbox/Badge; bestaande widget API en role assignments blijven leidend |
+| Menu order | `/settings/menu-order` | HR ADMIN VERIFIED | Canonical IconButton/FormActions/Surface; localStorage/self preference blijft leidend |
+
+Desktop `1440x900` en mobiel `390x844` zijn voor alle zeven routes gecontroleerd zonder horizontale overflow. De HR Admin-console was leeg na de positieve routeflow. Manager eindigde op de bestaande “geen klantomgeving”-toestand en Employee kon niet aanmelden met de beschikbare lokale TEST-fixture; de volledige persona-matrix blijft open als **BLOCKED BY TEST FIXTURE/AUTH ENVIRONMENT**. Geen API-, schema-, RLS-, permission-, migration- of remote wijzigingen.
+
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
 De 15 approved slices zijn geïntegreerd op `work/r4-recruitment-journeys-integration` vanaf baseline `1471aa224e2318b0c216d95e16b2ba1c4cd3ec64`. De Foundation-UI, routes, permissions en bestaande data-contracten zijn semantisch samengevoegd; er is geen nieuwe generieke UI-familie toegevoegd.

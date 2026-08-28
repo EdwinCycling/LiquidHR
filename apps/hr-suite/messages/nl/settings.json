@@ -91,9 +91,9 @@
       "dashboardWidgets": "Dashboardwidgets", "dashboardWidgetsDescription": "Bepaal welke datagedreven widgets beschikbaar zijn per rol.",
       "recruitment": "Recruitment", "recruitmentDescription": "Beheer pipeline, bibliotheek, gesprekssets en privacy voor recruitment."
     },
-    "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag"
+    "menuOrderTitle": "Menuvolgorde", "menuOrderDescription": "Bepaal de volgorde van de onderdelen in de linker navigatie voor jouw werkruimte.", "menuOrderSave": "Volgorde opslaan", "menuOrderSaved": "Menuvolgorde opgeslagen.", "menuOrderMoveUp": "omhoog", "menuOrderMoveDown": "omlaag", "menuOrderCancel": "Annuleren"
   },
-  "employeeDirectory": { "title": "Medewerkersdirectory", "subtitle": "Bepaal welke collega-informatie medewerkers in een veilige popup mogen zien.", "enabled": "Medewerkers mogen de medewerkerslijst openen", "enabledDescription": "Wanneer dit uitstaat, blijft de lijst alleen beschikbaar voor HR en leidinggevenden.", "fieldsTitle": "Gegevens in de collega-popup", "fieldsDescription": "Alle opties staan standaard aan. Schakel afzonderlijke gegevens uit wanneer medewerkers die niet mogen zien.", "name": "Naam", "nameAlwaysOn": "altijd zichtbaar", "jobDepartment": "Functie en afdeling", "workEmail": "Zakelijk e-mailadres", "workPhone": "Zakelijk telefoonnummer", "presence": "Aanwezigheid deze week", "schedule": "Rooster", "save": "Instellingen opslaan", "saving": "Opslaanâ€¦", "saved": "Instellingen opgeslagen.", "failed": "De instellingen konden niet worden opgeslagen." },
+  "employeeDirectory": { "title": "Medewerkersdirectory", "subtitle": "Bepaal welke collega-informatie medewerkers in een veilige popup mogen zien.", "enabled": "Medewerkers mogen de medewerkerslijst openen", "enabledDescription": "Wanneer dit uitstaat, blijft de lijst alleen beschikbaar voor HR en leidinggevenden.", "fieldsTitle": "Gegevens in de collega-popup", "fieldsDescription": "Alle opties staan standaard aan. Schakel afzonderlijke gegevens uit wanneer medewerkers die niet mogen zien.", "name": "Naam", "nameAlwaysOn": "altijd zichtbaar", "jobDepartment": "Functie en afdeling", "workEmail": "Zakelijk e-mailadres", "workPhone": "Zakelijk telefoonnummer", "presence": "Aanwezigheid deze week", "schedule": "Rooster", "save": "Instellingen opslaan", "saving": "Opslaanâ€¦", "saved": "Instellingen opgeslagen.", "failed": "De instellingen konden niet worden opgeslagen.", "cancel": "Annuleren" },
   "businessStructure": { "title": "Administratie", "subtitle": "Beheer alle administraties en HR-groepen binnen deze tenant.", "groups": "HR-groepen", "administrations": "Administraties", "add": "Administratie toevoegen", "edit": "Aanpassen", "save": "Opslaan", "cancel": "Annuleren", "name": "Naam", "description": "Omschrijving", "code": "Code", "number": "Administratienummer", "coc": "KvK-nummer", "vat": "Btw-nummer", "parent": "Parent-administratie", "active": "Actief", "group": "HR-groep", "failed": "Opslaan is niet gelukt.", "saved": "Opgeslagen.", "empty": "Selecteer links een administratie of HR-groep." },
   "hrGroups": {
     "title": "HR-groep",
@@ -219,6 +219,10 @@
     "locationInUse": "In gebruik",
     "close": "Sluiten",
     "cancel": "Annuleren",
+    "discardTitle": "Wijzigingen negeren?",
+    "discardDescription": "Niet-opgeslagen wijzigingen gaan verloren.",
+    "discardChanges": "Wijzigingen negeren",
+    "keepEditing": "Verder bewerken",
     "country": "Land",
     "countrySearch": "Zoek een land",
     "countryEmpty": "Geen land gevonden.",
