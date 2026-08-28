@@ -95,6 +95,8 @@ create table public.ai_credit_allocations (
     foreign key (tenant_id, hr_group_id)
     references public.hr_groups(tenant_id, id)
     on delete restrict,
+  constraint ai_credit_allocations_scope_key
+    unique (tenant_id, hr_group_id, id),
   constraint ai_credit_allocations_period_key
     unique (tenant_id, hr_group_id, allocation_type, period_month),
   constraint ai_credit_allocations_expiry_check
@@ -151,6 +153,8 @@ create table public.ai_credit_reservations (
     on delete cascade,
   constraint ai_credit_reservations_invocation_key
     unique (tenant_id, hr_group_id, invocation_id),
+  constraint ai_credit_reservations_scope_key
+    unique (tenant_id, hr_group_id, id),
   constraint ai_credit_reservations_idempotency_key
     unique (tenant_id, hr_group_id, actor_user_id, idempotency_key),
   constraint ai_credit_reservations_lifecycle_check
@@ -980,7 +984,7 @@ begin
     coalesce(sum(allocation.settled_credits), 0)::integer,
     coalesce(sum(allocation.expired_credits), 0)::integer,
     coalesce(sum(allocation.available_credits), 0)::integer,
-    timezone('utc', now())
+    now()
   from public.ai_credit_allocations allocation
   where allocation.tenant_id = requested_tenant_id
     and allocation.hr_group_id = requested_hr_group_id;
@@ -1259,6 +1263,17 @@ grant execute on function public.release_ai_credits(uuid, uuid, text) to service
 grant execute on function public.get_ai_group_credit_balance(uuid, uuid) to service_role;
 grant execute on function public.get_ai_actor_quota(uuid, uuid, uuid, text) to service_role;
 grant execute on function public.get_ai_reservation_allocations(uuid, uuid) to service_role;
+
+-- Public wrappers remain security-invoker endpoints. The server role must
+-- explicitly be able to reach their security-definer implementation.
+grant usage on schema internal_security to service_role;
+grant execute on function internal_security.ensure_ai_monthly_allowance(uuid, uuid, text) to service_role;
+grant execute on function internal_security.reserve_ai_credits(uuid, uuid, uuid, uuid, text, text, text, text) to service_role;
+grant execute on function internal_security.settle_ai_credits(uuid, uuid) to service_role;
+grant execute on function internal_security.release_ai_credits(uuid, uuid, text) to service_role;
+grant execute on function internal_security.get_ai_group_credit_balance(uuid, uuid) to service_role;
+grant execute on function internal_security.get_ai_actor_quota(uuid, uuid, uuid, text) to service_role;
+grant execute on function internal_security.get_ai_reservation_allocations(uuid, uuid) to service_role;
 
 -- The only synthetic allocation seam is explicitly non-production and cannot
 -- be called by a customer. It requires a transaction-local test-mode setting;

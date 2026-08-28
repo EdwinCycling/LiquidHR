@@ -1,6 +1,6 @@
 begin;
 
-select plan(51);
+select plan(54);
 
 select has_table('public', 'ai_credit_group_policies', 'Liquid Credits group policies bestaan.');
 select has_table('public', 'ai_credit_role_quotas', 'Liquid Credits role quotas bestaan.');
@@ -31,6 +31,8 @@ select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit
 select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_reservations'::regclass and conname = 'ai_credit_reservations_invocation_scope_fkey'), 'Reservations kunnen niet naar een andere invocation-scope wijzen.');
 select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_reservation_allocations'::regclass and conname = 'ai_credit_reservation_allocations_allocation_scope_fkey'), 'Reservation allocation links zijn group scoped.');
 select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_reservations'::regclass and conname = 'ai_credit_reservations_idempotency_key'), 'Reservation idempotency is database-uniek.');
+select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_reservations'::regclass and conname = 'ai_credit_reservations_scope_key'), 'Reservation scope is uniek voor composite foreign keys.');
+select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_allocations'::regclass and conname = 'ai_credit_allocations_scope_key'), 'Allocation scope is uniek voor composite foreign keys.');
 select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_allocations'::regclass and conname = 'ai_credit_allocations_period_key'), 'Monthly allocation is per group en periode uniek.');
 select ok(exists (select 1 from pg_constraint where conrelid = 'public.ai_credit_charge_catalog'::regclass and conname = 'ai_credit_charge_catalog_reference_key'), 'Charge references zijn uniek.');
 select has_index('public', 'ai_credit_allocations', 'ai_credit_allocations_scope_expiry_idx', 'Consumption kan deterministic op expiry sorteren.');
@@ -57,6 +59,13 @@ select ok(has_function_privilege('service_role', 'public.reserve_ai_credits(uuid
 select ok(not has_function_privilege('anon', 'public.reserve_ai_credits(uuid,uuid,uuid,uuid,text,text,text,text)', 'EXECUTE'), 'Anon kan reserve RPC niet aanroepen.');
 select ok(has_function_privilege('service_role', 'public.grant_ai_controlled_test_credits(uuid,uuid,integer,text)', 'EXECUTE'), 'Alleen server test-seam kan synthetic credits aanroepen.');
 select ok(not has_function_privilege('anon', 'public.grant_ai_controlled_test_credits(uuid,uuid,integer,text)', 'EXECUTE'), 'Anon kan geen synthetic credits aanroepen.');
+
+select ok(
+  has_schema_privilege('service_role', 'internal_security', 'USAGE')
+  and has_function_privilege('service_role', 'internal_security.reserve_ai_credits(uuid,uuid,uuid,uuid,text,text,text,text)', 'EXECUTE')
+  and has_function_privilege('service_role', 'internal_security.get_ai_group_credit_balance(uuid,uuid)', 'EXECUTE'),
+  'Service-role kan security-invoker wrappers naar internal_security bereiken.'
+);
 
 select ok((select prosecdef from pg_proc where oid = to_regprocedure('internal_security.reserve_ai_credits(uuid,uuid,uuid,uuid,text,text,text,text)')), 'Interne reservefunctie lockt via security-definer serverfunctie.');
 select ok(not coalesce((select prosecdef from pg_proc where oid = to_regprocedure('public.reserve_ai_credits(uuid,uuid,uuid,uuid,text,text,text,text)')), true), 'Publieke reserve-wrapper is geen security-definer endpoint.');

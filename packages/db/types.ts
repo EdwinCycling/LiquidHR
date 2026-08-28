@@ -1168,8 +1168,8 @@ export type Database = {
           execution_status: string
           failure_code: string | null
           feature_code: string
-          finished_at: string | null
           feedback_outcome: string | null
+          finished_at: string | null
           hr_group_id: string
           id: string
           idempotency_key: string
@@ -1204,8 +1204,8 @@ export type Database = {
           execution_status?: string
           failure_code?: string | null
           feature_code: string
-          finished_at?: string | null
           feedback_outcome?: string | null
+          finished_at?: string | null
           hr_group_id: string
           id?: string
           idempotency_key: string
@@ -1240,8 +1240,8 @@ export type Database = {
           execution_status?: string
           failure_code?: string | null
           feature_code?: string
-          finished_at?: string | null
           feedback_outcome?: string | null
+          finished_at?: string | null
           hr_group_id?: string
           id?: string
           idempotency_key?: string
@@ -1264,18 +1264,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ai_invocations_administration_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
             foreignKeyName: "ai_invocations_actor_employee_same_tenant_fkey"
             columns: ["tenant_id", "actor_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_invocations_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "ai_invocations_tenant_hr_group_fkey"
@@ -1284,7 +1284,91 @@ export type Database = {
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
+          {
+            foreignKeyName: "ai_invocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      ai_provider_execution_leases: {
+        Row: {
+          actor_user_id: string
+          completed_at: string | null
+          environment: string
+          expires_at: string
+          hr_group_id: string
+          id: string
+          invocation_id: string
+          reserved_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          completed_at?: string | null
+          environment: string
+          expires_at: string
+          hr_group_id: string
+          id?: string
+          invocation_id: string
+          reserved_at: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          completed_at?: string | null
+          environment?: string
+          expires_at?: string
+          hr_group_id?: string
+          id?: string
+          invocation_id?: string
+          reserved_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_execution_leases_environment_fkey"
+            columns: ["environment"]
+            isOneToOne: false
+            referencedRelation: "ai_provider_safety_environments"
+            referencedColumns: ["environment"]
+          },
+          {
+            foreignKeyName: "ai_provider_execution_leases_invocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "invocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_provider_execution_leases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+
+      ai_provider_safety_environments: {
+        Row: {
+          created_at: string
+          environment: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+        }
+        Relationships: []
       }
       ai_technical_usage: {
         Row: {
@@ -1304,8 +1388,8 @@ export type Database = {
           provider_output_units: number | null
           provider_request_id: string | null
           quality_profile: string
-          recorded_at: string
           reasoning_profile: string | null
+          recorded_at: string
           tenant_id: string
         }
         Insert: {
@@ -1325,8 +1409,8 @@ export type Database = {
           provider_output_units?: number | null
           provider_request_id?: string | null
           quality_profile: string
-          recorded_at?: string
           reasoning_profile?: string | null
+          recorded_at?: string
           tenant_id: string
         }
         Update: {
@@ -1346,8 +1430,8 @@ export type Database = {
           provider_output_units?: number | null
           provider_request_id?: string | null
           quality_profile?: string
-          recorded_at?: string
           reasoning_profile?: string | null
+          recorded_at?: string
           tenant_id?: string
         }
         Relationships: [
@@ -1371,6 +1455,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_technical_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1446,18 +1537,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ai_business_audit_administration_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
             foreignKeyName: "ai_business_audit_actor_employee_same_tenant_fkey"
             columns: ["tenant_id", "actor_employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_business_audit_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
           {
             foreignKeyName: "ai_business_audit_invocation_id_fkey"
@@ -1480,6 +1571,13 @@ export type Database = {
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
+          {
+            foreignKeyName: "ai_business_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ai_credit_actor_usage: {
@@ -1487,44 +1585,52 @@ export type Database = {
           actor_user_id: string
           created_at: string
           hr_group_id: string
+          period_month: string
           released_credits: number
           reserved_credits: number
           settled_credits: number
-          period_month: string
           tenant_id: string
           updated_at: string
-          used_credits: number
+          used_credits: number | null
         }
         Insert: {
           actor_user_id: string
           created_at?: string
           hr_group_id: string
+          period_month: string
           released_credits?: number
           reserved_credits?: number
           settled_credits?: number
-          period_month: string
           tenant_id: string
           updated_at?: string
-          used_credits?: never
+          used_credits?: number | null
         }
         Update: {
           actor_user_id?: string
           created_at?: string
           hr_group_id?: string
+          period_month?: string
           released_credits?: number
           reserved_credits?: number
           settled_credits?: number
-          period_month?: string
           tenant_id?: string
           updated_at?: string
-          used_credits?: never
+          used_credits?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_actor_usage_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
       }
       ai_credit_allocations: {
         Row: {
           allocation_type: string
-          available_credits: number
+          available_credits: number | null
           created_at: string
           created_by_user_id: string | null
           credit_amount: number
@@ -1545,7 +1651,7 @@ export type Database = {
         }
         Insert: {
           allocation_type: string
-          available_credits?: never
+          available_credits?: number | null
           created_at?: string
           created_by_user_id?: string | null
           credit_amount: number
@@ -1566,7 +1672,7 @@ export type Database = {
         }
         Update: {
           allocation_type?: string
-          available_credits?: never
+          available_credits?: number | null
           created_at?: string
           created_by_user_id?: string | null
           credit_amount?: number
@@ -1585,7 +1691,15 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_allocations_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
       }
       ai_credit_charge_catalog: {
         Row: {
@@ -1648,49 +1762,72 @@ export type Database = {
           time_zone?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_group_policies_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: true
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
       }
       ai_credit_reservation_allocations: {
         Row: {
           allocated_credits: number
-          created_at: string
-          id: string
           allocation_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
           released_credits: number
-          reserved_credits: number
           reservation_id: string
+          reserved_credits: number
           settled_credits: number
           tenant_id: string
-          hr_group_id: string
           updated_at: string
         }
         Insert: {
           allocated_credits: number
-          created_at?: string
-          id?: string
           allocation_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
           released_credits?: number
-          reserved_credits: number
           reservation_id: string
+          reserved_credits: number
           settled_credits?: number
           tenant_id: string
-          hr_group_id: string
           updated_at?: string
         }
         Update: {
           allocated_credits?: number
-          created_at?: string
-          id?: string
           allocation_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
           released_credits?: number
-          reserved_credits?: number
           reservation_id?: string
+          reserved_credits?: number
           settled_credits?: number
           tenant_id?: string
-          hr_group_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_reservation_allocations_allocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "allocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_allocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_credit_reservation_allocations_reservation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "reservation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_reservations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
       }
       ai_credit_reservations: {
         Row: {
@@ -1703,9 +1840,9 @@ export type Database = {
           idempotency_key: string
           invocation_id: string
           period_month: string
+          release_reason: string | null
           released_at: string | null
           released_credits: number
-          release_reason: string | null
           reserved_at: string
           reserved_credits: number
           settled_at: string | null
@@ -1724,9 +1861,9 @@ export type Database = {
           idempotency_key: string
           invocation_id: string
           period_month: string
+          release_reason?: string | null
           released_at?: string | null
           released_credits?: number
-          release_reason?: string | null
           reserved_at?: string
           reserved_credits: number
           settled_at?: string | null
@@ -1745,9 +1882,9 @@ export type Database = {
           idempotency_key?: string
           invocation_id?: string
           period_month?: string
+          release_reason?: string | null
           released_at?: string | null
           released_credits?: number
-          release_reason?: string | null
           reserved_at?: string
           reserved_credits?: number
           settled_at?: string | null
@@ -1756,7 +1893,22 @@ export type Database = {
           tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_reservations_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_credit_reservations_invocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "invocation_id"]
+            isOneToOne: true
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
       }
       ai_credit_role_quotas: {
         Row: {
@@ -18847,44 +18999,47 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: {
+          monthly_quota_credits: number
           period_month: string
           quality_profile: string
-          monthly_quota_credits: number
-          reserved_credits: number
-          settled_credits: number
           released_credits: number
-          used_credits: number
           remaining_credits: number
+          reserved_credits: number
           role_codes: string[]
+          settled_credits: number
+          used_credits: number
         }[]
       }
       get_ai_group_credit_balance: {
         Args: { requested_hr_group_id: string; requested_tenant_id: string }
         Returns: {
-          total_credits: number
+          as_of: string
+          available_credits: number
+          expired_credits: number
           monthly_allowance_credits: number
           purchased_extra_credits: number
-          test_grant_credits: number
           reserved_credits: number
           settled_credits: number
-          expired_credits: number
-          available_credits: number
-          as_of: string
+          test_grant_credits: number
+          total_credits: number
         }[]
       }
       get_ai_reservation_allocations: {
-        Args: { requested_invocation_id: string; requested_reservation_id: string }
+        Args: {
+          requested_invocation_id: string
+          requested_reservation_id: string
+        }
         Returns: {
-          reservation_id: string
+          allocated_credits: number
           allocation_id: string
           allocation_type: string
-          period_month: string | null
-          expires_at: string | null
-          allocated_credits: number
+          created_at: string
+          expires_at: string
+          period_month: string
+          released_credits: number
+          reservation_id: string
           reserved_credits: number
           settled_credits: number
-          released_credits: number
-          created_at: string
         }[]
       }
       grant_ai_controlled_test_credits: {
@@ -18895,6 +19050,39 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: string
+      }
+      complete_ai_provider_execution: {
+        Args: { requested_invocation_id: string; requested_lease_id: string }
+        Returns: undefined
+      }
+
+      reserve_ai_provider_execution: {
+        Args: {
+          requested_actor_user_id: string
+          requested_enabled: boolean
+          requested_environment: string
+          requested_feature_max_input_characters: number
+          requested_global_max_input_characters: number
+          requested_global_max_output_tokens: number
+          requested_hr_group_id: string
+          requested_input_size_characters: number
+          requested_invocation_id: string
+          requested_lease_seconds: number
+          requested_max_calls_per_day: number
+          requested_max_calls_per_hour: number
+          requested_max_concurrent: number
+          requested_output_tokens: number
+          requested_tenant_id: string
+        }
+        Returns: {
+          allowed: boolean
+          block_reason: string
+          counted_at: string
+          environment: string
+          expires_at: string
+          invocation_id: string
+          lease_id: string
+        }[]
       }
       release_ai_credits: {
         Args: {
@@ -18916,14 +19104,17 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: {
-          reservation_id: string
-          invocation_id: string
           charge_reference: string
+          invocation_id: string
+          reservation_id: string
           units: number
         }[]
       }
       settle_ai_credits: {
-        Args: { requested_invocation_id: string; requested_reservation_id: string }
+        Args: {
+          requested_invocation_id: string
+          requested_reservation_id: string
+        }
         Returns: undefined
       }
       update_survey_draft: {
