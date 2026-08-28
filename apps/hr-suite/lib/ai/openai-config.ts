@@ -15,6 +15,7 @@ export interface OpenAIModelConfiguration {
 export interface OpenAIProviderConfig {
   readonly apiKey: string
   readonly maxRetries?: 0
+  readonly globalMaxOutputTokens?: number
 }
 
 export interface OpenAIEnvironment {

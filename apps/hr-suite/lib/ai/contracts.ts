@@ -43,6 +43,14 @@ export type AiFailureCode =
   | 'IDEMPOTENCY_KEY_REUSED'
   | 'PROVIDER_UNAVAILABLE'
   | 'PROVIDER_FAILED'
+  | 'AI_PROVIDER_DISABLED'
+  | 'AI_PROVIDER_HOURLY_LIMIT'
+  | 'AI_PROVIDER_DAILY_LIMIT'
+  | 'AI_PROVIDER_CONCURRENCY_LIMIT'
+  | 'AI_PROVIDER_INVOCATION_LIMIT'
+  | 'AI_PROVIDER_INPUT_TOO_LARGE'
+  | 'AI_PROVIDER_OUTPUT_TOO_LARGE'
+  | 'AI_PROVIDER_SAFETY_UNAVAILABLE'
   | 'INVALID_RESULT'
   | 'INTERNAL_CONFIGURATION_ERROR'
 
@@ -253,6 +261,37 @@ export interface ProviderPort {
   execute(request: AiProviderRequest): Promise<AiProviderResponse>
 }
 
+export type AiProviderSafetyBlockReason =
+  | 'AI_PROVIDER_DISABLED'
+  | 'AI_PROVIDER_HOURLY_LIMIT'
+  | 'AI_PROVIDER_DAILY_LIMIT'
+  | 'AI_PROVIDER_CONCURRENCY_LIMIT'
+  | 'AI_PROVIDER_INVOCATION_LIMIT'
+  | 'AI_PROVIDER_INPUT_TOO_LARGE'
+  | 'AI_PROVIDER_OUTPUT_TOO_LARGE'
+
+export interface AiProviderSafetyReservationInput {
+  invocationId: string
+  scope: AiScope
+  actorUserId: string
+  inputSizeCharacters: number
+  featureMaxInputCharacters: number
+  requestedOutputTokens: number
+}
+
+export interface AiProviderSafetyLease {
+  leaseId: string
+  invocationId: string
+  environment: string
+  countedAt: string
+  expiresAt: string
+}
+
+export interface ProviderSafetyPort {
+  reserve(input: AiProviderSafetyReservationInput): Promise<AiProviderSafetyLease>
+  complete(lease: AiProviderSafetyLease): Promise<void>
+}
+
 export interface AiResultValidator<T> {
   validate(output: unknown): T
 }
@@ -355,6 +394,7 @@ export interface AiRuntimeDependencies<T> {
   credits: CreditsPort
   contextLoader: AuthorizedContextLoader
   provider: ProviderPort
+  providerSafety: ProviderSafetyPort
   validator: AiResultValidator<T>
   repository: InvocationRepository
   technicalUsage: TechnicalUsageSink

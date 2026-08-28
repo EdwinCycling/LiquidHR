@@ -12,6 +12,7 @@ import { InMemoryInvocationRepository } from './invocation-repository'
 import { runAiInvocation } from './orchestrator'
 import { InMemoryLiquidCreditsService } from './liquid-credits-test-double'
 import { DeterministicTestProvider } from './test-provider'
+import { InMemoryProviderSafety, TEST_PROVIDER_SAFETY_DEFAULTS } from './provider-safety'
 import {
   RecordingBusinessAuditSink,
   RecordingTechnicalUsageSink,
@@ -106,6 +107,7 @@ function runtime(provider = new DeterministicTestProvider()): {
   const repository = new InMemoryInvocationRepository()
   const technicalUsage = new RecordingTechnicalUsageSink()
   const businessAudit = new RecordingBusinessAuditSink()
+  const providerSafety = new InMemoryProviderSafety({ environment: 'test', enabled: true, ...TEST_PROVIDER_SAFETY_DEFAULTS }, fixedClock())
   let id = 0
   return {
     dependencies: {
@@ -114,6 +116,7 @@ function runtime(provider = new DeterministicTestProvider()): {
       credits,
       contextLoader: new TestContextLoader({ source: businessObject, fields: { sourceText: 'confidential test source' } }),
       provider,
+      providerSafety,
       validator: validator(),
       repository,
       technicalUsage,

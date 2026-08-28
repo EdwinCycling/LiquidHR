@@ -5,6 +5,7 @@ import type { AuthContext } from '@/lib/auth/permissions'
 import { buildAiRequestFingerprint, InMemoryInvocationRepository } from './invocation-repository'
 import { runAiInvocation } from './orchestrator'
 import { DeterministicTestProvider } from './test-provider'
+import { InMemoryProviderSafety, TEST_PROVIDER_SAFETY_DEFAULTS } from './provider-safety'
 import { RecordingBusinessAuditSink, RecordingTechnicalUsageSink, TestContextLoader, TestCreditsPort, TestFeatureRegistry, TestGovernancePort, fixedClock } from './test-doubles'
 
 interface TestProposal {
@@ -84,6 +85,7 @@ function scopeFromContext(context: typeof authContext): AiScope {
 function dependencies(options: {
   gates?: AiGateSnapshot
   provider?: DeterministicTestProvider
+  providerSafety?: InMemoryProviderSafety
   credits?: TestCreditsPort
   repository?: InMemoryInvocationRepository
   businessObject?: typeof businessObject
@@ -93,9 +95,11 @@ function dependencies(options: {
   repository: InMemoryInvocationRepository
   technicalUsage: RecordingTechnicalUsageSink
   businessAudit: RecordingBusinessAuditSink
+  providerSafety: InMemoryProviderSafety
 } {
   const object = options.businessObject ?? businessObject
   const provider = options.provider ?? new DeterministicTestProvider()
+  const providerSafety = options.providerSafety ?? new InMemoryProviderSafety({ environment: 'test', enabled: true, ...TEST_PROVIDER_SAFETY_DEFAULTS }, fixedClock())
   const credits = options.credits ?? new TestCreditsPort(2)
   const repository = options.repository ?? new InMemoryInvocationRepository()
   const technicalUsage = new RecordingTechnicalUsageSink()
@@ -108,6 +112,7 @@ function dependencies(options: {
     credits,
     contextLoader: new TestContextLoader({ source: object, fields: { sourceText: 'confidential test source' } }),
     provider,
+    providerSafety,
     validator: validator(),
     repository,
     technicalUsage,
@@ -187,6 +192,19 @@ describe('AI runtime foundation', () => {
     expect(credits.reserveCalls).toHaveLength(1)
     expect(credits.settleCalls).toHaveLength(0)
     expect(credits.releaseCalls).toHaveLength(0)
+    expect(runtime.providerSafety.reserveCalls).toHaveLength(0)
+  })
+
+  it('faalt gesloten op provider kill switch vóór de provider-call', async () => {
+    const provider = new DeterministicTestProvider()
+    const providerSafety = new InMemoryProviderSafety({ environment: 'test', enabled: false, ...TEST_PROVIDER_SAFETY_DEFAULTS }, fixedClock())
+    const runtime = dependencies({ provider, providerSafety })
+
+    await expect(runAiInvocation(input({ idempotencyKey: 'provider-disabled' }), runtime))
+      .rejects.toMatchObject({ code: 'AI_PROVIDER_DISABLED' })
+    expect(provider.calls).toHaveLength(0)
+    expect(runtime.providerSafety.reserveCalls).toHaveLength(1)
+    expect(runtime.credits.releaseCalls).toHaveLength(1)
   })
 
   it('voert gelijktijdige duplicate keys maximaal eenmaal uit en charge’t eenmaal', async () => {
@@ -248,6 +266,7 @@ describe('AI runtime foundation', () => {
     expect(runtime.credits.settleCalls).toHaveLength(0)
     expect(runtime.technicalUsage.events[0]).toMatchObject({ outcome: 'PROVIDER_FAILED' })
     expect(runtime.businessAudit.events[0]).toMatchObject({ status: 'FAILED', failureCode: 'PROVIDER_FAILED', chargedCredits: 0 })
+    expect(runtime.providerSafety.completeCalls).toHaveLength(1)
   })
 
   it('release’t bij invalid resultaat en markeert technische usage apart', async () => {

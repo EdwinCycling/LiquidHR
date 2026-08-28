@@ -11,6 +11,7 @@ import {
   type AiInvocation,
   type AiInvocationInput,
   type AiProviderMetadata,
+  type AiProviderResponse,
   type AiRuntimeDependencies,
   type AiScope,
   type AiCreditReleaseRequest,
@@ -76,6 +77,37 @@ function providerFailure(error: unknown): { code: 'PROVIDER_UNAVAILABLE' | 'PROV
     return { code: error.code, metadata: null }
   }
   return { code: 'PROVIDER_FAILED', metadata: null }
+}
+
+function providerSafetyFailure(error: unknown): AiFailureCode {
+  const candidate = asAiError(error, 'AI_PROVIDER_SAFETY_UNAVAILABLE').code
+  const safetyCodes: readonly AiFailureCode[] = [
+    'AI_PROVIDER_DISABLED',
+    'AI_PROVIDER_HOURLY_LIMIT',
+    'AI_PROVIDER_DAILY_LIMIT',
+    'AI_PROVIDER_CONCURRENCY_LIMIT',
+    'AI_PROVIDER_INVOCATION_LIMIT',
+    'AI_PROVIDER_INPUT_TOO_LARGE',
+    'AI_PROVIDER_OUTPUT_TOO_LARGE',
+    'AI_PROVIDER_SAFETY_UNAVAILABLE',
+  ]
+  return safetyCodes.includes(candidate) ? candidate : 'AI_PROVIDER_SAFETY_UNAVAILABLE'
+}
+
+function providerInputSize(input: {
+  featureCode: string
+  qualityProfile: AiInvocationInput['qualityProfile']
+  writingStyle: AiInvocationInput['writingStyle']
+  authorizedContext: { source: { type: string; id: string }; fields: Readonly<Record<string, unknown>> }
+}): number {
+  const serialized = JSON.stringify({
+    featureCode: input.featureCode,
+    qualityProfile: input.qualityProfile,
+    writingStyle: input.writingStyle,
+    authorizedContext: input.authorizedContext,
+  })
+  if (typeof serialized !== 'string') throw new AiExecutionError('AI_PROVIDER_SAFETY_UNAVAILABLE')
+  return serialized.length
 }
 
 function validateInput(input: AiInvocationInput): void {
@@ -368,8 +400,35 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
     patch: { startedAt },
   })
 
+  let providerLease
+  try {
+    providerLease = await dependencies.providerSafety.reserve({
+      invocationId: invocation.id,
+      scope,
+      actorUserId: input.authContext.userId,
+      inputSizeCharacters: providerInputSize({
+        featureCode: feature.featureCode,
+        qualityProfile: gates.qualityProfile,
+        writingStyle: input.writingStyle ?? null,
+        authorizedContext,
+      }),
+      featureMaxInputCharacters: feature.technicalLimits.maxInputCharacters,
+      requestedOutputTokens: Math.ceil(feature.technicalLimits.maxOutputCharacters / 4),
+    })
+  } catch (error) {
+    return releaseAndFail(
+      invocation,
+      providerSafetyFailure(error),
+      reservation,
+      'INTERNAL_FAILURE',
+      services,
+      { resultStatus: 'FAILED', providerMetadata: null, latencyMs: null, technicalOutcome: null },
+    )
+  }
+
   const providerStartedAt = dependencies.clock.now().valueOf()
-  let providerResponse
+  let providerResponse: AiProviderResponse | null = null
+  let providerExecutionError: unknown = null
   try {
     providerResponse = await dependencies.provider.execute({
       invocationId: invocation.id,
@@ -384,8 +443,30 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
       signal: input.signal,
     })
   } catch (error) {
-    const provider = providerFailure(error)
-    const latencyMs = Math.max(0, dependencies.clock.now().valueOf() - providerStartedAt)
+    providerExecutionError = error
+  }
+
+  let providerSafetyCompletionError: unknown = null
+  try {
+    await dependencies.providerSafety.complete(providerLease)
+  } catch (error) {
+    providerSafetyCompletionError = error
+  }
+
+  const latencyMs = Math.max(0, dependencies.clock.now().valueOf() - providerStartedAt)
+  if (providerSafetyCompletionError) {
+    return releaseAndFail(
+      invocation,
+      'AI_PROVIDER_SAFETY_UNAVAILABLE',
+      reservation,
+      'INTERNAL_FAILURE',
+      services,
+      { resultStatus: 'FAILED', providerMetadata: null, latencyMs, technicalOutcome: null },
+    )
+  }
+
+  if (providerExecutionError) {
+    const provider = providerFailure(providerExecutionError)
     return releaseAndFail(
       invocation,
       provider.code,
@@ -396,7 +477,17 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
     )
   }
 
-  const latencyMs = Math.max(0, dependencies.clock.now().valueOf() - providerStartedAt)
+  if (!providerResponse) {
+    return releaseAndFail(
+      invocation,
+      'AI_PROVIDER_SAFETY_UNAVAILABLE',
+      reservation,
+      'INTERNAL_FAILURE',
+      services,
+      { resultStatus: 'FAILED', providerMetadata: null, latencyMs, technicalOutcome: null },
+    )
+  }
+
   invocation = await services.repository.transition({
     invocationId: invocation.id,
     expectedStatus: 'EXECUTING',

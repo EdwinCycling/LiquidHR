@@ -2,7 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 import { AuthenticationError, AuthorizationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
-import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiRuntimeDependencies, type AuthorizedContextLoader, type BusinessAuditSink, type CreditsPort, type AiGovernancePort, type AiResultValidator, type ProviderPort, type TechnicalUsageSink, type InvocationRepository, type AiClock, type HrGroupTimeZoneResolver } from './contracts'
+import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiRuntimeDependencies, type AuthorizedContextLoader, type BusinessAuditSink, type CreditsPort, type AiGovernancePort, type AiResultValidator, type ProviderPort, type ProviderSafetyPort, type TechnicalUsageSink, type InvocationRepository, type AiClock, type HrGroupTimeZoneResolver } from './contracts'
 import { FailClosedGovernancePort } from './fail-closed-ports'
 import { aiFeatureRegistry } from './feature-registry'
 import { runAiInvocation } from './orchestrator'
@@ -10,10 +10,11 @@ import { SupabaseBusinessAuditSink, SupabaseTechnicalUsageSink } from './supabas
 import { SupabaseInvocationRepository } from './supabase-invocation-repository'
 import { SupabaseLiquidCreditsService } from './supabase-liquid-credits'
 import { defaultHrGroupTimeZoneResolver } from './timezone'
-import { resolveServerAiProvider } from './provider-resolver'
+import { resolveServerAiRuntimeProviders } from './provider-resolver'
 
 export function createServerAiRuntimeDependencies<T>(input: {
   provider?: ProviderPort
+  providerSafety?: ProviderSafetyPort
   contextLoader: AuthorizedContextLoader
   validator: AiResultValidator<T>
   governance?: AiGovernancePort
@@ -24,12 +25,17 @@ export function createServerAiRuntimeDependencies<T>(input: {
   timeZoneResolver?: HrGroupTimeZoneResolver
   clock?: AiClock
 }): AiRuntimeDependencies<T> {
+  const resolved = input.provider ? null : resolveServerAiRuntimeProviders()
+  const provider = input.provider ?? resolved?.provider
+  const providerSafety = input.providerSafety ?? resolved?.providerSafety
+  if (!provider || !providerSafety) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
   return {
     registry: aiFeatureRegistry,
     governance: input.governance ?? new FailClosedGovernancePort(),
     credits: input.credits ?? new SupabaseLiquidCreditsService(),
     contextLoader: input.contextLoader,
-    provider: input.provider ?? resolveServerAiProvider(),
+    provider,
+    providerSafety,
     validator: input.validator,
     repository: input.repository ?? new SupabaseInvocationRepository(),
     technicalUsage: input.technicalUsage ?? new SupabaseTechnicalUsageSink(),

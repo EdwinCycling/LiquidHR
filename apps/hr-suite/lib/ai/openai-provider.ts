@@ -154,11 +154,13 @@ function buildInput(request: AiProviderRequest): string {
   return input
 }
 
-function maxOutputTokens(request: AiProviderRequest, configuration: OpenAIModelConfiguration): number {
+function maxOutputTokens(request: AiProviderRequest, configuration: OpenAIModelConfiguration, globalMaxOutputTokens: number | undefined): number {
   const maxCharacters = request.technicalLimits.maxOutputCharacters
   if (!Number.isSafeInteger(maxCharacters) || maxCharacters <= 0) throw new OpenAIProviderConfigurationError()
   const configured = configuration.maxOutputTokens ?? Math.ceil(maxCharacters / 4)
   if (!Number.isSafeInteger(configured) || configured <= 0) throw new OpenAIProviderConfigurationError()
+  const globalCap = globalMaxOutputTokens ?? 4096
+  if (!Number.isSafeInteger(globalCap) || globalCap <= 0 || configured > globalCap) throw new OpenAIProviderConfigurationError()
   return configured
 }
 
@@ -213,7 +215,7 @@ export class OpenAIProvider implements ProviderPort {
         instructions: buildInstructions(request),
         input,
         reasoning: { effort: configuration.reasoningEffort },
-        max_output_tokens: maxOutputTokens(request, configuration),
+        max_output_tokens: maxOutputTokens(request, configuration, this.config.globalMaxOutputTokens),
         store: false,
         text: { format: proposalResponseFormat },
         metadata: {
