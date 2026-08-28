@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## Centrale AI Foundation-integratie — 2026-08-29
+
+**Status: INTEGRATIE IN UITVOERING — BASELINE `b9228380`**
+
+De integratie gebruikt een dedicated worktree vanaf authoritative `origin/main` en laat de dirty root-worktree ongemoeid. De source commits, migration-history, generated DB types en finale releasegates worden na semantische integratie afzonderlijk vastgelegd. Tot die tijd zijn geen remote migration applies, production writes, version bump of live OpenAI-call uitgevoerd.
+
 ## START-1 `/dashboard/start` hydration-fix — 2026-08-29
 
 **Status: START-1 GREEN — HYDRATION #418 RESOLVED**

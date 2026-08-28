@@ -1,5 +1,13 @@
 # Actuele overdracht Liquid HR
 
+## Centrale AI Foundation-integratie — 2026-08-29
+
+**Status: INTEGRATIE IN UITVOERING — BASELINE `b9228380`**
+
+- De integratieworktree is gestart vanaf exact `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`; de dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
+- De authoritative zichtbare versie is `1.20260829.2`. De vier AI-bronbranches worden afzonderlijk en semantisch geïntegreerd in de volgorde Wave 1A → Wave 1B → OpenAI Provider → AI1C.
+- Remote TEST-migratiehistorie wordt read-only gereconcilieerd. Nieuwe remote migration applies, production writes en echte OpenAI-calls blijven geblokkeerd zonder de expliciete goedkeuring uit de integratieopdracht.
+
 ## START-1 `/dashboard/start` hydration-fix — 2026-08-29
 
 **Status: START-1 GREEN — HYDRATION #418 OPGELOST**

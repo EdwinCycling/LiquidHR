@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Centrale AI Foundation-integratie — 2026-08-29
+
+**Status: INTEGRATIE IN UITVOERING — BASELINE `b9228380`**
+
+De centrale AI Foundation-integratie wordt uitgevoerd vanaf authoritative `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`, met zichtbare versie `1.20260829.2`. Wave 0, Wave 1A, Liquid Credits, de OpenAI Provider en AI1C worden semantisch geïntegreerd in die volgorde. De eerste product capability blijft buiten scope; HeRa/Gemini, AN-2/3 en `TALENT-1` blijven onaangeraakt.
+
 ## R8 UX Foundation Final Release — 2026-08-28
 
 **Status: R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**
