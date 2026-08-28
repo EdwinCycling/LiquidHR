@@ -16,9 +16,10 @@ LiquidHR heeft bestaande HeRa-AI-functionaliteit met eigen Gemini-contracten. Ee
 3. De runtime voert de frozen pipeline en state machine uit, gebruikt idempotency plus database-uniqueness, en faalt gesloten wanneer governance of credits niet kan beslissen.
 4. Providers zijn server-only en ontvangen uitsluitend een minimale, al geautoriseerde context. Zij krijgen geen database-, Supabase-, permission- of scope-capability.
 5. Invocations, technische usage en business audit zijn afzonderlijke records. Geen van deze records bewaart een volledige prompt, response, raw HR-context, secret of provider-token.
-6. Wave 1A bevat geen echte provider-SDK, betaalde call, production credits-implementatie of user-facing capability. HeRa/Gemini blijft ongewijzigd.
-7. De static registry bevriest `improve-existing-hr-text` als `PLANNED`, proposal-only en human-review verplicht. De registry gebruikt intern model family `LUNA` en reasoning profile `MAX`; die metadata is niet klanttaal.
-8. De maandgrens gebruikt één geëxporteerde HR-groep-timezone-resolver met de huidige canonieke fallback `Europe/Amsterdam`. Er wordt geen tweede timezonebron geïntroduceerd.
+6. De Wave 1A-tabellen krijgen geen directe `authenticated` Data API-grant. Server-only repositories gebruiken de service-role; de tenant/HR-groep RLS-policies blijven defense-in-depth voor een latere veilige projection.
+7. Wave 1A bevat geen echte provider-SDK, betaalde call, production credits-implementatie of user-facing capability. HeRa/Gemini blijft ongewijzigd.
+8. De static registry bevriest `improve-existing-hr-text` als `PLANNED`, proposal-only en human-review verplicht. De registry gebruikt intern model family `LUNA` en reasoning profile `MAX`; die metadata is niet klanttaal.
+9. De maandgrens gebruikt één geëxporteerde HR-groep-timezone-resolver met de huidige canonieke fallback `Europe/Amsterdam`. Er wordt geen tweede timezonebron geïntroduceerd.
 
 ## Gevolgen
 

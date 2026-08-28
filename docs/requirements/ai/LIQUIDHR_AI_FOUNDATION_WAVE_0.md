@@ -124,8 +124,9 @@ interface AiInvocationInput {
   businessObject: AiBusinessObjectRef
   idempotencyKey: string
   businessPermissionCode: string | null
+  businessPermissionVerified?: boolean // uitsluitend gezet door de server-entrypoint na requirePermission
   qualityProfile?: AiQualityProfile
-  writingStyle?: string | null
+  writingStyle?: AiWritingStyle | null
   correlationId?: string
 }
 ```
@@ -232,7 +233,11 @@ interface BusinessAuditSink {
 
 Every provider request includes `invocationId`, feature code, effective quality profile, writing style where allowed, `configVersion`, `promptTemplateVersion`, technical limits and the authorized context. Provider responses may include internal provider/model/request/usage metadata. This metadata is written only to technical telemetry and is not returned as customer product language.
 
+An invocation also has a nullable `feedbackOutcome` field reserved for a later, feature-owned feedback slice. Wave 1A does not assign or mutate feedback outcomes; it only preserves the correlation point.
+
 No raw prompt, raw response, secret, full authorized context or provider token/cost is stored in the invocation, business-audit or customer-facing result tables.
+
+De drie Wave 1A-tabellen zijn geen directe Data API-klanttabellen: `authenticated` heeft geen table-grants. De server-only repositories gebruiken de service-role voor de technische write/read-seam; de aanwezige HR-groep/RLS-policies blijven de database-defense-in-depth en vormen de basis voor een latere permission-checked projection.
 
 ## 5. State machine
 
@@ -242,10 +247,10 @@ No raw prompt, raw response, secret, full authorized context or provider token/c
 RECEIVED        → AUTHORIZED | REJECTED
 AUTHORIZED      → RESERVING | REJECTED
 RESERVING       → CONTEXT_LOADING | FAILED | REJECTED
-CONTEXT_LOADING → EXECUTING | FAILED
-EXECUTING       → VALIDATING | FAILED
+CONTEXT_LOADING → EXECUTING | RELEASING | FAILED
+EXECUTING       → VALIDATING | RELEASING | FAILED
 VALIDATING      → SETTLING | RELEASING | FAILED
-SETTLING        → SUCCEEDED | FAILED
+SETTLING        → SUCCEEDED | RELEASING | FAILED
 RELEASING       → FAILED
 ```
 
@@ -389,7 +394,7 @@ Wave 1A gate: targeted AI tests, strict TypeScript, relevant auth/RLS contract c
 If the migration is retained, the final handoff phrase is:
 
 ```text
-AI FOUNDATION WAVE 0 + 1A LOCAL GREEN — TEST DB APPLY PENDING EXPLICIT APPROVAL
+AI FOUNDATION WAVE 0 + 1A LOCAL GREEN — TEST DB APPLY PENDING APPROVAL
 ```
 
 No Wave 1B work starts as part of this task.

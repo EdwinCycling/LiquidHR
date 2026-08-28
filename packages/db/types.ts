@@ -1153,6 +1153,335 @@ export type Database = {
           },
         ]
       }
+      ai_invocations: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string
+          administration_id: string | null
+          business_object_id: string
+          business_object_type: string
+          business_permission_code: string | null
+          charged_credits: number
+          config_version: string
+          correlation_id: string
+          created_at: string
+          execution_status: string
+          failure_code: string | null
+          feature_code: string
+          finished_at: string | null
+          feedback_outcome: string | null
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          latency_ms: number | null
+          model_family: string | null
+          prompt_template_version: string
+          provider_code: string | null
+          provider_input_units: number | null
+          provider_output_units: number | null
+          provider_request_id: string | null
+          quality_profile: string | null
+          reasoning_profile: string | null
+          request_fingerprint: string
+          reserved_credits: number
+          result_status: string
+          started_at: string | null
+          tenant_id: string
+          updated_at: string
+          writing_style: string | null
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id: string
+          administration_id?: string | null
+          business_object_id: string
+          business_object_type: string
+          business_permission_code?: string | null
+          charged_credits?: number
+          config_version: string
+          correlation_id: string
+          created_at?: string
+          execution_status?: string
+          failure_code?: string | null
+          feature_code: string
+          finished_at?: string | null
+          feedback_outcome?: string | null
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          latency_ms?: number | null
+          model_family?: string | null
+          prompt_template_version: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile?: string | null
+          reasoning_profile?: string | null
+          request_fingerprint: string
+          reserved_credits?: number
+          result_status?: string
+          started_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          writing_style?: string | null
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          administration_id?: string | null
+          business_object_id?: string
+          business_object_type?: string
+          business_permission_code?: string | null
+          charged_credits?: number
+          config_version?: string
+          correlation_id?: string
+          created_at?: string
+          execution_status?: string
+          failure_code?: string | null
+          feature_code?: string
+          finished_at?: string | null
+          feedback_outcome?: string | null
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          latency_ms?: number | null
+          model_family?: string | null
+          prompt_template_version?: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile?: string | null
+          reasoning_profile?: string | null
+          request_fingerprint?: string
+          reserved_credits?: number
+          result_status?: string
+          started_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          writing_style?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_invocations_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_invocations_actor_employee_same_tenant_fkey"
+            columns: ["tenant_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_invocations_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      ai_technical_usage: {
+        Row: {
+          actor_user_id: string
+          config_version: string
+          correlation_id: string
+          feature_code: string
+          hr_group_id: string
+          id: string
+          invocation_id: string
+          latency_ms: number
+          model_family: string | null
+          outcome: string
+          prompt_template_version: string
+          provider_code: string | null
+          provider_input_units: number | null
+          provider_output_units: number | null
+          provider_request_id: string | null
+          quality_profile: string
+          recorded_at: string
+          reasoning_profile: string | null
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          config_version: string
+          correlation_id: string
+          feature_code: string
+          hr_group_id: string
+          id?: string
+          invocation_id: string
+          latency_ms: number
+          model_family?: string | null
+          outcome: string
+          prompt_template_version: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile: string
+          recorded_at?: string
+          reasoning_profile?: string | null
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          config_version?: string
+          correlation_id?: string
+          feature_code?: string
+          hr_group_id?: string
+          id?: string
+          invocation_id?: string
+          latency_ms?: number
+          model_family?: string | null
+          outcome?: string
+          prompt_template_version?: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile?: string
+          recorded_at?: string
+          reasoning_profile?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_technical_usage_invocation_id_fkey"
+            columns: ["invocation_id"]
+            isOneToOne: true
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_technical_usage_invocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "invocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_technical_usage_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      ai_business_audit: {
+        Row: {
+          action: string
+          actor_employee_id: string | null
+          actor_user_id: string
+          administration_id: string | null
+          business_object_id: string
+          business_object_type: string
+          charged_credits: number
+          config_version: string
+          correlation_id: string
+          failure_code: string | null
+          feature_code: string
+          hr_group_id: string
+          id: string
+          invocation_id: string
+          prompt_template_version: string
+          quality_profile: string | null
+          recorded_at: string
+          reserved_credits: number
+          status: string
+          tenant_id: string
+          writing_style: string | null
+        }
+        Insert: {
+          action: string
+          actor_employee_id?: string | null
+          actor_user_id: string
+          administration_id?: string | null
+          business_object_id: string
+          business_object_type: string
+          charged_credits?: number
+          config_version: string
+          correlation_id: string
+          failure_code?: string | null
+          feature_code: string
+          hr_group_id: string
+          id?: string
+          invocation_id: string
+          prompt_template_version: string
+          quality_profile?: string | null
+          recorded_at?: string
+          reserved_credits?: number
+          status: string
+          tenant_id: string
+          writing_style?: string | null
+        }
+        Update: {
+          action?: string
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          administration_id?: string | null
+          business_object_id?: string
+          business_object_type?: string
+          charged_credits?: number
+          config_version?: string
+          correlation_id?: string
+          failure_code?: string | null
+          feature_code?: string
+          hr_group_id?: string
+          id?: string
+          invocation_id?: string
+          prompt_template_version?: string
+          quality_profile?: string | null
+          recorded_at?: string
+          reserved_credits?: number
+          status?: string
+          tenant_id?: string
+          writing_style?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_business_audit_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_business_audit_actor_employee_same_tenant_fkey"
+            columns: ["tenant_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_business_audit_invocation_id_fkey"
+            columns: ["invocation_id"]
+            isOneToOne: true
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_business_audit_invocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "invocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_business_audit_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
