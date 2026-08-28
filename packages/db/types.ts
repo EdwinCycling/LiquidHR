@@ -1354,7 +1354,6 @@ export type Database = {
           },
         ]
       }
-
       ai_provider_safety_environments: {
         Row: {
           created_at: string
@@ -18983,6 +18982,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      complete_ai_provider_execution: {
+        Args: { requested_invocation_id: string; requested_lease_id: string }
+        Returns: undefined
+      }
       ensure_ai_monthly_allowance: {
         Args: {
           requested_hr_group_id: string
@@ -19051,11 +19054,6 @@ export type Database = {
         }
         Returns: string
       }
-      complete_ai_provider_execution: {
-        Args: { requested_invocation_id: string; requested_lease_id: string }
-        Returns: undefined
-      }
-
       reserve_ai_provider_execution: {
         Args: {
           requested_actor_user_id: string
