@@ -17,7 +17,13 @@ describe('salary insights query state', () => {
     expect(query?.administrations).toEqual(['a1', 'a2'])
     expect(query?.salaryRoutes).toEqual(['SALARY_BAND'])
     expect(query ? salaryInsightQueryParams(query).toString() : '').toContain('asOfDate=2025-01-01')
-    expect(query ? salaryInsightQueryParams(query).toString() : '').toContain('administrations=a1%2Ca2')
+    expect(query ? salaryInsightQueryParams(query).getAll('administrations') : []).toEqual(['a1', 'a2'])
+  })
+
+  it('uses canonical repeated department ids while accepting the legacy alias', () => {
+    const query = parseSalaryInsightQuery(new URLSearchParams('report=salary-overview&departments=d1,d2&departmentId=d3'))
+    expect(query?.departments).toEqual(['d3', 'd1', 'd2'])
+    expect(query ? salaryInsightQueryParams(query).getAll('departmentIds') : []).toEqual(['d3', 'd1', 'd2'])
   })
 
   it('falls back safely for invalid dates and unknown reports', () => {

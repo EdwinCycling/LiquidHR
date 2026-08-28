@@ -37,8 +37,8 @@ function isReport(value: string | null): value is SalaryInsightReportId {
   return value !== null && (SALARY_INSIGHT_REPORT_IDS as readonly string[]).includes(value)
 }
 
-function list(params: URLSearchParams, key: string): string[] {
-  return [...new Set((params.get(key) ?? '').split(',').map((value) => value.trim()).filter(Boolean))]
+function list(params: URLSearchParams, ...keys: string[]): string[] {
+  return [...new Set(keys.flatMap((key) => params.getAll(key)).flatMap((value) => value.split(',').map((item) => item.trim()).filter(Boolean)))]
 }
 
 function validDate(value: string | null, fallback: string): string {
@@ -61,7 +61,7 @@ export function parseSalaryInsightQuery(params: URLSearchParams): SalaryInsightQ
     groupBy: salaryInsightGroupByOptions(reportValue).includes(group as SalaryInsightGroupBy) ? group as SalaryInsightGroupBy : defaults.groupBy,
     sortBy: salaryInsightSortByOptions(reportValue).includes(sort as SalaryInsightSortBy) ? sort as SalaryInsightSortBy : defaults.sortBy,
     administrations: list(params, 'administrations'),
-    departments: list(params, 'departments'),
+    departments: list(params, 'departmentIds', 'departmentId', 'departments'),
     teams: list(params, 'teams'),
     managers: list(params, 'managers'),
     functions: list(params, 'functions'),
@@ -84,7 +84,8 @@ export function parseSalaryInsightQuery(params: URLSearchParams): SalaryInsightQ
 export function salaryInsightQueryParams(query: SalaryInsightQuery, format?: 'csv'): URLSearchParams {
   const params = new URLSearchParams({ report: query.report, asOfDate: query.asOfDate, groupBy: query.groupBy, sortBy: query.sortBy })
   if (format) params.set('format', format)
-  const fields: SalaryInsightArrayField[] = ['administrations', 'departments', 'teams', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes']
-  for (const field of fields) if (query[field].length) params.set(field, query[field].join(','))
+  const fields: SalaryInsightArrayField[] = ['administrations', 'teams', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes']
+  for (const field of fields) for (const value of query[field]) params.append(field, value)
+  for (const departmentId of query.departments) params.append('departmentIds', departmentId)
   return params
 }

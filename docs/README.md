@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## Centrale R6 Insights-integratie en TEST-releasegate — 2026-08-28
+
+**Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH/VERCEL VERIFICATION PENDING**
+
+De dedicated release-worktree `work/r6-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r6-integration` is vanaf exact `main`/`origin/main` `0ae99622609f45d83a8428f8cd4cb22985373f7b` opgebouwd. De goedgekeurde R6-1-tip `32d5c32cb44e0b274a9cbfd1fca81763f5471701` en R6-2-tip `e2c75eb5e9658c4ee899d69e96128357ec3bcedf` zijn éénmaal geïntegreerd; R6-2 bevat R6-1. Er waren uitsluitend documentatieconflicten. De delta bevat geen Supabase-migration, schema/RLS-, auth-, permission- of AI-wijziging. R5 Work/Automation en Setup Assistant zijn behouden.
+
+De gecombineerde technische gate is groen voor de uiteindelijke R6-delta: Insights-tests `17/17` bestanden en `56/56` tests, strict TypeScript, i18n `34` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` pagina's en diff-check. De volledige suite is `262/263` bestanden en `1003/1004` tests groen; de enige failure blijft de bekende, niet-gerelateerde Journey-test op `Binnenkort beschikbaar`. Tijdens browseracceptatie is één in-scope parserregressie gevonden en minimaal hersteld: Upcoming gebruikt nu de bestaande `databaseUuid` voor canonieke PostgreSQL-UUID's zonder RFC-variantlabel; de gerichte regressietest is groen.
+
+Authenticated Playwright op `http://localhost:3010` is gecombineerd gecontroleerd voor HR Admin, Manager en Medewerker, op desktop `1440x900` en mobiel `390x844`. Canonical draft/Apply/Reset, active-chip removal, Back/Forward, CSV-export (`200`, `text/csv`), employee-drilldown/return-context, searchable multiselect, Upcoming-chip `Afdeling`, responsive overflow (`scrollWidth === viewport`) en Escape/focus-restore zijn groen. HR Admin kreeg live Upcoming-filterdata; Manager alleen de directe scope; Medewerker zag geen Insights en directe toegang leverde `0 rapportages`. De laatste browserconsole eindigde op `0` errors en `0` warnings. De zichtbare versie is exact éénmaal verhoogd naar `1.20260828.1` in `apps/hr-suite/lib/app-version.ts`; de packageversie bleef ongewijzigd. Geen remote Supabase-write of production-mutatie is uitgevoerd.
+
 ## Centrale R5 Work & Automation + Setup Assistant V1 releasegate — 2026-08-27
 
 **Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH PENDING EXTERNAL GIT-CREDENTIAL CHECK**
@@ -39,6 +49,21 @@ De `R5-TEST`-fixture voor Roadmap 5 Work & Automation gebruikt uitsluitend besta
 **Status: R5-2 GREEN; FULL SUITE RED ON EXISTING UNRELATED JOURNEY TEST**
 
 De bestaande `/work`-projection is afgemaakt met Foundation v1.2, vijf tab-counts, URL-veilige filters, correcte service-pagination achter de bestaande administratie-wrapper, populated/no-results states, startpage process cards en Employee Detail → Processen-consistentie. Authenticated HR/Manager/Employee browseracceptance is groen op desktop `1440x900` en mobiel `390x844`; de enige suite-failure blijft de bestaande Journey-test op `Binnenkort beschikbaar`. Zie [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) en [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) voor de actuele gate-status. Geen migration, merge, push, version bump of Vercel.
+## R6-2 gedeelde Insights-controls — 2026-08-26
+
+**Status: LOKAAL TECHNISCH GROEN — AUTHENTICATED BROWSER GREEN — GEEN MAIN/REMOTE ACTIES**
+
+Vanaf exact R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701` levert `work/r6-insights-shared-controls` de gedeelde Foundation multiselect, responsive Insights-filterbar, active-filterchips, export shell en report-owned canonical queryserializers. Employee, Salary, Upcoming en Absence gebruiken dezelfde interaction mechanics zonder wijziging van reportsemantiek, privacy, berekeningen of server-authorisatie. Nieuwe tests, typecheck, i18n, lint, Webpack-build en diff-check zijn groen. De full-suite heeft alleen de bestaande Journey-failure op `Binnenkort beschikbaar`; exact gereproduceerd op baseline. Authenticated Playwright is groen op desktop `1440x900` en mobiel `390x844`, inclusief employee multiselect, Apply/Reset, active-filter removal, Back/Forward, exports, drilldowns, keyboard/Escape/focus restore, overflow en console. De twee minimale acceptance-fixes schrijven employee-filter removal naar de canonical URL en tonen Upcoming-chiplabel `Afdeling`. Zie [`delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md`](delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md).
+
+## R6-1 Insights query + navigation seam — 2026-08-26
+
+**Status: SEAM READY FOR R6-2: YES — LOCAL FEATURE BRANCH — NO REMOTE ACTIONS**
+
+Op `work/r6-insights-query-seam`, vanaf exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`, is de typed Insights query/navigation seam toegevoegd. De canonical URL gebruikt `report=<kebab-case-id>`, `groupBy`, `sortBy`, herhaalde arrayparameters en report-owned query keys; legacy aliases worden alleen bij parsing geaccepteerd. Rapportwissels ruimen stale state op, Apply gebruikt `router.push`, presentatie gebruikt `router.replace`, en employee/employment drilldowns behouden alleen een veilige interne Insights-returncontext. Upcoming direct URL rendering blijft achter dezelfde server-side catalog permission gate.
+
+De frozen contract staat in [`requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md`](requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md). Targeted seam/query-tests zijn groen: `7` bestanden, `29` tests. TypeScript, i18n (`33` gelijke namespaces), lint (`0 errors / 8 bestaande warnings`), productiebuild (`226` routes/pages) en `git diff --check` zijn groen. De volledige suite heeft `253/254` testbestanden en `980/981` tests gehaald; alleen de bestaande Journey-test `components/journeys/journey-steps.test.tsx` faalt op ontbrekende tekst `Binnenkort beschikbaar`, buiten deze wijziging.
+
+Authenticated HR browser-evidence op de branch-runtime `localhost:3002` bevestigt canonical employee-state, draft zonder URL-mutatie, Apply/history, stale cleanup bij Verzuim/Upcoming/Salaris en Back/Forward-herstel. Desktop en `390x844` zijn gecontroleerd; mobiel had `scrollWidth=390`. De dev-console bevat bestaande dashboard-shell hydration/state-meldingen; er is geen seam-specifieke fout vastgesteld. Geen migration, remote database-write, merge, push, deploy of version bump; zichtbare versie blijft `1.20260825.1`. Implementatiecommit: `cffcf04`; de documentatie is daarna in `a5d2de9` en `8597bf1` bijgewerkt.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 

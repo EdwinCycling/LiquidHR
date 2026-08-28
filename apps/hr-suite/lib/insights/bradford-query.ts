@@ -10,6 +10,8 @@ export interface BradfordInsightQuery {
   startDate: string
   endDate: string
   departmentId: string | null
+  risk: 'ALL' | 'LOW' | 'MEDIUM' | 'HIGH'
+  search: string
 }
 
 function value(params: URLSearchParams, key: string): string | undefined {
@@ -34,13 +36,25 @@ export function parseBradfordInsightQuery(params: URLSearchParams): BradfordInsi
   const year = safeYear(params)
   const today = new Date()
   const todayDate = isoDate(today)
+  const riskValue = value(params, 'risk')
+  const risk = riskValue === 'LOW' || riskValue === 'MEDIUM' || riskValue === 'HIGH' ? riskValue : 'ALL'
+  const search = value(params, 'search') ?? ''
   if (period === '52-weeks') {
     const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
     start.setUTCDate(start.getUTCDate() - 363)
-    return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'department') ?? null }
+    return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: isoDate(start), endDate: todayDate, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }
   }
-  if (period === 'this-year') return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'department') ?? null }
-  return { report: 'absence-bradford', period, year: year - 1, month: 12, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'department') ?? null }
+  if (period === 'this-year') return { report: 'absence-bradford', period, year, month: today.getUTCMonth() + 1, startDate: `${year}-01-01`, endDate: year === today.getUTCFullYear() ? todayDate : `${year}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }
+  return { report: 'absence-bradford', period, year: year - 1, month: 12, startDate: `${year - 1}-01-01`, endDate: `${year - 1}-12-31`, departmentId: value(params, 'departmentId') ?? value(params, 'department') ?? null, risk, search }
+}
+
+export function bradfordInsightQueryParams(query: BradfordInsightQuery, format?: 'excel'): URLSearchParams {
+  const params = new URLSearchParams({ report: 'absence-bradford', period: query.period })
+  if (query.departmentId) params.set('departmentId', query.departmentId)
+  if (query.risk !== 'ALL') params.set('risk', query.risk)
+  if (query.search) params.set('search', query.search)
+  if (format) params.set('format', format)
+  return params
 }
 
 export function toAbsenceInsightQuery(query: BradfordInsightQuery): AbsenceInsightQuery {

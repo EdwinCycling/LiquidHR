@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## Centrale R6 Insights-integratie en TEST-releasegate — 2026-08-28
+
+**Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH/VERCEL VERIFICATION PENDING**
+
+De release-worktree `work/r6-integration` is vanaf exact `main`/`origin/main` `0ae99622609f45d83a8428f8cd4cb22985373f7b` opgebouwd. De goedgekeurde R6-1- en R6-2-tips (`32d5c32cb44e0b274a9cbfd1fca81763f5471701` en `e2c75eb5e9658c4ee899d69e96128357ec3bcedf`) zijn éénmaal gecombineerd; R6-2 bevat R6-1. Alleen docs-conflicten zijn semantisch opgelost. R5/Setup Assistant blijven intact. Er zijn geen migrations, Supabase-schema/RLS/grants, auth/permissions, AI of production writes toegevoegd.
+
+De uiteindelijke gerichte gate is groen: `17/17` Insights-testbestanden en `56/56` tests, strict TypeScript, `34` gelijke NL/EN-namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` pagina's en `git diff --check`. De volledige suite blijft `262/263` bestanden en `1003/1004` tests door uitsluitend de bekende Journey-failure rond `Binnenkort beschikbaar`. Een browsergevonden Upcoming-parserprobleem met niet-RFC-gelabelde database-UUID's is opgelost via de bestaande `databaseUuid`-validator en gericht groen getest.
+
+Authenticated Playwright op `localhost:3010` is groen voor HR Admin, Manager en Medewerker op `1440x900` en `390x844`: canonical URL-state, draft/Apply/Reset, active-filter removal, Back/Forward, CSV-export HTTP `200`, safe drilldown-return, searchable multiselect, Upcoming-chip `Afdeling`, direct-team/self-scope, responsive overflow en Escape/focus-restore. HR Admin kreeg de juiste gefilterde Upcoming-rows; Manager uitsluitend direct-teamdata; Medewerker zag geen Insights en directe toegang gaf `0 rapportages`. Laatste browserconsole: `0` errors en `0` warnings.
+
+De zichtbare versie is exact eenmaal verhoogd naar `1.20260828.1` in `apps/hr-suite/lib/app-version.ts` en de bijbehorende testverwachting; `package.json` bleef ongewijzigd. Main-integratie, de ene push en Vercel TEST-verificatie volgen als releasehandelingen; geen remote Supabase- of production-mutatie is uitgevoerd.
+
 ## Centrale R5 Work & Automation + Setup Assistant V1 releasegate — 2026-08-27
 
 **Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH PENDING EXTERNAL GIT-CREDENTIAL CHECK**
@@ -60,6 +72,25 @@ Op TEST-project `wnpfloqpjvaacobppbpk` zijn uitsluitend de twee Setup-migrations
 De authenticated browserflow is bewezen voor TEST HR Admin op desktop en `390x844`: enable/readback, suggesties, completion mark/unmark/readback, static 16-step rendering, CTA's, mobile fullscreen en overflow. Manager en Medewerker zijn negatief bewezen met geen edge-tab en Setup-API `403`. Geen productie-DB, production config, version bump, merge, push of deploy.
 
 Lokale Setup-tests zijn `5/5`, typecheck en i18n zijn groen, ESLint is exit `0`, en de Webpack-build is groen. De volledige suite meldt `975/976` tests (`254/255` files); de ene failure is de ongewijzigde bestaande Journey-test `components/journeys/journey-steps.test.tsx` en valt buiten deze Setup-delta.
+## R6-2 gedeelde Insights-controls — 2026-08-26
+
+**Status: LOKAAL TECHNISCH GROEN — AUTHENTICATED BROWSER GREEN — RELEASE / PRODUCTION: NOT TOUCHED**
+
+De branch `work/r6-insights-shared-controls` is vanaf exact R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701` opgebouwd. De Foundation multiselect en shared Insights-controls zijn toegevoegd; employee FacetFilter, Salary FilterMenu, Upcoming FilterDropdown en absence active summaries gebruiken nu dezelfde zoekbare/selecteerbare interaction mechanics. Report-owned filters, serializers, berekeningen, privacy, permissions, loaders en exportsemantiek zijn behouden. Applied URL-state blijft canonical met lokale draft, `router.push` voor Apply en bestaande veilige drilldown-returncontext.
+
+Technische verificatie is groen: nieuwe shared tests `7/7`, targeted Insights `53/53`, strict TypeScript, i18n `33` gelijke namespaces, ESLint `0 errors` met bestaande warnings, Webpack-build `226` routes/pages en `git diff --check`. De volledige suite heeft `257` bestanden en `988` tests uitgevoerd; `987` zijn groen en alleen de bestaande Journey-test faalt op `Binnenkort beschikbaar`, ook op baseline `e13c50f` en buiten scope.
+
+Authenticated browseracceptance is **GREEN**. De canonical `apps/hr-suite/.env.local` is naar de worktree gekopieerd en alleen op aanwezigheid/SHA-256-match gecontroleerd. Playwright desktop `1440x900` en mobiel `390x844` bevestigden employee searchable multiselect, Apply/Reset, active-filter remove, Clear all, Back/Forward, refresh, absence, Bradford, Upcoming, salary primary/secondary, export, drilldown return-context, keyboard/Escape/focus restore en geen page-level horizontal overflow. De browserconsole eindigde op `0` errors en `0` warnings. Minimale browserfixes: employee active-filter actions schrijven de canonical URL bij; Upcoming labelt de afdelingschip correct als `Afdeling`. Geen migration, remote schema/RLS/permission/auth-wijziging, merge, push, deployment of version bump. Zie `docs/delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md`.
+
+## R6-1 Insights query + navigation seam — 2026-08-26
+
+**Status: SEAM READY FOR R6-2: YES — LOCAL FEATURE BRANCH — RELEASE / PRODUCTION: NOT TOUCHED**
+
+Branch `work/r6-insights-query-seam` is vanaf exact `e13c50f418cb327a6e4e99e266d58ab7370e4885` opgebouwd. De seam centraliseert typed report-id canonicalisatie, URL query ownership, repeated-array serialization, safe report switching, Apply/history semantics en interne drilldown-returncontext. `upcoming-events` is de canonical report-id; de oude `upcomingEvents` alias wordt alleen geaccepteerd bij parsing. De Upcoming server-loader controleert bovendien de zichtbare, permission-filtered report catalog voordat data wordt geladen. De frozen contract staat in `docs/requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md`.
+
+Verificatie: seam/query-tests `7/7` bestanden en `29/29` tests groen; typecheck groen; i18n `33` NL/EN-namespaces gelijk; lint `0 errors / 8 bestaande warnings`; production build `226` routes/pages; `git diff --check` groen. Volledige suite: `253/254` bestanden, `980/981` tests; de enige failure is de bestaande Journey-test op `Binnenkort beschikbaar`, buiten R6-1. Branch-browser op `localhost:3002`: HR Admin, canonical employee URL/filters, Apply via history, report switch cleanup, Upcoming direct view, Salary, Back/Forward en mobile `390x844` zonder horizontale overflow zijn gecontroleerd. De bestaande Next-dev dashboard-shell geeft hydration/state-consolemeldingen; deze run vond geen R6-1-specifieke consolefout.
+
+Geen schema/migration, remote Supabase-mutatie, remote auth/permissionwijziging, merge, push, deployment of version bump. Zichtbare versie: `1.20260825.1`. Lokale implementatiecommit: `cffcf04` (`feat: add insights query navigation seam`); de documentatie is daarna in `a5d2de9` en `8597bf1` bijgewerkt.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 

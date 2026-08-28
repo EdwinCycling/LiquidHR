@@ -6,7 +6,7 @@ describe('bradfordInsightExcel', () => {
   it('creates an Excel-compatible worksheet with factor columns', () => {
     const report: BradfordInsightReport = {
       report: 'absence-bradford',
-      period: { report: 'absence-bradford', period: '52-weeks', year: 2026, month: 7, startDate: '2025-07-29', endDate: '2026-07-27', departmentId: null },
+      period: { report: 'absence-bradford', period: '52-weeks', year: 2026, month: 7, startDate: '2025-07-29', endDate: '2026-07-27', departmentId: null, risk: 'ALL', search: '' },
       departments: [],
       totalOccurrences: 2,
       totalSickDays: 7,

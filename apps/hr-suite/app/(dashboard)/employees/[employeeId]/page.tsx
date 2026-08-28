@@ -49,10 +49,11 @@ import { getUpcomingCalendarItems, type UpcomingCalendarItems } from '@/lib/comp
 import { getPrivateWeatherForEmployee, getWorkWeatherForContext } from '@/lib/weather/work-weather'
 import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
+import { normalizeInsightReturnPath } from '@/lib/insights/query-seam'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
-  searchParams: Promise<{ tab?: string; edit?: string; view?: string; caseId?: string; perf?: string }>
+  searchParams: Promise<{ tab?: string; edit?: string; view?: string; caseId?: string; perf?: string; from?: string; returnTo?: string }>
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -137,7 +138,8 @@ function EmployeeCalendarHeader({ items, locale, labels }: { items: UpcomingCale
 
 export default async function EmployeeDetailPage({ params, searchParams }: EmployeeDetailPageProps) {
   const { employeeId } = await params
-  const { tab: requestedTab, edit, view, caseId, perf } = await searchParams
+  const { tab: requestedTab, edit, view, caseId, perf, from, returnTo } = await searchParams
+  const insightReturnTo = from === 'insights' ? normalizeInsightReturnPath(returnTo) : null
   const performanceTrace = createServerPerformanceTrace('/employees/[employeeId]', perf === '1')
   const requestContext = await performanceTrace.measure('auth.context', getRequestAuthorizationContext)
   const authContext = requestContext.context
@@ -192,7 +194,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
   return (
       <PageShell width="standard" className="py-7 lg:py-10">
-        <Link href="/employees" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+        <Link href={insightReturnTo ?? '/employees'} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />{tEmployees('title')}
         </Link>
         <Surface className={`relative mt-5 overflow-hidden ${compact ? 'p-2.5 sm:px-4' : ''}`}>

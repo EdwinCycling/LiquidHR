@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Centrale R6 Insights-integratie en TEST-releasegate — 2026-08-28
+
+**Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH/VERCEL VERIFICATION PENDING**
+
+- Release-worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r6-integration`, `work/r6-integration`; exact baseline `main`/`origin/main` `0ae99622609f45d83a8428f8cd4cb22985373f7b`. R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701` en R6-2 `e2c75eb5e9658c4ee899d69e96128357ec3bcedf` zijn éénmaal gecombineerd; R6-2 bevat R6-1. Alleen delivery-documentatie conflicteerde. R5 en Setup Assistant zijn behouden.
+- Scope/safety: geen migration, Supabase-schema/RLS/grant-, auth/permission-, AI- of production-wijziging. De Upcoming-querygrens gebruikt de bestaande `databaseUuid`-validator; dit is de enige extra in-scope correctie na browseracceptatie, met gerichte regressietest.
+- Technische gate: Insights `17/17` bestanden en `56/56` tests, strict TypeScript, i18n `34` gelijke namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` pagina's en diff-check groen. Full suite `262/263` bestanden en `1003/1004` tests; uitsluitend de bekende niet-gerelateerde Journey-failure op `Binnenkort beschikbaar` blijft open.
+- Authenticated browser op `localhost:3010`: HR Admin, Manager en Medewerker; desktop `1440x900` en mobile `390x844`. Canonical URL/draft/Apply/Reset, chip removal, Back/Forward, CSV HTTP `200`, drilldown-return, multiselect search, Upcoming `Afdeling`, overflow en Escape/focus-restore groen. HR Admin kreeg de gefilterde Upcoming-data; Manager alleen direct-teamdata; Medewerker geen Insights en directe route `0 rapportages`. Laatste console: `0` errors/`0` warnings.
+- Versie: exact één bump naar `1.20260828.1` in `apps/hr-suite/lib/app-version.ts`, inclusief testverwachting; packageversie niet gewijzigd. Main-integratie, één push en Vercel TEST-verificatie zijn de resterende releasehandelingen. Geen remote Supabase-write of production-mutatie uitgevoerd.
+
 ## Centrale R5 Work & Automation + Setup Assistant V1 releasegate — 2026-08-27
 
 **Status: LOCAL RELEASE CANDIDATE GREEN — MAIN/PUSH PENDING EXTERNAL GIT-CREDENTIAL CHECK**
@@ -59,6 +69,24 @@
 - Lokale gates: gerichte Setup `2/2` testfiles en `5/5` tests, strict TypeScript, i18n `34` gelijke NL/EN-namespaces, ESLint exit `0`, Webpack-build groen en `git diff --check` groen. Volledige suite is `254/255` testfiles en `975/976` tests: één ongewijzigde Journey-test faalt buiten deze delta op de bestaande verwachting `Binnenkort beschikbaar`; dit is geen Setup-failure.
 - Remote advisors na wijziging: security `85` findings (`84 WARN` bestaande projectbrede baseline, geen Setup-finding); performance `460` (`11 WARN` bestaande baseline, Setup alleen vier nieuwe `unused_index`-INFO's voor de FK-indexen). Zichtbare productversie bleef `1.20260825.1`; geen version bump.
 - Eindstatus: **SETUP ASSISTENT V1 GREEN; READY FOR REVIEW/INTEGRATION; FULL SUITE HAS ONE UNRELATED EXISTING JOURNEY FAILURE**.
+## R6-2 gedeelde Insights-controls — overdracht 2026-08-26
+
+- Branch/worktree: `work/r6-insights-shared-controls` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r6-insights-shared-controls`, gestart vanaf exact R6-1 `32d5c32cb44e0b274a9cbfd1fca81763f5471701`.
+- Afgerond: Foundation `MultiSelect`, shared Insights filter bar/active chips/export shell, en migratie van employee FacetFilter, salary FilterMenu, Upcoming FilterDropdown en absence summaries. URL blijft applied canonical state; draft is lokaal, Apply gebruikt `router.push`, exports gebruiken applied query en report-owned serializers, drilldowns behouden return context.
+- Verificatie: nieuwe shared tests `7/7`, targeted Insights `53/53`, typecheck, i18n `33` namespaces, lint `0 errors` en Webpack build `226` routes groen; full suite `987/988` met uitsluitend de bestaande Journey-assertion `Binnenkort beschikbaar`, ook rood op baseline `e13c50f`.
+- Browser: **GREEN**. Canonical `.env.local` is gekopieerd en SHA-256 gelijk geverifieerd zonder secrets te tonen. Authenticated Playwright op desktop `1440x900` en mobiel `390x844` controleerde alle gevraagde shared-control-, report-, export-, drilldown-, keyboard/Escape/focus- en overflowflows; console eindigde op `0` errors en `0` warnings. Minimale fixes: employee active-filter actions gebruiken canonical URL-state; Upcoming labelmapping voor `Afdeling`.
+- Geen migration, remote write, RLS/permission/auth wijziging, version bump, merge, push of deploy. Zie [`docs/delivery/parallel/2026-08-26-r6-2-insights-shared-controls.md`](parallel/2026-08-26-r6-2-insights-shared-controls.md).
+
+## R6-1 Insights query + navigation seam — overdracht 2026-08-26
+
+- Branch/worktree: `work/r6-insights-query-seam` in `C:\Users\Edwin\Documents\Apps\LiquidHR`; exact baseline `e13c50f418cb327a6e4e99e266d58ab7370e4885`. Main is niet gewijzigd. Implementatiecommit `cffcf04`; documentatiecommits `a5d2de9` en `8597bf1` volgen daarop.
+- Afgerond: `lib/insights/query-seam.ts` met typed adapter/frozen seam-contract, canonical report ids, report-owned query-key cleanup, repeated-array canonicalisatie, Apply/report-switch helpers en safe internal drilldown-context. Bestaande report-owned querymodules blijven eigenaar van hun filters/berekeningen.
+- Runtime: Insights gebruikt canonical `report=<kebab-case-id>`, `groupBy`, `sortBy`, repeated arrays en legacy parse aliases. Employee Apply gebruikt `router.push`; presentation `view` gebruikt `router.replace`; employee direct URL state heeft voorrang op preferences/defaults; report switching verwijdert stale state; Upcoming direct URL laadt alleen wanneer het report in de server-side permission-filtered catalog staat.
+- Drilldowns: employee/employment links dragen `from=insights` plus een genormaliseerde interne `returnTo`; externe of niet-Insights return paths vallen veilig terug op `/insights`.
+- Documentatie: `docs/requirements/reports/R6_1_INSIGHTS_QUERY_NAVIGATION_SEAM.md` bevat de exact frozen query-, navigation-, permission- en R6-2 handoff-contracten. README en IMPLEMENTATION_STATUS zijn bijgewerkt.
+- Tests/gates: targeted seam/query `7/7` files, `29/29` tests; typecheck groen; i18n `33` namespaces; lint `0 errors / 8 warnings` (bestaand); build `226` routes/pages; `git diff --check` groen. Volledige suite `253/254` files, `980/981` tests; alleen bestaande `components/journeys/journey-steps.test.tsx` faalt op `Binnenkort beschikbaar`.
+- Browser: branch-runtime `http://localhost:3002` authenticated HR Admin. Canonical employee direct URL, draft-versus-Apply, employee → absence → upcoming → salary, stale cleanup, Back/Forward restoration en employee drilldown return links zijn gecontroleerd. Desktop en `390x844`; mobile `scrollWidth=390`. Bestaande Next-dev dashboard-shell hydration/state-meldingen zijn apart gehouden van de seam-evidence.
+- Governance: geen Supabase migration/schema/RLS/grant, remote write, merge, push, deployment of version bump. Zichtbare versie blijft `1.20260825.1`. R6-2 kan voortbouwen op de frozen seam; controleer de actuele branch-HEAD met `git rev-parse HEAD`.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 
