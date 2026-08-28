@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Liquid Analyse AN-0/AN-1 — 2026-08-28
+
+**Status: AUTHENTICATED LOCAL SANITY BLOCKED — OAUTH REDIRECT TO VERCEL**
+
+AN-0/AN-1 is semantically integrated against central main 42066ab64c025e4f8b7653d656e0e3e76cccfaf3, preserving the R7-3 employment/master-data Foundation, Setup Assistant, Sidebar v2, Organogram and R6 Reports. The active global personal Dashboard widget runtime, widget settings/catalogue/API and old Insights Dashboard item are removed; /dashboard and /settings/dashboard-widgets redirect to /insights/analysis, while /dashboard/start and Employee 360 remain intact. The Analyse hub has exactly four options: Nieuwe analyse, Verkennen and Mijn analyses are PLANNED; Rapporten is ACTIVE and links to /insights. AN-2+ is not implemented.
+
+The forward migration 20260828125223_retire_legacy_dashboard.sql is included in code but must remain unapplied in this run. There is no remote migration, schema write, dashboard-table drop or generated DB-types sync. Local authenticated browser sanity is blocked because Google OAuth returns localhost:3004 to the existing Vercel origin; no auth or environment workaround was applied. The integrated quality gate is GREEN, so commit, push and post-deploy Vercel provenance/authenticated sanity are the remaining release steps. Known Journey failure Binnenkort beschikbaar remains non-blocking only if unchanged.
+
 ## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
 
 **Status: R7-3 TEST RELEASE GREEN — READY FOR TEST PROVENANCE; REQUIREMENTS GATE RECORDED**
@@ -1358,7 +1366,7 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken blijft URL-state en veroorzaakt daardoor geen 400 meer op `PATCH /api/preferences/employees`. Na een succesvolle administratie-wissel navigeert de UI altijd naar `/dashboard/start`, zodat de geselecteerde administratie direct als nieuwe startcontext wordt geladen.
 
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
-| Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
+| Persoonlijke Liquid Dashboard | RETIRED IN CODE | De globale persoonlijke dashboards, widgetindeling, CRUD/API en widgetcatalogus zijn door AN-0 verwijderd. De forward migration voor de vier legacy-tabellen staat lokaal klaar maar is nog niet op TEST toegepast; zie de frozen Analyse-roadmap. |
 | HeRa AI-agent | GEÏMPLEMENTEERD | Data-first orchestratie, echte rol/permissioncontext, owner- en tenantgebonden memory/voorkeuren, beheer-UI, toon/detail/senioriteit, salaris-/medewerker-/dienstverband-/organisatietools en vijf bevestigbare schrijftools zijn gebouwd. RLS en serverautorisatie zijn live transactioneel negatief getest; lokale, preview- en Production-eindtests zijn geslaagd. |
 
 ## Core HR, organisatie en autorisatie
@@ -1458,7 +1466,7 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 - De medewerkerkaart heeft een reminders-tab. Dienstverbanden openen als primaire knop, verwijderen is een bevestigde soft-delete en de teruglink bewaart de medewerker-brontab.
 - Redenen uitdienst zijn onder `/master-data/end-reasons` per land beheerbaar met toevoegen, wijzigen, activeren/deactiveren en een blokkade wanneer een reden al is gebruikt. Nederland gebruikt de officiële codes 01, 02, 03, 04, 20, 21, 30, 32, 33, 34, 40, 41, 90 en 99; zonder landspecifieke inrichting geldt `Einde contract`.
 
-## Dashboard widgetbibliotheek
+## Dashboard widgetbibliotheek (historisch — AN-0 retired)
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|

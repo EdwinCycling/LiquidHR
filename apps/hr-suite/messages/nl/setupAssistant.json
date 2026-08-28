@@ -44,7 +44,6 @@
     "set001": { "title": "Modules kiezen", "description": "Bepaal welke beschikbare modules in de omgeving actief zijn." },
     "set002": { "title": "Medewerkerweergave", "description": "Bepaal welke collega-informatie zichtbaar is in de medewerkersdirectory." },
     "set003": { "title": "Eigen velden", "description": "Voeg aanvullende velden toe die passen bij jouw HR-proces." },
-    "set004": { "title": "Dashboard & navigatie", "description": "Stel de beschikbare dashboardwidgets en de volgorde van je navigatie in." },
     "set005": { "title": "Eerste medewerkers", "description": "Voeg de eerste medewerkers toe of controleer de bestaande personeelskaarten." },
     "emp001": { "title": "Dienstverbandinstellingen", "description": "Controleer standaardland, contractcatalogus en algemene dienstverbandinstellingen." },
     "emp002": { "title": "Arbeidsvoorwaarden", "description": "Leg de arbeidsvoorwaarden vast die in nieuwe dienstverbanden kunnen worden gebruikt." },

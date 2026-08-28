@@ -69,7 +69,6 @@ const reportQueryKeys: Readonly<Record<InsightReportId, readonly string[]>> = {
   absence: ['period', 'year', 'month', 'departmentId', 'department'],
   'absence-bradford': ['period', 'year', 'month', 'departmentId', 'department', 'groupBy', 'group', 'risk', 'search'],
   'absence-frequent': ['period', 'year', 'month', 'departmentId', 'department', 'search', 'frequentOnly'],
-  dashboard: [],
   'salary-overview': salaryQueryKeys(),
   'salary-band-position': salaryQueryKeys(),
   'salary-band-status': salaryQueryKeys(),

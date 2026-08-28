@@ -12,6 +12,8 @@ Versie: `2026-07-27`
 
 De catalogus groepeert rapporten in vier vaste secties: **Medewerkers**, **Verlof**, **Verzuim** en **Overige rapportages**. Alleen een rapport zonder aangesloten bron draagt de badge **Wordt later gedaan**.
 
+De globale persoonlijke Dashboard-widgetervaring is met AN-0 retired. De nieuwe Analyse-hub staat op [`/insights/analysis`](LIQUID_ANALYSE_AN0_AN1.md) en gebruikt `dashboard:read` uitsluitend als bestaand toegangscontract. Deze rapportagecatalogus blijft de canonieke bestemming voor de actieve Rapporten-optie; de catalogus bevat geen Dashboard-rapport meer.
+
 | Rapport | Status |
 |---|---|
 | Personeel per afdeling | Live medewerkerprojectie, visuele verdeling en detailtabel. |

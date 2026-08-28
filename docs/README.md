@@ -1,5 +1,13 @@
 # Liquid HR documentatie-index
 
+## Liquid Analyse AN-0/AN-1 — 2026-08-28
+
+**Status: LOCAL FEATURE SLICE — NO MAIN/PUSH/REMOTE APPLY**
+
+De dedicated worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an-analysis-foundation` draait op branch `work/an-analysis-foundation` vanaf `origin/main` `e7e62e75e213a00f804215dae2233a850f438cd3`; de zichtbare versie blijft `1.20260828.5`. AN-0 retireert de globale persoonlijke Dashboard-widgetarchitectuur in code. AN-1 activeert `/insights/analysis` met exact vier Analyse-opties; alleen Rapporten is actief en linkt naar `/insights`.
+
+`/dashboard/start` blijft de dagelijkse Startpagina. `/dashboard` en `/settings/dashboard-widgets` redirecten veilig naar Analyse. De forward migration `20260828125223_retire_legacy_dashboard.sql` is lokaal voorbereid maar niet op TEST toegepast; `dashboard:read` blijft het bestaande Analyse-toegangscontract en `dashboard-widget:*` blijft voorlopig inert. AN-2 t/m AN-10 zijn uitsluitend frozen roadmap. Zie [`LIQUID_ANALYSE_AN0_AN1.md`](requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
@@ -631,7 +639,8 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Verzuim en herstel | [`requirements/absence/VERZUIM_EN_HERSTEL.md`](requirements/absence/VERZUIM_EN_HERSTEL.md) | LEIDEND | GEDEELTELIJK — schema/RLS/RPC, API, dashboardvenster, startpagina, kalenderactie, medewerker-tab, herstel, instellingen en verzuimrapportage zijn live; voorziening en verdere WvP blijven open |
 | WvP Poortwachter | [`requirements/absence/WVP_POORTWACHTER_ENGINE.md`](requirements/absence/WVP_POORTWACHTER_ENGINE.md) | LEIDEND | GEDEELTELIJK — HR Admin kan eigen niet-wettelijke taaktemplates beheren; wettelijke milestone-engine, casustaken, dossier en signaleringen blijven open totdat de set inhoudelijk is bevestigd |
 | Verzuiminstellingen | [`requirements/absence/VERZUIM_INSTELLINGEN.md`](requirements/absence/VERZUIM_INSTELLINGEN.md) | LEIDEND | GEDEELTELIJK — drempel, geldige standaardcasemanager en eigen taaktemplates zijn administratiegebonden beschikbaar; contacttypen en documentcategorieën blijven open |
-| Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport |
+| Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport; de oude globale Dashboard-bestemming is vervangen door Analyse |
+| Liquid Analyse AN-0/AN-1 | [`requirements/reports/LIQUID_ANALYSE_AN0_AN1.md`](requirements/reports/LIQUID_ANALYSE_AN0_AN1.md) | LEIDEND | LOKALE FEATURE-SLICE — legacy Dashboard in code retired, Analyse-hub active, DB-retirement migration ready maar nog niet toegepast |
 | Surveys en eNPS | [`requirements/research/SURVEYS_AND_ENPS.md`](requirements/research/SURVEYS_AND_ENPS.md) | LEIDEND | GEDEELTELIJK — tenantmodules, schema/RLS, draft-campagnebeheer, medewerkerhub, respondentflow, HR-instellingen, monitor, privacydrempel, grafieken, CSV en rolgebonden widgets zijn remote en op main/browser geverifieerd. Automatische e-mail-/schedulerbezorging voor eNPS-herinneringen is bewust uitgesteld; segmentprivacy blijft een apart besluit |
 | Process Automation | [`requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`](requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) | LEIDEND | P2-P9 schema/API/UI en contextstarts zijn uitgevoerd; P10-outputbrug is live end-to-end bewezen. Open: niet-lege `BLOCKED`-startpaginafixture en expliciete doelgroepgoedkeuring voor HR-admin-dossierzichtbaarheid; daarom nog geen 100%-gate |
 | Journeys | [`requirements/journeys/JOURNEYS.md`](requirements/journeys/JOURNEYS.md) | LEIDEND | BOUWSTAP 1 EN 2 GEREED — configuratie plus gepinde HR-runtime, activatiepreview, teamresolutie, lifecycle, replacement en reminders remote/browser geverifieerd; stap 3 en deployment niet gestart |
@@ -662,7 +671,7 @@ Talentfundament is bereikbaar voor HR Admin via `Instellingen -> HR-inrichting` 
 | Entiteiteigendom en koppelingen | [`requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`](requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md) | LEIDEND | INSTRUCTIE VOOR NIEUWE MODULES |
 | Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE, HR-groepbreed inclusief beheer-CRUD, actieve status, landcode en preview |
 | Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
-| Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — groepsbrede bedrijfsgegevens, branding, feestdagen, medewerker-pop-up en dashboardwidgetbeheer toegevoegd |
+| Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — groepsbrede bedrijfsgegevens, branding, feestdagen, medewerker-pop-up en menuvolgorde; legacy Dashboard Widget-beheer is retired |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEÏMPLEMENTEERD EN PRODUCTIE-GEVERIFIEERD |
 | Historische HR-chatbotblauwdruk | [`requirements/chatbot/HR_CHATBOT_AGENT.md`](requirements/chatbot/HR_CHATBOT_AGENT.md) | VERVANGEN | NIET GESTART |

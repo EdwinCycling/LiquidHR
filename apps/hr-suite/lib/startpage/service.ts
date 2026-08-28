@@ -477,7 +477,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
   const isHrAdmin = auth.activeRoles.includes('TENANT_ADMIN')
   const canSwitchScope = isManager && isHrAdmin
   const scope: StartPageScope = isManager ? (isHrAdmin && requestedScope === 'company' ? 'company' : 'team') : 'company'
-  // Start the team-scope lookup together with the independent dashboard reads.
+  // Start the team-scope lookup together with the independent startpage reads.
   // Scope-dependent reads await this shared promise without creating a separate
   // auth/client waterfall for every branch.
   const employeeScopePromise: Promise<StartPageEmployeeScope> = scope === 'team'

@@ -10,8 +10,8 @@ describe('Setup Assistent guide', () => {
     const allSteps = SETUP_ASSISTANT_GUIDE.flatMap((category) => category.steps)
     const visibleSteps = getVisibleSetupAssistantSteps({ permissions: allSteps.flatMap((step) => step.primaryRoute.requiredPermissions) })
 
-    expect(allSteps).toHaveLength(17)
-    expect(visibleSteps).toHaveLength(16)
+    expect(allSteps).toHaveLength(16)
+    expect(visibleSteps).toHaveLength(15)
     expect(visibleSteps.some((step) => step.stepKey === 'EMP-003')).toBe(false)
   })
 
@@ -19,7 +19,7 @@ describe('Setup Assistent guide', () => {
     const steps = getVisibleSetupAssistantSteps({ permissions: ['settings:read', 'department:read'] })
 
     expect(steps.map((step) => step.stepKey)).toEqual(['ORG-001', 'BAS-003', 'SET-002'])
-    expect(SETUP_ASSISTANT_GUIDE.flatMap((category) => category.steps)).toHaveLength(17)
+    expect(SETUP_ASSISTANT_GUIDE.flatMap((category) => category.steps)).toHaveLength(16)
   })
 
   it('keeps employment conditions on the canonical employment settings route', () => {
@@ -30,14 +30,11 @@ describe('Setup Assistent guide', () => {
     expect(step?.primaryRoute.href).toBe('/settings/employment-contracts')
   })
 
-  it('filters related destinations with their own permission contract', () => {
-    const step = SETUP_ASSISTANT_GUIDE
-      .flatMap((category) => category.steps)
-      .find((candidate) => candidate.stepKey === 'SET-004')
+  it('does not expose the retired Dashboard Widgets destination', () => {
+    const steps = SETUP_ASSISTANT_GUIDE.flatMap((category) => category.steps)
 
-    if (!step?.relatedRoute) throw new Error('SET-004 related route is missing')
-
-    expect(canOpenSetupAssistantRoute(step.relatedRoute, { permissions: ['settings:read'] })).toBe(true)
-    expect(canOpenSetupAssistantRoute(step.relatedRoute, { permissions: [] })).toBe(false)
+    expect(steps.some((step) => step.stepKey === 'SET-004')).toBe(false)
+    expect(steps.some((step) => step.primaryRoute.href === '/settings/dashboard-widgets')).toBe(false)
+    expect(canOpenSetupAssistantRoute({ href: '/settings/menu-order', requiredPermissions: ['settings:read'] }, { permissions: ['settings:read'] })).toBe(true)
   })
 })

@@ -1,7 +1,7 @@
 import type { EmployeeInsightReportId } from './types'
 import { SALARY_INSIGHT_REPORT_IDS, type SalaryInsightReportId } from './salary-insights-types'
 
-export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'dashboard' | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events'
+export type InsightReportId = EmployeeInsightReportId | SalaryInsightReportId | 'leave' | 'absence' | 'absence-bradford' | 'absence-frequent' | 'provision' | 'wvp' | 'upcoming-events'
 export type InsightReportCategory = 'employees' | 'leave' | 'absence' | 'salary' | 'other'
 
 export interface InsightReportDefinition {
@@ -22,7 +22,6 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'absence-bradford', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-frequent', category: 'absence', permission: 'report-absence:read', available: true },
   ...SALARY_INSIGHT_REPORT_IDS.map((id): InsightReportDefinition => ({ id, category: 'salary', permission: 'salary:read', available: true })),
-  { id: 'dashboard', category: 'other', permission: 'dashboard:read', available: true },
   { id: 'provision', category: 'other', permission: 'report-leave-provision:read', available: false },
   { id: 'wvp', category: 'other', permission: 'report-wvp:read', available: false },
 ] as const

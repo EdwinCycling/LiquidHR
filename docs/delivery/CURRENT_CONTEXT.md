@@ -1,5 +1,18 @@
 # Actuele overdracht Liquid HR
 
+## Liquid Analyse AN-0/AN-1 — 2026-08-28
+
+**Status: AUTHENTICATED LOCAL SANITY BLOCKED — OAUTH REDIRECT TO VERCEL**
+
+- Source branch/commit: `work/an-analysis-foundation` / `b4a571f9acf0bd54c36dff2fa6f5dc8fd6059aef`; source baseline `e7e62e75e213a00f804215dae2233a850f438cd3`.
+- Centrale baseline: `42066ab64c025e4f8b7653d656e0e3e76cccfaf3` (prior version 1.20260828.6); this release candidate bumps the visible version to 1.20260828.7. AN-0/AN-1 is semantically integrated while R7-3, Setup Assistant, Sidebar v2, Organogram and R6 Reports remain preserved.
+- Legacy widgetruntime, widgetbeheer, dashboard-API's, dashboard-i18n and the old Insights Dashboard-item are retired from active code. `/dashboard` and `/settings/dashboard-widgets` redirect to `/insights/analysis`; `/dashboard/start` and Employee 360 remain intact.
+- `/insights/analysis` contains exactly four options: Nieuwe analyse, Verkennen and Mijn analyses are `PLANNED`; Rapporten is `ACTIVE` and links to `/insights`. No AN-2+ runtime is included.
+- `20260828125223_retire_legacy_dashboard.sql` remains a local forward migration only. No remote migration apply, schema write, dashboard-table drop or generated DB-types sync is part of this release.
+- The one permitted OAuth inspection confirms the callback uses the runtime app origin and the callback contract preserves the forwarded Vercel host; localhost:3004 therefore returns the Google OAuth flow to the existing Vercel origin. No auth, env or production setting was changed.
+- Local authenticated sanity is blocked by this environment limitation. Post-deploy authenticated evidence on the new Vercel SHA remains the release gate; known Journey baseline failure `Binnenkort beschikbaar` remains non-blocking if unchanged.
+- Handoff: [`LIQUID_ANALYSE_AN0_AN1.md`](../requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
+
 ## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
 
 **Status: R7-3 TEST RELEASE GREEN — READY FOR TEST PROVENANCE; REQUIREMENTS GATE RECORDED**

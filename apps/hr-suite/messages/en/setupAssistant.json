@@ -44,7 +44,6 @@
     "set001": { "title": "Choose modules", "description": "Decide which available modules are active in the environment." },
     "set002": { "title": "Employee view", "description": "Choose which colleague information is visible in the employee directory." },
     "set003": { "title": "Custom fields", "description": "Add additional fields that fit your HR process." },
-    "set004": { "title": "Dashboard & navigation", "description": "Configure available dashboard widgets and the order of your navigation." },
     "set005": { "title": "First employees", "description": "Add the first employees or review the existing employee records." },
     "emp001": { "title": "Employment settings", "description": "Review default country, contract catalog and general employment settings." },
     "emp002": { "title": "Employment conditions", "description": "Set the employment conditions available in new employment records." },

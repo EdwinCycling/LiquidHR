@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { CompanyDataManager } from './company-data-manager'
-import { DashboardWidgetSettingsForm } from './dashboard-widget-settings-form'
 import { EmployeeDirectorySettingsForm } from './employee-directory-settings-form'
 import { MenuOrderForm } from './menu-order-form'
 import { ModuleSettingsForm } from './module-settings-form'
@@ -27,12 +26,9 @@ describe('R7-1 settings Foundation convergence', () => {
     expect(markup).toContain('Annuleren')
   })
 
-  it('uses switches and checkboxes for directory and widget settings', () => {
+  it('uses switches and checkboxes for directory settings', () => {
     const directory = renderToStaticMarkup(<EmployeeDirectorySettingsForm initial={{ enabled: true, showName: true, showJobDepartment: true, showWorkEmail: true, showWorkPhone: true, showPresence: false, showSchedule: true }} labels={{ enabled: 'Openen', enabledDescription: 'Beschrijving', fieldsTitle: 'Velden', fieldsDescription: 'Beschrijving', name: 'Naam', nameAlwaysOn: 'altijd', jobDepartment: 'Functie', workEmail: 'E-mail', workPhone: 'Telefoon', presence: 'Aanwezigheid', schedule: 'Rooster', save: 'Opslaan', cancel: 'Annuleren', saving: 'Opslaan…', saved: 'Opgeslagen', failed: 'Mislukt' }} />)
-    const widgets = renderToStaticMarkup(<DashboardWidgetSettingsForm labels={{ saving: 'Opslaan', saved: 'Opgeslagen', failed: 'Mislukt', enabled: 'Activeren', active: 'Actief', inactive: 'Inactief', roles: 'Rollen', allRoles: 'Alle', noRoles: 'Geen', categories: { CORE_HR: 'Kern' } }} roles={[{ id: 'role-1', code: 'HR', name: 'HR' }]} widgets={[{ type: 'widget', category: 'CORE_HR', title: 'Widget', description: 'Beschrijving', visualizationLabel: 'Kaart', isEnabled: true, roleIds: [] }]} />)
     expect(directory).toContain('role="switch"')
-    expect(widgets).toContain('role="switch"')
-    expect(widgets).toContain('type="checkbox"')
   })
 
   it('renders company data tabs and modal actions through Foundation contracts', () => {

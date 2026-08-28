@@ -10,7 +10,7 @@ De hoofdnavigatie blijft één niveau diep en gebruikt vaste functionele secties
 - **Sturen:** Inzichten
 - **Beheer:** Instellingen
 
-Dashboard blijft beschikbaar op `/dashboard`, maar staat niet meer in de sidebar. Binnen Insights is Dashboard als `dashboard:read`-gated bestemming beschikbaar. Startpagina (`/dashboard/start`) blijft de primaire home.
+De legacy globale Dashboard-route `/dashboard` redirect naar `/insights/analysis` en staat niet in de sidebar. Binnen Insights is Analyse als `dashboard:read`-gated bestemming beschikbaar. Startpagina (`/dashboard/start`) blijft de primaire home.
 
 ## Product Updates
 
