@@ -3,11 +3,12 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { AuthenticationError, AuthorizationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiRuntimeDependencies, type AuthorizedContextLoader, type BusinessAuditSink, type CreditsPort, type AiGovernancePort, type AiResultValidator, type ProviderPort, type TechnicalUsageSink, type InvocationRepository, type AiClock, type HrGroupTimeZoneResolver } from './contracts'
-import { FailClosedCreditsPort, FailClosedGovernancePort } from './fail-closed-ports'
+import { FailClosedGovernancePort } from './fail-closed-ports'
 import { aiFeatureRegistry } from './feature-registry'
 import { runAiInvocation } from './orchestrator'
 import { SupabaseBusinessAuditSink, SupabaseTechnicalUsageSink } from './supabase-observability-sinks'
 import { SupabaseInvocationRepository } from './supabase-invocation-repository'
+import { SupabaseLiquidCreditsService } from './supabase-liquid-credits'
 import { defaultHrGroupTimeZoneResolver } from './timezone'
 
 export function createServerAiRuntimeDependencies<T>(input: {
@@ -25,7 +26,7 @@ export function createServerAiRuntimeDependencies<T>(input: {
   return {
     registry: aiFeatureRegistry,
     governance: input.governance ?? new FailClosedGovernancePort(),
-    credits: input.credits ?? new FailClosedCreditsPort(),
+    credits: input.credits ?? new SupabaseLiquidCreditsService(),
     contextLoader: input.contextLoader,
     provider: input.provider,
     validator: input.validator,

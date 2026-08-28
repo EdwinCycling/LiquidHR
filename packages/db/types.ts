@@ -1482,6 +1482,309 @@ export type Database = {
           },
         ]
       }
+      ai_credit_actor_usage: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          hr_group_id: string
+          released_credits: number
+          reserved_credits: number
+          settled_credits: number
+          period_month: string
+          tenant_id: string
+          updated_at: string
+          used_credits: number
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          hr_group_id: string
+          released_credits?: number
+          reserved_credits?: number
+          settled_credits?: number
+          period_month: string
+          tenant_id: string
+          updated_at?: string
+          used_credits?: never
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          hr_group_id?: string
+          released_credits?: number
+          reserved_credits?: number
+          settled_credits?: number
+          period_month?: string
+          tenant_id?: string
+          updated_at?: string
+          used_credits?: never
+        }
+        Relationships: []
+      }
+      ai_credit_allocations: {
+        Row: {
+          allocation_type: string
+          available_credits: number
+          created_at: string
+          created_by_user_id: string | null
+          credit_amount: number
+          expired_credits: number
+          expires_at: string | null
+          granted_at: string
+          hr_group_id: string
+          id: string
+          period_month: string | null
+          period_timezone: string
+          released_credits: number
+          reserved_credits: number
+          settled_credits: number
+          source: string
+          source_reference: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_type: string
+          available_credits?: never
+          created_at?: string
+          created_by_user_id?: string | null
+          credit_amount: number
+          expired_credits?: number
+          expires_at?: string | null
+          granted_at?: string
+          hr_group_id: string
+          id?: string
+          period_month?: string | null
+          period_timezone: string
+          released_credits?: number
+          reserved_credits?: number
+          settled_credits?: number
+          source: string
+          source_reference: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_type?: string
+          available_credits?: never
+          created_at?: string
+          created_by_user_id?: string | null
+          credit_amount?: number
+          expired_credits?: number
+          expires_at?: string | null
+          granted_at?: string
+          hr_group_id?: string
+          id?: string
+          period_month?: string | null
+          period_timezone?: string
+          released_credits?: number
+          reserved_credits?: number
+          settled_credits?: number
+          source?: string
+          source_reference?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_charge_catalog: {
+        Row: {
+          charge_reference: string
+          config_version: string
+          created_at: string
+          credit_amount: number
+          feature_code: string
+          is_active: boolean
+          quality_profile: string
+          updated_at: string
+        }
+        Insert: {
+          charge_reference: string
+          config_version: string
+          created_at?: string
+          credit_amount: number
+          feature_code: string
+          is_active?: boolean
+          quality_profile: string
+          updated_at?: string
+        }
+        Update: {
+          charge_reference?: string
+          config_version?: string
+          created_at?: string
+          credit_amount?: number
+          feature_code?: string
+          is_active?: boolean
+          quality_profile?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_group_policies: {
+        Row: {
+          created_at: string
+          hr_group_id: string
+          is_active: boolean
+          monthly_allowance_credits: number
+          tenant_id: string
+          time_zone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hr_group_id: string
+          is_active?: boolean
+          monthly_allowance_credits: number
+          tenant_id: string
+          time_zone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hr_group_id?: string
+          is_active?: boolean
+          monthly_allowance_credits?: number
+          tenant_id?: string
+          time_zone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_reservation_allocations: {
+        Row: {
+          allocated_credits: number
+          created_at: string
+          id: string
+          allocation_id: string
+          released_credits: number
+          reserved_credits: number
+          reservation_id: string
+          settled_credits: number
+          tenant_id: string
+          hr_group_id: string
+          updated_at: string
+        }
+        Insert: {
+          allocated_credits: number
+          created_at?: string
+          id?: string
+          allocation_id: string
+          released_credits?: number
+          reserved_credits: number
+          reservation_id: string
+          settled_credits?: number
+          tenant_id: string
+          hr_group_id: string
+          updated_at?: string
+        }
+        Update: {
+          allocated_credits?: number
+          created_at?: string
+          id?: string
+          allocation_id?: string
+          released_credits?: number
+          reserved_credits?: number
+          reservation_id?: string
+          settled_credits?: number
+          tenant_id?: string
+          hr_group_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_reservations: {
+        Row: {
+          actor_user_id: string
+          charge_reference: string
+          created_at: string
+          feature_code: string
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          invocation_id: string
+          period_month: string
+          released_at: string | null
+          released_credits: number
+          release_reason: string | null
+          reserved_at: string
+          reserved_credits: number
+          settled_at: string | null
+          settled_credits: number
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          actor_user_id: string
+          charge_reference: string
+          created_at?: string
+          feature_code: string
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          invocation_id: string
+          period_month: string
+          released_at?: string | null
+          released_credits?: number
+          release_reason?: string | null
+          reserved_at?: string
+          reserved_credits: number
+          settled_at?: string | null
+          settled_credits?: number
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          actor_user_id?: string
+          charge_reference?: string
+          created_at?: string
+          feature_code?: string
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          invocation_id?: string
+          period_month?: string
+          released_at?: string | null
+          released_credits?: number
+          release_reason?: string | null
+          reserved_at?: string
+          reserved_credits?: number
+          settled_at?: string | null
+          settled_credits?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_role_quotas: {
+        Row: {
+          created_at: string
+          is_active: boolean
+          monthly_quota_credits: number
+          quality_profile: string
+          role_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          is_active?: boolean
+          monthly_quota_credits: number
+          quality_profile: string
+          role_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          is_active?: boolean
+          monthly_quota_credits?: number
+          quality_profile?: string
+          role_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -18526,6 +18829,101 @@ export type Database = {
           requested_recipient_id: string
           requested_remind_at?: string
         }
+        Returns: undefined
+      }
+      ensure_ai_monthly_allowance: {
+        Args: {
+          requested_hr_group_id: string
+          requested_month: string
+          requested_tenant_id: string
+        }
+        Returns: undefined
+      }
+      get_ai_actor_quota: {
+        Args: {
+          requested_actor_user_id: string
+          requested_hr_group_id: string
+          requested_month: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          period_month: string
+          quality_profile: string
+          monthly_quota_credits: number
+          reserved_credits: number
+          settled_credits: number
+          released_credits: number
+          used_credits: number
+          remaining_credits: number
+          role_codes: string[]
+        }[]
+      }
+      get_ai_group_credit_balance: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: {
+          total_credits: number
+          monthly_allowance_credits: number
+          purchased_extra_credits: number
+          test_grant_credits: number
+          reserved_credits: number
+          settled_credits: number
+          expired_credits: number
+          available_credits: number
+          as_of: string
+        }[]
+      }
+      get_ai_reservation_allocations: {
+        Args: { requested_invocation_id: string; requested_reservation_id: string }
+        Returns: {
+          reservation_id: string
+          allocation_id: string
+          allocation_type: string
+          period_month: string | null
+          expires_at: string | null
+          allocated_credits: number
+          reserved_credits: number
+          settled_credits: number
+          released_credits: number
+          created_at: string
+        }[]
+      }
+      grant_ai_controlled_test_credits: {
+        Args: {
+          requested_credit_amount: number
+          requested_hr_group_id: string
+          requested_source_reference: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      release_ai_credits: {
+        Args: {
+          requested_invocation_id: string
+          requested_reason: string
+          requested_reservation_id: string
+        }
+        Returns: undefined
+      }
+      reserve_ai_credits: {
+        Args: {
+          requested_actor_user_id: string
+          requested_charge_reference: string
+          requested_feature_code: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_invocation_id: string
+          requested_month: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          reservation_id: string
+          invocation_id: string
+          charge_reference: string
+          units: number
+        }[]
+      }
+      settle_ai_credits: {
+        Args: { requested_invocation_id: string; requested_reservation_id: string }
         Returns: undefined
       }
       update_survey_draft: {

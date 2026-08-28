@@ -9,7 +9,9 @@ export const AI_QUALITY_RANK: Readonly<Record<AiQualityProfile, number>> = {
 export const DEFAULT_ROLE_QUALITY_PROFILES: Readonly<Record<string, AiQualityProfile>> = {
   EMPLOYEE: 'EFFICIENT',
   DIRECT_MANAGER: 'BALANCED',
+  TEAM_LEAD: 'BALANCED',
   HR_ADVISOR: 'BALANCED',
+  PAYROLL_SPECIALIST: 'BALANCED',
   HR_ADMIN: 'IN_DEPTH',
   TENANT_ADMIN: 'IN_DEPTH',
 }
