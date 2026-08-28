@@ -70,6 +70,7 @@ export default async function AbsenceSettingsPage() {
           empty: t('absenceSettings.tasksEmpty'),
           failed: t('absenceSettings.taskFailed'),
           codeConflict: t('absenceSettings.taskCodeConflict'),
+          cancel: t('anniversaryRules.cancel'),
         }}
         templates={taskTemplates}
       />

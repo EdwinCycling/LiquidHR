@@ -1,19 +1,22 @@
 'use client'
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { createPortal } from 'react-dom'
-import { CalendarDays, CalendarPlus, Download, LoaderCircle, MapPin, Pencil, X } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { CalendarDays, CalendarPlus, Download, MapPin, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { CountryPicker, type CountryPickerOption } from '@/components/ui/country-picker'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
+import { TextInput } from '@/components/ui/text-input'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
 
 type Holiday = { id: string; holiday_date: string; display_name: string | null; provider_name: string; source: string; is_active: boolean }
 type CompanyActivity = { id: string; name: string; activity_date: string; is_active: boolean }
 type Preview = { date: string; displayName: string; providerName: string }
 type ActivityDraft = { id: string; name: string; date: string; isActive: boolean }
 type Labels = Record<'year'|'country'|'countrySearch'|'countryEmpty'|'preview'|'import'|'imported'|'providerFailed'|'localTitle'|'localName'|'date'|'add'|'calendarTitle'|'empty'|'api'|'manual'|'included'|'excluded'|'activate'|'deactivate'|'saving'|'activityTitle'|'activityName'|'activityEmpty'|'activityAdd'|'activityAdded'|'activityEdit'|'activitySave'|'activityUpdated'|'activityDuplicate'|'activated'|'deactivated'|'failed'|'cancel'|'close'|'activityActive'|'activityInactive', string>
-
-const emptySubscribe = () => () => undefined
-const getClientMounted = () => true
-const getServerMounted = () => false
 
 async function responseError(response: Response, fallback: string, duplicate: string): Promise<string> {
   try {
@@ -25,7 +28,6 @@ async function responseError(response: Response, fallback: string, duplicate: st
 }
 
 export function HolidaySettings({ initial, initialActivities, initialYear, labels, locale }: { initial: Holiday[]; initialActivities: CompanyActivity[]; initialYear: number; labels: Labels; locale: string }) {
-  const mounted = useSyncExternalStore(emptySubscribe, getClientMounted, getServerMounted)
   const toastTimeout = useRef<number | null>(null)
   const [year, setYear] = useState(initialYear)
   const [countryCode, setCountryCode] = useState('NL')
@@ -38,6 +40,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
   const [activityName, setActivityName] = useState('')
   const [activityDate, setActivityDate] = useState(`${initialYear}-01-01`)
   const [activityModal, setActivityModal] = useState<ActivityDraft | null>(null)
+  const [activityInitial, setActivityInitial] = useState<ActivityDraft | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle'|'loading'|'imported'|'failed'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -56,13 +59,13 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     if (toastTimeout.current !== null) window.clearTimeout(toastTimeout.current)
   }, [])
 
-  function showToast(message: string) {
+  function showToast(message: string): void {
     setToast(message)
     if (toastTimeout.current !== null) window.clearTimeout(toastTimeout.current)
     toastTimeout.current = window.setTimeout(() => { setToast(null); toastTimeout.current = null }, 4000)
   }
 
-  async function refresh(nextYear = year) {
+  async function refresh(nextYear = year): Promise<void> {
     const [holidayResponse, activityResponse] = await Promise.all([
       fetch(`/api/settings/holidays?year=${nextYear}`, { cache: 'no-store' }),
       fetch(`/api/settings/company-activities?year=${nextYear}`, { cache: 'no-store' }),
@@ -71,7 +74,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     if (activityResponse.ok) setActivities((await activityResponse.json()).data as CompanyActivity[])
   }
 
-  async function showPreview() {
+  async function showPreview(): Promise<void> {
     setStatus('loading')
     const response = await fetch(`/api/settings/holidays/preview?year=${year}&country=${countryCode}`)
     if (!response.ok) { setStatus('failed'); return }
@@ -79,7 +82,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     setStatus('idle')
   }
 
-  async function importSnapshot() {
+  async function importSnapshot(): Promise<void> {
     setStatus('loading')
     const response = await fetch('/api/settings/holidays', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'IMPORT', year, countryCode }) })
     if (!response.ok) { setStatus('failed'); return }
@@ -87,7 +90,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     setStatus('imported')
   }
 
-  async function addLocal() {
+  async function addLocal(): Promise<void> {
     setStatus('loading')
     const response = await fetch('/api/settings/holidays', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'MANUAL', year, countryCode, date: localDate, name: localName }) })
     if (!response.ok) { setStatus('failed'); return }
@@ -96,7 +99,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     setStatus('idle')
   }
 
-  async function addActivity() {
+  async function addActivity(): Promise<void> {
     setStatus('loading')
     setErrorMessage(null)
     const response = await fetch('/api/settings/company-activities', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ year, date: activityDate, name: activityName }) })
@@ -111,7 +114,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     showToast(labels.activityAdded)
   }
 
-  async function toggle(holiday: Holiday) {
+  async function toggle(holiday: Holiday): Promise<void> {
     const nextActive = !holiday.is_active
     const response = await fetch(`/api/settings/holidays/${holiday.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ isActive: nextActive }) })
     if (!response.ok) { setErrorMessage(labels.failed); return }
@@ -119,13 +122,16 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     showToast(nextActive ? labels.activated : labels.deactivated)
   }
 
-  function openActivity(activity: CompanyActivity) {
-    setActivityModal({ id: activity.id, name: activity.name, date: activity.activity_date, isActive: activity.is_active })
+  function openActivity(activity: CompanyActivity): void {
+    const draft = { id: activity.id, name: activity.name, date: activity.activity_date, isActive: activity.is_active }
+    setActivityModal(draft)
+    setActivityInitial(draft)
     setErrorMessage(null)
   }
 
-  async function saveActivity() {
-    if (!activityModal) return
+  async function saveActivity(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
+    if (!activityModal || !activityModal.name.trim()) return
     setStatus('loading')
     setErrorMessage(null)
     const response = await fetch(`/api/settings/company-activities/${activityModal.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ year, date: activityModal.date, name: activityModal.name, isActive: activityModal.isActive }) })
@@ -135,6 +141,7 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
       return
     }
     setActivityModal(null)
+    setActivityInitial(null)
     await refresh()
     setStatus('idle')
     showToast(labels.activityUpdated)
@@ -144,37 +151,19 @@ export function HolidaySettings({ initial, initialActivities, initialYear, label
     ...holidays.map((holiday) => ({ kind: 'holiday' as const, date: holiday.holiday_date, holiday })),
     ...activities.map((activity) => ({ kind: 'activity' as const, date: activity.activity_date, activity })),
   ].sort((left, right) => left.date.localeCompare(right.date) || left.kind.localeCompare(right.kind))
+  const activityDirty = JSON.stringify(activityModal) !== JSON.stringify(activityInitial)
 
   return <div className="space-y-6">
-    <section className="w-full rounded-2xl border bg-surface p-5 shadow-sm">
-      <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-accent text-primary"><Download size={20} /></span><div><h2 className="font-semibold">{labels.import}</h2></div></div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-[10rem_10rem_1fr] sm:items-end">
-        <label className="grid gap-1.5 text-sm font-medium">{labels.year}<input className="form-field" min="2000" max="2200" onChange={(event) => { const next = Number(event.target.value); setYear(next); setLocalDate(`${next}-01-01`); setActivityDate(`${next}-01-01`); void refresh(next) }} type="number" value={year} /></label>
-        <div className="grid gap-1.5 text-sm font-medium"><span>{labels.country}</span><CountryPicker emptyLabel={labels.countryEmpty} locale={locale} onChange={setCountryCode} options={countries} searchLabel={labels.countrySearch} value={countryCode} /></div>
-        <div className="flex flex-wrap gap-2"><button className="button-secondary" onClick={showPreview} type="button">{labels.preview}</button><button className="button-primary" disabled={status === 'loading'} onClick={importSnapshot} type="button">{status === 'loading' ? <LoaderCircle className="animate-spin" size={16} /> : null}{labels.import}</button></div>
-      </div>
-      {status === 'imported' ? <p className="mt-4 text-sm text-success">{labels.imported}</p> : null}{status === 'failed' && !errorMessage ? <p className="mt-4 text-sm text-destructive">{labels.providerFailed}</p> : null}
-      {preview.length ? <div className="mt-5 grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">{preview.map((holiday) => <div className="rounded-lg bg-muted px-3 py-2 text-sm" key={`${holiday.date}-${holiday.providerName}`}><span className="font-semibold">{holiday.date}</span><span className="ml-2 text-muted-foreground">{holiday.displayName}</span></div>)}</div> : null}
-    </section>
+    <Surface className="p-5"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-[var(--radius-control)] bg-accent text-primary"><Download aria-hidden="true" size={20} /></span><h2 className="font-semibold">{labels.import}</h2></div><div className="mt-5 grid gap-4 sm:grid-cols-[10rem_10rem_1fr] sm:items-end"><FormField control={<TextInput max={2200} min={2000} onChange={(event) => { const next = Number(event.target.value); setYear(next); setLocalDate(`${next}-01-01`); setActivityDate(`${next}-01-01`); void refresh(next) }} type="number" value={year} />} label={labels.year} required /><div className="grid gap-1.5 text-sm"><span className="font-medium">{labels.country}</span><CountryPicker emptyLabel={labels.countryEmpty} locale={locale} onChange={setCountryCode} options={countries} searchLabel={labels.countrySearch} value={countryCode} /></div><div className="flex flex-wrap gap-2"><Button onClick={() => void showPreview()} size="sm" type="button" variant="secondary">{labels.preview}</Button><Button loading={status === 'loading'} onClick={() => void importSnapshot()} size="sm" type="button">{labels.import}</Button></div></div>{status === 'imported' ? <p className="mt-4 text-sm text-success" role="status">{labels.imported}</p> : null}{status === 'failed' && !errorMessage ? <p className="mt-4 text-sm text-destructive" role="alert">{labels.providerFailed}</p> : null}{preview.length ? <div className="mt-5 grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">{preview.map((holiday) => <div className="rounded-[var(--radius-control)] bg-muted px-3 py-2 text-sm" key={`${holiday.date}-${holiday.providerName}`}><span className="font-semibold">{holiday.date}</span><span className="ml-2 text-muted-foreground">{holiday.displayName}</span></div>)}</div> : null}</Surface>
 
-    <section className="w-full rounded-2xl border bg-surface p-5 shadow-sm">
-      <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-accent text-primary"><CalendarPlus size={20} /></span><h2 className="font-semibold">{labels.localTitle}</h2></div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_12rem_auto] sm:items-end"><label className="grid gap-1.5 text-sm font-medium">{labels.localName}<input className="form-field" onChange={(event) => setLocalName(event.target.value)} value={localName} /></label><label className="grid gap-1.5 text-sm font-medium">{labels.date}<input className="form-field" onChange={(event) => setLocalDate(event.target.value)} type="date" value={localDate} /></label><button className="button-primary" disabled={!localName.trim() || status === 'loading'} onClick={addLocal} type="button">{labels.add}</button></div>
-    </section>
+    <Surface className="p-5"><div className="flex items-center gap-3"><CalendarPlus aria-hidden="true" className="text-primary" size={20} /><h2 className="font-semibold">{labels.localTitle}</h2></div><div className="mt-5 grid gap-4 sm:grid-cols-[1fr_12rem_auto] sm:items-end"><FormField control={<TextInput onChange={(event) => setLocalName(event.target.value)} value={localName} />} label={labels.localName} required /><FormField control={<TextInput onChange={(event) => setLocalDate(event.target.value)} type="date" value={localDate} />} label={labels.date} required /><Button disabled={!localName.trim() || status === 'loading'} onClick={() => void addLocal()} type="button">{labels.add}</Button></div></Surface>
 
-    <section className="w-full rounded-2xl border bg-surface p-5 shadow-sm">
-      <div className="flex items-center gap-3"><span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarDays size={20} /></span><h2 className="font-semibold">{labels.activityTitle}</h2></div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_12rem_auto] sm:items-end"><label className="grid gap-1.5 text-sm font-medium">{labels.activityName}<input className="form-field" onChange={(event) => setActivityName(event.target.value)} value={activityName} /></label><label className="grid gap-1.5 text-sm font-medium">{labels.date}<input className="form-field" onChange={(event) => setActivityDate(event.target.value)} type="date" value={activityDate} /></label><button className="button-primary" disabled={!activityName.trim() || status === 'loading'} onClick={addActivity} type="button">{labels.activityAdd}</button></div>
-      {errorMessage ? <p aria-live="polite" className="mt-4 text-sm text-destructive" role="alert">{errorMessage}</p> : null}
-    </section>
+    <Surface className="p-5"><div className="flex items-center gap-3"><CalendarDays aria-hidden="true" className="text-primary" size={20} /><h2 className="font-semibold">{labels.activityTitle}</h2></div><div className="mt-5 grid gap-4 sm:grid-cols-[1fr_12rem_auto] sm:items-end"><FormField control={<TextInput onChange={(event) => setActivityName(event.target.value)} value={activityName} />} label={labels.activityName} required /><FormField control={<TextInput onChange={(event) => setActivityDate(event.target.value)} type="date" value={activityDate} />} label={labels.date} required /><Button disabled={!activityName.trim() || status === 'loading'} onClick={() => void addActivity()} type="button">{labels.activityAdd}</Button></div>{errorMessage && !activityModal ? <p aria-live="polite" className="mt-4 text-sm text-destructive" role="alert">{errorMessage}</p> : null}</Surface>
 
-    <section className="w-full rounded-2xl border bg-surface p-5 shadow-sm">
-      <div className="flex items-center gap-3"><MapPin className="text-primary" size={20} /><h2 className="font-semibold">{labels.calendarTitle}</h2></div>
-      {items.length === 0 ? <p className="mt-5 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{labels.empty}</p> : <div className="mt-5 divide-y">{items.map((item) => item.kind === 'holiday' ? <div className={`flex items-center gap-4 rounded-lg px-2 py-3 ${item.holiday.is_active ? '' : 'opacity-55'} ${item.holiday.source === 'MANUAL' ? 'bg-accent/50' : ''}`} key={`holiday-${item.holiday.id}`}><time className="w-24 shrink-0 text-sm font-semibold" dateTime={item.holiday.holiday_date}>{item.holiday.holiday_date.slice(5)}</time><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.holiday.display_name ?? item.holiday.provider_name}</p><p className={`text-xs ${item.holiday.source === 'MANUAL' ? 'font-semibold text-accent-foreground' : 'text-muted-foreground'}`}>{item.holiday.source === 'API' ? labels.api : labels.manual}</p></div><button aria-pressed={item.holiday.is_active} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${item.holiday.is_active ? 'bg-success-surface text-success' : 'bg-muted text-muted-foreground'}`} onClick={() => void toggle(item.holiday)} type="button">{item.holiday.is_active ? labels.deactivate : labels.activate}</button></div> : <div className={`flex items-center gap-4 rounded-lg border-l-4 border-primary/60 px-2 py-3 ${item.activity.is_active ? 'bg-primary/5' : 'bg-muted/40 opacity-60'}`} key={`activity-${item.activity.id}`}><time className="w-24 shrink-0 text-sm font-semibold text-primary" dateTime={item.activity.activity_date}>{item.activity.activity_date.slice(5)}</time><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.activity.name}</p><p className="text-xs font-semibold text-primary">{item.activity.is_active ? labels.activityActive : labels.activityInactive}</p></div><button aria-label={`${labels.activityEdit}: ${item.activity.name}`} className="button-secondary shrink-0 gap-2" onClick={() => openActivity(item.activity)} type="button"><Pencil aria-hidden="true" size={15} />{labels.activityEdit}</button></div>)}</div>}
-    </section>
+    <Surface><div className="flex items-center gap-3 border-b border-subtle px-5 py-4"><MapPin aria-hidden="true" className="text-primary" size={20} /><h2 className="font-semibold">{labels.calendarTitle}</h2></div>{items.length === 0 ? <EmptyState className="m-5" title={labels.empty} /> : <div className="divide-y divide-border-subtle">{items.map((item) => item.kind === 'holiday' ? <div className={`flex flex-wrap items-center gap-4 px-5 py-3 ${item.holiday.is_active ? '' : 'opacity-60'}`} key={`holiday-${item.holiday.id}`}><time className="w-20 shrink-0 text-sm font-semibold" dateTime={item.holiday.holiday_date}>{item.holiday.holiday_date.slice(5)}</time><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.holiday.display_name ?? item.holiday.provider_name}</p><p className="text-xs text-muted-foreground">{item.holiday.source === 'API' ? labels.api : labels.manual}</p></div><Badge tone={item.holiday.is_active ? 'success' : 'neutral'}>{item.holiday.is_active ? labels.included : labels.excluded}</Badge><Button aria-pressed={item.holiday.is_active} onClick={() => void toggle(item.holiday)} size="sm" type="button" variant="secondary">{item.holiday.is_active ? labels.deactivate : labels.activate}</Button></div> : <div className={`flex flex-wrap items-center gap-4 px-5 py-3 ${item.activity.is_active ? '' : 'opacity-60'}`} key={`activity-${item.activity.id}`}><time className="w-20 shrink-0 text-sm font-semibold text-primary" dateTime={item.activity.activity_date}>{item.activity.activity_date.slice(5)}</time><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.activity.name}</p><p className="text-xs text-muted-foreground">{item.activity.is_active ? labels.activityActive : labels.activityInactive}</p></div><Button aria-label={`${labels.activityEdit}: ${item.activity.name}`} onClick={() => openActivity(item.activity)} size="sm" type="button" variant="secondary"><Pencil aria-hidden="true" />{labels.activityEdit}</Button></div>)}</div>}</Surface>
 
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-5 z-50 flex justify-center px-4">{toast ? <p className="rounded-xl border bg-surface px-4 py-3 text-sm font-medium text-foreground shadow-lg">{toast}</p> : null}</div>
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-5 z-50 flex justify-center px-4">{toast ? <p className="rounded-[var(--radius-overlay)] border border-border bg-surface px-4 py-3 text-sm font-medium text-foreground shadow-[var(--elevation-overlay)]">{toast}</p> : null}</div>
 
-    {mounted && activityModal ? createPortal(<div className="fixed inset-0 z-[9999] grid place-items-center bg-sidebar/60 p-4 backdrop-blur-sm" onMouseDown={() => setActivityModal(null)} role="presentation"><section aria-labelledby="company-activity-edit-title" aria-modal="true" className="w-full max-w-xl rounded-2xl border bg-surface p-5 shadow-2xl sm:p-7" onMouseDown={(event) => event.stopPropagation()} role="dialog"><header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.activityTitle}</p><h2 className="mt-1 text-xl font-semibold" id="company-activity-edit-title">{labels.activityEdit}</h2></div><button aria-label={labels.close} className="button-secondary" onClick={() => setActivityModal(null)} type="button"><X size={16} /></button></header><div className="mt-6 grid gap-4"><label className="grid gap-1.5 text-sm font-medium">{labels.activityName}<input autoFocus className="form-field" onChange={(event) => setActivityModal({ ...activityModal, name: event.target.value })} value={activityModal.name} /></label><label className="grid gap-1.5 text-sm font-medium">{labels.date}<input className="form-field" onChange={(event) => setActivityModal({ ...activityModal, date: event.target.value })} type="date" value={activityModal.date} /></label><label className="flex items-center gap-3 text-sm font-medium"><input checked={activityModal.isActive} className="size-4 accent-primary" onChange={(event) => setActivityModal({ ...activityModal, isActive: event.target.checked })} type="checkbox" />{activityModal.isActive ? labels.activityActive : labels.activityInactive}</label>{errorMessage ? <p aria-live="polite" className="text-sm text-destructive" role="alert">{errorMessage}</p> : null}<div className="flex justify-end gap-2 border-t pt-5"><button className="button-secondary" onClick={() => setActivityModal(null)} type="button">{labels.cancel}</button><button className="button-primary" disabled={!activityModal.name.trim() || status === 'loading'} onClick={() => void saveActivity()} type="button">{status === 'loading' ? <LoaderCircle className="mr-2 animate-spin" size={16} /> : null}{labels.activitySave}</button></div></div></section></div>, document.body) : null}
+    {activityModal ? <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.close} description={labels.activityTitle} dirty={activityDirty} dirtyProtection={{ description: labels.failed, discardLabel: labels.cancel, keepEditingLabel: labels.activityEdit, title: labels.close }} onDiscard={() => { setActivityModal(null); setActivityInitial(null) }} onOpenChange={(open) => { if (!open && !activityDirty) { setActivityModal(null); setActivityInitial(null) } }} onSubmit={(event) => void saveActivity(event)} open saveLabel={labels.activitySave} saving={status === 'loading'} title={labels.activityEdit}><FormField control={<TextInput onChange={(event) => setActivityModal((current) => current ? { ...current, name: event.target.value } : current)} required value={activityModal.name} />} label={labels.activityName} required /><FormField control={<TextInput onChange={(event) => setActivityModal((current) => current ? { ...current, date: event.target.value } : current)} required type="date" value={activityModal.date} />} label={labels.date} required /><Switch checked={activityModal.isActive} label={activityModal.isActive ? labels.activityActive : labels.activityInactive} onChange={(event) => setActivityModal((current) => current ? { ...current, isActive: event.target.checked } : current)} />{errorMessage ? <p aria-live="polite" className="text-sm text-destructive" role="alert">{errorMessage}</p> : null}</FormDrawer> : null}
   </div>
 }

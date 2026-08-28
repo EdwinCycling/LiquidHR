@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
+
+**Status: R7-3 LOCAL GREEN — READY FOR CENTRAL INTEGRATION; REQUIREMENTS GATE RECORDED**
+
+R7-3 is implemented in the existing dedicated worktree `work/r7-employment-masterdata` from exact baseline `778b601670c87ca7596000937d895859498b483a`. The affected existing routes use Foundation surfaces, fields, searchable choices, drawers, dialogs, row actions, tables and empty states. Holiday native date fields remain intentionally native. No API/service/permission/business-rule redesign, migration, schema/RLS/RPC change or standalone work-pattern route was introduced.
+
+The targeted R7-3 Foundation test is `2/2` green. Strict TypeScript, i18n parity (`34` namespaces), ESLint, Webpack production build and `git diff --check` are green. The one full-suite failure is the unchanged baseline Journey expectation for `Binnenkort beschikbaar` (`1017/1018` tests green). Authenticated HR Admin browser acceptance is green on the production-mode candidate at `http://localhost:3001`: all requested desktop main routes and relevant leave subroutes returned `200`, Foundation data/drawers/actions were usable, the safe anniversary create/readback/delete probe was cleaned up, and desktop/mobile overflow checks were clean. Final production browser console: `0` errors and `0` warnings, with no hydration evidence. Manager/Employee browser personas were unavailable from the authenticated HR Admin session because no role switch is exposed; targeted permission tests remain green. Salary capability remains explicitly gated as `REQUIREMENTS GATE — SALARY CAPABILITY VISIBILITY UNRESOLVED`.
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**

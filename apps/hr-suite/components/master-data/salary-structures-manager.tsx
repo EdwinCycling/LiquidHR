@@ -3,9 +3,20 @@
 import type { SalaryStructureCatalog, SalaryStructureMigrationConflictAction } from '@/lib/salary-structures/service'
 import type { SalaryStructureDraftInput } from '@/lib/salary-structures/schemas'
 import { calculateBandMetrics, deriveAnchorsFromMidpointAndSpread, deriveMidpointFromMinimumAndMaximum } from '@/lib/salary-structures/calculations'
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, CircleAlert, GitCompare, History, Layers3, LockKeyhole, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, CircleAlert, GitCompare, History, Layers3, LockKeyhole, Pencil, Plus, Trash2 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type ReactNode, type SetStateAction } from 'react'
+import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
+import { Badge, type BadgeTone } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { Dialog } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
+import { TextInput } from '@/components/ui/text-input'
+import { Textarea } from '@/components/ui/textarea'
+import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
+import { FormDrawer } from '@/components/patterns/form-drawer'
+import { FormField } from '@/components/patterns/form-field'
 
 type Locale = 'nl' | 'en'
 type Labels = {
@@ -146,8 +157,8 @@ type DraftStep = DraftScale['steps'][number]
 type DraftBand = BandDraft['bands'][number]
 
 const fieldClass = 'form-field'
-const panelClass = 'rounded-2xl border bg-surface p-5 shadow-sm'
-const subtlePanelClass = 'rounded-xl border bg-background/70 p-4'
+const panelClass = 'rounded-[var(--radius-surface)] border border-subtle bg-surface p-5'
+const subtlePanelClass = 'rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-4'
 
 function formatDate(value: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale === 'nl' ? 'nl-NL' : 'en-GB', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00Z`))
@@ -191,12 +202,12 @@ function queryUrl(pathname: string, values: Record<string, string | null>): stri
   return query ? `${pathname}?${query}` : pathname
 }
 
-function statusForRevision(revision: Revision, revisions: Revision[], labels: Labels): { text: string; tone: string } {
-  if (revision.status === 'DRAFT') return { text: labels.draft, tone: 'bg-accent text-accent-foreground' }
+function statusForRevision(revision: Revision, revisions: Revision[], labels: Labels): { text: string; tone: BadgeTone } {
+  if (revision.status === 'DRAFT') return { text: labels.draft, tone: 'info' }
   const today = new Date().toISOString().slice(0, 10)
-  if (revision.effective_from > today) return { text: labels.future, tone: 'bg-primary/10 text-primary' }
+  if (revision.effective_from > today) return { text: labels.future, tone: 'info' }
   const latest = revisions.filter((item) => item.status === 'PUBLISHED' && item.effective_from <= today).sort((left, right) => right.effective_from.localeCompare(left.effective_from))[0]
-  return revision.id === latest?.id ? { text: labels.published, tone: 'bg-success/10 text-success' } : { text: labels.historical, tone: 'bg-muted text-muted-foreground' }
+  return revision.id === latest?.id ? { text: labels.published, tone: 'success' } : { text: labels.historical, tone: 'neutral' }
 }
 
 function latestPublishedRevision(revisions: Revision[], structureId: string): Revision | null {
@@ -356,10 +367,6 @@ function validateDraft(draft: Draft, labels: Labels): { blockers: string[]; warn
   return { blockers: [...new Set(blockers)], warnings: [...new Set(warnings)] }
 }
 
-function Badge({ children, tone = 'bg-muted text-muted-foreground' }: { children: ReactNode; tone?: string }) {
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>{children}</span>
-}
-
 function navigateTo(router: ReturnType<typeof useRouter>, pathname: string, values: Record<string, string | null>): void {
   router.push(queryUrl(pathname, values))
 }
@@ -371,7 +378,7 @@ function StructureCatalog({ catalog, labels, locale, type, pathname, onCreate }:
   return <div className="space-y-5">
     <div className="flex flex-col gap-3 rounded-2xl border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
       <div><p className="font-semibold">{labels.structures}</p><p className="mt-1 text-sm text-muted-foreground">{type === 'SALARY_BAND' ? labels.tabs.salaryBands : labels.tabs.scalesAndSteps}</p></div>
-      {catalog.canWriteStructures ? <button className="button-primary inline-flex items-center justify-center gap-2" onClick={onCreate} type="button"><Plus size={17} />{labels.newStructure}</button> : null}
+       {catalog.canWriteStructures ? <Button onClick={onCreate} type="button"><Plus size={17} />{labels.newStructure}</Button> : null}
     </div>
     {catalog.canReadAmounts ? null : <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground"><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={17} />{labels.amountsRestricted}</div>}
     {structures.length === 0 ? <div className={`${panelClass} text-sm text-muted-foreground`}>{labels.empty}</div> : <div className="grid gap-3">
@@ -380,8 +387,8 @@ function StructureCatalog({ catalog, labels, locale, type, pathname, onCreate }:
         const current = latestPublishedRevision(catalog.revisions, structure.id)
         const draft = revisions.find((revision) => revision.status === 'DRAFT')
         const relations = catalog.laborConditionRelations.filter((relation) => relation.salary_structure_id === structure.id)
-        const status = current ? statusForRevision(current, revisions, labels) : draft ? { text: labels.draft, tone: 'bg-accent text-accent-foreground' } : { text: labels.noRevision, tone: 'bg-muted text-muted-foreground' }
-        return <button className="grid gap-4 rounded-2xl border bg-surface p-5 text-left transition hover:border-primary/40 hover:shadow-sm lg:grid-cols-[1.5fr_1fr_1fr_auto] lg:items-center" key={structure.id} onClick={() => navigateTo(router, pathname, { view: 'detail', type, structureId: structure.id, revisionId: (draft ?? current)?.id ?? null })} type="button">
+        const status: { text: string; tone: BadgeTone } = current ? statusForRevision(current, revisions, labels) : draft ? { text: labels.draft, tone: 'info' } : { text: labels.noRevision, tone: 'neutral' }
+        return <button className="grid gap-4 rounded-[var(--radius-surface)] border border-subtle bg-surface p-5 text-left transition-colors hover:border-primary/40 lg:grid-cols-[1.5fr_1fr_1fr_auto] lg:items-center" key={structure.id} onClick={() => navigateTo(router, pathname, { view: 'detail', type, structureId: structure.id, revisionId: (draft ?? current)?.id ?? null })} type="button">
           <span><span className="flex flex-wrap items-center gap-2"><span className="font-semibold">{structure.name}</span><Badge>{structure.code ?? '—'}</Badge></span><span className="mt-1 block text-sm text-muted-foreground">{structure.description ?? labels.tabs[type === 'SALARY_BAND' ? 'salaryBands' : 'scalesAndSteps']}</span></span>
           <span className="text-sm"><span className="block text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.currentRevision}</span><span className="mt-1 block"><Badge tone={status.tone}>{status.text}</Badge> {current ? formatDate(current.effective_from, locale) : '—'}</span></span>
           <span className="text-sm"><span className="block text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{labels.revisions}</span><span className="mt-1 block">{revisions.length} · {relations.length === 0 ? labels.noCaoLinks : `${relations.length} ${labels.caoLinks}`}</span></span>
@@ -409,19 +416,8 @@ function CreateStructureDialog({ labels, defaultType, onCancel, onCreated }: { l
     if (!payload.data?.id) { setFailed(true); return }
     onCreated(payload.data.id)
   }
-  return <div aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4" role="dialog">
-    <form className="w-full max-w-xl rounded-2xl border bg-background p-5 shadow-xl sm:p-6" onSubmit={(event) => void submit(event)}>
-      <div className="flex items-start justify-between gap-3"><div><p className="eyebrow">{labels.structure}</p><h2 className="mt-1 text-xl font-semibold">{labels.createStructureTitle}</h2><p className="mt-2 text-sm text-muted-foreground">{labels.createStructureDescription}</p></div><button aria-label={labels.cancel} className="rounded-lg p-2 hover:bg-muted" onClick={onCancel} type="button"><X size={18} /></button></div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-1 text-sm font-medium sm:col-span-2">{labels.type}<select className={fieldClass} value={structureType} onChange={(event) => setStructureType(event.target.value as typeof structureType)}><option value="SALARY_BAND">{labels.tabs.salaryBands}</option><option value="SCALE_WITH_STEPS">{labels.tabs.scalesAndSteps}</option></select></label>
-        <label className="grid gap-1 text-sm font-medium">{labels.name}<input autoFocus className={fieldClass} required value={name} onChange={(event) => setName(event.target.value)} /></label>
-        <label className="grid gap-1 text-sm font-medium">{labels.code}<input className={fieldClass} value={code} onChange={(event) => setCode(event.target.value)} /></label>
-        <label className="grid gap-1 text-sm font-medium sm:col-span-2">{labels.description}<textarea className={`${fieldClass} min-h-24`} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
-      </div>
-      {failed ? <p className="mt-4 text-sm text-destructive" role="alert">{labels.failed}</p> : null}
-      <div className="mt-6 flex justify-end gap-3 border-t pt-4"><button className="button-secondary" disabled={saving} onClick={onCancel} type="button">{labels.cancel}</button><button className="button-primary" disabled={saving || !name.trim()} type="submit">{saving ? labels.saving : labels.create}</button></div>
-    </form>
-  </div>
+  const dirty = Boolean(name || code || description)
+  return <FormDrawer cancelLabel={labels.cancel} closeLabel={labels.cancel} description={labels.createStructureDescription} dirty={dirty} dirtyProtection={{ description: labels.dirtyConfirm, discardLabel: labels.cancel, keepEditingLabel: labels.cancel, title: labels.cancel }} onDiscard={onCancel} onOpenChange={(open) => { if (!open && !dirty) onCancel() }} onSubmit={(event) => void submit(event)} open saveLabel={labels.create} saving={saving} title={labels.createStructureTitle}><FormField control={<DropdownSelect aria-label={labels.type} onChange={(event) => setStructureType(event.target.value as typeof structureType)} value={structureType}><option value="SALARY_BAND">{labels.tabs.salaryBands}</option><option value="SCALE_WITH_STEPS">{labels.tabs.scalesAndSteps}</option></DropdownSelect>} label={labels.type} required /><FormField control={<TextInput autoFocus maxLength={160} onChange={(event) => setName(event.target.value)} required value={name} />} label={labels.name} required /><FormField control={<TextInput maxLength={80} onChange={(event) => setCode(event.target.value)} value={code} />} label={labels.code} /><FormField control={<Textarea maxLength={1000} onChange={(event) => setDescription(event.target.value)} value={description} />} label={labels.description} />{failed ? <p className="text-sm text-destructive" role="alert">{labels.failed}</p> : null}</FormDrawer>
 }
 
 function BandTable({ catalog, revision, labels, locale, editable = false }: { catalog: SalaryStructureCatalog; revision: Revision; labels: Labels; locale: Locale; editable?: boolean }) {
@@ -460,11 +456,10 @@ function ReadOnlyRevision({ catalog, structure, revision, labels, locale }: { ca
 
 function RevisionReview({ draft, labels, locale, onCancel, onPublish, publishing }: { draft: Draft; labels: Labels; locale: Locale; onCancel: () => void; onPublish: () => void; publishing: boolean }) {
   const validation = validateDraft(draft, labels)
-  return <div aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-foreground/30 p-3 sm:p-6" role="dialog"><div className="mx-auto max-w-6xl rounded-2xl border bg-background p-5 shadow-xl sm:p-7"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="eyebrow">{labels.publishReview}</p><h2 className="mt-1 text-2xl font-semibold">{labels.reviewDescription}</h2><p className="mt-2 text-sm text-muted-foreground">{labels.effectiveFrom}: {draft.effectiveFrom} · {draft.currencyCode}</p></div><button aria-label={labels.cancel} className="rounded-lg p-2 hover:bg-muted" onClick={onCancel} type="button"><X size={18} /></button></div>
+  return <Dialog closeLabel={labels.cancel} description={`${labels.reviewDescription} ${labels.effectiveFrom}: ${draft.effectiveFrom} · ${draft.currencyCode}`} onOpenChange={(open) => { if (!open) onCancel() }} open title={labels.publishReview} panelClassName="max-w-6xl" footer={<div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">{validation.blockers.length > 0 ? labels.publishBlocked : labels.publishedReadOnly}</p><div className="flex gap-3"><Button onClick={onCancel} size="sm" type="button" variant="secondary">{labels.cancel}</Button><Button disabled={validation.blockers.length > 0 || publishing} loading={publishing} onClick={onPublish} size="sm" type="button">{labels.publish}</Button></div></div>}>
     <div className="mt-5 grid gap-4 lg:grid-cols-2"><section className="rounded-xl border border-destructive/20 bg-destructive/5 p-4"><h3 className="flex items-center gap-2 font-semibold"><CircleAlert size={17} />{labels.blockers}</h3>{validation.blockers.length === 0 ? <p className="mt-2 text-sm text-success">{labels.noBlockers}</p> : <ul className="mt-2 space-y-1 text-sm text-destructive">{validation.blockers.map((item, index) => <li key={`${item}-${index}`}>• {item}</li>)}</ul>}</section><section className="rounded-xl border border-warning/30 bg-warning/5 p-4"><h3 className="flex items-center gap-2 font-semibold"><AlertTriangle size={17} />{labels.warnings}</h3>{validation.warnings.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">{labels.noWarnings}</p> : <ul className="mt-2 space-y-1 text-sm text-muted-foreground">{validation.warnings.map((item, index) => <li key={`${item}-${index}`}>• {item}</li>)}</ul>}</section></div>
     <div className="mt-5">{draft.structureType === 'SALARY_BAND' ? <div className="space-y-3">{draft.bands.map((band, index) => { const anchors = anchorsForBand(band); const metrics = bandMetrics(band, index > 0 ? draft.bands[index - 1] : undefined); return <article className={subtlePanelClass} key={`${band.identityKey}-${index}`}><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-semibold">{band.code} · {band.name}</p><p className="text-xs text-muted-foreground">{band.inputMethod === 'MIDPOINT_SPREAD' ? labels.midpointSpread : band.inputMethod === 'MIN_MAX' ? labels.minMax : labels.manualAnchors}</p></div><Badge>{band.sortOrder}</Badge></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><Metric label={labels.minimum} value={formatMoney(anchors.minimum, locale)} /><Metric label={labels.hundredPercent} value={formatMoney(anchors.midpoint, locale)} /><Metric label={labels.maximum} value={anchors.maximum === null ? labels.noMaximum : formatMoney(anchors.maximum, locale)} /></div><div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground"><span>{labels.spread}: {displayPercentage(metrics.rangeSpreadPercentage)}</span><span>{labels.midpointProgression}: {displayPercentage(metrics.midpointProgressionPercentage)}</span><span>{labels.overlap}: {displayPercentage(metrics.overlapPercentage)}</span>{metrics.hasGap ? <span>{labels.gap}</span> : null}</div></article> })}</div> : <div className="space-y-3">{draft.scales.map((scale) => <article className={subtlePanelClass} key={`${scale.code}-${scale.sortOrder}`}><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-semibold">{scale.code} · {scale.name}</p><p className="text-xs text-muted-foreground">{scale.steps.length} {labels.steps} · {scale.defaultMonthsToNextStep ?? '—'} {labels.timeToNextStep}</p></div><Badge>{scale.sortOrder}</Badge></div><div className="mt-3 overflow-x-auto rounded-xl border"><table className="min-w-[500px] w-full text-left text-sm"><thead className="bg-muted/60 text-xs uppercase tracking-[0.08em] text-muted-foreground"><tr><th className="px-3 py-2">{labels.order}</th><th className="px-3 py-2">{labels.step}</th><th className="px-3 py-2 text-right">{labels.amount}</th><th className="px-3 py-2 text-right">{labels.timeToNextStep}</th></tr></thead><tbody className="divide-y">{[...scale.steps].sort((left, right) => left.sequenceNumber - right.sequenceNumber).map((step) => <tr key={`${step.stepCode}-${step.sequenceNumber}`}><td className="px-3 py-2">{step.sequenceNumber}</td><td className="px-3 py-2"><span className="font-semibold">{step.stepCode}</span><span className="block text-xs text-muted-foreground">{step.stepName}</span></td><td className="px-3 py-2 text-right font-semibold">{formatMoney(step.fulltimeAmount, locale)}</td><td className="px-3 py-2 text-right text-muted-foreground">{step.monthsToNextStep ?? '—'}</td></tr>)}</tbody></table></div></article>)}</div>}</div>
-    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4"><p className="text-sm text-muted-foreground">{validation.blockers.length > 0 ? labels.publishBlocked : labels.publishedReadOnly}</p><div className="flex gap-3"><button className="button-secondary" onClick={onCancel} type="button">{labels.cancel}</button><button className="button-primary" disabled={validation.blockers.length > 0 || publishing} onClick={onPublish} type="button">{publishing ? labels.saving : labels.publish}</button></div></div>
-  </div></div>
+   </Dialog>
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold tabular-nums">{value}</p></div> }
@@ -586,10 +581,10 @@ function RevisionHistory({ structure, revisions, labels, locale, onBack, onView 
   </div>
 }
 
-function conflictStatus(status: Conflict['status'], labels: Labels): { text: string; tone: string } {
-  if (status === 'RESOLVED') return { text: labels.resolved, tone: 'bg-success/10 text-success' }
-  if (status === 'IGNORED') return { text: labels.ignored, tone: 'bg-muted text-muted-foreground' }
-  return { text: labels.open, tone: 'bg-warning/15 text-warning-foreground' }
+function conflictStatus(status: Conflict['status'], labels: Labels): { text: string; tone: BadgeTone } {
+  if (status === 'RESOLVED') return { text: labels.resolved, tone: 'success' }
+  if (status === 'IGNORED') return { text: labels.ignored, tone: 'neutral' }
+  return { text: labels.open, tone: 'warning' }
 }
 
 function MigrationConflicts({ catalog, labels, onBack }: { catalog: SalaryStructureCatalog; labels: Labels; onBack: () => void }) {
@@ -598,18 +593,24 @@ function MigrationConflicts({ catalog, labels, onBack }: { catalog: SalaryStruct
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
   const [failedId, setFailedId] = useState<string | null>(null)
+  const [confirmConflict, setConfirmConflict] = useState<Conflict | null>(null)
   async function resolve(conflict: Conflict): Promise<void> {
     const action = actions[conflict.id] ?? 'LATER'
-    if (action === 'TREAT_AS_SAME' && !window.confirm(labels.confirmDecision)) return
     setSavingId(conflict.id); setFailedId(null)
     const response = await fetch(`/api/master-data/salary-structures/migration-conflicts/${conflict.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, note: notes[conflict.id]?.trim() || null }) })
     setSavingId(null)
     if (!response.ok) { setFailedId(conflict.id); return }
+    setConfirmConflict(null)
     router.refresh()
+  }
+  function startResolve(conflict: Conflict): void {
+    if ((actions[conflict.id] ?? 'LATER') === 'TREAT_AS_SAME') setConfirmConflict(conflict)
+    else void resolve(conflict)
   }
   return <div className="space-y-5">
     <div className="flex items-start gap-3"><button aria-label={labels.back} className="rounded-lg border p-2 hover:bg-muted" onClick={onBack} type="button"><ArrowLeft size={18} /></button><div><p className="eyebrow">{labels.migrationTitle}</p><h2 className="mt-1 text-2xl font-semibold">{labels.migrationTitle}</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.migrationDescription}</p></div></div>
-    {catalog.migrationConflicts.length === 0 ? <div className={`${panelClass} text-sm text-muted-foreground`}>{labels.empty}</div> : <div className="space-y-3">{catalog.migrationConflicts.map((conflict) => { const status = conflictStatus(conflict.status, labels); const related = conflict.salary_structure_ids.map((id) => catalog.structures.find((structure) => structure.id === id)?.name ?? id); const sourceCount = conflict.source_administration_ids.length; const selectedAction = actions[conflict.id] ?? 'LATER'; return <article className={panelClass} key={conflict.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{labels.legacyScaleCode}: {conflict.legacy_scale_code}</span><Badge tone={status.tone}>{status.text}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{conflict.reason}</p></div><span className="text-xs text-muted-foreground">{labels.sourceAdministrations}: {sourceCount}</span></div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.structures}</p><p className="mt-1">{related.length > 0 ? related.join(' · ') : labels.noData}</p></div><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.resolution}</p><p className="mt-1">{conflict.resolution ? labels.decisionSaved : labels.noData}</p></div></div>{catalog.canWriteRelations && conflict.status === 'OPEN' ? <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1.5fr_auto] sm:items-end"><label className="grid gap-1 text-sm font-medium">{labels.resolution}<select className={fieldClass} value={selectedAction} onChange={(event) => setActions((current) => ({ ...current, [conflict.id]: event.target.value as SalaryStructureMigrationConflictAction }))}><option value="KEEP_SEPARATE">{labels.keepSeparate}</option><option value="RENAME_OR_RECODE">{labels.renameOrRecode}</option><option value="TREAT_AS_SAME">{labels.treatAsSame}</option><option value="LATER">{labels.later}</option></select></label><label className="grid gap-1 text-sm font-medium">{labels.decisionNote}<input className={fieldClass} maxLength={500} value={notes[conflict.id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [conflict.id]: event.target.value }))} /></label><button className="button-primary" disabled={savingId === conflict.id} onClick={() => void resolve(conflict)} type="button">{savingId === conflict.id ? labels.saving : labels.save}</button></div> : null}{failedId === conflict.id ? <p className="mt-3 text-sm text-destructive" role="alert">{labels.failed}</p> : null}</article> })}</div>}
+    {catalog.migrationConflicts.length === 0 ? <EmptyState title={labels.empty} /> : <div className="space-y-3">{catalog.migrationConflicts.map((conflict) => { const status = conflictStatus(conflict.status, labels); const related = conflict.salary_structure_ids.map((id) => catalog.structures.find((structure) => structure.id === id)?.name ?? id); const sourceCount = conflict.source_administration_ids.length; const selectedAction = actions[conflict.id] ?? 'LATER'; return <article className={panelClass} key={conflict.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{labels.legacyScaleCode}: {conflict.legacy_scale_code}</span><Badge tone={status.tone}>{status.text}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{conflict.reason}</p></div><span className="text-xs text-muted-foreground">{labels.sourceAdministrations}: {sourceCount}</span></div><div className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.structures}</p><p className="mt-1">{related.length > 0 ? related.join(' · ') : labels.noData}</p></div><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.resolution}</p><p className="mt-1">{conflict.resolution ? labels.decisionSaved : labels.noData}</p></div></div>{catalog.canWriteRelations && conflict.status === 'OPEN' ? <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1.5fr_auto] sm:items-end"><label className="grid gap-1 text-sm font-medium">{labels.resolution}<DropdownSelect aria-label={labels.resolution} onChange={(event) => setActions((current) => ({ ...current, [conflict.id]: event.target.value as SalaryStructureMigrationConflictAction }))} value={selectedAction}><option value="KEEP_SEPARATE">{labels.keepSeparate}</option><option value="RENAME_OR_RECODE">{labels.renameOrRecode}</option><option value="TREAT_AS_SAME">{labels.treatAsSame}</option><option value="LATER">{labels.later}</option></DropdownSelect></label><FormField control={<TextInput maxLength={500} onChange={(event) => setNotes((current) => ({ ...current, [conflict.id]: event.target.value }))} value={notes[conflict.id] ?? ''} />} label={labels.decisionNote} /><Button disabled={savingId === conflict.id} onClick={() => startResolve(conflict)} size="sm" type="button">{savingId === conflict.id ? labels.saving : labels.save}</Button></div> : null}{failedId === conflict.id ? <p className="mt-3 text-sm text-destructive" role="alert">{labels.failed}</p> : null}</article> })}</div>}
+    <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.treatAsSame} destructive description={labels.confirmDecision} onConfirm={() => { if (confirmConflict) return resolve(confirmConflict) }} onOpenChange={(open) => { if (!open) setConfirmConflict(null) }} open={confirmConflict !== null} pending={savingId !== null} title={labels.confirmDecision} />
   </div>
 }
 
@@ -622,6 +623,7 @@ function RevisionEditor({ catalog, structure, revision, sourceRevision, labels, 
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
   const [error, setError] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const validation = validateDraft(draft, labels)
@@ -632,7 +634,7 @@ function RevisionEditor({ catalog, structure, revision, sourceRevision, labels, 
     return () => window.removeEventListener('beforeunload', beforeUnload)
   }, [dirty])
   function leave(): void {
-    if (dirty && !window.confirm(labels.dirtyConfirm)) return
+    if (dirty) { setLeaveConfirmOpen(true); return }
     onBack()
   }
   function changeDraft(next: Draft): void { setDraft(next); setDirty(true); setMessage(null); setError(false) }
@@ -660,14 +662,15 @@ function RevisionEditor({ catalog, structure, revision, sourceRevision, labels, 
     setReviewOpen(false); setDirty(false); onPublished(saved.id)
   }
   const title = isExistingDraft ? labels.continueDraft : labels.newRevision
-  if (!catalog.canReadAmounts || !catalog.canWriteStructures) return <div className="space-y-5"><button className="button-secondary inline-flex items-center gap-2" onClick={leave} type="button"><ArrowLeft size={16} />{labels.back}</button><div className={`${panelClass} flex items-start gap-3 text-sm text-muted-foreground`}><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={17} />{labels.readOnly}</div></div>
+  if (!catalog.canReadAmounts || !catalog.canWriteStructures) return <div className="space-y-5"><Button onClick={leave} type="button" variant="secondary"><ArrowLeft size={16} />{labels.back}</Button><div className={`${panelClass} flex items-start gap-3 text-sm text-muted-foreground`}><LockKeyhole className="mt-0.5 shrink-0 text-primary" size={17} />{labels.readOnly}</div></div>
   return <div className="space-y-5">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-3"><button aria-label={labels.back} className="rounded-lg border p-2 hover:bg-muted" onClick={leave} type="button"><ArrowLeft size={18} /></button><div><p className="eyebrow">{labels.revision}</p><h2 className="mt-1 text-2xl font-semibold">{structure.name}</h2><p className="mt-1 text-sm text-muted-foreground">{title}</p></div></div><Badge tone="bg-accent text-accent-foreground">{labels.draft}</Badge></div>
-    <section className={panelClass}><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><label className="grid gap-1 text-sm font-medium">{labels.effectiveFrom}<input className={fieldClass} type="date" value={draft.effectiveFrom} onChange={(event) => changeDraft({ ...draft, effectiveFrom: event.target.value })} /></label><label className="grid gap-1 text-sm font-medium">{labels.salaryBasis}<select className={fieldClass} value={draft.salaryBasis} onChange={(event) => changeDraft({ ...draft, salaryBasis: event.target.value as Draft['salaryBasis'] })}><option value="MONTHLY_BASE">{labels.monthlyBase}</option><option value="FOUR_WEEKLY_BASE">{labels.fourWeeklyBase}</option><option value="ANNUAL_BASE">{labels.annualBase}</option><option value="HOURLY">{labels.hourlyBase}</option></select></label><label className="grid gap-1 text-sm font-medium">{labels.currency}<input className={fieldClass} maxLength={3} value={draft.currencyCode} onChange={(event) => changeDraft({ ...draft, currencyCode: event.target.value.toUpperCase() })} /></label><label className="grid gap-1 text-sm font-medium sm:col-span-2 lg:col-span-1">{labels.description}<input className={fieldClass} value={draft.description ?? ''} onChange={(event) => changeDraft({ ...draft, description: event.target.value || null })} /></label></div></section>
+     <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-3"><button aria-label={labels.back} className="rounded-lg border p-2 hover:bg-muted" onClick={leave} type="button"><ArrowLeft size={18} /></button><div><p className="eyebrow">{labels.revision}</p><h2 className="mt-1 text-2xl font-semibold">{structure.name}</h2><p className="mt-1 text-sm text-muted-foreground">{title}</p></div></div><Badge tone="info">{labels.draft}</Badge></div>
+     <section className={panelClass}><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><FormField control={<TextInput onChange={(event) => changeDraft({ ...draft, effectiveFrom: event.target.value })} type="date" value={draft.effectiveFrom} />} label={labels.effectiveFrom} required /><FormField control={<DropdownSelect aria-label={labels.salaryBasis} onChange={(event) => changeDraft({ ...draft, salaryBasis: event.target.value as Draft['salaryBasis'] })} value={draft.salaryBasis}><option value="MONTHLY_BASE">{labels.monthlyBase}</option><option value="FOUR_WEEKLY_BASE">{labels.fourWeeklyBase}</option><option value="ANNUAL_BASE">{labels.annualBase}</option><option value="HOURLY">{labels.hourlyBase}</option></DropdownSelect>} label={labels.salaryBasis} required /><FormField control={<TextInput maxLength={3} onChange={(event) => changeDraft({ ...draft, currencyCode: event.target.value.toUpperCase() })} value={draft.currencyCode} />} label={labels.currency} required /><FormField className="sm:col-span-2 lg:col-span-1" control={<TextInput onChange={(event) => changeDraft({ ...draft, description: event.target.value || null })} value={draft.description ?? ''} />} label={labels.description} /></div></section>
     <section className={panelClass}>{draft.structureType === 'SALARY_BAND' ? <BandRevisionEditor draft={draft} setDraft={(updater) => { setDraft((current) => { const next = typeof updater === 'function' ? updater(current) : updater; setDirty(true); return next }) }} labels={labels} locale={locale} /> : <ScaleRevisionEditor draft={draft} setDraft={(updater) => { setDraft((current) => { const next = typeof updater === 'function' ? updater(current) : updater; setDirty(true); return next }) }} labels={labels} />}</section>
     {message ? <p aria-live="polite" className={`text-sm ${error ? 'text-destructive' : 'text-success'}`}>{message}</p> : null}
-    <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur"><span className="text-sm text-muted-foreground">{dirty ? labels.draft : labels.revisionSaved}</span><div className="flex flex-wrap gap-2"><button className="button-secondary" disabled={saving || publishing} onClick={leave} type="button">{labels.cancel}</button><button className="button-secondary" disabled={saving || publishing || validation.blockers.length > 0} onClick={() => void saveAndClose()} type="button">{saving ? labels.saving : labels.saveAndClose}</button><button className="button-secondary" disabled={saving || publishing} onClick={() => setReviewOpen(true)} type="button"><Check size={16} />{labels.publishReview}</button><button className="button-primary" disabled={saving || publishing || validation.blockers.length > 0} onClick={() => void persist()} type="button">{saving ? labels.saving : labels.save}</button></div></div>
+     <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border-subtle bg-background/95 p-3 shadow-lg backdrop-blur"><span className="text-sm text-muted-foreground">{dirty ? labels.draft : labels.revisionSaved}</span><div className="flex flex-wrap gap-2"><Button disabled={saving || publishing} onClick={leave} type="button" variant="secondary">{labels.cancel}</Button><Button disabled={saving || publishing || validation.blockers.length > 0} onClick={() => void saveAndClose()} type="button" variant="secondary">{saving ? labels.saving : labels.saveAndClose}</Button><Button disabled={saving || publishing} onClick={() => setReviewOpen(true)} type="button" variant="secondary"><Check size={16} />{labels.publishReview}</Button><Button disabled={saving || publishing || validation.blockers.length > 0} onClick={() => void persist()} type="button">{saving ? labels.saving : labels.save}</Button></div></div>
     {reviewOpen ? <RevisionReview draft={draft} labels={labels} locale={locale} onCancel={() => setReviewOpen(false)} onPublish={() => void publish()} publishing={publishing} /> : null}
+    <ConfirmDialog cancelLabel={labels.cancel} confirmLabel={labels.back} destructive description={labels.dirtyConfirm} onConfirm={() => { setLeaveConfirmOpen(false); onBack() }} onOpenChange={setLeaveConfirmOpen} open={leaveConfirmOpen} title={labels.dirtyConfirm} />
   </div>
 }
 

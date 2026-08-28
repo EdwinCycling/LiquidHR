@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
+
+**Status: R7-3 LOCAL GREEN — READY FOR CENTRAL INTEGRATION; REQUIREMENTS GATE RECORDED**
+
+- Dedicated worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r7-employment-masterdata`, `work/r7-employment-masterdata`; exact baseline `778b601670c87ca7596000937d895859498b483a`; visible version remains `1.20260828.4`.
+- Converged existing employment contracts, holidays, leave-accrual configuration, absence settings, anniversary rules, jobs, salary structures, end reasons, document categories and relation types onto existing Foundation controls/patterns. Existing API payloads, permissions, validation and business semantics were retained. No Setup Assistant redesign, work-pattern route or schema/migration was added.
+- Technical verification: targeted R7-3 Foundation tests `2/2`, strict TypeScript, i18n (`34` equal NL/EN namespaces), ESLint, Webpack production build and `git diff --check` green. Full suite `1017/1018`; the only failure is the exact known Journey baseline expectation for `Binnenkort beschikbaar`.
+- Browser: authenticated HR Admin acceptance is groen op production-mode candidate `http://localhost:3001`, met de canonieke root `.env.local` byte-identiek gekopieerd naar het genegeerde targetbestand; secretwaarden zijn niet uitgelezen of opgeslagen. Alle gevraagde desktop-hoofdroutes en relevante leave-subroutes gaven `200`; bestaande data, Foundation controls, drawers, cancel, Escape/dirty-close, validation, RowActions en ConfirmDialog zijn gecontroleerd. Jubileumregel `42` is veilig aangemaakt, na reload teruggelezen en via bevestigde delete-cleanup verwijderd; tweede reload bevestigde de oorspronkelijke lijst. Desktop `1440x900` en representatieve mobile `390x844` hebben `scrollWidth === viewport`; finale production-console `0/0` errors/warnings en geen hydrationmeldingen. Manager/Employee zijn niet als browserpersona uitgevoerd omdat de HR Admin-sessie geen rolwissel exposeert; de gerichte permission-tests blijven daarvoor leidend.
+- Requirements gates: exact `REQUIREMENTS GATE — SALARY CAPABILITY VISIBILITY UNRESOLVED`; work-pattern/schedule remains an intentional no-route gap. No migration, schema/RLS/RPC, merge, push, version bump, Vercel action or structural remote database write was performed. The intended R7-3 changes are locally committed on this branch; `origin/main` was not rebased or changed. Handoff: [`R7_3_EMPLOYMENT_CALENDAR_MASTERDATA.md`](R7_3_EMPLOYMENT_CALENDAR_MASTERDATA.md).
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
