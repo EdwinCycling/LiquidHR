@@ -42,8 +42,8 @@ function interpolate(template: string, values: Record<string, string | number>):
 }
 
 function stateClasses(state: OrganizationChartNode['matchState']): string {
-  if (state === 'match') return 'ring-2 ring-focus opacity-100 shadow-[0_0_0_6px_var(--accent),0_18px_40px_-20px_var(--accent-foreground)]'
-  if (state === 'context') return 'ring-1 ring-accent-foreground/40 opacity-100 shadow-[0_0_0_4px_var(--accent)]'
+  if (state === 'match') return 'ring-2 ring-focus opacity-100'
+  if (state === 'context') return 'ring-1 ring-accent-foreground/40 opacity-100'
   if (state === 'dimmed') return 'opacity-25 saturate-50'
   return 'opacity-100'
 }
@@ -54,7 +54,7 @@ function initials(name: string): string {
 
 function AdministrationCard({ node, labels }: { node: Extract<OrganizationChartNode, { type: 'administration' }>; labels: OrganizationChartLabels }) {
   return (
-    <article aria-label={`${labels.administrationNode}: ${node.name}`} className={`w-full rounded-2xl bg-primary px-5 py-4 text-primary-foreground shadow-lg transition-[opacity,box-shadow] md:w-64 ${stateClasses(node.matchState)}`}>
+    <article aria-label={`${labels.administrationNode}: ${node.name}`} className={`w-full rounded-[var(--radius-surface)] bg-primary px-5 py-4 text-primary-foreground transition-opacity md:w-64 ${stateClasses(node.matchState)}`}>
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-foreground/10">
           <Network aria-hidden="true" size={19} />
@@ -82,7 +82,7 @@ function DepartmentCard({ node, labels }: { node: Extract<OrganizationChartNode,
       : manager.employeeName
 
   return (
-    <article aria-label={`${labels.departmentNode}: ${node.name}`} className={`w-full overflow-hidden rounded-2xl border bg-surface shadow-sm transition-[opacity,box-shadow] md:w-64 ${stateClasses(node.matchState)}`}>
+    <article aria-label={`${labels.departmentNode}: ${node.name}`} className={`w-full overflow-hidden rounded-[var(--radius-surface)] border bg-surface transition-opacity md:w-64 ${stateClasses(node.matchState)}`}>
       <div className="h-1 bg-accent-foreground" aria-hidden="true" />
       <div className="p-4">
         <div className="flex items-start gap-3">
@@ -116,7 +116,7 @@ function GroupCard({ node, labels }: { node: Extract<OrganizationChartNode, { ty
       : <Building2 aria-hidden="true" size={17} />
 
   return (
-    <article aria-label={`${labels.groupNode}: ${node.title}`} className={`w-full overflow-hidden rounded-2xl border bg-surface shadow-sm transition-[opacity,box-shadow] md:w-64 ${stateClasses(node.matchState)}`}>
+    <article aria-label={`${labels.groupNode}: ${node.title}`} className={`w-full overflow-hidden rounded-[var(--radius-surface)] border bg-surface transition-opacity md:w-64 ${stateClasses(node.matchState)}`}>
       <div className="h-1 bg-accent-foreground" aria-hidden="true" />
       <div className="p-4">
         <div className="flex items-start gap-3">
@@ -150,7 +150,7 @@ function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, {
   const canStart = labels.canStartProcess || (labels.canStartSelfProcess && labels.currentEmployeeId === node.employeeId)
 
   return (
-    <div className={`w-full rounded-2xl border bg-surface p-3.5 shadow-sm outline-none transition-[opacity,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-md md:w-56 ${stateClasses(node.matchState)}`}>
+    <div className={`w-full rounded-[var(--radius-surface)] border bg-surface p-3.5 outline-none transition-opacity md:w-56 ${stateClasses(node.matchState)}`}>
       <Link aria-label={interpolate(labels.openEmployee, { name: node.name })} href={`/employees/${node.employeeId}`} prefetch={false} className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-focus">
         <div className="flex items-center gap-3">
           <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted text-xs font-bold text-foreground">

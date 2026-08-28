@@ -16,6 +16,8 @@ De zeven afgesproken routes zijn op de bestaande contracten geconvergeerd:
 
 De wijzigingen blijven UI/Foundation-convergentie. Bestaande routes, API-payloads, services, contextresolutie, permissions, tenant/HR-group-scope, schema, RLS en grants zijn niet aangepast.
 
+De aanvullende productbeslissing voor het organogram is verwerkt: `/organization-chart` is read-only exploration, afdelingbeheer staat alleen op `/departments`, de user-facing job/functiegroepen-view is verwijderd, `?view=job` valt veilig terug naar `Organisatiestructuur`, en de chart gebruikt alleen de perspectieven `Organisatiestructuur` en `Rapportagelijnen`. De bestaande job-, talent- en performanceprojectie blijft onderliggend beschikbaar voor andere contracten.
+
 ## Contractmatrix
 
 | Route | Read gate | Write gate | Context/data contract |
@@ -41,6 +43,8 @@ PageShell/PageHeader, Surface, FormField, TextInput/Textarea, DropdownSelect, Ch
 - Webpack build: `229/229` routes.
 - `git diff --check`: groen.
 - Full suite: `263/264` bestanden en `1008/1009` tests; uitsluitend de bekende ongewijzigde Journey-failure rond `Binnenkort beschikbaar`.
+
+De aanvullende organogramcode is opnieuw strict gecompileerd en de gerichte set/i18n/lint/build-controles zijn opnieuw groen. Er is geen nieuwe migration, dependency, permission change of API redesign toegevoegd.
 
 De echte browsercontrole kon niet starten voorbij middleware: de R7-2-worktree en repository-root bevatten geen `.env.local`, waardoor Supabase client-creatie in `proxy.ts` HTTP `500` geeft op `/login`. Daardoor zijn authenticated HR/Manager/Employee, desktop/mobile overflow, console-evidence en echte mutatie/readback niet bewezen. Geen credentials zijn gelogd, geen env-bestand is gekopieerd en geen remote write is uitgevoerd.
 

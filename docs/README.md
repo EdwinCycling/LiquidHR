@@ -6,6 +6,8 @@
 
 R7-2 is in dedicated worktree `work/r7-organization-access` vanaf exact `main`/`origin/main` `051c57a998c33d17a8ac1bef166fe58f5c15b133` uitgevoerd. De zeven afgesproken Organization/Access/Context-routes zijn op de bestaande UX Foundation geconvergeerd; API-, service-, schema-, RLS-, grant-, permission- en businesscontracten zijn behouden. De gerichte set is `12/12` testbestanden en `50/50` tests, strict TypeScript, i18n `34` gelijke namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229` en diff-check groen. De full suite is `263/264` bestanden en `1008/1009` tests door uitsluitend de bekende Journey-failure rond `Binnenkort beschikbaar`.
 
+De aanvullende organogrambeslissing is verwerkt: `/organization-chart` is read-only, afdelingbeheer verwijst naar `/departments`, de user-facing job-view is verwijderd, oude `?view=job` valt terug naar de organisatiestructuur, en de connector/layout-chrome zijn vereenvoudigd zonder graph-library of datacontractwijziging.
+
 Authenticated browseracceptance is geblokkeerd vóór login omdat zowel worktree als repository-root geen `.env.local` bevatten; de Supabase middleware geeft daardoor HTTP `500` op `/login`. Manager/Employee, desktop/mobile, console, echte mutation/readback en cleanup zijn daarom niet bewezen. Geen credentials zijn gelogd, geen env-bestand gekopieerd en geen remote databaseactie uitgevoerd. Geen version bump, merge, push of Vercel-actie.
 
 Zie [`docs/delivery/R7_2_ORGANIZATION_ACCESS_CONTEXT.md`](delivery/R7_2_ORGANIZATION_ACCESS_CONTEXT.md) voor de route/permission/context-matrix en de volledige handoff.

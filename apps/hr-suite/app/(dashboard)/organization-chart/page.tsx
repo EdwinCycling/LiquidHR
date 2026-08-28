@@ -1,13 +1,15 @@
+import Link from 'next/link'
 import { Building2, CalendarDays, UsersRound } from 'lucide-react'
 import { OrganizationChartExplorer, type OrganizationChartExplorerLabels, type OrganizationChartExplorerQuery } from '@/components/organization-chart/organization-chart-explorer'
-import { DepartmentCreateForm } from '@/components/organization/department-create-form'
+import { buttonClasses } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
-import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getLocale } from '@/lib/i18n/server'
 import { createTranslator } from '@/lib/i18n/translator'
 import { organizationChartQuerySchema } from '@/lib/organization-chart/schemas'
 import { getOrganizationChart } from '@/lib/organization-chart/service'
 import { getStoredOrganizationChartFilter } from '@/lib/preferences/organization-chart'
-import type { AdministrationChartNode, DepartmentChartNode } from '@/lib/organization-chart/types'
+import type { AdministrationChartNode } from '@/lib/organization-chart/types'
 import messagesEn from '@/messages/en/organization-chart.json'
 import messagesNl from '@/messages/nl/organization-chart.json'
 import { PageShell } from '@/components/layout/page-shell'
@@ -35,8 +37,8 @@ function safeText(value: string | undefined): string | undefined {
   return trimmed && trimmed.length <= 160 ? trimmed : undefined
 }
 
-function safeView(value: string | undefined): 'department' | 'manager' | 'job' {
-  return value === 'manager' || value === 'job' ? value : 'department'
+function safeView(value: string | undefined): 'department' | 'manager' {
+  return value === 'manager' ? 'manager' : 'department'
 }
 
 function safeUuid(value: string | undefined): string | undefined {
@@ -69,23 +71,16 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
   const query = organizationChartQuerySchema.parse(candidate)
   const graph = await getOrganizationChart(query)
   const authContext = (await getRequestAuthorizationContext()).context
-  const organizationTranslate = await getTranslator('organization')
   let canWrite = true
   try { await requirePermission('department:write') }
   catch (error) { if (error instanceof AuthorizationError) canWrite = false; else throw error }
   const translate = createTranslator(locale === 'en' ? messagesEn : messagesNl)
   const administration = graph.nodes.find((node): node is AdministrationChartNode => node.type === 'administration')
-  const departments = graph.nodes.filter((node): node is DepartmentChartNode => node.type === 'department')
   const explorerQuery: OrganizationChartExplorerQuery = query
   const labels: OrganizationChartExplorerLabels = {
     viewLabel: translate('viewLabel'),
     viewDepartment: translate('viewDepartment'),
     viewManager: translate('viewManager'),
-    viewJob: translate('viewJob'),
-    primaryCountDepartment: translate('primaryCountDepartment', { count: graph.metadata.visiblePrimaryCount }),
-    primaryCountManager: translate('primaryCountManager', { count: graph.metadata.visiblePrimaryCount }),
-    primaryCountJob: translate('primaryCountJob', { count: graph.metadata.visiblePrimaryCount }),
-    exploreTitle: translate('exploreTitle'), exploreSubtitle: translate('exploreSubtitle'),
     searchLabel: translate('searchLabel'), searchPlaceholder: translate('searchPlaceholder'), searchAction: translate('searchAction'),
     departmentLabel: translate('departmentLabel'), allDepartments: translate('allDepartments'), roleLabel: translate('roleLabel'), allRoles: translate('allRoles'),
     moreFilters: translate('moreFilters'), lessFilters: translate('lessFilters'), dateLabel: translate('dateLabel'), customFieldLabel: translate('customFieldLabel'), noCustomField: translate('noCustomField'),
@@ -97,22 +92,21 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
     employees: translate('employees'), groupedEmployees: translate('groupedEmployees'), rootEmployees: translate('rootEmployees'), manager: translate('manager'), managerInherited: translate('managerInherited'), managerNone: translate('managerNone'), managerAmbiguous: translate('managerAmbiguous'),
     jobUnknown: translate('jobUnknown'), moreBadges: translate('moreBadges'), openEmployee: translate('openEmployee'), administrationNode: translate('administrationNode'), departmentNode: translate('departmentNode'), employeeNode: translate('employeeNode'), startProcess: translate('startProcess'), canStartProcess: authContext.permissions.includes('process-instance:start'), canStartSelfProcess: authContext.permissions.includes('self:process-instance:start'), currentEmployeeId: authContext.employeeId,
     groupNode: translate('groupNode'),
-    zoomIn: translate('zoomIn'), zoomOut: translate('zoomOut'), fitView: translate('fitView'), legendRoute: translate('legendRoute'), legendMatch: translate('legendMatch'), legendContext: translate('legendContext'),
+    zoomIn: translate('zoomIn'), zoomOut: translate('zoomOut'), fitView: translate('fitView'), previousTab: translate('previousTab'), nextTab: translate('nextTab'), manageDepartments: translate('manageDepartments'),
   }
 
   return (
-    <PageShell className="py-7 sm:py-9" width="wide">
-      <div className="mb-6 border-b border-border-subtle pb-6">
-        <p className="eyebrow mb-2">{translate('eyebrow')}</p>
-        <PageHeader actions={<div className="grid gap-2 text-xs sm:grid-cols-3">
-          <div className="flex min-w-0 items-center gap-2 rounded-xl border bg-surface px-3 py-2.5"><Building2 aria-hidden="true" className="shrink-0 text-accent-foreground" size={16} /><div className="min-w-0"><p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{translate('administration')}</p><p className="mt-0.5 truncate font-semibold text-foreground">{administration ? `${administration.code} · ${administration.name}` : '—'}</p></div></div>
-          <div className="flex items-center gap-2 rounded-xl border bg-surface px-3 py-2.5 text-muted-foreground"><CalendarDays aria-hidden="true" size={16} /><span>{translate('asOf', { date: graph.metadata.asOfDate })}</span></div>
-          <div className="flex items-center gap-2 rounded-xl border bg-surface px-3 py-2.5 text-muted-foreground"><UsersRound aria-hidden="true" size={16} /><span>{query.view === 'manager' ? translate('primaryCountManager', { count: graph.metadata.visiblePrimaryCount }) : query.view === 'job' ? translate('primaryCountJob', { count: graph.metadata.visiblePrimaryCount }) : translate('primaryCountDepartment', { count: graph.metadata.visiblePrimaryCount })} · {translate('employeeCount', { count: graph.metadata.visibleEmployeeCount })}</span></div>
-        </div>} title={translate('title')} />
-      </div>
-
-      {canWrite ? <DepartmentCreateForm departments={departments.map((department) => ({ id: department.departmentId, name: `${department.code} · ${department.name}` }))} labels={{ title: organizationTranslate('departmentCreate'), code: organizationTranslate('departmentCode'), name: organizationTranslate('departmentName'), parent: organizationTranslate('parentDepartment'), noParent: organizationTranslate('noParent'), create: organizationTranslate('create'), saved: organizationTranslate('saved'), failed: organizationTranslate('failed'), close: organizationTranslate('close'), cancel: organizationTranslate('cancel'), discardTitle: organizationTranslate('discardTitle'), discardDescription: organizationTranslate('discardDescription'), discardConfirm: organizationTranslate('discardConfirm'), discardCancel: organizationTranslate('discardCancel') }} /> : null}
-      <div className="mt-6"><OrganizationChartExplorer defaultDate={defaultDate} graph={graph} labels={labels} query={explorerQuery} /></div>
+    <PageShell className="space-y-6 py-7 sm:py-9" width="wide">
+      <PageHeader
+        actions={<div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-2"><CalendarDays aria-hidden="true" size={16} />{translate('asOf', { date: graph.metadata.asOfDate })}</span>
+          <span className="inline-flex items-center gap-2"><UsersRound aria-hidden="true" size={16} />{translate('employeeCount', { count: graph.metadata.visibleEmployeeCount })}</span>
+          {canWrite ? <Link className={buttonClasses({ size: 'sm', variant: 'secondary' })} href="/departments"><Building2 aria-hidden="true" />{translate('manageDepartments')}</Link> : null}
+        </div>}
+        description={administration ? <span className="inline-flex items-center gap-2"><Badge>{translate('administration')}</Badge>{`${administration.code} · ${administration.name}`}</span> : undefined}
+        title={translate('title')}
+      />
+      <OrganizationChartExplorer defaultDate={defaultDate} graph={graph} labels={labels} query={explorerQuery} />
     </PageShell>
   )
 }
