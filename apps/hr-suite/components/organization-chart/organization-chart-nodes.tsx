@@ -186,7 +186,7 @@ function FlowNode({ data }: NodeProps<OrganizationFlowNode>) {
     <>
       <Handle className="!size-2 !border-surface !bg-accent-foreground" isConnectable={false} position={Position.Top} type="target" />
       <OrganizationChartNodeCard labels={data.labels} node={data.chartNode} />
-      {data.chartNode.type !== 'employee' ? <Handle className="!size-2 !border-surface !bg-accent-foreground" isConnectable={false} position={Position.Bottom} type="source" /> : null}
+      <Handle className="!size-2 !border-surface !bg-accent-foreground" isConnectable={false} position={Position.Bottom} type="source" />
     </>
   )
 }
