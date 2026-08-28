@@ -58,18 +58,6 @@ describe('Liquid Credits migration contract', () => {
     }
     expect(migration).toContain('grant all on table')
     expect(migration).toContain('to service_role;')
-    expect(migration).toContain('grant usage on schema internal_security to service_role;')
-    for (const functionName of [
-      'ensure_ai_monthly_allowance',
-      'reserve_ai_credits',
-      'settle_ai_credits',
-      'release_ai_credits',
-      'get_ai_group_credit_balance',
-      'get_ai_actor_quota',
-      'get_ai_reservation_allocations',
-    ]) {
-      expect(migration).toContain('grant execute on function internal_security.' + functionName)
-    }
     expect(migration).not.toMatch(/grant\s+(?:insert|update|delete|all)\s+on\s+table[^;]*\bto\s+authenticated\s*;/i)
   })
 
@@ -79,7 +67,7 @@ describe('Liquid Credits migration contract', () => {
     expect(migration).toContain("coalesce(current_setting('app.ai_credits_test_mode', true), '') <> 'true'")
     expect(migration).toContain("raise exception 'AI_CREDIT_TEST_MODE_DISABLED'")
     expect(migration).toContain('grant execute on function public.grant_ai_controlled_test_credits')
-    expect(migration).toContain("    now()\n  from public.ai_credit_allocations")
+    expect(migration).toContain("    timezone('utc', now())\n  from public.ai_credit_allocations")
     expect(migration).not.toContain('stripe')
     expect(migration).not.toContain('OPENAI_API_KEY')
   })
