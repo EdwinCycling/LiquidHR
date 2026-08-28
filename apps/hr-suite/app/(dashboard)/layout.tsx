@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { AuthenticationError, getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
+import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { getHrGroupSwitcherMode } from '@/lib/context/administration-context'
 import { getTranslator } from '@/lib/i18n/server'
@@ -48,7 +49,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const canReadSettings = authContext.permissions.includes('settings:read')
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
-  const insightPermissions = INSIGHT_REPORTS.filter((report) => report.id !== 'dashboard').map((report) => authContext.permissions.includes(report.permission))
+  const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
+  const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
     getRequestUserPreferences(),
@@ -115,7 +117,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadOrganizationChart={canReadOrganizationChart}
         canReadSettings={canReadSettings}
         canReadHrCalendar={canReadHrCalendar}
-        canReadInsights={insightPermissions.some(Boolean)}
+        canReadInsights={canReadAnalysis || insightPermissions.some(Boolean)}
         canOpenResearch={researchAccess.canOpenHub && (enabledModules.includes('SURVEYS') || enabledModules.includes('ENPS'))}
         canReadRecruitment={canReadRecruitment}
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}

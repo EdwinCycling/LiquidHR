@@ -18,7 +18,6 @@ export const MESSAGE_NAMESPACES = [
   'customFields',
   'reminders',
   'hera',
-  'dashboard',
   'startpage',
   'masterData',
   'documents',

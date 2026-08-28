@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Liquid Analyse AN-0/AN-1 — 2026-08-28
+
+**Status: LOCAL FEATURE SLICE — NO MAIN/PUSH/REMOTE APPLY**
+
+Op dedicated branch `work/an-analysis-foundation` vanaf `origin/main` `e7e62e75e213a00f804215dae2233a850f438cd3` is de globale persoonlijke Dashboard-widgetarchitectuur uit de actieve code verwijderd. `/insights/analysis` is actief met exact vier opties: Nieuwe analyse, Verkennen en Mijn analyses zijn `PLANNED`; Rapporten is `ACTIVE` en linkt naar `/insights`. `/dashboard/start` blijft intact. `/dashboard` en `/settings/dashboard-widgets` redirecten naar Analyse.
+
+De migration `20260828125223_retire_legacy_dashboard.sql` is alleen lokaal gegenereerd en voorbereid. TEST apply, generated DB-typesync, main-integratie, push, Vercel en version bump zijn niet uitgevoerd. `dashboard:read` blijft het bestaande Analyse-toegangscontract; `dashboard-widget:*` is voorlopig inert. **AN-2+: NOT IMPLEMENTED.** Zie [`LIQUID_ANALYSE_AN0_AN1.md`](../requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
@@ -1350,7 +1358,7 @@ Actuele verlofstatus (2026-07-22): de verlofconfiguratie, priority/FIFO-aanvraag
 De medewerkerlijst schrijft zoektekst niet meer naar `user_preferences`; zoeken blijft URL-state en veroorzaakt daardoor geen 400 meer op `PATCH /api/preferences/employees`. Na een succesvolle administratie-wissel navigeert de UI altijd naar `/dashboard/start`, zodat de geselecteerde administratie direct als nieuwe startcontext wordt geladen.
 
 | Tijdhub en reminders | GEDEELTELIJK | Klokvoorkeuren, Tijdhub, persoonlijke en HR-reminders, RLS, API-routes en live browserflow zijn aanwezig. De afzonderlijke databaseproef en regressietest moeten nog worden herhaald; de klok voorkomt SSR-hydrationverschillen en de sidebar blijft op viewporthoogte staan. |
-| Persoonlijke Liquid Dashboard | GEDEELTELIJK | Persoonlijke dashboards, opgeslagen widgetindeling, veilige CRUD/API, startpagina en vier beperkte widgets zijn gebouwd. De volledige vrije Liquid Display-query-engine, charts en generatieve widgets blijven een afzonderlijke volgende slice. Schema-/RLS-proef wacht op gekoppelde Supabase CLI. |
+| Persoonlijke Liquid Dashboard | RETIRED IN CODE | De globale persoonlijke dashboards, widgetindeling, CRUD/API en widgetcatalogus zijn door AN-0 verwijderd. De forward migration voor de vier legacy-tabellen staat lokaal klaar maar is nog niet op TEST toegepast; zie de frozen Analyse-roadmap. |
 | HeRa AI-agent | GEÏMPLEMENTEERD | Data-first orchestratie, echte rol/permissioncontext, owner- en tenantgebonden memory/voorkeuren, beheer-UI, toon/detail/senioriteit, salaris-/medewerker-/dienstverband-/organisatietools en vijf bevestigbare schrijftools zijn gebouwd. RLS en serverautorisatie zijn live transactioneel negatief getest; lokale, preview- en Production-eindtests zijn geslaagd. |
 
 ## Core HR, organisatie en autorisatie
@@ -1450,7 +1458,7 @@ De functiecatalogus is verder aangescherpt naar een lijst-eerst scherm met zoeke
 - De medewerkerkaart heeft een reminders-tab. Dienstverbanden openen als primaire knop, verwijderen is een bevestigde soft-delete en de teruglink bewaart de medewerker-brontab.
 - Redenen uitdienst zijn onder `/master-data/end-reasons` per land beheerbaar met toevoegen, wijzigen, activeren/deactiveren en een blokkade wanneer een reden al is gebruikt. Nederland gebruikt de officiële codes 01, 02, 03, 04, 20, 21, 30, 32, 33, 34, 40, 41, 90 en 99; zonder landspecifieke inrichting geldt `Einde contract`.
 
-## Dashboard widgetbibliotheek
+## Dashboard widgetbibliotheek (historisch — AN-0 retired)
 
 | Onderdeel | Status | Resterend werk |
 |---|---|---|

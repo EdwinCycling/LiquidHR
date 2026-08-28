@@ -10,7 +10,7 @@ Versie: `1.20260718.5`
 - De HR-admininstellingen staan op `/settings` en vereisen server-side `settings:read`.
 - De instellingenhub toont alleen tegels waarvoor de gebruiker het bijbehorende recht heeft.
 - De tegel **Medewerkers** opent tijdelijk een toegankelijk medewerkerinstellingenschermpje; de hoofdmenu-link **Medewerkers** blijft naar het medewerkersbeheer navigeren.
-- Dashboardwidgets zijn vanuit de HR-adminhub per widget actief/niet-actief te zetten en aan managementrollen te koppelen.
+- Het voormalige Dashboard Widget-beheer is retired; de settings-hub bevat geen widgetcatalogus of rol-widgetmatrix meer. Zie [`LIQUID_ANALYSE_AN0_AN1.md`](../reports/LIQUID_ANALYSE_AN0_AN1.md) voor het Analyse-contract.
 - Rollen en rechten, vrije velden en stamtabellen staan niet meer als losse beheeritems in het hoofdmenu.
 
 ## Extra modules

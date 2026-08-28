@@ -88,7 +88,6 @@
       "masterData": "Master data", "masterDataDescription": "Manage HR-group-wide termination reasons by country, administration-specific document categories and tenant-wide relation types.", "employmentContracts": "Employments and contracts", "employmentContractsDescription": "For the chosen administration, manage the default country, employment conditions, flex phases, salary frequencies and cost carriers.", "leave": "Leave accrual", "leaveDescription": "Manage HR-group-wide leave types, work hours, overtime and accrual rules.", "absence": "Absence", "absenceDescription": "Manage the HR-group-wide absence threshold and administration-specific custom WvP tasks.", "anniversaryRules": "Anniversary rules", "anniversaryRulesDescription": "Choose after how many service years work anniversaries appear in reports.", "companyDocuments": "Company documents", "companyDocumentsDescription": "Upload and delete documents for the active HR group.", "processAutomation": "Workflows and forms", "processAutomationDescription": "Build, test, publish and retire HR processes and forms without code.",
       "research": "Surveys and eNPS", "researchDescription": "Create campaigns, manage audiences and track response and anonymised results.",
       "modules": "Active modules", "modulesDescription": "Enable or disable available extra modules tenant-wide.", "companyBranding": "Company settings", "companyBrandingDescription": "Set company colors and logo for the active HR group.",
-      "dashboardWidgets": "Dashboard widgets", "dashboardWidgetsDescription": "Choose which data-driven widgets are available per role.",
       "recruitment": "Recruitment", "recruitmentDescription": "Manage the recruitment pipeline, library, interview sets and privacy."
     },
     "menuOrderTitle": "Menu order", "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.", "menuOrderSave": "Save order", "menuOrderSaved": "Menu order saved.", "menuOrderMoveUp": "up", "menuOrderMoveDown": "down", "menuOrderCancel": "Cancel"
@@ -138,10 +137,6 @@
       "WORKFLOWS": { "name": "Workflows", "description": "Repeatable HR processes for onboarding, changes and offboarding." },
       "TRAINING": { "name": "Training", "description": "Training, certificates and validity per employee." }
     }
-  },
-  "dashboardWidgets": {
-    "title": "Dashboard widgets", "subtitle": "Enable data-driven widgets and choose which roles can use them.", "save": "Save", "saving": "Savingâ€¦", "saved": "Saved.", "failed": "Could not save; the previous setting was restored.", "enabled": "Enable widget", "active": "Active", "inactive": "Inactive", "roles": "Available for roles", "allRoles": "Without a selection, the widget is available to all roles with the required permissions.", "noRoles": "No roles available.",
-    "categories": { "CORE_HR": "Core HR", "EMPLOYMENT": "Employment", "DOCUMENTS": "Documents", "COMPENSATION": "Compensation", "ORGANIZATION_TIME": "Organization & time" }
   },
   "menuOrderTitle": "Menu order",
   "menuOrderDescription": "Choose the order of items in the left navigation for your workspace.",

@@ -15,7 +15,7 @@ export default async function CompanyDocumentsPage() {
   return (
     <main>
       <PageShell className="space-y-6 py-7 lg:py-10" width="standard">
-        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href="/dashboard"><ArrowLeft aria-hidden="true" size={16} />{t('backToDashboard')}</Link>
+        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href="/dashboard/start"><ArrowLeft aria-hidden="true" size={16} />{t('backToDashboard')}</Link>
         <CompanyDocumentLibrary
           canDelete={canDelete}
           canWrite={canWrite}

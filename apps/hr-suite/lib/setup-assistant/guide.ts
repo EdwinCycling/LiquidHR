@@ -141,15 +141,6 @@ export const SETUP_ASSISTANT_GUIDE: readonly SetupAssistantCategory[] = [
         visibility: 'always',
       },
       {
-        stepKey: 'SET-004',
-        categoryKey: 'configuration',
-        titleKey: 'steps.set004.title',
-        descriptionKey: 'steps.set004.description',
-        primaryRoute: { href: '/settings/dashboard-widgets', requiredPermissions: ['dashboard-widget:write'] },
-        relatedRoute: { href: '/settings/menu-order', requiredPermissions: ['settings:read'] },
-        visibility: 'always',
-      },
-      {
         stepKey: 'SET-005',
         categoryKey: 'configuration',
         titleKey: 'steps.set005.title',

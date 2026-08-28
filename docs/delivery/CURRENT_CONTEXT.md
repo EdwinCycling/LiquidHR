@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## Liquid Analyse AN-0/AN-1 — 2026-08-28
+
+**Status: LOCAL FEATURE SLICE — NO MAIN/PUSH/REMOTE APPLY**
+
+- Dedicated worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an-analysis-foundation`, `work/an-analysis-foundation`; baseline `origin/main` `e7e62e75e213a00f804215dae2233a850f438cd3`; zichtbare versie blijft `1.20260828.5`.
+- **LEGACY DASHBOARD: RETIRED IN CODE.** Globale persoonlijke widgetruntime, widgetbeheer, dashboard-API's, dashboard-i18n en het oude Insights Dashboard-item zijn verwijderd. `/dashboard` en `/settings/dashboard-widgets` redirecten naar `/insights/analysis`.
+- **ANALYSE HUB: ACTIVE.** `/insights/analysis` gebruikt de bestaande Foundation en toont exact vier opties; Nieuwe analyse, Verkennen en Mijn analyses zijn `PLANNED`, Rapporten is `ACTIVE` en linkt naar `/insights`. `/dashboard/start` en Employee 360 blijven behouden.
+- **LEGACY DB: RETIREMENT MIGRATION READY — NOT APPLIED.** `20260828125223_retire_legacy_dashboard.sql` dropt uitsluitend de vier legacy-tabellen in dependencyvolgorde, zonder `CASCADE`. Oude migration history blijft ongewijzigd; `dashboard:read` blijft het Analyse-contract; `dashboard-widget:*` blijft inert. **DB TYPES SYNC PENDING TEST MIGRATION APPLY.**
+- Verificatie: TDD-red op ontbrekende Analyse-contracten vastgelegd; gerichte gate `10` bestanden/`26` tests groen, strict TypeScript groen, i18n `33` gelijke NL/EN-sleutels, ESLint `0 errors / 8 warnings`, diff-check zonder inhoudelijke fout en Webpack-build `228/228` pagina's groen. Volledige suite `262` bestanden/`1006` tests: `261` bestanden/`1005` tests groen; uitsluitend de bekende Journey-failure op `Binnenkort beschikbaar` blijft buiten scope. Authenticated browser: HR Admin desktop `1440x900` en mobiel `390x844` bevestigden `/insights`, `/insights/analysis`, exact vier opties, `/dashboard`-redirect, intact `/dashboard/start`, Settings zonder widgettegel, legacy settings-redirect, overflowvrij en console `0/0`; Manager Analyse bereikbaar binnen bestaande bevoegdheid, Employee naar `/geen-toegang`. AN-2+ is niet geïmplementeerd. Geen main-merge, push, Vercel, version bump, remote migration apply of testdata-mutatie.
+- Handoff: [`LIQUID_ANALYSE_AN0_AN1.md`](../requirements/reports/LIQUID_ANALYSE_AN0_AN1.md).
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
