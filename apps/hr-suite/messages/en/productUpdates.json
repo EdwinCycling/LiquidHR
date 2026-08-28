@@ -1,6 +1,7 @@
 {
   "title": "What's new in the HR Platform",
   "subtitle": "New features and improvements for your workday.",
+  "unreadCount": "{count} unread updates",
   "open": "Open what's new",
   "close": "Close",
   "seen": "Seen",

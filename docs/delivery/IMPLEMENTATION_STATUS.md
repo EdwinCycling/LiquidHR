@@ -9,6 +9,14 @@ De geïsoleerde branch `work/setup-assistant-hr-admin-access` is vanaf exact `ma
 De access-contracttests dekken TENANT_ADMIN en HR Admin read, HR Admin write, read-only settings access, unauthorized access, visible-step filtering en related-route filtering. Gerichte tests zijn `14/14` groen, strict TypeScript, targeted ESLint, `check:i18n` en Webpack-production build (`229/229`) zijn groen. De volledige suite is `1015/1016` groen met uitsluitend de bekende ongewijzigde Journey-failure `components/journeys/journey-steps.test.tsx` op `Binnenkort beschikbaar`.
 
 Authenticated TEST HR Admin acceptance op de production-mode candidate (`127.0.0.1:3003`) is groen: `/settings/setup-assistant` toegankelijk, echte enable-`PATCH 200` en readback, Settings-tegel, dashboard-trigger, drawer met 4 categorieën/16 toegankelijke stappen, desktop `420px`, mobile `390x844`, geen horizontale overflow en `0` console errors/warnings. De bestaande Setup-instelling staat aan in TEST; completion is volgens browsermutatiescope niet gewijzigd. Geen migration, schema/RLS-wijziging of structurele remote DB-write. Zichtbare versie: `1.20260828.3`.
+## Centrale Navigation Sidebar v2 TEST-release — 2026-08-28
+
+**Status: TEST RELEASE GREEN**
+
+De Navigation Sidebar v2 is vanaf `work/navigation-sidebar-v2` (`5cae907c`) geïntegreerd op central baseline `778b6016`. De vijf vaste secties, Insights → Dashboard-gating, Gift Drawer/unread-badge, HR-group switcher, veilige menu-order-normalisatie en mobile/collapsed behavior blijven intact. De zichtbare versie is `1.20260828.5`; er zijn geen Dashboard-, AN-0/AN-1-, R7-3-, AI- of databasewijzigingen toegevoegd.
+
+De gerichte gate is `10/10` bestanden en `32/32` tests groen; strict TypeScript, i18n (`34` gelijke namespaces), ESLint (`0 errors / 8 bestaande warnings`), diff-check en Webpack `229/229` zijn groen. Full suite: `267/268` bestanden en `1021/1022` tests; alleen de bekende niet-gerelateerde Journey-failure `Binnenkort beschikbaar` blijft open. Browser-sanity op `1440x900` en `390x844` bevestigde de sidebar, Gift Drawer, Insights → Dashboard, Setup Assistant-trigger, organogram en viewport-gelijke scrollbreedte. De losse organogram-avatarrequest met HTTP `400` valt buiten deze delta.
+
 ## Roadmap 7 Slice 2 — Organization, Access & Context Model — 2026-08-28
 
 **Status: R7-2 TEST RELEASE GREEN — MAIN/VERSION/VERCEL VERIFICATION PENDING**

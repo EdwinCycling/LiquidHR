@@ -9,6 +9,14 @@ De dedicated branch `work/setup-assistant-hr-admin-access` is gestart vanaf exac
 De gerichte access-/guide-/schema-/version-tests zijn `14/14` groen, strict TypeScript, targeted ESLint en i18n zijn groen, en de Webpack-build genereert `229/229` routes. De volledige suite is `1015/1016` tests groen; alleen de bestaande, niet-gerelateerde Journey-failure op `Binnenkort beschikbaar` blijft staan.
 
 Authenticated TEST HR Admin op de candidate bereikte `/settings/setup-assistant`, enable gaf echte `PATCH 200` met readback, de Settings-tegel en dashboard-trigger waren zichtbaar, en de drawer toonde 4 categorieën en 16 toegankelijke stappen. Desktopdrawer: `420px`; mobile: `390x844` fullscreen; overflow bleef gelijk aan de viewport en de production-mode console eindigde op `0` errors / `0` warnings. De Setup Assistant-instelling is via de normale UI/API **AAN** gelaten in TEST; completion is niet browsergemuteerd. Geen migration, schema/RLS-wijziging of structurele remote DB-write is uitgevoerd. Zichtbare versie: `1.20260828.3`.
+## Centrale Navigation Sidebar v2 TEST-release — 2026-08-28
+
+**Status: TEST RELEASE GREEN**
+
+Navigation Sidebar v2 is semantisch geïntegreerd vanaf source `work/navigation-sidebar-v2` (`5cae907c`) op actuele central baseline `778b6016`. De vijf vaste secties, Dashboard-gating onder Insights, Gift Drawer/unread-badge, HR-group switcher, veilige menu-order-normalisatie en mobile/collapsed behavior zijn behouden. Zichtbare versie: `1.20260828.5`; geen Dashboard-redesign, AN-0/AN-1, R7-3, AI of databasewijziging.
+
+De targeted gate is `10/10` bestanden en `32/32` tests groen, met strict TypeScript, i18n (`34` gelijke namespaces), ESLint (`0 errors / 8 bestaande warnings`), diff-check en Webpack `229/229`. De full suite is `267/268` bestanden en `1021/1022` tests groen; uitsluitend de bekende niet-gerelateerde Journey-failure op `Binnenkort beschikbaar` blijft open. Authenticated browser-sanity op desktop `1440x900` en mobile `390x844` bevestigde sidebar, Gift Drawer, Insights → Dashboard, Setup Assistant-trigger, organogram en geen horizontale overflow. Eén aparte avatarrequest in het organogram gaf HTTP `400`; dit valt buiten de Navigation-delta.
+
 ## Roadmap 7 Slice 2 — Organization, Access & Context Model — 2026-08-28
 
 **Status: R7-2 TEST RELEASE GREEN — MAIN/VERSION/VERCEL VERIFICATION PENDING**

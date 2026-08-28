@@ -133,6 +133,7 @@ function TrendChart({ data, labels }: { data: readonly { month: string; total: n
 }
 
 function reportLabelPrefix(id: InsightReportId): string {
+  if (id === 'dashboard') return 'dashboard'
   if (id === 'employee-department') return 'employeesDepartment'
   if (id === 'employee-gender') return 'employeesGender'
   if (id === 'employee-age') return 'employeesAge'
@@ -181,7 +182,7 @@ export function InsightsWorkspace({ labels, reports, reportData, employeeQuery, 
   function removeEmployeeValue(field: 'teams' | 'segments' | 'reasons', value: string): void { applyEmployeeFilterChanges({ [field]: (filters[field] ?? []).filter((item) => item !== value) }) }
   function togglePanel() { const next = !selectionPanelOpen; setSelectionPanelOpen(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters, selectionPanelOpen: next }) }) }
   function togglePreservation() { const next = !preserveFilters; setPreserveFilters(next); void fetch('/api/preferences/insights', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ preserveFilters: next, selectionPanelOpen, ...(next && openReport && isPersistedEmployeeReport(openReport) ? { report: openReport, filters } : {}) }) }) }
-  function open(id: InsightReportId): void { const next = openReport === id ? null : id; setOpenFilter(null); router.push(buildInsightReportNavigationHref(searchParams, next), { scroll: false }); if (next) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`report-card-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))) }
+  function open(id: InsightReportId): void { if (id === 'dashboard') { router.push('/dashboard'); return } const next = openReport === id ? null : id; setOpenFilter(null); router.push(buildInsightReportNavigationHref(searchParams, next), { scroll: false }); if (next) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById(`report-card-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))) }
   const periodLabel = yearSpan > 1 ? `${year - yearSpan + 1} → ${year}` : fullYear ? String(year) : `${[labels.jan, labels.feb, labels.mar, labels.apr, labels.may, labels.jun, labels.jul, labels.aug, labels.sep, labels.oct, labels.nov, labels.dec][month - 1]} ${year}`
   const appliedEmployeeQuery = employeeQuery?.report === openReport ? employeeQuery : null
   const exportParams = appliedEmployeeQuery ? employeeInsightQueryParams(appliedEmployeeQuery) : new URLSearchParams({ report: openReport ?? '' }); exportParams.set('format', 'csv')

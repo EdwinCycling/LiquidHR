@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronUp,
   House,
-  LayoutDashboard,
   ListTodo,
   LogOut,
   Menu,
@@ -30,7 +29,9 @@ import { HrGroupSwitcher } from '@/components/layout/hr-group-switcher'
 import { Clock } from '@/components/layout/clock'
 import { TestRoleSwitcher, type TestRoleSwitchOption } from '@/components/layout/test-role-switcher'
 import { TimeHub, type TimeHubLabels } from '@/components/reminders/time-hub'
-import { ProductUpdateSidebarLink } from '@/components/product-updates/product-update-surfaces'
+import { ProductUpdateDrawerTrigger, type ProductUpdateSurfaceLabels } from '@/components/product-updates/product-update-surfaces'
+import type { ProductUpdate } from '@/lib/product-updates/service'
+import { buildSidebarSections, normalizeSidebarMenuOrder } from '@/components/layout/sidebar-navigation'
 import type {
   HrGroupContextOption,
   HrGroupSwitcherMode,
@@ -42,7 +43,6 @@ import type { ToggleableModuleCode } from '@/lib/modules/module-catalog'
 
 interface SidebarLabels {
   appName: string
-  dashboard: string
   startPage: string
   version: string
   organizationChart: string
@@ -65,13 +65,16 @@ interface SidebarLabels {
   switchingHrGroup: string
   switchHrGroupFailed: string
   timeHub: string
-  productUpdates: string
+  sectionDaily: string
+  sectionPeopleOrganization: string
+  sectionHrProcesses: string
+  sectionSteering: string
+  sectionManagement: string
   signOut: string
 }
 
 interface SidebarProps {
   canReadEmployees: boolean
-  canReadDashboard: boolean
   canReadStartPage: boolean
   canReadWorkforce: boolean
   canReadProcessWork: boolean
@@ -91,6 +94,8 @@ interface SidebarProps {
   reminders: ReminderItem[]
   locale: Locale
   productUpdateUnreadCount: number
+  productUpdates: ProductUpdate[]
+  productUpdateLabels: ProductUpdateSurfaceLabels
   activeHrGroupId: string
   hrGroups: HrGroupContextOption[]
   hrGroupSwitcherMode: HrGroupSwitcherMode
@@ -107,7 +112,6 @@ interface SidebarProps {
 
 export function Sidebar({
   canReadEmployees,
-  canReadDashboard,
   canReadStartPage,
   canReadWorkforce,
   canReadProcessWork,
@@ -127,6 +131,8 @@ export function Sidebar({
   reminders,
   locale,
   productUpdateUnreadCount,
+  productUpdates,
+  productUpdateLabels,
   activeHrGroupId,
   hrGroups,
   hrGroupSwitcherMode,
@@ -139,48 +145,37 @@ export function Sidebar({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [currentProductUpdateUnreadCount, setCurrentProductUpdateUnreadCount] = useState(productUpdateUnreadCount)
   const links = [
-    { href: '/dashboard', label: labels.dashboard, icon: LayoutDashboard, visible: canReadDashboard, nested: false },
-    { href: '/dashboard/start', label: labels.startPage, icon: House, visible: canReadStartPage, nested: false },
-    { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees, nested: false },
-    { href: '/work', label: labels.work, icon: ListTodo, visible: canReadProcessWork, nested: false },
-    { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch, nested: false },
-    { href: '/recruitment', label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment, nested: false },
-    { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys, nested: false },
-    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart, nested: false },
-    { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar, nested: false },
-    { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights, nested: false },
-    { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce, nested: false },
-    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, nested: false, exact: true },
+    { href: '/dashboard/start', label: labels.startPage, icon: House, visible: canReadStartPage },
+    { href: '/work', label: labels.work, icon: ListTodo, visible: canReadProcessWork },
+    { href: '/hr-calendar', label: labels.hrCalendar, icon: CalendarRange, visible: canReadHrCalendar },
+    { href: '/employees', label: labels.employees, icon: Users, visible: canReadEmployees },
+    { href: '/organization-chart', label: labels.organizationChart, icon: Network, visible: canReadOrganizationChart },
+    { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce },
+    { href: '/recruitment', label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
+    { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
+    { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
+    { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
+    { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, exact: true },
   ]
   useEffect(() => {
     const load = () => {
       try {
         const saved = JSON.parse(window.localStorage.getItem('liquidhr.sidebar-menu-order') ?? '[]')
         if (!Array.isArray(saved)) return
-        const allowedMenuHrefs = new Set(['/dashboard', '/dashboard/start', '/employees', '/work', '/research', '/recruitment', '/journeys', '/organization-chart', '/hr-calendar', '/insights', '/workforce', '/settings'])
-        const normalized = saved.filter((value): value is string => typeof value === 'string' && allowedMenuHrefs.has(value))
-        if (canReadStartPage && !normalized.includes('/dashboard/start')) {
-          const dashboardIndex = normalized.indexOf('/dashboard')
-          normalized.splice(dashboardIndex < 0 ? 0 : dashboardIndex + 1, 0, '/dashboard/start')
-        }
-        if (canReadWorkforce && !normalized.includes('/workforce')) {
-          const settingsIndex = normalized.indexOf('/settings')
-          normalized.splice(settingsIndex < 0 ? normalized.length : settingsIndex, 0, '/workforce')
-        }
-        setMenuOrder(normalized)
+        setMenuOrder(normalizeSidebarMenuOrder(saved))
       } catch { setMenuOrder([]) }
     }
-    const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(detail) }
+    const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(normalizeSidebarMenuOrder(detail)) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
   }, [canOpenResearch, canReadJourneys, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
-  const orderedLinks = [...links].sort((left, right) => {
-    const leftIndex = menuOrder.indexOf(left.href)
-    const rightIndex = menuOrder.indexOf(right.href)
-    const leftRank = leftIndex < 0 ? links.length + links.indexOf(left) : leftIndex
-    const rightRank = rightIndex < 0 ? links.length + links.indexOf(right) : rightIndex
-    return leftRank - rightRank
-  })
+  const sidebarSections = buildSidebarSections(links, {
+    daily: labels.sectionDaily,
+    peopleOrganization: labels.sectionPeopleOrganization,
+    hrProcesses: labels.sectionHrProcesses,
+    steering: labels.sectionSteering,
+    management: labels.sectionManagement,
+  }, menuOrder)
 
   return (
     <>
@@ -227,29 +222,40 @@ export function Sidebar({
         ) : null}
 
         <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto px-3">
-          {orderedLinks.filter((link) => link.visible).map((link) => {
-            const active = link.href === '/dashboard' || link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`)
-            const Icon = link.icon
-            return (
-              <Link key={link.href} aria-current={active ? 'page' : undefined}
-                className={`group flex items-center gap-3 rounded-lg text-sm transition-colors ${collapsed ? 'mx-auto size-11 justify-center p-0' : 'px-3 py-2.5'} ${!collapsed && link.nested ? 'ml-3 border-l border-sidebar-border pl-4' : ''} ${active ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
-                href={link.href} onClick={() => setMobileOpen(false)} title={collapsed ? link.label : undefined}>
-                <Icon aria-hidden="true" className="shrink-0" size={18} />
-                {!collapsed ? <span>{link.label}</span> : null}
-                {active && !collapsed ? <span aria-hidden="true" className="ml-auto h-4 w-0.5 rounded bg-sidebar-foreground" /> : null}
-              </Link>
-            )
-          })}
-          <ProductUpdateSidebarLink collapsed={collapsed} labels={{ title: labels.productUpdates }} unreadCount={currentProductUpdateUnreadCount} />
+          <div className="space-y-5 py-4">
+            {sidebarSections.map((section) => (
+              <section aria-labelledby={!collapsed ? `sidebar-section-${section.id}` : undefined} key={section.id}>
+                {!collapsed ? <h2 className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-muted/75" id={`sidebar-section-${section.id}`}>{section.label}</h2> : null}
+                <div className="space-y-1">
+                  {section.items.map((link) => {
+                    const active = link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`)
+                    const Icon = link.icon
+                    return (
+                      <Link key={link.href} aria-current={active ? 'page' : undefined}
+                        className={`group flex items-center gap-3 rounded-lg text-sm transition-colors ${collapsed ? 'mx-auto size-11 justify-center p-0' : 'px-3 py-2.5'} ${active ? 'bg-sidebar-accent text-sidebar-foreground' : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}
+                        href={link.href} onClick={() => setMobileOpen(false)} title={collapsed ? link.label : undefined}>
+                        <Icon aria-hidden="true" className="shrink-0" size={18} />
+                        {!collapsed ? <span>{link.label}</span> : null}
+                        {active && !collapsed ? <span aria-hidden="true" className="ml-auto h-4 w-0.5 rounded bg-sidebar-foreground" /> : null}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
         </nav>
 
         <div className={`shrink-0 border-t border-sidebar-border ${collapsed ? 'p-3' : 'px-4 py-4'}`}>
+          <ProductUpdateDrawerTrigger collapsed={collapsed} labels={productUpdateLabels} locale={locale} onClose={() => setMobileOpen(false)} unreadCount={currentProductUpdateUnreadCount} updates={productUpdates} />
+          <div className={collapsed ? 'mt-3 grid place-items-center gap-2 border-t border-sidebar-border pt-3' : 'mt-3 flex items-center justify-between gap-3 border-t border-sidebar-border pt-3'}>
           {!collapsed && testRoleSwitch.enabled && testRoleSwitch.currentEmail ? (
             <TestRoleSwitcher currentEmail={testRoleSwitch.currentEmail} labels={testRoleSwitch.labels} options={testRoleSwitch.options} />
           ) : null}
           <div className={collapsed ? 'grid place-items-center gap-2' : 'flex items-center justify-between gap-3'} title={collapsed ? labels.timeHub : undefined}>
             {!collapsed ? <Clock mode={preferences.clockMode} style={preferences.analogClockStyle} timeFormat={preferences.timeFormat} /> : null}
             {enabledModules.includes('REMINDERS') ? <TimeHub collapsed={collapsed} initialReminders={reminders} labels={reminderLabels} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} /> : null}
+          </div>
           </div>
         </div>
 

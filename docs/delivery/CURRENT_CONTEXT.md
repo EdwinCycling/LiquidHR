@@ -19,6 +19,14 @@
 - Foundation: canonical PageShell/PageHeader, surfaces, fields, choice controls, collection toolbar/table, drawers, dialogs, row actions and chart surface conventions reused. No migration, schema/RLS/grant or structural remote write.
 - Gates/browser: central R7-2 and Setup Assistant tests, strict TypeScript, i18n, ESLint, Webpack and diff-check are green; full suite has only the known unrelated Journey failure on `Binnenkort beschikbaar`. HR Admin, Manager and Employee sanity was verified on desktop `1440x900` and mobile `390x844`, including overflow/console checks and Setup Assistant access.
 - Handoff: [`R7_2_ORGANIZATION_ACCESS_CONTEXT.md`](R7_2_ORGANIZATION_ACCESS_CONTEXT.md).
+## Centrale Navigation Sidebar v2 TEST-release — 2026-08-28
+
+**Status: TEST RELEASE GREEN**
+
+- Dedicated release-worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\navigation-sidebar-v2-release`, branch `work/navigation-sidebar-v2-release-integration`, is vanaf actuele `main`/`origin/main` `778b601670c87ca7596000937d895859498b483a` opgebouwd en bevat source `work/navigation-sidebar-v2` op `5cae907c474933cffc770ff82beebd1b6328ac87`. De enige mergeconflict was delivery-documentatie; de bestaande centrale handoffs en de Navigation Sidebar-handoff zijn behouden. De dirty root is niet aangeraakt.
+- Scope blijft exact: vijf vaste sidebarsecties; Dashboard niet in de primaire sidebar maar `dashboard:read`-gated onder Insights; Gift-trigger met unread-badge en canonical Drawer; HR-group switcher uitsluitend bij meer dan één groep; veilige menu-order-normalisatie; mobile/collapsed gedrag. Geen Dashboard-redesign, AN-0/AN-1, R7-3, AI, migration, schema/RLS/grant-, permission- of databasewijziging.
+- Zichtbare versie is exact `1.20260828.5` in `apps/hr-suite/lib/app-version.ts` en de canonieke version-test. Targeted gate: `10/10` bestanden en `32/32` tests; strict TypeScript; i18n `34` gelijke NL/EN-namespaces; ESLint `0 errors / 8 warnings` (bestaande warnings); diff-check; Webpack `229/229` routes. Full suite: `267/268` bestanden en `1021/1022` tests; alleen de bekende niet-gerelateerde Journey-failure op `Binnenkort beschikbaar` blijft open.
+- Authenticated browser-sanity op production-mode candidate `127.0.0.1:3014`: desktop `1440x900` en mobile `390x844` dekten sidebarsecties, Gift Drawer, Insights → Dashboard, Setup Assistant-trigger en organogram. `scrollWidth` bleef gelijk aan de viewport. Eén aparte bestaande organogram-avatarrequest gaf HTTP `400`; geen organization/avatar-bestand zit in deze delta en er is geen in-scope Navigation-regressie vastgesteld. Geen testdata-mutatie uitgevoerd.
 
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 

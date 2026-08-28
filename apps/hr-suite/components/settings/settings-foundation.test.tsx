@@ -21,8 +21,8 @@ describe('R7-1 settings Foundation convergence', () => {
   })
 
   it('keeps menu ordering local while exposing Foundation action controls', () => {
-    const markup = renderToStaticMarkup(<MenuOrderForm cancelLabel="Annuleren" items={[{ href: '/dashboard', label: 'Dashboard' }, { href: '/employees', label: 'Medewerkers' }]} moveDownLabel="omlaag" moveUpLabel="omhoog" saveLabel="Opslaan" savedLabel="Opgeslagen" />)
-    expect(markup).toContain('Dashboard omhoog')
+    const markup = renderToStaticMarkup(<MenuOrderForm cancelLabel="Annuleren" sections={[{ id: 'daily', label: 'Dagelijks', items: [{ href: '/dashboard/start', label: 'Startpagina' }] }, { id: 'people', label: 'Mensen', items: [{ href: '/employees', label: 'Medewerkers' }] }]} moveDownLabel="omlaag" moveUpLabel="omhoog" saveLabel="Opslaan" savedLabel="Opgeslagen" />)
+    expect(markup).toContain('Startpagina omhoog')
     expect(markup).toContain('Medewerkers omlaag')
     expect(markup).toContain('Annuleren')
   })
