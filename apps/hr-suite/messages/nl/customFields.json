@@ -54,5 +54,9 @@
   "yes": "Ja",
   "no": "Nee",
   "types": { "TEXT": "Tekst", "TEXTAREA": "Meerdere regels", "NUMBER": "Getal", "DATE": "Datum", "BOOLEAN": "Ja/nee", "SELECT": "Keuzelijst", "MULTI_SELECT": "Meerdere keuzes", "AUTO_INCREMENT": "Automatisch nummer" },
-  "access": { "HIDDEN": "Verborgen", "READ": "Lezen", "WRITE": "Lezen en wijzigen" }
+  "access": { "HIDDEN": "Verborgen", "READ": "Lezen", "WRITE": "Lezen en wijzigen" },
+  "discardTitle": "Wijzigingen negeren?",
+  "discardDescription": "Niet-opgeslagen wijzigingen aan dit vrije veld gaan verloren.",
+  "discardConfirm": "Wijzigingen negeren",
+  "keepEditing": "Verder bewerken"
 }

@@ -47,5 +47,9 @@
   "invalid": "Check the required fields and dates.",
   "noResults": "No updates found.",
   "created": "Update added.",
-  "deleted": "Update deleted."
+  "deleted": "Update deleted.",
+  "discardTitle": "Discard changes?",
+  "discardDescription": "You have unsaved changes.",
+  "discardConfirm": "Discard changes",
+  "keepEditing": "Keep editing"
 }

@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## R8-1 Foundation Final Sweep — 2026-08-28
+
+**Status: R8 FOUNDATION FINAL SWEEP LOCAL GREEN — READY FOR FINAL UX FOUNDATION RELEASE**
+
+- Worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r8-foundation-final-sweep`, `work/r8-foundation-final-sweep`; baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`; zichtbare versie `1.20260828.6` zonder bump.
+- R8-1 convergeerde Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail op bestaande Foundation v1.2. Geen nieuwe Foundation primitives; `NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT`. API/service/permission/business/schema/migration/RLS/grantcontracten bleven ongewijzigd.
+- Lokale gates: targeted `15/15` bestanden en `97/97` tests, strict TypeScript, i18n `34` gelijke namespaces, ESLint, Webpack `229/229` en diff-check groen. Full suite `268/269` bestanden en `1023/1024` tests; alleen de bekende Journey-baselinefailure op `Binnenkort beschikbaar`.
+- Browser: `LOCAL AUTHENTICATED BROWSER ACCEPTANCE BLOCKED — OAUTH REDIRECT LIMITATION`; lokale Playwright bleef door de bestaande OAuth redirect naar Vercel op login. Dit is geen product/Foundation-blocker. Authenticated browseracceptance is verplicht doorgeschoven naar R8-2 post-deploy Vercel sanity.
+- Geldige uitzonderingen: Time Hub anchored portal; Product Updates branded/public presentation; grafische/native/hidden-control uitzonderingen; AN-owned `/dashboard` residuals blijven buiten R8. Geen schema/migration/RLS/grants, auth/OAuth-config, `.env`, login-code, production settings, version bump, merge, push, Vercel of DB-write.
+- Na deze delivery geen nieuwe volledige testcarousel. De werkboom wordt met de lokale R8-deliverycommit schoon opgeleverd.
+- Handoff: [`R8_FOUNDATION_FINAL_SWEEP.md`](R8_FOUNDATION_FINAL_SWEEP.md).
+
 ## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
 
 **Status: R7-3 TEST RELEASE GREEN — READY FOR TEST PROVENANCE; REQUIREMENTS GATE RECORDED**

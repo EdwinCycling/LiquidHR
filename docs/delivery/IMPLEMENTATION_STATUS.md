@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## R8-1 Foundation Final Sweep — 2026-08-28
+
+**Status: R8 FOUNDATION FINAL SWEEP LOCAL GREEN — READY FOR FINAL UX FOUNDATION RELEASE**
+
+R8-1 is lokaal afgerond in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r8-foundation-final-sweep`, branch `work/r8-foundation-final-sweep`, vanaf baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`. Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail zijn op bestaande Foundation v1.2-controls geconvergeerd. API-, service-, permission-, business-, schema-, migration-, RLS- en grantcontracten zijn behouden; er zijn geen nieuwe Foundation primitives toegevoegd. `NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` is vastgelegd als leidende regel.
+
+Lokale gates: gerichte tests `15/15` bestanden en `97/97` tests; strict TypeScript; i18n `34` gelijke NL/EN-namespaces; ESLint groen; Webpack-productiebuild `229/229`; `git diff --check` groen. Full suite: `268/269` bestanden en `1023/1024` tests, met uitsluitend de bekende, niet-gerelateerde Journey-failure op `Binnenkort beschikbaar`.
+
+Browser: `LOCAL AUTHENTICATED BROWSER ACCEPTANCE BLOCKED — OAUTH REDIRECT LIMITATION`. De lokale authenticated Playwright-flow werd door de bestaande OAuth redirect naar Vercel op de loginroute gehouden. Dit is geen product- of Foundation-blocker. Authenticated browseracceptance is verplicht verplaatst naar R8-2 post-deploy Vercel sanity. Geldige uitzonderingen zijn de anchored Time Hub portal, Product Updates branded/public presentation, grafische/native/hidden-control uitzonderingen en AN-owned `/dashboard` residuals. Geen `.env`- of secretwijziging, version bump, merge, push, Vercel- of DB-actie.
+
+Zie [`R8_FOUNDATION_FINAL_SWEEP.md`](R8_FOUNDATION_FINAL_SWEEP.md) voor de volledige handoff.
+
 ## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
 
 **Status: R7-3 TEST RELEASE GREEN — READY FOR TEST PROVENANCE; REQUIREMENTS GATE RECORDED**

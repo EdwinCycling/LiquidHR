@@ -47,5 +47,9 @@
   "invalid": "Controleer de verplichte velden en datums.",
   "noResults": "Geen updates gevonden.",
   "created": "Update toegevoegd.",
-  "deleted": "Update verwijderd."
+  "deleted": "Update verwijderd.",
+  "discardTitle": "Wijzigingen verwerpen?",
+  "discardDescription": "Je hebt wijzigingen die nog niet zijn opgeslagen.",
+  "discardConfirm": "Wijzigingen verwerpen",
+  "keepEditing": "Verder bewerken"
 }

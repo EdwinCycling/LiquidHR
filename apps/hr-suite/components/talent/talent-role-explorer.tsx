@@ -1,5 +1,6 @@
 import type { BadgeTone } from '@/components/ui/badge'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { Surface } from '@/components/ui/surface'
 import type { TalentRoleExplorerAxis, TalentRoleExplorerMode, TalentRoleExplorerWorkspace } from '@/lib/talent/role-explorer-service'
@@ -159,12 +160,12 @@ export function TalentRoleExplorer({ initial, labels, action, mode }: { initial:
     <Surface className="p-4 sm:p-5" variant="subtle">
       <form action={action} method="get" className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
         {mode !== 'self' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="role-explorer-employee">{labels.employee}
-          <DropdownSelect aria-label={labels.employee} className="form-field" defaultValue={initial.selectedEmployeeId ?? ''} emptyLabel={labels.noEmployees} id="role-explorer-employee" name="employeeId" searchable searchPlaceholder={labels.chooseEmployee}><option value="">{labels.chooseEmployee}</option>{initial.employees.map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.employeeLabel} · {employee.employeeNumber}</option>)}</DropdownSelect>
+          <DropdownSelect aria-label={labels.employee} defaultValue={initial.selectedEmployeeId ?? ''} emptyLabel={labels.noEmployees} id="role-explorer-employee" name="employeeId" searchable searchPlaceholder={labels.chooseEmployee}><option value="">{labels.chooseEmployee}</option>{initial.employees.map((employee) => <option key={employee.employeeId} value={employee.employeeId}>{employee.employeeLabel} · {employee.employeeNumber}</option>)}</DropdownSelect>
         </label> : <div className="rounded-[var(--radius-control)] border border-subtle bg-surface p-3 text-sm"><p className="font-medium">{labels.employee}</p><p className="mt-1">{selectedEmployee?.employeeLabel ?? labels.chooseEmployee}</p><p className="mt-1 text-xs text-muted-foreground">{labels.currentJob}: {selectedEmployee?.currentJobCode ?? selectedEmployee?.jobTitle ?? '—'}</p></div>}
         <label className="grid gap-1.5 text-sm font-medium" htmlFor="role-explorer-profile">{labels.profile}
-          <DropdownSelect aria-label={labels.profile} className="form-field" defaultValue={initial.selectedProfileVersionId ?? ''} emptyLabel={labels.noProfiles} id="role-explorer-profile" name="profileVersionId" searchable searchPlaceholder={labels.chooseProfile}><option value="">{labels.chooseProfile}</option>{initial.profiles.map((profile) => <option key={profile.profileVersionId} value={profile.profileVersionId}>{profile.jobCode} · v{profile.profileVersion}{profile.jobGroupName ? ` · ${profile.jobGroupName}` : ''}</option>)}</DropdownSelect>
+          <DropdownSelect aria-label={labels.profile} defaultValue={initial.selectedProfileVersionId ?? ''} emptyLabel={labels.noProfiles} id="role-explorer-profile" name="profileVersionId" searchable searchPlaceholder={labels.chooseProfile}><option value="">{labels.chooseProfile}</option>{initial.profiles.map((profile) => <option key={profile.profileVersionId} value={profile.profileVersionId}>{profile.jobCode} · v{profile.profileVersion}{profile.jobGroupName ? ` · ${profile.jobGroupName}` : ''}</option>)}</DropdownSelect>
         </label>
-        <button className="button-primary" disabled={noEmployees || noProfiles} type="submit">{labels.compare}</button>
+        <Button disabled={noEmployees || noProfiles} type="submit">{labels.compare}</Button>
       </form>
     </Surface>
     {selectedEmployee ? <Surface className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5" variant="subtle"><div><p className="text-xs text-muted-foreground">{labels.currentJob}</p><p className="mt-1 font-semibold">{selectedEmployee.currentJobCode ?? selectedEmployee.jobTitle ?? '—'}</p><p className="mt-1 text-sm text-muted-foreground">{selectedEmployee.jobTitle ?? '—'}</p></div><div><p className="text-xs text-muted-foreground">{labels.currentProfile}</p><p className="mt-1 font-semibold">{selectedEmployee.currentProfileVersionId ? `v${selectedEmployee.currentProfileVersion ?? 0}` : labels.noCurrentProfile}</p></div><div><p className="text-xs text-muted-foreground">{labels.scope}</p><p className="mt-1 font-semibold tabular-nums">{initial.employees.length}</p></div></Surface> : null}

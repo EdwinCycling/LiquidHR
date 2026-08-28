@@ -9,6 +9,9 @@ import type { ProcessAutomationOperations, ProcessOutputProjection } from '@/lib
 import type { ProcessWorkAssignmentOption, ProcessWorkDetail } from '@/lib/process-automation/work-service'
 import { Button, buttonClasses } from '../ui/button'
 import { DropdownSelect } from '../ui/dropdown-select'
+import { Textarea } from '../ui/textarea'
+import { ConfirmDialog } from '../patterns/confirm-dialog'
+import { FormField } from '../patterns/form-field'
 import { FormRuntimeRenderer } from './form-runtime-renderer'
 import { InternalTransferCommitPanel } from './internal-transfer-commit-panel'
 
@@ -165,6 +168,7 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
   const [requestChangesReason, setRequestChangesReason] = useState('')
   const [reassignOpen, setReassignOpen] = useState(false)
   const [selectedAssigneeId, setSelectedAssigneeId] = useState(detail.assigneeEmployeeId ?? assignmentOptions[0]?.id ?? '')
+  const [confirmAction, setConfirmAction] = useState<string | null>(null)
 
   async function post(path: string, body: Record<string, unknown>, actionKey: string): Promise<void> {
     setBusy(actionKey)
@@ -195,18 +199,25 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
   const documentId = typeof documentValue === 'string' ? documentValue : typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.id === 'string' ? documentValue.id : null
   const documentLabel = typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.label === 'string' ? documentValue.label : documentId
 
+  function executeAction(action: string): void {
+    const path = isDocumentAcknowledgement && action === 'ACKNOWLEDGE' ? `/api/process-work-items/${detail.workItemId}/document-acknowledgement` : `/api/process-work-items/${detail.workItemId}/action`
+    const body = isDocumentAcknowledgement && action === 'ACKNOWLEDGE'
+      ? { ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }
+      : { action, ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }
+    void post(path, body, action)
+  }
+
   function runAction(action: string): void {
     if (action === 'REQUEST_CHANGES') {
       setRequestChangesOpen(true)
       setFeedback(null)
       return
     }
-    if ((action === 'REJECT' || action === 'CANCEL') && !window.confirm(labels.confirmAction)) return
-    const path = isDocumentAcknowledgement && action === 'ACKNOWLEDGE' ? `/api/process-work-items/${detail.workItemId}/document-acknowledgement` : `/api/process-work-items/${detail.workItemId}/action`
-    const body = isDocumentAcknowledgement && action === 'ACKNOWLEDGE'
-      ? { ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }
-      : { action, ...expected, stepExpectedVersion: detail.stepExpectedVersion, idempotencyKey: globalThis.crypto.randomUUID(), correlationId: detail.correlationId }
-    void post(path, body, action)
+    if (action === 'REJECT' || action === 'CANCEL') {
+      setConfirmAction(action)
+      return
+    }
+    executeAction(action)
   }
 
   async function submitRequestChanges(): Promise<void> {
@@ -227,6 +238,7 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
   }
 
   return (
+    <>
     <section className="mx-auto w-full max-w-[92rem] px-4 py-8 sm:px-6 lg:px-10">
       <Link className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'mb-4 -ml-3' })} href={backHref}>{labels.backToWork}</Link>
       <header className="rounded-[var(--radius-surface)] border border-border bg-surface p-6 sm:p-8">
@@ -250,7 +262,7 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
         {actionButtons.map(({ action, label }) => <Button disabled={busy !== null} key={action} loading={busy === action} onClick={() => runAction(action)} type="button" variant="secondary">{label}</Button>)}
         {reassignOpen ? <div className="basis-full grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:grid-cols-[minmax(0,1fr)_auto]"><label className="grid min-w-0 gap-2 text-sm font-semibold" htmlFor="reassign-employee">{labels.reassignEmployee}<DropdownSelect aria-label={labels.reassignEmployee} id="reassign-employee" onChange={(event) => setSelectedAssigneeId(event.target.value)} searchable searchPlaceholder={labels.reassignEmployee} value={selectedAssigneeId}><option disabled value="">{labels.assignmentOptionsEmpty}</option>{assignmentOptions.map((option) => <option key={`${option.id}-${option.resolutionDate}`} value={option.id}>{option.name} · {option.employeeNumber}</option>)}</DropdownSelect></label><div className="flex items-end gap-2"><Button disabled={busy !== null || !selectedAssigneeId} loading={busy === 'reassign'} onClick={() => { void submitReassign() }} type="button">{labels.reassignSubmit}</Button><Button disabled={busy !== null} onClick={() => setReassignOpen(false)} type="button" variant="ghost">{labels.actionCancel}</Button></div></div> : null}
         {detail.canReassign && assignmentOptions.length === 0 ? <p className="basis-full text-sm text-muted-foreground">{labels.assignmentOptionsEmpty}</p> : null}
-        {requestChangesOpen ? <div className="basis-full rounded-[var(--radius-surface)] border border-border bg-surface p-4"><label className="grid gap-2 text-sm font-semibold" htmlFor="request-changes-reason">{labels.requestChangesReason}<textarea className="form-field min-h-24 font-normal" id="request-changes-reason" onChange={(event) => setRequestChangesReason(event.target.value)} value={requestChangesReason} /></label><div className="mt-3 flex flex-wrap justify-end gap-2"><Button disabled={busy !== null} onClick={() => { setRequestChangesOpen(false); setRequestChangesReason('') }} type="button" variant="ghost">{labels.actionCancel}</Button><Button disabled={busy !== null} loading={busy === 'request-changes'} onClick={() => { void submitRequestChanges() }} type="button" variant="secondary">{labels.requestChangesSubmit}</Button></div></div> : null}
+        {requestChangesOpen ? <div className="basis-full rounded-[var(--radius-surface)] border border-border bg-surface p-4"><FormField control={<Textarea className="min-h-24" id="request-changes-reason" onChange={(event) => setRequestChangesReason(event.target.value)} value={requestChangesReason} />} label={labels.requestChangesReason} /><div className="mt-3 flex flex-wrap justify-end gap-2"><Button disabled={busy !== null} onClick={() => { setRequestChangesOpen(false); setRequestChangesReason('') }} type="button" variant="ghost">{labels.actionCancel}</Button><Button disabled={busy !== null} loading={busy === 'request-changes'} onClick={() => { void submitRequestChanges() }} type="button" variant="secondary">{labels.requestChangesSubmit}</Button></div></div> : null}
         {feedback ? <p aria-live="polite" className="basis-full text-sm font-medium text-muted-foreground">{feedback}</p> : null}
       </div>
       {detail.status === 'BLOCKED' ? <p className="mt-3 rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-warning" role="status">{labels.blocked}</p> : null}
@@ -260,15 +272,17 @@ export function ProcessWorkDetailView({ detail, form, outputs, operations, local
         <div className="grid gap-6">
           <section className="rounded-[var(--radius-surface)] border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.assignment}</h2><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">{labels.assignmentMode}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.assignmentMode ?? detail.assignmentMode}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentSource}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.source ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentDate}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.resolutionDate ?? labels.unknown}</dd></div><div><dt className="text-muted-foreground">{labels.assignmentRole}</dt><dd className="mt-1 font-medium">{detail.assignmentExplanation.roleCode ?? detail.participantKey}</dd></div></dl><p className="mt-4 text-sm text-muted-foreground">{detail.assigneeEmployeeId ? `${labels.reassignEmployee}: ${detail.assigneeEmployeeId}` : labels.unassigned}</p>{detail.claimedByUserId ? <p className="mt-1 text-sm text-muted-foreground">{labels.claimedBy}: {detail.claimedByUserId}</p> : null}</section>
           {form ? <section aria-label={labels.form} className="rounded-2xl border border-border bg-surface"><FormRuntimeRenderer initialProjection={form} locale={locale} labels={{ currentValue: labels.formCurrentValue, newValue: labels.formNewValue, saving: labels.formSaving, saved: labels.formSaved, saveError: labels.formSaveError, stale: labels.formStale, save: labels.formSave, errorSummary: labels.formErrorSummary, required: labels.formRequired, invalid: labels.formInvalid, readOnly: labels.formReadOnly, noValue: labels.formNoValue, booleanTrue: labels.formBooleanTrue, booleanFalse: labels.formBooleanFalse, referenceSearch: labels.formReferenceSearch, referenceLoading: labels.formReferenceLoading, referenceNoOptions: labels.formReferenceNoOptions, scrollHint: labels.formScrollHint }} /></section> : null}
-          {isDocumentAcknowledgement && documentId ? <section className="rounded-2xl border border-border bg-surface p-5" aria-labelledby="document-acknowledgement-document"><h2 className="text-xl font-semibold" id="document-acknowledgement-document">{labels.documentDownload}</h2><p className="mt-2 text-sm font-medium">{documentLabel ?? labels.formNoValue}</p><p className="mt-2 break-all text-xs text-muted-foreground">{labels.documentChecksum}: {typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.checksumSha256 === 'string' ? documentValue.checksumSha256 : labels.formNoValue}</p><Link className="button-secondary mt-4 inline-flex" href={`/api/process-work-items/${detail.workItemId}/document`}>{labels.documentDownload}</Link></section> : null}
+          {isDocumentAcknowledgement && documentId ? <section className="rounded-2xl border border-border bg-surface p-5" aria-labelledby="document-acknowledgement-document"><h2 className="text-xl font-semibold" id="document-acknowledgement-document">{labels.documentDownload}</h2><p className="mt-2 text-sm font-medium">{documentLabel ?? labels.formNoValue}</p><p className="mt-2 break-all text-xs text-muted-foreground">{labels.documentChecksum}: {typeof documentValue === 'object' && documentValue !== null && !Array.isArray(documentValue) && typeof documentValue.checksumSha256 === 'string' ? documentValue.checksumSha256 : labels.formNoValue}</p><Link className={buttonClasses({ className: 'mt-4 inline-flex', size: 'sm', variant: 'secondary' })} href={`/api/process-work-items/${detail.workItemId}/document`}>{labels.documentDownload}</Link></section> : null}
           {outputs ? <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.output}</h2><div className="mt-4 grid gap-4">{outputs.outputs.length === 0 ? <p className="text-sm text-muted-foreground">{labels.downloadUnavailable}</p> : outputs.outputs.map((output) => <article className="rounded-xl border border-border p-4" key={output.id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{output.title}</h3><p className="mt-1 text-xs text-muted-foreground">{outputStatusLabel(output.status, labels)}</p></div>{output.documentId && output.status === 'AVAILABLE' ? <Link className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-primary" href={`/api/process-instances/${detail.processInstanceId}/outputs/${output.id}/download`}>{labels.download}</Link> : null}</div>{output.htmlSummary && output.status === 'AVAILABLE' ? <div className="prose prose-sm mt-4 max-w-none border-t border-border pt-4" dangerouslySetInnerHTML={{ __html: output.htmlSummary }} /> : null}</article>)}</div></section> : null}
         </div>
         <aside className="grid content-start gap-6">
           <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.progress}</h2><ol className="mt-4 grid gap-3">{detail.steps.map((step) => <li className="flex items-start gap-3 text-sm" key={step.id}><span aria-hidden="true" className={`mt-1 size-2.5 shrink-0 rounded-full ${step.status === 'COMPLETED' ? 'bg-success' : step.stepKey === detail.currentStepKey ? 'bg-primary' : 'bg-border'}`} /><span><span className="font-medium">{step.stepKey}</span><span className="block text-xs text-muted-foreground">{step.status} · {date(step.deadlineAt, locale)}</span></span></li>)}</ol></section>
           <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.timeline}</h2><ol className="mt-4 grid gap-3">{detail.timeline.map((event) => <li className="border-l-2 border-border pl-3 text-sm" key={event.id}><p className="font-medium">{event.eventType}</p><p className="mt-1 text-xs text-muted-foreground">{date(event.createdAt, locale)}</p></li>)}</ol></section>
-          {operations ? <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.operations}</h2><div className="mt-4 grid gap-3">{operations.jobs.map((job) => <div className="rounded-xl bg-muted/40 p-3 text-xs" key={job.id}><div className="flex justify-between gap-2"><span className="font-semibold">{job.jobType}</span><span>{job.status}</span></div><p className="mt-1 text-muted-foreground">{job.attempts}/{job.maxAttempts} · {labels.lastAttempt}: {date(job.lastAttemptAt, locale)}</p>{job.lastErrorCode ? <p className="mt-1 text-destructive">{job.lastErrorCode}</p> : null}{job.canRecover ? <button className="mt-2 rounded-lg border border-border px-2 py-1 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-primary" onClick={() => { void post(`/api/process-automation/jobs/${job.id}/requeue`, {}, `retry-${job.id}`) }} type="button">{labels.retry}</button> : null}</div>)}</div></section> : null}
+          {operations ? <section className="rounded-2xl border border-border bg-surface p-5"><h2 className="text-xl font-semibold">{labels.operations}</h2><div className="mt-4 grid gap-3">{operations.jobs.map((job) => <div className="rounded-xl bg-muted/40 p-3 text-xs" key={job.id}><div className="flex justify-between gap-2"><span className="font-semibold">{job.jobType}</span><span>{job.status}</span></div><p className="mt-1 text-muted-foreground">{job.attempts}/{job.maxAttempts} · {labels.lastAttempt}: {date(job.lastAttemptAt, locale)}</p>{job.lastErrorCode ? <p className="mt-1 text-destructive">{job.lastErrorCode}</p> : null}{job.canRecover ? <Button className="mt-2" onClick={() => { void post(`/api/process-automation/jobs/${job.id}/requeue`, {}, `retry-${job.id}`) }} size="sm" type="button" variant="secondary">{labels.retry}</Button> : null}</div>)}</div></section> : null}
         </aside>
       </div>
     </section>
+    <ConfirmDialog cancelLabel={labels.actionCancel} confirmLabel={labels.action} description={labels.confirmAction} destructive onConfirm={() => { const action = confirmAction; setConfirmAction(null); if (action) executeAction(action) }} onOpenChange={(open) => { if (!open) setConfirmAction(null) }} open={confirmAction !== null} pending={busy !== null} title={labels.confirmAction} />
+    </>
   )
 }

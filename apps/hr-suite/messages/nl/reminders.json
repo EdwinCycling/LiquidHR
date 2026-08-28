@@ -60,5 +60,6 @@
   "filterOpen": "Openstaand", "filterAll": "Ook oudere reminders", "filterCompleted": "Afgevinkt", "filterOverdue": "Verlopen",
   "sortSoonest": "Eerstvolgende eerst", "sortLatest": "Laatste eerst", "sortTitle": "Op titel", "search": "Zoek in reminders",
   "selectAll": "Selecteer openstaande reminders", "clearSelection": "Selectie wissen", "bulkComplete": "Markeer als gereed",
-  "moreInfo": "Meer informatie", "employee": "Medewerker", "noResults": "Geen reminders gevonden voor deze selectie.", "selectedCount": "{count} geselecteerd", "visibleCount": "{count} reminders in beeld"
+  "moreInfo": "Meer informatie", "employee": "Medewerker", "noResults": "Geen reminders gevonden voor deze selectie.", "selectedCount": "{count} geselecteerd", "visibleCount": "{count} reminders in beeld",
+  "discardTitle": "Wijzigingen negeren?", "discardDescription": "Niet-opgeslagen remindergegevens gaan verloren.", "discardConfirm": "Wijzigingen negeren", "keepEditing": "Verder bewerken"
 }

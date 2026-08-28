@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## R8-1 Foundation Final Sweep — 2026-08-28
+
+**Status: R8 FOUNDATION FINAL SWEEP LOCAL GREEN — READY FOR FINAL UX FOUNDATION RELEASE**
+
+R8-1 is lokaal afgerond op baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3` in worktree `work/r8-foundation-final-sweep`. De afgesproken UI-scope gebruikt de bestaande UX Foundation v1.2; API-, service-, permission-, business-, schema-, migration-, RLS- en grantcontracten zijn niet gewijzigd. Er zijn geen nieuwe Foundation primitives toegevoegd. `NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft leidend.
+
+Lokale gates zijn bewezen: gerichte tests `15/15` bestanden en `97/97` tests, strict TypeScript, i18n `34` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en `git diff --check`. De full suite is `268/269` bestanden en `1023/1024` tests; uitsluitend de bekende niet-gerelateerde Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan.
+
+Lokale authenticated browseracceptance is aantoonbaar geblokkeerd door de bestaande OAuth redirect naar Vercel: `LOCAL AUTHENTICATED BROWSER ACCEPTANCE BLOCKED — OAUTH REDIRECT LIMITATION`. Dit is geen product- of Foundation-blocker. De authenticated browseracceptance wordt verplicht uitgevoerd in R8-2 als post-deploy Vercel sanity. Zie [`delivery/R8_FOUNDATION_FINAL_SWEEP.md`](delivery/R8_FOUNDATION_FINAL_SWEEP.md) voor de volledige gate-, exception-, scope- en handoffregistratie.
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
