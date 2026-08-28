@@ -14,7 +14,7 @@ Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesig
 | Dashboard widgets | `/settings/dashboard-widgets` | HR ADMIN VERIFIED | Canonical Switch/Checkbox/Badge; bestaande widget API en role assignments blijven leidend |
 | Menu order | `/settings/menu-order` | HR ADMIN VERIFIED | Canonical IconButton/FormActions/Surface; localStorage/self preference blijft leidend |
 
-Desktop `1440x900` en mobiel `390x844` zijn voor alle zeven routes gecontroleerd zonder horizontale overflow. De HR Admin-console was leeg na de positieve routeflow. Manager eindigde op de bestaande “geen klantomgeving”-toestand en Employee kon niet aanmelden met de beschikbare lokale TEST-fixture; de volledige persona-matrix blijft open als **BLOCKED BY TEST FIXTURE/AUTH ENVIRONMENT**. Geen API-, schema-, RLS-, permission-, migration- of remote wijzigingen.
+Desktop `1440x900` en mobiel `390x844` zijn voor alle zeven routes gecontroleerd zonder horizontale overflow. De HR Admin-console was leeg na de positieve routeflow. Manager eindigde op de bestaande “geen klantomgeving”-toestand en Employee kon niet aanmelden met de beschikbare lokale TEST-fixture; de volledige persona-matrix blijft beperkt als **BLOCKED BY TEST FIXTURE/AUTH ENVIRONMENT**. Releasecandidate `f7e90e6` bevat exact één version bump naar `1.20260828.2`; geen API-, schema-, RLS-, permission-, migration- of remote wijzigingen.
 
 ## R4 Recruitment + Journeys centrale integratie — 2026-08-25
 

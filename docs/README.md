@@ -2,9 +2,9 @@
 
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
-**Status: TECHNICAL GREEN — HR ADMIN BROWSER GREEN — PERSONA ACCEPTANCE BLOCKED BY TEST FIXTURES — LOCAL BRANCH ONLY**
+**Status: R7-1 TEST RELEASE GREEN — MANAGER/EMPLOYEE SANITY LIMITED BY TEST FIXTURE**
 
-R7-1 is lokaal uitgewerkt op `work/r7-settings-platform` vanaf exact `main`/`origin/main` `1fce3e28accd6385abd0a5e54742b0b6e4060098`. De zeven Settings-routes gebruiken de bestaande UX Foundation-controls en behouden de bestaande API-, data-, permission- en localStorage-contracten. Strict TypeScript, i18n (`34` gelijke namespaces), ESLint (`0 errors / 8 warnings`), gerichte tests (`18/18`), Webpack (`229/229`) en diff-check zijn groen. De full-suite blijft amber door uitsluitend de bekende Journey-failure rond `Binnenkort beschikbaar`; HR Admin browseracceptance is groen op desktop en mobiel, terwijl Manager/Employee door ontbrekende/ongeldige lokale TEST-fixtures niet volledig konden worden bewezen. Geen migration, remote write, merge, push, version bump of Vercel-actie is uitgevoerd.
+R7-1 is vanaf exact `main`/`origin/main` `1fce3e28accd6385abd0a5e54742b0b6e4060098` geïntegreerd via releasecandidate `f7e90e6` (`release: integrate R7-1 settings foundation`). De zeven Settings-routes gebruiken de bestaande UX Foundation-controls en behouden de bestaande API-, data-, permission- en localStorage-contracten. De centrale gate is groen: gerichte settings/regressieset `8` bestanden en `30/30` tests, strict TypeScript, i18n (`34` gelijke namespaces), ESLint (`0 errors / 8 warnings`), Webpack (`229/229`) en diff-check. De full-suite blijft amber door uitsluitend de bekende Journey-failure rond `Binnenkort beschikbaar` (`263/264` bestanden, `1008/1009` tests). Authenticated HR Admin browser-sanity op de geïntegreerde candidate is groen op desktop `1440x900` en mobiel `390x844` voor `/settings`, `/settings/company-data` en `/settings/modules`, inclusief tabs, FormDrawer open/cancel, Switch-beweging, overflow en console. Manager/Employee blijven beperkt door TEST fixture/auth-omgeving. Zichtbare versie: `1.20260828.2`. Geen migration of remote database write is uitgevoerd.
 
 ## Centrale R6 Insights-integratie en TEST-releasegate — 2026-08-28
 
