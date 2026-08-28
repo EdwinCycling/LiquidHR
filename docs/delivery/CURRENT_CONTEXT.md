@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Navigation Sidebar v2 — lokale feature-slice 2026-08-28
+
+**Status: LOKAAL TECHNISCH GROEN — AUTHENTICATED BROWSER GEBLOKKEERD DOOR ONTBREKENDE ENV**
+
+- Dedicated worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\navigation-sidebar-v2`, branch `work/navigation-sidebar-v2`, vanaf exact `main`/`origin/main` `051c57a998c33d17a8ac1bef166fe58f5c15b133`; zichtbare versie blijft `1.20260825.1`. Dirty root en parallelle branches zijn niet gewijzigd.
+- Sidebar gebruikt vaste secties: Dagelijks (Startpagina, Werk, Kalender), Mensen & organisatie (Medewerkers, Organogram, Ontwikkeling), HR-processen (Sollicitaties, Journeys, Onderzoeken), Sturen (Inzichten), Beheer (Instellingen). Dashboard is uit de primaire sidebar; Insights bevat een `dashboard:read`-gated Dashboard-keuze naar `/dashboard`. Wat is nieuw is een Gift-trigger met bestaande unread/seen-semantics en canonical Drawer. HR-group switcher en routepermissions zijn behouden.
+- Oude localStorage-volgorde wordt veilig genormaliseerd; alleen relatieve volgorde binnen de vaste sectie blijft geldig. Menuvolgorde-instellingen tonen dezelfde secties en blokkeren cross-section bewegen. Er is geen migration, schema/RLS/grant-, API-, version-, remote-, push- of deployactie uitgevoerd.
+- Gerichte controle: 27 tests, strict TypeScript, ESLint en i18n `34` gelijke namespaces geslaagd. De volledige suite is eenmaal uitgevoerd: `266/267` testbestanden en `1014/1015` tests geslaagd; uitsluitend de bekende niet-gerelateerde Journey-failure voor `Binnenkort beschikbaar` blijft open. Webpack production build is groen met `229/229` routes. Authenticated browseracceptance op `1440x900`/`390x844` is geprobeerd op de feature-server, maar geblokkeerd door ontbrekende Supabase URL/key in deze worktree; geen credentials gekopieerd of blootgelegd.
+
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
 **Status: R7-1 TEST RELEASE GREEN — MANAGER/EMPLOYEE SANITY LIMITED BY TEST FIXTURE**

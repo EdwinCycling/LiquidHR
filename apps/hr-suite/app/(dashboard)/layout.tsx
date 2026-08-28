@@ -33,7 +33,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   const { supabase, context: authContext, activeContext: context, email } = requestContext
   const canReadEmployees = authContext.permissions.includes('employee:read') || authContext.permissions.includes('employee-directory:read')
-  const canReadDashboard = authContext.permissions.includes('dashboard:read')
   const canReadStartPage = authContext.permissions.includes('start-page:read')
   const canReadWorkforce = authContext.permissions.includes('workforce:read') || (
     authContext.employeeId !== null
@@ -49,7 +48,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   const canReadSettings = authContext.permissions.includes('settings:read')
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
-  const insightPermissions = INSIGHT_REPORTS.map((report) => authContext.permissions.includes(report.permission))
+  const insightPermissions = INSIGHT_REPORTS.filter((report) => report.id !== 'dashboard').map((report) => authContext.permissions.includes(report.permission))
 
   const [preferences, common, navigation, auth, reminderMessages, productUpdateMessages, setupAssistantMessages, setupAssistant, reminders, enabledModules, productUpdates, profile] = await Promise.all([
     getRequestUserPreferences(),
@@ -85,6 +84,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   ]
   const updateSurfaceLabels = {
     title: productUpdateMessages('title'),
+    subtitle: productUpdateMessages('subtitle'),
     open: productUpdateMessages('open'),
     close: productUpdateMessages('close'),
     kindNewFeature: productUpdateMessages('kindNewFeature'),
@@ -97,6 +97,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     more: productUpdateMessages('more'),
     manage: productUpdateMessages('manage'),
     seen: productUpdateMessages('seen'),
+    empty: productUpdateMessages('empty'),
+    unreadCount: productUpdateMessages('unreadCount'),
   }
   const setupAssistantLabels = createSetupAssistantLabels(setupAssistantMessages)
 
@@ -107,7 +109,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         hrGroups={context.hrGroups}
         hrGroupSwitcherMode={getHrGroupSwitcherMode(context)}
         canReadEmployees={canReadEmployees}
-        canReadDashboard={canReadDashboard}
         canReadStartPage={canReadStartPage}
         canReadWorkforce={canReadWorkforce}
         canReadProcessWork={canReadProcessWork}
@@ -120,7 +121,6 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
         labels={{
           appName: common('appName'),
-          dashboard: navigation('dashboard'),
           startPage: navigation('startPage'),
           version: `${common('version')} ${APP_VERSION}`,
           organizationChart: navigation('organizationChart'),
@@ -143,7 +143,11 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           switchingHrGroup: navigation('switchingHrGroup'),
           switchHrGroupFailed: navigation('switchHrGroupFailed'),
           timeHub: navigation('timeHub'),
-          productUpdates: navigation('productUpdates'),
+          sectionDaily: navigation('sectionDaily'),
+          sectionPeopleOrganization: navigation('sectionPeopleOrganization'),
+          sectionHrProcesses: navigation('sectionHrProcesses'),
+          sectionSteering: navigation('sectionSteering'),
+          sectionManagement: navigation('sectionManagement'),
           signOut: auth('signOut'),
         }}
         preferences={preferences}
@@ -177,6 +181,8 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           close: reminderMessages('close'),
         }}
         enabledModules={enabledModules}
+        productUpdates={productUpdates.updates}
+        productUpdateLabels={updateSurfaceLabels}
         productUpdateUnreadCount={productUpdates.unreadGiftCount}
         testRoleSwitch={{
           currentEmail,

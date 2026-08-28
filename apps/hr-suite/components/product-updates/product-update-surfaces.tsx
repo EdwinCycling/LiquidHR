@@ -4,10 +4,12 @@ import Link from 'next/link'
 import { Gift, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { Drawer } from '@/components/ui/drawer'
 import type { ProductUpdate, ProductUpdateChannel } from '@/lib/product-updates/service'
 
 export interface ProductUpdateSurfaceLabels {
   title: string
+  subtitle: string
   open: string
   close: string
   kindNewFeature: string
@@ -20,6 +22,8 @@ export interface ProductUpdateSurfaceLabels {
   more: string
   manage: string
   seen: string
+  empty: string
+  unreadCount: string
 }
 
 function formatDate(value: string, locale: string): string {
@@ -75,8 +79,33 @@ export function ProductUpdateLoginPopup({ updates, labels, locale }: { updates: 
   return createPortal(<div className="fixed inset-0 z-[9999] grid place-items-center bg-sidebar/70 p-4 backdrop-blur-sm" role="presentation"><section aria-labelledby="product-update-login-title" aria-modal="true" className="max-h-[min(760px,calc(100vh-2rem))] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-surface p-5 shadow-2xl sm:p-7" role="dialog"><header className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.title}</p><h2 className="mt-1 text-2xl font-semibold" id="product-update-login-title">{loginUpdates[0]?.title}</h2></div><button aria-label={labels.close} className="button-secondary" onClick={() => setOpen(false)} type="button"><X size={17} /></button></header><div className="mt-5 grid gap-4">{loginUpdates.slice(0, 3).map((update) => <ProductUpdateCard key={update.id} labels={labels} locale={locale} update={update} />)}</div><div className="mt-6 flex justify-end border-t pt-5"><button className="button-primary" disabled={markingSeen} onClick={() => void markSeen()} type="button">{labels.seen}</button></div></section></div>, document.body)
 }
 
-export function ProductUpdateSidebarLink({ unreadCount, labels, collapsed }: { unreadCount: number; labels: Pick<ProductUpdateSurfaceLabels, 'title'>; collapsed?: boolean }) {
-  return <Link aria-label={labels.title} className={`relative rounded-lg text-sm text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground ${collapsed ? 'mx-auto grid size-11 place-items-center' : 'flex items-center gap-3 px-3 py-2.5'}`} href="/product-updates" title={collapsed ? labels.title : undefined}><Gift aria-hidden="true" size={18} />{!collapsed ? <span>{labels.title}</span> : null}{unreadCount > 0 ? <span className={`${collapsed ? 'absolute right-1 top-1' : 'ml-auto'} grid min-w-5 place-items-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-bold leading-4 text-white`}>{unreadCount > 99 ? '99+' : unreadCount}</span> : null}</Link>
+export function ProductUpdateDrawerTrigger({ unreadCount, updates, labels, locale, collapsed, onClose }: { unreadCount: number; updates: ProductUpdate[]; labels: ProductUpdateSurfaceLabels; locale: string; collapsed?: boolean; onClose?: () => void }) {
+  const [open, setOpen] = useState(false)
+  const giftUpdates = updates.filter((update) => update.displayChannels.includes('GIFT_WINDOW'))
+  const triggerLabel = unreadCount > 0
+    ? `${labels.open} — ${labels.unreadCount.replace('{count}', String(unreadCount))}`
+    : labels.open
+
+  function openDrawer(): void {
+    setOpen(true)
+    onClose?.()
+    if (unreadCount === 0) return
+    void fetch('/api/product-updates/seen', { method: 'POST' }).then((response) => {
+      if (response.ok) window.dispatchEvent(new CustomEvent('liquidhr-product-updates-seen'))
+    })
+  }
+
+  return <>
+    <button aria-label={triggerLabel} className={`relative grid size-11 place-items-center rounded-lg text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${collapsed ? 'mx-auto' : ''}`} onClick={openDrawer} title={labels.title} type="button">
+      <Gift aria-hidden="true" size={18} />
+      {unreadCount > 0 ? <span aria-hidden="true" className="absolute right-0.5 top-0.5 grid min-w-5 -translate-y-1/4 translate-x-1/4 place-items-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-bold leading-4 text-destructive-foreground">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
+    </button>
+    <Drawer closeLabel={labels.close} description={labels.subtitle} onOpenChange={setOpen} open={open} title={labels.title}>
+      <div className="grid gap-4">
+        {giftUpdates.length > 0 ? giftUpdates.map((update) => <ProductUpdateCard key={update.id} labels={labels} locale={locale} update={update} />) : <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">{labels.empty}</p>}
+      </div>
+    </Drawer>
+  </>
 }
 
 export const PRODUCT_UPDATE_CHANNELS: ProductUpdateChannel[] = ['GIFT_WINDOW', 'LOGIN_POPUP', 'TOP_BANNER']
