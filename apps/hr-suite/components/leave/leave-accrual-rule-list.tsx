@@ -1,6 +1,10 @@
 'use client'
 
 import type { LeaveCatalog } from '@/lib/leave/leave-service'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Surface } from '@/components/ui/surface'
 
 type Labels = {
   title: string
@@ -45,16 +49,16 @@ export function LeaveAccrualRuleList({ catalog, leaveTypeId, labels, onAdd, onSe
   const rules = catalog.accrualRules.filter((rule) => rule.leave_type_id === leaveTypeId).sort((left, right) => left.valid_from.localeCompare(right.valid_from))
   const profileNames = new Map(catalog.profiles.map((profile) => [profile.id, profile.name]))
   return (
-    <section className="rounded-2xl border bg-surface p-5 shadow-sm sm:p-6">
+    <Surface className="p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 className="text-lg font-semibold">{labels.title}</h2><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{labels.description}</p></div>
-        <button className="button-secondary" onClick={onAdd} type="button">{labels.add}</button>
+        <Button onClick={onAdd} size="sm" type="button" variant="secondary">{labels.add}</Button>
       </div>
       <div className="mt-5 space-y-3">
         {rules.map((rule, index) => <article aria-label={`${labels.edit}: ${labels.version.replace('{number}', String(index + 1))}`} className="group block w-full cursor-pointer rounded-xl border p-4 text-left transition hover:border-primary/50 hover:bg-muted/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" key={rule.id} onClick={() => onSelect(rule.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(rule.id) } }} role="button" tabIndex={0}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><p className="font-semibold">{labels.version.replace('{number}', String(index + 1))}</p><p className="mt-1 text-sm text-muted-foreground">{labels.profile}: {profileNames.get(rule.leave_profile_id) ?? rule.leave_profile_id}</p></div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${rule.valid_until ? 'bg-muted text-muted-foreground' : 'bg-success/15 text-success'}`}>{rule.valid_until ? labels.ended : labels.current}</span>
+            <Badge tone={rule.valid_until ? 'neutral' : 'success'}>{rule.valid_until ? labels.ended : labels.current}</Badge>
           </div>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{labels.validFrom}</dt><dd className="mt-1 font-medium">{rule.valid_from}</dd></div>
@@ -64,8 +68,8 @@ export function LeaveAccrualRuleList({ catalog, leaveTypeId, labels, onAdd, onSe
           </dl>
           <span className="mt-4 inline-flex rounded-lg border px-3 py-2 text-sm font-medium text-muted-foreground transition group-hover:border-primary/40 group-hover:text-primary">{labels.edit}</span>
         </article>)}
-        {rules.length === 0 ? <div className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">{labels.empty}</div> : null}
+        {rules.length === 0 ? <EmptyState title={labels.empty} /> : null}
       </div>
-    </section>
+    </Surface>
   )
 }

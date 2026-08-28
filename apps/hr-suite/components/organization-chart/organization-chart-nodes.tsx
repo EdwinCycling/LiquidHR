@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+/* eslint-disable @next/next/no-img-element -- private avatar proxies require the browser session cookie; next/image cannot forward it. */
 import Link from 'next/link'
 import { AlertTriangle, Building2, Crown, Network, UsersRound } from 'lucide-react'
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
@@ -154,7 +154,7 @@ function EmployeeCard({ node, labels }: { node: Extract<OrganizationChartNode, {
       <Link aria-label={interpolate(labels.openEmployee, { name: node.name })} href={`/employees/${node.employeeId}`} prefetch={false} className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-focus">
         <div className="flex items-center gap-3">
           <span className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted text-xs font-bold text-foreground">
-            {node.avatarUrl ? <Image alt="" className="object-cover" fill sizes="40px" src={node.avatarUrl} /> : initials(node.name)}
+            {node.avatarUrl ? <img alt="" className="absolute inset-0 size-full object-cover" src={node.avatarUrl} /> : initials(node.name)}
           </span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold text-foreground">{node.name}</span>

@@ -1,8 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, LoaderCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { Surface } from '@/components/ui/surface'
+import { Switch } from '@/components/ui/switch'
+import { TextInput } from '@/components/ui/text-input'
+import { FormField } from '@/components/patterns/form-field'
 
 interface CaseManagerOption {
   id: string
@@ -66,58 +72,17 @@ export function AbsenceSettingsForm({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-        <label className="block text-sm font-semibold" htmlFor="frequent-absence-threshold">
-          {labels.threshold}
-        </label>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.thresholdHelp}</p>
-        <input
-          className="input mt-4 w-full max-w-xs"
-          id="frequent-absence-threshold"
-          max={20}
-          min={1}
-          onChange={(event) => setThreshold(event.target.value)}
-          type="number"
-          value={threshold}
-        />
-      </section>
-
-      <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-        <label className="block text-sm font-semibold" htmlFor="absence-case-manager">
-          {labels.caseManager}
-        </label>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.caseManagerHelp}</p>
-        <select
-          className="input mt-4 w-full"
-          id="absence-case-manager"
-          onChange={(event) => setCaseManager(event.target.value)}
-          value={caseManager}
-        >
-          <option value="">{labels.noCaseManager}</option>
-          {caseManagers.map((manager) => (
-            <option key={manager.id} value={manager.id}>
-              {manager.name} · {manager.employeeNumber}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      <section className="rounded-2xl border bg-surface p-5 shadow-sm">
-        <label className="flex items-start gap-3 text-sm font-semibold" htmlFor="employee-self-report">
-          <input checked={selfReport} className="mt-1" id="employee-self-report" onChange={(event) => setSelfReport(event.target.checked)} type="checkbox" />
-          <span>{labels.employeeSelfReport}<span className="mt-1 block font-normal leading-6 text-muted-foreground">{labels.employeeSelfReportHelp}</span></span>
-        </label>
-      </section>
-
-      <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-5">
-        {status === 'saved' ? <span className="inline-flex items-center gap-2 text-sm font-medium text-success"><Check size={16} />{labels.saved}</span> : null}
-        {status === 'failed' ? <span className="text-sm font-medium text-destructive">{labels.failed}</span> : null}
-        {status === 'invalid' ? <span className="text-sm font-medium text-destructive">{labels.invalid}</span> : null}
-        <button className="button-primary inline-flex items-center gap-2" disabled={status === 'saving'} onClick={save} type="button">
-          {status === 'saving' ? <LoaderCircle className="animate-spin" size={16} /> : null}
-          {status === 'saving' ? labels.saving : labels.save}
-        </button>
-      </div>
+      <Surface className="grid gap-5 p-5">
+        <FormField control={<TextInput max={20} min={1} onChange={(event) => setThreshold(event.target.value)} type="number" value={threshold} />} description={labels.thresholdHelp} label={labels.threshold} required />
+        <FormField control={<DropdownSelect aria-label={labels.caseManager} onChange={(event) => setCaseManager(event.target.value)} searchable searchPlaceholder={labels.caseManager} value={caseManager}><option value="">{labels.noCaseManager}</option>{caseManagers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name} · {manager.employeeNumber}</option>)}</DropdownSelect>} description={labels.caseManagerHelp} label={labels.caseManager} />
+        <Switch checked={selfReport} description={labels.employeeSelfReportHelp} label={labels.employeeSelfReport} onChange={(event) => setSelfReport(event.target.checked)} />
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-subtle pt-4">
+          {status === 'saved' ? <span className="inline-flex items-center gap-2 text-sm font-medium text-success" role="status"><Check size={16} />{labels.saved}</span> : null}
+          {status === 'failed' ? <span className="text-sm font-medium text-destructive" role="alert">{labels.failed}</span> : null}
+          {status === 'invalid' ? <span className="text-sm font-medium text-destructive" role="alert">{labels.invalid}</span> : null}
+          <Button loading={status === 'saving'} onClick={() => void save()} type="button">{status === 'saving' ? labels.saving : labels.save}</Button>
+        </div>
+      </Surface>
     </div>
   )
 }

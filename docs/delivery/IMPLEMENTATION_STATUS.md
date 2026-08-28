@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## R7-3 Employment, Calendar & Master Data Convergence — 2026-08-28
+
+**Status: R7-3 TEST RELEASE GREEN — READY FOR TEST PROVENANCE; REQUIREMENTS GATE RECORDED**
+
+R7-3 is implemented in the existing dedicated worktree `work/r7-employment-masterdata` from exact baseline `778b601670c87ca7596000937d895859498b483a`. The affected existing routes use Foundation surfaces, fields, searchable choices, drawers, dialogs, row actions, tables and empty states. Holiday native date fields remain intentionally native. No API/service/permission/business-rule redesign, migration, schema/RLS/RPC change or standalone work-pattern route was introduced.
+
+The targeted integrated regression set is `11/11` green, the targeted Organogram projectortest is `6/6` green, strict TypeScript and i18n parity (`34` namespaces) are green, ESLint is `0 errors / 14 warnings`, and the Webpack production build generates `229/229` pages. The one full-suite failure is the unchanged baseline Journey expectation for `Binnenkort beschikbaar` (`1023/1024` tests green); it was not changed. Authenticated HR Admin browser acceptance is green on the integrated production-mode candidate at `http://localhost:3002`: all requested desktop main routes and relevant leave subroutes returned `200`, Foundation data/drawers/actions were usable, the safe anniversary create/readback/delete probe was cleaned up, Sidebar v2/Wat-is-nieuw/Setup Assistant/Organogram remained usable, and desktop/mobile overflow checks were clean. Final integrated production browser console: `0` errors and `0` warnings, with no hydration evidence. The only integration compatibility fix was the private-avatar browser render boundary in Organogram. Manager/Employee browser personas were unavailable from the authenticated HR Admin session because no role switch is exposed; targeted permission tests remain green. Salary capability remains explicitly gated as `REQUIREMENTS GATE — SALARY CAPABILITY VISIBILITY UNRESOLVED`.
+
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 
 **Status: ACCESS GREEN — READY FOR CENTRALE TEST-RELEASE**
