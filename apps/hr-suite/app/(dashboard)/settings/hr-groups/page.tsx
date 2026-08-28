@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { HrGroupManager } from '@/components/settings/hr-group-manager'
+import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { PageShell } from '@/components/layout/page-shell'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { loadActiveContext } from '@/lib/context/server-context'
 import { getTranslator } from '@/lib/i18n/server'
@@ -18,7 +20,7 @@ export default async function HrGroupsSettingsPage() {
     getTranslator('settings'),
   ])
 
-  return <HrGroupManager
+  return <PageShell className="py-8 lg:py-10"><AdminSettingsPageHeader backLabel={messages('admin.backToOverview')} eyebrow={messages('hrGroups.title')} subtitle={messages('hrGroups.subtitle')} title={messages('hrGroups.title')} /><HrGroupManager
     activeGroup={context.activeHrGroup}
     canWrite={authContext.permissions.includes('hr-group:manage')}
     labels={{
@@ -49,5 +51,5 @@ export default async function HrGroupsSettingsPage() {
       invalid: messages('hrGroups.invalid'),
       duplicate: messages('hrGroups.duplicate'),
     }}
-  />
+  /></PageShell>
 }

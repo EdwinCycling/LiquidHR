@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## Roadmap 7 Slice 2 — Organization, Access & Context Model — 2026-08-28
+
+**Status: R7-2 ORGANIZATION ACCESS & CONTEXT RED — AUTHENTICATED BROWSER ACCEPTANCE BLOCKED BY MISSING TEST ENVIRONMENT**
+
+- Dedicated worktree/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\r7-organization-access`, `work/r7-organization-access`; exact baseline `main=origin/main=051c57a998c33d17a8ac1bef166fe58f5c15b133`.
+- Scope: `/settings/business-structure`, `/settings/hr-groups`, `/settings/administration`, `/authorization`, `/role-assignments`, `/departments`, `/organization-chart`. Existing API/service/schema/RLS/grant/permission/context/business contracts remain unchanged.
+- Foundation: canonical PageShell/PageHeader, surfaces, fields, choice controls, collection toolbar/table, drawers, dialogs, row actions and chart surface conventions reused. No version bump, migration, remote write, merge, push or Vercel.
+- Gates: targeted Organization/Context/Chart `12/12` files and `50/50` tests, strict TypeScript, i18n `34` equal namespaces, ESLint `0 errors / 8 warnings`, Webpack `229/229`, diff-check green. Full suite `263/264` files and `1008/1009` tests; only the known unrelated Journey failure on `Binnenkort beschikbaar`.
+- Browser: blocked before login because worktree and repository root have no `.env.local`; Supabase middleware returns HTTP `500` for missing URL/key. Authenticated HR/Manager/Employee, desktop/mobile overflow, console, mutation/readback and cleanup remain unproven. No credentials or env values exposed.
+- Handoff: [`R7_2_ORGANIZATION_ACCESS_CONTEXT.md`](R7_2_ORGANIZATION_ACCESS_CONTEXT.md).
+
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
 **Status: R7-1 TEST RELEASE GREEN — MANAGER/EMPLOYEE SANITY LIMITED BY TEST FIXTURE**

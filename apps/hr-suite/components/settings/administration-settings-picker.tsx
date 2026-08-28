@@ -71,7 +71,7 @@ export function AdministrationSettingsPicker({
           return (
             <button
               aria-pressed={isSelected}
-              className={`group flex min-h-32 items-center gap-4 rounded-2xl border p-5 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isSelected ? 'border-primary bg-primary/[0.06]' : 'bg-surface hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md'} ${switchingId && !isSwitching ? 'cursor-not-allowed opacity-60' : ''}`}
+              className={`group flex min-h-32 items-center gap-4 rounded-[var(--radius-surface)] border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${isSelected ? 'border-primary bg-primary/[0.06]' : 'bg-surface hover:border-primary/40'} ${switchingId && !isSwitching ? 'cursor-not-allowed opacity-60' : ''}`}
               disabled={switchingId !== null}
               key={administration.id}
               onClick={() => void chooseAdministration(administration.id)}

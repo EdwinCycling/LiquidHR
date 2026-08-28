@@ -10,6 +10,8 @@ import { getStoredOrganizationChartFilter } from '@/lib/preferences/organization
 import type { AdministrationChartNode, DepartmentChartNode } from '@/lib/organization-chart/types'
 import messagesEn from '@/messages/en/organization-chart.json'
 import messagesNl from '@/messages/nl/organization-chart.json'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/patterns/page-header'
 
 interface OrganizationChartPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -99,21 +101,18 @@ export default async function OrganizationChartPage({ searchParams }: Organizati
   }
 
   return (
-    <section className="mx-auto w-full max-w-[96rem] px-4 py-7 sm:px-8 sm:py-9 lg:px-10">
-      <header className="mb-6 flex flex-col gap-5 border-b pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">{translate('eyebrow')}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">{translate('title')}</h1>
-        </div>
-        <div className="grid gap-2 text-xs sm:grid-cols-3">
+    <PageShell className="py-7 sm:py-9" width="wide">
+      <div className="mb-6 border-b border-border-subtle pb-6">
+        <p className="eyebrow mb-2">{translate('eyebrow')}</p>
+        <PageHeader actions={<div className="grid gap-2 text-xs sm:grid-cols-3">
           <div className="flex min-w-0 items-center gap-2 rounded-xl border bg-surface px-3 py-2.5"><Building2 aria-hidden="true" className="shrink-0 text-accent-foreground" size={16} /><div className="min-w-0"><p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{translate('administration')}</p><p className="mt-0.5 truncate font-semibold text-foreground">{administration ? `${administration.code} · ${administration.name}` : '—'}</p></div></div>
           <div className="flex items-center gap-2 rounded-xl border bg-surface px-3 py-2.5 text-muted-foreground"><CalendarDays aria-hidden="true" size={16} /><span>{translate('asOf', { date: graph.metadata.asOfDate })}</span></div>
           <div className="flex items-center gap-2 rounded-xl border bg-surface px-3 py-2.5 text-muted-foreground"><UsersRound aria-hidden="true" size={16} /><span>{query.view === 'manager' ? translate('primaryCountManager', { count: graph.metadata.visiblePrimaryCount }) : query.view === 'job' ? translate('primaryCountJob', { count: graph.metadata.visiblePrimaryCount }) : translate('primaryCountDepartment', { count: graph.metadata.visiblePrimaryCount })} · {translate('employeeCount', { count: graph.metadata.visibleEmployeeCount })}</span></div>
-        </div>
-      </header>
+        </div>} title={translate('title')} />
+      </div>
 
-      {canWrite ? <DepartmentCreateForm departments={departments.map((department) => ({ id: department.departmentId, name: `${department.code} · ${department.name}` }))} labels={{ title: organizationTranslate('departmentCreate'), code: organizationTranslate('departmentCode'), name: organizationTranslate('departmentName'), parent: organizationTranslate('parentDepartment'), noParent: organizationTranslate('noParent'), create: organizationTranslate('create'), saved: organizationTranslate('saved'), failed: organizationTranslate('failed') }} /> : null}
+      {canWrite ? <DepartmentCreateForm departments={departments.map((department) => ({ id: department.departmentId, name: `${department.code} · ${department.name}` }))} labels={{ title: organizationTranslate('departmentCreate'), code: organizationTranslate('departmentCode'), name: organizationTranslate('departmentName'), parent: organizationTranslate('parentDepartment'), noParent: organizationTranslate('noParent'), create: organizationTranslate('create'), saved: organizationTranslate('saved'), failed: organizationTranslate('failed'), close: organizationTranslate('close'), cancel: organizationTranslate('cancel'), discardTitle: organizationTranslate('discardTitle'), discardDescription: organizationTranslate('discardDescription'), discardConfirm: organizationTranslate('discardConfirm'), discardCancel: organizationTranslate('discardCancel') }} /> : null}
       <div className="mt-6"><OrganizationChartExplorer defaultDate={defaultDate} graph={graph} labels={labels} query={explorerQuery} /></div>
-    </section>
+    </PageShell>
   )
 }

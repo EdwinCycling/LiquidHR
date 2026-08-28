@@ -189,8 +189,7 @@ export function OrganizationChartCanvas({ graph, labels }: OrganizationChartCanv
   const edges = useMemo(() => flowEdges(graph), [graph])
 
   return (
-    <div aria-label={labels.canvasLabel} className="relative hidden h-[44rem] overflow-hidden rounded-3xl border bg-surface-raised shadow-[inset_0_1px_0_var(--surface)] md:block" role="region">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,var(--accent),transparent_62%)] opacity-75" />
+    <div aria-label={labels.canvasLabel} className="relative hidden h-[44rem] overflow-hidden rounded-[var(--radius-surface)] border bg-surface-raised md:block" role="region">
       <ReactFlow
         edges={edges}
         elementsSelectable={false}
