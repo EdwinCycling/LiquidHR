@@ -2,11 +2,13 @@
 
 ## Centrale AI Foundation-integratie — 2026-08-29
 
-**Status: INTEGRATIE IN UITVOERING — BASELINE `b9228380`**
+**Status: LOCAL AI FOUNDATION GREEN — LIVE E2E APPROVAL REQUIRED**
 
-- De integratieworktree is gestart vanaf exact `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`; de dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
-- De authoritative zichtbare versie is `1.20260829.2`. De vier AI-bronbranches worden afzonderlijk en semantisch geïntegreerd in de volgorde Wave 1A → Wave 1B → OpenAI Provider → AI1C.
-- Remote TEST-migratiehistorie wordt read-only gereconcilieerd. Nieuwe remote migration applies, production writes en echte OpenAI-calls blijven geblokkeerd zonder de expliciete goedkeuring uit de integratieopdracht.
+- Exacte authoritative baseline: `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`; zichtbare main-versie `1.20260829.2`. De dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
+- Dedicated integration branch/worktree: `work/ai-foundation-central-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ai-foundation-central-integration`. Volgorde: Wave 1A → Wave 1B → OpenAI Provider → AI1C. Source commits: `0fa6e62`, `ebf400f` + `11de0e5` + `fc1625d`, `7548f2a`, `3238bb9` + `84f7adb`; `dbbabb9` was inhoudelijk al aanwezig en is als lege cherry-pick gereconcilieerd.
+- Remote TEST history is read-only gereconcilieerd: runtime `20260828080428`, safety/FUP `20260828124612`, credits `20260828133631`, corrective `20260828142639`; lokale filenames blijven onveranderd. De bestaande dubbele `retire_legacy_dashboard`-history is behouden. Geen remote migration apply, production-write of nieuwe migration.
+- Gates: AI `18/18` testbestanden, `86/86` tests, strict TypeScript, i18n `33` gelijke namespaces, ESLint `0 errors`/14 bestaande warnings, diff-check en Webpack `228/228` routes groen. Supabase remote readback: alle AI-tabellen RLS; provider/credits wrappers service-role-only. AI advisors: intentionele service-only RLS-INFO en bestaande index-INFO, geen nieuwe AI-WARN.
+- Geen echte OpenAI-call en geen authenticated browseracceptance: integration worktree heeft geen `.env.local`; live E2E vereist expliciete approval. Geen version bump; HeRa/Gemini, eerste capability/UI, AN-2/3 en `TALENT-1` blijven buiten scope.
 
 ## START-1 `/dashboard/start` hydration-fix — 2026-08-29
 

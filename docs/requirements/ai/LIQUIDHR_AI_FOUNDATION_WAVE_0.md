@@ -1,9 +1,9 @@
 # LiquidHR AI Foundation — Wave 0 contract freeze
 
-**Status:** LEIDEND — WAVE 0 FROZEN  
-**Datum:** 2026-08-28  
-**Scope:** Wave 0 architectuur/spec + Wave 1A AI Runtime & Governance  
-**Baseline:** `main = origin/main = 1fce3e28accd6385abd0a5e54742b0b6e4060098`  
+**Status:** LEIDEND — WAVE 0 FROZEN
+**Datum:** 2026-08-28
+**Scope:** Wave 0 architectuur/spec + Wave 1A AI Runtime & Governance
+**Baseline:** `main = origin/main = 1fce3e28accd6385abd0a5e54742b0b6e4060098`
 **Zichtbare productversie:** `1.20260828.1`
 
 Dit document is het bindende contract voor de eerste LiquidHR AI Foundation-slice. Het maakt AI tot een gewone, server-geautoriseerde LiquidHR-capability. AI is geen aparte applicatie, geen tweede identity-systeem en geen vrije database-agent.

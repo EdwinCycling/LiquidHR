@@ -2,9 +2,15 @@
 
 ## Centrale AI Foundation-integratie — 2026-08-29
 
-**Status: INTEGRATIE IN UITVOERING — BASELINE `b9228380`**
+**Status: LOCAL AI FOUNDATION GREEN — LIVE E2E APPROVAL REQUIRED**
 
-De centrale AI Foundation-integratie wordt uitgevoerd vanaf authoritative `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`, met zichtbare versie `1.20260829.2`. Wave 0, Wave 1A, Liquid Credits, de OpenAI Provider en AI1C worden semantisch geïntegreerd in die volgorde. De eerste product capability blijft buiten scope; HeRa/Gemini, AN-2/3 en `TALENT-1` blijven onaangeraakt.
+De centrale AI Foundation is lokaal semantisch geïntegreerd vanaf authoritative `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`, met zichtbare versie `1.20260829.2` en zonder version bump. De volgorde is behouden: Wave 0, Wave 1A Runtime/Governance, Wave 1B Liquid Credits, OpenAI Provider en AI1C Provider Safety/FUP. De integration branch is `work/ai-foundation-central-integration`; de dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
+
+De broncommits zijn semantisch verwerkt als `0b7e9fc`, `0fa6e62`, `ebf400f` + `11de0e5` + `fc1625d`, `7548f2a` en `3238bb9` + `84f7adb`. De Wave 1A types-follow-up `dbbabb9` was inhoudelijk al aanwezig en is als lege cherry-pick gereconcilieerd. De finale integratiecommits zijn `4b580c9`, `42cbe69`, `cc3aae8`, `df26db6`, `0fc46fa`, `8dace5c`, `ccae5f6` en `7e8003f`.
+
+Remote TEST is read-only gecontroleerd. De remote history bevat `20260828080428_ai_foundation_runtime`, `20260828124612_ai_provider_safety_fup`, `20260828133631_ai_liquid_credits_foundation` en `20260828142639_ai_liquid_credits_wave1b_corrective`; deze zijn semantisch gereconcilieerd met de lokale migration files `20260828070140`, `20260828115844`, `20260828090000` en `20260828162449`. De twee bestaande remote `retire_legacy_dashboard`-historyregels zijn behouden en niet gerepareerd. Er is geen migration toegepast, geen production-write uitgevoerd en geen nieuwe migration aangemaakt.
+
+De lokale gate is groen: AI-targeted `18/18` bestanden en `86/86` tests, strict TypeScript, `check:i18n` (`33` gelijke NL/EN-namespaces), ESLint (`0 errors`, 14 bestaande warnings), `git diff --check` en Webpack production build (`228/228` routes). Remote readback bevestigt RLS op alle AI-tabellen en service-role-only provider/credits wrappers. Advisors tonen voor AI alleen de bekende intentionele service-only RLS-INFO’s en bestaande index-INFO’s; geen nieuwe AI-WARN. Er is geen echte OpenAI-call uitgevoerd, de eerste product capability/UI is niet gebouwd, HeRa/Gemini, AN-2/3 en `TALENT-1` zijn onaangeraakt. Alleen live E2E met expliciete goedkeuring resteert.
 
 ## R8 UX Foundation Final Release — 2026-08-28
 

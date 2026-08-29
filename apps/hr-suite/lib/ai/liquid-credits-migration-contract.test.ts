@@ -7,7 +7,7 @@ const migration = readFileSync(join(
   'supabase',
   'migrations',
   '20260828090000_ai_liquid_credits_foundation.sql',
-), 'utf8')
+), 'utf8').replace(/\r\n/g, '\n')
 
 const tables = [
   'ai_credit_group_policies',

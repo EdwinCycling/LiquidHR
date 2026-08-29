@@ -2,9 +2,13 @@
 
 ## Centrale AI Foundation-integratie — 2026-08-29
 
-**Status: INTEGRATIE IN UITVOERING — BASELINE `b9228380`**
+**Status: LOCAL AI FOUNDATION GREEN — LIVE E2E APPROVAL REQUIRED**
 
-De integratie gebruikt een dedicated worktree vanaf authoritative `origin/main` en laat de dirty root-worktree ongemoeid. De source commits, migration-history, generated DB types en finale releasegates worden na semantische integratie afzonderlijk vastgelegd. Tot die tijd zijn geen remote migration applies, production writes, version bump of live OpenAI-call uitgevoerd.
+De integratie is lokaal afgerond in dedicated worktree `work/ai-foundation-central-integration`, vanaf exact `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`. Wave 1A, Wave 1B, OpenAI Provider en AI1C zijn in volgorde semantisch geïntegreerd. De types-sync `dbbabb9` was inhoudelijk al aanwezig en is als lege cherry-pick gereconcilieerd; de uiteindelijke safety-types zijn in `7e8003f` vastgelegd. De dirty root-worktree `work/r5-work-runtime` bleef onaangeraakt.
+
+Remote TEST is read-only gecontroleerd: de remote migration history `20260828080428` (runtime), `20260828124612` (safety/FUP), `20260828133631` (credits) en `20260828142639` (credits corrective) correspondeert semantisch met de lokale migration files `20260828070140`, `20260828115844`, `20260828090000` en `20260828162449`. De bestaande dubbele `retire_legacy_dashboard` history is behouden. Er is geen remote migration toegepast, geen production-write uitgevoerd en geen nieuwe migration nodig gemaakt.
+
+De finale lokale gate is groen: `18/18` AI-testbestanden, `86/86` tests, strict TypeScript, i18n `33` gelijke NL/EN-namespaces, ESLint `0 errors` met 14 bestaande warnings, `git diff --check` en Webpack production build `228/228` routes. Remote schema-readback bevestigt RLS op alle AI-tabellen en service-role-only wrappers; Supabase advisors leveren alleen intentionele service-only RLS-INFO’s en bestaande index-INFO’s. Zichtbare versie blijft `1.20260829.2`; er is geen echte OpenAI-call uitgevoerd. De eerste product capability/UI, HeRa/Gemini en AN-2/3 zijn niet gebouwd of gewijzigd. Authenticated browser/live provider E2E vereist expliciete goedkeuring.
 
 ## START-1 `/dashboard/start` hydration-fix — 2026-08-29
 
