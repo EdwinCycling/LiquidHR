@@ -1,5 +1,17 @@
 # Liquid HR documentatie-index
 
+## Centrale AI Foundation-integratie — 2026-08-29
+
+**Status: AI FOUNDATION TEST GREEN — READY FOR FIRST PRODUCT CAPABILITY**
+
+De centrale AI Foundation is semantisch geïntegreerd vanaf authoritative `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`, met releaseversie `1.20260829.3`. De volgorde is behouden: Wave 0, Wave 1A Runtime/Governance, Wave 1B Liquid Credits, OpenAI Provider en AI1C Provider Safety/FUP. De integration branch is `work/ai-foundation-central-integration`; de dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
+
+De broncommits zijn semantisch verwerkt als `0b7e9fc`, `0fa6e62`, `ebf400f` + `11de0e5` + `fc1625d`, `7548f2a` en `3238bb9` + `84f7adb`. De Wave 1A types-follow-up `dbbabb9` was inhoudelijk al aanwezig en is als lege cherry-pick gereconcilieerd. De finale integratiecommits zijn `4b580c9`, `42cbe69`, `cc3aae8`, `df26db6`, `0fc46fa`, `8dace5c`, `ccae5f6` en `7e8003f`.
+
+Canonical TEST Supabase `wnpfloqpjvaacobppbpk` heeft uitsluitend corrective migration `20260829134822_ai_provider_safety_internal_service_role_grants` gekregen; lokaal is dit `20260829154355_ai_provider_safety_internal_service_role_grants.sql`. De readback bevestigt interne schema usage/EXECUTE voor `service_role` en deny voor `authenticated`/`anon`, met publieke wrapper-contracten intact. Er is geen production-write of andere remote migration uitgevoerd.
+
+De brede gate blijft als eerder bewezen evidence gelden: AI-targeted `18/18` bestanden en `86/86` tests, strict TypeScript, `check:i18n` (`33` gelijke NL/EN-namespaces), ESLint (`0 errors`, 14 bestaande warnings), `git diff --check` en Webpack production build (`228/228` routes). Na de grant-correctie zijn alleen relevante safety-tests en privilege-readback uitgevoerd; de full suite blijft `1101/1102` met uitsluitend de bekende Journey-baselinefailure op `Binnenkort beschikbaar`. De ene goedgekeurde live-call was synthetisch/no-PII, `gpt-5.6-luna`/low, `store:false`, `maxRetries:0`, provider count `1`, en eindigde `SUCCEEDED/VALIDATED` met credits `1` reserve/`1` settle, FUP `COMPLETED`, `208/85` tokens en `3362 ms`. De eerste product capability/UI is niet gebouwd; HeRa/Gemini, AN-2/3 en `TALENT-1` zijn onaangeraakt.
+
 ## R8 UX Foundation Final Release — 2026-08-28
 
 **Status: R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**

@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## Centrale AI Foundation-integratie — 2026-08-29
+
+**Status: AI FOUNDATION TEST GREEN — READY FOR FIRST PRODUCT CAPABILITY**
+
+De centrale integratie is afgerond in dedicated worktree `work/ai-foundation-central-integration`, vanaf exact authoritative `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`. Wave 1A, Wave 1B Liquid Credits, OpenAI Provider en AI1C Provider Safety/FUP zijn in volgorde semantisch geïntegreerd. De zichtbare versie is exact eenmaal verhoogd naar `1.20260829.3`. De dirty root-worktree `work/r5-work-runtime` bleef onaangeraakt.
+
+Op canonical TEST Supabase `wnpfloqpjvaacobppbpk` is uitsluitend de forward migration `20260829134822_ai_provider_safety_internal_service_role_grants` toegepast. De lokale migration is `apps/hr-suite/supabase/migrations/20260829154355_ai_provider_safety_internal_service_role_grants.sql` en bevat alleen `EXECUTE` voor `service_role` op de twee interne provider-safetyfuncties. Readback: `internal_security` USAGE/EXECUTE voor `service_role` is toegestaan; `authenticated` en `anon` blijven zowel intern als via de publieke wrappers geweigerd. Er is geen production-write, HeRa/Gemini-wijziging of andere remote migration uitgevoerd.
+
+De ene goedgekeurde live E2E-call was synthetisch en zonder HR-data/PII: Responses API, `gpt-5.6-luna`, reasoning `low`, `store:false`, SDK `maxRetries:0`. Invocation `3c011465-d7eb-4125-b7cd-ebbb7c457506` bereikte authenticated context/permission, TEST governance (`FOUNDATION`, `EFFICIENT`), Liquid Credits reserve `1` en settle `1`, FUP lease `test/COMPLETED`, precies één provider-call, structured result `VALIDATED`, usage `208` input/`85` output tokens en `3362 ms`. Remote readback bevestigt `SUCCEEDED`, één technical-usage-rij, één business-audit-rij en één allocation-rij; credit balance ging van `100` beschikbare units naar `99` na de settlement. Geen tweede call of retry.
+
+De eerder bewezen brede gate blijft als bestaande evidence gelden: `18/18` AI-testbestanden, `86/86` tests, strict TypeScript, i18n `33` gelijke NL/EN-namespaces, ESLint `0 errors` met 14 bestaande warnings, `git diff --check` en Webpack `228/228` routes. Na de corrective migration zijn alleen de relevante lokale safety-tests (`2` bestanden, `13/13` tests) en de privilege-contractreadback uitgevoerd; de full suite blijft `1101/1102` met uitsluitend de bekende Journey-baselinefailure op `Binnenkort beschikbaar`. De eerste product capability/UI is niet gebouwd; HeRa/Gemini, AN-2/3 en `TALENT-1` zijn niet gestart of gewijzigd.
+
 ## START-1 `/dashboard/start` hydration-fix — 2026-08-29
 
 **Status: START-1 GREEN — HYDRATION #418 RESOLVED**
