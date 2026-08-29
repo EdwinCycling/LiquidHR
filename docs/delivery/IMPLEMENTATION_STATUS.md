@@ -2,7 +2,7 @@
 
 ## R8 UX Foundation Final Release — 2026-08-28
 
-**Status: INTEGRATED RELEASE CANDIDATE — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
+**Status: R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**
 
 R8 Final Sweep wordt semantisch geïntegreerd vanuit `work/r8-foundation-final-sweep` / `b5aca507e007f2e0900216aaec52ea3093aefa98`, vanaf common baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`, tegen central main `9708617b824a3bc4ca630146609671a0902e48d7`. De bron convergeerde Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail op bestaande Foundation v1.2. De geïntegreerde kandidaat bewaart routes, API/services, permissions, businessregels, lifecycle, URL-state, data-eigendom en AN-0/AN-1.
 
@@ -11,6 +11,8 @@ De doelversie is exact één centrale bump naar `1.20260828.8`. R8 voegt geen Fo
 Source-evidence was lokaal GREEN: targeted `15/15` bestanden en `97/97` tests, strict TypeScript, 34 gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en diff-check; full suite `1023/1024` met alleen de bekende niet-gerelateerde Journey-failure op `Binnenkort beschikbaar`. De actuele geïntegreerde gate is éénmaal uitgevoerd vóór de releasecommit: targeted `21/21` bestanden en `97/97` tests, strict TypeScript voor `hr-suite` en `control`, i18n `33` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en diff-check zijn groen. De geïntegreerde full suite is `262/263` bestanden en `1007/1008` tests; alleen dezelfde bekende Journey-failure blijft open. Lokale authenticated browseracceptance bleef geblokkeerd door de bestaande OAuth-redirect; de verplichte browsergate is post-deploy op de exacte Vercel main-SHA.
 
 Zie [`R8_FOUNDATION_FINAL_SWEEP.md`](R8_FOUNDATION_FINAL_SWEEP.md) voor de bronhandoff, uitzonderingen en acceptance-matrix.
+
+R8 is formeel afgesloten. De geparkeerde post-R8 debts zijn `TALENT-1` (Role Explorer intermittent React #441, oorzaak onbevestigd, geen aangetoonde R8-regressie), `AUTH-UX-1` (`/settings/product-updates` directe ongeautoriseerde route), `AUTH-UX-2` (`/custom-fields` directe ongeautoriseerde route) en `START-1` (`/dashboard/start` hydration #418). Geen van deze debts is in deze statusafsluiting opgelost. `NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft leidend.
 
 ## Liquid Analyse AN-0/AN-1 — 2026-08-28
 

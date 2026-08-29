@@ -2,7 +2,7 @@
 
 ## R8 UX Foundation Final Release — 2026-08-28
 
-**Status: INTEGRATED RELEASE CANDIDATE — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
+**Status: R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**
 
 R8 Final Sweep wordt semantisch geïntegreerd vanuit source `work/r8-foundation-final-sweep` / `b5aca507e007f2e0900216aaec52ea3093aefa98`, vanaf common baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`, tegen de actuele central baseline `9708617b824a3bc4ca630146609671a0902e48d7`. De doelversie is exact één centrale bump naar `1.20260828.8`.
 
@@ -13,6 +13,8 @@ De geïntegreerde releasegate tegen deze actuele central baseline is groen: targ
 AN-0/AN-1 blijft centraal behouden: de legacy persoonlijke Dashboard-widgetruntime, widgetbeheer en dashboard-API's blijven retired; `/dashboard` en `/settings/dashboard-widgets` redirecten naar `/insights/analysis`, terwijl `/dashboard/start` de dagelijkse Startpagina blijft. De Analyse-hub houdt exact vier opties, met uitsluitend Rapporten actief naar `/insights`; AN-2+ is niet geïmplementeerd. De forward migration `20260828125223_retire_legacy_dashboard.sql` blijft in deze release unapplied.
 
 `NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft de leidende regel.
+
+De formeel geparkeerde post-R8 debts zijn `TALENT-1` (Role Explorer intermittent React #441, oorzaak onbevestigd, geen aangetoonde R8-regressie), `AUTH-UX-1` (`/settings/product-updates` directe ongeautoriseerde route), `AUTH-UX-2` (`/custom-fields` directe ongeautoriseerde route) en `START-1` (`/dashboard/start` hydration #418`). Deze debts blokkeren UX Foundation completion niet en zijn niet onderdeel van R8-afsluiting.
 
 ## Setup Assistant HR Admin access-correctie — 2026-08-28
 

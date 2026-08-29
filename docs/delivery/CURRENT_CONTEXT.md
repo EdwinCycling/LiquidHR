@@ -2,7 +2,7 @@
 
 ## R8 UX Foundation Final Release — 2026-08-28
 
-**Status: INTEGRATED RELEASE CANDIDATE — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
+**Status: R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**
 
 - Source branch/commit: `work/r8-foundation-final-sweep` / `b5aca507e007f2e0900216aaec52ea3093aefa98`; source baseline `42066ab64c025e4f8b7653d656e0e3e76cccfaf3`; central baseline `9708617b824a3bc4ca630146609671a0902e48d7`.
 - De R8-delta is uitsluitend Foundation-convergentie voor Custom Fields, Team Compass, Research, Reminders/Time Hub, Personal Settings, Talent, Product Updates en Process Work Detail. Bestaande routes, API/services, payloads, permissions, businessregels, lifecycle states, URL-state en data-eigendom blijven leidend. Geen nieuwe Foundation primitive.
@@ -12,6 +12,10 @@
 - Source-evidence was lokaal GREEN (`15/15` targeted files, `97/97` tests, strict TypeScript, 34 NL/EN namespaces, ESLint, Webpack `229/229`, diff-check; full suite `1023/1024` met uitsluitend de bekende Journey-failure op `Binnenkort beschikbaar`). De geïntegreerde gate is daarna éénmaal tegen actuele main uitgevoerd: `21/21` targeted bestanden, `97/97` tests, strict TypeScript voor `hr-suite` en `control`, i18n `33` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en diff-check groen. De geïntegreerde full suite is `262/263` bestanden en `1007/1008` tests; alleen dezelfde bekende Journey-failure blijft staan.
 - Browser: lokale authenticated acceptance bleef door bestaande OAuth-redirect beperkt; er wordt geen lokale auth/OAuth/.env/login-fix uitgevoerd. De verplichte authenticated HR Admin acceptance verschuift naar de exacte Vercel main deployment; Manager/Employee zijn compacte sanity-negatives.
 - Geldige uitzonderingen: anchored Time Hub portal, Product Updates branded/public presentation, grafische SVG/canvas/xyflow-internals, native file/date inputs en hidden accessibility/FormData-inputs. Handoff: [`R8_FOUNDATION_FINAL_SWEEP.md`](R8_FOUNDATION_FINAL_SWEEP.md).
+
+R8 is formeel afgesloten. De eerder geobserveerde Role Explorer React #441 is `TALENT-1`: intermittent production debt met onbevestigde oorzaak, niet aangetoond als R8-regressie en zonder verantwoorde codefix. De aanvullende geparkeerde debts zijn `AUTH-UX-1` (`/settings/product-updates` directe ongeautoriseerde route), `AUTH-UX-2` (`/custom-fields` directe ongeautoriseerde route) en `START-1` (`/dashboard/start` hydration #418). Deze vier debts blokkeren UX Foundation completion niet en zijn in deze afsluiting niet gewijzigd.
+
+`NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft de leidende regel voor vervolgwerk.
 
 ## Liquid Analyse AN-0/AN-1 — 2026-08-28
 

@@ -11,7 +11,22 @@ Zichtbare releaseversie: `1.20260828.8`
 
 ## Status
 
-**R8 FOUNDATION FINAL SWEEP INTEGRATED GREEN — POST-DEPLOY VERCEL ACCEPTANCE PENDING**
+**R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**
+
+## Formele afsluiting
+
+R8 is formeel afgerond als `R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE`. De implementatie is centraal geïntegreerd op `main`, de productie-deployment is succesvol, de brede HR Admin desktop/mobile acceptance en Manager/Employee persona-sanity zijn uitgevoerd en de geïntegreerde tests, build, typecheck, i18n, lint en diff-check zijn groen. R8 bevat geen schema-, migration-, RLS- of grantwijzigingen en geen remote database-write.
+
+De eerder geobserveerde Role Explorer React #441 wordt geregistreerd als `TALENT-1`: intermittent production debt, oorzaak onbevestigd en niet aangetoond als R8-regressie. De pre-R8/post-R8 service-, API-, route- en querycode is gelijk; de R8-delta beperkt zich daar tot bestaande Foundation Button/styling. De pagina rendert na observatie en er is geen corresponderende Vercel/server-error gevonden. Er is daarom geen verantwoorde minimale codefix.
+
+De volgende post-R8 debt is bewust geparkeerd en blokkeert deze afsluiting niet:
+
+- `TALENT-1` — Role Explorer intermittent React #441; later gericht onderzoeken indien reproduceerbaar.
+- `AUTH-UX-1` — `/settings/product-updates`: directe ongeautoriseerde Manager/Employee-route kan een server-error tonen; pre-existing.
+- `AUTH-UX-2` — `/custom-fields`: directe ongeautoriseerde Employee-route kan een server-error tonen; pre-existing.
+- `START-1` — `/dashboard/start` React hydration #418; bestaande baseline-schuld, apart onderzoeken.
+
+`NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft de leidende regel.
 
 R8-1 is semantisch geïntegreerd op de actuele centrale `main`. De bestaande UI-implementaties in de afgesproken R8-scope zijn geconvergeerd op UX Foundation v1.2. De releaseversie is exact éénmaal verhoogd van `1.20260828.7` naar `1.20260828.8` in `apps/hr-suite/lib/app-version.ts` en de canonieke version-test. Er is geen schema-, migration-, RLS/grant-, Supabase- of andere structurele remote database-write uitgevoerd.
 
