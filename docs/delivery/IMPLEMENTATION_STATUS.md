@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## AUTH-UX-1/2 Unauthorized direct routes — 2026-08-29
+
+**Status: AUTH-UX GREEN — AUTH-UX-1 EN AUTH-UX-2 RESOLVED**
+
+De bestaande route-loaders voor `/settings/product-updates` en `/custom-fields` behouden hun server-side permission- en RLS-contract. De pages vangen alleen `AuthorizationError` af en redirecten naar `/geen-toegang`; overige fouten blijven fouten. Product Updates is voor HR Admin toegestaan en voor Manager/Employee canonical no-access. Custom Fields is voor HR Admin toegestaan, Manager behoudt het bestaande `custom-field-values:read`-contract en Employee krijgt canonical no-access. Er is geen API-, schema-, migration-, RLS-, grant- of permission-wijziging.
+
+De route-regressieset is `6/6` groen en de finale targeted set inclusief version-test `8/8`, strict TypeScript is groen, ESLint eindigde op `0 errors` met `14` bestaande warnings buiten deze delta, de Webpack-build genereerde `228/228` pagina's en `git diff --check` is groen. Authenticated Playwright tegen de exacte lokale productiebuild op `localhost:3000` bevestigde alle zes checks op `1440x900` met HTTP `200`, `0` page errors en `0` console errors. Zichtbare versie: `1.20260829.1`. `START-1` en `TALENT-1` blijven geparkeerd.
+
 ## R8 UX Foundation Final Release — 2026-08-28
 
 **Status: R8 TEST RELEASE GREEN — LIQUIDHR UX FOUNDATION COMPLETE**

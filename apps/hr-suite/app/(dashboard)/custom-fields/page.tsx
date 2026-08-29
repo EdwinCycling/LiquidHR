@@ -1,11 +1,20 @@
+import { redirect } from 'next/navigation'
 import { CustomFieldManager } from '@/components/custom-fields/custom-field-manager'
 import { AdminSettingsPageHeader } from '@/components/settings/admin-settings-page-header'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { listCustomFieldDefinitions } from '@/lib/custom-fields/service'
 import { getTranslator } from '@/lib/i18n/server'
 
 export default async function CustomFieldsPage({ searchParams }: { searchParams: Promise<{ entity?: string }> }) {
   const entityType = (await searchParams).entity === 'DOCUMENT' ? 'DOCUMENT' : 'EMPLOYEE'
-  const [definitions, t, settings] = await Promise.all([listCustomFieldDefinitions(entityType), getTranslator('customFields'), getTranslator('settings')])
+  let definitions: Awaited<ReturnType<typeof listCustomFieldDefinitions>>
+  try {
+    definitions = await listCustomFieldDefinitions(entityType)
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
+  const [t, settings] = await Promise.all([getTranslator('customFields'), getTranslator('settings')])
   const labels = { entity: t('entity'), employeeEntity: t('employeeEntity'), documentEntity: t('documentEntity'), newField: t('newField'), technicalKey: t('technicalKey'), labelNl: t('labelNl'), labelEn: t('labelEn'), fieldType: t('fieldType'), country: t('country'), required: t('required'), hrAccess: t('hrAccess'), managerAccess: t('managerAccess'), selfAccess: t('selfAccess'), options: t('options'), chartFilter: t('chartFilter'), chartFilterHelp: t('chartFilterHelp'), create: t('create'), creating: t('creating'), empty: t('empty'), created: t('created'), failed: t('failed'), active: t('active'), inactive: t('inactive'), edit: t('edit'), editField: t('editField'), saveDefinition: t('saveDefinition'), savingDefinition: t('savingDefinition'), delete: t('delete'), deleteConfirm: t('deleteConfirm'), deleted: t('deleted'), inUse: t('inUse'), activate: t('activate'), deactivate: t('deactivate'), sortBy: t('sortBy'), sortLabel: t('sortLabel'), sortActive: t('sortActive'), ascending: t('ascending'), descending: t('descending'), preview: t('preview'), previewEmpty: t('previewEmpty'), previewValue: t('previewValue'), technicalIdentityHelp: t('technicalIdentityHelp'), cancel: t('cancel'), discardTitle: t('discardTitle'), discardDescription: t('discardDescription'), discardConfirm: t('discardConfirm'), keepEditing: t('keepEditing'), types: { TEXT: t('types.TEXT'), TEXTAREA: t('types.TEXTAREA'), NUMBER: t('types.NUMBER'), DATE: t('types.DATE'), BOOLEAN: t('types.BOOLEAN'), SELECT: t('types.SELECT'), MULTI_SELECT: t('types.MULTI_SELECT'), AUTO_INCREMENT: t('types.AUTO_INCREMENT') }, access: { HIDDEN: t('access.HIDDEN'), READ: t('access.READ'), WRITE: t('access.WRITE') } }
   return <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10 lg:px-10"><AdminSettingsPageHeader backLabel={settings('admin.backToOverview')} eyebrow={t('eyebrow')} subtitle={t('subtitle')} title={t('title')} /><CustomFieldManager definitions={definitions} entityType={entityType} labels={labels} /></section>
 }
