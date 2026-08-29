@@ -65,7 +65,11 @@ proposal-result gebruikt.
 
 ## Live smoke
 
-Een echte OpenAI-call is niet onderdeel van deze lokale run. Een gecontroleerde
-live smoke vereist afzonderlijke expliciete approval, een beschikbare
-server-only key, beperkte scope en readback van uitsluitend technische
-metadata. Deze adapter-slice is daarom alleen lokaal gevalideerd.
+Een gecontroleerde live smoke is eenmaal uitgevoerd met expliciete approval en
+uitsluitend synthetische/no-PII context. De Responses-call gebruikte
+`gpt-5.6-luna`, reasoning `low`, `store: false` en `maxRetries: 0`; de
+provider-call count was exact `1`. Invocation
+`3c011465-d7eb-4125-b7cd-ebbb7c457506` eindigde `SUCCEEDED` met structured
+result `VALIDATED`, `208` inputtokens, `85` outputtokens en `3362 ms` latency.
+Er is geen eerste product capability/UI geactiveerd en HeRa/Gemini is niet
+gewijzigd.

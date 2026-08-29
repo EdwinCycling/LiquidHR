@@ -1,9 +1,9 @@
 # LiquidHR AI Foundation Wave 1B — Liquid Credits
 
-- **Status:** lokaal geïmplementeerd; TEST DB apply pending approval
+- **Status:** geïntegreerd; canonical TEST E2E GREEN
 - **Baseline:** Wave 1A `0fa6e62`
 - **Scope:** accounting- en serverfundering achter de bestaande `CreditsPort`
-- **Geen scope:** customer UI, billing/Stripe, echte provider-call, eerste AI-capability, HeRa/Gemini
+- **Geen scope:** customer UI, billing/Stripe, eerste AI-capability, HeRa/Gemini
 
 ## Contract
 
@@ -128,10 +128,16 @@ transaction-local `app.environment` van `test`/`development`, een expliciete
 settings falen expliciet gesloten. Er is geen production fake-paid path en
 geen "Koop credits"-UI.
 
+## Integrated TEST evidence
+
+De canonical TEST-keten is eenmaal met een synthetische/no-PII probe doorlopen:
+één EFFICIENT invocation reserveerde `1` Liquid Credit en settlede `1` na
+structured validation. De credit balance eindigde op `99` beschikbare units;
+de eerste customer capability blijft deferred.
+
 ## Wave 2 open
 
-- gecontroleerde TEST DB apply, readback, advisors en echte gegenereerde
-  `packages/db/types.ts`-sync;
+- verdere TEST readback/advisors en echte gegenereerde `packages/db/types.ts`-sync;
 - echte billing/purchase intake die `BILLING:`-allocations autoriseert;
 - beheer van allowance-, quota- en timezone-policy via een passende server/UI
   route;

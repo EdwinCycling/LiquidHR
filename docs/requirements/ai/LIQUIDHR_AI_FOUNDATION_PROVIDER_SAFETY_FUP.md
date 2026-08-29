@@ -2,9 +2,12 @@
 
 ## Status
 
-Lokale implementatie op `work/ai-provider-safety-fup`, vanaf approved OpenAI
-Provider HEAD `7548f2a9978124e03577a8bb28114cc1c09cbdf3`. TEST database apply,
-remote advisors en types-generatie blijven apart en vereisen approval/tooling.
+Geïntegreerd in `work/ai-foundation-central-integration` vanaf authoritative
+`origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`. De corrective TEST
+migration `20260829134822_ai_provider_safety_internal_service_role_grants`
+is toegepast; alleen `service_role` kreeg EXECUTE op de twee interne
+provider-safetyfuncties. Authenticated en anon blijven geweigerd. Er is geen
+production DB-write of brede schemawijziging uitgevoerd.
 
 ## Doel en grens
 
@@ -92,6 +95,9 @@ kostenbesluit namens de operator.
 TestProvider en deterministische clocks dekken de implementatie en
 adversarial cases: disabled, corrupt config, 4/5 en 5/5 uurcap, 20/20 dagcap,
 2/2 concurrency, stale lease, duplicate invocation, nieuwe invocation onder
-global cap, oversized input/output, provider failure en RPC failure. Er is geen
-live OpenAI-call, geen TEST DB apply en geen Credits end-to-end activation.
-Een aparte controlled live smoke blijft vereist vóór verdere integratie.
+global cap, oversized input/output, provider failure en RPC failure. De
+gecontroleerde live E2E activeerde de bestaande seam eenmaal in TEST: exact
+één synthetische/no-PII OpenAI-call, FUP lease `COMPLETED`, credits reserve/settle
+`1/1`, structured result `VALIDATED`, usage `208/85` tokens en `3362 ms`. De
+privilege-readback bevestigde service-role allow en authenticated/anon deny; de
+eerste product capability blijft deferred.

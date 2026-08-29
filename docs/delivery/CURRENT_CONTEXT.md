@@ -2,13 +2,13 @@
 
 ## Centrale AI Foundation-integratie — 2026-08-29
 
-**Status: LOCAL AI FOUNDATION GREEN — LIVE E2E APPROVAL REQUIRED**
+**Status: AI FOUNDATION TEST GREEN — READY FOR FIRST PRODUCT CAPABILITY**
 
-- Exacte authoritative baseline: `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`; zichtbare main-versie `1.20260829.2`. De dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
+- Exacte authoritative baseline: `origin/main`/`b9228380f74a4cacfd951e695ff694e2cf1f699c`; releaseversie `1.20260829.3`. De dirty root-worktree `work/r5-work-runtime` is niet aangeraakt.
 - Dedicated integration branch/worktree: `work/ai-foundation-central-integration` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ai-foundation-central-integration`. Volgorde: Wave 1A → Wave 1B → OpenAI Provider → AI1C. Source commits: `0fa6e62`, `ebf400f` + `11de0e5` + `fc1625d`, `7548f2a`, `3238bb9` + `84f7adb`; `dbbabb9` was inhoudelijk al aanwezig en is als lege cherry-pick gereconcilieerd.
-- Remote TEST history is read-only gereconcilieerd: runtime `20260828080428`, safety/FUP `20260828124612`, credits `20260828133631`, corrective `20260828142639`; lokale filenames blijven onveranderd. De bestaande dubbele `retire_legacy_dashboard`-history is behouden. Geen remote migration apply, production-write of nieuwe migration.
+- Canonical TEST Supabase `wnpfloqpjvaacobppbpk` heeft uitsluitend corrective migration `20260829134822_ai_provider_safety_internal_service_role_grants`; lokale filename `20260829154355_ai_provider_safety_internal_service_role_grants.sql`. Alleen `service_role` kreeg interne reserve/complete EXECUTE; authenticated/anon en publieke wrappers zijn readback-denied waar vereist. Geen production-write of andere remote migration.
 - Gates: AI `18/18` testbestanden, `86/86` tests, strict TypeScript, i18n `33` gelijke namespaces, ESLint `0 errors`/14 bestaande warnings, diff-check en Webpack `228/228` routes groen. Volledige hr-suite: `282/283` bestanden en `1101/1102` tests; alleen de bekende Journey-baselinefailure `Binnenkort beschikbaar`. Supabase remote readback: alle AI-tabellen RLS; provider/credits wrappers service-role-only. AI advisors: intentionele service-only RLS-INFO en bestaande index-INFO, geen nieuwe AI-WARN.
-- Geen echte OpenAI-call en geen authenticated browseracceptance: integration worktree heeft geen `.env.local`; live E2E vereist expliciete approval. Geen version bump; HeRa/Gemini, eerste capability/UI, AN-2/3 en `TALENT-1` blijven buiten scope.
+- Exact één synthetische/no-PII OpenAI Responses-call is GREEN: invocation `3c011465-d7eb-4125-b7cd-ebbb7c457506`, `gpt-5.6-luna`, reasoning `low`, `store:false`, `maxRetries:0`, provider count `1`, `SUCCEEDED/VALIDATED`, `208/85` tokens, `3362 ms`; credits reserve/settle `1/1`, FUP lease `test/COMPLETED`, usage/audit/allocation elk `1`. De eerste product capability/UI is nog niet gebouwd; HeRa/Gemini, AN-2/3 en `TALENT-1` zijn niet gestart of gewijzigd.
 
 ## START-1 `/dashboard/start` hydration-fix — 2026-08-29
 
