@@ -1,12 +1,20 @@
 # Implementatiestatus Liquid HR
 
+## START-1 `/dashboard/start` hydration-fix — 2026-08-29
+
+**Status: START-1 GREEN — HYDRATION #418 RESOLVED**
+
+De hydration mismatch kwam door een datumafhankelijke render in `StartPage`: server en client berekenden tijdens dezelfde initial render onafhankelijk `new Date()`, waardoor een daggrens verschillende zichtbare datums kon opleveren. De route maakt nu één server-side tijdsnapshot, geeft de `today`-waarde expliciet door en formatteert datumafhankelijke Startpage-uitvoer deterministisch in UTC. Er is geen `suppressHydrationWarning`, route/API-, auth-, permission-, schema-, migration-, RLS- of databasewijziging.
+
+De regressiontest reproduceert de klokwissel en bevestigt identieke markup. De gerichte set inclusief version-test is `3/3` bestanden en wordt na de releasegate vastgelegd met het exacte testtotaal; strict TypeScript, ESLint, Webpack en diff-check zijn vereist voor integratie. Lokale authenticated Playwright tegen de exacte production-mode kandidaat op `localhost:3003` bevestigde normale navigatie en hard refresh met HTTP `200`, zichtbare Startpagina, `0` page/console errors en `0` warnings; mobile `390x844` had geen horizontale overflow. Zichtbare versie: `1.20260829.2`. `TALENT-1` blijft geparkeerd.
+
 ## AUTH-UX-1/2 Unauthorized direct routes — 2026-08-29
 
 **Status: AUTH-UX GREEN — AUTH-UX-1 EN AUTH-UX-2 RESOLVED**
 
 De bestaande route-loaders voor `/settings/product-updates` en `/custom-fields` behouden hun server-side permission- en RLS-contract. De pages vangen alleen `AuthorizationError` af en redirecten naar `/geen-toegang`; overige fouten blijven fouten. Product Updates is voor HR Admin toegestaan en voor Manager/Employee canonical no-access. Custom Fields is voor HR Admin toegestaan, Manager behoudt het bestaande `custom-field-values:read`-contract en Employee krijgt canonical no-access. Er is geen API-, schema-, migration-, RLS-, grant- of permission-wijziging.
 
-De route-regressieset is `6/6` groen en de finale targeted set inclusief version-test `8/8`, strict TypeScript is groen, ESLint eindigde op `0 errors` met `14` bestaande warnings buiten deze delta, de Webpack-build genereerde `228/228` pagina's en `git diff --check` is groen. Authenticated Playwright tegen de exacte lokale productiebuild op `localhost:3000` bevestigde alle zes checks op `1440x900` met HTTP `200`, `0` page errors en `0` console errors. Zichtbare versie: `1.20260829.1`. `START-1` en `TALENT-1` blijven geparkeerd.
+De route-regressieset is `6/6` groen en de finale targeted set inclusief version-test `8/8`, strict TypeScript is groen, ESLint eindigde op `0 errors` met `14` bestaande warnings buiten deze delta, de Webpack-build genereerde `228/228` pagina's en `git diff --check` is groen. Authenticated Playwright tegen de exacte lokale productiebuild op `localhost:3000` bevestigde alle zes checks op `1440x900` met HTTP `200`, `0` page errors en `0` console errors. Zichtbare versie: `1.20260829.1`. `TALENT-1` bleef geparkeerd; `START-1` is in de opvolgende release hierboven opgelost.
 
 ## R8 UX Foundation Final Release — 2026-08-28
 

@@ -62,6 +62,7 @@ function render(viewMode: 'compact' | 'full'): string {
     initialPreferences: { layout: DEFAULT_START_PAGE_WINDOW_LAYOUT, viewMode },
     labels,
     locale: 'nl',
+    today: '2026-08-29',
     timeFormat: '24H',
   }))
 }
@@ -84,5 +85,21 @@ describe('StartPage view modes', () => {
     expect(markup).toContain('Venster slepen om de volgorde te wijzigen')
     expect(markup).toContain('Venster omhoog verplaatsen')
     expect(markup).toContain('Venster omlaag verplaatsen')
+  })
+
+  it('keeps date-dependent markup stable when the client clock changes', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-08-29T23:59:59Z'))
+      const serverMarkup = render('full')
+
+      vi.setSystemTime(new Date('2026-08-30T00:00:01Z'))
+      const clientMarkup = render('full')
+
+      expect(clientMarkup).toBe(serverMarkup)
+      expect(clientMarkup).toContain('zaterdag 29 augustus 2026')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

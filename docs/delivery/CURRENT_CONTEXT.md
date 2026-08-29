@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## START-1 `/dashboard/start` hydration-fix — 2026-08-29
+
+**Status: START-1 GREEN — HYDRATION #418 OPGELOST**
+
+- Root cause: `StartPage` berekende tijdens initial render zelfstandig `new Date()` voor zichtbare datumtekst; bij een server/client-daggrens verschilde de markup (`29` versus `30 augustus`) en React gaf hydration error #418.
+- Fix: server route maakt één tijdsnapshot, geeft `today` expliciet door en de Startpage gebruikt deterministische UTC-datumformattering voor alle datumafhankelijke vensters. Geen `suppressHydrationWarning`, API/auth/permission/schema/migration/RLS/database onveranderd.
+- Verificatie: regressiontest voor klokwissel, targeted tests inclusief version-test, strict TypeScript, ESLint, Webpack en diff-check groen. Authenticated production-mode kandidaat `localhost:3003`: normale navigatie, hard refresh, HTTP `200`, zichtbare Startpagina, `0` page/console errors en `0` warnings; mobile `390x844`, `scrollWidth === viewport`.
+- Zichtbare versie: `1.20260829.2`; releasecommit, main-integratie, push en Vercel-provenance volgen na de definitieve gate. Dirty root-worktree bleef onaangeraakt. `TALENT-1` blijft geparkeerd; AI Foundation is niet gestart.
+
 ## AUTH-UX-1/2 Unauthorized direct routes — 2026-08-29
 
 **Status: AUTH-UX GREEN — AUTH-UX-1 EN AUTH-UX-2 RESOLVED**
@@ -7,7 +16,7 @@
 - `/settings/product-updates` en `/custom-fields` vangen uitsluitend de bestaande server-side `AuthorizationError` van hun loader af en sturen ongeautoriseerde actors naar de canonieke `/geen-toegang`-UX. Niet-autorisatiefouten worden opnieuw gegooid. De bestaande permissions, API-contracten, services, database, RLS en grants zijn niet gewijzigd.
 - Acceptance: HR Admin ziet beide routes normaal; Manager en Employee krijgen voor Product Updates `/geen-toegang`; Manager behoudt voor Custom Fields het bestaande `custom-field-values:read`-contract en ziet de route normaal; Employee krijgt `/geen-toegang`. De unauthorized pages laden geen labels of protected page-data vóór de redirect.
 - Gates: route-regressies `6/6` groen en de finale targeted set inclusief version-test `8/8`, strict TypeScript, ESLint `0 errors` met `14` bestaande warnings buiten deze delta, Webpack productiebuild `228/228` en `git diff --check` groen. Authenticated Playwright tegen de exacte productiebuild op `localhost:3000` (`1440x900`) gaf voor alle zes persona/routechecks HTTP `200`, `0` page errors en `0` console errors.
-- Zichtbare versie: `1.20260829.1`. `START-1` (`/dashboard/start` hydration #418) en `TALENT-1` (Role Explorer React #441) blijven expliciet geparkeerd en zijn niet gewijzigd.
+- Zichtbare versie van die release: `1.20260829.1`. `TALENT-1` (Role Explorer React #441) blijft expliciet geparkeerd; `START-1` is opgelost in de opvolgende release hierboven.
 
 ## R8 UX Foundation Final Release — 2026-08-28
 

@@ -17,4 +17,8 @@ describe('preference formatters', () => {
   it('combines the selected date and time formats', () => {
     expect(formatDateTime('2026-12-31T16:05:00Z', { locale: 'en-US', dateFormat: 'MDY', timeFormat: '12H' })).toMatch(/^12\/31\/2026 05:05 PM$/)
   })
+
+  it('supports an explicit timezone for stable server and client output', () => {
+    expect(formatTime('2026-12-31T16:05:00Z', { locale: 'en-US', timeFormat: '12H', timeZone: 'UTC' })).toBe('04:05 PM')
+  })
 })

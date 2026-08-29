@@ -1,6 +1,6 @@
 import type { DateFormat, TimeFormat } from './user-preferences'
 
-type DateFormatterOptions = { locale: string; dateFormat: DateFormat; timeFormat?: TimeFormat }
+type DateFormatterOptions = { locale: string; dateFormat: DateFormat; timeFormat?: TimeFormat; timeZone?: string }
 
 function dateParts(value: string | Date, locale: string): Record<string, string> {
   const parts = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).formatToParts(typeof value === 'string' ? new Date(`${value.slice(0, 10)}T00:00:00Z`) : value)
@@ -14,8 +14,8 @@ export function formatDate(value: string | Date, options: Pick<DateFormatterOpti
   return `${parts.day}-${parts.month}-${parts.year}`
 }
 
-export function formatTime(value: string | Date, options: Pick<DateFormatterOptions, 'locale' | 'timeFormat'>): string {
-  return new Intl.DateTimeFormat(options.locale, { hour: '2-digit', minute: '2-digit', timeZone: undefined, hour12: options.timeFormat === '12H' }).format(typeof value === 'string' ? new Date(value) : value)
+export function formatTime(value: string | Date, options: Pick<DateFormatterOptions, 'locale' | 'timeFormat' | 'timeZone'>): string {
+  return new Intl.DateTimeFormat(options.locale, { hour: '2-digit', minute: '2-digit', timeZone: options.timeZone, hour12: options.timeFormat === '12H' }).format(typeof value === 'string' ? new Date(value) : value)
 }
 
 export function formatDateTime(value: string | Date, options: DateFormatterOptions): string {
