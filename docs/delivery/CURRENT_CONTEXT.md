@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## AN-2/3 Analysis Engine V1 — 2026-08-29
+
+**Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**
+
+- Dedicated branch/worktree: `work/an-analysis-engine-v1` / `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an-analysis-engine-v1`; authoritative baseline `4178f3b6e3b4c2e1a69ce50694437c347e37481e`.
+- V1-contract: `employees`/`workforce`, `headcount`, `department`, `job`, `employment_status`, max één output-dimension, strict AnalysisSpec V1, typed AnalysisResult en Foundation `LiquidCanvas` KPI/tabel/fallback.
+- Security boundary: `dashboard:read` plus `employee:read` of `employee-directory:read`, actieve tenant + HR-groep, daarna pas bestaande `listEmployeesOverview`/vaste RPC; de engine voert een tweede scopecontrole uit vóór aggregatie.
+- Evidence: gerichte AN-2/3-set inclusief version-test `6` bestanden / `27/27` groen; strict TypeScript, i18n (`33` gelijke namespaces), ESLint (`0 errors / 14 bestaande warnings`), Webpack `229/229`, full suite `1126/1127` met alleen de bekende Journey-baselinefailure en diff-check groen. Tijdelijke harness desktop `1440x900` en mobiel `390x844` zonder overflow of console-errors, daarna verwijderd.
+- De zichtbare versie is exact éénmaal verhoogd naar `1.20260829.4`. Geen hub-contractwijziging, AI-call, saved-analysismodel, Liquid Explore, conversational UX, migration of remote databasewrite. Live `git ls-remote` en de normale push/Vercel provenance zijn nog open door Windows Git `SEC_E_NO_CREDENTIALS`.
+
 ## Centrale AI Foundation-integratie — 2026-08-29
 
 **Status: AI FOUNDATION TEST GREEN — READY FOR FIRST PRODUCT CAPABILITY**

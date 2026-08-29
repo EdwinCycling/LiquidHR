@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## AN-2/3 Analysis Engine V1 — 2026-08-29
+
+**Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**
+
+Vanaf authoritative baseline `4178f3b6e3b4c2e1a69ce50694437c347e37481e` is in dedicated `work/an-analysis-engine-v1` een kleine application-only analysis engine toegevoegd. De V1 semantic layer gebruikt alleen de bestaande HR-group-scoped employee-overviewservice met `employees`/`workforce`, `headcount`, `department`, `job` en `employment_status`. De server valideert een versioned AnalysisSpec strikt, autoriseert `dashboard:read` plus `employee:read` of `employee-directory:read` vóór retrieval en geeft uitsluitend een typed, deterministic AnalysisResult aan de Foundation `LiquidCanvas` KPI/tabel/fallback-renderer. De bestaande `/insights/analysis`-hub, AI Foundation, AN-0/AN-1, Liquid Explore, Mijn Analyses en conversational analysis zijn niet gewijzigd of geactiveerd. Geen migration, schema/RLS/grantwijziging, AI-call of remote databasewrite.
+
+De gerichte AN-2/3-set inclusief version-test is `6` bestanden / `27/27` tests groen; strict TypeScript, i18n (`33` gelijke namespaces), volledige ESLint (`0 errors / 14 bestaande warnings`), Webpack production build (`229/229`) en `git diff --check` zijn groen. De volledige suite is `288` bestanden / `1127` tests, `1126` groen; alleen de bekende Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan. Een tijdelijke lokale renderer-harness is op desktop `1440x900` en mobiel `390x844` gecontroleerd en verwijderd. De exacte version bump naar `1.20260829.4` is eenmaal uitgevoerd; live `git ls-remote`/push/Vercel provenance blijven open door `SEC_E_NO_CREDENTIALS` in Windows Git.
+
 ## Centrale AI Foundation-integratie — 2026-08-29
 
 **Status: AI FOUNDATION TEST GREEN — READY FOR FIRST PRODUCT CAPABILITY**

@@ -1,5 +1,13 @@
 # Liquid HR documentatie-index
 
+## Liquid Analyse AN-2/3 Analysis Engine V1 — 2026-08-29
+
+**Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**
+
+De engine-slice is gebouwd vanaf authoritative baseline `4178f3b6e3b4c2e1a69ce50694437c347e37481e` in dedicated branch/worktree `work/an-analysis-engine-v1`. V1 gebruikt uitsluitend de bestaande groepsbrede employee-overviewservice: `employees`/`workforce`, `headcount`, `department`, `job` en `employment_status`, met strict versioned AnalysisSpec, authorization vóór retrieval, typed AnalysisResult en Foundation `LiquidCanvas` KPI/tabel/fallback. De Analyse-hub en de AN-0/AN-1 vier-tegelcontracten zijn niet gewijzigd. Er is geen AI-call, saved-analysismodel, Liquid Explore, conversational UX, migration of remote databasewrite.
+
+Zie [`requirements/reports/LIQUID_ANALYSE_AN2_AN3_ENGINE_V1.md`](requirements/reports/LIQUID_ANALYSE_AN2_AN3_ENGINE_V1.md) en [`delivery/AN2_3_ANALYSIS_ENGINE_V1.md`](delivery/AN2_3_ANALYSIS_ENGINE_V1.md) voor de compacte contract- en deliverybeschrijving. De releasehandelingen volgen pas na de final gate.
+
 ## Centrale AI Foundation-integratie — 2026-08-29
 
 **Status: AI FOUNDATION TEST GREEN — READY FOR FIRST PRODUCT CAPABILITY**
@@ -661,6 +669,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Verzuiminstellingen | [`requirements/absence/VERZUIM_INSTELLINGEN.md`](requirements/absence/VERZUIM_INSTELLINGEN.md) | LEIDEND | GEDEELTELIJK — drempel, geldige standaardcasemanager en eigen taaktemplates zijn administratiegebonden beschikbaar; contacttypen en documentcategorieën blijven open |
 | Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport; de oude globale Dashboard-bestemming is vervangen door Analyse |
 | Liquid Analyse AN-0/AN-1 | [`requirements/reports/LIQUID_ANALYSE_AN0_AN1.md`](requirements/reports/LIQUID_ANALYSE_AN0_AN1.md) | LEIDEND | LOKALE FEATURE-SLICE — legacy Dashboard in code retired, Analyse-hub active, DB-retirement migration ready maar nog niet toegepast |
+| Liquid Analyse AN-2/AN-3 Engine V1 | [`requirements/reports/LIQUID_ANALYSE_AN2_AN3_ENGINE_V1.md`](requirements/reports/LIQUID_ANALYSE_AN2_AN3_ENGINE_V1.md) | LEIDEND | LOKALE IMPLEMENTATIE GREEN — typed semantic layer, AnalysisSpec, authorized retrieval, AnalysisResult en Liquid Canvas; releasegate open |
 | Surveys en eNPS | [`requirements/research/SURVEYS_AND_ENPS.md`](requirements/research/SURVEYS_AND_ENPS.md) | LEIDEND | GEDEELTELIJK — tenantmodules, schema/RLS, draft-campagnebeheer, medewerkerhub, respondentflow, HR-instellingen, monitor, privacydrempel, grafieken, CSV en rolgebonden widgets zijn remote en op main/browser geverifieerd. Automatische e-mail-/schedulerbezorging voor eNPS-herinneringen is bewust uitgesteld; segmentprivacy blijft een apart besluit |
 | Process Automation | [`requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`](requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) | LEIDEND | P2-P9 schema/API/UI en contextstarts zijn uitgevoerd; P10-outputbrug is live end-to-end bewezen. Open: niet-lege `BLOCKED`-startpaginafixture en expliciete doelgroepgoedkeuring voor HR-admin-dossierzichtbaarheid; daarom nog geen 100%-gate |
 | Journeys | [`requirements/journeys/JOURNEYS.md`](requirements/journeys/JOURNEYS.md) | LEIDEND | BOUWSTAP 1 EN 2 GEREED — configuratie plus gepinde HR-runtime, activatiepreview, teamresolutie, lifecycle, replacement en reminders remote/browser geverifieerd; stap 3 en deployment niet gestart |
