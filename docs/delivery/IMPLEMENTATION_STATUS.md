@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## AI Improve V1 — Employee Notes — 2026-08-30
+
+**Status: LOKALE CANDIDATE GREEN — RELEASE-INTEGRATIE OPEN**
+
+De eerste product-capability bovenop de centrale AI Foundation is toegevoegd aan alleen de omschrijving van Employee Notes. De server-only adapter gebruikt `employee-note:write` met target employee-id, daarna de bestaande `ai:use`/governance/quality/quota/Liquid Credits/provider-safety/provider/validation/usage/audit-keten. De feature gebruikt de bestaande `improve-existing-hr-text` registry-entry met `EFFICIENT` als productkwaliteit en één Liquid Credit. Provider-input bevat uitsluitend source text, transformation en locale; de employee-id wordt niet naar het model gestuurd. AI is proposal-only: Apply wijzigt alleen lokale form state en het bestaande Save-pad blijft de enige persistence.
+
+Er is geen migration, schema-, RLS-, grant- of remote databasewrite nodig. De relevante regressies zijn `31` bestanden / `148/148` tests groen; de volledige suite is `290` bestanden / `1134/1135` tests met uitsluitend de bekende, ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar`. Strict TypeScript, i18n `33` gelijke NL/EN-namespaces, ESLint `0 errors` / `14` bestaande warnings, `git diff --check` en webpack production build `229/229` zijn groen. Authenticated browseracceptance is op desktop en `390x844` uitgevoerd; remote TEST-readback bevestigt één `SUCCEEDED`/`VALIDATED` invocation, credits `1` reserve/`1` settle, settled allocation, usage/audit en na cleanup nul synthetic employee notes. De zichtbare versie is exact eenmaal verhoogd naar `1.20260830.1`; commit, integratie, push en Vercel provenance volgen.
+
 ## AN-2/3 Analysis Engine V1 — 2026-08-29
 
 **Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**

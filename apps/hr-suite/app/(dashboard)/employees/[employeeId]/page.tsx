@@ -38,6 +38,7 @@ import { listEmployeeRoleAssignments } from '@/lib/organization/management-servi
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { employeeNotesPermissionAllowed, listEmployeeNotes } from '@/lib/employees/employee-notes-service'
 import { EmployeeNotes } from '@/components/employees/employee-notes'
+import { isAiImproveAvailable } from '@/lib/ai/supabase-governance'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { AbsenceCaseDetail } from '@/components/absence/absence-case-detail'
 import { AbsenceCaseList } from '@/components/absence/absence-case-list'
@@ -105,14 +106,15 @@ async function loadPageData(employeeId: string, tab: 'overview' | 'personal' | '
       tab === 'notes' ? employeeNotesPermissionAllowed(employeeId) : Promise.resolve(false),
     ]))
     const base = [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys] as const
-    const [canWriteNotes, canDeleteNotes, notes] = canReadNotes
+    const [canWriteNotes, canDeleteNotes, canUseAi, notes] = canReadNotes
       ? await performance.measure('notes.parallel', () => Promise.all([
         permissionAllowed('employee-note:write', employeeId),
         permissionAllowed('employee-note:delete', employeeId),
+        permissionAllowed('ai:use', employeeId),
         listEmployeeNotes(employeeId),
       ]))
-      : [false, false, []]
-    return [...base, notes, canReadNotes, canWriteNotes, canDeleteNotes] as const
+      : [false, false, false, []]
+    return [...base, notes, canReadNotes, canWriteNotes, canDeleteNotes, canUseAi] as const
   } catch (error) {
     if (error instanceof EmploymentServiceError && error.status === 404) notFound()
     throw error
@@ -160,7 +162,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     getPrivateWeatherForEmployee(authContext, employeeId, requestContext.supabase),
     getUpcomingCalendarItems(authContext, requestContext.supabase),
   ]))
-  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes] = pageData
+  const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes, canUseAi] = pageData
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
   const tWeather = await getTranslator('startpage', locale)
@@ -312,7 +314,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'reminders' && <EmployeeReminders employeeId={employeeId} mode={authContext.employeeId === employeeId ? 'PERSONAL' : 'HR'} canManageHr={authContext.permissions.includes('reminder:write')} reminders={reminders} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('remindersTitle'), empty: tEmployees('remindersEmpty'), add: tEmployees('addReminder'), edit: tEmployees('editReminder'), remove: tEmployees('deleteReminder'), titleLabel: tEmployees('reminderTitle'), descriptionLabel: tEmployees('reminderDescription'), dateLabel: tEmployees('reminderDate'), save: tEmployees('saveReminder'), saved: tEmployees('reminderSaved'), failed: tErrors('generic'), futureTime: tEmployees('reminderFutureTime'), cancel: tEmployees('cancel'), close: tEmployees('reminderClose'), moreActions: tEmployees('reminderMoreActions'), personalReminder: tEmployees('personalReminder'), hrReminder: tEmployees('hrReminder'), discardTitle: tEmployees('reminderDiscardTitle'), discardDescription: tEmployees('reminderDiscardDescription'), discardConfirm: tEmployees('reminderDiscardConfirm'), discardCancel: tEmployees('reminderDiscardCancel'), deleteTitle: tEmployees('reminderDeleteTitle'), deleteDescription: tEmployees('reminderDeleteDescription'), deleteConfirm: tEmployees('reminderDeleteConfirm'), deleteCancel: tEmployees('reminderDeleteCancel'), shiftDayBack: tEmployees('reminderDayBack'), shiftDayForward: tEmployees('reminderDayForward'), shiftWeekForward: tEmployees('reminderWeekForward'), shiftMonthForward: tEmployees('reminderMonthForward') }} />}
 
-        {tab === 'notes' && canReadNotes && <EmployeeNotes employeeId={employeeId} notes={notes} canWrite={canWriteNotes} canDelete={canDeleteNotes} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('notesTitle'), accessNotice: tEmployees('notesAccessNotice'), empty: tEmployees('notesEmpty'), add: tEmployees('addNote'), edit: tEmployees('editNote'), remove: tEmployees('deleteNote'), noteTitle: tEmployees('noteTitle'), description: tEmployees('description'), author: tEmployees('noteAuthor'), createdAt: tEmployees('noteCreatedAt'), save: tEmployees('saveNote'), cancel: tEmployees('cancel'), close: tEmployees('cancel'), moreActions: tEmployees('moreActions'), saving: tEmployees('saving'), failed: tErrors('generic'), saved: tEmployees('noteSaved'), discardTitle: tEmployees('discardTitle'), discardDescription: tEmployees('discardDescription'), discardConfirm: tEmployees('discardConfirm'), discardCancel: tEmployees('discardCancel'), deleteTitle: tEmployees('deleteTitle'), deleteDescription: tEmployees('deleteDescription'), deleteConfirm: tEmployees('deleteConfirm'), deleteCancel: tEmployees('cancel') }} />}
+        {tab === 'notes' && canReadNotes && <EmployeeNotes employeeId={employeeId} notes={notes} canWrite={canWriteNotes} canDelete={canDeleteNotes} canImproveWithAi={canWriteNotes && canUseAi && isAiImproveAvailable()} locale={locale} dateFormat={preferences.dateFormat} timeFormat={preferences.timeFormat} labels={{ title: tEmployees('notesTitle'), accessNotice: tEmployees('notesAccessNotice'), empty: tEmployees('notesEmpty'), add: tEmployees('addNote'), edit: tEmployees('editNote'), remove: tEmployees('deleteNote'), noteTitle: tEmployees('noteTitle'), description: tEmployees('description'), author: tEmployees('noteAuthor'), createdAt: tEmployees('noteCreatedAt'), save: tEmployees('saveNote'), cancel: tEmployees('cancel'), close: tEmployees('cancel'), moreActions: tEmployees('moreActions'), saving: tEmployees('saving'), failed: tErrors('generic'), saved: tEmployees('noteSaved'), discardTitle: tEmployees('discardTitle'), discardDescription: tEmployees('discardDescription'), discardConfirm: tEmployees('discardConfirm'), discardCancel: tEmployees('discardCancel'), deleteTitle: tEmployees('deleteTitle'), deleteDescription: tEmployees('deleteDescription'), deleteConfirm: tEmployees('deleteConfirm'), deleteCancel: tEmployees('cancel'), improveWithAi: tEmployees('improveWithAi'), improveWriting: tEmployees('improveWriting'), makeShorter: tEmployees('makeShorter'), makeProfessional: tEmployees('makeProfessional'), aiWorking: tEmployees('aiWorking'), aiReviewTitle: tEmployees('aiReviewTitle'), applyAi: tEmployees('applyAi'), cancelAi: tEmployees('cancelAi'), aiFailed: tErrors('generic') }} />}
 
         {tab === 'employments' && <div className="mt-8">
           <section className="space-y-5">

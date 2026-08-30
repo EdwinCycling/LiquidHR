@@ -113,6 +113,8 @@ export interface AiInvocationInput {
   businessObject: AiBusinessObjectRef
   idempotencyKey: string
   businessPermissionCode: string | null
+  /** Target-object voor de bestaande business-permission resolver. */
+  businessPermissionTargetId?: string
   /** Alleen de server-entrypoint mag dit na requirePermission op true zetten. */
   businessPermissionVerified?: boolean
   qualityProfile?: AiQualityProfile

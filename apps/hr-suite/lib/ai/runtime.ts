@@ -3,7 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { AuthenticationError, AuthorizationError, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { AiExecutionError, type AiExecutionResult, type AiInvocationInput, type AiRuntimeDependencies, type AuthorizedContextLoader, type BusinessAuditSink, type CreditsPort, type AiGovernancePort, type AiResultValidator, type ProviderPort, type ProviderSafetyPort, type TechnicalUsageSink, type InvocationRepository, type AiClock, type HrGroupTimeZoneResolver } from './contracts'
-import { FailClosedGovernancePort } from './fail-closed-ports'
+import { SupabaseAiGovernancePort } from './supabase-governance'
 import { aiFeatureRegistry } from './feature-registry'
 import { runAiInvocation } from './orchestrator'
 import { SupabaseBusinessAuditSink, SupabaseTechnicalUsageSink } from './supabase-observability-sinks'
@@ -31,7 +31,7 @@ export function createServerAiRuntimeDependencies<T>(input: {
   if (!provider || !providerSafety) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
   return {
     registry: aiFeatureRegistry,
-    governance: input.governance ?? new FailClosedGovernancePort(),
+    governance: input.governance ?? new SupabaseAiGovernancePort(),
     credits: input.credits ?? new SupabaseLiquidCreditsService(),
     contextLoader: input.contextLoader,
     provider,
@@ -52,8 +52,10 @@ export async function runAuthorizedAiInvocation<T>(
 ): Promise<AiExecutionResult<T>> {
   let context: AuthContext
   try {
-    context = await requirePermission('ai:use')
-    if (input.businessPermissionCode) await requirePermission(input.businessPermissionCode)
+    context = input.businessPermissionCode
+      ? await requirePermission(input.businessPermissionCode, input.businessPermissionTargetId)
+      : await requirePermission('ai:use')
+    if (input.businessPermissionCode) await requirePermission('ai:use')
   } catch (error) {
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
       throw new AiExecutionError('UNAUTHORIZED')

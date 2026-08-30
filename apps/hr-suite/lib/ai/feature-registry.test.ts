@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { aiFeatureDefinitions, aiFeatureRegistry, IMPROVE_EXISTING_HR_TEXT_FEATURE } from './feature-registry'
 
 describe('AI feature registry', () => {
-  it('registreert de eerste capability als planned proposal-only contract', () => {
+  it('registreert de eerste capability als available proposal-only contract', () => {
     const feature = aiFeatureRegistry.get(IMPROVE_EXISTING_HR_TEXT_FEATURE)
     expect(feature).toMatchObject({
       featureCode: IMPROVE_EXISTING_HR_TEXT_FEATURE,
-      productStatus: 'PLANNED',
+      productStatus: 'AVAILABLE',
       allowedResultType: 'PROPOSAL',
-      defaultQualityProfile: 'BALANCED',
+      defaultQualityProfile: 'EFFICIENT',
       supportsWritingStyle: true,
     })
     expect(feature?.providerMappingByProfile.IN_DEPTH).toMatchObject({ modelFamily: 'LUNA', reasoningProfile: 'MAX' })

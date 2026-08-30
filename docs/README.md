@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## AI Improve V1 — Employee Notes
+
+De eerste product-capability bovenop de centrale AI Foundation is geïmplementeerd op de omschrijving van Employee Notes. Zie [`LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md`](requirements/ai/LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md) voor het afgebakende contract en de autorisatie-/lifecyclegrenzen. De formele deliverystatus staat in [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) en [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+
 ## Liquid Analyse AN-2/3 Analysis Engine V1 — 2026-08-29
 
 **Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**

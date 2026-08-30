@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## AI Improve V1 — Employee Notes — 2026-08-30
+
+**Status: LOKALE CANDIDATE GREEN — RELEASE-INTEGRATIE OPEN**
+
+- Source: `work/ai-improve-v1-employee-notes`, exact `origin/main` baseline `d5dec456db5ced5d47e1ff052ebe738ffbc7aa87`; dirty root `work/r5-work-runtime` is niet aangeraakt.
+- Scope: alleen Employee Notes Description; drie allowlisted transformations (`improve_writing`, `shorten`, `professionalize`), NL/EN parity, canonical `improve-existing-hr-text`, Efficient/1 Liquid Credit, proposal-only Apply/Save-flow.
+- Security/data-minimization: server-side target `employee-note:write` vóór `ai:use` en runtime gates; target-id uitsluitend voor auth/invocation-identiteit; provider krijgt alleen source text, transformation en locale; geen `employee_notes` write in de AI-route.
+- Verificatie: relevante regressies `31` bestanden / `148/148` tests; volledige suite `290` bestanden / `1134/1135` tests met alleen de bekende, ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar`; strict TypeScript; i18n `33` gelijke NL/EN-namespaces; ESLint `0 errors` / `14` bestaande warnings; webpack production build `229/229`; `git diff --check` groen.
+- Browser/TEST evidence: authenticated HR Admin op desktop en `390x844`; exact één AI-route `POST` met `200`, originele Description bleef ongewijzigd tot Apply, geen note-write vóór Save, expliciete Save `201`, daarna bestaande delete-flow en remote synthetic note count `0`; mobiel geen horizontale overflow; console `0 errors` met bestaande CSS-preload warnings. Remote readback: Improve invocation `SUCCEEDED`/`VALIDATED`, credits `1` reserved/`1` settled/`0` released, FUP allocation settled, technical usage en business audit elk één rij.
+- Zichtbare versie is exact éénmaal verhoogd naar `1.20260830.1`. De candidate staat klaar voor commit, integratie, push en Vercel provenance; de dirty root-worktree bleef onaangeraakt.
+- Geen migration of remote databasewrite verwacht; stop vóór remote TEST-migration als de architectuur alsnog een schemawijziging vereist.
+
 ## AN-2/3 Analysis Engine V1 — 2026-08-29
 
 **Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**
