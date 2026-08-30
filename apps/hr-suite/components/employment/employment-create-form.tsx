@@ -77,6 +77,67 @@ export interface EmploymentWizardEmployeeSummary {
   gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY'
 }
 
+export interface EmploymentReviewDetailValues {
+  duration: string
+  endsOn: string
+  probation: string
+  probationEnd: string
+  laborCondition: string
+  weeklyHours: string
+  fulltimeReference: string
+  employmentScope: string
+  partTimeFactor: string
+  roster: string
+  weekOne: string
+  weekTwo: string
+  rosterAverage: string
+  salaryBasis: string
+  frequency: string
+  fulltimeSalary: string
+  parttimeSalary: string
+  department: string
+  job: string
+  manager: string
+  costCarrier: string
+  costCenter: string
+  allocation: string
+}
+
+export type EmploymentReviewDetailKey = keyof EmploymentReviewDetailValues
+
+export interface EmploymentReviewDetailItem {
+  label: EmploymentReviewDetailKey
+  value: string
+}
+
+export function buildEmploymentReviewDetailItems(values: EmploymentReviewDetailValues): EmploymentReviewDetailItem[] {
+  return [
+    { label: 'duration', value: values.duration },
+    { label: 'endsOn', value: values.endsOn },
+    { label: 'probation', value: values.probation },
+    { label: 'probationEnd', value: values.probationEnd },
+    { label: 'laborCondition', value: values.laborCondition },
+    { label: 'weeklyHours', value: values.weeklyHours },
+    { label: 'fulltimeReference', value: values.fulltimeReference },
+    { label: 'employmentScope', value: values.employmentScope },
+    { label: 'partTimeFactor', value: values.partTimeFactor },
+    { label: 'roster', value: values.roster },
+    { label: 'weekOne', value: values.weekOne },
+    { label: 'weekTwo', value: values.weekTwo },
+    { label: 'rosterAverage', value: values.rosterAverage },
+    { label: 'salaryBasis', value: values.salaryBasis },
+    { label: 'frequency', value: values.frequency },
+    { label: 'fulltimeSalary', value: values.fulltimeSalary },
+    { label: 'parttimeSalary', value: values.parttimeSalary },
+    { label: 'department', value: values.department },
+    { label: 'job', value: values.job },
+    { label: 'manager', value: values.manager },
+    { label: 'costCarrier', value: values.costCarrier },
+    { label: 'costCenter', value: values.costCenter },
+    { label: 'allocation', value: values.allocation },
+  ]
+}
+
 interface AllocationDraft { costCenterId: string; costCarrierId: string; percentage: string }
 
 interface Draft {
@@ -128,6 +189,10 @@ function toMonday(value: string): string {
 
 function averageDayHours(weeks: Array<Record<DayKey, string>>): Record<DayKey, number> {
   return Object.fromEntries(dayKeys.map((day) => [day, weeks.reduce((sum, week) => sum + (parseRosterHoursInput(week[day]) || 0), 0) / weeks.length])) as Record<DayKey, number>
+}
+
+function formatRosterWeek(week: Record<DayKey, string>, labels: Pick<EmploymentCreateFormProps['labels'], DayKey>): string {
+  return dayKeys.map((day) => `${labels[day]}: ${week[day] || '0'}`).join(' · ')
 }
 
 function patternEndTime(scheduledMinutes: number): string {
@@ -462,6 +527,34 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
   }
 
   const invalidStepKeys = stepKeys.filter((key) => key !== 'review' && !valid(key))
+  const reviewDetailItems = buildEmploymentReviewDetailItems({
+    duration: draft.durationType === 'DEFINITE' ? labels.definite : draft.durationType === 'TEMPORARY_NO_END' ? labels.temporaryWithoutEnd : labels.indefinite,
+    endsOn: draft.durationType === 'DEFINITE' ? draft.endsOn : '',
+    probation: draft.probationApplies ? labels.yes : labels.no,
+    probationEnd: draft.probationApplies ? draft.probationEndsOn : '',
+    laborCondition: selectedLaborSet?.name ?? '',
+    weeklyHours: draft.weeklyHours,
+    fulltimeReference: `${selectedFulltimeHours} ${labels.hoursPerWeek}`,
+    employmentScope: draft.isOnCall ? labels.yes : deriveEmploymentWorkScope(parseDecimalInput(draft.weeklyHours), selectedFulltimeHours) === 'FULL_TIME' ? labels.fullTime : labels.partTime,
+    partTimeFactor: `${Math.round(parseDecimalInput(draft.partTimeFactor) * 10000) / 100}%`,
+    roster: draft.twoWeekRoster ? `${labels.weekOne} + ${labels.weekTwo}` : labels.weekOne,
+    weekOne: formatRosterWeek(draft.days, labels),
+    weekTwo: draft.twoWeekRoster ? formatRosterWeek(draft.secondWeekDays, labels) : '',
+    rosterAverage: `${rosterAverage.toFixed(2)} ${labels.hoursPerWeek}`,
+    salaryBasis: draft.salaryBasis === 'MANUAL' ? labels.salaryManual : draft.salaryBasis === 'MINIMUM_WAGE' ? labels.salaryMinimum : draft.salaryBasis === 'CUSTOM_SCALE' ? labels.salaryTable : labels.salaryBand,
+    frequency: options.salaryFrequencies.find((item) => item.id === draft.salaryFrequencyId)?.name ?? '',
+    fulltimeSalary: draft.salaryBasis === 'MINIMUM_WAGE' ? (minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '') : draft.fulltimeAmount ? `€ ${money(draft.fulltimeAmount)}` : '',
+    parttimeSalary: draft.salaryBasis === 'MINIMUM_WAGE' || parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? '' : draft.parttimeAmount ? `€ ${money(draft.parttimeAmount)}` : '',
+    department: options.departments.find((item) => item.id === draft.departmentId)?.name ?? '',
+    job: selectedJob?.name ?? '',
+    manager: departmentManagers.map((item) => `${item.employeeNumber} · ${item.name}`).join(', '),
+    costCarrier: options.costCarriers.find((item) => item.id === draft.allocations[0]?.costCarrierId)?.name ?? '',
+    costCenter: draft.allocations.map((allocation) => {
+      const costCenter = options.costCenters.find((item) => item.id === allocation.costCenterId)
+      return `${costCenter?.name ?? ''} (${allocation.percentage}%)`
+    }).join(', '),
+    allocation: `${allocationTotal.toFixed(2)}%`,
+  })
 
   function next(): void {
     if (payrollChoicePending) return
@@ -630,7 +723,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, show
       <p className={`mt-3 text-sm ${allocationsMatch ? 'text-muted-foreground' : 'text-destructive'}`}>{labels.allocationTotal}: {allocationTotal.toFixed(2)}%{!allocationsMatch ? ` · ${labels.allocationMismatch}` : ''}</p><p className="mt-2 text-xs text-muted-foreground">{labels.splitCostCenter}</p>
     </WizardStep>}
 
-    {currentStep === 'review' && <WizardStep title={labels.completeSummary}>{employeeSummary && <EmployeeSummaryCard summary={employeeSummary} labels={labels} />}<p className="text-sm text-muted-foreground">{labels.createHint}</p>{invalidStepKeys.length > 0 && <div role="alert" className="mt-4 rounded-xl border border-warning/40 bg-warning-surface p-4 text-sm"><p className="font-semibold">{labels.reviewMissingFields}</p><div className="mt-2 flex flex-wrap gap-2">{invalidStepKeys.map((key) => <button type="button" className="button-secondary text-xs" key={key} onClick={() => setStep(stepKeys.indexOf(key))}>{labels.reviewEditStep}: {stepLabels[key]}</button>)}</div></div>}<dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Summary label={labels.administration} value={options.administrations.find((item) => item.id === draft.administrationId)?.name ?? ''} /><Summary label={labels.employmentNumber} value={draft.employmentNumber} /><Summary label={labels.workerType} value={draft.employmentType} /><Summary label={labels.startDate} value={draft.startsOn} />{payrollDetails && <><Summary label={labels.laborConditions} value={selectedLaborSet?.name ?? ''} /><Summary label={labels.weeklyHours} value={draft.weeklyHours} /><Summary label={labels.department} value={options.departments.find((item) => item.id === draft.departmentId)?.name ?? ''} /><Summary label={labels.job} value={selectedJob?.name ?? ''} />{options.canWriteSalary && <Summary label={parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? labels.fulltimeSalary : labels.parttimeSalary} value={draft.salaryBasis === 'MINIMUM_WAGE' ? (minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '') : `€ ${money(parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? draft.fulltimeAmount : draft.parttimeAmount)}`} />}</>}</dl></WizardStep>}
+    {currentStep === 'review' && <WizardStep title={labels.completeSummary}>{employeeSummary && <EmployeeSummaryCard summary={employeeSummary} labels={labels} />}<p className="text-sm text-muted-foreground">{labels.createHint}</p>{invalidStepKeys.length > 0 && <div role="alert" className="mt-4 rounded-xl border border-warning/40 bg-warning-surface p-4 text-sm"><p className="font-semibold">{labels.reviewMissingFields}</p><div className="mt-2 flex flex-wrap gap-2">{invalidStepKeys.map((key) => <button type="button" className="button-secondary text-xs" key={key} onClick={() => setStep(stepKeys.indexOf(key))}>{labels.reviewEditStep}: {stepLabels[key]}</button>)}</div></div>}<dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Summary label={labels.administration} value={options.administrations.find((item) => item.id === draft.administrationId)?.name ?? ''} /><Summary label={labels.employmentNumber} value={draft.employmentNumber} /><Summary label={labels.workerType} value={draft.employmentType} /><Summary label={labels.startDate} value={draft.startsOn} />{payrollDetails && reviewDetailItems.map((item) => <Summary key={item.label} label={reviewDetailLabel(item.label, labels)} value={item.value} />)}</dl></WizardStep>}
 
     {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{errorMessage(errorCode, labels)}</p>}{state === 'saved' && <p className="mt-4 text-sm text-success">{labels.saved}</p>}<div className="sticky bottom-0 z-10 mt-8 flex items-center justify-between gap-3 border-t border-border/70 bg-surface/95 py-3 backdrop-blur-sm"><div className="flex min-w-0 items-center gap-2">{onCancel && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving'} onClick={onCancel}>{labels.cancel}</button>}{step > 0 && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving' || optionsLoading} onClick={() => setStep((current) => Math.max(0, current - 1))}>{labels.previous}</button>}</div><EmploymentScrollHint label={moreDataAvailable} visible={canScrollDown} />{step < stepKeys.length - 1 ? <button type="button" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading || payrollChoicePending || (currentStep === 'employment' && !draft.employmentType)} onClick={next}>{labels.next}</button> : <button type="submit" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading}>{labels.submit}</button>}</div>
   </form></employmentFieldLabelsContext.Provider>
@@ -652,6 +745,19 @@ function errorMessage(code: string, labels: EmploymentCreateFormProps['labels'])
   if (code === 'PROBATION_MAXIMUM_EXCEEDED') return labels.probationMaximumExceeded
   if (code === 'PROBATION_DATE_INVALID' || code === 'CONTRACT_END_DATE_REQUIRED' || code === 'CONTRACT_END_DATE_NOT_ALLOWED' || code === 'EMPLOYMENT_NUMBER_INVALID' || code === 'INITIAL_TIMELINE_DATE_MISMATCH' || code === 'EMPLOYMENT_INPUT_INVALID' || code === 'COMPLETE_EMPLOYMENT_PAYLOAD_INVALID') return labels.requiredFields
   return labels.failed
+}
+
+function reviewDetailLabel(key: EmploymentReviewDetailKey, labels: EmploymentCreateFormProps['labels']): string {
+  const labelsByKey: Record<EmploymentReviewDetailKey, string> = {
+    duration: labels.duration, endsOn: labels.endDate, probation: labels.probation, probationEnd: labels.probationEnd,
+    laborCondition: labels.laborConditions, weeklyHours: labels.weeklyHours, fulltimeReference: labels.fulltimeReference,
+    employmentScope: labels.employmentScope, partTimeFactor: labels.partTimeFactor, roster: labels.roster,
+    weekOne: labels.weekOne, weekTwo: labels.weekTwo, rosterAverage: labels.rosterAverage,
+    salaryBasis: labels.salaryCalculation, frequency: labels.frequency, fulltimeSalary: labels.fulltimeSalary,
+    parttimeSalary: labels.parttimeSalary, department: labels.department, job: labels.job, manager: labels.manager,
+    costCarrier: labels.costCarrier, costCenter: labels.costCenter, allocation: labels.allocationTotal,
+  }
+  return labelsByKey[key]
 }
 
 function RosterWeekFields({ title, days, labels, inputClass, onChange }: { title: string; days: Record<DayKey, string>; labels: EmploymentCreateFormProps['labels']; inputClass: string; onChange: (day: DayKey, value: string) => void }) {
