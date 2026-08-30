@@ -13,9 +13,9 @@ describe('Liquid Credits charge catalog', () => {
     expect(resolveLiquidCreditCharge(feature, 'IN_DEPTH').units).toBe(3)
   })
 
-  it('houdt de toekomstige eerste capability PLANNED en weigert een onbekende reference', () => {
+  it('houdt de eerste capability op de bestaande vaste catalogus en weigert een onbekende reference', () => {
     const feature = aiFeatureRegistry.get('improve-existing-hr-text')
-    expect(feature?.productStatus).toBe('PLANNED')
+    expect(feature?.productStatus).toBe('AVAILABLE')
 
     expect(() => resolveLiquidCreditChargeReference('improve-existing-hr-text', 'ai.unknown')).toThrowError(/INTERNAL_CONFIGURATION_ERROR/)
     expect(() => resolveLiquidCreditCharge({

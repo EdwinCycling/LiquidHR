@@ -7,10 +7,10 @@ const profiles: readonly AiQualityProfile[] = ['EFFICIENT', 'BALANCED', 'IN_DEPT
 const improveExistingHrText: AiFeatureDefinition = Object.freeze({
   featureCode: IMPROVE_EXISTING_HR_TEXT_FEATURE,
   capabilityGroup: 'HR_TEXT_ASSISTANCE',
-  productStatus: 'PLANNED',
+  productStatus: 'AVAILABLE',
   minimumEdition: 'FOUNDATION',
   permittedQualityProfiles: profiles,
-  defaultQualityProfile: 'BALANCED',
+  defaultQualityProfile: 'EFFICIENT',
   chargeStrategy: 'FIXED_PER_FEATURE_AND_PROFILE',
   chargeReferenceByProfile: {
     EFFICIENT: 'ai.improve-existing-hr-text.efficient',
@@ -30,8 +30,8 @@ const improveExistingHrText: AiFeatureDefinition = Object.freeze({
   },
   supportsWritingStyle: true,
   allowedResultType: 'PROPOSAL',
-  promptTemplateVersion: 'improve-existing-hr-text.v0',
-  configVersion: 'ai-foundation-1a.20260828.1',
+  promptTemplateVersion: 'improve-existing-hr-text.v1',
+  configVersion: 'ai-foundation-1a.20260830.1',
 })
 
 const definitions: Readonly<Record<string, AiFeatureDefinition>> = {

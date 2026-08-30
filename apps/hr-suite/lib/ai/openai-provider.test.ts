@@ -89,7 +89,7 @@ describe('OpenAIProvider', () => {
 
     const body = create.mock.calls[0]?.[0] as { input?: string; instructions?: string }
     expect(body.instructions?.toLowerCase()).toContain('human review')
-    expect(body.input).toContain('Maak deze tekst duidelijker.')
+    expect(JSON.parse(body.input ?? '')).toEqual({ sourceText: 'Maak deze tekst duidelijker.' })
     expect(body.input).not.toContain('unit-test-secret')
   })
 

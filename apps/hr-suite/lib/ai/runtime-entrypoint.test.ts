@@ -25,6 +25,7 @@ const input: Omit<AiInvocationInput, 'authContext'> = {
   businessObject: { type: 'employee-note', id: 'note-1' },
   idempotencyKey: 'entrypoint-test',
   businessPermissionCode: 'employee:read',
+  businessPermissionTargetId: 'employee-1',
 }
 
 describe('AI server entrypoint', () => {
@@ -33,6 +34,6 @@ describe('AI server entrypoint', () => {
 
     await expect(runAuthorizedAiInvocation(input, {} as AiRuntimeDependencies<unknown>))
       .rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-    expect(requirePermission).toHaveBeenCalledWith('ai:use')
+    expect(requirePermission).toHaveBeenCalledWith('employee:read', 'employee-1')
   })
 })

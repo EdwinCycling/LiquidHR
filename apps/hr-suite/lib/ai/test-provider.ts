@@ -22,10 +22,15 @@ export class DeterministicTestProvider implements ProviderPort {
     if (this.mode === 'FAILED') throw new AiProviderError('PROVIDER_FAILED', metadata)
     if (this.mode === 'INVALID_RESULT') return { output: { invalid: true }, metadata }
 
+    const sourceText = request.authorizedContext.fields.sourceText
+    const proposedText = request.featureCode === 'improve-existing-hr-text' && typeof sourceText === 'string'
+      ? sourceText.trim()
+      : `Test proposal for ${request.featureCode}`
+
     return {
       output: {
         resultType: 'PROPOSAL',
-        proposedText: `Test proposal for ${request.featureCode}`,
+        proposedText,
         requiresHumanReview: true,
       },
       metadata,

@@ -130,6 +130,9 @@ function buildInstructions(request: AiProviderRequest): string {
   return [
     'You are the LiquidHR server-side proposal generator.',
     'Return only one JSON proposal matching the supplied structured-output contract.',
+    'Transform only the supplied sourceText using the supplied transformation and locale.',
+    'Preserve meaning and existing facts. Do not invent information, infer employee facts, add names or details, introduce HR judgments, or add recommendations.',
+    'Return only the transformed content required by the response contract.',
     'Do not make HR decisions, do not write data, and do not include provider metadata.',
     'Human review is mandatory for every proposal.',
     `Prompt contract version: ${request.promptTemplateVersion}.`,
@@ -141,15 +144,7 @@ function buildInput(request: AiProviderRequest): string {
   if (Object.keys(fields).length > request.technicalLimits.maxContextItems) {
     throw new OpenAIProviderConfigurationError()
   }
-  const input = JSON.stringify({
-    featureCode: request.featureCode,
-    qualityProfile: request.qualityProfile,
-    writingStyle: request.writingStyle,
-    authorizedContext: {
-      source: request.authorizedContext.source,
-      fields,
-    },
-  })
+  const input = JSON.stringify(fields)
   if (input.length > request.technicalLimits.maxInputCharacters) throw new OpenAIProviderConfigurationError()
   return input
 }
