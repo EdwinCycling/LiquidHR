@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## AI Usage Insights V1 — 2026-08-30
+
+**Status: PHASE A IMPLEMENTED — READY FOR INTEGRATION, NOT RELEASED**
+
+AI Usage Insights is toegevoegd als permission-gated Insights-report op `/insights?report=ai-usage`. De server leest uitsluitend de bestaande canonical AI Foundation-invocations en Liquid Credits-balance, aggregeert tenant/HR-group-scoped data en geeft alleen een typed operationeel rapport door aan de NL/EN UI. De vier server-gevalideerde periodes, credits/request/success-definities, feature-, quality-, status- en daily-trendaggregaties, privacy-minimalisatie en lege toestand zijn gericht getest. Er is geen core AI-runtimewijziging, migration, remote databasewrite, version bump, main-integratie, push of deployment uitgevoerd. Zie [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) en [`delivery/CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md) voor de actuele handoff.
+
 ## Liquid Analyse AN-2/3 Analysis Engine V1 — 2026-08-29
 
 **Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**

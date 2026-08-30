@@ -7,4 +7,9 @@ describe('Insights Analyse destination', () => {
     expect(INSIGHT_REPORTS.some((report) => String(report.id) === 'dashboard')).toBe(false)
     expect(canonicalInsightReportId('dashboard')).toBeNull()
   })
+
+  it('registers AI usage as an available permission-gated report', () => {
+    expect(INSIGHT_REPORTS).toContainEqual({ id: 'ai-usage', category: 'other', permission: 'ai:usage-read', available: true })
+    expect(canonicalInsightReportId('ai-usage')).toBe('ai-usage')
+  })
 })

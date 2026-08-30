@@ -62,4 +62,11 @@ describe('Insights query and navigation seam', () => {
     expect(url.searchParams.has('asOfDate')).toBe(false)
     expect(url.searchParams.get('departmentIds')).toBe('d1')
   })
+
+  it('keeps only the period when navigating to AI usage', () => {
+    const url = new URL(canonicalInsightHref(new URLSearchParams('report=ai-usage&period=last-30-days&asOfDate=2025-01-01')), 'https://liquidhr.invalid')
+    expect(url.searchParams.get('report')).toBe('ai-usage')
+    expect(url.searchParams.get('period')).toBe('last-30-days')
+    expect(url.searchParams.has('asOfDate')).toBe(false)
+  })
 })

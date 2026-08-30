@@ -1,5 +1,17 @@
 # Actuele overdracht Liquid HR
 
+## AI Usage Insights V1 — 2026-08-30
+
+**Status: PHASE A IMPLEMENTED — READY FOR INTEGRATION, NOT RELEASED**
+
+- Basis: exacte `origin/main` SHA `d5dec456db5ced5d47e1ff052ebe738ffbc7aa87`; dedicated `work/ai-usage-insights-v1` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ai-usage-insights-v1`. Root `work/r5-work-runtime` en de parallelle AI Improve-worktree zijn onaangeraakt.
+- Route/UI: `/insights?report=ai-usage`, catalog permission `ai:usage-read`, NL `AI-gebruik`, EN `AI usage`; server-side period parser voor `this-month`, `last-7-days`, `last-30-days`, `last-90-days`, default `this-month`.
+- Canonical source: minimale server-side read van `ai_invocations` voor tenant + HR-groep en bestaande `get_ai_group_credit_balance` RPC. Geen migration, schema/RLS/grantwijziging, remote DB-write, core AI runtimewijziging, shadow counter of Employee Notes-coupling.
+- Definitions: requests = `created_at` in selected HR-group-local period; credits used = positieve canonical `charged_credits` op rows met `finished_at` in period; remaining = canonical `available_credits`; success rate = successful completed / (`SUCCEEDED` + `FAILED`), met rejected/incomplete buiten de noemer. Feature/quality/status/trend worden server-side geaggregeerd; zero days blijven in de trend zichtbaar.
+- Privacy: DTO/UI bevatten geen prompt, input/output, employee-/actor-/business-objectdata, provider/model/request-id of raw errors. Known feature mapping is generiek (`improve_text` plus current code → `AI Improve`/`AI verbeteren`); onbekend → neutral fallback.
+- Verificatie: AI Usage `6` testbestanden / `20/20`; relevante Insights `29` / `97/97`; TypeScript groen; ESLint `0 errors / 14 bestaande warnings`; i18n `33` namespaces; Webpack production build gecompileerd inclusief `/api/insights/ai-usage`; diff-check groen. Lokale unauthenticated browsercandidate gaf loginredirect en API `401`. Authenticated HR Admin desktop `1440x900` en mobile `390x844` konden niet worden bewezen zonder beschikbare sessie; componenttests dekken de UI-uitvoer en privacy.
+- Open voor integration: wachten op AI Improve V1 release-SHA. Daarna exact één gecontroleerde synthetic product-flow uitvoeren en vóór/na refresh vergelijken op request count, charged credits, remaining balance, `AI Improve`, quality en success status. Geen provider-call is in deze Phase A uitgevoerd.
+
 ## AN-2/3 Analysis Engine V1 — 2026-08-29
 
 **Status: LOKALE IMPLEMENTATIE GREEN — RELEASEGATE OPEN**
