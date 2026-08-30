@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## AI Usage Insights V1 — 2026-08-30
+
+**Status: GREEN — RELEASED**
+
+AI Usage Insights is geïntegreerd als permission-gated Insights-report op `/insights?report=ai-usage`. De server leest uitsluitend de bestaande canonical AI Foundation-invocations en Liquid Credits-balance, aggregeert tenant/HR-group-scoped data en geeft alleen een typed operationeel rapport door aan de NL/EN UI. De acceptatie bevestigde HR Admin op desktop en `390x844`, periodewisseling, KPI's, trend, capability-, quality- en statusbreakdown, geen horizontale overflow of console-errors, en 403/geen report-oppervlak voor Manager en Employee. De ene expliciet geautoriseerde synthetische Employee Notes-call is via de UI door dezelfde AI Foundation-accountingketen gegaan; er is geen core AI-runtimewijziging, Employee Notes-counter, shadow ledger of migration toegevoegd. Zie [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) en [`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md) voor de delivery-evidence.
+
 ## AI Improve V1 — Employee Notes
 
 De eerste product-capability bovenop de centrale AI Foundation is geïmplementeerd op de omschrijving van Employee Notes. Zie [`LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md`](requirements/ai/LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md) voor het afgebakende contract en de autorisatie-/lifecyclegrenzen. De formele deliverystatus staat in [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) en [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).

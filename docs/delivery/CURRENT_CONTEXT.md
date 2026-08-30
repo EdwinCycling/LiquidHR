@@ -1,5 +1,16 @@
 # Actuele overdracht Liquid HR
 
+## AI Usage Insights V1 — 2026-08-30
+
+**Status: GREEN — RELEASED**
+
+- Integratiebasis: exacte `origin/main` SHA `50ece02d78f7024d9e92a93b26346a0318c10b6e`, met AI Improve V1 zichtbaar op `1.20260830.1`. AI Usage Insights is geïntegreerd in dedicated release-worktree `release/ai-usage-insights-v1`; dirty root en parallelle AI Improve-worktrees zijn onaangeraakt.
+- Scope: `/insights?report=ai-usage`, permission `ai:usage-read`, vier period options, canonical `ai_invocations` plus `get_ai_group_credit_balance`, server-side tenant/HR-group-scope en aggregate-only DTO/UI. Geen Employee Notes-counter, shadow analytics table, duplicate ledger of AI runtime-wijziging.
+- Acceptance: HR Admin desktop `1440x900` en mobiel `390x844` groen voor reportoppervlak, KPI's, trend, capability/quality/status, periode, overflow, console en tenant-tampering; Manager/Employee API `403` zonder reportoppervlak. Exact één UI-POST naar Employee Notes Improve; canonical invocation `SUCCEEDED`/`VALIDATED`, `1` reserved / `1` charged, `SETTLED`, `1` technical usage en `1` business audit. Geen synthetische Employee Note opgeslagen.
+- Accounting before/after in `this-month`: remaining `98→97`, charged `2→3`, requests `5→6`, Improve `5→6`, Efficient `5→6`, successful `2→3`, success rate `40%→50%`. De TEST-provider retourneerde voor de al getrimde voorbeeldtekst dezelfde tekst; de componenttest bevestigt dat Apply alleen lokale state wijzigt en Save de enige persistence blijft.
+- Verificatie: relevante Insights/AI Usage/Employee Notes/Improve-route `31` bestanden / `105/105` tests, AI Foundation/Improve-regressies `99/99`, volledige suite `1147/1148` met uitsluitend de bekende ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar`, strict TypeScript, ESLint `0 errors / 14` bestaande warnings, i18n `33` gelijke namespaces, `git diff --check` en Webpack `230` pagina's. Zichtbare versie wordt exact eenmaal `1.20260830.2`.
+- Migration boundary: geen migration verwacht; bij onverwachte schemawijziging stopt deze run vóór remote TEST-apply.
+
 ## AI Improve V1 — Employee Notes — 2026-08-30
 
 **Status: GREEN — RELEASED**

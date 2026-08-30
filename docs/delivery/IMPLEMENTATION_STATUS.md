@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## AI Usage Insights V1 — 2026-08-30
+
+**Status: GREEN — RELEASED**
+
+Vanaf exact `origin/main` `50ece02d78f7024d9e92a93b26346a0318c10b6e` is AI Usage Insights geïntegreerd als `/insights?report=ai-usage`. De reportlaag consumeert uitsluitend canonical AI Foundation-accounting: `ai_invocations` binnen actieve tenant/HR-groep en `get_ai_group_credit_balance`. `requests` gebruikt `created_at`, `credits used` positieve `charged_credits` op `finished_at`, `remaining` is `available_credits`, en success rate is `SUCCEEDED / (SUCCEEDED + FAILED)` met rejected/incomplete uitgesloten.
+
+De route en UI zijn aggregate-only en tonen geen prompts, bron-/gegenereerde tekst, employee-/actor-/business-objectdata, provider/model/request-id, raw errors of HR-payloads. De releasegate is groen: Insights/AI Usage/Employee Notes/Improve-route `31` bestanden / `105/105` tests, AI Foundation/Improve-regressies `99/99`, strict TypeScript, ESLint `0 errors / 14` bestaande warnings, i18n `33` gelijke namespaces, `git diff --check` en Webpack `230` gegenereerde pagina's. De volledige suite was `1147/1148`; de enige failure is de bekende, ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar`.
+
+Authenticated browseracceptance is groen voor HR Admin op desktop `1440x900` en mobiel `390x844`: KPI's, trend, capabilities, quality, status, periodeselector, scope-tampering, no-overflow en `0` console-errors. Manager en Employee kregen API `403` en geen AI Usage report-oppervlak. De ene UI-geïnitieerde synthetische Employee Notes-call (`improve_writing`, `EFFICIENT`) gaf een voorstel, liet de originele Description tot Apply intact en schreef geen Employee Note; de deterministic TEST-provider normaliseerde deze al getrimde voorbeeldtekst naar dezelfde tekst, terwijl de componenttest het gewijzigde lokale Apply-pad en Save-only-persistence afdekt. Canonical TEST-readback bevestigt de nieuwste invocation `SUCCEEDED`/`VALIDATED`, `1` reserved / `1` charged, reservation `SETTLED` met `1` settled / `0` released, en elk `1` technical-usage- en business-auditrecord. De before/after-projectie in `this-month` is: remaining `98→97`, charged `2→3`, requests `5→6`, Improve `5→6`, Efficient `5→6`, successful `2→3`, success rate `40%→50%`.
+
+Er is geen migration, schema-, RLS-, grant- of productieconfiguratie-wijziging. De zichtbare versie is exact eenmaal verhoogd van `1.20260830.1` naar `1.20260830.2`; de release wordt vanaf deze worktree non-force naar `origin/main` gepusht. Vercel Production en de production smoke worden na de push gecontroleerd op `READY` en exacte finale SHA-alignment.
+
 ## AI Improve V1 — Employee Notes — 2026-08-30
 
 **Status: GREEN — RELEASED**
