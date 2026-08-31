@@ -12,6 +12,14 @@
 - Governance: de canonical protected local state is `apps/hr-suite/.env.local`; de vorige oorzaak van eventueel verdwijnen is **ENV LOSS ROOT CAUSE: NOT PROVEN**. De env bestond vóór release en bleef na cleanup bestaan; geen secrets zijn exposed of committed.
 - Production: Vercel deployeerde de finale `main`-SHA als `READY`; zichtbare versie `1.20260831.3`, login/homepage en anonieme negative security probes zijn GREEN.
 - Volledige delivery-evidence: [`SECURITY_WAVE_B.md`](SECURITY_WAVE_B.md).
+## AN-6 Contextual Drill & Compare — 2026-09-01
+**Status: RELEASE CANDIDATE — combined current-main verification in progress**
+
+- Source: approved `dffc3c797adb66f7c3200a8244e4c283b7e2f6af`, cherry-picked onto current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in `release/an6-contextual-drill-compare`.
+- Scope: visible aggregate-result drill, breadcrumbs, Back, Reset, exactly-two compatible-context comparison, strict AnalysisSpec, aggregate-only ComparisonResult, and saved drilled-analysis fresh execution.
+- Security boundary: no free SQL, AI, employee raw-data exposure, migration, schema/RLS/grant change, or Production auth change.
+- Authenticated acceptance: HR Admin Explore/drill/compare/save-reopen-delete GREEN; invalid drill/compare rejected; tenant/HR-group tampering blocked or ignored; Manager scoped aggregate-only behavior GREEN.
+- Responsive acceptance: desktop and 390px checks GREEN with no page-wide overflow or console/page errors. Production status will be recorded GREEN after the final deployment and smoke.
 
 ## Setup Assistant Slice 0 handoff — 2026-08-31
 

@@ -33,6 +33,12 @@ export interface AnalysisExecutionDependencies {
   readonly retrieve?: (context: AuthContext) => Promise<readonly AnalysisEmployeeRecord[]>
 }
 
+export interface AuthorizedAnalysisData {
+  readonly context: AuthContext
+  readonly hrGroupId: string
+  readonly records: readonly AnalysisEmployeeRecord[]
+}
+
 interface AnalysisPlan {
   readonly dimension: AnalysisDimensionKey | null
 }
@@ -105,7 +111,7 @@ async function defaultRetrieve(context: AuthContext): Promise<readonly AnalysisE
   return employees.map((employee) => toAnalysisEmployeeRecord(employee, context, hrGroupId))
 }
 
-function dimensionValue(record: AnalysisEmployeeRecord, dimension: AnalysisDimensionKey): string | null {
+export function dimensionValue(record: AnalysisEmployeeRecord, dimension: AnalysisDimensionKey): string | null {
   switch (dimension) {
     case 'department':
       return record.department
@@ -197,18 +203,31 @@ function distinctEmployeeRecords(records: readonly AnalysisEmployeeRecord[]): re
   })
 }
 
+export function filterAnalysisRecords(
+  records: readonly AnalysisEmployeeRecord[],
+  filters: readonly AnalysisFilter[],
+): readonly AnalysisEmployeeRecord[] {
+  return distinctEmployeeRecords(records).filter((record) => filters.every((filter) => matchesFilter(record, filter)))
+}
+
+export async function loadAuthorizedAnalysisData(
+  dependencies: AnalysisExecutionDependencies = {},
+): Promise<AuthorizedAnalysisData> {
+  const context = await (dependencies.getContext ?? defaultContext)()
+  const hrGroupId = authorizeAnalysis(context)
+  const records = await (dependencies.retrieve ?? defaultRetrieve)(context)
+  assertRecordScope(records, context, hrGroupId)
+  return { context, hrGroupId, records }
+}
+
 export async function executeAnalysisSpec(
   spec: ValidatedAnalysisSpec,
   dependencies: AnalysisExecutionDependencies = {},
 ): Promise<AnalysisResult> {
   const plan = resolvePlan(spec)
-  const context = await (dependencies.getContext ?? defaultContext)()
-  const hrGroupId = authorizeAnalysis(context)
-  const records = await (dependencies.retrieve ?? defaultRetrieve)(context)
-  assertRecordScope(records, context, hrGroupId)
+  const { records } = await loadAuthorizedAnalysisData(dependencies)
 
-  const filteredRecords = distinctEmployeeRecords(records)
-    .filter((record) => spec.filters.every((filter) => matchesFilter(record, filter)))
+  const filteredRecords = filterAnalysisRecords(records, spec.filters)
   const dimensionResult = plan.dimension
     ? resultRowsWithDimension(filteredRecords, plan.dimension, spec)
     : { rows: resultRowsWithoutDimension(filteredRecords.length), groupCount: 0 }

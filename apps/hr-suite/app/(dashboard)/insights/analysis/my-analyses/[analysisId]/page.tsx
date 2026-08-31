@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
-import { LiquidCanvas } from '@/components/insights/liquid-canvas'
+import { AnalysisExploration } from '@/components/insights/analysis-exploration'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireAnalysisPageAccess } from '@/lib/insights/analysis-page-access'
 import { AnalysisEngineError } from '@/lib/insights/analysis-errors'
@@ -37,16 +37,44 @@ export default async function SavedAnalysisPage(context: PageContext) {
         title={definition.name}
       />
       <div className="mt-8">
-        <LiquidCanvas labels={{
-          dimension: t('analysisCanvasDimension'),
-          fallback: t('analysisCanvasFallback'),
-          headcount: t('analysisCanvasHeadcount'),
-          noResults: t('analysisCanvasNoResults'),
-          summary: t('analysisCanvasSummary'),
-          table: t('analysisCanvasTable'),
-          title: t('analysisCanvasTitle'),
-          unknown: t('analysisCanvasUnknown'),
-        }} result={result} />
+        <AnalysisExploration labels={{
+          back: t('analysisExploreBack'),
+          canvas: {
+            dimension: t('analysisCanvasDimension'),
+            fallback: t('analysisCanvasFallback'),
+            headcount: t('analysisCanvasHeadcount'),
+            noResults: t('analysisCanvasNoResults'),
+            selectRow: t('analysisCanvasSelectRow'),
+            summary: t('analysisCanvasSummary'),
+            table: t('analysisCanvasTable'),
+            title: t('analysisCanvasTitle'),
+            unknown: t('analysisCanvasUnknown'),
+          },
+          compare: t('analysisExploreCompare'),
+          compareBreakdown: t('analysisExploreCompareBreakdown'),
+          compareDescription: t('analysisExploreCompareDescription'),
+          compareFailed: t('analysisExploreCompareFailed'),
+          compareLeft: t('analysisExploreCompareLeft'),
+          compareNoBreakdown: t('analysisExploreCompareNoBreakdown'),
+          compareNotPersisted: t('analysisExploreCompareNotPersisted'),
+          compareRight: t('analysisExploreCompareRight'),
+          compareTitle: t('analysisExploreCompareTitle'),
+          comparing: t('analysisExploreComparing'),
+          contextDescription: t('analysisExploreContextDescription'),
+          contextTitle: t('analysisExploreContextTitle'),
+          department: t('analysisExploreDepartment'),
+          difference: t('analysisExploreDifference'),
+          drill: t('analysisExploreDrill'),
+          drillDescription: t('analysisExploreDrillDescription'),
+          drillInto: t('analysisExploreDrillInto'),
+          drillTitle: t('analysisExploreDrillTitle'),
+          drilling: t('analysisExploreDrilling'),
+          employmentStatus: t('analysisExploreEmploymentStatus'),
+          job: t('analysisExploreJob'),
+          noComparisonOptions: t('analysisExploreNoComparisonOptions'),
+          reset: t('analysisExploreReset'),
+          workforce: t('analysisExploreWorkforce'),
+        }} rootResult={result} rootSpec={definition.spec} />
       </div>
     </PageShell>
   )

@@ -14,6 +14,7 @@ export interface LiquidCanvasLabels {
   readonly noResults: string
   readonly unknown: string
   readonly fallback: string
+  readonly selectRow: string
 }
 
 function columnLabel(key: AnalysisResultColumnKey, labels: LiquidCanvasLabels): string {
@@ -34,7 +35,7 @@ function cellValue(key: AnalysisResultColumnKey, row: AnalysisResultRow, labels:
   }
 }
 
-export function LiquidCanvas({ labels, result }: { labels: LiquidCanvasLabels; result: AnalysisResult }) {
+export function LiquidCanvas({ labels, onRowSelect, result }: { labels: LiquidCanvasLabels; onRowSelect?: (row: AnalysisResultRow) => void; result: AnalysisResult }) {
   const showKpi = result.presentationHints.preferred === 'kpi' && result.dimensions.length === 0
   const showFallback = result.presentationHints.preferred === 'unsupported'
   const emptyDimensionResult = result.dimensions.length > 0 && result.rows.length === 0
@@ -63,7 +64,18 @@ export function LiquidCanvas({ labels, result }: { labels: LiquidCanvasLabels; r
             <tbody className="divide-y divide-subtle">
               {result.rows.map((row, rowIndex) => (
                 <tr key={`${row.values.dimension ?? 'unknown'}-${rowIndex}`}>
-                  {result.columns.map((column) => <td className="px-4 py-3 text-foreground" key={column.key}>{cellValue(column.key, row, labels)}</td>)}
+                  {result.columns.map((column) => <td className="px-4 py-3 text-foreground" key={column.key}>
+                    {column.key === 'dimension' && onRowSelect && row.values.dimension !== null && row.values.dimension !== undefined ? (
+                      <button
+                        aria-label={`${labels.selectRow}: ${row.values.dimension}`}
+                        className="font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                        onClick={() => onRowSelect(row)}
+                        type="button"
+                      >
+                        {cellValue(column.key, row, labels)}
+                      </button>
+                    ) : cellValue(column.key, row, labels)}
+                  </td>)}
                 </tr>
               ))}
             </tbody>

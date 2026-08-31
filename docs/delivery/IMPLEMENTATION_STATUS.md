@@ -11,6 +11,12 @@ SEC-010 is op de gedeelde local/TEST/Production-database toegepast en geregistre
 De candidate-gate is hergebruikt: targeted `24/24`, full hr-suite `1208/1208`, control `7/7`, strict TypeScript, ESLint `0/0`, i18n, Webpack en diff GREEN. Post-migration targeted regressions zijn `62/62`; de finale production Webpack-build en Vercel Production smoke zijn GREEN.
 
 De canonical protected local state is `apps/hr-suite/.env.local`. De root cause van eerdere environment-loss is **ENV LOSS ROOT CAUSE: NOT PROVEN**; de file bestond vóór release en bleef na cleanup bestaan. Geen secrets zijn exposed of committed. SEC-004 residual en SEC-007 t/m SEC-011 blijven ongewijzigd, behalve SEC-010 dat hier is gesloten.
+## AN-6 Contextual Drill & Compare — 2026-09-01
+**Status: RELEASE CANDIDATE — combined current-main verification in progress**
+
+De AN-6-slice is exact overgenomen uit approved source `dffc3c797adb66f7c3200a8244e4c283b7e2f6af` op current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in tijdelijke branch `release/an6-contextual-drill-compare`. De slice gebruikt de bestaande AnalysisSpec V1-engine en Foundation LiquidCanvas/DataTableShell voor zichtbare aggregate-result drill, breadcrumbs, Back, Reset, vergelijking van exact twee compatibele contexten, strict AnalysisSpec en aggregate-only ComparisonResult. Saved drilled analyses worden opnieuw uitgevoerd bij openen. Geen vrije SQL, AI, employee raw-data exposure, migration, schema/RLS/grantwijziging of Production auth-wijziging.
+
+De authenticated acceptance is GREEN voor HR Admin en Manager: drill/compare/save-reopen-delete, invalid drill/compare rejection, tenant/HR-group tamper resistance en scoped aggregate-only gedrag zijn gecontroleerd. Target version is `1.20260901.1`; Production status wordt na de definitieve deployment en smoke op GREEN gezet.
 
 ## Zero-noise quality-gate maintenance — 2026-08-31
 

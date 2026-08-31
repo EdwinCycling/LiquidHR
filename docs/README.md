@@ -1,10 +1,14 @@
 # Liquid HR documentatie-index
 
+## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
 **Status: RELEASED — PRODUCTION GREEN**
 
 Wave B is fast-forward geïntegreerd vanaf candidate `ff8f4ee886018a62df764d8a162241cdb8a7871c` op approved main `0121ff13cb8693687d873b4d33930cd2ec18e35c`. De zichtbare versie is `1.20260831.3`. SEC-006 is **HARDENED WITH RESIDUAL** door ontbrekende malware scanning/quarantaine; SEC-010 is **CLOSED** na de gedeelde database-readback. De beschermde lokale environment-state is vastgelegd in [`AGENTS.md`](../AGENTS.md). Zie [`delivery/SECURITY_WAVE_B.md`](delivery/SECURITY_WAVE_B.md).
+**Status: RELEASE CANDIDATE — combined current-main verification in progress**
+
+AN-6 is integrated from approved source commit `dffc3c797adb66f7c3200a8244e4c283b7e2f6af` onto current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in temporary branch `release/an6-contextual-drill-compare`. The leading contract is [`LIQUID_ANALYSE_AN6_CONTEXTUAL_DRILL_COMPARE.md`](requirements/reports/LIQUID_ANALYSE_AN6_CONTEXTUAL_DRILL_COMPARE.md). The release includes visible contextual drill from aggregate results, breadcrumbs with Back/Reset, exactly-two-context aggregate comparison, strict AnalysisSpec validation, aggregate-only ComparisonResult, and saved drilled-analysis fresh execution. It adds no migration, free SQL, AI, or employee raw-data exposure. Authenticated HR Admin and Manager acceptance is GREEN. The target visible version is `1.20260901.1`; Production status will be recorded GREEN after the final deployment and smoke.
 
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
