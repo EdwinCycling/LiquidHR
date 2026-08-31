@@ -5,15 +5,13 @@ import type { Json } from '@scope/db'
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
+import { sanitizeDocumentFilename, validateDocumentFile } from './file-rules'
 import type { DocumentDeleteInput, DocumentMetadataInput } from './schemas'
 
 const BUCKET = 'employee-documents'
 
 export class DocumentServiceError extends Error { constructor(public readonly code: string, public readonly status: number) { super(code); this.name = 'DocumentServiceError' } }
 function administration(id: string | null): string { if (!id) throw new DocumentServiceError('ADMINISTRATION_REQUIRED', 400); return id }
-function cleanFilename(name: string): string { return name.normalize('NFKC').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(-180) || 'document' }
-
 export async function listEmployeeDocuments(employeeId: string) {
   await requirePermission('document:read', employeeId)
   const supabase = await createClient()
@@ -64,8 +62,8 @@ export async function getDocumentOptions(employeeId: string) {
 
 export async function uploadEmployeeDocument(employeeId: string, file: File, metadata: DocumentMetadataInput): Promise<string> {
   const context = await requirePermission('document:write', employeeId); const administrationId = administration(context.administrationId)
-  if (!isAllowedDocumentFile(file)) throw new DocumentServiceError('DOCUMENT_TYPE_INVALID', 400)
-  if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) throw new DocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
+  const validation = await validateDocumentFile(file)
+  if (!validation.ok) throw new DocumentServiceError(validation.reason === 'SIZE' ? 'DOCUMENT_SIZE_INVALID' : 'DOCUMENT_TYPE_INVALID', 400)
   const supabase = await createClient()
   const [{ data: definitions, error: definitionError }, { data: fieldOptions, error: optionError }] = await Promise.all([
     supabase.from('custom_field_definitions').select('id,key,field_type,is_required').eq('tenant_id', context.tenantId).eq('hr_group_id', requireHrGroupId(context)).eq('entity_type', 'DOCUMENT').eq('is_active', true).is('deleted_at', null),
@@ -91,11 +89,12 @@ export async function uploadEmployeeDocument(employeeId: string, file: File, met
       || (definition.field_type === 'NUMBER' && typeof value !== 'number')
       || (definition.field_type === 'BOOLEAN' && typeof value !== 'boolean')) throw new DocumentServiceError('DOCUMENT_CUSTOM_FIELDS_INVALID', 400)
   }
-  const bytes = new Uint8Array(await file.arrayBuffer()); const checksum = createHash('sha256').update(bytes).digest('hex')
-  const storageKey = `${context.tenantId}/${administrationId}/${employeeId}/${randomUUID()}/${cleanFilename(file.name)}`
-  const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType: file.type, upsert: false })
+  const { bytes, contentType } = validation
+  const checksum = createHash('sha256').update(bytes).digest('hex')
+  const storageKey = `${context.tenantId}/${administrationId}/${employeeId}/${randomUUID()}/${sanitizeDocumentFilename(file.name)}`
+  const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType, upsert: false })
   if (upload.error) throw new DocumentServiceError('DOCUMENT_UPLOAD_FAILED', 500)
-  const payload = { ...metadata, storageKey, originalFilename: file.name, contentType: file.type, fileSize: file.size, checksumSha256: checksum }
+  const payload = { ...metadata, storageKey, originalFilename: file.name, contentType, fileSize: file.size, checksumSha256: checksum }
   const { data, error } = await supabase.rpc('create_employee_document_metadata', { requested_employee_id: employeeId, requested_administration_id: administrationId, requested_payload: payload as Json })
   if (error || !data) { await supabase.storage.from(BUCKET).remove([storageKey]); throw new DocumentServiceError(error?.message.match(/[A-Z][A-Z_]+/)?.[0] ?? 'DOCUMENT_METADATA_FAILED', 400) }
   const { error: customFieldError } = await supabase.from('employee_documents').update({ custom_fields: metadata.customFields as Json }).eq('id', data).eq('employee_id', employeeId)

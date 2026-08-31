@@ -1,6 +1,16 @@
 # Actuele overdracht Liquid HR
 
-> **Authoritative current baseline:** `origin/main` `fad1a115b496c1d4e0c211953930b272dde22e4c`, visible version `1.20260831.2`. Historical delivery snapshots below remain preserved; the current maintenance status is the Zero-noise quality-gate section.
+> **Authoritative current baseline for this candidate:** `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c`, visible version `1.20260831.2`. Historical delivery snapshots below remain preserved; the current delivery status is the Security Wave B section.
+
+## Security Wave B — SEC-006/SEC-010 — 2026-08-31
+
+**Status: CODE GREEN — MIGRATION APPROVAL STATUS OPEN**
+
+- Dedicated candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\security-wave-b-uploads-rpc-grants`, branch `security/wave-b-uploads-rpc-grants`, exact baseline `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c`; root en parallelle worktrees zijn niet aangeraakt. Zichtbare versie blijft `1.20260831.2`.
+- SEC-006: employee/company uploads delen nu server-side size, closed MIME/extensie, magic-byte/container, actieve-tekst en safe-filename validation; request `Content-Length` kan vóór `formData()` tot 27 MiB worden afgewezen. Private storage, signed downloads, checksum en auth/tenant/admin/group-scopes blijven behouden. Geen quarantine/malware scan in deze interne slice; dit blijft expliciet residual.
+- SEC-010: remote read-only inventory bevestigde zes interne process-wrappers met `anon` EXECUTE en drie bewuste public Recruitment-functies. Lokale migration `apps/hr-suite/supabase/migrations/20260831151639_secure_wave_b_rpc_grants.sql` revoke't exact `PUBLIC, anon` op de zes en grant alleen `authenticated`; remote apply is **niet** uitgevoerd (`protected anon=6`, `all public anon=9`, registration=false).
+- Gerichte code/securityset is `6` bestanden / `24/24` tests groen; strict TypeScript, ESLint en diff-check zijn groen. Post-apply pgTAP-contract staat in `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`. Volledige eindgate en candidate push volgen; geen main-merge, version bump of deployment.
+- Volledige delivery-evidence: [`SECURITY_WAVE_B.md`](SECURITY_WAVE_B.md).
 
 ## Setup Assistant Slice 0 handoff — 2026-08-31
 

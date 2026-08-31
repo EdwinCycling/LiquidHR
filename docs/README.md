@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Security Wave B — SEC-006/SEC-010 — 2026-08-31
+
+**Status: CODE GREEN — MIGRATION APPROVAL STATUS OPEN**
+
+De geïsoleerde candidate vanaf `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c` hardent interne employee/company uploads met server-side size-, MIME-, magic-byte- en actieve-tekstchecks en levert één forward grant-migration voor de bevestigde SEC-010 drift. Remote Supabase `wnpfloqpjvaacobppbpk` is read-only gecontroleerd; migration apply, `db push`, main-integratie en deployment zijn niet uitgevoerd. Zie [`delivery/SECURITY_WAVE_B.md`](delivery/SECURITY_WAVE_B.md).
+
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
 **Status: GREEN — CANDIDATE READY FOR REVIEW, NO MAIN INTEGRATION**

@@ -1,5 +1,15 @@
 # Implementatiestatus Liquid HR
 
+## Security Wave B — SEC-006/SEC-010 — 2026-08-31
+
+**Status: CODE GREEN — MIGRATION APPROVAL STATUS OPEN**
+
+Vanaf exact `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c` is in dedicated worktree `security/wave-b-uploads-rpc-grants` een beperkte security candidate gebouwd. SEC-006 hardent alleen de bestaande interne employee/company uploadpaden met server-side request/file size, closed type/MIME, magic-byte/container, actieve-tekst en safe-filename checks. Private buckets, signed downloads, auth/tenant/administration/HR-group scopes, checksums en bestaande Recruitment-public security zijn behouden. Quarantine/malware scanning is bewust niet gesuggereerd en blijft residual.
+
+SEC-010 is remote read-only bevestigd: exact zes interne process-wrappers hebben drifted `PUBLIC, anon` EXECUTE; drie Recruitment public wrappers zijn bewust publiek en blijven ongemoeid. Migration `apps/hr-suite/supabase/migrations/20260831151639_secure_wave_b_rpc_grants.sql` is lokaal klaar voor approval en bevat alleen de zes revoke/regrant-contracten. Remote apply, `db push`, history repair, typegen-write, main-merge en deployment zijn niet uitgevoerd.
+
+Gerichte upload/security regressies zijn `6` testbestanden / `24/24` tests groen; strict TypeScript, ESLint en diff-check zijn groen. De post-apply pgTAP-contracttest staat in `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`. Zie [`SECURITY_WAVE_B.md`](SECURITY_WAVE_B.md) voor residuals, remote readback en resterende gate.
+
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
 **Status: GREEN — CANDIDATE READY FOR REVIEW, NO MAIN INTEGRATION**

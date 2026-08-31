@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { CompanyDocumentServiceError, listCompanyDocuments, uploadCompanyDocument } from '@/lib/documents/company-document-service'
 import { companyDocumentMetadataSchema } from '@/lib/documents/company-schemas'
+import { isDocumentRequestBodyTooLarge } from '@/lib/documents/file-rules'
 
 function failure(error: unknown) {
   const permission = permissionErrorResponse(error)
@@ -16,6 +17,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (isDocumentRequestBodyTooLarge(request)) return NextResponse.json({ code: 'DOCUMENT_SIZE_INVALID' }, { status: 413 })
     const form = await request.formData()
     const file = form.get('file')
     const raw = form.get('metadata')

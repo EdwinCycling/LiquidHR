@@ -3,7 +3,7 @@ import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 import { requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { isAllowedDocumentFile, MAX_DOCUMENT_FILE_BYTES } from './file-rules'
+import { sanitizeDocumentFilename, validateDocumentFile } from './file-rules'
 import type { CompanyDocumentMetadataInput } from './company-schemas'
 
 const BUCKET = 'company-documents'
@@ -13,16 +13,6 @@ export class CompanyDocumentServiceError extends Error {
     super(code)
     this.name = 'CompanyDocumentServiceError'
   }
-}
-
-function cleanFilename(name: string): string {
-  return name.normalize('NFKC').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(-180) || 'document'
-}
-
-function contentType(file: File): string {
-  if (file.type) return file.type
-  const extension = file.name.toLocaleLowerCase('en-US').slice(file.name.lastIndexOf('.'))
-  return ({ '.pdf': 'application/pdf', '.txt': 'text/plain', '.md': 'text/markdown', '.csv': 'text/csv', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.bmp': 'image/bmp' } as Record<string, string>)[extension] ?? 'application/octet-stream'
 }
 
 export async function listCompanyDocuments() {
@@ -42,14 +32,14 @@ export async function listCompanyDocuments() {
 export async function uploadCompanyDocument(file: File, metadata: CompanyDocumentMetadataInput): Promise<string> {
   const context = await requirePermission('company-document:write')
   const hrGroupId = requireHrGroupId(context)
-  if (!isAllowedDocumentFile(file)) throw new CompanyDocumentServiceError('DOCUMENT_TYPE_INVALID', 400)
-  if (file.size < 1 || file.size > MAX_DOCUMENT_FILE_BYTES) throw new CompanyDocumentServiceError('DOCUMENT_SIZE_INVALID', 400)
+  const validation = await validateDocumentFile(file)
+  if (!validation.ok) throw new CompanyDocumentServiceError(validation.reason === 'SIZE' ? 'DOCUMENT_SIZE_INVALID' : 'DOCUMENT_TYPE_INVALID', 400)
 
-  const bytes = new Uint8Array(await file.arrayBuffer())
+  const { bytes, contentType } = validation
   const checksum = createHash('sha256').update(bytes).digest('hex')
-  const storageKey = `${context.tenantId}/${hrGroupId}/${randomUUID()}/${cleanFilename(file.name)}`
+  const storageKey = `${context.tenantId}/${hrGroupId}/${randomUUID()}/${sanitizeDocumentFilename(file.name)}`
   const supabase = await createClient()
-  const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType: contentType(file), upsert: false })
+  const upload = await supabase.storage.from(BUCKET).upload(storageKey, bytes, { contentType, upsert: false })
   if (upload.error) throw new CompanyDocumentServiceError('COMPANY_DOCUMENT_UPLOAD_FAILED', 500)
 
   const { data, error } = await supabase.from('company_documents').insert({
@@ -60,7 +50,7 @@ export async function uploadCompanyDocument(file: File, metadata: CompanyDocumen
     original_filename: file.name,
     storage_key: storageKey,
     file_size: file.size,
-    content_type: contentType(file),
+    content_type: contentType,
     checksum_sha256: checksum,
     uploaded_by_user_id: context.userId,
   }).select('id').single()
