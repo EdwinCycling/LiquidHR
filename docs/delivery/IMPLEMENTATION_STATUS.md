@@ -2,13 +2,13 @@
 
 ## Final consolidation release candidate — 2026-08-31
 
-**Status: FINAL CONSOLIDATION READY — PRODUCTION MIGRATION APPROVAL REQUIRED**
+**Status: GREEN — RELEASED**
 
-De releasecandidate is lokaal opgebouwd vanaf exact `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d` in worktree `release/final-consolidation-20260831`. AN-4/5 komt uit accepted candidate `f6a5844`; SEC-001/002 zijn uitsluitend uit `3265b3d1faac0049c331aa951dfa7f11adbbccb9` overgenomen. De Employee Wizard QA-branch en alle probation/salary/wizard/fixture/`getUser`-artefacts zijn niet geïntegreerd. SEC-003/004/005 uit Security Wave A zijn behouden. Zichtbare versie: `1.20260831.2`.
+De releasecandidate is lokaal opgebouwd vanaf exact `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d` in worktree `release/final-consolidation-20260831`. AN-4/5 komt uit accepted candidate `f6a5844`; SEC-001/002 zijn uitsluitend uit `3265b3d1faac0049c331aa951dfa7f11adbbccb9` overgenomen. De Employee Wizard QA-branch en alle probation/salary/wizard/fixture/`getUser`-artefacts zijn niet geïntegreerd. SEC-003/004/005 uit Security Wave A zijn behouden. Candidate `774d233e8f3a9f038850951d1c7ba3ff823e7f67` is non-force gepubliceerd naar `origin/main`; Vercel Production deployment `dpl_86JsxCCa1gFL9bKUWMU2qYQ83oAP` is `READY` op die SHA. Zichtbare versie: `1.20260831.2`.
 
 De targeted releasechecks zijn `25` bestanden / `90/90` tests, strict TypeScript, i18n `33` gelijke namespaces, ESLint `0` errors / `14` bestaande warnings, diff-check exit 0 en Webpack `233/233` routes. De full suite is eenmaal uitgevoerd als `307/309` bestanden en `1199/1201` tests; alleen de bekende ongewijzigde Journey-baseline bleef rood. De versieassertie is na de bump gericht groen gecontroleerd.
 
-Read-only production preflight: Supabase-project `wnpfloqpjvaacobppbpk` (`LiquidHR`) heeft `public.saved_analysis_definitions` al en registreert de AN-migratie als `20260831093310 / 20260830143757_saved_analysis_definitions`. `mcp__codex_apps__supabase_apply_migration` is de beschikbare named single-migrationmechaniek, maar is niet gebruikt omdat de migratie al geregistreerd is. Geen production apply, `db push`, `--include-all`, repair/pull, push, deployment of worktree/branch-delete is uitgevoerd; root bleef onaangeraakt.
+Read-only production preflight: Supabase-project `wnpfloqpjvaacobppbpk` (`LiquidHR`) heeft `public.saved_analysis_definitions` al en registreert de AN-migratie als `20260831093310 / 20260830143757_saved_analysis_definitions`. `mcp__codex_apps__supabase_apply_migration` is de beschikbare named single-migrationmechaniek, maar is niet gebruikt omdat de migratie al geregistreerd is. Production smoke is groen: HR Admin login/start, zichtbare versie `1.20260831.2`, exact vier Analysis-states, role-switch `404`, missing employee `404`, en `0` console/page-errors. Er is geen production apply, `db push`, `--include-all` of repair/pull gebruikt; root bleef onaangeraakt.
 
 ## Security Wave A — SEC-003/SEC-004/SEC-005 — 2026-08-31
 

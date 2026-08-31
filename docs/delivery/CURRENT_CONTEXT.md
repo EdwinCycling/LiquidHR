@@ -2,13 +2,13 @@
 
 ## Final consolidation release candidate — 2026-08-31
 
-**Status: FINAL CONSOLIDATION READY — PRODUCTION MIGRATION APPROVAL REQUIRED**
+**Status: GREEN — RELEASED**
 
 - Release-worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\final-consolidation-release`, branch `release/final-consolidation-20260831`, exact baseline `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d`.
 - Included: AN-4/5 accepted candidate `f6a5844`; SEC-001/002 only from `3265b3d1faac0049c331aa951dfa7f11adbbccb9`. Employee Wizard QA and all probation/salary/wizard/fixture/`getUser` artefacts are excluded. Security Wave A SEC-003/004/005 remains from main.
 - Version: `1.20260831.2`.
 - Gate: targeted AN/security `25` files / `90/90` tests; strict TypeScript green; ESLint `0` errors / `14` existing warnings; i18n `33` equal namespaces; diff-check exit 0; Webpack `233/233` routes green. Full suite was run once: `307/309` files, `1199/1201` tests, with only the unchanged Journey baseline failure remaining; the version assertion was then targeted and green after the requested bump.
-- Production Supabase preflight was read-only on `wnpfloqpjvaacobppbpk` (`LiquidHR`): `public.saved_analysis_definitions` exists and migration `20260831093310 / 20260830143757_saved_analysis_definitions` is already registered. The named mechanism `mcp__codex_apps__supabase_apply_migration` is available but was not invoked. No production migration, push, deployment, history repair/pull, or worktree/branch deletion occurred. Root worktree stayed untouched.
+- Production Supabase preflight was read-only on `wnpfloqpjvaacobppbpk` (`LiquidHR`): `public.saved_analysis_definitions` exists and migration `20260831093310 / 20260830143757_saved_analysis_definitions` is already registered. The named mechanism `mcp__codex_apps__supabase_apply_migration` is available but was not invoked. Candidate `774d233e8f3a9f038850951d1c7ba3ff823e7f67` was published non-force to `origin/main`; Vercel Production deployment `dpl_86JsxCCa1gFL9bKUWMU2qYQ83oAP` is `READY` on that SHA. Production smoke is green: HR Admin login/start, visible version `1.20260831.2`, four Analysis states, role-switch `404`, missing employee `404`, and zero console/page errors. Root worktree stayed untouched.
 
 ## Security Wave A — 2026-08-31
 
