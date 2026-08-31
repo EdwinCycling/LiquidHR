@@ -2335,6 +2335,15 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 - Gerichte componentcontracttest, volledige testsuite, strict typecheck, i18n en Webpack-production build zijn groen. Lint blijft geblokkeerd door de bestaande ESLint 10/plugin-incompatibiliteit; authenticated browsercontrole desktop/390px in LiquidHR/LinkedHR staat open omdat poort 3000 door een niet-identificeerbare bestaande server bezet is.
 - Geen remote Supabase-write, migration, release, deployment, merge of main-push uitgevoerd.
 
+## Security review 2026-08-31
+
+- Geïsoleerde worktree `security-review-20260830`, branch `security/comprehensive-review-20260830`, baseline `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a`, zichtbare versie `1.20260830.2`.
+- Bevestigde kleine fixes: process-output-samenvattingen worden als inert tekst weergegeven (geen `dangerouslySetInnerHTML` meer) en `GET /api/employees/[employeeId]` vertaalt een gescopeerde `EMPLOYEE_NOT_FOUND` naar HTTP 404 in plaats van 500; beide hebben regressietests.
+- TEST-bewijs: HR Admin, Manager en Medewerker bereikten hun toegestane scopes; out-of-scope employee/BSN/rollen/AI/usage-acties werden server-side geweigerd. AI Improve bleef proposal-only, prompt-injectiontekst werd niet opgeslagen en idempotency voorkwam hergebruik/dubbele uitvoering. Anonieme beschermde API's geven 401. Dashboard en medewerkerslijst zijn op desktop en 390x844 gecontroleerd zonder horizontale overflow.
+- Productie is uitsluitend passief gecontroleerd. Headers zijn aanwezig (HSTS, nosniff, XFO, Referrer-Policy, Permissions-Policy), maar CSP ontbreekt. De publieke productie-testrolwisselroute geeft 403 voor anonieme callers terwijl de runtimeflag actief is; uitschakelen/gating van deze testfunctie in productie is een open productbesluit. Geen productie- of remote TEST-mutaties uitgevoerd.
+- Open reviewpunten staan in het externe rapport `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-REPORT.md`: testrolwissel in productieconfiguratie, auth-cookie `HttpOnly`-hardening, forwarded-host contract, document-upload content scanning/limieten, CSP, leaked-password protection, npm advisory, RPC-grant drift en GitHub/CI-governance.
+- Verificatie: gerichte securitytests 16 bestanden/70 tests groen; volledige suite 296 bestanden/1152 tests met één ongewijzigde Journey-baselinefailure; typecheck, lint (14 bestaande waarschuwingen), i18n-check en Webpack-productiebuild groen. Branch-only commit/push volgt na rapportcontrole.
+
 ## Hotfix 2026-08-21: startpagina compact toont weer datavensters
 
 - De compacte `/dashboard/start`-weergave hield na de eerdere redesign alleen de begroeting over. De bestaande datavensters worden nu ook in compact gerenderd; vensterdragging en volgordeacties blijven daar verborgen. Uitgebreid behoudt de bestaande vensteracties.

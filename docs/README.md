@@ -760,3 +760,7 @@ De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport
 De medewerkerlijst/persoonskaart-UX-slice van 2026-07-19 is geïmplementeerd: gebruikersgebonden lijstvoorkeuren zonder zoekterm, Enter-zoeken met afzonderlijk wissen, volledige klikrij, hoofdtab Overzicht vóór Persoonsgegevens en een effective-dated samenvatting van het huidige dienstverband met beschermd salaris-hover.
 
 De HR-admin-stamtabellen staan op `/master-data`: Redenen uitdienst, documentcategorieën en tenant-relatietypen zijn afzonderlijke onderdelen. Redenen uitdienst zijn landgebonden en HR-groepbreed; documentcategorieën blijven administratiegebonden. Nederland gebruikt de actuele codes 01-99 en andere landen krijgen bij ontbrekende inrichting de veilige standaardreden `Einde contract`.
+
+### Security review 2026-08-31
+
+De geïsoleerde securitybranch `security/comprehensive-review-20260830` controleerde de actuele `origin/main`-baseline `9151248f224fb62a2d18c558c2627e1078c2cf0a` (versie `1.20260830.2`) tegen lokale en canonieke TEST-persona's. Twee kleine, laag-risico-defecten zijn gefixt met regressietests: process-output wordt inert tekst en een gescopeerde employee miss geeft 404. De review en resterende risico's zijn vastgelegd in het externe rapport; productie, remote TEST, `main` en deployment zijn niet gewijzigd.

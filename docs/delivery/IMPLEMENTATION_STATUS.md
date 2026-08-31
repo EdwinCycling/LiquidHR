@@ -1628,3 +1628,11 @@ Aanvulling 2026-08-16: de aanmaakwizard verwerkt roosterdagen voortaan als uren 
 # UX Foundation v1 — Employee Personal Tab
 
 De featurebranch `feature/ux-employee-personal-tab` migreert de vijf subtabs van `/employees/[employeeId]?tab=personal` naar Foundation v1. De outer surface, tablist, persoonsgegevens read/edit, rolweergave, BSN-presentatie, bank- en relatiepresentatie en embedded custom fields zijn aangepast zonder schema-, API-, permission-, RLS- of securitywijziging. De finale test-, build- en browserverificatie staat nog open.
+
+### Security review 2026-08-31
+
+- Securitybranch `security/comprehensive-review-20260830` is gebaseerd op `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a` (versie `1.20260830.2`).
+- Kleine fixes in deze branch: inert tekstweergave voor process-output-samenvattingen en correcte 404-afhandeling voor gescopeerde employee misses, met regressietests.
+- Lokale/TEST-adversarial matrix bevestigde server-side tenant-, HR-groep- en permissiongrenzen voor HR Admin, Manager en Medewerker; AI Improve is proposal-only en idempotent. Productiecontrole bleef passief.
+- Gate-resultaat: 16 gerichte securitytestbestanden/70 tests groen; volledige suite 296/1152 met één bekende ongewijzigde Journey-failure; strict typecheck, lint (alleen bestaande waarschuwingen), i18n en Webpack-build groen.
+- Open risico's en concrete vervolgstappen staan in het externe rapport. Er zijn geen migraties, productie-envwijzigingen, deployments of main-mutaties uitgevoerd.

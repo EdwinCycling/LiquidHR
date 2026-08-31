@@ -4,7 +4,7 @@ import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { archiveEmployee, updateEmployee } from '@/lib/employees/employee-service'
 import { employeeErrorPayload } from '@/lib/employees/http-errors'
 import { employeeUpdateSchema } from '@/lib/employees/schemas'
-import { getEmployeeEmploymentDetail } from '@/lib/employment/employment-service'
+import { EmploymentServiceError, getEmployeeEmploymentDetail } from '@/lib/employment/employment-service'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
 const archiveSchema = z.object({ updatedAt: z.iso.datetime({ offset: true }) }).strict()
@@ -12,6 +12,9 @@ const archiveSchema = z.object({ updatedAt: z.iso.datetime({ offset: true }) }).
 function errorResponse(error: unknown): NextResponse {
   const permission = permissionErrorResponse(error)
   if (permission) return permission
+  if (error instanceof EmploymentServiceError) {
+    return NextResponse.json({ error: error.code }, { status: error.status })
+  }
   const payload = employeeErrorPayload(error)
   return NextResponse.json(payload.body, { status: payload.status })
 }
