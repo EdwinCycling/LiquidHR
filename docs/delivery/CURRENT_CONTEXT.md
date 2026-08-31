@@ -1,6 +1,16 @@
 # Actuele overdracht Liquid HR
 
-> **Authoritative current baseline:** `origin/main` `fad1a115b496c1d4e0c211953930b272dde22e4c`, visible version `1.20260831.2`. Historical delivery snapshots below remain preserved; the current maintenance status is the Zero-noise quality-gate section.
+> **Authoritative current baseline for AN-6:** `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c`, visible version `1.20260831.2`. Historical delivery snapshots below remain preserved; the AN-6 candidate is isolated and has no main integration.
+
+## Liquid Analyse AN-6 Contextual Drill & Compare — implementation candidate
+
+**Status: TEST GREEN — candidate ready for review; authenticated browser acceptance blocked by missing isolated TEST env**
+
+- Worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an6-contextual-drill-compare`; branch: `work/an6-contextual-drill-compare`; baseline: `0121ff13cb8693687d873b4d33930cd2ec18e35c`.
+- Leading contract: [`LIQUID_ANALYSE_AN6_CONTEXTUAL_DRILL_COMPARE.md`](../requirements/reports/LIQUID_ANALYSE_AN6_CONTEXTUAL_DRILL_COMPARE.md).
+- Scope: deterministic aggregate contextual drill and exactly-two-value comparison through the existing AnalysisSpec V1 engine, Explore and Saved Analyses. No AN-7/8/9/10, AI, migration, schema/RLS/grant, version bump, main integration, deployment or remote database write.
+- Evidence: targeted AN-6 set `11` files / `41/41` tests; full HR Suite `314/314` files / `1216/1216` tests; strict TypeScript; ESLint `0/0`; i18n `33` equal NL/EN namespaces; `git diff --check`; Webpack `235/235` green.
+- Browser boundary: the production candidate started locally, but `/login` returned HTTP 500 before auth because this isolated worktree has no `.env.local`/Supabase URL and key. Desktop/390px authenticated acceptance, HR Admin/Manager negative flow, fresh saved-analysis proof and synthetic cleanup could not run. No credentials were copied and no TEST data was mutated.
 
 ## Setup Assistant Slice 0 handoff — 2026-08-31
 

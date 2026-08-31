@@ -1,5 +1,25 @@
 # Liquid HR documentatie-index
 
+## Liquid Analyse AN-6 Contextual Drill & Compare — implementation candidate
+
+**Status: TEST GREEN — candidate ready for review; authenticated browser acceptance blocked by missing isolated TEST env**
+
+AN-6 is the current frozen roadmap slice from exact `origin/main`
+`0121ff13cb8693687d873b4d33930cd2ec18e35c` in worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an6-contextual-drill-compare`,
+branch `work/an6-contextual-drill-compare`. The leading contract is
+[`LIQUID_ANALYSE_AN6_CONTEXTUAL_DRILL_COMPARE.md`](requirements/reports/LIQUID_ANALYSE_AN6_CONTEXTUAL_DRILL_COMPARE.md).
+The slice adds deterministic contextual drill and two-context aggregate
+comparison over the existing AnalysisSpec/engine, with no migration, version
+bump, merge, deployment or remote database write. The targeted AN-6 set is
+`11` files / `41` tests; the full HR Suite is `314/314` files / `1216/1216`
+tests. Strict TypeScript, ESLint `0/0`, i18n (`33` equal namespaces),
+`git diff --check` and Webpack (`235/235`) are green. Local browser startup was
+checked, but `/login` returned 500 before auth because the isolated worktree
+has no `.env.local`/Supabase URL and key; no credentials were copied. The older
+quality-gate and release entries below retain their historical evidence and do
+not override this candidate baseline.
+
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
 **Status: GREEN — CANDIDATE READY FOR REVIEW, NO MAIN INTEGRATION**

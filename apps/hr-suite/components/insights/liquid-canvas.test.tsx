@@ -10,6 +10,7 @@ const labels: LiquidCanvasLabels = {
   dimension: 'Groepering',
   headcount: 'Aantal medewerkers',
   noResults: 'Geen resultaten',
+  selectRow: 'Rij selecteren',
   unknown: 'Onbekend',
   fallback: 'Tabelweergave gebruikt.',
 }

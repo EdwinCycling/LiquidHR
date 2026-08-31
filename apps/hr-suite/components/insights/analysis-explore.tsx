@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useCallback, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -12,7 +12,7 @@ import { SectionHeader } from '@/components/patterns/section-header'
 import type { AnalysisResult } from '@/lib/insights/analysis-result'
 import { ANALYSIS_DIMENSIONS, type AnalysisDimensionKey } from '@/lib/insights/analysis-semantic-layer'
 import type { AnalysisSpecV1 } from '@/lib/insights/analysis-spec'
-import { LiquidCanvas, type LiquidCanvasLabels } from './liquid-canvas'
+import { AnalysisExploration, type AnalysisExplorationLabels } from './analysis-exploration'
 
 type ExploreDimension = '' | AnalysisDimensionKey
 type ExploreSort = 'none' | 'label' | 'value'
@@ -73,7 +73,8 @@ export interface AnalysisExploreLabels {
   readonly executionFailed: string
   readonly saveFailed: string
   readonly nameRequired: string
-  readonly canvas: LiquidCanvasLabels
+  readonly exploration: Omit<AnalysisExplorationLabels, 'canvas' | 'workforce' | 'department' | 'job' | 'employmentStatus'>
+  readonly canvas: AnalysisExplorationLabels['canvas']
 }
 
 type AnalysisApiPayload = {
@@ -157,6 +158,9 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
   const [limit, setLimit] = useState('25')
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [executedSpec, setExecutedSpec] = useState<AnalysisSpecV1 | null>(null)
+  const [activeResult, setActiveResult] = useState<AnalysisResult | null>(null)
+  const [activeSpec, setActiveSpec] = useState<AnalysisSpecV1 | null>(null)
+  const [executionKey, setExecutionKey] = useState(0)
   const [isDirty, setIsDirty] = useState(false)
   const [isExecuting, setIsExecuting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -170,6 +174,8 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
     setIsDirty(true)
     setResult(null)
     setExecutedSpec(null)
+    setActiveResult(null)
+    setActiveSpec(null)
     setFeedback(null)
     setSavedId(null)
   }
@@ -213,10 +219,15 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
       if (!response.ok || !parsed) throw new Error(labels.executionFailed)
       setResult(parsed.data)
       setExecutedSpec(spec)
+      setActiveResult(parsed.data)
+      setActiveSpec(spec)
+      setExecutionKey((value) => value + 1)
       setIsDirty(false)
     } catch {
       setResult(null)
       setExecutedSpec(null)
+      setActiveResult(null)
+      setActiveSpec(null)
       setError(labels.executionFailed)
     } finally {
       setIsExecuting(false)
@@ -225,7 +236,7 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
 
   async function handleSave(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    if (!executedSpec || !result || isDirty) return
+    if (!activeSpec || !activeResult || isDirty) return
     if (!saveName.trim()) {
       setSaveError(labels.nameRequired)
       return
@@ -238,7 +249,7 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
       const response = await fetch('/api/insights/saved-analyses', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: saveName.trim(), analysisSpec: executedSpec }),
+        body: JSON.stringify({ name: saveName.trim(), analysisSpec: activeSpec }),
       })
       const payload: unknown = await response.json()
       const parsed = readSavedAnalysisPayload(payload)
@@ -251,6 +262,11 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
       setIsSaving(false)
     }
   }
+
+  const handleCurrentChange = useCallback((nextSpec: AnalysisSpecV1, nextResult: AnalysisResult): void => {
+    setActiveSpec(nextSpec)
+    setActiveResult(nextResult)
+  }, [])
 
   return (
     <div className="space-y-6" data-analysis-explore="v1">
@@ -298,7 +314,22 @@ export function AnalysisExplore({ labels }: { readonly labels: AnalysisExploreLa
         </div>
       </form>
 
-      {result ? <LiquidCanvas labels={labels.canvas} result={result} /> : <EmptyState title={labels.resultTitle} />}
+      {result && executedSpec ? (
+        <AnalysisExploration
+          key={executionKey}
+          labels={{
+            ...labels.exploration,
+            canvas: labels.canvas,
+            department: labels.department,
+            employmentStatus: labels.employmentStatus,
+            job: labels.job,
+            workforce: labels.workforce,
+          }}
+          onCurrentChange={handleCurrentChange}
+          rootResult={result}
+          rootSpec={executedSpec}
+        />
+      ) : <EmptyState title={labels.resultTitle} />}
 
       <Surface className="p-5">
         <SectionHeader description={labels.saveDescription} title={labels.saveTitle} />

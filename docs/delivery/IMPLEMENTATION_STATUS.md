@@ -1,5 +1,23 @@
 # Implementatiestatus Liquid HR
 
+## Liquid Analyse AN-6 Contextual Drill & Compare — implementation candidate
+
+**Status: TEST GREEN — candidate ready for review; authenticated browser acceptance blocked by missing isolated TEST env**
+
+De AN-6-slice werkt vanaf exact `origin/main`
+`0121ff13cb8693687d873b4d33930cd2ec18e35c` in worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an6-contextual-drill-compare`,
+branch `work/an6-contextual-drill-compare`. De nieuwe drill- en compare-routes
+hergebruiken AnalysisSpec V1, de bestaande authorization-first engine en
+Foundation LiquidCanvas/DataTableShell. De targeted AN-6-set is `11` bestanden
+en `41/41` tests; de volledige HR Suite is `314/314` bestanden en `1216/1216`
+tests. Strict TypeScript, ESLint `0/0`, i18n (`33` gelijke namespaces),
+`git diff --check` en Webpack (`235/235`) zijn groen. De lokale browserstart is
+geprobeerd, maar `/login` gaf 500 vóór authenticatie omdat deze worktree geen
+`.env.local`/Supabase URL en key heeft; er zijn geen credentials gekopieerd.
+Er is geen migration, version bump, main-integratie, deployment of remote
+database write.
+
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
 **Status: GREEN — CANDIDATE READY FOR REVIEW, NO MAIN INTEGRATION**
