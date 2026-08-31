@@ -4,6 +4,7 @@ import {
   isTestRoleSwitchAccount,
   isTestRoleSwitchEnabled,
 } from '@/lib/auth/test-role-switch'
+import { resolveRequestOrigin } from '@/lib/auth/request-origin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
@@ -36,7 +37,14 @@ export async function POST(request: NextRequest) {
 
   await supabase.auth.signOut()
 
-  const callbackUrl = new URL('/auth/test-role-switch/confirm', request.url)
+  const origin = resolveRequestOrigin({
+    canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,
+    fallbackUrl: request.url,
+    forwardedHost: request.headers.get('x-forwarded-host'),
+    forwardedProtocol: request.headers.get('x-forwarded-proto'),
+    host: request.headers.get('host') ?? request.nextUrl.host,
+  })
+  const callbackUrl = new URL('/auth/test-role-switch/confirm', origin)
   const response = NextResponse.redirect(callbackUrl, { status: 303 })
   response.cookies.set(HANDOFF_COOKIE, generated.properties.hashed_token, {
     httpOnly: true,
