@@ -14072,6 +14072,57 @@ export type Database = {
           },
         ]
       }
+      saved_analysis_definitions: {
+        Row: {
+          analysis_spec: Json
+          created_at: string
+          definition_version: number
+          hr_group_id: string
+          id: string
+          name: string
+          owner_user_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_spec: Json
+          created_at?: string
+          definition_version?: number
+          hr_group_id: string
+          id?: string
+          name: string
+          owner_user_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_spec?: Json
+          created_at?: string
+          definition_version?: number
+          hr_group_id?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_analysis_definitions_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "saved_analysis_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       setup_guide_settings: {
         Row: {
           created_at: string

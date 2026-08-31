@@ -43,7 +43,7 @@ export function PriorityRulesPage({ initial, labels, initialYear }: { initial: L
   const selectedYear = Number.isInteger(yearParam) && yearParam >= 2000 && yearParam <= 2100 ? yearParam : initialYear
   const profiles = useMemo(() => new Map(initial.profiles.map((profile) => [profile.id, profile.name])), [initial.profiles])
   const itemsByRule = useMemo(() => {
-    const result = new Map<string, typeof initial.priorityRuleItems>()
+    const result = new Map<string, LeaveCatalog['priorityRuleItems']>()
     for (const item of initial.priorityRuleItems) result.set(item.priority_rule_id, [...(result.get(item.priority_rule_id) ?? []), item])
     return result
   }, [initial.priorityRuleItems])

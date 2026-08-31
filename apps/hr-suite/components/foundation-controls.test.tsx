@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 
 import { act } from 'react'
-import { createElement, type ReactElement } from 'react'
+import { type ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { Button, buttonClasses } from './ui/button'
+import { buttonClasses } from './ui/button'
 import { Checkbox } from './ui/checkbox'
 import { DropdownSelect } from './ui/dropdown-select'
 import { IconButton } from './ui/icon-button'
@@ -44,7 +44,6 @@ describe('LiquidHR foundation controls', () => {
   })
 
   it('keeps Button icon sizing and IconButton as the icon-only contract', () => {
-    const buttonMarkup = renderStatic(<Button><span><span aria-hidden="true">ico</span>Opslaan</span></Button>)
     const iconButtonMarkup = renderStatic(<IconButton label="Menu openen"><span>ico</span></IconButton>)
 
     expect(buttonClasses()).toContain('[&_svg]:size-4')

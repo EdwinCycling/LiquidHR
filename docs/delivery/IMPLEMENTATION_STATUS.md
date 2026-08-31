@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## Zero-noise quality-gate maintenance — 2026-08-31
+
+**Status: GREEN — CANDIDATE READY FOR REVIEW, NO MAIN INTEGRATION**
+
+De actuele authoritative baseline is `origin/main` `fad1a115b496c1d4e0c211953930b272dde22e4c`, met zichtbare versie `1.20260831.2`. De candidate verwijdert geen productfeatures en wijzigt geen Production- of remote-database-state. De finale gate is groen: full suite hr-suite `309/309` bestanden en `1201/1201` tests, control `2/2` en `7/7`, strict TypeScript, ESLint `0/0`, i18n `33` gelijke namespaces, diff-check en Webpack (`233/233` en `12/12`). De oude Journey- en lintkwalificaties in historische secties hieronder zijn release-evidence uit eerdere baselines; zij zijn niet langer geldige uitzonderingen voor deze gate. Actuele migration/typegen-drift staat in [`MIGRATION_HISTORY_DRIFT.md`](MIGRATION_HISTORY_DRIFT.md) en [`SUPABASE_TYPEGEN_DRIFT.md`](SUPABASE_TYPEGEN_DRIFT.md).
+
 ## Final consolidation release candidate — 2026-08-31
 
 **Status: GREEN — RELEASED**

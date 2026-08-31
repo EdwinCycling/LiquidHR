@@ -1,5 +1,7 @@
 # Actuele overdracht Liquid HR
 
+> **Authoritative current baseline:** `origin/main` `fad1a115b496c1d4e0c211953930b272dde22e4c`, visible version `1.20260831.2`. Historical delivery snapshots below remain preserved; the current maintenance status is the Zero-noise quality-gate section.
+
 ## Setup Assistant Slice 0 handoff — 2026-08-31
 
 **Status: REQUIREMENTS HANDOFF SALVAGED — SLICE 1 NOT AUTHORIZED**
@@ -11,6 +13,8 @@
 
 ## Final consolidation release candidate — 2026-08-31
 
+**Historical delivery snapshot — superseded as the current baseline by the authoritative pointer above.**
+
 **Status: GREEN — RELEASED**
 
 - Release-worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\final-consolidation-release`, branch `release/final-consolidation-20260831`, exact baseline `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d`.
@@ -18,6 +22,17 @@
 - Version: `1.20260831.2`.
 - Gate: targeted AN/security `25` files / `90/90` tests; strict TypeScript green; ESLint `0` errors / `14` existing warnings; i18n `33` equal namespaces; diff-check exit 0; Webpack `233/233` routes green. Full suite was run once: `307/309` files, `1199/1201` tests, with only the unchanged Journey baseline failure remaining; the version assertion was then targeted and green after the requested bump.
 - Production Supabase preflight was read-only on `wnpfloqpjvaacobppbpk` (`LiquidHR`): `public.saved_analysis_definitions` exists and migration `20260831093310 / 20260830143757_saved_analysis_definitions` is already registered. The named mechanism `mcp__codex_apps__supabase_apply_migration` is available but was not invoked. Candidate `774d233e8f3a9f038850951d1c7ba3ff823e7f67` was published non-force to `origin/main`; Vercel Production deployment `dpl_86JsxCCa1gFL9bKUWMU2qYQ83oAP` is `READY` on that SHA. Production smoke is green: HR Admin login/start, visible version `1.20260831.2`, four Analysis states, role-switch `404`, missing employee `404`, and zero console/page errors. Root worktree stayed untouched.
+
+## Zero-noise quality-gate maintenance candidate — 2026-08-31
+
+**Status: GREEN — CANDIDATE READY FOR REVIEW, NO MAIN INTEGRATION**
+
+- Candidate worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\quality-gate-zero-noise-20260831`, branch `work/quality-gate-zero-noise-20260831`, exact baseline `origin/main` `fad1a115b496c1d4e0c211953930b272dde22e4c`; root `main` remains clean and untouched.
+- Scope: recurring ESLint warnings, stale Journey fixture assertion, generated `next-env.d.ts` churn diagnosis, narrow Supabase typegen sync, and read-only migration-history documentation. No product feature, version bump, Production action, remote DB write, Employee Wizard change, or AI Improve discovery change.
+- Completed: Journey fixture now uses a deterministic future moment and passes; ESLint is `0` errors / `0` warnings; Next Webpack build twice restored the canonical tracked `apps/hr-suite/next-env.d.ts` with no diff. `next dev --webpack` was reproduced as the source of the `.next/dev/types` churn; the canonical repository dev script already uses Webpack, so no generated-file ignore or suppression was added.
+- Supabase readback: 389 local migration files versus 408 remote rows, only 94 shared exact versions; full inventory and future normalization procedure: [`MIGRATION_HISTORY_DRIFT.md`](MIGRATION_HISTORY_DRIFT.md). Remote typegen contains one current missing table plus broad unrelated drift; narrow sync and future plan: [`SUPABASE_TYPEGEN_DRIFT.md`](SUPABASE_TYPEGEN_DRIFT.md).
+- Final gate: targeted regressions `3` files / `15/15` tests; full suite hr-suite `309/309` files / `1201/1201` tests and control `2/2` / `7/7`; root strict TypeScript, ESLint `0/0`, i18n `33` equal namespaces, diff-check, and Webpack builds green (`233/233` hr-suite routes, `12/12` control pages). No quality-gate exception remains; historical release references are retained as history, not active qualifications.
+- Next action: commit/push only this candidate branch and stop before main integration.
 
 ## Security Wave A — 2026-08-31
 
