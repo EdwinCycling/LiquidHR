@@ -2,16 +2,16 @@
 
 ## Security Wave A — 2026-08-31
 
-**Status: LOKALE REMEDIATION GREEN — REVIEW REQUIRED**
+**Status: INTEGRATION GATE GREEN — APPROVED FOR PRODUCTION RELEASE**
 
-- Baseline: authoritative `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a`; codecommit `b490cde` (`fix(security): harden auth boundaries and trusted origins`); zichtbare versie `1.20260830.2`; dedicated worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\security-wave-a-auth-boundaries`, branch `security/wave-a-auth-boundaries`.
-- Scope: alleen SEC-003 production test-role switching, SEC-004 browserleesbare Supabase auth-cookie en SEC-005 forwarded-host origin trust. Geen Wave B/C, geen version bump, migration, RLS/grantwijziging, production env-write, deployment of main-mutatie.
+- Baseline: authoritative `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a`; approved source `0bb6c81`; integration merge `537b4e2`; zichtbare versie `1.20260831.1` na exact één centrale bump; dedicated release-worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\security-wave-a-release`.
+- Scope: alleen SEC-003 production test-role switching, SEC-004 browserleesbare Supabase auth-cookie en SEC-005 forwarded-host origin trust. Geen Wave B/C, migration, RLS/grantwijziging, production env-write, permissionverbreding of businessdata-mutatie.
 - SEC-003: production is server-side fail-closed, inclusief stale flag en confirm-route; Preview/development/test blijven allowlisted volgens bestaande fixtureconventie. Directe production POST `404`; crafted target vóór admin-handoff `403`.
 - SEC-004: `sb-<project-ref>-auth-token` blijft browserleesbaar (`HttpOnly=false`) omdat Supabase SSR browser refresh via `document.cookie` vereist. Centrale cookie-opties zetten `Secure` in HTTPS production-contexten; HttpOnly vereist een afzonderlijk server-only session-bridge-besluit.
 - SEC-005: callback, OAuth/reset, invitation en signout gebruiken de centrale canonical/Vercel/local allowlist-helper; onbekende forwarded/Host-input en externe fallback-origin worden niet vertrouwd.
-- Verificatie: `16` auth/security testbestanden, `73/73` tests; strict TypeScript; ESLint `0` errors / `14` bestaande warnings; Webpack `230/230`; diff-check groen. Supabase read-only fixture-count `1/1/1`, advisors `89` bestaande meldingen, geen remote write.
+- Verificatie: geïntegreerde targeted gate `17` testbestanden, `75/75` tests; strict TypeScript; ESLint `0` errors / `14` bestaande warnings; Webpack `230/230`; diff-check groen. De full suite is eenmaal `298/299` bestanden en `1167/1168` tests; alleen de bekende ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan. Supabase read-only fixture-count `1/1/1`, advisors `89` bestaande meldingen, geen remote write.
 - Browser: alle drie canonical TEST-persona’s authenticeerden lokaal; development role-switch round-trip HR Admin → Manager → HR Admin geslaagd; production-mode candidate hield de switcher verborgen en directe POST gesloten; alle production-mode persona-runs hadden `0` console/page-errors.
-- Extern evidence-rapport: `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`. Open: product-/architectuurbesluit voor SEC-004 HttpOnly session bridge en expliciete hostpolicy-review. Wave-A blijft geïsoleerd tot review/integratie is goedgekeurd.
+- Extern evidence-rapport: `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`. Open na release: product-/architectuurbesluit voor SEC-004 HttpOnly session bridge en expliciete hostpolicy-review. Main-push en Vercel production/provenance-smoke worden op de finale SHA gecontroleerd.
 
 ## AI Usage Insights V1 — 2026-08-30
 
