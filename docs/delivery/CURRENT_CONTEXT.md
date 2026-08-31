@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Final consolidation release candidate — 2026-08-31
+
+**Status: FINAL CONSOLIDATION READY — PRODUCTION MIGRATION APPROVAL REQUIRED**
+
+- Release-worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\final-consolidation-release`, branch `release/final-consolidation-20260831`, exact baseline `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d`.
+- Included: AN-4/5 accepted candidate `f6a5844`; SEC-001/002 only from `3265b3d1faac0049c331aa951dfa7f11adbbccb9`. Employee Wizard QA and all probation/salary/wizard/fixture/`getUser` artefacts are excluded. Security Wave A SEC-003/004/005 remains from main.
+- Version: `1.20260831.2`.
+- Gate: targeted AN/security `25` files / `90/90` tests; strict TypeScript green; ESLint `0` errors / `14` existing warnings; i18n `33` equal namespaces; diff-check exit 0; Webpack `233/233` routes green. Full suite was run once: `307/309` files, `1199/1201` tests, with only the unchanged Journey baseline failure remaining; the version assertion was then targeted and green after the requested bump.
+- Production Supabase preflight was read-only on `wnpfloqpjvaacobppbpk` (`LiquidHR`): `public.saved_analysis_definitions` exists and migration `20260831093310 / 20260830143757_saved_analysis_definitions` is already registered. The named mechanism `mcp__codex_apps__supabase_apply_migration` is available but was not invoked. No production migration, push, deployment, history repair/pull, or worktree/branch deletion occurred. Root worktree stayed untouched.
+
 ## Security Wave A — 2026-08-31
 
 **Status: GREEN — RELEASED**
@@ -35,6 +45,27 @@
 - Browser/TEST evidence: authenticated HR Admin op desktop en `390x844`; exact één AI-route `POST` met `200`, originele Description bleef ongewijzigd tot Apply, geen note-write vóór Save, expliciete Save `201`, daarna bestaande delete-flow en remote synthetic note count `0`; mobiel geen horizontale overflow; console `0 errors` met bestaande CSS-preload warnings. Remote readback: Improve invocation `SUCCEEDED`/`VALIDATED`, credits `1` reserved/`1` settled/`0` released, FUP allocation settled, technical usage en business audit elk één rij.
 - Zichtbare versie is exact éénmaal verhoogd naar `1.20260830.1`. De release is geïntegreerd, non-force naar `origin/main` gepusht en Vercel-productieprovenance is gecontroleerd; de dirty root-worktree bleef onaangeraakt.
 - Geen migration, schema-, RLS- of grantwijziging. De AI-route schrijft nooit `employee_notes`; voor de expliciete TEST-acceptance zijn uitsluitend bestaande AI Foundation/credits-tabellen en de bestaande note Save/delete-flow gebruikt. Stop vóór een remote TEST-migration als de architectuur alsnog een schemawijziging vereist.
+
+## AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
+
+**Status: AN-4/5 TEST GREEN — READY FOR FINAL INTEGRATION**
+
+**Typegen note: `TYPEGEN SYNC REQUIRED` — remote typegen bevat het nieuwe saved-analysis type, maar brede bestaande remote/local drift maakt een volledige gegenereerde types-diff ongeschikt voor deze slice.**
+
+- Dedicated candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\an4-an5-my-analyses-explore-v1`, branch `work/an4-an5-my-analyses-explore-v1`, integrated from candidate baseline `9151248f224fb62a2d18c558c2627e1078c2cf0a` without conflicts; current `origin/main` is independently at `8b080b06993e9de290d2756e6bef1c93f5a6095d` (`release/security-wave-a-20260831`) and was not rebased/merged; root `work/r5-work-runtime` remained untouched with its pre-existing dirty state. Candidate code HEAD before this post-apply evidence update was `6bf9e11b88d258031a129e63d8cfe95933e60627`.
+- Main integration retained the current AI Improve, AI Usage Insights and AI Foundation paths; visible app version is `1.20260830.2` and was not bumped.
+- AN-4/5 migration `20260830143757_saved_analysis_definitions.sql` is exact eenmaal op canonical TEST toegepast via `mcp__codex_apps__supabase_apply_migration`; remote registreerde versie `20260831093310` met naam `20260830143757_saved_analysis_definitions`. De strict DB-validator matcht de canonieke negen-key AnalysisSpec V1-shape: iedere top-level key is vereist, unknown keys zijn verboden en `sort` blijft verplicht nullable. De oude `jsonb_object_keys(candidate) <> 10`-defectcheck is verwijderd. Immutable identity en updated_at triggers zijn readback-bevestigd. Employee/result-shaped content, malformed versions, unsupported values en arbitrary nested business JSON worden geweigerd.
+- `has_hr_group_access` and `current_user_has_hr_group_permission` enforce any active membership/permission for requested tenant+HR-group, not the cookie-selected active group. Authenticated table privileges are therefore revoked; the existing server-only admin repository is constructed only after active-context/permission checks and applies tenant+HR-group+owner filters on every operation. No generic RPC or casual service-role endpoint was added.
+- Local combined AN-4/5 + AN-2/3 + LiquidCanvas + AI Usage regression checks: `23` files / `80/80` tests, strict TypeScript, ESLint quiet, i18n `33` equal namespaces, diff-check and Webpack production build `233/233` green. The fresh-runtime test proves saved analyses execute against current data rather than snapshots.
+- Remote readback: `408` unique migration versions, with target registration `20260831093310 / saved_analysis_definitions`; public catalog/readback confirms the saved-analysis table, exact columns/FKs/checks/index/RLS/policies/grants/validator/triggers. The earlier migration-history drift remains `313` remote-only and `292` local-only and was not repaired.
+- Remote DB tests: catalog/security contract green; transactionele pgTAP/RLS test `29/29` green. Advisors have no AN security finding; two AN-related performance-INFOs remain for the owner-FK index coverage and newly-created unused owner-scope index, alongside baseline findings.
+- Official typegen now includes `saved_analysis_definitions` with the expected fields/relationships and no `personal_dashboard` type. Because the complete generated output has broad unrelated drift, `TYPEGEN SYNC REQUIRED` is recorded; no broad generated-types diff was written or committed, and the prepared narrow typed seam remains in use.
+- Local config: canonical TEST `.env.local` was copied only to this ignored candidate worktree; no values were logged, the root env was not changed, and the env file was not committed.
+- Browser acceptance: isolated Playwright sessions logged HR Admin and Manager through the normal login path (`POST /login` `200`). HR Admin loaded tenant/context `Planeten`; the hub showed exactly four tiles: Nieuwe analyse `Gepland`, Verkennen/Mijn analyses/Rapporten `Actief`. Explore selected `Afdeling`, executed headcount (`POST /api/insights/analysis` `200`), saved `QA Headcount by department` (`POST /api/insights/saved-analyses` `201`), opened/re-executed it from Mijn analyses, and deleted it via the confirmation flow (`DELETE` `200`). Product flow had `0` page/console errors; only development preload/HMR warnings were present.
+- Owner and scope acceptance: Manager's Mijn analyses list was empty; creator UUID GET/PATCH/DELETE each returned `404 SAVED_ANALYSIS_NOT_FOUND`. A fake tenant/group query on the HR Admin list returned only the server-scoped creator row; no client-supplied scope overrode the active `Planeten` context. The prepared application isolation tests remain authoritative for cross-tenant/group cases.
+- Persistence: exact readback matched the HR Admin owner, `definition_version=1`, and non-null tenant/HR-group; `analysis_spec` contained only the expected V1 configuration (`workforce`/`employees`, `headcount`, `department`, empty filters, `sort=null`, `limit=25`, `presentation=auto`) and no employee/result/snapshot/SQL/narrative keys. The prepared fresh-runtime test proves current-data re-execution rather than a snapshot.
+- Privacy/cleanup: remote saved-analysis row count is `0`, acceptance row/name counts are `0`, forbidden top-level/employee keys are `0`, and all DB-test inserts were rolled back. No production action, version bump, main merge, push or deployment was performed.
+- Current main after the requested fetch: `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d`, visible version `1.20260831.1` (`release/security-wave-a-20260831`). This candidate remains based on the earlier `9151248f...` baseline and was not rebased or integrated.
 
 ## AN-2/3 Analysis Engine V1 — 2026-08-29
 

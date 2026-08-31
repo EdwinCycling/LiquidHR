@@ -1,0 +1,79 @@
+import { AnalysisExplore } from '@/components/insights/analysis-explore'
+import { PageShell } from '@/components/layout/page-shell'
+import { getTranslator } from '@/lib/i18n/server'
+import { requireAnalysisPageAccess } from '@/lib/insights/analysis-page-access'
+
+export default async function AnalysisExplorePage() {
+  await requireAnalysisPageAccess()
+  const t = await getTranslator('insights')
+
+  return (
+    <PageShell className="py-8 lg:py-10">
+      <AnalysisExplore labels={{
+        ascending: t('analysisExploreAscending'),
+        auto: t('analysisExploreAuto'),
+        canvas: {
+          dimension: t('analysisCanvasDimension'),
+          fallback: t('analysisCanvasFallback'),
+          headcount: t('analysisCanvasHeadcount'),
+          noResults: t('analysisCanvasNoResults'),
+          summary: t('analysisCanvasSummary'),
+          table: t('analysisCanvasTable'),
+          title: t('analysisCanvasTitle'),
+          unknown: t('analysisCanvasUnknown'),
+        },
+        department: t('analysisExploreDepartment'),
+        descending: t('analysisExploreDescending'),
+        dimension: t('analysisExploreDimension'),
+        direction: t('analysisExploreDirection'),
+        execute: t('analysisExploreExecute'),
+        executing: t('analysisExploreExecuting'),
+        executionFailed: t('analysisExploreExecutionFailed'),
+        eyebrow: t('analysisExploreEyebrow'),
+        filterDescription: t('analysisExploreFilterDescription'),
+        filterEquals: t('analysisExploreFilterEquals'),
+        filterRequired: t('analysisExploreFilterRequired'),
+        filterStatusActive: t('analysisExploreFilterStatusActive'),
+        filterStatusFuture: t('analysisExploreFilterStatusFuture'),
+        filterStatusFormer: t('analysisExploreFilterStatusFormer'),
+        filterStatusNever: t('analysisExploreFilterStatusNever'),
+        filterValue: t('analysisExploreFilterValue'),
+        filterValuePlaceholder: t('analysisExploreFilterValuePlaceholder'),
+        filters: t('analysisExploreFilters'),
+        headcount: t('analysisExploreHeadcount'),
+        intro: t('analysisExploreIntro'),
+        job: t('analysisExploreJob'),
+        kpi: t('analysisExploreKpi'),
+        limit: t('analysisExploreLimit'),
+        measure: t('analysisExploreMeasure'),
+        name: t('analysisExploreName'),
+        namePlaceholder: t('analysisExploreNamePlaceholder'),
+        nameRequired: t('analysisExploreNameRequired'),
+        noDimension: t('analysisExploreNoDimension'),
+        noFilter: t('analysisExploreNoFilter'),
+        noSort: t('analysisExploreNoSort'),
+        openSaved: t('analysisExploreOpenSaved'),
+        presentation: t('analysisExplorePresentation'),
+        presentationDescription: t('analysisExplorePresentationDescription'),
+        resultTitle: t('analysisExploreResultTitle'),
+        save: t('analysisExploreSave'),
+        saveDescription: t('analysisExploreSaveDescription'),
+        saveFailed: t('analysisExploreSaveFailed'),
+        saved: t('analysisExploreSaved'),
+        saveTitle: t('analysisExploreSaveTitle'),
+        saving: t('analysisExploreSaving'),
+        searchPlaceholder: t('analysisExploreSearchPlaceholder'),
+        setupDescription: t('analysisExploreSetupDescription'),
+        setupTitle: t('analysisExploreSetupTitle'),
+        sort: t('analysisExploreSort'),
+        sortLabel: t('analysisExploreSortLabel'),
+        sortValue: t('analysisExploreSortValue'),
+        startingPoint: t('analysisExploreStartingPoint'),
+        table: t('analysisExploreTable'),
+        employmentStatus: t('analysisExploreEmploymentStatus'),
+        title: t('analysisExploreTitle'),
+        workforce: t('analysisExploreWorkforce'),
+      }} />
+    </PageShell>
+  )
+}

@@ -1,5 +1,15 @@
 # Liquid HR documentatie-index
 
+## Final consolidation release candidate — 2026-08-31
+
+**Status: FINAL CONSOLIDATION READY — PRODUCTION MIGRATION APPROVAL REQUIRED**
+
+Deze releasecandidate staat in `release/final-consolidation-20260831`, vanaf exact `origin/main` `8b080b06993e9de290d2756e6bef1c93f5a6095d`. AN-4/5 is semantisch overgenomen uit accepted candidate `f6a5844`; uitsluitend SEC-001/002 is overgenomen uit securitybron `3265b3d1faac0049c331aa951dfa7f11adbbccb9`. De Employee Creation Wizard QA-branch en alle bijbehorende probation-, salary-, wizard-, fixture- en `getUser`-wijzigingen zijn uitgesloten. De zichtbare versie is `1.20260831.2`.
+
+De lokale releasegate is groen voor de targeted AN/securityset (`25` bestanden / `90/90` tests), strict TypeScript, i18n (`33` gelijke NL/EN-namespaces), ESLint (`0` errors / `14` bestaande warnings), `git diff --check` en Webpack (`233/233` routes). De éénmalige volledige suite is `307/309` bestanden en `1199/1201` tests: alleen de bekende ongewijzigde Journey-baselinefailure en de oorspronkelijke version-test vóór de bump waren rood; de version-test is daarna gericht groen bevestigd. De release-worktree-root is niet aangeraakt.
+
+Read-only Production Supabase-preflight: gekoppeld project `wnpfloqpjvaacobppbpk` (`LiquidHR`) bevat `public.saved_analysis_definitions`; de AN-migratie is al geregistreerd als `20260831093310 / 20260830143757_saved_analysis_definitions`. De named single-migrationfunctie `mcp__codex_apps__supabase_apply_migration` is beschikbaar, maar is niet aangeroepen omdat opnieuw toepassen onjuist zou zijn. Er is geen production migration, `db push`, `--include-all`, history repair/pull, push, deployment of branch/worktree-delete uitgevoerd.
+
 ## Security Wave A — SEC-003/SEC-004/SEC-005 — 2026-08-31
 
 **Status: GREEN — RELEASED**
@@ -17,6 +27,14 @@ AI Usage Insights is geïntegreerd als permission-gated Insights-report op `/ins
 ## AI Improve V1 — Employee Notes
 
 De eerste product-capability bovenop de centrale AI Foundation is geïmplementeerd op de omschrijving van Employee Notes. Zie [`LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md`](requirements/ai/LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md) voor het afgebakende contract en de autorisatie-/lifecyclegrenzen. De formele deliverystatus staat in [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) en [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+
+## Liquid Analyse AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
+
+**Status: AN-4/5 TEST GREEN — READY FOR FINAL INTEGRATION**
+
+AN-4/5 is als geïsoleerde slice vanaf actuele `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a` geïntegreerd in `work/an4-an5-my-analyses-explore-v1`, zonder mergeconflict; de zichtbare versie blijft `1.20260830.2`. De Analyse-hub houdt exact vier tegels: `Nieuwe analyse` blijft gepland; `Verkennen`, `Mijn analyses` en `Rapporten` zijn actief. Liquid Explore gebruikt uitsluitend de bestaande AnalysisSpec/semantic layer en `LiquidCanvas`. Mijn Analyses bewaart alleen de server-gevalideerde analyse-definitie met tenant-, HR-group- en owner-scope; resultaat- en medewerkerdata worden niet opgeslagen.
+
+De migration `apps/hr-suite/supabase/migrations/20260830143757_saved_analysis_definitions.sql` is exact eenmaal op canonical Supabase TEST toegepast via `mcp__codex_apps__supabase_apply_migration`; remote registreerde `20260831093310 / 20260830143757_saved_analysis_definitions`. De validator vereist exact de negen canonieke top-level keys, inclusief nullable `sort`, en weigert unknown keys; de oude `<> 10`-defectcheck is verwijderd. Remote bevat `408` unieke migratieversies; de bestaande drift (`313` remote-only, `292` local-only) is niet gerepareerd. De eindgate is `23` bestanden / `80/80` tests, plus strict TypeScript, lint, i18n, diff-check en Webpack `233/233` groen; DB catalogus/security is groen en pgTAP/RLS is `29/29` groen. Officiële typegen bevat het nieuwe type, maar brede drift betekent `TYPEGEN SYNC REQUIRED`; geen brede types-diff is gecommit. Authenticated acceptance is groen: HR Admin zag `Planeten`, exact vier hub-states, create/open/re-execute/delete werkte via de normale UI, en Manager kreeg voor owner-GET/PATCH/DELETE telkens `404 SAVED_ANALYSIS_NOT_FOUND`. Persistence was configuration-only en cleanup liet `0` rows achter. Current `origin/main` na fetch is `8b080b06993e9de290d2756e6bef1c93f5a6095d`, versie `1.20260831.1`; de candidate is niet geïntegreerd. Er is geen main-merge, push, deploy, version bump of release uitgevoerd. Zie [`requirements/reports/LIQUID_ANALYSE_AN4_AN5.md`](requirements/reports/LIQUID_ANALYSE_AN4_AN5.md) en [`delivery/AN4_5_MY_ANALYSES_EXPLORE_V1.md`](delivery/AN4_5_MY_ANALYSES_EXPLORE_V1.md).
 
 ## Liquid Analyse AN-2/3 Analysis Engine V1 — 2026-08-29
 
@@ -48,7 +66,7 @@ R8 convergeert de bestaande Custom Fields, Team Compass, Research, Reminders/Tim
 
 De geïntegreerde releasegate tegen deze actuele central baseline is groen: targeted `21/21` testbestanden en `97/97` tests, strict TypeScript voor `hr-suite` en `control`, i18n `33` gelijke NL/EN-namespaces, ESLint, Webpack `229/229` en `git diff --check`. De full suite is `262/263` bestanden en `1007/1008` tests; uitsluitend de bekende, ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan. De ene releasecommit/push, Vercel-provenance en authenticated HR Admin post-deploy acceptance moeten nog tegen de uiteindelijke main-SHA worden bewezen. Geldige uitzonderingen blijven de anchored Time Hub portal, Product Updates branded/public presentation, grafische/native/hidden-control onderdelen en de door AN beheerde `/dashboard`-compatibiliteitsroutes. Zie [`delivery/R8_FOUNDATION_FINAL_SWEEP.md`](delivery/R8_FOUNDATION_FINAL_SWEEP.md).
 
-AN-0/AN-1 blijft centraal behouden: de legacy persoonlijke Dashboard-widgetruntime, widgetbeheer en dashboard-API's blijven retired; `/dashboard` en `/settings/dashboard-widgets` redirecten naar `/insights/analysis`, terwijl `/dashboard/start` de dagelijkse Startpagina blijft. De Analyse-hub houdt exact vier opties, met uitsluitend Rapporten actief naar `/insights`; AN-2+ is niet geïmplementeerd. De forward migration `20260828125223_retire_legacy_dashboard.sql` blijft in deze release unapplied.
+AN-0/AN-1 blijft centraal behouden: de legacy persoonlijke Dashboard-widgetruntime, widgetbeheer en dashboard-API's blijven retired; `/dashboard` en `/settings/dashboard-widgets` redirecten naar `/insights/analysis`, terwijl `/dashboard/start` de dagelijkse Startpagina blijft. De Analyse-hub houdt exact vier opties; latere AN-2/3- en AN-4/5-slices staan afzonderlijk beschreven en zijn niet stil in deze historische AN-0/AN-1-entry geïntegreerd. De forward migration `20260828125223_retire_legacy_dashboard.sql` blijft in deze release unapplied.
 
 `NEW PRODUCT UI MUST USE FOUNDATION BY DEFAULT` blijft de leidende regel.
 
@@ -688,6 +706,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport; de oude globale Dashboard-bestemming is vervangen door Analyse |
 | Liquid Analyse AN-0/AN-1 | [`requirements/reports/LIQUID_ANALYSE_AN0_AN1.md`](requirements/reports/LIQUID_ANALYSE_AN0_AN1.md) | LEIDEND | LOKALE FEATURE-SLICE — legacy Dashboard in code retired, Analyse-hub active, DB-retirement migration ready maar nog niet toegepast |
 | Liquid Analyse AN-2/AN-3 Engine V1 | [`requirements/reports/LIQUID_ANALYSE_AN2_AN3_ENGINE_V1.md`](requirements/reports/LIQUID_ANALYSE_AN2_AN3_ENGINE_V1.md) | LEIDEND | LOKALE IMPLEMENTATIE GREEN — typed semantic layer, AnalysisSpec, authorized retrieval, AnalysisResult en Liquid Canvas; releasegate open |
+| Liquid Analyse AN-4/AN-5 Mijn Analyses + Liquid Explore V1 | [`requirements/reports/LIQUID_ANALYSE_AN4_AN5.md`](requirements/reports/LIQUID_ANALYSE_AN4_AN5.md) | LEIDEND | LOKALE IMPLEMENTATIE READY — persistent saved definitions, guided Explore en scoped API/UI; migration approval required |
 | Surveys en eNPS | [`requirements/research/SURVEYS_AND_ENPS.md`](requirements/research/SURVEYS_AND_ENPS.md) | LEIDEND | GEDEELTELIJK — tenantmodules, schema/RLS, draft-campagnebeheer, medewerkerhub, respondentflow, HR-instellingen, monitor, privacydrempel, grafieken, CSV en rolgebonden widgets zijn remote en op main/browser geverifieerd. Automatische e-mail-/schedulerbezorging voor eNPS-herinneringen is bewust uitgesteld; segmentprivacy blijft een apart besluit |
 | Process Automation | [`requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md`](requirements/workflows/LIQUID_PROCESS_AUTOMATION_BLUEPRINT.md) | LEIDEND | P2-P9 schema/API/UI en contextstarts zijn uitgevoerd; P10-outputbrug is live end-to-end bewezen. Open: niet-lege `BLOCKED`-startpaginafixture en expliciete doelgroepgoedkeuring voor HR-admin-dossierzichtbaarheid; daarom nog geen 100%-gate |
 | Journeys | [`requirements/journeys/JOURNEYS.md`](requirements/journeys/JOURNEYS.md) | LEIDEND | BOUWSTAP 1 EN 2 GEREED — configuratie plus gepinde HR-runtime, activatiepreview, teamresolutie, lifecycle, replacement en reminders remote/browser geverifieerd; stap 3 en deployment niet gestart |

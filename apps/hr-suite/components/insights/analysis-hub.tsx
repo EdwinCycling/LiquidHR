@@ -20,6 +20,8 @@ export interface AnalysisHubLabels {
   reportsDescription: string
   planned: string
   active: string
+  openExplore: string
+  openMyAnalyses: string
   openReports: string
 }
 
@@ -37,8 +39,8 @@ type AnalysisHubTile = {
 export function AnalysisHub({ labels }: { labels: AnalysisHubLabels }) {
   const tiles: readonly AnalysisHubTile[] = [
     { id: 'new-analysis', title: labels.newAnalysisTitle, description: labels.newAnalysisDescription, status: 'PLANNED', statusLabel: labels.planned, icon: MessageSquareText },
-    { id: 'explore', title: labels.exploreTitle, description: labels.exploreDescription, status: 'PLANNED', statusLabel: labels.planned, icon: Compass },
-    { id: 'my-analyses', title: labels.myAnalysesTitle, description: labels.myAnalysesDescription, status: 'PLANNED', statusLabel: labels.planned, icon: FolderOpen },
+    { id: 'explore', title: labels.exploreTitle, description: labels.exploreDescription, status: 'ACTIVE', statusLabel: labels.active, icon: Compass, href: '/insights/analysis/explore', actionLabel: labels.openExplore },
+    { id: 'my-analyses', title: labels.myAnalysesTitle, description: labels.myAnalysesDescription, status: 'ACTIVE', statusLabel: labels.active, icon: FolderOpen, href: '/insights/analysis/my-analyses', actionLabel: labels.openMyAnalyses },
     { id: 'reports', title: labels.reportsTitle, description: labels.reportsDescription, status: 'ACTIVE', statusLabel: labels.active, icon: FileText, href: '/insights', actionLabel: labels.openReports },
   ]
 

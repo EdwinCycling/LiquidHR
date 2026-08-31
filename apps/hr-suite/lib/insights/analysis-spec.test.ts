@@ -28,6 +28,52 @@ function errorCode(input: unknown): AnalysisErrorCode {
 }
 
 describe('AnalysisSpec V1', () => {
+  it('accepts every canonical V1 shape needed by persistence', () => {
+    const validCases: readonly [string, Record<string, unknown>][] = [
+      ['canonical minimum', validInput()],
+      ['KPI presentation', validInput({ presentation: 'kpi', limit: 100 })],
+      ['table presentation', validInput({ dimensions: ['department'], presentation: 'table' })],
+      ['single dimension', validInput({ dimensions: ['job'] })],
+      ['eq filter', validInput({ filters: [{ dimension: 'department', operator: 'eq', value: 'Finance' }] })],
+      ['in filter', validInput({ filters: [{ dimension: 'employment_status', operator: 'in', value: ['ACTIVE_EMPLOYEE', 'FORMER_EMPLOYEE'] }] })],
+      ['allowed sort', validInput({ sort: { by: 'label', direction: 'asc' } })],
+      ['boundary-valid limit', validInput({ limit: 100 })],
+    ]
+
+    for (const [label, input] of validCases) {
+      expect(() => validateAnalysisSpec(input), label).not.toThrow()
+    }
+  })
+
+  it('rejects every non-canonical or unsafe persisted shape', () => {
+    const excessiveFilters = Array.from({ length: 21 }, () => ({ dimension: 'department', operator: 'eq', value: 'Finance' }))
+    const invalidCases: readonly [string, Record<string, unknown>, string][] = [
+      ['unknown top-level key', validInput({ unknown: true }), 'ANALYSIS_SPEC_INVALID'],
+      ['employeeId', validInput({ employeeId: 'employee-1' }), 'ANALYSIS_SPEC_INVALID'],
+      ['employeeName', validInput({ employeeName: 'Ada Lovelace' }), 'ANALYSIS_SPEC_INVALID'],
+      ['employees', validInput({ employees: [{ id: 'employee-1' }] }), 'ANALYSIS_SPEC_INVALID'],
+      ['result', validInput({ result: { headcount: 3 } }), 'ANALYSIS_SPEC_INVALID'],
+      ['resultRows', validInput({ resultRows: [{ headcount: 3 }] }), 'ANALYSIS_SPEC_INVALID'],
+      ['AnalysisResult-like payload', validInput({ metadata: { matchedRecordCount: 3 }, columns: ['headcount'], summary: { headcount: 3 } }), 'ANALYSIS_SPEC_INVALID'],
+      ['arbitrary metadata', validInput({ metadata: { arbitrary: { nested: true } } }), 'ANALYSIS_SPEC_INVALID'],
+      ['arbitrary nested object', validInput({ filters: [{ dimension: 'department', operator: 'eq', value: { employeeId: 'employee-1' } }] }), 'ANALYSIS_INVALID_FILTER_VALUE'],
+      ['unsupported source', validInput({ source: 'payroll' }), 'ANALYSIS_UNSUPPORTED_SOURCE'],
+      ['unsupported entity', validInput({ entity: 'projects' }), 'ANALYSIS_UNSUPPORTED_ENTITY'],
+      ['unsupported measure', validInput({ measures: ['salary'] }), 'ANALYSIS_UNSUPPORTED_MEASURE'],
+      ['unsupported dimension', validInput({ dimensions: ['salary_band'] }), 'ANALYSIS_UNSUPPORTED_DIMENSION'],
+      ['malformed filter', validInput({ filters: [{ dimension: 'department', operator: 'eq' }] }), 'ANALYSIS_SPEC_INVALID'],
+      ['unsupported filter operator', validInput({ filters: [{ dimension: 'department', operator: 'contains', value: 'Finance' }] }), 'ANALYSIS_INVALID_OPERATOR'],
+      ['excessive filter count', validInput({ filters: excessiveFilters }), 'ANALYSIS_SPEC_INVALID'],
+      ['invalid sort', validInput({ sort: { by: 'updated_at', direction: 'desc' } }), 'ANALYSIS_SPEC_INVALID'],
+      ['invalid limit', validInput({ limit: 101 }), 'ANALYSIS_SPEC_INVALID'],
+      ['unsupported version', validInput({ version: 2 }), 'ANALYSIS_UNSUPPORTED_SPEC_VERSION'],
+    ]
+
+    for (const [label, input, expectedCode] of invalidCases) {
+      expect(errorCode(input), label).toBe(expectedCode)
+    }
+  })
+
   it('normalizes and accepts a supported dimension and typed filter', () => {
     const spec = validateAnalysisSpec(validInput({
       dimensions: ['department'],

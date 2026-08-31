@@ -16,6 +16,8 @@ const labels: AnalysisHubLabels = {
   reportsDescription: 'Open vaste, gecertificeerde HR-rapportages.',
   planned: 'Gepland',
   active: 'Actief',
+  openExplore: 'Open verkennen',
+  openMyAnalyses: 'Open mijn analyses',
   openReports: 'Open rapporten',
 }
 
@@ -24,13 +26,15 @@ describe('Liquid Analyse hub', () => {
     const markup = renderToStaticMarkup(<AnalysisHub labels={labels} />)
 
     expect((markup.match(/data-analysis-tile=/g) ?? [])).toHaveLength(4)
-    expect((markup.match(/data-analysis-status="PLANNED"/g) ?? [])).toHaveLength(3)
-    expect((markup.match(/data-analysis-status="ACTIVE"/g) ?? [])).toHaveLength(1)
+    expect((markup.match(/data-analysis-status="PLANNED"/g) ?? [])).toHaveLength(1)
+    expect((markup.match(/data-analysis-status="ACTIVE"/g) ?? [])).toHaveLength(3)
     expect(markup).toContain('Nieuwe analyse')
     expect(markup).toContain('Verkennen')
     expect(markup).toContain('Mijn analyses')
     expect(markup).toContain('Rapporten')
     expect(markup).toContain('href="/insights"')
+    expect(markup).toContain('href="/insights/analysis/explore"')
+    expect(markup).toContain('href="/insights/analysis/my-analyses"')
     expect(markup).not.toContain('href="/insights/analysis/new"')
   })
 })
