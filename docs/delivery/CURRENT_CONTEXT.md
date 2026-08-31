@@ -1,15 +1,16 @@
 # Actuele overdracht Liquid HR
 
-> **Authoritative current baseline for this candidate:** `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c`, visible version `1.20260831.2`. Historical delivery snapshots below remain preserved; the current delivery status is the Security Wave B section.
+> **Authoritative current baseline:** `origin/main` `ff8f4ee886018a62df764d8a162241cdb8a7871c`, visible version `1.20260831.3`. Historical delivery snapshots below remain preserved; the current delivery status is the Security Wave B release.
 
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
-**Status: CODE GREEN — MIGRATION APPROVAL STATUS OPEN**
+**Status: RELEASED — PRODUCTION GREEN**
 
-- Dedicated candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\security-wave-b-uploads-rpc-grants`, branch `security/wave-b-uploads-rpc-grants`, exact baseline `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c`; root en parallelle worktrees zijn niet aangeraakt. Zichtbare versie blijft `1.20260831.2`.
+- Wave B is fast-forward geïntegreerd naar `main` vanaf candidate `ff8f4ee886018a62df764d8a162241cdb8a7871c`, met zichtbare versie `1.20260831.3`.
 - SEC-006: employee/company uploads delen nu server-side size, closed MIME/extensie, magic-byte/container, actieve-tekst en safe-filename validation; request `Content-Length` kan vóór `formData()` tot 27 MiB worden afgewezen. Private storage, signed downloads, checksum en auth/tenant/admin/group-scopes blijven behouden. Geen quarantine/malware scan in deze interne slice; dit blijft expliciet residual.
-- SEC-010: remote read-only inventory bevestigde zes interne process-wrappers met `anon` EXECUTE en drie bewuste public Recruitment-functies. Lokale migration `apps/hr-suite/supabase/migrations/20260831151639_secure_wave_b_rpc_grants.sql` revoke't exact `PUBLIC, anon` op de zes en grant alleen `authenticated`; remote apply is **niet** uitgevoerd (`protected anon=6`, `all public anon=9`, registration=false).
-- Gerichte code/securityset is `6` bestanden / `24/24` tests groen; strict TypeScript, ESLint en diff-check zijn groen. Post-apply pgTAP-contract staat in `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`. Volledige eindgate en candidate push volgen; geen main-merge, version bump of deployment.
+- SEC-010: de migration `20260831151639_secure_wave_b_rpc_grants` is op de gedeelde local/TEST/Production-database geregistreerd als `20260831165143`. De zes interne wrappers weigeren `PUBLIC`/`anon`, behouden `authenticated` en `service_role`; de drie bewuste Recruitment-public RPC's zijn behouden. pgTAP is `11/11` GREEN.
+- Governance: de canonical protected local state is `apps/hr-suite/.env.local`; de vorige oorzaak van eventueel verdwijnen is **ENV LOSS ROOT CAUSE: NOT PROVEN**. De env bestond vóór release en bleef na cleanup bestaan; geen secrets zijn exposed of committed.
+- Production: Vercel deployeerde de finale `main`-SHA als `READY`; zichtbare versie `1.20260831.3`, login/homepage en anonieme negative security probes zijn GREEN.
 - Volledige delivery-evidence: [`SECURITY_WAVE_B.md`](SECURITY_WAVE_B.md).
 
 ## Setup Assistant Slice 0 handoff — 2026-08-31

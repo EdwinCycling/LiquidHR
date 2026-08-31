@@ -1,10 +1,12 @@
 # Security Wave B — SEC-006 en SEC-010
 
-**Status:** CODE GREEN — MIGRATION APPROVAL STATUS OPEN
+**Status:** RELEASED — PRODUCTION GREEN
 **Datum:** 2026-08-31
 **Baseline:** `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c`
 **Candidate:** `security/wave-b-uploads-rpc-grants` in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\security-wave-b-uploads-rpc-grants`
-**Zichtbare versie:** `1.20260831.2` (ongewijzigd)
+**Zichtbare versie:** `1.20260831.3`
+
+**Release:** candidate `ff8f4ee886018a62df764d8a162241cdb8a7871c` is fast-forward geïntegreerd in `main` vanaf `0121ff13cb8693687d873b4d33930cd2ec18e35c`.
 
 ## SEC-006 — internal upload hardening
 
@@ -32,7 +34,7 @@ Read-only inventaris op Supabase-project `wnpfloqpjvaacobppbpk` bevestigde negen
 
 De lokale forward migration [`20260831151639_secure_wave_b_rpc_grants.sql`](../../apps/hr-suite/supabase/migrations/20260831151639_secure_wave_b_rpc_grants.sql) revoket op exact die zes functies `PUBLIC` en `anon`, en regrant alleen `authenticated`. Bestaande `service_role` grants, `SECURITY DEFINER`, lege `search_path`, `internal_security`-delegatie en de drie publieke Recruitment-functies worden niet gewijzigd.
 
-Remote readback vóór apply: beschermde wrappers `anon=6`, `authenticated=6`, `service_role=6`; alle public functions met `anon` EXECUTE `9`; Wave-B migration geregistreerd `false`. De remote migration is niet toegepast. De post-apply contracttest staat in [`security_wave_b_rpc_grants.sql`](../../apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql) en wacht op expliciete migration approval.
+Remote readback ná apply: beschermde wrappers `PUBLIC/anon=NO`, `authenticated=YES`, `service_role=YES`; de drie Recruitment public functions behouden `anon=YES`. De migration is exact eenmaal geregistreerd als `20260831165143 / 20260831151639_secure_wave_b_rpc_grants`. De transactionele post-apply contracttest is `11/11` GREEN.
 
 ## Verification
 
@@ -43,4 +45,4 @@ Remote readback vóór apply: beschermde wrappers `anon=6`, `authenticated=6`, `
 - remote security advisors: bestaande baselinebevindingen blijven aanwezig; de negen pre-apply anon-exposure findings zijn read-only vastgesteld, niet via deze candidate remote opgelost;
 - volledige suite, i18n-check, Webpack en final candidate gate worden na de laatste code/docs-update één keer uitgevoerd.
 
-Geen remote migration, `db push`, migration-history repair, typegen-write, main-merge, version bump of deployment is onderdeel van deze candidate.
+De canonical protected local state is `C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local`. De vorige disappearance-root-cause is **ENV LOSS ROOT CAUSE: NOT PROVEN**; de file bestond vóór release en bleef na cleanup bestaan. Geen secrets zijn exposed of committed. `SEC-006` blijft **HARDENED WITH RESIDUAL** wegens ontbrekende malware scanning/quarantaine; `SEC-010` is **CLOSED**. SEC-004 residual en SEC-007/008/009/011 zijn niet gesloten.

@@ -2,13 +2,15 @@
 
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
-**Status: CODE GREEN — MIGRATION APPROVAL STATUS OPEN**
+**Status: RELEASED — PRODUCTION GREEN**
 
-Vanaf exact `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c` is in dedicated worktree `security/wave-b-uploads-rpc-grants` een beperkte security candidate gebouwd. SEC-006 hardent alleen de bestaande interne employee/company uploadpaden met server-side request/file size, closed type/MIME, magic-byte/container, actieve-tekst en safe-filename checks. Private buckets, signed downloads, auth/tenant/administration/HR-group scopes, checksums en bestaande Recruitment-public security zijn behouden. Quarantine/malware scanning is bewust niet gesuggereerd en blijft residual.
+Vanaf exact approved main `0121ff13cb8693687d873b4d33930cd2ec18e35c` is candidate `ff8f4ee886018a62df764d8a162241cdb8a7871c` fast-forward geïntegreerd in `main`. De zichtbare versie is `1.20260831.3`. SEC-006 hardent de bestaande interne employee/company uploadpaden met server-side request/file size, closed type/MIME, magic-byte/container, actieve-tekst en safe-filename checks. Private buckets, signed downloads, auth/tenant/administration/HR-group scopes, checksums en bestaande Recruitment-public security zijn behouden. Quarantine/malware scanning ontbreekt en blijft residual.
 
-SEC-010 is remote read-only bevestigd: exact zes interne process-wrappers hebben drifted `PUBLIC, anon` EXECUTE; drie Recruitment public wrappers zijn bewust publiek en blijven ongemoeid. Migration `apps/hr-suite/supabase/migrations/20260831151639_secure_wave_b_rpc_grants.sql` is lokaal klaar voor approval en bevat alleen de zes revoke/regrant-contracten. Remote apply, `db push`, history repair, typegen-write, main-merge en deployment zijn niet uitgevoerd.
+SEC-010 is op de gedeelde local/TEST/Production-database toegepast en geregistreerd als `20260831165143 / 20260831151639_secure_wave_b_rpc_grants`. Exact zes interne process-wrappers weigeren `PUBLIC`/`anon` en behouden `authenticated`/`service_role`; drie Recruitment public wrappers blijven bewust anonymous toegankelijk. pgTAP is `11/11` GREEN.
 
-Gerichte upload/security regressies zijn `6` testbestanden / `24/24` tests groen; strict TypeScript, ESLint en diff-check zijn groen. De post-apply pgTAP-contracttest staat in `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`. Zie [`SECURITY_WAVE_B.md`](SECURITY_WAVE_B.md) voor residuals, remote readback en resterende gate.
+De candidate-gate is hergebruikt: targeted `24/24`, full hr-suite `1208/1208`, control `7/7`, strict TypeScript, ESLint `0/0`, i18n, Webpack en diff GREEN. Post-migration targeted regressions zijn `62/62`; de finale production Webpack-build en Vercel Production smoke zijn GREEN.
+
+De canonical protected local state is `apps/hr-suite/.env.local`. De root cause van eerdere environment-loss is **ENV LOSS ROOT CAUSE: NOT PROVEN**; de file bestond vóór release en bleef na cleanup bestaan. Geen secrets zijn exposed of committed. SEC-004 residual en SEC-007 t/m SEC-011 blijven ongewijzigd, behalve SEC-010 dat hier is gesloten.
 
 ## Zero-noise quality-gate maintenance — 2026-08-31
 

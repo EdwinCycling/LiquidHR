@@ -88,6 +88,25 @@ Een verschil tussen leidende documentatie en code wordt niet stil opgelost. Werk
 
 - Een migration/schemawijziging als code maken mag wanneer die binnen de expliciete feature-scope valt. Een migration op een remote Supabase-project toepassen is een externe mutatie en gebeurt uitsluitend na expliciete toestemming van de gebruiker; hetzelfde geldt voor destructive-, reset- en seed-achtige remote acties. Expliciete toestemming in de actuele opdracht hoeft niet opnieuw te worden gevraagd.
 
+## Protected local environment state
+
+Canonical protected local state:
+
+`C:\Users\Edwin\Documents\Apps\LiquidHR\apps\hr-suite\.env.local`
+
+- `.env.local` is intentionally ignored/untracked and contains local secrets/configuration.
+- Never commit, stage, print, expose or place its secret values in documentation, logs or evidence.
+- Repository, worktree, branch, artifact and cache cleanup MUST treat this exact file as OUT OF SCOPE.
+- Never delete, overwrite, empty, move or recreate it during cleanup. This remains true even when broad obsolete-worktree/file cleanup is authorized.
+- `git clean`, especially `-x` / `-X`, must never be allowed to remove it.
+- Deletion of this exact file requires separate explicit user authorization naming the file.
+- Before broad cleanup verify the file exists; after cleanup verify it still exists. Cleanup is not GREEN unless both invariants hold.
+- Verification may report only path/existence, variable names and optionally timestamp; never values.
+- Worktree `.env.local` copies may be populated from canonical local state for authenticated testing, but must remain ignored/uncommitted and their values must never be printed.
+- If the canonical file is unexpectedly missing, STOP destructive cleanup, do not invent credentials, and perform safe recovery only.
+
+Use `apps/hr-suite/.env.local` as the canonical path. Do not use the incorrect historical literal `apps/hr-suite.env.local`.
+
 ## Documentatie bijhouden
 
 - Nieuwe requirements worden als Markdown onder `docs/requirements/<domein>/` opgeslagen.

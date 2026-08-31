@@ -2,9 +2,9 @@
 
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
-**Status: CODE GREEN — MIGRATION APPROVAL STATUS OPEN**
+**Status: RELEASED — PRODUCTION GREEN**
 
-De geïsoleerde candidate vanaf `origin/main` `0121ff13cb8693687d873b4d33930cd2ec18e35c` hardent interne employee/company uploads met server-side size-, MIME-, magic-byte- en actieve-tekstchecks en levert één forward grant-migration voor de bevestigde SEC-010 drift. Remote Supabase `wnpfloqpjvaacobppbpk` is read-only gecontroleerd; migration apply, `db push`, main-integratie en deployment zijn niet uitgevoerd. Zie [`delivery/SECURITY_WAVE_B.md`](delivery/SECURITY_WAVE_B.md).
+Wave B is fast-forward geïntegreerd vanaf candidate `ff8f4ee886018a62df764d8a162241cdb8a7871c` op approved main `0121ff13cb8693687d873b4d33930cd2ec18e35c`. De zichtbare versie is `1.20260831.3`. SEC-006 is **HARDENED WITH RESIDUAL** door ontbrekende malware scanning/quarantaine; SEC-010 is **CLOSED** na de gedeelde database-readback. De beschermde lokale environment-state is vastgelegd in [`AGENTS.md`](../AGENTS.md). Zie [`delivery/SECURITY_WAVE_B.md`](delivery/SECURITY_WAVE_B.md).
 
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
