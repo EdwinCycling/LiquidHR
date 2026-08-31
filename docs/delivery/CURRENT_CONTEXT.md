@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Setup Assistant Slice 0 handoff — 2026-08-31
+
+**Status: REQUIREMENTS HANDOFF SALVAGED — SLICE 1 NOT AUTHORIZED**
+
+- De actuele read/open-autorisatie blijft permission-based: `settings:read`; ON/OFF en completion vereisen daarnaast `settings:write`. De oude aanvullende `TENANT_ADMIN`-eis uit de Slice 0-handoff is bij vergelijking met current main als OBSOLETE vastgesteld. CTA-bestemmingen behouden hun eigen bestaande permissions en V1 introduceert geen `setup:*`-permissions.
+- Setup-instellingen en completion zijn gedeeld per HR-groep. De HeRa- en Setup-overlay sluiten elkaar exclusief; completion blijft handmatig en reversibel. EMP-002 gebruikt `/settings/employment-contracts`; SET-004 blijft één handmatige checkliststap; EMP-003 blijft verborgen zolang geen betrouwbare expliciete salary/product-capability-resolver bestaat.
+- De beoogde persistence is `setup_guide_settings` en `setup_step_completion` met HR-groep-scope, RLS en auditvelden. Er is in deze salvage geen migration of remote databaseactie uitgevoerd.
+- Stitch is veilig te starten. Slice 1-implementatie wacht op afzonderlijke toestemming. De volledige handoff staat in [`SETUP_ASSISTANT_SLICE_0_HANDOFF.md`](SETUP_ASSISTANT_SLICE_0_HANDOFF.md).
+
 ## Final consolidation release candidate — 2026-08-31
 
 **Status: GREEN — RELEASED**
