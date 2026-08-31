@@ -20,13 +20,23 @@ describe('test role switch', () => {
   it('is lokaal/test standaard beschikbaar maar productie expliciet uit', () => {
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'development' })).toBe(true)
     expect(isTestRoleSwitchEnabled({ nodeEnv: 'production' })).toBe(false)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', explicitFlag: 'true' })).toBe(true)
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', explicitFlag: ' TRUE ' })).toBe(true)
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', explicitFlag: 'true' })).toBe(false)
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', explicitFlag: ' TRUE ' })).toBe(false)
+  })
+
+  it('kan in Vercel Preview met een expliciete flag blijven werken', () => {
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'true' })).toBe(true)
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'preview', explicitFlag: 'false' })).toBe(false)
+  })
+
+  it('behandelt Vercel Production als productie, ook bij een stale flag', () => {
+    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production', vercelEnv: 'production', explicitFlag: 'true' })).toBe(false)
   })
 
   it('leest de productieflag uit de runtimeomgeving wanneer geen override wordt meegegeven', () => {
     vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
-    expect(isTestRoleSwitchEnabled({ nodeEnv: 'production' })).toBe(true)
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(isTestRoleSwitchEnabled()).toBe(false)
     vi.unstubAllEnvs()
   })
 })

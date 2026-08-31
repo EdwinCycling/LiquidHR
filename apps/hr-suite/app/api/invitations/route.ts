@@ -3,6 +3,7 @@ import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { invitationRequestSchema } from '@/lib/auth/invitation-request'
 import { InvitationError } from '@/lib/auth/invitation-rules'
 import { createInvitation } from '@/lib/auth/invitations'
+import { resolveRequestOrigin } from '@/lib/auth/request-origin'
 
 export async function POST(request: NextRequest) {
   let body: unknown
@@ -22,7 +23,13 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       employeeId: parsed.data.employeeId ?? null,
       administrationId: parsed.data.administrationId ?? null,
-      origin: process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin,
+      origin: resolveRequestOrigin({
+        canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,
+        fallbackUrl: request.url,
+        forwardedHost: request.headers.get('x-forwarded-host'),
+        forwardedProtocol: request.headers.get('x-forwarded-proto'),
+        host: request.headers.get('host') ?? request.nextUrl.host,
+      }),
     })
 
     return NextResponse.json({ data: invitation }, { status: 201 })

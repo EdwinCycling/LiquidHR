@@ -13,6 +13,7 @@ export interface LoginActionState {
 async function getAppOrigin(): Promise<string> {
   const requestHeaders = await headers()
   return resolveRequestOrigin({
+    canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,
     fallbackUrl: process.env.NEXT_PUBLIC_APP_URL,
     forwardedHost: requestHeaders.get('x-forwarded-host'),
     forwardedProtocol: requestHeaders.get('x-forwarded-proto'),

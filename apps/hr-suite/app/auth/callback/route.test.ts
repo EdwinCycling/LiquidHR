@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { createClient, exchangeCodeForSession } = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -15,6 +15,12 @@ describe('GET /auth/callback', () => {
     createClient.mockReset()
     exchangeCodeForSession.mockReset()
     createClient.mockResolvedValue({ auth: { exchangeCodeForSession } })
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://liquid-hr-hr-suite.vercel.app')
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'liquid-hr-hr-suite.vercel.app')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('wisselt de code uit en redirect via de oorspronkelijke publieke host', async () => {
@@ -60,6 +66,26 @@ describe('GET /auth/callback', () => {
     const response = await GET(request)
 
     expect(createClient).not.toHaveBeenCalled()
+    expect(response.headers.get('location')).toBe(
+      'https://liquid-hr-hr-suite.vercel.app/login?error=auth&next=%2Fdashboard%2Fstart',
+    )
+  })
+
+  it('redirecteert niet naar een onbekende forwarded host', async () => {
+    exchangeCodeForSession.mockResolvedValue({ error: new Error('PKCE mislukt') })
+    const request = new NextRequest(
+      'https://internal.vercel.app/auth/callback?code=oauth-code&next=%2Fdashboard%2Fstart',
+      {
+        headers: {
+          'x-forwarded-host': 'attacker.example',
+          'x-forwarded-proto': 'https',
+          host: 'internal.vercel.app',
+        },
+      },
+    )
+
+    const response = await GET(request)
+
     expect(response.headers.get('location')).toBe(
       'https://liquid-hr-hr-suite.vercel.app/login?error=auth&next=%2Fdashboard%2Fstart',
     )

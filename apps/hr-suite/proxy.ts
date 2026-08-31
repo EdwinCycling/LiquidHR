@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isProtectedApplicationPath } from '@/lib/auth/route-access'
+import { getAuthCookieOptions } from '@/lib/supabase/cookie-options'
 
 function isInvalidRefreshTokenError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
@@ -20,6 +21,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      cookieOptions: getAuthCookieOptions(),
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {

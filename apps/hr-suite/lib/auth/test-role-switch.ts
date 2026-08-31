@@ -23,10 +23,26 @@ export function getTestRoleSwitchTarget(value: string | null | undefined): TestR
   return TEST_ROLE_SWITCH_TARGETS.find((target) => target.key === value) ?? null
 }
 
-export function isTestRoleSwitchEnabled(environment: {
+interface TestRoleSwitchEnvironment {
   nodeEnv?: string
+  vercelEnv?: string
   explicitFlag?: string
-} = {}): boolean {
-  const explicitFlag = environment.explicitFlag ?? process.env.LIQUIDHR_TEST_ROLE_SWITCH_ENABLED
-  return explicitFlag?.trim().toLowerCase() === 'true' || (environment.nodeEnv ?? process.env.NODE_ENV) !== 'production'
+}
+
+function normalizedEnvironment(value: string | undefined): string {
+  return value?.trim().toLowerCase() ?? ''
+}
+
+export function isTestRoleSwitchEnabled(environment: TestRoleSwitchEnvironment = {}): boolean {
+  const nodeEnv = normalizedEnvironment(environment.nodeEnv ?? process.env.NODE_ENV)
+  const vercelEnv = normalizedEnvironment(environment.vercelEnv ?? process.env.VERCEL_ENV)
+  const explicitFlag = normalizedEnvironment(environment.explicitFlag ?? process.env.LIQUIDHR_TEST_ROLE_SWITCH_ENABLED)
+
+  // Next.js sets NODE_ENV=production for Preview builds as well. Vercel's
+  // server-only VERCEL_ENV lets Preview keep an explicit test capability while
+  // Production remains an unconditional deny, even with a stale flag.
+  if (vercelEnv === 'production' || (!vercelEnv && nodeEnv === 'production')) return false
+  if (vercelEnv && !['preview', 'development', 'test'].includes(vercelEnv)) return false
+
+  return explicitFlag === 'true' || nodeEnv !== 'production'
 }

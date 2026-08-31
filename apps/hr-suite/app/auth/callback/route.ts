@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code')
   const next = safeNextPath(request.nextUrl.searchParams.get('next'))
   const origin = resolveRequestOrigin({
+    canonicalUrl: process.env.NEXT_PUBLIC_APP_URL,
     fallbackUrl: request.url,
     forwardedHost: request.headers.get('x-forwarded-host'),
     forwardedProtocol: request.headers.get('x-forwarded-proto'),
