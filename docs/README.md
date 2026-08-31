@@ -2,11 +2,11 @@
 
 ## Security Wave A — SEC-003/SEC-004/SEC-005 — 2026-08-31
 
-**Status: RELEASEGATE GREEN — APPROVED FOR PRODUCTION RELEASE**
+**Status: GREEN — RELEASED**
 
 Vanaf exact authoritative `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a` en zichtbare versie `1.20260830.2` is de beperkte Wave-A-remediatie uit codecommit `b490cde` en documentcommit `0bb6c81` geïntegreerd in releasecandidate `537b4e2`. De zichtbare versie is exact eenmaal verhoogd naar `1.20260831.1`. SEC-003 sluit test-role switching server-side in iedere production-runtime af, ook met een stale flag; development/test en expliciet geconfigureerde Vercel Preview blijven beschikbaar. SEC-005 valideert forwarded/Host-input tegen de canonical application origin, Vercel deployment-hosts en lokale development-hosts en gebruikt geen onbekende fallback-origin. Auth callback-, OAuth/reset-link-, invitation- en signout-consumers gebruiken dezelfde helper.
 
-Voor SEC-004 is de bestaande Supabase browser-sessionarchitectuur behouden: de `sb-wnpfloqpjvaacobppbpk-auth-token`-cookie blijft browserleesbaar omdat Supabase SSR de browser-refreshcyclus via `document.cookie` uitvoert. De nieuwe kleine hardening zet `Secure` in HTTPS production-contexten; `HttpOnly` blijft een expliciete server-only session-migratiebeslissing. Er is geen migration, schema/RLS/grantwijziging, production env-write of permissionverbreding. De non-force main-push en Vercel/provenance- en production-smokecontrole volgen op deze geïntegreerde kandidaat. Zie [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md), [`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md) en het externe rapport op `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`.
+Voor SEC-004 is de bestaande Supabase browser-sessionarchitectuur behouden: de `sb-wnpfloqpjvaacobppbpk-auth-token`-cookie blijft browserleesbaar omdat Supabase SSR de browser-refreshcyclus via `document.cookie` uitvoert. De nieuwe kleine hardening zet `Secure` in HTTPS production-contexten; `HttpOnly` blijft een expliciete server-only session-migratiebeslissing. Er is geen migration, schema/RLS/grantwijziging, production env-write of permissionverbreding. Releasecommit `fd2116383e317792db5e571d4e4d103ee17ace3f` staat op `origin/main` en Vercel Production deployment `6178499134` is succesvol op die SHA; de production-smoke bevestigde de fail-closed role-switch, Secure-cookie en canonical hostredirect. Zie [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md), [`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md) en het externe rapport op `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`.
 
 ## AI Usage Insights V1 — 2026-08-30
 

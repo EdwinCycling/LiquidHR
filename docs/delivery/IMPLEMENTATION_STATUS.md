@@ -2,7 +2,7 @@
 
 ## Security Wave A — SEC-003/SEC-004/SEC-005 — 2026-08-31
 
-**Status: INTEGRATION GATE GREEN — APPROVED FOR PRODUCTION RELEASE**
+**Status: GREEN — RELEASED**
 
 De Wave-A-slice is geïsoleerd vanaf exact `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a`, bronbranch `security/wave-a-auth-boundaries` (`0bb6c81`) en geïntegreerd in releasecandidate `537b4e2`; de zichtbare appversie is exact eenmaal verhoogd naar `1.20260831.1`. Scope is uitsluitend SEC-003, SEC-004 en SEC-005.
 
@@ -12,7 +12,7 @@ De Wave-A-slice is geïsoleerd vanaf exact `origin/main` `9151248f224fb62a2d18c5
 
 Gerichte regressies zijn `17` testbestanden / `75/75` tests groen. Authenticated browseracceptance met de drie canonical TEST-persona’s bereikte `/dashboard/start`; development/test role-switch deed één HR Admin → Manager → HR Admin round-trip; de rebuilt production-mode candidate hield de role-switch UI verborgen en bleef voor alle drie persona’s op `/dashboard/start`, met `0` console- en page-errors. De éénmalige volledige suite is `298/299` bestanden en `1167/1168` tests; uitsluitend de bekende ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan. Strict TypeScript, ESLint (`0` errors, `14` bestaande warnings), `git diff --check` en Webpack production build (`230/230` routes) zijn groen. Supabase is uitsluitend read-only gecontroleerd: fixture-count `1/1/1`; security advisors `89` bestaande meldingen (`5` INFO zonder policy op service-only tabellen, `9` anon- en `74` authenticated SECURITY DEFINER-WARNs, `1` leaked-password-WARN), zonder Wave-A migration of remote write.
 
-Open beslissingen na release zijn uitsluitend de SEC-004 server-only HttpOnly-sessionmigratie en de expliciete productie-/Preview-hostpolicy. Het volledige evidence-rapport staat buiten de repository op `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`; de finale Vercel-provenance en productie-smoke worden op de uiteindelijke main-SHA vastgelegd.
+Open beslissingen na release zijn uitsluitend de SEC-004 server-only HttpOnly-sessionmigratie, de expliciete productie-/Preview-hostpolicy en de TEST-fixturepolicy. Het volledige evidence-rapport staat buiten de repository op `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`; Vercel Production deployment `6178499134` is succesvol op de exacte main-SHA `fd2116383e317792db5e571d4e4d103ee17ace3f`.
 
 ## AI Usage Insights V1 — 2026-08-30
 

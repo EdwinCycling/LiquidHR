@@ -2,7 +2,7 @@
 
 ## Security Wave A — 2026-08-31
 
-**Status: INTEGRATION GATE GREEN — APPROVED FOR PRODUCTION RELEASE**
+**Status: GREEN — RELEASED**
 
 - Baseline: authoritative `origin/main` `9151248f224fb62a2d18c558c2627e1078c2cf0a`; approved source `0bb6c81`; integration merge `537b4e2`; zichtbare versie `1.20260831.1` na exact één centrale bump; dedicated release-worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\security-wave-a-release`.
 - Scope: alleen SEC-003 production test-role switching, SEC-004 browserleesbare Supabase auth-cookie en SEC-005 forwarded-host origin trust. Geen Wave B/C, migration, RLS/grantwijziging, production env-write, permissionverbreding of businessdata-mutatie.
@@ -11,7 +11,7 @@
 - SEC-005: callback, OAuth/reset, invitation en signout gebruiken de centrale canonical/Vercel/local allowlist-helper; onbekende forwarded/Host-input en externe fallback-origin worden niet vertrouwd.
 - Verificatie: geïntegreerde targeted gate `17` testbestanden, `75/75` tests; strict TypeScript; ESLint `0` errors / `14` bestaande warnings; Webpack `230/230`; diff-check groen. De full suite is eenmaal `298/299` bestanden en `1167/1168` tests; alleen de bekende ongewijzigde Journey-baselinefailure op `Binnenkort beschikbaar` blijft staan. Supabase read-only fixture-count `1/1/1`, advisors `89` bestaande meldingen, geen remote write.
 - Browser: alle drie canonical TEST-persona’s authenticeerden lokaal; development role-switch round-trip HR Admin → Manager → HR Admin geslaagd; production-mode candidate hield de switcher verborgen en directe POST gesloten; alle production-mode persona-runs hadden `0` console/page-errors.
-- Extern evidence-rapport: `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`. Open na release: product-/architectuurbesluit voor SEC-004 HttpOnly session bridge en expliciete hostpolicy-review. Main-push en Vercel production/provenance-smoke worden op de finale SHA gecontroleerd.
+- Extern evidence-rapport: `C:\Users\Edwin\Documents\Apps\LiquidHR-Test-Evidence\security-review-20260830\SECURITY-WAVE-A.md`. Production deployment `6178499134` is succesvol op exacte main-SHA `fd2116383e317792db5e571d4e4d103ee17ace3f`; HR Admin smoke, Secure-cookie metadata, disabled role-switch endpoint en canonical hostile-host redirect zijn bevestigd. Open blijven alleen het SEC-004 HttpOnly-sessionbridgebesluit, hostpolicy-review en de TEST-fixturepolicy.
 
 ## AI Usage Insights V1 — 2026-08-30
 
