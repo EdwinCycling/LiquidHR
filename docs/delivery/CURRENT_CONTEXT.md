@@ -1,6 +1,6 @@
 # Actuele overdracht Liquid HR
 
-> **Authoritative current baseline:** `origin/main` `ff8f4ee886018a62df764d8a162241cdb8a7871c`, visible version `1.20260831.3`. Historical delivery snapshots below remain preserved; the current delivery status is the Security Wave B release.
+> **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
@@ -13,13 +13,13 @@
 - Production: Vercel deployeerde de finale `main`-SHA als `READY`; zichtbare versie `1.20260831.3`, login/homepage en anonieme negative security probes zijn GREEN.
 - Volledige delivery-evidence: [`SECURITY_WAVE_B.md`](SECURITY_WAVE_B.md).
 ## AN-6 Contextual Drill & Compare — 2026-09-01
-**Status: RELEASE CANDIDATE — combined current-main verification in progress**
+**Status: RELEASED — PRODUCTION GREEN**
 
-- Source: approved `dffc3c797adb66f7c3200a8244e4c283b7e2f6af`, cherry-picked onto current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in `release/an6-contextual-drill-compare`.
+- Source: approved `dffc3c797adb66f7c3200a8244e4c283b7e2f6af`, cherry-picked onto current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in `release/an6-contextual-drill-compare`; integration commit `5719bb602917de16cf1b92cba1afbc96432d8d65`.
 - Scope: visible aggregate-result drill, breadcrumbs, Back, Reset, exactly-two compatible-context comparison, strict AnalysisSpec, aggregate-only ComparisonResult, and saved drilled-analysis fresh execution.
 - Security boundary: no free SQL, AI, employee raw-data exposure, migration, schema/RLS/grant change, or Production auth change.
 - Authenticated acceptance: HR Admin Explore/drill/compare/save-reopen-delete GREEN; invalid drill/compare rejected; tenant/HR-group tampering blocked or ignored; Manager scoped aggregate-only behavior GREEN.
-- Responsive acceptance: desktop and 390px checks GREEN with no page-wide overflow or console/page errors. Production status will be recorded GREEN after the final deployment and smoke.
+- Responsive acceptance: desktop and 390px checks GREEN with no page-wide overflow or console/page errors. Production Vercel deployment reached READY on the released main state; the visible account-menu version is `1.20260901.1`, the HR Admin and Manager smoke paths are GREEN, and the runtime-error check returned none. Production smoke created no saved analysis and no persistent business data.
 
 ## Setup Assistant Slice 0 handoff — 2026-08-31
 

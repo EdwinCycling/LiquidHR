@@ -12,11 +12,11 @@ De candidate-gate is hergebruikt: targeted `24/24`, full hr-suite `1208/1208`, c
 
 De canonical protected local state is `apps/hr-suite/.env.local`. De root cause van eerdere environment-loss is **ENV LOSS ROOT CAUSE: NOT PROVEN**; de file bestond vóór release en bleef na cleanup bestaan. Geen secrets zijn exposed of committed. SEC-004 residual en SEC-007 t/m SEC-011 blijven ongewijzigd, behalve SEC-010 dat hier is gesloten.
 ## AN-6 Contextual Drill & Compare — 2026-09-01
-**Status: RELEASE CANDIDATE — combined current-main verification in progress**
+**Status: RELEASED — PRODUCTION GREEN**
 
-De AN-6-slice is exact overgenomen uit approved source `dffc3c797adb66f7c3200a8244e4c283b7e2f6af` op current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in tijdelijke branch `release/an6-contextual-drill-compare`. De slice gebruikt de bestaande AnalysisSpec V1-engine en Foundation LiquidCanvas/DataTableShell voor zichtbare aggregate-result drill, breadcrumbs, Back, Reset, vergelijking van exact twee compatibele contexten, strict AnalysisSpec en aggregate-only ComparisonResult. Saved drilled analyses worden opnieuw uitgevoerd bij openen. Geen vrije SQL, AI, employee raw-data exposure, migration, schema/RLS/grantwijziging of Production auth-wijziging.
+De AN-6-slice is exact overgenomen uit approved source `dffc3c797adb66f7c3200a8244e4c283b7e2f6af` op current `origin/main` `0f0003841bd42f37e558d15cacd812b857de8c36` in tijdelijke branch `release/an6-contextual-drill-compare`; de integration commit is `5719bb602917de16cf1b92cba1afbc96432d8d65`. De slice gebruikt de bestaande AnalysisSpec V1-engine en Foundation LiquidCanvas/DataTableShell voor zichtbare aggregate-result drill, breadcrumbs, Back, Reset, vergelijking van exact twee compatibele contexten, strict AnalysisSpec en aggregate-only ComparisonResult. Saved drilled analyses worden opnieuw uitgevoerd bij openen. Geen vrije SQL, AI, employee raw-data exposure, migration, schema/RLS/grantwijziging of Production auth-wijziging.
 
-De authenticated acceptance is GREEN voor HR Admin en Manager: drill/compare/save-reopen-delete, invalid drill/compare rejection, tenant/HR-group tamper resistance en scoped aggregate-only gedrag zijn gecontroleerd. Target version is `1.20260901.1`; Production status wordt na de definitieve deployment en smoke op GREEN gezet.
+De authenticated acceptance is GREEN voor HR Admin en Manager: drill/compare/save-reopen-delete, invalid drill/compare rejection, tenant/HR-group tamper resistance en scoped aggregate-only gedrag zijn gecontroleerd. Target en zichtbare Production-versie zijn `1.20260901.1`. Vercel Production is READY op de released main state; HR Admin en Manager doorliepen de Production smoke met drill/compare/reset, nul console/page-errors en nul runtime-errors. De Production smoke deed geen save en schreef geen persistent business data.
 
 ## Zero-noise quality-gate maintenance — 2026-08-31
 
