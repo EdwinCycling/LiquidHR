@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## DM-0 Document Studio — 2026-09-01
+
+**Status: ARCHITECTURE CANDIDATE — PRODUCT REVIEW REQUIRED**
+
+Het frozen productcontract en de architectuurkandidaat staan in [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md). DM-1 is niet gestart; deze kandidaat bevat geen app-code, migration, package- of remote wijziging.
+
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
@@ -753,6 +759,7 @@ Talentfundament is bereikbaar voor HR Admin via `Instellingen -> HR-inrichting` 
 | Entiteiteigendom en koppelingen | [`requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`](requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md) | LEIDEND | INSTRUCTIE VOOR NIEUWE MODULES |
 | Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE, HR-groepbreed inclusief beheer-CRUD, actieve status, landcode en preview |
 | Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
+| Document Studio MVP | [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md) | CONCEPT | DM-0 ARCHITECTURE CANDIDATE — PRODUCT REVIEW REQUIRED; het frozen Document Studio-contract is leidend voor deze nieuwe module |
 | Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — groepsbrede bedrijfsgegevens, branding, feestdagen, medewerker-pop-up en menuvolgorde; legacy Dashboard Widget-beheer is retired |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEÏMPLEMENTEERD EN PRODUCTIE-GEVERIFIEERD |
