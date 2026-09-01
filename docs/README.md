@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Liquid Analyse V2 Foundation discovery — 2026-09-01
+
+**Status: DRAFT — PRODUCT/ARCHITECTURE DISCOVERY**
+
+De product- en architectuurdiscovery voor Liquid Analyse V2 staat in [`LIQUID_ANALYSE_V2_FOUNDATION.md`](requirements/reports/LIQUID_ANALYSE_V2_FOUNDATION.md). Er is geen V2-implementatie gestart.
+
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
