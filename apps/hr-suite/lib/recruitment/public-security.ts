@@ -5,6 +5,8 @@ export type RecruitmentDocument = {
   readonly fileName: string
 }
 
+export const PUBLIC_RECRUITMENT_DOCUMENT_MAX_BYTES = 4_000_000
+
 export type BotChallengeResult = { readonly ok: true } | { readonly ok: false; readonly code: string }
 export type MalwareScanResult =
   | { readonly status: 'CLEAN'; readonly reference: string }
@@ -79,10 +81,14 @@ export function createRemoteMalwareScannerAdapter(
   }
 }
 
-export function validateRecruitmentDocument(document: RecruitmentDocument):
+export function validateRecruitmentDocument(
+  document: RecruitmentDocument,
+  options: { readonly maxBytes?: number } = {},
+):
   | { readonly ok: true; readonly detectedType: 'PDF' | 'DOCX' }
   | { readonly ok: false; readonly code: string } {
-  if (document.size !== document.bytes.byteLength || document.size < 1 || document.size > 10 * 1024 * 1024) {
+  const maxBytes = options.maxBytes ?? 10 * 1024 * 1024
+  if (document.size !== document.bytes.byteLength || document.size < 1 || document.size > maxBytes) {
     return { ok: false, code: 'RECRUITMENT_DOCUMENT_SIZE_INVALID' }
   }
   const pdf = document.mimeType === 'application/pdf'
@@ -99,12 +105,19 @@ export function validateRecruitmentDocument(document: RecruitmentDocument):
 }
 
 export async function createPublicIntakeKey(
-  input: { readonly networkAddress: string; readonly formFingerprint: string },
+  input: { readonly publicationId: string; readonly trustedClientIdentity: string },
   pepper: string,
 ): Promise<string> {
-  if (pepper.length < 8) throw new Error('RECRUITMENT_RATE_LIMIT_PEPPER_INVALID')
-  const data = new TextEncoder().encode(`${pepper}\u0000${input.networkAddress}\u0000${input.formFingerprint}`)
-  const digest = await crypto.subtle.digest('SHA-256', data)
+  if (pepper.length < 32) throw new Error('RECRUITMENT_RATE_LIMIT_PEPPER_INVALID')
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(pepper),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const message = new TextEncoder().encode(`v1\u0000PUBLIC_RECRUITMENT\u0000${input.publicationId}\u0000${input.trustedClientIdentity}`)
+  const digest = await crypto.subtle.sign('HMAC', key, message)
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
@@ -117,7 +130,7 @@ export async function evaluatePublicUpload(
 > {
   const challenge = await dependencies.bot.verify(input.token)
   if (!challenge.ok) return challenge
-  const validation = validateRecruitmentDocument(input.document)
+  const validation = validateRecruitmentDocument(input.document, { maxBytes: PUBLIC_RECRUITMENT_DOCUMENT_MAX_BYTES })
   if (!validation.ok) return validation
   const scan = await dependencies.scanner.scan(input.document)
   if (scan.status === 'UNAVAILABLE') return { ok: false, code: 'RECRUITMENT_MALWARE_SCANNER_UNAVAILABLE' }

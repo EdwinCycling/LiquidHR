@@ -1,7 +1,7 @@
-export type RecruitmentErrorStatus = 400 | 401 | 403 | 404 | 409 | 422 | 429 | 500 | 502 | 503
+export type RecruitmentErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 422 | 429 | 500 | 502 | 503
 
 export class RecruitmentError extends Error {
-  constructor(readonly code: string, readonly status: RecruitmentErrorStatus) {
+  constructor(readonly code: string, readonly status: RecruitmentErrorStatus, readonly retryAfterSeconds?: number) {
     super(code)
     this.name = 'RecruitmentError'
   }
@@ -17,6 +17,9 @@ const DATABASE_ERROR_STATUS: Readonly<Record<string, RecruitmentErrorStatus>> = 
   RECRUITMENT_FORBIDDEN: 403,
   RECRUITMENT_PUBLIC_PROOF_INVALID: 403,
   RECRUITMENT_PUBLIC_PROOF_REQUIRED: 403,
+  RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE: 503,
+  RECRUITMENT_PUBLIC_REQUEST_TOO_LARGE: 413,
+  RECRUITMENT_PUBLIC_RATE_LIMITED: 429,
   RECRUITMENT_APPLICATION_TERMINAL: 409,
   RECRUITMENT_APPLICATION_NOT_TERMINAL: 409,
   RECRUITMENT_VERSION_CONFLICT: 409,

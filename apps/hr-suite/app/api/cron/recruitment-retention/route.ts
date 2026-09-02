@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { runRecruitmentRetention } from '@/lib/recruitment/guided-service'
+import { runRecruitmentPublicIntakeCleanup, runRecruitmentRetention } from '@/lib/recruitment/guided-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +17,13 @@ export async function GET(request: Request): Promise<NextResponse> {
       const { error } = await admin.storage.from('recruitment-documents').remove(storageKeys)
       if (error) return NextResponse.json({ code: 'RECRUITMENT_STORAGE_CLEANUP_FAILED' }, { status: 502 })
     }
-    return NextResponse.json({ data: { processed: result.processed ?? 0, storageObjectsRemoved: storageKeys.length } })
+    const intakeCleanup = await runRecruitmentPublicIntakeCleanup(100, admin)
+    return NextResponse.json({ data: {
+      processed: result.processed ?? 0,
+      storageObjectsRemoved: storageKeys.length,
+      intakeProofsRemoved: typeof intakeCleanup.proofsRemoved === 'number' ? intakeCleanup.proofsRemoved : 0,
+      intakeCountersRemoved: typeof intakeCleanup.countersRemoved === 'number' ? intakeCleanup.countersRemoved : 0,
+    } })
   } catch {
     return NextResponse.json({ code: 'RECRUITMENT_RETENTION_FAILED' }, { status: 500 })
   }

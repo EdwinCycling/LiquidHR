@@ -222,7 +222,14 @@ export async function createManualRecruitmentApplication(context: Pick<AuthConte
   return { id: data.id, candidateId: data.candidateId, possibleDuplicate: data.possibleDuplicate, version: data.version }
 }
 
-export async function submitPublicRecruitmentApplication(publicationId: string, slug: string, input: PublicApplicationInput, intakeProof: string, supabase?: SupabaseServerClient): Promise<string> {
+export async function submitPublicRecruitmentApplication(
+  publicationId: string,
+  slug: string,
+  input: PublicApplicationInput,
+  intakeProof: string,
+  bucketKeyHash: string,
+  supabase?: SupabaseServerClient,
+): Promise<string> {
   const parsed = publicApplicationInputSchema.parse(input)
   const client = supabase ?? await createClient()
   const payload: Record<string, unknown> = {
@@ -230,7 +237,8 @@ export async function submitPublicRecruitmentApplication(publicationId: string, 
     motivation: parsed.motivation || null, answers: parsed.answers,
   }
   const result = await rpc(client).rpc('recruitment_submit_public_application', {
-    requested_publication_id: publicationId, requested_slug: slug, requested_payload: payload, requested_intake_proof: intakeProof,
+    requested_publication_id: publicationId, requested_slug: slug, requested_payload: payload,
+    requested_intake_proof: intakeProof, requested_bucket_key_hash: bucketKeyHash,
   })
   if (result.error) throw recruitmentDatabaseError(result.error)
   if (typeof result.data !== 'string') throw new RecruitmentError('RECRUITMENT_OPERATION_FAILED', 500)

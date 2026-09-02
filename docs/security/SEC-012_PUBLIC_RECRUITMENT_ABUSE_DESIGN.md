@@ -1,8 +1,8 @@
 # SEC-012 PUBLIC RECRUITMENT ABUSE & EDGE TRUST — REMEDIATION DESIGN
 
-**Status: IMPLEMENTATION REVIEW CLOSED — READY FOR SEC-012 IMPLEMENTATION CANDIDATE**
+**Status: IMPLEMENTATION CANDIDATE — SEC-012 OPEN**
 
-This is a documentation-only design candidate. It does not implement application code, SQL, migrations, tests, configuration, deployment, or provider changes.
+This document is the approved design baseline and records the local implementation-candidate evidence below. It does not by itself prove remote migration application, release, or Production acceptance.
 
 ## Decision summary
 
@@ -266,7 +266,7 @@ The implementation is not GREEN unless all of these are demonstrated:
 
 ## Implementation plan — exact file scope
 
-This is the proposed implementation scope, not work performed on this branch.
+This is the approved implementation scope for the candidate; the evidence below records what was implemented and verified locally.
 
 ### Application and shared helpers
 
@@ -286,7 +286,7 @@ This is the proposed implementation scope, not work performed on this branch.
 - **Modify** `apps/hr-suite/supabase/tests/recruitment_foundation_contract.sql`: atomic claim, proof lifecycle, binding, cleanup, RLS, and direct-access denial assertions.
 - **Modify** `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`: assert the claim RPC is service-only and the three existing anonymous Recruitment functions remain the sole intended public boundary.
 - **Modify** `apps/hr-suite/lib/recruitment/migration-contract.test.ts`: assert table/RLS/grant/index/function contracts.
-- **Regenerate** `packages/db/types.ts` only after the approved migration is applied to the canonical local schema; do not hand-edit generated types.
+- **Regenerate** `packages/db/types.ts` only after the approved migration is applied to the canonical local schema; do not hand-edit generated types. This candidate intentionally did not regenerate it because the migration was not applied.
 
 ### Tests
 
@@ -329,9 +329,9 @@ Do not use a mocked final flow as production evidence. Test doubles are appropri
 
 3. **Log retention — governance follow-up.** Confirm platform log retention/access policy for the allowlisted security events. This is not an SEC-012 correctness blocker and no new persistent audit table is proposed.
 
-## IMPLEMENTATION REVIEW — TECHNICAL FREEZE
+## IMPLEMENTATION REVIEW AND CANDIDATE EVIDENCE
 
-This section is the authoritative implementation-review result for SEC-012. It freezes the implementation candidate; it does not implement or authorize implementation. `SEC-012` itself remains `OPEN` until the candidate, migration, acceptance evidence, and Production verification are complete.
+This section is the authoritative implementation-review baseline and local candidate evidence for SEC-012. It does not authorize remote schema mutation or release. `SEC-012` itself remains `OPEN` until the candidate, migration, acceptance evidence, and Production verification are complete.
 
 ### BASELINE
 
@@ -392,7 +392,7 @@ Freeze one additive migration, to be created only during the separately authoriz
 - Cleanup eligibility is frozen at one hour after proof expiry/consumption; counter rows are eligible after two hours only when no unexpired proof remains. Legacy proof columns remain untouched in this additive migration and are removed only by a later reviewed cleanup migration.
 - Enable RLS on the proof table, add an explicit deny-all policy for `anon`/`authenticated`, revoke direct table privileges from `public`, `anon`, and `authenticated`, and preserve the existing exact anonymous Recruitment RPC boundary. The claim RPC is service-only; browsers cannot read or write either intake table.
 
-Current read-only catalog evidence: Supabase project `wnpfloqpjvaacobppbpk` is active/healthy; local migration filenames count `390` with local maximum `20260831151639`; remote migration history count `409` with maximum `20260831165143`; remote `recruitment_public_intake_limits` and `recruitment_documents` row counts are both `0`; and remote `public.recruitment_claim_public_intake` does not exist. This is `DIVERGED`, not a reason for `db push`, history repair, pull, or manual edits. No migration filename was created or applied in this review. Before a future remote apply, stop and request explicit authorization naming the exact migration filename and purpose.
+Current read-only catalog evidence: Supabase project `wnpfloqpjvaacobppbpk` is active/healthy; the implementation worktree started from exact review SHA `28f905189a1fe7de1ee972ed55ce69b362b915d0`; remote migration history remains `DIVERGED` (`409` remote versus `390` local before this candidate, with maximum remote timestamp `20260831165143`); remote `recruitment_public_intake_limits` and `recruitment_documents` row counts are both `0`; and remote `public.recruitment_claim_public_intake` does not exist. The candidate created exactly one local migration, `20260902113235_secure_public_recruitment_intake.sql`; it was not applied remotely. This drift is not a reason for `db push`, history repair, pull, or manual edits. Before any future remote apply, stop and request explicit authorization naming the exact migration filename and purpose.
 
 ### SCANNER / REQUEST ORDER
 
@@ -415,7 +415,7 @@ No document means no scanner. Body rejection, identity rejection, Turnstile reje
 
 ### MIGRATION
 
-Migration is required for the implementation, but not performed here. The current local/remote history is `DIVERGED` (`390` local versus `409` remote, with different latest timestamps), and the remote Recruitment catalog has legacy proof columns with no current rows. The implementation must start with one forward additive migration, regenerate `packages/db/types.ts` only after the canonical local schema is updated, run the required local advisors/contracts, and stop before any remote apply until explicit remote-mutation authorization is given.
+The implementation candidate created one forward additive migration locally, but did not apply it. The current local/remote history is `DIVERGED` (`390` local versus `409` remote before the candidate, with different latest timestamps), and the remote Recruitment catalog has legacy proof columns with no current rows. `packages/db/types.ts` was not hand-edited or regenerated because the canonical schema was not updated. The local database lint could not run because no local Postgres was listening on `127.0.0.1:54322`; remote advisors were read-only and reported existing baseline findings, including the old four-argument submit function. Any remote apply remains separately authorization-gated.
 
 ### TESTS
 
@@ -453,26 +453,26 @@ Explicitly out of this implementation candidate: `next.config.ts`, `apps/hr-suit
 
 ### VERIFICATION
 
-This review performed read-only repository, exact-baseline, current `origin/main`, local migration, Supabase catalog, Vercel project/deployment, and official Next.js/Vercel documentation checks. It did not run the full application suite, production build, browser flow, advisors, migration, deployment, or provider settings mutation because this request is documentation-only. Those are implementation/release gates, not evidence of completion.
+The candidate performed exact-baseline/worktree checks, read-only Supabase catalog and advisor checks, local migration-contract checks, the full hr-suite test suite (`318` files / `1,249` tests), typecheck, lint, and a successful production build. The local Supabase lint could not connect because no local database was listening on `127.0.0.1:54322`. No remote migration, deployment, browser/Production acceptance, provider-settings change, or generated DB type update was performed.
 
 ### MUTATIONS
 
-The only in-scope mutation for this review is this existing design document. No app code, test, migration, package, version, environment, Supabase, Vercel, GitHub, production, or migration-history mutation is authorized or performed. The canonical `apps/hr-suite/.env.local` was verified to exist and remain ignored; its values were not read or printed.
+The implementation-candidate mutation is limited to the listed app helpers/route/service changes, tests, one local migration, and this evidence update. No package or lockfile, version, `next.config.ts`, canonical environment file, migration history, remote Supabase schema/data, Vercel/GitHub setting, deployment, or `main` branch was changed. The canonical `apps/hr-suite/.env.local` was verified to exist and remain ignored; its values were not read or printed.
 
 ### CANDIDATE
 
-The review candidate is branch `security/sec012-public-intake-implementation-review`, based on design SHA `52e701daf00de816135727c5dc9f73f6fc5e25f8`. The candidate commit is created only after scoped whitespace and file-list checks, and contains only this document. A non-force push, if credentials and remote policy permit, targets the same branch; no merge to `main` is part of this review.
+The implementation candidate is branch `security/sec012-public-intake-implementation`, based on review SHA `28f905189a1fe7de1ee972ed55ce69b362b915d0`. The candidate commit contains the scoped route, helpers, services, tests, one local migration, SQL contracts, and this evidence update. No merge to `main` or remote migration apply is part of this candidate. The candidate branch is pushed non-force only if the explicitly requested remote branch operation succeeds.
 
 ### NEXT
 
-After this document is committed and pushed, begin a separate SEC-012 implementation candidate from the freshly verified baseline. Repeat the protected-environment and migration-drift preflight, create the single forward migration locally, regenerate generated types after local schema verification, run the targeted test matrix, and obtain the explicit remote-apply authorization before any remote Supabase mutation. SEC-012 remains `OPEN` until the complete evidence gate is green.
+Remaining gates are direct Vercel/Production acceptance, migration application/readback after separate authorization, local database advisors/contracts against the applied schema, and proof of cleanup/no residue. SEC-012 remains `OPEN`; SEC-005 remains unchanged and unrelated findings remain untouched.
 
-## Files changed by this design candidate
+## Files changed by this implementation candidate
 
 - `docs/security/SEC-012_PUBLIC_RECRUITMENT_ABUSE_DESIGN.md`
 
-Only this documentation file is intended to be committed and pushed from the design worktree.
+The exact implementation file list is reported in the candidate verification and is intentionally limited to the approved SEC-012 scope.
 
-## Design verification boundary
+## Candidate verification boundary
 
-This branch will receive documentation-only checks: whitespace validation, exact changed-file scope, clean worktree verification, baseline/commit identity verification, canonical environment-file existence verification, and confirmation that no app/test/migration/package/version file changed. Full app tests, production builds, browser checks, Supabase advisors, database pushes, Vercel operations, and production changes are intentionally out of scope for this design-only task.
+This candidate includes local code/test/build verification and read-only advisor/catalog checks. Remote schema mutation, deployment, browser/Production acceptance, and any migration-history repair remain out of scope.
