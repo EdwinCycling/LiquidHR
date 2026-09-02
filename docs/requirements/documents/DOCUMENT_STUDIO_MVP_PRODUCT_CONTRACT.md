@@ -1,6 +1,6 @@
 # LiquidHR — Document Studio MVP Product Contract
 
-**Status:** PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR DM-0 ARCHITECTURE AMENDMENT / FEASIBILITY
+**Status:** PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR NATIVE EDITOR → HTML/PDF FEASIBILITY
 **Datum:** 2 september 2026
 **Productnaam in UI:** Document Studio
 **Onderliggende capability:** LiquidHR Document Platform

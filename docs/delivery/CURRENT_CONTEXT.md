@@ -4,7 +4,7 @@
 
 ## Document Studio native editor amendment — 2026-09-02
 
-**Status: PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR DM-0 ARCHITECTURE AMENDMENT / FEASIBILITY**
+**Status: PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR NATIVE EDITOR → HTML/PDF FEASIBILITY**
 
 - Current `origin/main` after fetch is `155ccbde373a06684e37d9746b01dd65931c870b`; visible app version remains `1.20260901.1`.
 - Source branch `work/dm0-document-studio-architecture` was verified clean at exact head `247cc22f7009caccac3a87d715ec61cb2f7823ff`; no merge or rebase with current main was performed.
