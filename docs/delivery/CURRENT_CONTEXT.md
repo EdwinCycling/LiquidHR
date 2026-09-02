@@ -1,8 +1,8 @@
 # Actuele overdracht Liquid HR
 
-## Liquid Analyse V2A-1 Snapshot Core implementation candidate — 2026-09-02
+## Liquid Analyse V2A-1 Snapshot Core targeted fix candidate — 2026-09-02
 
-**Status: GREEN — LOCAL CANDIDATE, NOT RELEASED**
+**Status: GREEN — TARGETED FIX CANDIDATE, NOT RELEASED**
 
 - Geïsoleerde kandidaat: branch `work/v2a1-snapshot-core-implementation`,
   worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\v2a1-snapshot-core-implementation`, gestart vanaf review-SHA
@@ -16,13 +16,14 @@
   `apps/hr-suite/supabase/migrations/20260902090000_enable_saved_analysis_v2.sql`.
   Niet remote toegepast. Save-as-V2 blijft disabled; er is geen Supabase-write,
   db push, typegen, merge, deployment of version bump uitgevoerd.
-- Verificatie: full suite `321/321` bestanden en `1244/1244` tests; targeted V2
-  `9/9` en `33/33`; strict TypeScript, ESLint, i18n `33` gelijke namespaces,
-  diff-check en Webpack `235/235`.
-- Browser: echte HR Admin en Manager op `1440x900` en `390x844` gaven V2
-  snapshot `200`, version 2, `complete=true`, nul overflow en nul
-  page/console-errors. Employee gaf de verwachte `403
-  ANALYSIS_UNAUTHORIZED`; de negatieve fetch-error is geen productfout.
+- Gerichte fix: V2 `presentation` is `{ intent }` met de vier frozen intents;
+  V2-filterdimensies zijn uniek in TypeScript en de migration-validator;
+  migration-datums zijn echte kalenderdatums; Manager retrieval behoudt
+  employment-ID's door de historische scope- en retrievalgrens.
+- Verificatie: targeted `11/11` bestanden en `63/63` tests; strict TypeScript,
+  scoped ESLint, diff-check en Webpack `235/235` groen. i18n en browser zijn
+  niet opnieuw uitgevoerd omdat messages en zichtbare UI ongewijzigd bleven.
+  De volledige suite is **NOT RUN**.
 - Open: implementation review, afzonderlijke migration-goedkeuring/apply,
   eventuele governed typegen na apply, en pas daarna Save-as-V2-enablement.
 

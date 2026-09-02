@@ -1,8 +1,8 @@
 # Implementatiestatus Liquid HR
 
-## Liquid Analyse V2A-1 Snapshot Core implementation candidate — 2026-09-02
+## Liquid Analyse V2A-1 Snapshot Core targeted fix candidate — 2026-09-02
 
-**Status: GREEN — LOCAL CANDIDATE, NOT RELEASED**
+**Status: GREEN — TARGETED FIX CANDIDATE, NOT RELEASED**
 
 De kandidaat staat geïsoleerd op branch
 `work/v2a1-snapshot-core-implementation` in worktree
@@ -19,15 +19,15 @@ forward migration is
 deze is niet remote toegepast. V2 Save-as is expliciet uitgeschakeld totdat
 de migration afzonderlijk is goedgekeurd en toegepast.
 
-Lokale gates: volledige hr-suite `321/321` bestanden en `1244/1244` tests,
-gerichte V2-set `9/9` bestanden en `33/33` tests, strict TypeScript, ESLint,
-i18n (`33` gelijke NL/EN-namespaces), diff-check en Webpack `235/235` routes.
-Echte lokale browseracceptatie is groen voor HR Admin en Manager op desktop
-`1440x900` en mobiel `390x844`: V2 API snapshot `200`, version 2,
-`complete=true`, geen overflow en geen page/console-errors. Employee gaf de
-verwachte `403 ANALYSIS_UNAUTHORIZED`; de browserconsole noteerde daarbij
-alleen de verwachte negatieve fetch-error. Remote migration, Supabase
-advisors/typegen, merge, deployment en version bump blijven open gates.
+De targeted fix brengt de frozen V2-presentatie terug naar `{ intent }`,
+beperkt filters tot één per dimensie in TypeScript en de lokale migration-
+validator, valideert echte kalenderdatums en houdt Manager-scope op
+employmentniveau tijdens retrieval. Gerichte verificatie is `11/11` bestanden
+en `63/63` tests, strict TypeScript, scoped ESLint, diff-check en Webpack
+`235/235` routes. i18n en browser zijn niet opnieuw uitgevoerd omdat messages
+en zichtbare UI ongewijzigd bleven; de volledige suite is **NOT RUN**. Remote
+migration, Supabase-advisors/typegen, merge, deployment en version bump blijven
+open gates.
 
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 

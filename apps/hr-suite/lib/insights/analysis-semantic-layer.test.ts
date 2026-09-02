@@ -3,6 +3,7 @@ import {
   ANALYSIS_DATA_PERMISSIONS,
   ANALYSIS_DIMENSIONS,
   ANALYSIS_SEMANTIC_LAYER,
+  ANALYSIS_V2_SEMANTIC_REGISTRY,
   EMPLOYMENT_STATUS_VALUES,
   findSemanticEntity,
 } from './analysis-semantic-layer'
@@ -31,5 +32,6 @@ describe('Analysis Semantic Layer V1', () => {
 
   it('does not expose a database query surface in the semantic definitions', () => {
     expect(JSON.stringify(ANALYSIS_SEMANTIC_LAYER)).not.toMatch(/select|join|from\s+public|sql/i)
+    expect(ANALYSIS_V2_SEMANTIC_REGISTRY.presentationCapabilities).toEqual(['auto', 'kpi', 'table', 'comparison'])
   })
 })

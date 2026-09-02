@@ -160,6 +160,7 @@ describe('saved analysis service security contract', () => {
       dimensions: [],
       period: { kind: 'snapshot' as const, asOf: '2026-01-01' },
       comparison: null,
+      presentation: { intent: 'auto' as const },
     }
     await expect(createSavedAnalysis({ name: 'V2 snapshot', analysisSpec: v2Spec }, dependencies(auth(), requestedRepository))).rejects.toMatchObject({ code: 'SAVED_ANALYSIS_VERSION_UNAVAILABLE', status: 409 })
     expect(requestedRepository.create).not.toHaveBeenCalled()

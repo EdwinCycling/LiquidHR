@@ -22,6 +22,8 @@ describe('V2 snapshot retrieval seam', () => {
     expect(source).toContain(".eq('hr_group_id', hrGroupId)")
     expect(source).toContain(".eq('employment_id', row.id)")
     expect(source).toContain(".eq('direct_manager_id', actorEmployeeId)")
+    expect(source).toContain(".in('id', [...employmentScope])")
+    expect(source).not.toContain(".in('employee_id', [...employmentScope])")
     expect(source).toContain(".is('employment_id', null)")
   })
 

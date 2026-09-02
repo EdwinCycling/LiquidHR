@@ -13,7 +13,11 @@ import {
 } from './analysis-semantic-layer'
 
 export type DateOnly = string & { readonly __dateOnly: unique symbol }
-export type AnalysisV2Presentation = 'auto' | 'kpi' | 'table'
+export type AnalysisV2PresentationIntent = 'auto' | 'kpi' | 'table' | 'comparison'
+
+export interface AnalysisV2Presentation {
+  readonly intent: AnalysisV2PresentationIntent
+}
 
 export interface AnalysisV2Filter {
   readonly dimension: AnalysisV2FilterDimensionKey
@@ -77,7 +81,7 @@ const rawSpecSchema = z.object({
   comparison: rawComparisonSchema.nullable(),
   sort: rawSortSchema,
   limit: z.number().finite().int().min(1).max(100),
-  presentation: z.enum(['auto', 'kpi', 'table']),
+  presentation: z.object({ intent: z.enum(['auto', 'kpi', 'table', 'comparison']) }).strict(),
 }).strict()
 
 const filterValueSchema = z.union([
@@ -139,8 +143,9 @@ export function validateAnalysisSpecV2(input: unknown): ValidatedAnalysisSpecV2 
     if (!dimension) specError('ANALYSIS_UNSUPPORTED_DIMENSION')
     return dimension.key
   })
-  if (raw.presentation === 'kpi' && dimensions.length > 0) specError('ANALYSIS_INCOMPATIBLE_PRESENTATION')
   const filters = raw.filters.map(normalizeFilter)
+  if (new Set(filters.map((filter) => filter.dimension)).size !== filters.length) specError('ANALYSIS_SPEC_INVALID')
+  if (raw.presentation.intent === 'kpi' && dimensions.length > 0) specError('ANALYSIS_INCOMPATIBLE_PRESENTATION')
   const period = parsePeriod(raw.period)
   let comparison: AnalysisV2Comparison | null = null
   if (raw.comparison !== null) {
@@ -165,7 +170,7 @@ export function validateAnalysisSpecV2(input: unknown): ValidatedAnalysisSpecV2 
       ? { by: 'label', direction: raw.sort.direction }
       : { by: 'measure', measure: ANALYSIS_MEASURE, direction: raw.sort.direction },
     limit: raw.limit,
-    presentation: raw.presentation,
+    presentation: { intent: raw.presentation.intent },
   }
   return Object.freeze(spec) as ValidatedAnalysisSpecV2
 }

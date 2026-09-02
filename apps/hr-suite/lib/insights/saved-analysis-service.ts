@@ -249,7 +249,24 @@ function assertRowScope(row: SavedAnalysisPersistenceRow, scope: SavedAnalysisSc
 
 function toPersistedSpec(spec: SavedAnalysisCreateInput['analysisSpec'] | SavedAnalysisUpdateInput['analysisSpec']): Json {
   if (!spec) throw new SavedAnalysisError('SAVED_ANALYSIS_INPUT_INVALID', 400)
-  const base = {
+  if (spec.version === 1) {
+    return {
+      version: spec.version,
+      source: spec.source,
+      entity: spec.entity,
+      measures: [...spec.measures],
+      dimensions: [...spec.dimensions],
+      filters: spec.filters.map((filter) => ({
+        dimension: filter.dimension,
+        operator: filter.operator,
+        value: typeof filter.value === 'string' ? filter.value : [...filter.value],
+      })),
+      limit: spec.limit,
+      presentation: spec.presentation,
+      sort: spec.sort === null ? null : { by: spec.sort.by, direction: spec.sort.direction },
+    }
+  }
+  return {
     version: spec.version,
     source: spec.source,
     entity: spec.entity,
@@ -261,16 +278,7 @@ function toPersistedSpec(spec: SavedAnalysisCreateInput['analysisSpec'] | SavedA
       value: typeof filter.value === 'string' ? filter.value : [...filter.value],
     })),
     limit: spec.limit,
-    presentation: spec.presentation,
-  }
-  if (spec.version === 1) {
-    return {
-      ...base,
-      sort: spec.sort === null ? null : { by: spec.sort.by, direction: spec.sort.direction },
-    }
-  }
-  return {
-    ...base,
+    presentation: { intent: spec.presentation.intent },
     period: { kind: spec.period.kind, asOf: spec.period.asOf },
     comparison: spec.comparison === null ? null : {
       kind: spec.comparison.kind,

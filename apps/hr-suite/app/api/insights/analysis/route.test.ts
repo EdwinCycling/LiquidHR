@@ -12,7 +12,7 @@ describe('POST /api/insights/analysis', () => {
     const response = await POST(new Request('http://localhost/api/insights/analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: [], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: null, sort: null, limit: 25, presentation: 'auto' }),
+      body: JSON.stringify({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: [], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: null, sort: null, limit: 25, presentation: { intent: 'auto' } }),
     }))
 
     expect(response.status).toBe(200)

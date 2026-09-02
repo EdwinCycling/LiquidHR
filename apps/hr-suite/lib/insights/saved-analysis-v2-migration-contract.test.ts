@@ -14,6 +14,10 @@ describe('V2 saved-analysis forward migration candidate', () => {
     expect(migration).toContain("candidate -> 'comparison'")
     expect(migration).toContain("'employment_type'")
     expect(migration).toContain('TEMPORARY_AGENCY')
+    expect(migration).toContain("candidate -> 'presentation' -> 'intent'")
+    expect(migration).toContain('count(distinct element.value #>> \'{}\')')
+    expect(migration).toContain('is_valid_saved_analysis_date')
+    expect(migration).toContain('% 400')
     expect(migration).toContain('is_valid_saved_analysis_spec')
   })
 

@@ -31,6 +31,7 @@ export type AnalysisDataPermission = 'employee:read' | 'employee-directory:read'
 export type AnalysisAllowedScope = 'HR_GROUP'
 export type AnalysisV2AllowedScope = 'HR_GROUP' | 'DIRECT_REPORTS'
 export type AnalysisPresentationCapability = 'kpi' | 'table'
+export type AnalysisV2PresentationCapability = 'auto' | 'kpi' | 'table' | 'comparison'
 
 export const EMPLOYMENT_STATUS_VALUES: readonly EmploymentStatus[] = [
   'NEVER_EMPLOYED',
@@ -187,7 +188,7 @@ export interface AnalysisV2SemanticRegistry {
   readonly measures: readonly [AnalysisMeasureKey]
   readonly dimensions: readonly AnalysisV2SemanticDimension[]
   readonly filters: readonly AnalysisV2SemanticFilter[]
-  readonly presentationCapabilities: readonly AnalysisPresentationCapability[]
+  readonly presentationCapabilities: readonly AnalysisV2PresentationCapability[]
 }
 
 export const ANALYSIS_V2_SEMANTIC_REGISTRY: AnalysisV2SemanticRegistry = {
@@ -207,7 +208,7 @@ export const ANALYSIS_V2_SEMANTIC_REGISTRY: AnalysisV2SemanticRegistry = {
     { key: 'employment_type', valueType: 'enum', allowedOperators: ['eq', 'in'], allowedValues: EMPLOYMENT_TYPE_VALUES },
     { key: 'employment_status', valueType: 'enum', allowedOperators: ['eq', 'in'], allowedValues: ['ACTIVE_EMPLOYEE'] },
   ],
-  presentationCapabilities: ['kpi', 'table'],
+  presentationCapabilities: ['auto', 'kpi', 'table', 'comparison'],
 }
 
 export function findAnalysisV2Dimension(key: string): AnalysisV2SemanticDimension | undefined {

@@ -123,13 +123,11 @@ async function loadManagerEmploymentScope(client: AdminClient, context: AuthCont
   }
 
   const employmentIds = new Set<string>()
-  const employeeIds = new Set<string>()
   for (const row of rows) {
     if (employmentIds.has(row.employment_id as string)) scopeFailure()
     employmentIds.add(row.employment_id as string)
-    employeeIds.add(row.employee_id)
   }
-  return employeeIds
+  return employmentIds
 }
 
 async function loadCurrentLabels(client: AdminClient, context: AuthContext, hrGroupId: string, placements: readonly SnapshotPlacementRow[]): Promise<Map<string, { readonly departmentLabel: string | null; readonly jobLabel: string | null }>> {
@@ -217,15 +215,15 @@ export async function loadSnapshotSource(input: LoadSnapshotSourceInput): Promis
   const hrGroupId = authContext.hrGroupId
   if (!hrGroupId) throw new AnalysisEngineError('ANALYSIS_UNAUTHORIZED', 403)
   const client = createAdminClient()
-  const employeeScope = populationMode === 'DIRECT_REPORTS'
+  const employmentScope = populationMode === 'DIRECT_REPORTS'
     ? await loadManagerEmploymentScope(client, authContext, hrGroupId, asOf)
     : null
 
-  if (employeeScope && employeeScope.size === 0) {
+  if (employmentScope && employmentScope.size === 0) {
     return { asOf, rows: [], expectedEmploymentCount: 0, retrievedEmploymentCount: 0, complete: true }
   }
 
-  const { count, error: countError } = employeeScope
+  const { count, error: countError } = employmentScope
     ? await client
       .from('employments')
       .select('id', { count: 'exact', head: true })
@@ -235,7 +233,7 @@ export async function loadSnapshotSource(input: LoadSnapshotSourceInput): Promis
       .is('deleted_at', null)
       .lte('starts_on', asOf)
       .or(`ends_on.is.null,ends_on.gte.${asOf}`)
-      .in('employee_id', [...employeeScope])
+      .in('id', [...employmentScope])
     : await client
       .from('employments')
       .select('id', { count: 'exact', head: true })
@@ -257,10 +255,10 @@ export async function loadSnapshotSource(input: LoadSnapshotSourceInput): Promis
       .is('deleted_at', null)
       .lte('starts_on', asOf)
       .or(`ends_on.is.null,ends_on.gte.${asOf}`)
-    if (employeeScope) {
+    if (employmentScope) {
       const page = cursor
-        ? await base.in('employee_id', [...employeeScope]).gt('id', cursor).order('id', { ascending: true }).limit(pageSize)
-        : await base.in('employee_id', [...employeeScope]).order('id', { ascending: true }).limit(pageSize)
+        ? await base.in('id', [...employmentScope]).gt('id', cursor).order('id', { ascending: true }).limit(pageSize)
+        : await base.in('id', [...employmentScope]).order('id', { ascending: true }).limit(pageSize)
       return { rows: (page.data ?? []) as readonly SnapshotEmploymentRow[], error: page.error }
     }
     const page = cursor

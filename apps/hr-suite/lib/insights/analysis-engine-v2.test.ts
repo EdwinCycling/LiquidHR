@@ -53,7 +53,7 @@ function source(asOf: string, rows: readonly SnapshotSource['rows'][number][]): 
 
 describe('V2 snapshot engine', () => {
   it('groups aggregate rows without leaking source identifiers', async () => {
-    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: null, sort: { by: 'label', direction: 'asc' }, limit: 25, presentation: 'table' })
+    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: null, sort: { by: 'label', direction: 'asc' }, limit: 25, presentation: { intent: 'table' } })
     const result = await executeAnalysisSpecV2(spec, { getContext: async () => auth, retrieve: async () => source('2026-01-01', [row('employee-a', 'Engineering'), row('employee-b', 'Sales')]) })
     expect(result.rows).toEqual([
       { values: { dimensions: { department: 'Engineering' }, headcount: 1 } },
@@ -65,7 +65,7 @@ describe('V2 snapshot engine', () => {
   })
 
   it('aligns comparison groups, calculates signed deltas and null percentages', async () => {
-    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: { kind: 'explicit_period', period: { kind: 'snapshot', asOf: '2025-01-01' } }, sort: { by: 'label', direction: 'asc' }, limit: 25, presentation: 'table' })
+    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: { kind: 'explicit_period', period: { kind: 'snapshot', asOf: '2025-01-01' } }, sort: { by: 'label', direction: 'asc' }, limit: 25, presentation: { intent: 'comparison' } })
     const retrieve = vi.fn(async ({ asOf }: { readonly asOf: string }) => asOf === '2026-01-01'
       ? source(asOf, [row('employee-a', 'Engineering'), row('employee-b', 'Engineering')])
       : source(asOf, [row('employee-c', 'Sales')]))
@@ -80,7 +80,7 @@ describe('V2 snapshot engine', () => {
 
   it('applies limit after alignment and keeps Manager retrieval on DIRECT_REPORTS', async () => {
     const managerAuth = { ...auth, activeRoles: ['DIRECT_MANAGER'] }
-    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: { kind: 'explicit_period', period: { kind: 'snapshot', asOf: '2025-01-01' } }, sort: null, limit: 1, presentation: 'table' })
+    const spec = validateAnalysisSpecV2({ version: 2, source: 'workforce', entity: 'employees', measures: ['headcount'], dimensions: ['department'], filters: [], period: { kind: 'snapshot', asOf: '2026-01-01' }, comparison: { kind: 'explicit_period', period: { kind: 'snapshot', asOf: '2025-01-01' } }, sort: null, limit: 1, presentation: { intent: 'comparison' } })
     const seenModes: string[] = []
     const result = await executeAnalysisSpecV2(spec, { getContext: async () => managerAuth, retrieve: async ({ asOf, populationMode }) => { seenModes.push(populationMode); return source(asOf, asOf === '2026-01-01' ? [row('employee-a', 'Engineering')] : [row('employee-b', 'Sales')]) } })
     expect(seenModes).toEqual(['DIRECT_REPORTS', 'DIRECT_REPORTS'])

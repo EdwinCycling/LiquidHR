@@ -145,7 +145,7 @@ function executeGrouped(spec: ValidatedAnalysisSpecV2, current: readonly Snapsho
       columns: columns(spec, false),
       rows,
       summary: { headcount: current.length },
-      presentationHints: { preferred: spec.presentation === 'kpi' || (spec.presentation === 'auto' && spec.dimensions.length === 0) ? 'kpi' : 'table', fallback: 'table' },
+      presentationHints: { preferred: spec.presentation.intent === 'kpi' || (spec.presentation.intent === 'auto' && spec.dimensions.length === 0) ? 'kpi' : 'table', fallback: 'table' },
     }
   }
 

@@ -14,7 +14,7 @@ const spec = validateAnalysisSpecV2({
   comparison: null,
   sort: null,
   limit: 25,
-  presentation: 'table',
+  presentation: { intent: 'table' },
 })
 
 function row(overrides: Partial<SnapshotSource['rows'][number]> = {}): SnapshotSource['rows'][number] {
@@ -98,6 +98,53 @@ describe('V2 snapshot population resolver', () => {
     expect(manager).toHaveLength(1)
     expectCode(() => resolveSnapshotPopulation(source([row({ placement: null })]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' }), 'ANALYSIS_SCOPE_NOT_PROVABLE')
     expectCode(() => resolveSnapshotPopulation(source([row({ placement: { ...row().placement!, directManagerId: 'manager-b' } })]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' }), 'ANALYSIS_SCOPE_NOT_PROVABLE')
+  })
+
+  it('keeps mixed-manager parallel employments at the employment-level scope', () => {
+    const managerAEmployment = row({
+      placement: { ...row().placement!, directManagerId: 'manager-a' },
+    })
+    const managerBEmployment = row({
+      employmentId: 'employment-b',
+      isPrimary: false,
+      placement: { ...row().placement!, id: 'placement-b', employmentId: 'employment-b', directManagerId: 'manager-b', departmentId: 'department-b', departmentLabel: 'Sales' },
+    })
+
+    const managerScoped = resolveSnapshotPopulation(source([managerAEmployment]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' })
+    expect(managerScoped).toHaveLength(1)
+    expect(managerScoped[0]?.employeeId).toBe('employee-a')
+    expectCode(() => resolveSnapshotPopulation(source([managerBEmployment]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' }), 'ANALYSIS_SCOPE_NOT_PROVABLE')
+  })
+
+  it('applies same-manager parallel-employment rules and fails closed on requested ambiguity', () => {
+    const sameManagerPrimary = row({
+      placement: { ...row().placement!, directManagerId: 'manager-a' },
+    })
+    const sameManagerSecondary = row({
+      employmentId: 'employment-b',
+      isPrimary: false,
+      placement: { ...row().placement!, id: 'placement-b', employmentId: 'employment-b', directManagerId: 'manager-a' },
+    })
+    expect(resolveSnapshotPopulation(source([sameManagerPrimary, sameManagerSecondary]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' })).toHaveLength(1)
+
+    const conflictingFirst = row({
+      isPrimary: false,
+      placement: { ...row().placement!, directManagerId: 'manager-a' },
+    })
+    const conflictingSecond = row({
+      employmentId: 'employment-b',
+      isPrimary: false,
+      placement: { ...row().placement!, id: 'placement-b', employmentId: 'employment-b', directManagerId: 'manager-a', departmentId: 'department-b', departmentLabel: 'Sales' },
+    })
+    expectCode(() => resolveSnapshotPopulation(source([conflictingFirst, conflictingSecond]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' }), 'ANALYSIS_SNAPSHOT_AMBIGUOUS')
+  })
+
+  it('excludes employees without a qualifying Manager employment and rejects ambiguous placement candidates', () => {
+    expect(resolveSnapshotPopulation(source([]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' })).toEqual([])
+
+    const placementA = row({ placement: { ...row().placement!, id: 'placement-a', directManagerId: 'manager-a' } })
+    const placementB = row({ placement: { ...row().placement!, id: 'placement-b', directManagerId: 'manager-a' } })
+    expectCode(() => resolveSnapshotPopulation(source([placementA, placementB]), spec, { mode: 'DIRECT_REPORTS', actorEmployeeId: 'manager-a' }), 'ANALYSIS_SNAPSHOT_AMBIGUOUS')
   })
 
   it('fails closed on incomplete source retrieval', () => {

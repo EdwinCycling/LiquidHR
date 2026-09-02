@@ -20,6 +20,20 @@ const validSpec = {
   presentation: 'table',
 } as const
 
+const validV2Spec = {
+  version: 2,
+  source: 'workforce',
+  entity: 'employees',
+  measures: ['headcount'],
+  dimensions: ['department'],
+  filters: [],
+  period: { kind: 'snapshot', asOf: '2026-01-01' },
+  comparison: null,
+  sort: null,
+  limit: 25,
+  presentation: { intent: 'auto' },
+} as const
+
 const validRow = {
   id: '11111111-1111-4111-8111-111111111111',
   name: 'Actieve medewerkers per afdeling',
@@ -35,6 +49,8 @@ describe('saved analysis definition contract', () => {
 
     expect(result.name).toBe('Mijn analyse')
     expect(result.analysisSpec).toMatchObject({ version: 1, dimensions: ['department'] })
+    expect(validateSavedAnalysisCreateInput({ name: 'V2', analysisSpec: validV2Spec }).analysisSpec).toMatchObject({ version: 2, presentation: { intent: 'auto' } })
+    expect(() => validateSavedAnalysisCreateInput({ name: 'V2', analysisSpec: { ...validV2Spec, presentation: 'auto' } })).toThrow(AnalysisEngineError)
   })
 
   it('rejects an unknown persistence input field and an empty name', () => {

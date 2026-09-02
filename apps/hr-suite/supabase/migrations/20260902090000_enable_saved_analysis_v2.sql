@@ -9,6 +9,32 @@ alter table public.saved_analysis_definitions
   add constraint saved_analysis_definitions_version_check
   check (definition_version in (1, 2));
 
+create or replace function internal_security.is_valid_saved_analysis_date(candidate text)
+returns boolean
+language sql
+immutable
+security invoker
+set search_path = pg_catalog
+as $function$
+  select case
+    when candidate is null or candidate !~ '^\d{4}-\d{2}-\d{2}$' then false
+    when substring(candidate from 6 for 2)::integer not between 1 and 12 then false
+    when substring(candidate from 9 for 2)::integer < 1 then false
+    when substring(candidate from 9 for 2)::integer > case
+      when substring(candidate from 6 for 2)::integer in (4, 6, 9, 11) then 30
+      when substring(candidate from 6 for 2)::integer = 2 then
+        28 + case
+          when substring(candidate from 1 for 4)::integer % 400 = 0
+            or (substring(candidate from 1 for 4)::integer % 4 = 0 and substring(candidate from 1 for 4)::integer % 100 <> 0)
+            then 1
+          else 0
+        end
+      else 31
+    end then false
+    else true
+  end;
+$function$;
+
 create or replace function internal_security.is_valid_saved_analysis_spec(candidate jsonb)
 returns boolean
 language plpgsql
@@ -160,8 +186,11 @@ begin
     or jsonb_array_length(candidate -> 'filters') > 8
     or jsonb_typeof(candidate -> 'limit') <> 'number'
     or (candidate ->> 'limit') !~ '^([1-9][0-9]?|100)$'
-    or jsonb_typeof(candidate -> 'presentation') <> 'string'
-    or candidate ->> 'presentation' not in ('auto', 'kpi', 'table') then
+    or jsonb_typeof(candidate -> 'presentation') <> 'object'
+    or (select count(*) from jsonb_object_keys(candidate -> 'presentation')) <> 1
+    or exists (select 1 from jsonb_object_keys(candidate -> 'presentation') as object_key where object_key not in ('intent'))
+    or jsonb_typeof(candidate -> 'presentation' -> 'intent') <> 'string'
+    or candidate -> 'presentation' ->> 'intent' not in ('auto', 'kpi', 'table', 'comparison') then
     return false;
   end if;
 
@@ -174,7 +203,7 @@ begin
   ) <> jsonb_array_length(candidate -> 'dimensions') then
     return false;
   end if;
-  if candidate ->> 'presentation' = 'kpi' and jsonb_array_length(candidate -> 'dimensions') > 0 then
+  if candidate -> 'presentation' ->> 'intent' = 'kpi' and jsonb_array_length(candidate -> 'dimensions') > 0 then
     return false;
   end if;
 
@@ -183,7 +212,8 @@ begin
     or exists (select 1 from jsonb_object_keys(candidate -> 'period') as object_key where object_key not in ('kind', 'asOf'))
     or candidate -> 'period' ->> 'kind' <> 'snapshot'
     or jsonb_typeof(candidate -> 'period' -> 'asOf') <> 'string'
-    or candidate -> 'period' ->> 'asOf' !~ '^\d{4}-\d{2}-\d{2}$' then
+    or candidate -> 'period' ->> 'asOf' !~ '^\d{4}-\d{2}-\d{2}$'
+    or not internal_security.is_valid_saved_analysis_date(candidate -> 'period' ->> 'asOf') then
     return false;
   end if;
 
@@ -198,6 +228,7 @@ begin
       or candidate -> 'comparison' -> 'period' ->> 'kind' <> 'snapshot'
       or jsonb_typeof(candidate -> 'comparison' -> 'period' -> 'asOf') <> 'string'
       or candidate -> 'comparison' -> 'period' ->> 'asOf' !~ '^\d{4}-\d{2}-\d{2}$'
+      or not internal_security.is_valid_saved_analysis_date(candidate -> 'comparison' -> 'period' ->> 'asOf')
       or candidate -> 'comparison' -> 'period' ->> 'asOf' = candidate -> 'period' ->> 'asOf' then
       return false;
     end if;
@@ -225,6 +256,13 @@ begin
       or candidate -> 'sort' ->> 'direction' not in ('asc', 'desc') then
       return false;
     end if;
+  end if;
+
+  if (
+    select count(distinct element.value #>> '{}')
+    from jsonb_array_elements(candidate -> 'filters') as element(value)
+  ) <> jsonb_array_length(candidate -> 'filters') then
+    return false;
   end if;
 
   for filter_item in select value from jsonb_array_elements(candidate -> 'filters') as element(value) loop
