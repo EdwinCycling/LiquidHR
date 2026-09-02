@@ -1,5 +1,31 @@
 # Actuele overdracht Liquid HR
 
+## Liquid Analyse V2A-1 Snapshot Core implementation candidate — 2026-09-02
+
+**Status: GREEN — LOCAL CANDIDATE, NOT RELEASED**
+
+- Geïsoleerde kandidaat: branch `work/v2a1-snapshot-core-implementation`,
+  worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\v2a1-snapshot-core-implementation`, gestart vanaf review-SHA
+  `e79d5a12ce2287029f4f30593f6515fe441b592c`; root-worktree en `main` zijn
+  onaangeraakt.
+- V2A-1 is geïmplementeerd als strict versioned Snapshot Core: server-only
+  complete keyset retrieval, historical effective placement, onafhankelijke
+  Manager A/B-scope, active qualification, grouping/comparison en
+  aggregate-only result/UI. V1 blijft behouden.
+- Lokale migration candidate:
+  `apps/hr-suite/supabase/migrations/20260902090000_enable_saved_analysis_v2.sql`.
+  Niet remote toegepast. Save-as-V2 blijft disabled; er is geen Supabase-write,
+  db push, typegen, merge, deployment of version bump uitgevoerd.
+- Verificatie: full suite `321/321` bestanden en `1244/1244` tests; targeted V2
+  `9/9` en `33/33`; strict TypeScript, ESLint, i18n `33` gelijke namespaces,
+  diff-check en Webpack `235/235`.
+- Browser: echte HR Admin en Manager op `1440x900` en `390x844` gaven V2
+  snapshot `200`, version 2, `complete=true`, nul overflow en nul
+  page/console-errors. Employee gaf de verwachte `403
+  ANALYSIS_UNAUTHORIZED`; de negatieve fetch-error is geen productfout.
+- Open: implementation review, afzonderlijke migration-goedkeuring/apply,
+  eventuele governed typegen na apply, en pas daarna Save-as-V2-enablement.
+
 > **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
 ## Liquid Analyse V2A-1 implementation review — 2026-09-02

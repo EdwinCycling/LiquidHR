@@ -1,18 +1,35 @@
 import type { EmploymentStatus } from '@/lib/employment/employment-status'
 
 export const ANALYSIS_SEMANTIC_VERSION = 1 as const
+export const ANALYSIS_V2_SEMANTIC_VERSION = 2 as const
 export const ANALYSIS_SOURCE = 'workforce' as const
 export const ANALYSIS_ENTITY = 'employees' as const
 export const ANALYSIS_MEASURE = 'headcount' as const
 
 export const ANALYSIS_DIMENSIONS = ['department', 'job', 'employment_status'] as const
 export type AnalysisDimensionKey = typeof ANALYSIS_DIMENSIONS[number]
+export const ANALYSIS_V2_DIMENSIONS = ['department', 'job', 'employment_type'] as const
+export type AnalysisV2DimensionKey = typeof ANALYSIS_V2_DIMENSIONS[number]
+export const ANALYSIS_V2_FILTER_DIMENSIONS = ['department', 'job', 'employment_type', 'employment_status'] as const
+export type AnalysisV2FilterDimensionKey = typeof ANALYSIS_V2_FILTER_DIMENSIONS[number]
+export const EMPLOYMENT_TYPE_VALUES = [
+  'EMPLOYEE',
+  'INTERN',
+  'APPRENTICE',
+  'CONTRACTOR',
+  'TEMPORARY_AGENCY',
+  'FREELANCER',
+  'VOLUNTEER',
+  'NO_PAYROLL',
+] as const
+export type AnalysisEmploymentType = typeof EMPLOYMENT_TYPE_VALUES[number]
 export type AnalysisSourceKey = typeof ANALYSIS_SOURCE
 export type AnalysisEntityKey = typeof ANALYSIS_ENTITY
 export type AnalysisMeasureKey = typeof ANALYSIS_MEASURE
 export type AnalysisFilterOperator = 'eq' | 'in'
 export type AnalysisDataPermission = 'employee:read' | 'employee-directory:read'
 export type AnalysisAllowedScope = 'HR_GROUP'
+export type AnalysisV2AllowedScope = 'HR_GROUP' | 'DIRECT_REPORTS'
 export type AnalysisPresentationCapability = 'kpi' | 'table'
 
 export const EMPLOYMENT_STATUS_VALUES: readonly EmploymentStatus[] = [
@@ -145,6 +162,60 @@ const employeesEntity: AnalysisSemanticEntity = {
 export const ANALYSIS_SEMANTIC_LAYER: AnalysisSemanticLayer = {
   version: ANALYSIS_SEMANTIC_VERSION,
   entities: [employeesEntity],
+}
+
+export interface AnalysisV2SemanticDimension {
+  readonly key: AnalysisV2DimensionKey
+  readonly dataType: 'string' | 'enum'
+  readonly labelKey: string
+  readonly allowedOperators: readonly AnalysisFilterOperator[]
+  readonly unknownPolicy: 'fail' | 'unknown'
+}
+
+export interface AnalysisV2SemanticFilter {
+  readonly key: AnalysisV2FilterDimensionKey
+  readonly valueType: 'string' | 'enum'
+  readonly allowedOperators: readonly AnalysisFilterOperator[]
+  readonly allowedValues?: readonly string[]
+}
+
+export interface AnalysisV2SemanticRegistry {
+  readonly version: typeof ANALYSIS_V2_SEMANTIC_VERSION
+  readonly source: typeof ANALYSIS_SOURCE
+  readonly entity: typeof ANALYSIS_ENTITY
+  readonly allowedScopes: readonly AnalysisV2AllowedScope[]
+  readonly measures: readonly [AnalysisMeasureKey]
+  readonly dimensions: readonly AnalysisV2SemanticDimension[]
+  readonly filters: readonly AnalysisV2SemanticFilter[]
+  readonly presentationCapabilities: readonly AnalysisPresentationCapability[]
+}
+
+export const ANALYSIS_V2_SEMANTIC_REGISTRY: AnalysisV2SemanticRegistry = {
+  version: ANALYSIS_V2_SEMANTIC_VERSION,
+  source: ANALYSIS_SOURCE,
+  entity: ANALYSIS_ENTITY,
+  allowedScopes: ['HR_GROUP', 'DIRECT_REPORTS'],
+  measures: [ANALYSIS_MEASURE],
+  dimensions: [
+    { key: 'department', dataType: 'string', labelKey: 'insights.analysisSemanticDepartment', allowedOperators: ['eq', 'in'], unknownPolicy: 'fail' },
+    { key: 'job', dataType: 'string', labelKey: 'insights.analysisSemanticJob', allowedOperators: ['eq', 'in'], unknownPolicy: 'unknown' },
+    { key: 'employment_type', dataType: 'enum', labelKey: 'insights.analysisSemanticEmploymentType', allowedOperators: ['eq', 'in'], unknownPolicy: 'fail' },
+  ],
+  filters: [
+    { key: 'department', valueType: 'string', allowedOperators: ['eq', 'in'] },
+    { key: 'job', valueType: 'string', allowedOperators: ['eq', 'in'] },
+    { key: 'employment_type', valueType: 'enum', allowedOperators: ['eq', 'in'], allowedValues: EMPLOYMENT_TYPE_VALUES },
+    { key: 'employment_status', valueType: 'enum', allowedOperators: ['eq', 'in'], allowedValues: ['ACTIVE_EMPLOYEE'] },
+  ],
+  presentationCapabilities: ['kpi', 'table'],
+}
+
+export function findAnalysisV2Dimension(key: string): AnalysisV2SemanticDimension | undefined {
+  return ANALYSIS_V2_SEMANTIC_REGISTRY.dimensions.find((dimension) => dimension.key === key)
+}
+
+export function findAnalysisV2Filter(key: string): AnalysisV2SemanticFilter | undefined {
+  return ANALYSIS_V2_SEMANTIC_REGISTRY.filters.find((filter) => filter.key === key)
 }
 
 export function findSemanticEntity(key: string): AnalysisSemanticEntity | undefined {

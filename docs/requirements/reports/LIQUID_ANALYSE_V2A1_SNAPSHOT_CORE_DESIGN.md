@@ -1,15 +1,17 @@
 # Liquid Analyse V2A-1 Snapshot Core — implementation design
 
-**Status:** IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE
+**Status:** IMPLEMENTATION CANDIDATE — LOCAL VERIFICATION GREEN; NOT RELEASED
 **Datum:** 2026-09-02
-**Mode:** implementation design / repository discovery / documentation only
+**Mode:** implementation candidate / local migration candidate / browser acceptance / no remote database mutation
 **Product scope:** V2A-1 Snapshot Core, canonical questions Q1, Q2, Q3, Q4 en Q7
 **Approved Foundation:** `ec66f981c9bc732b4445c76ea3d1d363b1ad567d`
 **Design branch:** `work/v2a1-snapshot-core-design`
+**Implementation branch:** `work/v2a1-snapshot-core-implementation`
 
-Dit document is de enige autoritatieve technische ontwerpnotitie voor de
-volgende V2A-1 implementation review. Het wijzigt de Foundation niet en is
-geen bewijs dat V2A-1 al is gebouwd.
+Dit document is de autoritatieve technische ontwerp- en kandidaatnotitie voor
+V2A-1. De oorspronkelijke reviewfreeze blijft in section 23 behouden; section
+24 beschrijft de lokale implementation candidate. De Foundation, remote
+database, releaseversion en `main` zijn niet gewijzigd.
 
 ## 1. Doel, grens en uitgangspunten
 
@@ -1581,3 +1583,59 @@ package, generated type, Supabase object/data, Vercel deployment or version
 file changed.
 
 **IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
+
+## 24. IMPLEMENTATION CANDIDATE — SNAPSHOT CORE (2026-09-02)
+
+**Status: GREEN — LOCAL CANDIDATE, NOT RELEASED**
+
+The implementation candidate is isolated on branch
+`work/v2a1-snapshot-core-implementation` in worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\v2a1-snapshot-core-implementation`, starting from the approved review commit
+`e79d5a12ce2287029f4f30593f6515fe441b592c`. The root worktree,
+`origin/main`, visible version `1.20260901.1`, package manifests, Supabase
+remote state, Vercel and GitHub settings remain unchanged.
+
+### Implemented candidate surface
+
+- strict V2 AnalysisSpec dispatch preserves the V1 validator, engine and
+  saved-analysis behavior;
+- server-only `analysis-snapshot-retrieval.ts` uses fixed tenant/HR-group
+  predicates, exact counts, 200-row keyset paging, post-validation and typed
+  fail-closed completeness errors;
+- V2 execution qualifies active employees, resolves effective historical
+  placement, deduplicates parallel employments, supports zero-to-two frozen
+  dimensions, filters, aligned A/B comparison, deltas and aggregate-only
+  results;
+- `DIRECT_REPORTS` reconstructs Manager scope independently for every snapshot
+  using employment-specific effective placement; and
+- the existing Foundation Canvas/table primitives render the V2 aggregate
+  result. No V2 Explore authoring surface or client retrieval was added.
+
+### Migration and saved-analysis boundary
+
+The local forward migration candidate is
+`apps/hr-suite/supabase/migrations/20260902090000_enable_saved_analysis_v2.sql`.
+It only extends `saved_analysis_definitions` from V1 to the strict V1/V2
+validator contract. It adds no snapshot table, RPC, index, unrelated cleanup
+or RLS/grant change. It has **not** been applied remotely. V2 Save-as and V2
+persistence remain explicitly disabled until the migration is separately
+reviewed, approved, applied and followed by any required governed typegen.
+V1 saved analysis remains available and is still fresh-executed on open.
+
+### Verification and browser acceptance
+
+The local candidate gates are green: full hr-suite `321/321` test files and
+`1244/1244` tests; targeted V2 `9/9` files and `33/33` tests; strict
+TypeScript; ESLint; i18n with `33` equal NL/EN namespaces; `git diff --check`;
+and the production Webpack build with `235/235` routes. Real TEST HR Admin
+and Manager browser runs returned V2 snapshot `200`, version 2 and
+`metadata.complete = true` at desktop `1440x900` and mobile `390x844`, with
+no horizontal overflow or page/console errors. The Employee negative returned
+the expected `403 ANALYSIS_UNAUTHORIZED`; its failed fetch is expected
+negative evidence. A/B comparison was also read through the authenticated
+HR Admin route with both periods complete.
+
+No remote migration, Supabase write, typegen, Vercel action, merge, deployment
+or version bump was performed. Remaining gates are implementation review,
+separate migration approval/apply, post-apply database/typegen verification
+and only then Save-as-V2 enablement.

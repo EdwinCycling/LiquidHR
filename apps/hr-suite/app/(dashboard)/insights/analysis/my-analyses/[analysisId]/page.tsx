@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
 import { AnalysisExploration } from '@/components/insights/analysis-exploration'
+import { AnalysisV2Canvas } from '@/components/insights/analysis-v2-canvas'
 import { getTranslator } from '@/lib/i18n/server'
 import { requireAnalysisPageAccess } from '@/lib/insights/analysis-page-access'
 import { AnalysisEngineError } from '@/lib/insights/analysis-errors'
@@ -28,6 +29,47 @@ export default async function SavedAnalysisPage(context: PageContext) {
     throw error
   }
   const { definition, result } = opened
+
+  if (definition.spec.version === 2) {
+    if (result.version !== 2) return <UnavailableSavedAnalysis t={t} />
+    return (
+      <PageShell className="py-8 lg:py-10">
+        <PageHeader
+          actions={<Link className="text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href="/insights/analysis/my-analyses">{t('analysisMyAnalysesBack')}</Link>}
+          description={t('analysisSavedDefinitionDescription')}
+          title={definition.name}
+        />
+        <div className="mt-8">
+          <AnalysisV2Canvas labels={{
+            comparisonHeadcount: t('analysisV2CanvasComparisonHeadcount'),
+            department: t('analysisExploreDepartment'),
+            delta: t('analysisV2CanvasDelta'),
+            deltaPct: t('analysisV2CanvasDeltaPct'),
+            employmentType: t('analysisV2CanvasEmploymentType'),
+            employmentTypeLabels: {
+              APPRENTICE: t('analysisV2EmploymentTypeApprentice'),
+              CONTRACTOR: t('analysisV2EmploymentTypeContractor'),
+              EMPLOYEE: t('analysisV2EmploymentTypeEmployee'),
+              FREELANCER: t('analysisV2EmploymentTypeFreelancer'),
+              INTERN: t('analysisV2EmploymentTypeIntern'),
+              NO_PAYROLL: t('analysisV2EmploymentTypeNoPayroll'),
+              TEMPORARY_AGENCY: t('analysisV2EmploymentTypeTemporaryAgency'),
+              VOLUNTEER: t('analysisV2EmploymentTypeVolunteer'),
+            },
+            headcount: t('analysisCanvasHeadcount'),
+            job: t('analysisExploreJob'),
+            noResults: t('analysisCanvasNoResults'),
+            summary: t('analysisV2CanvasSummary'),
+            table: t('analysisCanvasTable'),
+            title: t('analysisV2CanvasTitle'),
+            unavailable: t('analysisV2CanvasUnavailable'),
+            unknown: t('analysisCanvasUnknown'),
+          }} result={result} />
+        </div>
+      </PageShell>
+    )
+  }
+  if (result.version !== 1) return <UnavailableSavedAnalysis t={t} />
 
   return (
     <PageShell className="py-8 lg:py-10">

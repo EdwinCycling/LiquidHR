@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { AnalysisEngineError } from './analysis-errors'
 import { SavedAnalysisError } from './saved-analysis-errors'
-import { validateAnalysisSpec, type ValidatedAnalysisSpec } from './analysis-spec'
+import { validateAnalysisRequest, type ValidatedAnalysisRequest } from './analysis-spec-dispatch'
 
 export const SAVED_ANALYSIS_NAME_MAX_LENGTH = 120 as const
 
@@ -10,12 +10,12 @@ const savedAnalysisIdSchema = z.string().uuid()
 
 export interface SavedAnalysisCreateInput {
   readonly name: string
-  readonly analysisSpec: ValidatedAnalysisSpec
+  readonly analysisSpec: ValidatedAnalysisRequest
 }
 
 export interface SavedAnalysisUpdateInput {
   readonly name?: string
-  readonly analysisSpec?: ValidatedAnalysisSpec
+  readonly analysisSpec?: ValidatedAnalysisRequest
 }
 
 export interface SavedAnalysisListItem {
@@ -26,7 +26,7 @@ export interface SavedAnalysisListItem {
 }
 
 export interface SavedAnalysisDefinition extends SavedAnalysisListItem {
-  readonly spec: ValidatedAnalysisSpec
+  readonly spec: ValidatedAnalysisRequest
 }
 
 const savedAnalysisCreatePayloadSchema = z.object({
@@ -72,9 +72,9 @@ function definitionError(): never {
   throw new SavedAnalysisError('SAVED_ANALYSIS_DEFINITION_INVALID', 500)
 }
 
-function validateStoredSpec(spec: unknown, definitionVersion: number): ValidatedAnalysisSpec {
+function validateStoredSpec(spec: unknown, definitionVersion: number): ValidatedAnalysisRequest {
   try {
-    const validated = validateAnalysisSpec(spec)
+    const validated = validateAnalysisRequest(spec)
     if (validated.version !== definitionVersion) definitionError()
     return validated
   } catch (error) {
@@ -99,7 +99,7 @@ export function validateSavedAnalysisCreateInput(input: unknown): SavedAnalysisC
 
   return {
     name: name.data,
-    analysisSpec: validateAnalysisSpec(parsed.data.analysisSpec),
+    analysisSpec: validateAnalysisRequest(parsed.data.analysisSpec),
   }
 }
 
@@ -120,7 +120,7 @@ export function validateSavedAnalysisUpdateInput(input: unknown): SavedAnalysisU
 
   return {
     ...(normalizedName === undefined ? {} : { name: normalizedName }),
-    ...(hasAnalysisSpec ? { analysisSpec: validateAnalysisSpec(parsed.data.analysisSpec) } : {}),
+    ...(hasAnalysisSpec ? { analysisSpec: validateAnalysisRequest(parsed.data.analysisSpec) } : {}),
   }
 }
 

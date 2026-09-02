@@ -4,19 +4,20 @@
 
 **Status: PRODUCT APPROVED — READY FOR V2A-1 IMPLEMENTATION DESIGN**
 
-De product- en architectuurdiscovery voor Liquid Analyse V2 is gesloten in [`LIQUID_ANALYSE_V2_FOUNDATION.md`](requirements/reports/LIQUID_ANALYSE_V2_FOUNDATION.md). De richting is goedgekeurd, V2A-1 Snapshot Core is het volgende engineering target en er is geen V2-implementatie gestart.
+De product- en architectuurdiscovery voor Liquid Analyse V2 is gesloten in [`LIQUID_ANALYSE_V2_FOUNDATION.md`](requirements/reports/LIQUID_ANALYSE_V2_FOUNDATION.md). De richting is goedgekeurd en V2A-1 Snapshot Core is het engineering target; de Foundation-review zelf bevatte geen implementatie.
 
-## Liquid Analyse V2A-1 Snapshot Core implementation design — 2026-09-02
+## Liquid Analyse V2A-1 Snapshot Core implementation candidate — 2026-09-02
 
-**Status: IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
+**Status: LOCAL IMPLEMENTATION CANDIDATE — NOT RELEASED**
 
 De repository-discovery, technische uitwerking en implementation freeze voor
-V2A-1 zijn document-only vastgelegd in
+V2A-1 staan in
 [`LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md`](requirements/reports/LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md).
-De review kiest een server-only retrieval repository; V2 execution is
-implementatie-ready, terwijl V2 saved persistence wacht op een afzonderlijk
-goedgekeurde forward migration. Er is op deze review-branch geen V2A-1
-implementatie, migration, version bump of deployment uitgevoerd.
+De kandidaat implementeert server-only snapshot retrieval, strict V2 dispatch,
+aggregate-only execution en de beperkte renderer. De forward migration is
+alleen lokaal voorbereid en niet toegepast; V2 Save-as blijft uitgeschakeld.
+De kandidaat staat geïsoleerd op `work/v2a1-snapshot-core-implementation` en
+is niet gemerged, gedeployed of naar `main` gebracht.
 
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31

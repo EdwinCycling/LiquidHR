@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { AnalysisEngineError } from '@/lib/insights/analysis-errors'
-import { executeAnalysisSpec } from '@/lib/insights/analysis-engine'
-import { validateAnalysisSpec } from '@/lib/insights/analysis-spec'
+import { executeAnalysisRequest } from '@/lib/insights/analysis-engine'
+import { validateAnalysisRequest } from '@/lib/insights/analysis-spec-dispatch'
 
 const noStoreHeaders = { 'Cache-Control': 'no-store' }
 
@@ -15,8 +15,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const spec = validateAnalysisSpec(body)
-    const data = await executeAnalysisSpec(spec)
+    const spec = validateAnalysisRequest(body)
+    const data = await executeAnalysisRequest(spec)
     return NextResponse.json({ data }, { headers: noStoreHeaders })
   } catch (error) {
     const permission = permissionErrorResponse(error)

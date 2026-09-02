@@ -8,8 +8,9 @@ export type SavedAnalysisErrorCode =
   | 'SAVED_ANALYSIS_SAVE_FAILED'
   | 'SAVED_ANALYSIS_UPDATE_FAILED'
   | 'SAVED_ANALYSIS_DELETE_FAILED'
+  | 'SAVED_ANALYSIS_VERSION_UNAVAILABLE'
 
-export type SavedAnalysisErrorStatus = 400 | 404 | 500
+export type SavedAnalysisErrorStatus = 400 | 404 | 409 | 500
 
 export class SavedAnalysisError extends Error {
   constructor(

@@ -18,6 +18,10 @@ import {
   type AnalysisDimensionKey,
 } from './analysis-semantic-layer'
 import type { AnalysisFilter, ValidatedAnalysisSpec } from './analysis-spec'
+import { executeAnalysisSpecV2 } from './analysis-engine-v2'
+import type { AnalysisResultV2 } from './analysis-result-v2'
+import type { ValidatedAnalysisSpecV2 } from './analysis-spec-v2'
+import type { ValidatedAnalysisRequest } from './analysis-spec-dispatch'
 
 export interface AnalysisEmployeeRecord {
   readonly id: string
@@ -252,4 +256,12 @@ export async function executeAnalysisSpec(
     summary: { headcount: filteredRecords.length },
     presentationHints: { preferred, fallback: 'table' },
   }
+}
+
+export async function executeAnalysisRequest(
+  spec: ValidatedAnalysisRequest,
+  dependencies: AnalysisExecutionDependencies = {},
+): Promise<AnalysisResult | AnalysisResultV2> {
+  if (spec.version === 2) return executeAnalysisSpecV2(spec as ValidatedAnalysisSpecV2)
+  return executeAnalysisSpec(spec, dependencies)
 }

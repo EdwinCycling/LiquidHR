@@ -1,5 +1,34 @@
 # Implementatiestatus Liquid HR
 
+## Liquid Analyse V2A-1 Snapshot Core implementation candidate — 2026-09-02
+
+**Status: GREEN — LOCAL CANDIDATE, NOT RELEASED**
+
+De kandidaat staat geïsoleerd op branch
+`work/v2a1-snapshot-core-implementation` in worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\v2a1-snapshot-core-implementation`, vanaf exact review-SHA
+`e79d5a12ce2287029f4f30593f6515fe441b592c`. De zichtbare appversie blijft
+`1.20260901.1`; `main`, de root-worktree en packages zijn niet gewijzigd.
+
+V2A-1 Snapshot Core is lokaal geïmplementeerd met strict version dispatch,
+complete keyset-paged server-only retrieval, onafhankelijke historische
+Manager-scope voor A/B, active qualification, effectieve dimensies,
+aggregate-only comparison en een bestaande-Foundation renderer. De lokale
+forward migration is
+`apps/hr-suite/supabase/migrations/20260902090000_enable_saved_analysis_v2.sql`;
+deze is niet remote toegepast. V2 Save-as is expliciet uitgeschakeld totdat
+de migration afzonderlijk is goedgekeurd en toegepast.
+
+Lokale gates: volledige hr-suite `321/321` bestanden en `1244/1244` tests,
+gerichte V2-set `9/9` bestanden en `33/33` tests, strict TypeScript, ESLint,
+i18n (`33` gelijke NL/EN-namespaces), diff-check en Webpack `235/235` routes.
+Echte lokale browseracceptatie is groen voor HR Admin en Manager op desktop
+`1440x900` en mobiel `390x844`: V2 API snapshot `200`, version 2,
+`complete=true`, geen overflow en geen page/console-errors. Employee gaf de
+verwachte `403 ANALYSIS_UNAUTHORIZED`; de browserconsole noteerde daarbij
+alleen de verwachte negatieve fetch-error. Remote migration, Supabase
+advisors/typegen, merge, deployment en version bump blijven open gates.
+
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
 **Status: RELEASED — PRODUCTION GREEN**

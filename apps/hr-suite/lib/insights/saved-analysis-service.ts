@@ -21,6 +21,10 @@ import { SavedAnalysisError } from './saved-analysis-errors'
 const SAVED_ANALYSIS_TABLE = 'saved_analysis_definitions' as const
 const SAVED_ANALYSIS_SELECT = 'id,tenant_id,hr_group_id,owner_user_id,name,analysis_spec,definition_version,created_at,updated_at' as const
 export const SAVED_ANALYSIS_LIST_LIMIT = 100 as const
+// The forward migration is intentionally not applied in this candidate. The
+// existing V1-only database constraint must never turn a V2 save into a
+// database error or become externally usable before that migration is gated.
+export const SAVED_ANALYSIS_V2_PERSISTENCE_ENABLED = false as const
 
 export interface SavedAnalysisPersistenceRow {
   readonly id: string
@@ -48,7 +52,7 @@ export interface SavedAnalysisRepositoryInput {
 export interface SavedAnalysisRepository {
   list: (scope: SavedAnalysisScope) => Promise<readonly SavedAnalysisPersistenceRow[]>
   get: (scope: SavedAnalysisScope, id: string) => Promise<SavedAnalysisPersistenceRow | null>
-  create: (scope: SavedAnalysisScope, input: { readonly name: string; readonly analysisSpec: Json }) => Promise<SavedAnalysisPersistenceRow>
+  create: (scope: SavedAnalysisScope, input: { readonly name: string; readonly analysisSpec: Json; readonly definitionVersion: number }) => Promise<SavedAnalysisPersistenceRow>
   update: (scope: SavedAnalysisScope, id: string, input: SavedAnalysisRepositoryInput) => Promise<SavedAnalysisPersistenceRow | null>
   delete: (scope: SavedAnalysisScope, id: string) => Promise<boolean>
 }
@@ -152,7 +156,7 @@ function createSupabaseRepository(): SavedAnalysisRepository {
           owner_user_id: scope.ownerUserId,
           name: input.name,
           analysis_spec: input.analysisSpec,
-          definition_version: 1,
+          definition_version: input.definitionVersion,
         })
         .select(SAVED_ANALYSIS_SELECT)
         .single()
@@ -245,7 +249,7 @@ function assertRowScope(row: SavedAnalysisPersistenceRow, scope: SavedAnalysisSc
 
 function toPersistedSpec(spec: SavedAnalysisCreateInput['analysisSpec'] | SavedAnalysisUpdateInput['analysisSpec']): Json {
   if (!spec) throw new SavedAnalysisError('SAVED_ANALYSIS_INPUT_INVALID', 400)
-  return {
+  const base = {
     version: spec.version,
     source: spec.source,
     entity: spec.entity,
@@ -256,9 +260,25 @@ function toPersistedSpec(spec: SavedAnalysisCreateInput['analysisSpec'] | SavedA
       operator: filter.operator,
       value: typeof filter.value === 'string' ? filter.value : [...filter.value],
     })),
-    sort: spec.sort === null ? null : { by: spec.sort.by, direction: spec.sort.direction },
     limit: spec.limit,
     presentation: spec.presentation,
+  }
+  if (spec.version === 1) {
+    return {
+      ...base,
+      sort: spec.sort === null ? null : { by: spec.sort.by, direction: spec.sort.direction },
+    }
+  }
+  return {
+    ...base,
+    period: { kind: spec.period.kind, asOf: spec.period.asOf },
+    comparison: spec.comparison === null ? null : {
+      kind: spec.comparison.kind,
+      period: { kind: spec.comparison.period.kind, asOf: spec.comparison.period.asOf },
+    },
+    sort: spec.sort === null ? null : spec.sort.by === 'label'
+      ? { by: 'label', direction: spec.sort.direction }
+      : { by: 'measure', measure: spec.sort.measure, direction: spec.sort.direction },
   }
 }
 
@@ -284,7 +304,10 @@ export async function getSavedAnalysis(id: unknown, dependencies?: SavedAnalysis
 export async function createSavedAnalysis(input: unknown, dependencies?: SavedAnalysisServiceDependencies): Promise<SavedAnalysisDefinition> {
   const { repository, scope } = await resolveDependencies(dependencies)
   const validated = validateSavedAnalysisCreateInput(input)
-  const row = await repository.create(scope, { name: validated.name, analysisSpec: toPersistedSpec(validated.analysisSpec) })
+  if (validated.analysisSpec.version === 2 && !SAVED_ANALYSIS_V2_PERSISTENCE_ENABLED) {
+    throw new SavedAnalysisError('SAVED_ANALYSIS_VERSION_UNAVAILABLE', 409)
+  }
+  const row = await repository.create(scope, { name: validated.name, analysisSpec: toPersistedSpec(validated.analysisSpec), definitionVersion: validated.analysisSpec.version })
   assertRowScope(row, scope)
   return parseSavedAnalysisRow(row)
 }
@@ -293,6 +316,9 @@ export async function updateSavedAnalysis(id: unknown, input: unknown, dependenc
   const { repository, scope } = await resolveDependencies(dependencies)
   const parsedId = parseSavedAnalysisId(id)
   const validated = validateSavedAnalysisUpdateInput(input)
+  if (validated.analysisSpec?.version === 2 && !SAVED_ANALYSIS_V2_PERSISTENCE_ENABLED) {
+    throw new SavedAnalysisError('SAVED_ANALYSIS_VERSION_UNAVAILABLE', 409)
+  }
   const update: SavedAnalysisRepositoryInput = {
     ...(validated.name === undefined ? {} : { name: validated.name }),
     ...(validated.analysisSpec === undefined ? {} : { analysisSpec: toPersistedSpec(validated.analysisSpec) }),
