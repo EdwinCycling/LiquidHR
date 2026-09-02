@@ -272,3 +272,73 @@
   48%, 64% { transform: translate3d(30%, 0, 0) rotate(-8deg); }
   100% { transform: translate3d(76%, 0, 0) rotate(-8deg); }
 }
+
+.document-studio-editor .ProseMirror {
+  min-height: 26rem;
+  outline: none;
+  color: var(--foreground);
+  line-height: 1.65;
+}
+
+.document-studio-editor .ProseMirror p,
+.document-studio-editor .ProseMirror h1,
+.document-studio-editor .ProseMirror h2,
+.document-studio-editor .ProseMirror h3 {
+  margin: 0.6rem 0;
+}
+
+.document-studio-editor .ProseMirror h1,
+.document-studio-editor .ProseMirror h2,
+.document-studio-editor .ProseMirror h3 {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.document-studio-editor .ProseMirror h1 { font-size: 1.75rem; }
+.document-studio-editor .ProseMirror h2 { font-size: 1.35rem; }
+.document-studio-editor .ProseMirror h3 { font-size: 1.1rem; }
+
+.document-studio-editor .ProseMirror ul,
+.document-studio-editor .ProseMirror ol {
+  margin: 0.6rem 0;
+  padding-left: 1.5rem;
+}
+
+.document-studio-editor .ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.document-studio-editor .ProseMirror td,
+.document-studio-editor .ProseMirror th {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  vertical-align: top;
+}
+
+.document-studio-editor .liquid-two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  border: 1px dashed var(--border);
+  padding: 0.75rem;
+}
+
+.document-studio-editor .liquid-placeholder {
+  display: inline-block;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border));
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 0 0.35rem;
+  font-size: 0.9em;
+}
+
+.document-studio-editor .liquid-page-break {
+  border-top: 1px dashed var(--border);
+  color: var(--muted-foreground);
+  margin: 1rem 0;
+  padding-top: 0.25rem;
+  text-align: center;
+}

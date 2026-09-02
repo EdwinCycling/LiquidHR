@@ -19,6 +19,14 @@ alleen lokaal voorbereid en niet toegepast; V2 Save-as blijft uitgeschakeld.
 De kandidaat staat geïsoleerd op `work/v2a1-snapshot-core-implementation` en
 is niet gemerged, gedeployed of naar `main` gebracht.
 
+## Document Studio DM-1 Native Template Library & Structured Editor — 2026-09-02
+
+**Status: IMPLEMENTATION CANDIDATE — LOCAL PARTIAL, NO REMOTE APPLY**
+
+De implementation-candidate werkt in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\document-studio-dm1-native-template-editor-implementation` op branch `work/document-studio-dm1-native-template-editor-implementation`, vanaf exact `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b`. De approved designauthority is design-SHA `8bc61fdbb45f8d3bdf9905c58ad416d8ba035ae6`; de status staat op `DESIGN APPROVED — IMPLEMENTATION IN PROGRESS`.
+
+DM-1 bevat de native canonical document parser/normalizer/hash, Tiptap 3.31.0 adapter/editor met atomic placeholders, template library, draft/lifecycle API's, type/profile/tag/asset-contracten, private PNG/JPEG normalisatie en één unapplied forward migration [`20260902132228_document_studio_dm1_native_template_editor.sql`](../apps/hr-suite/supabase/migrations/20260902132228_document_studio_dm1_native_template_editor.sql). Remote Supabase/storage mutation, migration apply, advisors, typegen, browser/persona-acceptance, DM-3 renderer/PDF en full suite zijn nog open of bewust buiten deze candidate-run.
+
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 

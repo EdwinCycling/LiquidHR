@@ -19,6 +19,7 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   ClipboardList,
+  FileStack,
   UserRound,
   Users,
   X,
@@ -56,6 +57,7 @@ interface SidebarLabels {
   research: string
   recruitment: string
   journeys: string
+  documentStudio: string
   navigation: string
   openMenu: string
   closeMenu: string
@@ -85,6 +87,7 @@ interface SidebarProps {
   canOpenResearch: boolean
   canReadRecruitment: boolean
   canReadJourneys: boolean
+  canReadDocumentStudio: boolean
   labels: SidebarLabels
   preferences: UserPreferences
   profileFirstName: string
@@ -122,6 +125,7 @@ export function Sidebar({
   canOpenResearch,
   canReadRecruitment,
   canReadJourneys,
+  canReadDocumentStudio,
   labels,
   preferences,
   profileFirstName,
@@ -153,6 +157,7 @@ export function Sidebar({
     { href: '/workforce', label: labels.workforce, icon: BriefcaseBusiness, visible: canReadWorkforce },
     { href: '/recruitment', label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
+    { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, exact: true },
@@ -168,7 +173,7 @@ export function Sidebar({
     const handleChange = (event: Event) => { const detail = (event as CustomEvent<string[]>).detail; if (Array.isArray(detail)) setMenuOrder(normalizeSidebarMenuOrder(detail)) }
     const handleProductUpdatesSeen = () => setCurrentProductUpdateUnreadCount(0)
     load(); window.addEventListener('liquidhr-menu-order-changed', handleChange); window.addEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen); return () => { window.removeEventListener('liquidhr-menu-order-changed', handleChange); window.removeEventListener('liquidhr-product-updates-seen', handleProductUpdatesSeen) }
-  }, [canOpenResearch, canReadJourneys, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
+  }, [canOpenResearch, canReadDocumentStudio, canReadJourneys, canReadProcessWork, canReadRecruitment, canReadStartPage, canReadWorkforce])
   const sidebarSections = buildSidebarSections(links, {
     daily: labels.sectionDaily,
     peopleOrganization: labels.sectionPeopleOrganization,
