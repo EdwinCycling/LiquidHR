@@ -6,6 +6,13 @@
 
 De product- en architectuurdiscovery voor Liquid Analyse V2 is gesloten in [`LIQUID_ANALYSE_V2_FOUNDATION.md`](requirements/reports/LIQUID_ANALYSE_V2_FOUNDATION.md). De richting is goedgekeurd, V2A-1 Snapshot Core is het volgende engineering target en er is geen V2-implementatie gestart.
 
+## Liquid Analyse V2A-1 Snapshot Core implementation design — 2026-09-02
+
+**Status: DESIGN APPROVED CANDIDATE — READY FOR V2A-1 IMPLEMENTATION REVIEW**
+
+De repository-discovery en technische uitwerking voor V2A-1 zijn document-only
+vastgelegd in [`LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md`](requirements/reports/LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md). Er is op deze design-branch geen V2A-1 implementatie, migration, version bump of deployment uitgevoerd.
+
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
