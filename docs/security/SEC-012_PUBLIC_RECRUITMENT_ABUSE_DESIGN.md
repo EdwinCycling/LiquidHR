@@ -1,6 +1,6 @@
 # SEC-012 PUBLIC RECRUITMENT ABUSE & EDGE TRUST — REMEDIATION DESIGN
 
-**Status: DESIGN BLOCKED — SAFE IMPLEMENTATION REQUIRES AN UPLOAD-CAPACITY DECISION**
+**Status: DESIGN APPROVED CANDIDATE — READY FOR SEC-012 IMPLEMENTATION REVIEW**
 
 This is a documentation-only design candidate. It does not implement application code, SQL, migrations, tests, configuration, deployment, or provider changes.
 
@@ -13,7 +13,7 @@ The recommended SEC-012 control is a server-owned, fail-closed public-intake gat
 3. A service-only atomic database RPC claims one request slot and creates one short-lived proof in the same transaction. The public submit RPC consumes that proof exactly once and verifies its publication and bucket binding under its existing tenant/vacancy checks.
 4. The request body is bounded before multipart parsing. Invalid, missing, or forged `Content-Length` cannot cause an unbounded `formData()` parse.
 
-The design cannot safely state one implementation-ready upload cap yet. Current Recruitment document validation permits a 10 MiB document, while the current public endpoint is a Node.js Vercel Function and Vercel documents a 4.5 MB request/response payload limit. Preserving the existing 10 MiB upload contract therefore requires an approved transport change; choosing a route cap within the Vercel limit changes the public upload contract. This is a genuine product/platform decision, so implementation is intentionally not started.
+The upload-capacity decision is now frozen for Public Recruitment V1: the maximum uploaded recruitment document is exactly `4,000,000` bytes and the maximum complete public recruitment request body is exactly `4,250,000` bytes. The previous `10 * 1024 * 1024` allowance is superseded for the Vercel public Recruitment application route only. This leaves headroom below Vercel's documented 4.5 MB Function boundary for multipart framing and normal recruitment fields. No upload-transport redesign is part of SEC-012; larger public files require a separate Public Recruitment Upload Transport capability/design.
 
 ## Baseline
 
@@ -28,6 +28,15 @@ The design cannot safely state one implementation-ready upload cap yet. Current 
 - Current public security posture remains fail-closed when Turnstile, rate-limit pepper, or malware-scanner configuration is unavailable.
 
 No app, test, migration, package, version, Supabase, Vercel, GitHub, or canonical environment file was changed for this design.
+
+### Frozen product and transport decision
+
+- `PUBLIC_RECRUITMENT_DOCUMENT_MAX_BYTES = 4,000,000` exactly.
+- `PUBLIC_RECRUITMENT_REQUEST_MAX_BYTES = 4,250,000` exactly.
+- These are decimal byte values, not MiB conversions.
+- The former 10 MiB public Recruitment document allowance is superseded only for this Vercel public application route.
+- Employee Documents, Company Documents, Document Studio assets, authenticated internal uploads, and other Recruitment/internal paths must not be reduced by this decision. If the current validator is shared, the implementation must introduce an explicit public limit rather than changing unrelated contracts.
+- Browser direct-to-storage, pre-signed quarantine, multipart/chunked upload, Vercel Blob, a new upload service/provider, and preserving public files above 4,000,000 bytes are explicitly out of scope.
 
 ## Source evidence
 
@@ -165,7 +174,7 @@ The route must apply it before `request.formData()` or `request.json()`:
 - Apply the same cap to JSON and multipart. Keep field count, field length, answer count, filename length, and document-byte checks bounded in the schema/service layer.
 - Return 413 without Turnstile, database access, scanner access, storage access, or detailed body diagnostics.
 
-The configured cap must be an explicit public Recruitment contract, not silently inherited from the current generic 27 MiB `proxyClientMaxBodySize`. Vercel’s documented 4.5 MB Node.js Function limit applies before application code and means an application cap must be below that limit if the existing Vercel route remains the transport. Exact cap selection is blocked pending the upload decision in Open technical items.
+The configured cap is frozen as `4,250,000` bytes for this public Recruitment route, not silently inherited from the current generic 27 MiB `proxyClientMaxBodySize`. The individual public document cap is frozen as `4,000,000` bytes. Vercel's documented 4.5 MB Node.js Function limit applies before application code; the approved caps intentionally retain provider headroom. The implementation must not lower unrelated internal upload limits or attempt to maximize the public file size up to the provider boundary.
 
 ### Scanner and downstream ordering
 
@@ -202,7 +211,7 @@ Allowlisted event fields:
 - an opaque request/deployment correlation ID only when already supplied by the platform and safe to retain
 - an opaque publication scope identifier only if the existing logging policy permits it
 
-Never log raw IP, HMAC key, email, idempotency key, challenge token, proof, authorization header, document name/content, scanner API key, scanner response body, or Supabase error payload. Confirm the actual platform log retention period and access policy during release review; this design does not create a new retention store.
+Never log raw IP, HMAC key, email, idempotency key, challenge token, proof, authorization header, document name/content, scanner API key, scanner response body, or Supabase error payload. Confirm the actual platform log retention period and access policy as an operations/governance follow-up; unknown retention duration is not an SEC-012 correctness blocker and this design does not create a new retention store.
 
 ## SEC-005 overlap and boundary
 
@@ -218,7 +227,7 @@ SEC-005 remains a separate residual for canonical host/origin resolution, forwar
 
 The implementation migration should:
 
-- Keep `public.recruitment_public_intake_limits` as the per-publication/per-bucket/per-window counter with its existing unique key and request-count constraint. Existing legacy proof columns may remain inert for one bounded compatibility window; the new path must not read or write them. Do not maintain two active proof sources.
+- Keep `public.recruitment_public_intake_limits` as the per-publication/per-bucket/per-window counter with its existing unique key and request-count constraint. Use an additive forward migration: retain existing objects initially where required, deploy the new flow using only the new authoritative proof table, verify it, and leave destructive cleanup/removal of obsolete proof columns or objects to a separately reviewed cleanup migration. Do not build a complex migration for short-lived legacy proofs and do not maintain two active proof sources after cutover.
 - Add `public.recruitment_public_intake_proofs` with UUID primary key, publication/tenant/HR-group scope, `bucket_key_hash`, unique `proof_hash`, `window_started_at`, `issued_at`, `expires_at`, `consumed_at`, and creation metadata. Store only the digest, never the raw proof.
 - Add a composite publication/bucket/window lookup index if the existing unique index does not provide the required plan, a proof-hash lookup index/constraint, and a partial expiry index for unconsumed proofs. Keep tenant/HR-group/publication foreign-key coverage consistent with Recruitment foundation constraints.
 - Enable RLS on the new table and add an explicit deny-all policy for public access. Revoke table privileges from `public`, `anon`, and `authenticated`; grant only the minimum service/definer privileges needed by the claim and submit functions. Direct table reads/writes by a browser remain impossible.
@@ -305,19 +314,13 @@ Run only after the upload-capacity decision and approved implementation:
 
 Do not use a mocked final flow as production evidence. Test doubles are appropriate only for deterministic unit and ordering tests.
 
-## Open technical items and genuine blocker
+## Remaining technical items — not design blockers
 
-1. **Upload capacity decision — BLOCKING.** `validateRecruitmentDocument` currently permits a 10 MiB document and the public route is a Node.js Vercel Function with a documented 4.5 MB payload limit. Security requires an early route/provider cap, but lowering the public cap would weaken a legitimate current upload contract. The owner must choose one of:
-   - approve a public Vercel-route cap below 4.5 MB and explicitly approve the resulting public document-size contract; or
-   - approve a transport redesign that preserves 10 MiB (for example, a separately reviewed streaming/direct-quarantine flow using existing infrastructure or another approved provider boundary).
+1. **Proxy topology — implementation/release gate.** Confirm the public Production and Preview domains terminate directly at Vercel or document an approved Verified Proxy contract. This is not a product blocker. If an unreviewed custom reverse proxy/CDN is discovered, stop before trusting client identity and obtain a separate trusted-proxy review.
 
-   SEC-012 implementation must not silently choose either option, claim that `proxyClientMaxBodySize` overrides the provider limit, or weaken scanner/storage controls to fit the limit.
+2. **Legacy proof rows — migration preflight.** Inspect canonical local and approved remote state read-only for unexpired legacy proofs before executing the additive migration. Do not repair migration history or mutate remote state during this inspection; short-lived expired state does not require a complex data migration.
 
-2. **Proxy topology — required before release.** Confirm the public production and preview domains terminate directly at Vercel or document an approved Verified Proxy contract. Until verified, unknown proxy topology is fail-closed.
-
-3. **Legacy proof rows — required before migration execution.** Inspect canonical local and approved remote read-only state for unexpired legacy proofs before choosing a one-migration cutover versus the bounded compatibility window described above. Do not repair migration history or mutate remote state during this inspection.
-
-4. **Log retention — required before release.** Confirm platform log retention/access policy for the allowlisted security events. No new persistent audit table is proposed.
+3. **Log retention — governance follow-up.** Confirm platform log retention/access policy for the allowlisted security events. This is not an SEC-012 correctness blocker and no new persistent audit table is proposed.
 
 ## Files changed by this design candidate
 
@@ -331,4 +334,4 @@ This branch will receive documentation-only checks: whitespace validation, exact
 
 ## Next
 
-Resolve the upload-capacity decision, confirm proxy topology, and obtain security review approval. Only then create a separate implementation task from the approved design; implementation must start from a freshly verified baseline and repeat the migration-drift and canonical-environment preflight.
+Proceed to SEC-012 implementation review. Before implementation, confirm the direct-Vercel topology and perform the additive migration preflight against read-only local/approved remote state. Implementation must start from a freshly verified baseline and repeat the migration-drift and canonical-environment preflight. SEC-012 remains OPEN until implementation, migration, acceptance, and Production verification are complete.
