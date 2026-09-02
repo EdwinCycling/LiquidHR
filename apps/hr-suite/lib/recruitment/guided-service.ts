@@ -255,6 +255,10 @@ export async function runRecruitmentRetention(limit: number, client: SupabaseSer
   return parseObject(await rpc(client).rpc('recruitment_run_retention', { requested_limit: limit }))
 }
 
+export async function runRecruitmentPublicIntakeCleanup(limit: number, client: SupabaseServerClient) {
+  return parseObject(await rpc(client).rpc('recruitment_cleanup_public_intake', { requested_limit: limit }))
+}
+
 export async function createRecruitmentAdminClientForStorage(): Promise<SupabaseClient<Database>> {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   return createAdminClient()

@@ -47,6 +47,8 @@ insert into public.recruitment_publications (id, tenant_id, hr_group_id, vacancy
   ('98000000-0000-4000-8000-000000000002', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', '93000000-0000-4000-8000-000000000001', 'test-recruitment-closed', 'CLOSED', 'TEST-RECRUITMENT-CLOSED', null, timezone('utc', now()));
 insert into public.recruitment_public_intake_limits (id, publication_id, tenant_id, hr_group_id, bucket_key_hash, proof_hash, window_started_at, verified_at, expires_at)
 values ('99000000-0000-4000-8000-000000000001', '98000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', repeat('b', 64), encode(extensions.digest('TEST-RECRUITMENT-PROOF-000000000000', 'sha256'), 'hex'), timezone('utc', now()), timezone('utc', now()), timezone('utc', now()) + interval '10 minutes');
+insert into public.recruitment_public_intake_proofs (id, publication_id, tenant_id, hr_group_id, bucket_key_hash, proof_hash, window_started_at, issued_at, expires_at)
+values ('9a000000-0000-4000-8000-000000000001', '98000000-0000-4000-8000-000000000001', '07249eb9-545c-883b-b26b-d52f83b4f4a1', '6ba6f1df-e376-40f2-abff-ffdf000172e1', repeat('c', 64), encode(extensions.digest('TEST-RECRUITMENT-PROOF-000000000000', 'sha256'), 'hex'), timezone('utc', now()), timezone('utc', now()), timezone('utc', now()) + interval '10 minutes');
 
 -- HR actor: own HR-group rows only; other tenant remains zero.
 select set_config('request.jwt.claim.sub', 'b86f6a66-276d-4f3d-a985-230f2cca9fdb', true);
@@ -77,11 +79,45 @@ set local role anon;
 select 1 / ((select count(*) from public.recruitment_public_vacancy('98000000-0000-4000-8000-000000000001', 'test-recruitment-open')) = 1)::integer;
 select 1 / ((select count(*) from public.recruitment_public_vacancy('98000000-0000-4000-8000-000000000002', 'test-recruitment-closed')) = 0)::integer;
 select 1 / (not has_table_privilege(current_user, 'public.recruitment_applications', 'select'))::integer;
+select 1 / (not has_table_privilege(current_user, 'public.recruitment_public_intake_proofs', 'select'))::integer;
+select 1 / (not has_table_privilege(current_user, 'public.recruitment_public_intake_limits', 'select'))::integer;
+select 1 / (not has_function_privilege(current_user, 'public.recruitment_claim_public_intake(uuid,text,text)', 'execute'))::integer;
 select 1 / (public.recruitment_submit_public_application(
   '98000000-0000-4000-8000-000000000001', 'test-recruitment-open',
   '{"firstName":"TEST","lastName":"RECRUITMENT-PUBLIC","email":"test-recruitment-public@example.invalid"}'::jsonb,
-  'TEST-RECRUITMENT-PROOF-000000000000'
+  'TEST-RECRUITMENT-PROOF-000000000000', repeat('c', 64)
 ) is not null)::integer;
+do $public_proof_replay$
+begin
+  begin
+    perform public.recruitment_submit_public_application(
+      '98000000-0000-4000-8000-000000000001', 'test-recruitment-open',
+      '{"firstName":"TEST","lastName":"RECRUITMENT-PUBLIC-REPLAY","email":"test-recruitment-public-replay@example.invalid"}'::jsonb,
+      'TEST-RECRUITMENT-PROOF-000000000000', repeat('c', 64)
+    );
+    raise exception 'TEST_RECRUITMENT_EXPECTED_PROOF_REPLAY_REJECTION';
+  exception
+    when others then
+      if sqlerrm <> 'RECRUITMENT_PUBLIC_PROOF_INVALID' then raise; end if;
+  end;
+end
+$public_proof_replay$;
+reset role;
+
+-- The service-only claim is atomic at the five-slot boundary and issues one
+-- independent proof row per successful claim.
+select set_config('request.jwt.claim.role', 'service_role', true);
+set local role service_role;
+select 1 / (((public.recruitment_claim_public_intake('98000000-0000-4000-8000-000000000001', repeat('d', 64), repeat('e', 64))->>'accepted')::boolean))::integer;
+select 1 / (((public.recruitment_claim_public_intake('98000000-0000-4000-8000-000000000001', repeat('d', 64), repeat('g', 64))->>'accepted')::boolean))::integer;
+select 1 / (((public.recruitment_claim_public_intake('98000000-0000-4000-8000-000000000001', repeat('d', 64), repeat('i', 64))->>'accepted')::boolean))::integer;
+select 1 / (((public.recruitment_claim_public_intake('98000000-0000-4000-8000-000000000001', repeat('d', 64), repeat('k', 64))->>'accepted')::boolean))::integer;
+select 1 / (((public.recruitment_claim_public_intake('98000000-0000-4000-8000-000000000001', repeat('d', 64), repeat('m', 64))->>'accepted')::boolean))::integer;
+select 1 / (((public.recruitment_claim_public_intake('98000000-0000-4000-8000-000000000001', repeat('d', 64), repeat('o', 64))->>'accepted')::boolean = false))::integer;
+select 1 / ((select count(*) from public.recruitment_public_intake_limits where publication_id = '98000000-0000-4000-8000-000000000001' and bucket_key_hash = repeat('d', 64) and request_count = 5) = 1)::integer;
+select 1 / ((select count(*) from public.recruitment_public_intake_proofs where publication_id = '98000000-0000-4000-8000-000000000001' and bucket_key_hash = repeat('d', 64)) = 5)::integer;
+select 1 / ((select count(*) from public.recruitment_public_intake_limits where publication_id = '98000000-0000-4000-8000-000000000001' and bucket_key_hash = repeat('n', 64)) = 0)::integer;
+select 1 / (((public.recruitment_cleanup_public_intake(100)->>'proofsRemoved')::integer) >= 0)::integer;
 reset role;
 
 -- Reject/hire revoke immediately; reopen never restores old participant rows; retention is recomputed.

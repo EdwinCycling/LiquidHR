@@ -1,36 +1,43 @@
 import { NextResponse } from 'next/server'
-import { createPublicIntakeProof, scanAndStorePublicDocument } from '@/lib/recruitment/public-intake-service'
+import { BoundedRequestBodyError, readBoundedRequest } from '@/lib/http/bounded-request-body'
+import { getTrustedClientIdentity } from '@/lib/security/trusted-client-identity'
+import { createPublicIntakeProof, scanPublicDocument, storePublicDocument } from '@/lib/recruitment/public-intake-service'
 import { publicApplicationInputSchema, submitPublicRecruitmentApplication } from '@/lib/recruitment/application-service'
 import { RecruitmentError } from '@/lib/recruitment/errors'
-import { validateRecruitmentDocument, createRemoteMalwareScannerAdapter, type RecruitmentDocument } from '@/lib/recruitment/public-security'
+import { PUBLIC_RECRUITMENT_DOCUMENT_MAX_BYTES, validateRecruitmentDocument, type RecruitmentDocument } from '@/lib/recruitment/public-security'
 import { getPublicVacancy } from '@/lib/recruitment/public-repository'
 
 export async function POST(request: Request, { params }: { params: Promise<{ publicId: string }> }): Promise<NextResponse> {
   try {
     const { publicId } = await params
-    const payload = await readPayload(request)
+    const boundedRequest = await readBoundedRequest(request)
+    const payload = await readPayload(boundedRequest)
     const parsed = publicApplicationInputSchema.safeParse(payload.input)
     if (!parsed.success) return NextResponse.json({ code: 'RECRUITMENT_PUBLIC_INPUT_INVALID' }, { status: 422 })
+    const document = payload.file
+    if (document) {
+      const validation = validateRecruitmentDocument(document, { maxBytes: PUBLIC_RECRUITMENT_DOCUMENT_MAX_BYTES })
+      if (!validation.ok) return NextResponse.json({ code: validation.code }, { status: 422 })
+    }
     const vacancy = await getPublicVacancy(publicId, payload.slug)
     if (!vacancy) return NextResponse.json({ code: 'RECRUITMENT_PUBLIC_VACANCY_NOT_FOUND' }, { status: 404 })
     const config = typeof vacancy.content.formConfig === 'object' && vacancy.content.formConfig !== null ? vacancy.content.formConfig as Record<string, unknown> : {}
     const mode = (value: unknown): 'HIDDEN' | 'OPTIONAL' | 'REQUIRED' => value === 'HIDDEN' || value === 'REQUIRED' ? value : 'OPTIONAL'
     if ((mode(config.phone) === 'REQUIRED' && !parsed.data.phone.trim()) || (mode(config.motivation) === 'REQUIRED' && !parsed.data.motivation.trim()) || (mode(config.cv) === 'REQUIRED' && !payload.file) || (mode(config.cv) === 'HIDDEN' && payload.file)) return NextResponse.json({ code: 'RECRUITMENT_PUBLIC_INPUT_INVALID' }, { status: 422 })
-    const document = payload.file
-    if (document) {
-      const validation = validateRecruitmentDocument(document)
-      if (!validation.ok) return NextResponse.json({ code: validation.code }, { status: 422 })
-      const scan = await createRemoteMalwareScannerAdapter().scan(document)
-      if (scan.status === 'UNAVAILABLE') return NextResponse.json({ code: 'RECRUITMENT_MALWARE_SCANNER_UNAVAILABLE', state: 'SECURITY_BLOCKED' }, { status: 503 })
-      if (scan.status === 'REJECTED') return NextResponse.json({ code: 'RECRUITMENT_DOCUMENT_REJECTED', state: 'SECURITY_BLOCKED' }, { status: 422 })
-    }
-    const address = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? 'unknown'
-    const proof = await createPublicIntakeProof({ publicationId: publicId, challengeToken: parsed.data.challengeToken, networkAddress: address, formFingerprint: `${parsed.data.idempotencyKey}:${parsed.data.email}` })
-    const applicationId = await submitPublicRecruitmentApplication(publicId, payload.slug, parsed.data, proof)
-    if (document) await scanAndStorePublicDocument(applicationId, document)
+    const identity = getTrustedClientIdentity(request)
+    if (!identity.ok) throw new RecruitmentError('RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE', 503)
+    const claim = await createPublicIntakeProof({ publicationId: publicId, challengeToken: parsed.data.challengeToken, trustedClientIdentity: identity.identity })
+    const scan = document ? await scanPublicDocument(document) : null
+    const applicationId = await submitPublicRecruitmentApplication(publicId, payload.slug, parsed.data, claim.proof, claim.bucketKeyHash)
+    if (document && scan) await storePublicDocument(applicationId, document, scan)
     return NextResponse.json({ data: { accepted: true }, state: 'CONFIRMED' }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
-    if (error instanceof RecruitmentError) return NextResponse.json({ code: error.code, state: error.code.startsWith('RECRUITMENT_BOT_') || error.code.startsWith('RECRUITMENT_MALWARE_') ? 'SECURITY_BLOCKED' : undefined }, { status: error.status })
+    if (error instanceof BoundedRequestBodyError) return NextResponse.json({ code: error.code }, { status: error.status, headers: { 'Cache-Control': 'no-store' } })
+    if (error instanceof RecruitmentError) {
+      const headers = new Headers({ 'Cache-Control': 'no-store' })
+      if (error.status === 429 && Number.isInteger(error.retryAfterSeconds)) headers.set('Retry-After', String(error.retryAfterSeconds))
+      return NextResponse.json({ code: error.code, state: error.code.startsWith('RECRUITMENT_BOT_') || error.code.startsWith('RECRUITMENT_MALWARE_') ? 'SECURITY_BLOCKED' : undefined }, { status: error.status, headers })
+    }
     throw error
   }
 }
