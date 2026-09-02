@@ -1,27 +1,29 @@
 # LiquidHR — Document Studio MVP Product Contract
 
-**Status:** FROZEN — READY FOR DM-0 ARCHITECTURE
-**Datum:** 1 september 2026
+**Status:** PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR DM-0 ARCHITECTURE AMENDMENT / FEASIBILITY
+**Datum:** 2 september 2026
 **Productnaam in UI:** Document Studio
 **Onderliggende capability:** LiquidHR Document Platform
 **Epic-prefix:** `DM-` (historisch: DocMerge)
 
-> Dit contract vervangt conflicterende of inmiddels achterhaalde productkeuzes uit de eerdere pre-implementation master. Met name geldt voor het MVP dat onbekende/vrije placeholders **geen first-class Document Fields** zijn.
+> Dit contract amendeert het eerdere frozen contract. De eerdere Word-first authoringkeuze blijft hieronder als historische traceerbaarheid bewaard, maar is voor V1 **SUPERSEDED**. Document Studio V1 gebruikt LiquidHR-native structured document authoring. Onbekende/vrije placeholders zijn nog steeds **geen first-class Document Fields**.
 
 ## 1. Productdoel
 
-Document Studio laat een HR Admin voor één medewerker vanuit een HR-group Word-template een professioneel HR-document maken.
+Document Studio laat een HR Admin voor één medewerker vanuit een HR-group een professioneel HR-document samenstellen met een LiquidHR-native structured template.
 
 LiquidHR:
-1. vult bekende Employee-, Employment-, Company- en contextdata automatisch in;
-2. ondersteunt optionele peildatum/change-context waar een template dat vereist;
-3. vraagt onbekende vrije `##`-codes tijdens deze generatie handmatig uit;
-4. valideert bekende verplichte data;
-5. toont altijd een verplichte preview;
-6. genereert een gecontroleerde immutable PDF;
-7. bewaart het document in Document Studio;
-8. kan het document optioneel aan het medewerkerdossier koppelen;
-9. bewaart audit- en snapshotinformatie zolang het document bestaat.
+1. laat een HR Admin een native structured template authoren en lifecycle/versioneren;
+2. stelt optioneel een Cover Template en nul of meer Appendix Templates samen rond exact één Body;
+3. vult bekende Employee-, Employment-, Organisation-/Document Profile- en contextdata automatisch in;
+4. ondersteunt optionele peildatum/change-context waar een template dat vereist;
+5. vraagt onbekende vrije `##`-codes tijdens deze generatie handmatig uit;
+6. valideert bekende verplichte data;
+7. toont altijd een verplichte Preview;
+8. genereert via dezelfde controlled render semantics een immutable final PDF;
+9. bewaart het document in Document Studio;
+10. kan het document optioneel aan het medewerkerdossier koppelen;
+11. bewaart audit-, component-version- en snapshotinformatie zolang het document bestaat.
 
 North star:
 > The document is not the process. The document is a controlled outcome of the HR process.
@@ -32,8 +34,14 @@ North star:
 - zichtbare module **Document Studio**;
 - HR Admin individual create flow;
 - HR-group-scoped template library;
-- Word-first template authoring;
-- template upload, scan, validation, versioning en lifecycle;
+- LiquidHR-native structured template authoring;
+- `DOCUMENT TEMPLATE`, `COVER TEMPLATE` en `APPENDIX TEMPLATE`;
+- structured editor document met gecontroleerde primitives en template lifecycle/versioning;
+- document composition: optionele cover, exact één body, nul of meer geordende appendices;
+- first-class header, footer, page numbering en page break semantics;
+- Document Profile-concept voor goedgekeurde document-facing organisation data;
+- block images/assets met deterministische positionering;
+- template validation, versioning en lifecycle;
 - placeholders met `##`-syntax;
 - bekende LiquidHR-velden via allowlisted semantic field catalog;
 - optionele tijdelijke/peildatumcontext per template;
@@ -52,7 +60,19 @@ North star:
   2. Werkgeversverklaring.
 
 ### Niet in MVP
+- DOCX als canonical source;
+- DOCX template upload/import;
 - DOCX export;
+- DOCX → PDF runtime generation;
+- Gotenberg of LibreOffice als vereiste V1-infrastructuur;
+- Word round-trip support;
+- floating/absolute images, text wrapping en vrije drag-positioning;
+- text boxes, arbitrary shapes, WordArt en complexe Word sections;
+- vrije multi-column layout of arbitrary 3+ column designer;
+- conditional content, conditional clause engine en repeating sections;
+- first-class Clause Library;
+- arbitrary uploaded PDF/DOCX appendix merging;
+- complete Word compatibility;
 - signing/acknowledgement;
 - manager tasks;
 - employee tasks;
@@ -71,8 +91,10 @@ North star:
 
 ### V1.x / later
 - multi-send / Documents by Exception;
-- richer/in-app template editor;
-- DOCX export;
+- Word-template import als best-effort conversie naar een LiquidHR structured document, met HR Admin review/correctie;
+- veilige rich copy/paste uit Word als sanitization dit toelaat;
+- rijkere native editor-capabilities binnen de gecontroleerde modelgrenzen;
+- DOCX export of andere exchange formats alleen na afzonderlijke productbeslissing;
 - signing;
 - employee/manager actions;
 - AI Template Import;
@@ -148,6 +170,7 @@ Er worden geen twee verschillende documentengines of flows gebouwd.
 ### Minimale productmetadata
 - naam;
 - omschrijving;
+- template type (`DOCUMENT`, `COVER` of `APPENDIX`);
 - documenttype;
 - categorie;
 - taal;
@@ -156,6 +179,8 @@ Er worden geen twee verschillende documentengines of flows gebouwd.
 - templateversie;
 - status;
 - default dossierkeuze;
+- composition references en expliciete appendix-volgorde waar relevant;
+- Document Profile/default branding reference waar relevant;
 - retention policy via documenttype;
 - created/updated metadata.
 
@@ -180,54 +205,184 @@ Geen runtime vertaling van één template in MVP.
 
 Exacte activatiesemantiek per logical template/version wordt in DM-0 uitgewerkt.
 
-## 7. Word-first authoring
+## 7. Native structured authoring — V1 canonical
 
-### MVP
-Word/DOCX is de primaire template-authoringroute.
+### 7.1 Canonical source en generation pipeline
 
-Flow:
-1. Word-template maken;
-2. `##` placeholders toevoegen;
-3. uploaden;
-4. LiquidHR scant placeholders;
-5. LiquidHR classificeert bekende en onbekende placeholders;
-6. LiquidHR valideert;
-7. gebruiker corrigeert blocking errors;
-8. template opslaan als Draft / activeren.
+De canonical source van Document Studio V1 is een LiquidHR-native structured
+editor document. DOCX of Microsoft Word is geen authoring boundary en geen
+canonical template source.
 
-### Formattingregel
-Voor een Word-template bouwt LiquidHR geen eigen formatteringsmodel na.
+De conceptuele pipeline is:
 
-De renderer moet de bestaande DOCX-layout zoveel mogelijk behouden.
+```text
+LiquidHR native editor
+→ structured editor document
+→ controlled render model / HTML-CSS
+→ mandatory Preview
+→ immutable final PDF
+```
 
-Minimale acceptance-baseline bevat ten minste:
-- headers;
-- footers;
-- page breaks;
+De exacte editorlibrary en server-side PDF-runtime zijn in deze productbeslissing
+niet vastgelegd. Tiptap/ProseMirror is een preferred architecture feasibility
+candidate, geen verplichte dependency. De editor is geen Word-clone.
+
+### 7.2 Template types en composition
+
+V1 kent drie lifecycle- en versiegecontroleerde template types:
+
+| Type | Rol | Cardinaliteit in een generated document |
+|---|---|---|
+| `DOCUMENT TEMPLATE` | primaire body/template voor het document | exact 1 |
+| `COVER TEMPLATE` | optionele cover/front matter | 0..1 |
+| `APPENDIX TEMPLATE` | herbruikbare back matter | 0..n |
+
+Een generated document is een structured composition, niet één ongestructureerde
+rich-text blob:
+
+```text
+Cover 0..1
+Header 0..1
+Body exactly 1
+Appendices 0..n
+Footer 0..1
+```
+
+Een Document Template kan zonder cover werken, een geselecteerde Cover Template
+gebruiken of een geconfigureerde default Cover Template uit het relevante
+Document Profile gebruiken wanneer die capability in de eerste implementatie
+beschikbaar is. Een cover kan de normale body header/footer onderdrukken.
+
+Cover content gebruikt dezelfde supported native primitives en kan onder meer
+logo, document title, subtitle, employee name, organisation, date, document type
+en een optioneel confidentiality label bevatten. Een separate free-layout
+canvas is niet onderdeel van V1.
+
+Een Document Template kan nul of meer Appendix Templates opnemen. HR Admin
+bepaalt de expliciete volgorde. Iedere generatie snapshot de exacte appendix-
+templateversies; latere wijzigingen aan een appendix veranderen geen bestaand
+document. Appendices beginnen standaard op een nieuwe pagina.
+
+Een addendum is geen aparte engine: het is een normaal Document Template. Een
+herbruikbare standaardsectie die achter andere documenten komt, is een Appendix
+Template.
+
+### 7.3 Gecontroleerde V1-editorcatalogus
+
+Ondersteunde tekstprimitives:
+
+- paragraph;
+- heading 1–3;
+- bold, italic en underline;
+- gecontroleerde font-size set en font allowlist;
+- left, center en right alignment;
+- bullet list en numbered list;
+- line spacing en paragraph spacing;
+- horizontal rule.
+
+Ondersteunde structure primitives:
+
+- table;
+- first-class `TwoColumnBlock`;
+- page break.
+
+Ondersteunde documentprimitives:
+
+- A4-output en gecontroleerde margins;
+- header en footer;
 - page numbering;
-- multiple pages;
-- embedded mergevelden;
-- font type;
-- font size;
-- bold;
-- italic;
-- special characters;
-- euro/accenten;
-- afbeeldingen;
-- tabs;
-- spacing;
-- bullets.
+- cover en appendices.
 
-Bestaande **tabellen** in een Word-template moeten behouden/rendered worden.
+### 7.4 Tables en TwoColumnBlock
 
-Bestaande **afbeeldingen/logo's** in een Word-template moeten behouden worden.
+V1-tabellen ondersteunen rows/columns, text, placeholders, images in cells,
+basic alignment, controlled column widths, borders on/off en add/delete row of
+column. Nested tables, arbitrary free-positioned tables en extreem complexe
+merged-cell Word-layouts zijn niet ondersteund.
 
-Geen dynamische repeating tables in MVP.
+Voor de veelvoorkomende compositie image/icon links plus text rechts gebruikt
+V1 bij voorkeur de first-class `TwoColumnBlock`, niet een tabel met onzichtbare
+opmaak. De begrensde presets zijn conceptueel `25/75`, `33/67`, `50/50`,
+`67/33` en `75/25`. Iedere zijde mag bounded supported content bevatten zoals
+text, heading, image, placeholder of list. Er is geen vrije grid en geen
+arbitrary 3+ column designer.
 
-### In-app editor later
-Wanneer een in-app editor wordt gebouwd, gelden bovenstaande MUST-formattingcapabilities als productreferentie.
+### 7.5 Images en positionering
 
-De in-app editor wordt geen volledige Word-clone.
+Images zijn in V1 structural en deterministic. Het basiselement is een
+`BLOCK IMAGE` met controlled resize, preserved aspect ratio, left/center/right
+alignment, alt text, replace/delete en een safe asset reference. Een image mag
+ook in een table cell, `TwoColumnBlock`, cover, header of footer voorkomen.
+
+Niet ondersteund zijn floating images, absolute X/Y-positioning, text wrapping,
+behind/in-front-of-text, Word-style anchors, arbitrary drag positioning en een
+vrije inline-flow image in text runs. De historische image-positioning-problemen
+zijn de reden voor deze structurele beperking.
+
+### 7.6 Header, footer en pagination
+
+Header en Footer zijn first-class separate template regions. Zij kunnen de
+bounded primitives bevatten die nodig zijn voor professionele HR-documenten:
+text, placeholder, image/logo, alignment, bounded two-column layout en page
+numbering waar passend. Zij herhalen via renderer semantics op relevante pagina's
+en worden niet als gekopieerde bodytekst gesimuleerd.
+
+Een page break is een first-class structural node, geen reeks lege paragraphs.
+Renderer semantics moeten deterministic professional pagination ondersteunen,
+waaronder waar haalbaar orphaned-heading avoidance, kleine layoutblokken en
+kleine table rows bij elkaar houden, grote normale tabellen laten doorlopen en
+appendices standaard op een nieuwe pagina starten. Volledige Microsoft Word
+pagination semantics worden niet beloofd.
+
+### 7.7 Document Profile
+
+Document Studio kent het productconcept `DOCUMENT PROFILE` voor approved
+document-facing organisation data. De concrete bestaande LiquidHR-domainnaam
+en storage ownership blijven leidend; er wordt geen tweede tenant- of
+organisatie-model ingevoerd.
+
+Een Document Profile kan conceptueel legal/company name, trading name, address,
+Chamber of Commerce/VAT identifiers waar beschikbaar, country, logo, contact
+details, default document branding, default header/footer settings en optioneel
+een default Cover Template leveren. De eerste implementatie mag dit bewust
+klein houden. Scope, organisatiekeuze en employee-context worden server-side
+afgeleid; client-input is nooit authoritative voor organisation substitution.
+
+### 7.8 Editor versus Preview
+
+De **Editor** is een continuous authoring canvas. Hij hoeft tijdens het bewerken
+geen exacte fysieke A4-paginering te tonen.
+
+De **Preview** is de authoritative print/document preview en toont A4, margins,
+cover, header/footer, page breaks, appendices, images, page numbering en
+resolved placeholder values waar van toepassing. Preview en final PDF gebruiken
+dezelfde canonical document/render semantics; er bestaat geen tweede
+formatteerlogica.
+
+Er zijn twee onderscheiden preview-contexten:
+
+- **Template Preview:** tijdens het ontwerpen, met sample/context values en
+  eventueel visueel herkenbare placeholders;
+- **Generation Preview:** met concrete employee/document/temporal/free-input
+  context. Deze preview is verplicht vóór Generate en representeert het output-
+  document dat immutable final artifact wordt.
+
+### 7.9 Historische Word-first beslissing — SUPERSEDED voor V1
+
+Het eerdere productcontract koos Word/DOCX als primaire template-authoringroute:
+een HR Admin maakte een Word-template, voegde `##` placeholders toe, uploadde
+het bestand, waarna LiquidHR placeholders scande, classificeerde en valideerde
+voor Draft/Active. Die beslissing en de bijbehorende rendereracceptatie-baseline
+(headers, footers, page breaks, page numbering, meerdere pagina's, mergevelden,
+fonts, formatting, special characters, euro/accenten, afbeeldingen, tabs,
+spacing, bullets en tabellen) blijven als historische audit trail behouden.
+
+Voor V1 is dit besluit vervangen door native structured authoring. DOCX
+canonical source, DOCX upload/import en DOCX → PDF generation zijn OUT OF MVP.
+Een latere best-effort Word-import kan converteren naar een LiquidHR structured
+document waarna HR Admin review/correctie doet; LiquidHR belooft geen permanente
+Word round-trip fidelity. Rich copy/paste uit Word is alleen een mogelijke
+latere capability als die veilig kan worden gesaniteerd.
 
 ## 8. Placeholdercontract
 
@@ -249,6 +404,20 @@ Syntax:
 Hetzelfde patroon kan op andere daarvoor geschikte semantic fields worden toegepast.
 
 Technische interne semantic keys hoeven niet identiek te zijn aan zichtbare templatecodes.
+
+In editor storage zijn placeholders atomic nodes en geen toevallig opgesplitste
+tekst die later opnieuw moet worden geparsed. Conceptueel:
+
+```text
+{ type: "placeholder", field: "salary", temporal: "wordt" }
+{ type: "free_placeholder", key: "DrankVoorkeur" }
+```
+
+De known semantic field catalog blijft de allowlist. De picker mag de codes
+mensvriendelijk als chips tonen en is conceptueel gecategoriseerd onder
+Employee, Employment, Job, Compensation, Organisation, Manager, Dates, Document
+en Free fields. De eerder goedgekeurde known/free/temporal-semantiek verandert
+niet.
 
 ## 9. Bekende LiquidHR-fields
 
@@ -352,7 +521,8 @@ Later kan dezelfde Document Platform capability aan een echte HR-change workflow
 
 ## 12. Template-validatie
 
-Een template wordt vóór activeren gescand en gevalideerd.
+Een template wordt vóór activeren schema-gevalideerd, genormaliseerd en
+veiligheidsgevalideerd.
 
 ### Blocking error
 Voorbeelden:
@@ -380,6 +550,7 @@ Warnings blokkeren activatie niet wanneer de template technisch veilig en uitvoe
 → `Bekende data resolven`
 → `Missing known data oplossen`
 → `Vrije codes optioneel invullen`
+→ `Cover + Body + geordende Appendices samenstellen`
 → `Validation`
 → `Mandatory Preview`
 → `Generate PDF`
@@ -401,7 +572,14 @@ Geen herhaalde verplichte popup.
 
 Preview is **altijd verplicht** vóór Generate.
 
-Preview moet dezelfde renderingpipeline/engine gebruiken als de uiteindelijke PDF, zodat preview en final output functioneel gelijk zijn.
+Template Preview en Generation Preview zijn verschillende contexten, maar
+gebruiken dezelfde canonical document/render semantics als de uiteindelijke PDF.
+Generation Preview is verplicht vóór Generate en toont de concrete samengestelde
+output inclusief cover, body, appendices, images, header/footer en page numbering.
+
+Preview moet dezelfde renderingpipeline/engine gebruiken als de uiteindelijke PDF,
+zodat preview en final output functioneel gelijk zijn. Er is geen aparte
+formatteerlogica voor Preview en final.
 
 Wijzigingen tijdens preview/preparation:
 - creëren geen documentversies;
@@ -420,7 +598,11 @@ DOCX export is geen MVP-feature.
 ### Final PDF
 Na Generate:
 - immutable artifact;
-- gekoppeld aan exacte templateversie;
+- gekoppeld aan exact samengestelde source: Document Template-version, optionele
+  Cover Template-version en Appendix Template-versions in expliciete volgorde;
+- Document Profile of resolved organisation snapshot waar gebruikt;
+- structured editor document en normalized render model;
+- header/footer definitions, page settings en safe asset references;
 - source snapshot;
 - gebruikte known-field values;
 - gebruikte vrije input;
@@ -428,6 +610,7 @@ Na Generate:
 - generated by;
 - generated at;
 - artifact integrity/hash zolang artifact bestaat;
+- renderer/version metadata waar architectonisch vereist;
 - audit.
 
 Latere wijzigingen aan employee-data of template veranderen het bestaande document niet.
@@ -536,7 +719,9 @@ Samen bewijzen deze twee journeys dat het platform generiek is en niet uitsluite
 
 ## 21. Security baseline voor DM-0
 
-Document Studio verwerkt gevoelige HR-data en DOCX-uploads.
+Document Studio verwerkt gevoelige HR-data, structured editor documents en
+image/logo-assets. Een toekomstige Word-import blijft een apart upload-
+securityvraagstuk.
 
 DM-0 moet ten minste ontwerpen/bevestigen:
 - tenant isolation;
@@ -546,12 +731,13 @@ DM-0 moet ten minste ontwerpen/bevestigen:
 - RLS defense-in-depth;
 - private storage;
 - short-lived authorized download URLs;
-- DOCX extension + MIME + magic/signature validation;
+- structured document schema validation en normalization;
+- veilige image-asset upload met MIME/signature validation;
 - safe filenames;
 - size/resource limits;
-- malicious/active content handling;
-- malware scanning/quarantine strategy;
-- external-reference policy;
+- malicious/active content handling voor assets en toekomstige Word-import;
+- malware scanning/quarantine strategy voor toekomstige uploaded files;
+- geen externe runtime-assets of ongecontroleerde HTML/CSS/URL-references;
 - path traversal protection;
 - fail-closed upload behavior;
 - rate limiting waar applicable;
@@ -565,18 +751,20 @@ Geen secret/config cleanup hoort bij deze workstream.
 ## 22. Success criteria MVP
 
 MVP is productmatig geslaagd wanneer een HR Admin:
-1. een Word-template veilig kan uploaden;
-2. placeholders automatisch laat detecteren;
-3. bekende HR-data correct laat resolven;
-4. optioneel peildatumcontext kan gebruiken;
-5. onbekende vrije codes zonder configuratiewerk kan invullen;
-6. een betrouwbare preview ziet;
-7. een professionele PDF genereert;
-8. die later exact kan herleiden naar template/context;
-9. het document kan terugvinden in Document Studio;
-10. het optioneel in dossier kan plaatsen;
-11. een fout document veilig kan verwijderen;
-12. dit alles zonder manager/employee/signing/bulk/AI-complexiteit.
+1. een native Document Template met gecontroleerde editorprimitives kan maken;
+2. optioneel een Cover Template en geordende Appendix Templates kan samenstellen;
+3. known placeholders als atomic semantic nodes kan gebruiken;
+4. bekende HR-, Employment-, Organisation-/Document Profile- en contextdata correct laat resolven;
+5. optioneel peildatumcontext kan gebruiken;
+6. onbekende vrije codes zonder configuratiewerk kan invullen;
+7. deterministische block images kan plaatsen in de ondersteunde containers;
+8. een betrouwbare Template Preview en verplichte Generation Preview ziet;
+9. een professionele immutable PDF genereert met dezelfde render semantics;
+10. die later exact kan herleiden naar composition, versions, profile/context en renderer metadata;
+11. het document kan terugvinden in Document Studio;
+12. het optioneel in dossier kan plaatsen;
+13. een fout document veilig kan verwijderen;
+14. dit alles zonder manager/employee/signing/bulk/AI-complexiteit.
 
 ## 23. Delivery roadmap
 
@@ -592,22 +780,24 @@ Deliverables:
 - generated-document/snapshot/audit model;
 - storage model;
 - permission model;
-- DOCX/PDF rendering choice + spike/feasibility;
+- native editor / controlled render / server-side PDF architecture + spike/feasibility;
+- Document/Cover/Appendix composition and Document Profile contract;
+- bounded formatting, image and pagination rules;
 - upload threat model;
 - retention/delete design;
 - migrations plan;
 - vertical-slice delivery plan.
 
-### DM-1 — Template Library & Secure Word Upload
-- navigation;
+### DM-1 — Native Template Library & Structured Editor
+- navigation and native template library;
 - template list;
 - metadata/category/tags;
 - HR-group scope;
 - Draft/Active/Archived;
 - versioning;
-- secure DOCX upload;
-- placeholder scan;
-- validation.
+- structured editor document;
+- controlled placeholder nodes and validation;
+- deterministic image asset references.
 
 ### DM-2 — Data Resolver & Temporal Context
 - semantic field catalog;
@@ -620,6 +810,8 @@ Deliverables:
 
 ### DM-3 — Preview & PDF Generation
 - preparation state;
+- Template Preview and mandatory Generation Preview;
+- Cover + Body + Appendix composition;
 - mandatory preview;
 - same render pipeline;
 - PDF generation;
@@ -650,11 +842,12 @@ Deliverables:
 
 Vanaf dit document geldt:
 - productkeuzes hierboven zijn leidend voor MVP;
-- oudere mastertekst blijft inspiratie/roadmapreferentie;
+- het eerdere Word-first besluit blijft historische traceerbaarheid maar is voor V1 SUPERSEDED;
+- oudere mastertekst blijft voor het overige inspiratie/roadmapreferentie;
 - bij conflict wint dit Product Contract;
 - DM-0 mag architectuurkeuzes maken die de productsemantiek niet veranderen;
 - een wijziging van MVP-productscope vereist expliciete productbeslissing;
 - geen implementatie van later-features "om alvast klaar te zijn", behalve nette seams/interfaces waar dat goedkoop en noodzakelijk is.
 
-**Product discovery voor het MVP is hiermee gesloten.**
-**Volgende stap: DM-0 Architecture & Foundation.**
+**Productbesluit voor native Document Studio V1 is hiermee gesloten.**
+**Volgende stap: DM-0 Architecture Amendment en NATIVE EDITOR → HTML/PDF FEASIBILITY SPIKE.**

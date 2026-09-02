@@ -1,10 +1,16 @@
 # Liquid HR documentatie-index
 
-## DM-0 Document Studio — 2026-09-01
+## Document Studio Native Editor Amendment — 2026-09-02
 
-**Status: ARCHITECTURE CANDIDATE — PRODUCT REVIEW REQUIRED**
+**Status: PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR DM-0 ARCHITECTURE AMENDMENT / FEASIBILITY**
 
-Het frozen productcontract en de architectuurkandidaat staan in [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md). DM-1 is niet gestart; deze kandidaat bevat geen app-code, migration, package- of remote wijziging.
+Het geamendeerde productcontract en de native-editorarchitectuur staan in [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md). De eerdere Word-first keuze blijft in beide documenten als historische, voor V1 superseded rationale bewaard. DM-1 is niet gestart; deze amendment bevat geen app-code, migration, package- of remote wijziging. De volgende gate is `NATIVE EDITOR → HTML/PDF FEASIBILITY SPIKE`.
+
+## Historische DM-0 Document Studio-kandidaat — 2026-09-01
+
+**Status: HISTORISCH — WORD-FIRST RATIONALE SUPERSEDED VOOR V1**
+
+De eerdere Product Review- en renderer-feasibilitybesluiten blijven behouden in de gitgeschiedenis, de delivery-context en het actuele DM-0-document. De rendering-feasibility-uitkomst was een environment block, geen architecture rejection; zij selecteert geen verplichte native V1-renderer.
 
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
@@ -759,7 +765,7 @@ Talentfundament is bereikbaar voor HR Admin via `Instellingen -> HR-inrichting` 
 | Entiteiteigendom en koppelingen | [`requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md`](requirements/multitenancy/ENTITEIT_EIGENAARSCHAP_EN_KOPPELMODEL.md) | LEIDEND | INSTRUCTIE VOOR NIEUWE MODULES |
 | Vrije velden | [`requirements/custom-fields/VRIJE_VELDEN.md`](requirements/custom-fields/VRIJE_VELDEN.md) | LEIDEND | GEÏMPLEMENTEERD VOOR EMPLOYEE, HR-groepbreed inclusief beheer-CRUD, actieve status, landcode en preview |
 | Documenten & compliance | [`requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md`](requirements/documents/DOCUMENTEN_EN_AI_COMPLIANCE.md) | LEIDEND | GEDEELTELIJK — veilig medewerkersdossier gereed; globale documenten en AI-compliance volgen later |
-| Document Studio MVP | [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md) | CONCEPT | DM-0 ARCHITECTURE CANDIDATE — PRODUCT REVIEW REQUIRED; het frozen Document Studio-contract is leidend voor deze nieuwe module |
+| Document Studio MVP | [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md) | LEIDEND | PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN; klaar voor DM-0 architecture amendment / feasibility |
 | Instellingen, modules, roosters en kalender | [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) | LEIDEND | GEÏMPLEMENTEERD — groepsbrede bedrijfsgegevens, branding, feestdagen, medewerker-pop-up en menuvolgorde; legacy Dashboard Widget-beheer is retired |
 | Liquid Display aanvulling | [`requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md`](requirements/liquid-display/LIQUID_DISPLAY_ENGINE.md) | LEIDEND | GEDEELTELIJK |
 | HeRa AI Agent | [`requirements/chatbot/HERA_AI_AGENT.md`](requirements/chatbot/HERA_AI_AGENT.md) | LEIDEND | GEÏMPLEMENTEERD EN PRODUCTIE-GEVERIFIEERD |

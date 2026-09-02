@@ -1,7 +1,7 @@
-# LiquidHR — DM-0 Document Studio Architecture & Foundation
+# LiquidHR — DM-0 Document Studio Native Editor Architecture Amendment
 
-**Status:** DM-0 ARCHITECTURE — PRODUCT APPROVED, READY FOR FEASIBILITY GATE
-**Datum:** 1 september 2026
+**Status:** PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR FEASIBILITY
+**Datum:** 2 september 2026
 **Scope:** repository discovery, architecture and delivery design only
 **Product:** Document Studio
 **Underlying capability:** LiquidHR Document Platform
@@ -9,13 +9,20 @@
 
 ## 1. Besluit en grenzen
 
-Dit document is het door Product Review geamendeerde architectuurdocument voor het frozen productcontract [`DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md). Het contract is leidend voor productsemantiek; dit document maakt alleen technische keuzes en markeert resterende implementatiedetails.
+Dit document is het amendement op het eerdere DM-0-architectuurdocument voor
+het geamendeerde productcontract [`DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md).
+Het contract is leidend voor productsemantiek; dit document beschrijft de
+nieuwe native structured authoring-seams en markeert resterende
+implementatiedetails.
+
+De eerdere Word-first architectuur blijft verderop als historische,
+superseded rationale bewaard. Zij is geen actieve V1-architectuur.
 
 DM-0 implementeert geen productfunctionaliteit. Er zijn in deze slice geen app-code, migration, package-installatie, Supabase/Vercel-mutatie, versie-bump of main-merge toegestaan. DM-1 is niet gestart.
 
 ### Bron- en instructievoorrang
 
-- De aangeleverde download `C:\Users\Edwin\Downloads\LIQUIDHR_DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md` is de externe productbron.
+- De aangeleverde eerdere download `C:\Users\Edwin\Downloads\LIQUIDHR_DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md` is de historische externe productbron; het geamendeerde repositorycontract is nu de actieve productbron.
 - De geplakte tekst is de actuele gebruikersopdracht: zij voegt uitvoeringsgrenzen, baseline-eisen, deliverables, branch- en verificatie-eisen toe.
 - Dit repositorydocument is de gecontroleerde kopie van het frozen contract. Bij verschil wint het frozen contract voor productkeuzes en wint de actuele gebruikersopdracht voor de uitvoering van DM-0.
 - [`DOCUMENTEN_EN_AI_COMPLIANCE.md`](DOCUMENTEN_EN_AI_COMPLIANCE.md) blijft een bestaande, aangrenzende/historische bron voor het huidige medewerkersdossier en latere compliance/OCR/RAG-richting. De daarin beschreven dynamische Document Fields, globale documenten en AI-compliance zijn niet leidend voor Document Studio MVP.
@@ -30,17 +37,19 @@ DM-0 implementeert geen productfunctionaliteit. Er zijn in deze slice geen app-c
 | `origin/main` SHA | `155ccbde373a06684e37d9746b01dd65931c870b` |
 | Laatste commit | `docs: record AN-6 production release` |
 | Zichtbare appversie | `1.20260901.1` uit `apps/hr-suite/lib/app-version.ts` |
-| Root werkboom vóór DM-0 | clean, `main...origin/main` |
-| DM-0 werkboom | geïsoleerd in `.codex-worktrees/dm0-document-studio-architecture` |
-| Branch | `work/dm0-document-studio-architecture` vanaf exact bovenstaande SHA |
+| Root werkboom vóór amendment | clean, branch `work/analyse-v2-foundation-discovery`, HEAD `ec66f981c9bc732b4445c76ea3d1d363b1ad567d`; niet aangeraakt |
+| Historische DM-0 werkboom | clean, `.codex-worktrees/dm0-document-studio-architecture`, head `247cc22f7009caccac3a87d715ec61cb2f7823ff` |
+| Bronbranch | `work/dm0-document-studio-architecture`, exact ongewijzigd gebruikt |
+| Amendment werkboom | geïsoleerd in `.codex-worktrees/document-studio-native-editor-amendment` |
+| Amendment branch | `work/document-studio-native-editor-amendment` vanaf exact de historische DM-0-head |
 | Canonical protected env | `apps/hr-suite/.env.local` bestaat; waarden niet gelezen of afgedrukt |
-| Poort 3000 | geen listener aangetroffen bij baselinecontrole |
+| Poort 3000 | niet nodig voor deze documentatie-only amendment |
 
 De huidige implementatie is bewust niet aangepast om Document Studio “alvast” te starten.
 
 ### Architectuurkaders
 
-De repository gebruikt Next.js App Router, typed server-side services en Supabase met RLS. Nieuwe feature slices volgen `schema → API/service → UI`; authorization is server-side en RLS is defense-in-depth. De bestaande UI-basis is LiquidHR UX Foundation v1. Document Studio moet een eigen module-ownershipregel krijgen en bestaande Foundation-primitives hergebruiken zodra DM-1 start.
+De repository gebruikt Next.js App Router, typed server-side services en Supabase met RLS. Nieuwe feature slices volgen `schema → API/service → UI`; authorization is server-side en RLS is defense-in-depth. De bestaande UI-basis is LiquidHR UX Foundation v1. Document Studio moet een eigen module-ownershipregel krijgen en bestaande Foundation-primitives hergebruiken zodra DM-1 start. Toekomstige implementatie blijft strict TypeScript zonder `any`, gebruikt geen nieuw UI-framework (geen MUI, Chakra, Ant, Radix of shadcn) en bewaart NL/EN-pariteit.
 
 ## 3. Capability-inventory: hergebruik en grenzen
 
@@ -54,11 +63,13 @@ De repository gebruikt Next.js App Router, typed server-side services en Supabas
 | Company data | `lib/company-data/service.ts`, `administration_company_data` en group/company bronnen | current/static merge mogelijk; geen company-history-contract aangetroffen |
 | Dossier uploads/downloads | `lib/documents/file-rules.ts`, `document-service.ts`, employee document routes/components | validatorlagen, private storage en signed-download patroon herbruikbaar; bestaande dossierentiteiten niet semantisch overbelasten |
 | Bedrijfsdocumenten | `company-document-service.ts` en company-document routes | patroon voor HR-group scoped private files; geen generated-document tabel hergebruiken |
-| File security primitives | `file-rules.ts`, `file-signatures.ts` | safe filename, request/file size, MIME/extensie, signature en SHA-256 zijn bruikbare onderlagen; DOCX-policy moet strenger zijn |
+| File security primitives | `file-rules.ts`, `file-signatures.ts` | safe filename, request/file size, MIME/extensie, signature en SHA-256 zijn bruikbare onderlagen voor image assets en een latere Word-import |
 | Tag cloud | `star_performer_tags`, `lib/talent/service.ts` en bestaande tag-manager | bestaande tenant-wide LiquidHR tag cloud gebruiken; geen tweede tagcatalogus |
 | Permissions | `lib/auth/permissions.ts`, bestaand `resource:action` model | dedicated template/document permissions; geen hardcoded rol als autorisatiekern |
 | Audit | bestaande `audit_logs` en centrale auditfuncties/triggers | bestaande auditbron gebruiken voor events; deletion tombstone is een smalle aanvullende retention-entiteit |
-| Private storage | buckets `employee-documents` en `company-documents`, storage policies, short-lived signed URLs | nieuw dedicated private Document Studio prefix/bucket adviseren |
+| Private storage | buckets `employee-documents` en `company-documents`, storage policies, short-lived signed URLs | dedicated private Document Studio prefix/bucket voor generated artifacts en safe assets adviseren |
+| Native editor/rendering | geen bestaande Document Studio implementation aangetroffen | nieuwe structured-document seam; geen bestaand rich-text blob- of Word-runtimecontract hergebruiken |
+| Organisation/document profile | bestaande company/administration/group-bronnen | Document Profile resolveert approved document-facing values; geen tweede tenantmodel |
 
 ### Niet rechtstreeks hergebruiken
 
@@ -77,10 +88,16 @@ Document Studio is een zelfstandige HR-group-scoped module:
 ```text
 tenant
 └── hr_group
+    ├── Document Profile / approved document-facing organisation data
     ├── document types
     ├── template logical identities
-    │   └── template versions (NL of EN per identity)
+    │   ├── Document Template identities
+    │   ├── Cover Template identities
+    │   └── Appendix Template identities
+    │       └── template versions (NL of EN per identity)
     └── generated documents
+        ├── exact composed component versions
+        ├── resolved Document Profile snapshot where used
         └── exactly one immutable employee context
 ```
 
@@ -109,7 +126,28 @@ Elke route/service controleert server-side:
 5. bij template: de template en versie binnen die group;
 6. bij download/delete/link: het generated document binnen dezelfde group en employee-relatie.
 
-RLS herhaalt deze grens met bestaande `internal_security` group-permission/access helpers. Client-side employee-, group-, template-, storage-key- of retentionvelden zijn nooit authoritative.
+RLS herhaalt deze grens met bestaande `internal_security` group-permission/access helpers. Client-side employee-, group-, template-, profile-, storage-key- of retentionvelden zijn nooit authoritative. Een Document Profile mag geen client-provided scope of uncontrolled organisation substitution introduceren.
+
+## 4a. Document Profile seam
+
+`DOCUMENT PROFILE` is een productconcept voor approved document-facing
+organisation data. De concrete bestaande LiquidHR-domainnaam en ownership
+blijven leidend: resolve bestaande company-, administration- en HR-group-bronnen
+waar passend en introduceer geen tweede tenant-, administratie- of
+organisatie-entiteit zonder afzonderlijk besluit.
+
+De seam kan legal/company name, trading name waar toepasselijk, address, Chamber
+of Commerce/VAT identifiers waar beschikbaar, country, logo, contact details,
+default document branding, default header/footer settings en optioneel een
+default Cover Template leveren. De eerste implementation mag een kleine
+subset ondersteunen.
+
+De service resolveert het profiel server-side uit de geautoriseerde actuele
+tenant/HR-group/context. De client mag alleen een profile reference binnen de
+toegelaten scope aanvragen; tenant, HR-group, administration, employee,
+organisation substitution, logo asset en retention blijven server-authoritative.
+De resolved waarden en gekozen profile identity worden bij Generate in de
+immutable snapshot opgenomen.
 
 ## 5. Temporal feasibility en Salary Change-gap
 
@@ -151,7 +189,7 @@ Er is op dit moment geen kandidaatveld dat als volledig bewezen, generiek Docume
 - `TWO_POINT`: modelmatig voorbereiden; geen fieldclaim zonder twee-point tests.
 - `WAS_IS_WORDT`: het platformcontract blijft reëel. Voor de eerste Salary Change-journey zijn alleen `Is` en `Wordt` nodig; historische `Was`-resolutie wordt afzonderlijk bewezen in DM-2. `Wordt` kan persisted future-effective data gebruiken als die bestaat, anders een handmatige documentwaarde zijn.
 
-De templatescan en preparation state dragen de gevraagde temporal mode; de catalogus beslist per field of de combinatie uitvoerbaar is. Een template wordt niet ACTIVE wanneer het een required temporal capability vraagt die niet beschikbaar is.
+De templatevalidatie en preparation state dragen de gevraagde temporal mode; de catalogus beslist per field of de combinatie uitvoerbaar is. Een template wordt niet ACTIVE wanneer het een required temporal capability vraagt die niet beschikbaar is.
 
 ### Exacte Salary Change-gap
 
@@ -213,6 +251,63 @@ De catalogus is een allowlist van stabiele interne keys met zichtbare templateco
 - Unknown valid `##Code` values are generation-only optional inputs. They are tracked in preparation and final snapshot, not in this catalog or `custom_field_definitions`.
 - Unknown/malformed/ambiguous codes never become executable expressions, SQL, paths, URLs or property accessors.
 
+## 6a. Structured template document model
+
+De canonical source van V1 is versioned editor JSON volgens een allowlisted
+structured document model. De exacte editorlibrary is niet bevroren; een mature
+extensible architecture zoals Tiptap/ProseMirror is de preferred feasibility
+candidate. De library is een adapter achter de Document Studio document-model
+seam, niet het productcontract zelf.
+
+De documentmodel-interface maakt composition en rendering expliciet:
+
+```text
+structured document
+├── cover: 0..1 bounded region
+├── header: 0..1 bounded region
+├── body: exactly 1 document region
+├── appendices: 0..n ordered bounded regions
+└── footer: 0..1 bounded region
+```
+
+Ondersteunde nodes zijn beperkt tot paragraph, heading 1–3, inline formatting,
+lists, horizontal rule, table, `TwoColumnBlock`, block image en page break. De
+modelmetadata draagt A4, controlled margins, allowed fonts/sizes en de
+document-/profile-/compositionreferences. Het model bevat geen arbitrary HTML,
+CSS, JavaScript, URL-fetch of vrije layout-instructie.
+
+Known placeholders en temporal placeholders zijn atomic semantic nodes, niet
+tekst die door split-run parsing moet worden gereconstrueerd:
+
+```json
+{ "type": "placeholder", "field": "salary", "temporal": "wordt" }
+{ "type": "free_placeholder", "key": "DrankVoorkeur" }
+```
+
+De `field` verwijst alleen naar de server-side allowlisted semantic catalogus;
+`free_placeholder.key` is een bounded identifier en geen property path of
+executable expression. Placeholderwaarden worden pas in preparation/Generate
+resolved en blijven plain escaped content.
+
+De normalizer is een diepe module achter een kleine render-interface: hij
+valideert schema en cardinaliteit, normaliseert toegestane nodes/attrs en
+produceert één controlled render model voor Template Preview, Generation Preview
+en final PDF. Onbekende nodes, attrs, styles, externe assets en onveilige
+referenties blokkeren voordat een renderer wordt aangeroepen.
+
+## 6b. Document composition en componentversies
+
+Een Document Template-version bevat de body en de composition-configuratie.
+Cover- en Appendix Template-versions zijn afzonderlijke immutable componenten.
+Composition resolveert uitsluitend server-side geldige versies uit dezelfde
+HR-group, bewaart de expliciete appendix-volgorde en bepaalt header/footer-
+overrides volgens één contract. De generated-document snapshot bevat de exacte
+component-ID's en versies, de normalized composition en de profile snapshot.
+
+Later wijzigen van een Document Template, Cover Template, Appendix Template,
+Document Profile, header/footer-definitie of asset verandert geen eerder
+generated document.
+
 ## 7. Template model en ontwerp-lifecycle
 
 ### Logical model
@@ -222,33 +317,65 @@ De voorgestelde nieuwe tabellen zijn conceptueel, niet als SQL uitgewerkt:
 | Entiteit | Belangrijkste gegevens | Scope/regels |
 |---|---|---|
 | `document_studio_document_types` | tenant/group, stable code, name, category, retention kind, retention years, active status, created/updated actor/time | HR-group-owned; category is controlled metadata; retention is `PERMANENT` of bounded `YEARS` |
-| `document_studio_templates` | tenant/group, logical key, name, description, document type, language (`nl`/`en`), default dossier choice, active logical pointer, created/updated metadata | NL en EN zijn afzonderlijke logical templates; unique per group/logical key/language |
-| `document_studio_template_versions` | template id, integer version, status, private source storage key, filename, MIME, size, SHA-256, placeholder manifest, validation result, temporal mode/config, created/activated/archived metadata | `DRAFT → ACTIVE → ARCHIVED`; source/version used by a generated document is immutable |
+| `document_studio_templates` | tenant/group, logical key, template kind (`DOCUMENT`/`COVER`/`APPENDIX`), name, description, document type, language (`nl`/`en`), default dossier choice, active logical pointer, created/updated metadata | NL en EN zijn afzonderlijke logical templates; unique per group/logical key/language/kind |
+| `document_studio_template_versions` | template id, integer version, status, canonical structured editor document, composition/configuration, header/footer definitions, render policy, safe asset references, placeholder manifest, validation result, temporal mode/config, content checksum, created/activated/archived metadata | `DRAFT → ACTIVE → ARCHIVED`; source/version used by a generated document is immutable |
 | `document_studio_template_tags` | template/version relationship and existing `star_performer_tags` relationship | reuse existing tag cloud; no new tag definitions |
 
-`document_studio_templates` is the stable identity. `document_studio_template_versions` is the immutable source/config unit used by generation. Activating a new version moves the previous active version to historical/archived state after the replacement is valid. A used archived version remains readable for historical documents and reproduction/audit; it is not selectable for new generation.
+`document_studio_templates` is the stable identity. `document_studio_template_versions` is the immutable structured source/config unit used by generation. Activating a new version moves the previous active version to historical/archived state after the replacement is valid. A used archived version remains readable for historical documents and reproduction/audit; it is not selectable for new generation.
 
 ### Metadata and validation
 
-The placeholder manifest records detected visible codes, normalized known/unknown classification, requiredness result and temporal requirements. It is derived data, not a permission source. Template activation requires a safe source, valid syntax, a complete supported capability set and no blocking security result. Unknown free codes produce warnings only when structural/security validation is green.
+The placeholder manifest records detected visible codes, normalized known/unknown classification, requiredness result and temporal requirements. It is derived data, not a permission source. Template activation requires a valid structured document, supported composition, complete capability set and no blocking security result. Unknown free codes produce warnings only when schema/security validation is green.
 
-### Word upload security profile
+### Structured-document validation profile
 
-The existing file rules are a lower-level starting point, not the complete profile. Document Studio accepts `.docx` only for MVP; not `.doc`, `.docm`, macro-enabled or arbitrary ZIP files. The DM-specific scanner must validate, at minimum:
+The structured-document validator/normalizer must validate, at minimum:
 
-- extension, MIME, ZIP/magic signature, expected OOXML parts and well-formed XML;
-- archive entry count, compressed/uncompressed size, compression ratio and total expansion limits;
-- no absolute paths, `..` traversal, duplicate/conflicting entries or unexpected executable payloads;
-- reject `vbaProject.bin`, ActiveX/OLE/embedded executable content and disallowed external relationships;
-- safe filename and storage-key generation independent of user input;
-- placeholder syntax across supported Word XML parts, including headers/footers, without evaluating any expression;
-- quarantine/scan status before Active.
+- schema version, node types, node attributes and region cardinalities;
+- supported formatting values, font allowlist, font sizes, A4/margin bounds and composition ratios;
+- atomic known/free/temporal placeholder node shape and catalog membership;
+- table, `TwoColumnBlock`, image-container and page-break constraints;
+- bounded text/row/column/node sizes and no nested tables or arbitrary layout instructions;
+- no arbitrary HTML, CSS, JavaScript, URL, property path, expression or executable content;
+- safe asset references that resolve only to authorized, HR-group-scoped assets;
+- deterministic normalized output independent of client ordering or unsupported attributes.
 
-### Approved fail-closed security gate
+### Future Word-import security profile
 
-A newly uploaded DOCX may be stored only in a private quarantine state before security approval. While it is quarantined or its scan state is unknown, unavailable or inconclusive, it must not be rendered, previewed, converted by LibreOffice/Gotenberg, activated or used for Generate. All required structural validation and malware/quarantine checks must be GREEN before the source can leave quarantine or enter any renderer pipeline.
+DOCX is OUT OF MVP, but a later best-effort Word import remains an uploaded-file
+boundary. The former Word-first security decision is retained as future
+architecture: accept `.docx` only through private quarantine; validate extension,
+MIME, magic/signature, OOXML/ZIP limits, XML parts, relationships, macros/OLE/
+ActiveX/embedded active content, safe names and external references; scan before
+conversion; and fail closed while scan is unavailable or inconclusive. Imported
+content may enter the native model only after conversion plus HR Admin
+review/correction. It never restores a Word round-trip promise.
 
-This is a Document Studio gate in addition to the existing lower-level upload rules. SEC-006 is not globally closed; the repository’s current malware-scanning/quarantine residual remains explicit.
+This is a future upload gate in addition to the native V1 model. SEC-006 is not
+globally closed; the repository’s current malware-scanning/quarantine residual
+remains explicit. Native V1 image assets have their own authorized upload,
+signature, size, storage and rendering controls described below.
+
+## 7a. Image asset seam
+
+Images and logos are safe assets, not arbitrary remote references. A future
+asset module must provide:
+
+- server-side authorized upload under the existing tenant/HR-group model;
+- supported image formats, MIME plus file-signature validation and bounded
+  dimensions/bytes;
+- generated safe storage keys and private storage with HR-group scoping;
+- deterministic asset references in the structured document and in the final
+  snapshot;
+- safe decoding/rendering, no external hotlink or runtime fetch, and no client-
+  supplied scope/path authority;
+- replace/delete behavior with lifecycle handling for assets still referenced
+  by active versions or immutable generated documents.
+
+V1 positioning is structural: a block image or an image inside a supported
+container (table cell, `TwoColumnBlock`, cover, header or footer) carries its
+alignment, bounded size and preserved aspect ratio. The renderer consumes only
+authorized asset references from the normalized render model.
 
 ## 8. Generated document, snapshot and deletion model
 
@@ -256,8 +383,8 @@ This is a Document Studio gate in addition to the existing lower-level upload ru
 
 | Entity | Purpose and minimum fields | Lifecycle |
 |---|---|---|
-| `document_studio_generated_documents` | tenant/group, employee, selected employment/context, optional administration reference, document type, logical template/version, language, label, status, generated by/at, PDF storage key, content type, byte size, SHA-256, retention policy/expiry snapshot, idempotency key, deletion markers | created only by Generate; final context and artifact references immutable; status may transition to deleted |
-| `document_studio_source_snapshots` | generated-document id, snapshot schema version, resolved known values, generation-only free values, temporal context, renderer metadata, source/template checksum and selected identifiers | created atomically with final document; deleted with the real artifact; no hidden full copy after deletion |
+| `document_studio_generated_documents` | tenant/group, employee, selected employment/context, optional administration reference, document type, logical Document Template/version, language, label, status, generated by/at, PDF storage key, content type, byte size, SHA-256, retention policy/expiry snapshot, idempotency key, deletion markers | created only by Generate; final context, composition and artifact references immutable; status may transition to deleted |
+| `document_studio_source_snapshots` | generated-document id, snapshot schema version, structured editor document, normalized composition, exact Document/Cover/Appendix component versions and order, header/footer/page settings, resolved Document Profile/organisation values, authorized asset references, resolved known values, generation-only free values, temporal context, renderer metadata, source/template checksum and selected identifiers | created atomically with final document; deleted with the real artifact; no hidden full copy after deletion |
 | `document_studio_dossier_links` | generated-document id, tenant/group/employee, linked time/actor, link status | optional, unique per generated artifact; unlink does not change generated artifact identity |
 | `document_studio_deletion_tombstones` | event/document id, tenant/group/employee reference, document type and template/version references, deleted by/at, optional reason, dossier action, artifact deletion result | append-only minimum record after actual row/artifact deletion; no full PDF or full source snapshot |
 
@@ -294,136 +421,246 @@ The document type owns `PERMANENT` or `YEARS` retention. An HR-group-authorized 
 - Legal hold is later. Its absence must not be represented as if a legal-hold feature exists.
 - Purge must remove the PDF and full snapshot, verify storage deletion, and retain only the minimum tombstone/audit record.
 
-## 10. DOCX replacement and PDF architecture
+## 10. Controlled render model en server-side PDF architecture
 
 ### Current deploy/dependency facts
 
-`apps/hr-suite/package.json` currently has Next.js 16.3.0, React, TypeScript, Supabase, Zod and `sharp`; no DOCX templating library, office renderer, LibreOffice binary, PDF converter or Gotenberg client is installed. No package was installed in DM-0.
+`apps/hr-suite/package.json` bevat Next.js 16.3.0, React, TypeScript, Supabase,
+Zod en `sharp`; er is geen native Document Studio editor, PDF-library of
+renderer dependency geïnstalleerd. No package was installed in DM-0 or in this
+amendment.
 
-Vercel documents function limits for memory, bundle size, request/response payloads and execution duration; the current page documents a 4.5 MB function body limit and finite runtime/memory ceilings. That makes a 25 MiB DOCX upload and native office renderer a poor direct fit for a normal route handler. The application should upload/download through private storage and keep the renderer outside the Next function boundary. See [Vercel Functions limits](https://vercel.com/docs/functions/limitations).
+Vercel documenteert limieten voor memory, bundle size, request/response payloads
+en execution duration. De render-runtime blijft daarom achter een expliciete
+server-side seam en wordt niet als client-only final PDF generation in een
+normale browser uitgevoerd. De precieze plaatsing (dedicated worker, isolated
+runtime of passende andere server-side adapter) volgt uit de feasibility-spike
+en een afzonderlijke infrastructuurbeslissing wanneer nodig. Zie [Vercel
+Functions limits](https://vercel.com/docs/functions/limitations).
 
-### Approved renderer decision
+### Active architecture decision
 
-Product Review approves a private, isolated document-renderer boundary with pinned Gotenberg + LibreOffice as primary:
+De actieve V1-architectuur gebruikt één controlled render model voor Template
+Preview, Generation Preview en final Generate:
 
 ```text
 Next server route/service
-  ├─ authenticate, scope, validate and resolve data
-  ├─ fetch private template source
-  └─ call private renderer with one prepared request
-       ├─ structural DOCX/security validation
-       ├─ placeholder replacement in OOXML
-       ├─ LibreOffice headless conversion
-       └─ PDF bytes + renderer/version result
-  └─ preview: return temporary controlled PDF, persist no final row
-  └─ generate: revalidate, render, hash, persist artifact + snapshot + audit
+  ├─ authenticate, scope and validate request
+  ├─ load authorized Document/Cover/Appendix versions, profile and assets
+  ├─ resolve allowlisted known/free/temporal values
+  ├─ normalize structured editor document and composition
+  └─ call server-side renderer through one controlled seam
+       ├─ render normalized HTML/CSS or equivalent print representation
+       ├─ apply A4, margins, header/footer, page-break and pagination semantics
+       └─ return PDF bytes, content metadata, hash, renderer/version result
+  ├─ Template Preview: sample/context values, no final row
+  ├─ Generation Preview: concrete context, temporary controlled output
+  └─ Generate: revalidate, render, hash, persist artifact + snapshot + audit
 ```
 
-Gotenberg documents `/forms/libreoffice/convert` for office documents and returns a file from a multipart request; LibreOffice documents headless operation and `--convert-to` PDF support. These are compatible with Word-first rendering, but the service must run as a private, pinned and hardened worker/container, not as an unbounded client-supplied URL fetch. See [Gotenberg routes](https://gotenberg.dev/docs/getting-started/routes), [Gotenberg LibreOffice conversion](https://gotenberg.dev/docs/convert-with-libreoffice/convert-to-pdf) and [LibreOffice start parameters](https://help.libreoffice.org/latest/nl/text/shared/guide/start_parameters.html).
+The exact server-side PDF runtime is **NOT SELECTED** in this documentation-only
+amendment. The output representation may be controlled HTML/CSS or an equivalent
+print model, but arbitrary user HTML/CSS execution is not allowed. The renderer
+must consume only the normalized render model and authorized asset references.
+There is no client-only final PDF path and no client-supplied renderer URL.
 
-The application-facing renderer adapter has one contract for Preview and Generate:
+The application-facing renderer seam has one contract for Preview and Generate:
 
 ```text
-validate source
-→ scan OOXML/relationships/placeholders
-→ resolve allowlisted values
-→ replace text while preserving Word XML structure
-→ render DOCX to PDF
-→ return PDF bytes, content metadata, hash, renderer version and diagnostics
+validate structured document and composition
+→ resolve allowlisted values and authorized assets
+→ normalize to controlled render model
+→ render server-side to PDF
+→ return bytes, content metadata, hash, renderer version and diagnostics
 ```
 
-The same adapter and pinned renderer image/version are mandatory for preview and final. Preview output is ephemeral; only Generate persists the controlled artifact. Ordinary PDF is the MVP controlled output; PDF/A is not required and no DOCX export endpoint is planned for MVP. A managed third-party document conversion service is not allowed for MVP unless separately approved later.
+Preview output is ephemeral; only Generate persists the controlled artifact.
+The same normalized document, composition, component versions, resolved context,
+asset references and renderer semantics are used for Generation Preview and
+final Generate. Ordinary PDF is the MVP controlled output; PDF/A is not required.
 
-### Replacement technology assessment
+### Editor and renderer decision status
 
-| Option | Strength | Blocking concern | DM-0 decision |
+| Seam/option | Strength | Blocking concern | Amendment status |
 |---|---|---|---|
-| Gotenberg + LibreOffice | office-native conversion route, good fit for headers/footers/tables/images and existing layout | separate private service, resource isolation, pinned fonts/version and operational security required | recommended renderer boundary |
-| Direct LibreOffice worker | same office conversion engine, fewer service layers | lifecycle/sandbox/HTTP contract must be built and operated by LiquidHR | one fallback if Gotenberg cannot be hosted |
-| Docxtemplater | DOCX ZIP manipulation and tag replacement; documented `render(tags)` API | it is a replacement layer, not a PDF engine; paid modules/licensing need approval; default syntax differs from frozen `##` syntax | candidate replacement adapter only, not complete solution |
-| HTML/browser PDF | easy route deployment | reflows Word layout and cannot be the fidelity baseline for arbitrary DOCX | reject for MVP final rendering |
+| Tiptap/ProseMirror or comparable mature editor | extensible structured JSON, atomic nodes and editor ecosystem | exact schema integration, bounded nodes and UX feasibility remain to prove | preferred feasibility candidate; not selected or installed |
+| Controlled HTML/CSS print representation | maps naturally from normalized structured content and supports a single render model | pagination, fonts, A4 fidelity, asset safety and server-side runtime need proof | candidate representation; not a production runtime decision |
+| Gotenberg + LibreOffice | relevant to historical Word/DOCX conversion | unnecessary V1 dependency while DOCX is out of MVP; operational infrastructure was unavailable in historical spike | not required or selected for native V1; future option only after explicit approval |
+| Direct LibreOffice or managed conversion service | possible future adapters for Word import or other formats | security, hosting, licensing and scope approval | outside this amendment and not selected |
 
-Docxtemplater’s official API confirms replacement of template variables and generation of a DOCX ZIP, but it does not remove the need for a controlled PDF renderer. Its paid-module license is a separate commercial review; no dependency is selected or installed in DM-0. See [Docxtemplater API](https://docxtemplater.com/docs/api/) and [Docxtemplater PRO license](https://docxtemplater.com/PRO-LICENSE.pdf).
+The former Word-first renderer rationale is not deleted; it is historical below.
+It no longer creates a V1 hard dependency on DOCX, a DOCX parser, split-run
+replacement, Gotenberg or LibreOffice.
 
-### Fidelity acceptance baseline
+### Controlled render security and determinism
 
-The golden-document suite must cover headers, footers, page breaks, page numbering, multiple pages, embedded merge fields, font family/size, bold, italic, special characters, euro signs, accents, images/logos, tabs, spacing, bullets and existing tables. Dynamic repeating tables are out of scope. The suite compares semantic text, page count, layout anchors and rasterized pages at a pinned renderer version; byte equality across renderer upgrades is not assumed.
+- The renderer accepts only a normalized, schema-validated model; it never
+  executes arbitrary HTML, CSS, JavaScript, expressions, SQL, paths or URLs.
+- Assets are authorized, HR-group scoped, safe-decoded and referenced by
+  deterministic internal identifiers; external hotlinks and runtime fetches are
+  rejected.
+- The runtime is server-side, isolated where possible, has no outbound network
+  by default and enforces per-request byte, node, page, memory, time and retry
+  limits.
+- Fonts, locale, timezone, renderer/runtime version and pagination settings are
+  pinned once selected and recorded in the generation snapshot.
+- Temporary render inputs/outputs are removed on success and failure; a failed
+  render cannot expose an accessible orphan or create a final row.
+- Preview has no final audit/history row. Generate re-authenticates,
+  re-resolves, re-normalizes, re-renders, verifies PDF integrity and finalizes
+  artifact, snapshot and audit atomically.
+- Fidelity checks compare semantic content, page count, layout anchors and
+  rasterized pages at a pinned runtime; byte equality across runtime upgrades is
+  not assumed.
 
-### Renderer security and determinism
+### Former Word-first architecture — historical / SUPERSEDED for V1
 
-- No renderer request may follow arbitrary template URLs or external relationships.
-- Worker has no outbound network by default, isolated temporary profile/workspace and per-request resource/time limits.
-- Disable macros and reject macro/embedded active content before the renderer.
-- Pin LibreOffice, fonts, locale, timezone and renderer version; record renderer version in the snapshot.
-- Delete temporary DOCX/PDF files in success and failure paths.
-- Cap retries; a malformed document is a blocking input error, not an infinite retry. Gotenberg explicitly distinguishes input-related `400` failures from server/resource `500` failures and recommends capped attempts.
-- Security tests must include malformed XML/ZIP, oversized expansion, external references, wrong MIME/signature, duplicate generation and cross-group input.
-
-### Hard pre-implementation feasibility gate
-
-Before committing to the full DM-1 implementation/migration sequence, run a disposable renderer/replacement spike. It must use a safe synthetic DOCX with no real HR data and prove, through the same intended renderer boundary:
-
-- `##EmployeeFirstName` in normal body text;
-- a token split across Word XML runs;
-- `##Salary[Is]`;
-- `##Salary[Wordt]`;
-- `##EffectiveDate`;
-- header and footer;
-- existing table;
-- image/logo;
-- page break;
-- special characters, euro sign and accents.
-
-Required pipeline:
+The former DM-0 direction was:
 
 ```text
-safe synthetic DOCX
-→ placeholder detection/replacement
-→ approved private renderer boundary
+uploaded DOCX
+→ private quarantine and OOXML scan
+→ split-run placeholder detection/replacement
+→ Gotenberg + pinned LibreOffice (or direct LibreOffice fallback)
 → PDF
+```
+
+That architecture was intended to preserve arbitrary Word layout and included
+DOCX-specific validation, macro/relationship controls and a private office-native
+renderer boundary. The split-run problem, quarantine path and office renderer
+remain useful historical rationale and future Word-import security requirements.
+The product amendment explicitly supersedes Word-first authoring for V1, so the
+former parser/replacement/rendering path is not the active template boundary.
+
+The former DM-0 technical decisions remain recorded here for traceability:
+
+- `.docx` was the only accepted MVP source; `.doc`, `.docm`, arbitrary ZIPs,
+  macro/OLE/ActiveX/embedded executable content and disallowed external
+  relationships were rejected;
+- archive/XML structure, entry count, compressed/uncompressed size, expansion
+  ratio, path traversal, safe filenames and placeholder syntax across body,
+  header and footer were validated before activation;
+- the former application adapter was `validate → scan OOXML/relationships/
+  placeholders → resolve allowlisted values → replace while preserving Word XML
+  structure → render DOCX to PDF → return bytes/hash/renderer metadata`;
+- Gotenberg with pinned LibreOffice was the former recommended primary,
+  isolated direct LibreOffice the fallback, Docxtemplater only a possible
+  replacement adapter, and HTML/browser PDF rejected as the arbitrary-DOCX
+  fidelity baseline;
+- the former golden suite covered headers, footers, page breaks, page numbers,
+  multiple pages, merge fields, fonts, formatting, special characters,
+  euro/accent characters, images, tabs, spacing, bullets and tables.
+
+These are historical/superseded decisions, not new native V1 requirements. The
+security controls remain relevant if a future Word-import seam is approved.
+
+## 10a. NATIVE EDITOR → HTML/PDF FEASIBILITY SPIKE — NEXT GATE
+
+Before DM-1 implementation or migration commitment, run one disposable,
+synthetic-only feasibility spike. It must prove the risky seams of the revised
+architecture, not build DM-1 in full:
+
+1. versioned structured editor JSON;
+2. paragraph, heading and basic formatting;
+3. atomic known/free/temporal placeholder nodes;
+4. table;
+5. `TwoColumnBlock`;
+6. block image/logo;
+7. image inside table and `TwoColumnBlock`;
+8. header/footer;
+9. page break;
+10. Cover + Body + Appendix composition;
+11. multi-page A4;
+12. controlled HTML/CSS or equivalent print render;
+13. server-side PDF;
+14. Template Preview;
+15. Generation Preview;
+16. Preview/final fidelity;
+17. deterministic image positioning;
+18. appendices starting on a new page;
+19. no page-wide/editor overflow;
+20. basic asset/render security boundaries.
+
+The spike must explicitly test the historical pain point that image positioning
+remains stable:
+
+- image left, center and right;
+- image resizing with preserved aspect ratio;
+- image in `TwoColumnBlock`;
+- image in a table cell;
+- image in header and cover;
+- PDF pagination around each of those elements.
+
+Required conceptual pipeline:
+
+```text
+synthetic structured document and safe synthetic assets
+→ schema validation and normalization
+→ authorized placeholder/context resolution
+→ controlled server-side render boundary
+→ Template Preview and Generation Preview
+→ final PDF from the same render semantics
 → golden/visual fidelity assessment
 ```
 
-The spike is disposable and outside committed application code. No spike dependency or package may be committed or installed unless separately approved. A failed or incomplete spike blocks the full DM-1 implementation/migration commitment.
+The spike is disposable and outside committed application code. No editor,
+renderer, package, container, license, external service or production
+configuration may be selected, installed or committed by this amendment. A
+failed or incomplete spike blocks the full DM-1 implementation/migration
+commitment. Any new runtime or service requires a separate approval decision.
 
-## 10a. RENDERING FEASIBILITY GATE — BLOCKED
+## 10b. HISTORICAL WORD-FIRST RENDERING FEASIBILITY GATE — BLOCKED
 
 **Execution date:** 2 september 2026
 **Result:** `FEASIBILITY BLOCKED — LOCAL RENDERER INFRASTRUCTURE UNAVAILABLE`
 
-### Environment
+This is the preserved result from the former Word-first architecture line. It
+was an environment availability result, not an architecture rejection.
 
-- Docker CLI is installed at `C:\Program Files\Docker\Docker\resources\bin\docker.exe`.
-- The Docker daemon is unavailable; the configured Docker Desktop Linux engine named pipe could not be opened. Therefore no ephemeral Gotenberg container could be started or used.
-- Local `soffice`/LibreOffice is not installed or discoverable.
-- Existing Poppler `pdfinfo` and `pdftoppm` utilities are available, as are existing Python and Node runtimes. They do not provide the approved DOCX-to-PDF renderer and cannot substitute for it.
+### Historical environment
 
-### Spike execution boundary
+- Docker CLI was installed at `C:\Program Files\Docker\Docker\resources\bin\docker.exe`.
+- The Docker daemon was unavailable; the configured Docker Desktop Linux engine
+  named pipe could not be opened. No ephemeral Gotenberg container could be
+  started or used.
+- Local `soffice`/LibreOffice was not installed or discoverable.
+- Existing Poppler `pdfinfo` and `pdftoppm` utilities, Python and Node runtimes
+  did not provide an approved DOCX-to-PDF renderer and could not substitute for
+  it.
 
-Because neither approved renderer path was executable, the rendering portion stopped before fixture generation, replacement and conversion. No synthetic DOCX, PDF, screenshot or other spike artifact was created; consequently there is no claimed content, split-run, fidelity or performance result.
+### Historical spike boundary
 
-The synthetic-only invariant remains intact: no real HR data, employee document or customer document was used. The approved production rule remains unchanged:
+The rendering portion stopped before fixture generation, replacement and
+conversion. No synthetic DOCX, PDF, screenshot or other spike artifact was
+created; there is no claimed split-run, fidelity or performance result. No real
+HR data, employee document or customer document was used.
+
+The former upload rule remains a future Word-import invariant:
 
 ```text
 untrusted uploaded DOCX
 → private quarantine
 → structural validation
 → malware/security scan GREEN
-→ only then renderer/preview/activation/generate
+→ only then conversion/import into native model
 ```
 
-This BLOCKED result is an environment availability result, not an architecture failure and does not reopen the approved Gotenberg + pinned LibreOffice decision. DM-1 is not ready: rerun the disposable gate on a host with the approved private Gotenberg boundary executable, or with already-installed local LibreOffice for the approved fallback. Do not substitute HTML, browser print-to-PDF or managed SaaS conversion.
+The blocked result does not select Gotenberg or LibreOffice for native V1 and
+does not invalidate the newly approved native editor architecture. The next
+gate is the synthetic native-editor-to-HTML/PDF spike above. Do not treat the
+historical environment block as proof of native preview/PDF fidelity.
 
 ## 11. Validation design
 
 | Area | Blocking | Warning/allowed continuation |
 |---|---|---|
-| Source file | invalid `.docx`, MIME/signature mismatch, malformed OOXML, limits exceeded, active content, scan unavailable/inconclusive for activation | none for security failures |
-| Placeholder syntax | malformed bracket/identifier, ambiguous duplicate semantics, unsupported required field/mode | unknown free code |
+| Structured source | invalid schema/version, unsupported node/attribute, cardinality/composition violation, limits exceeded, unsafe HTML/CSS/reference | none for schema or security failures |
+| Asset source | unsupported format/signature, limits exceeded, unsafe decode, unauthorized scope or unresolved reference | none for security failures |
+| Placeholder nodes | malformed atomic node/key, catalog mismatch, ambiguous duplicate semantics, unsupported required field/mode | unknown valid free code |
 | Known data | required value cannot be resolved or validly supplied | optional known value missing |
 | Temporal context | required date missing/invalid, range conflict, unsupported field/mode | persisted future value absent when manual `Wordt` is allowed |
 | Scope | tenant/group/employee/template mismatch, unauthorized action | none |
-| Rendering | conversion failure, missing output, PDF integrity failure | non-blocking renderer diagnostic only if final remains verifiable |
+| Rendering | normalization/render failure, missing output, pagination violation, PDF integrity failure | non-blocking renderer diagnostic only if final remains verifiable |
 | Output | placeholder, `null` or `undefined` leakage, wrong content type, hash/size mismatch | none |
 
 Warnings are visible and part of the preparation result. A warning does not silently create a required value or mutate HR data.
@@ -439,55 +676,62 @@ Entry(employee or template)
 → Known data resolution
 → Missing-value resolution
 → Optional free-code inputs
+→ Cover + Body + ordered Appendices composition
 → Validation
-→ Mandatory Preview
+→ Template Preview or mandatory Generation Preview
 → Generate
 ```
 
-Preparation state is not a document version. It may be client working state plus a short-lived opaque server handle, but it is never trusted as authorization or source of truth. Preview stores no final version, snapshot, audit event or document-history row. The preview request can produce temporary renderer output that is returned through a short-lived controlled channel and then removed.
+Preparation state is not a document version. It may be client working state plus a short-lived opaque server handle, but it is never trusted as authorization or source of truth. Template Preview may use sample values; Generation Preview uses concrete employee/document/temporal/free-input context. Neither preview stores a final version, snapshot, audit event or document-history row. The preview request can produce temporary renderer output that is returned through a short-lived controlled channel and then removed.
 
 Generate:
 
 1. re-authenticates and checks permissions/scope;
-2. rechecks that the selected template version is still active and safe;
+2. rechecks that the selected Document/Cover/Appendix versions, profile and assets are still active, authorized and safe;
 3. re-resolves known data and validates manual values;
-4. renders through the same pipeline;
+4. re-normalizes the same structured composition and renders through the same pipeline as Generation Preview;
 5. hashes/verifies the PDF;
 6. writes final metadata, source snapshot, optional dossier link and audit as one logical finalization;
 7. exposes the document only through a private, short-lived authorized download URL.
 
-The label may change until step 6. After finalization, employee, employment context, template version, resolved snapshot and artifact context are immutable.
+The label may change until step 6. After finalization, employee, employment context,
+Document/Cover/Appendix versions and order, Document Profile snapshot, resolved
+snapshot, assets and artifact context are immutable.
 
 ## 13. Threat model
 
 | Threat | Control required in architecture |
 |---|---|
-| Malicious DOCX/active content | `.docx` only, OOXML inspection, reject macros/OLE/ActiveX/embeds, sandboxed renderer, no macros/network |
-| ZIP bomb/oversize | compressed/uncompressed/entry/ratio/request limits before expansion; bounded renderer resources |
-| External references/remote images | reject or strip according to approved policy; no arbitrary fetch; worker egress off |
+| Malicious structured input/HTML/CSS | schema allowlist, normalized render model, no arbitrary HTML/CSS/JavaScript/expressions, isolated server-side renderer |
+| Oversize document/layout abuse | bounded nodes, text, rows, columns, assets, pages, bytes, time and renderer resources |
+| Unsafe image asset | MIME/signature and decode validation, dimension/size limits, private scoped storage, safe renderer input |
+| External references/remote images | reject external URLs/hotlinks and runtime fetch; worker egress off |
+| Future malicious DOCX/active content | private quarantine, OOXML/ZIP inspection, reject macros/OLE/ActiveX/embeds, malware scan before native conversion/import |
 | Tenant/group tampering | server context, group-bound RLS, composite relations, storage prefix policies |
 | Employee tampering/wrong employee | server employee lookup and immutable generated `employee_id`; no relink operation |
 | Artifact URL theft | private bucket, short-lived signed URL, no persistent signed URL in DB/UI state |
-| Path traversal | generated UUID storage segments and safe filename; never use raw name as path |
-| Template injection | allowlisted token parser only; no expressions, code, SQL, URLs or property traversal |
-| Placeholder abuse | identifier grammar, length/count limits, unknown values are plain text and optional; escape replacement content |
+| Path traversal | generated UUID storage segments and safe filename; never use raw name or client path as storage key |
+| Template/render injection | allowlisted node and token model only; no expressions, code, SQL, URLs, property traversal or arbitrary styles |
+| Placeholder abuse | atomic identifier grammar, length/count limits, unknown values are plain text and optional; escape replacement content |
 | Unauthorized template actions | dedicated server permission checks plus RLS; status transitions server-only |
 | Retention race | snapshot expiry at generation, atomic delete decision, idempotent deletion/purge later, link-aware artifact policy |
 | Duplicate final | request idempotency key, unique constraint, transaction/concurrency test |
 | Snapshot leakage after delete | real artifact/snapshot deletion, minimum tombstone only; no hidden PDF/source copy |
-| Malware scanner gap | fail-closed Active gate and explicit SEC-006 residual; no claim that DM-0 solves scanning |
+| Malware scanner gap | fail-closed future-upload gate and explicit SEC-006 residual; no claim that this amendment solves scanning |
 
 ## 14. Database and migration plan — proposed only
 
 No migration was created or applied in DM-0. A later migration sequence should introduce, in dependency order:
 
 1. controlled document types and retention configuration;
-2. logical templates and immutable template versions;
-3. template-tag join to existing `star_performer_tags`;
-4. generated documents and source snapshots;
-5. dossier links;
-6. minimal deletion tombstones and any required audit event metadata;
-7. private storage bucket/policies and grants.
+2. Document Profile ownership/reference using existing organisation/company/HR-group concepts;
+3. logical Document/Cover/Appendix templates and immutable structured template versions;
+4. template-tag join to existing `star_performer_tags`;
+5. generated documents and source snapshots containing exact composition;
+6. safe image asset references and private storage bucket/policies where required;
+7. dossier links;
+8. minimal deletion tombstones and any required audit event metadata;
+9. private artifact storage policies and grants.
 
 Each exposed table receives tenant/group RLS and the necessary composite tenant/group/employee/template relations in the same migration. Storage policies must derive scope from server-controlled path shape and group access, not from a client-supplied URL. Grants are least-privilege and route services use typed Supabase clients; no arbitrary SQL or service-role bypass is introduced in application paths.
 
@@ -499,48 +743,69 @@ Before any future migration apply, the canonical application schema, local migra
 
 | Slice | Scope | Dependencies | Migration/permission/security/test gate | Explicit non-goals |
 |---|---|---|---|---|
-| DM-1 Template Library & Secure Word Upload | module/navigation, list-first library, metadata, controlled category, existing tags, group scope, Draft/Active/Archived, versioning, DOCX upload, OOXML placeholder scan and validation | approved model, storage boundary, scanner decision, successful disposable renderer/replacement feasibility gate | new tables/RLS/grants; malware/active-content gate; upload corpus, ZIP limits, tenant/group tamper tests; no remote apply without approval | no employee merge, preview, PDF, AI, free-field persistence |
+| DM-1 Native Template Library & Structured Editor | module/navigation, list-first library, metadata, controlled category, existing tags, group scope, Document/Cover/Appendix kinds, Draft/Active/Archived, versioning, bounded structured editor, atomic placeholders, validation and safe assets | approved native model, Document Profile seam, asset boundary and successful native editor → HTML/PDF feasibility gate | new tables/RLS/grants; asset signature/size/scope tests; schema/render injection tests; tenant/group tamper tests; no remote apply without approval | no Word import, employee merge, final PDF, AI, free-field persistence |
 | DM-2 Data Resolver & Temporal Context | allowlisted semantic catalog, known `##Field`, required/optional resolution, `NONE`/`AS_OF`/`TWO_POINT`/`WAS_IS_WORDT`, generation-only free inputs | DM-1 active versions; Salary Change gap decision | typed resolver tests, cross-domain authorization/RLS, overlap/future-effective/unknown-code tests, no HR writeback | no renderer/final artifact, no custom-field catalog |
-| DM-3 Preview & PDF Generation | preparation state, same render pipeline, mandatory preview, PDF generation, immutable artifact, source snapshot/hash, idempotency | DM-1 source and DM-2 resolver; approved private renderer | renderer golden suite, sandbox/resource tests, PDF integrity, duplicate/concurrency, no final row on preview | no overview/delete/retention scheduler |
+| DM-3 Preview & PDF Generation | preparation state, Template Preview, mandatory Generation Preview, same normalized render pipeline, Cover/Body/Appendix composition, server-side PDF, immutable artifact, source snapshot/hash, idempotency | DM-1 structured source and DM-2 resolver; approved server-side renderer runtime | renderer golden suite, pagination/image stability, sandbox/resource tests, PDF integrity, duplicate/concurrency, no final row on preview | no overview/delete/retention scheduler |
 | DM-4 Document Studio, Dossier, Audit & Retention | overview/detail, final document history, label-before-generate, optional dossier bridge, delete choices, tombstone, retention config/enforcement seam | DM-3 artifact; approved dossier relation | RLS/download/delete/link tests, deletion artifact proof, snapshot leakage test, retention dates; no scheduler if not approved | no relink, signing, tasks, bulk, AI |
-| DM-5 MVP E2E Acceptance | Salary Change and Employer Statement, desktop/mobile, persona/scope negatives, formatting golden docs, malicious DOCX, migration/RLS/security/release gate | DM-1–DM-4 green and authorized environment | authenticated HR Admin E2E, tenant/group/employee negatives, console/overflow, exact artifact/snapshot/audit evidence, production gate | no unapproved scope expansion or cleanup |
+| DM-5 MVP E2E Acceptance | Salary Change and Employer Statement, desktop/mobile, persona/scope negatives, native formatting/composition golden docs, asset/render security, migration/RLS/security/release gate | DM-1–DM-4 green and authorized environment | authenticated HR Admin E2E, tenant/group/employee negatives, console/overflow, exact artifact/snapshot/audit evidence, production gate | no Word compatibility promise, unapproved scope expansion or cleanup |
 
 Each slice must remain independently reviewable. The repository order remains schema → API/service → UI inside each slice; DM-0 contains none of those implementation changes.
 
-## 16. Open decisions requiring Product/Security review
+## 16. Remaining implementation/security decisions — product direction frozen
 
-1. Renderer choice is approved: private pinned Gotenberg + LibreOffice primary, private isolated direct LibreOffice worker fallback. Managed third-party document conversion is outside MVP unless separately approved later; remaining work is operational boundary, hosting and hardening design.
-2. Confirm the malware scanner/quarantine provider and the release rule when scanning is unavailable. Until then, keep the SEC-006 residual explicit and block activation on an unknown scan state.
-3. The minimum E2E-1 Salary Change field set is frozen: employee identity, `##Salary[Is]`, `##Salary[Wordt]`, `##EffectiveDate` and relevant Company-fields. DM-2 must separately prove historical `[Was]` resolution; the current repository does not prove a complete generic as-of resolver.
-4. Retention ownership is approved: an HR-group-authorized administrator configures document-type `PERMANENT`/`X jaar`. Remaining implementation details are safe numeric bounds and timezone/date rule.
-5. Confirm the dedicated permission names and their grants in the current role/permission matrix. Dossier link/unlink must have a separate authorization capability from basic document create/read.
-6. The no-duplicate dossier bridge is approved; implementation must expose one GeneratedDocument artifact through a bridge/read-model without copying to `employee_documents`. Exact read-model details remain for DM-4.
-7. Ordinary PDF is approved for MVP. PDF/A is explicitly not required.
+1. Native structured authoring and the Document/Cover/Appendix composition are approved. The exact editor library is not selected; Tiptap/ProseMirror remains the preferred feasibility candidate and requires the native spike before adoption.
+2. The server-side PDF runtime is not selected. It must consume the controlled render model, run behind an isolated server-side seam and share semantics between Preview and Generate. A new runtime, service, container or license requires separate approval.
+3. The historical Word-first renderer block remains an environment result, not an architecture rejection. It does not reinstate Gotenberg/LibreOffice as a native V1 dependency. Future Word import needs its own private quarantine, scan and conversion decision.
+4. Confirm the asset validation/storage lifecycle and renderer limits: supported formats, signature/decoder behavior, dimensions, bytes, references, replacement and deletion of in-use assets.
+5. Confirm the malware scanner/quarantine provider and release rule for future uploaded files. Until then, keep the SEC-006 residual explicit and block any upload path on an unknown scan state.
+6. The minimum E2E-1 Salary Change field set is frozen: employee identity, `##Salary[Is]`, `##Salary[Wordt]`, `##EffectiveDate` and relevant Company-/Document Profile-fields. DM-2 must separately prove historical `[Was]` resolution; the current repository does not prove a complete generic as-of resolver.
+7. Retention ownership is approved: an HR-group-authorized administrator configures document-type `PERMANENT`/`X jaar`. Remaining implementation details are safe numeric bounds and timezone/date rule.
+8. Confirm the dedicated permission names and their grants in the current role/permission matrix. Dossier link/unlink must have a separate authorization capability from basic document create/read.
+9. The no-duplicate dossier bridge is approved; implementation must expose one GeneratedDocument artifact through a bridge/read-model without copying to `employee_documents`. Exact read-model details remain for DM-4.
+10. Ordinary PDF is approved for MVP. PDF/A is explicitly not required.
 
-## 17. DM-0 verification and evidence boundary
+## 17. Amendment verification and evidence boundary
 
-Executed for this architecture slice:
+Executed for this native-editor amendment:
 
-- repository instructions, requirements routing, current context, contract and relevant architecture/domain sources read;
-- `origin/main` fetched and exact baseline recorded;
-- isolated worktree/branch created from current baseline;
-- protected canonical env existence checked without exposing values;
-- implementation/dependency/schema/storage/auth inventory performed;
-- official Vercel, Gotenberg, LibreOffice and Docxtemplater documentation checked for renderer feasibility;
-- no application tests, typecheck, lint or build run, as required by the user’s architecture-only scope.
+- repository instructions, requirements routing, current context, contract and
+  the complete historical DM-0 source document were read;
+- `origin` was fetched and exact current `origin/main` baseline recorded;
+- source branch `work/dm0-document-studio-architecture` was verified clean at
+  `247cc22f7009caccac3a87d715ec61cb2f7823ff`;
+- isolated amendment worktree/branch was created from that exact source head;
+- protected canonical env existence was checked without exposing values;
+- no application tests, typecheck, lint or build were run, as required by the
+  documentation-only scope;
+- the historical Word-first feasibility block was preserved as an environment
+  record and explicitly decoupled from the active native architecture.
 
-The disposable renderer/replacement spike was not run because the approved local renderer infrastructure was unavailable. The gate remains hard and must complete before the full DM-1 implementation/migration commitment; this environment block does not invalidate the approved architecture.
+The native editor → HTML/PDF feasibility spike was not run because this run
+closes documentation only. It remains the hard next gate before DM-1
+implementation/migration commitment. No editor, renderer, package, container,
+service or production configuration was selected or installed here.
 
 Amendment handoff checks:
 
 - `git diff --check`;
-- prove changed paths are limited to the DM-0 architecture and necessary delivery-context record;
+- prove changed paths are limited to the product contract, DM-0 amendment,
+  minimal docs index and delivery-context record;
 - prove no app code, migration, package manifest/lockfile or version file changed;
 - recheck canonical env existence;
 - commit and non-force push only this same isolated branch; do not merge to `main`.
 
 ## 18. Result
 
-Product Review is closed. DM-0 architecture is approved, but rendering feasibility is currently environment-blocked and DM-1 is not ready. The essential foundation decision is to keep the existing dossier/file infrastructure as a set of secure storage, download, validation, tag, context and audit patterns, while introducing a separate Document Studio semantic model for template versions, resolved source snapshots, immutable PDF artifacts, dossier links and deletion tombstones.
+The Product decision is amended and approved: Document Studio V1 uses
+LiquidHR-native structured authoring with bounded Document/Cover/Appendix
+composition, atomic placeholders, deterministic assets, one controlled render
+model, mandatory Generation Preview and immutable final PDF. The former
+Word-first authoring and office-renderer direction remains preserved as
+historical rationale but is SUPERSEDED for V1; DOCX is not the canonical source
+or a V1 dependency.
 
-The main feasibility risk is not placeholder replacement; it is a secure, generic, typed temporal resolver for Salary Change and a private office-native renderer with malware/quarantine controls. Those risks and decisions are explicit above. No DM-1 work has started.
+The exact editor library and server-side PDF runtime remain deliberately
+unselected. The next hard gate is the synthetic `NATIVE EDITOR → HTML/PDF
+FEASIBILITY SPIKE`, including stable image positioning and Preview/final
+fidelity. No DM-1 work, migration, package installation or infrastructure change
+has started.

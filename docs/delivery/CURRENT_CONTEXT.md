@@ -2,9 +2,23 @@
 
 > **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
-## DM-0 Document Studio product review closed — 2026-09-02
+## Document Studio native editor amendment — 2026-09-02
+
+**Status: PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR DM-0 ARCHITECTURE AMENDMENT / FEASIBILITY**
+
+- Current `origin/main` after fetch is `155ccbde373a06684e37d9746b01dd65931c870b`; visible app version remains `1.20260901.1`.
+- Source branch `work/dm0-document-studio-architecture` was verified clean at exact head `247cc22f7009caccac3a87d715ec61cb2f7823ff`; no merge or rebase with current main was performed.
+- Amendment branch/worktree: `work/document-studio-native-editor-amendment` in `.codex-worktrees/document-studio-native-editor-amendment`, created from that exact source head.
+- The active product direction is LiquidHR-native structured authoring: Document/Cover/Appendix composition, atomic placeholders, Document Profile seam, bounded formatting and deterministic image/layout rules, one controlled render model, mandatory Generation Preview and immutable PDF.
+- Word-first authoring, DOCX canonical source/import/export, Gotenberg/LibreOffice as required V1 infrastructure and the former split-run path are SUPERSEDED for V1 but remain documented as historical rationale. The former rendering-feasibility result remains an environment block, not an architecture rejection.
+- The exact editor library and server-side PDF runtime are not selected. The native editor → HTML/PDF feasibility spike is the next hard gate; no implementation or infrastructure was started.
+- This amendment changed only product/architecture documentation, the minimal documentation index and this delivery context. No app code, package, migration, Supabase/Vercel/GitHub setting, version or protected env state was changed.
+
+## Historical DM-0 Document Studio product review — 2026-09-02
 
 **Status: DM-0 ARCHITECTURE — PRODUCT APPROVED, READY FOR FEASIBILITY GATE**
+
+**Historical delivery snapshot — superseded for active product direction by the native editor amendment above.**
 
 - Isolated candidate worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\dm0-document-studio-architecture`, branch `work/dm0-document-studio-architecture`, exact baseline `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b`.
 - Product Review amendments are applied to the architecture: fixed catalog requiredness, `##EffectiveDate`, frozen first Salary Change fieldset, fail-closed private DOCX quarantine, approved private Gotenberg/LibreOffice renderer, no-duplicate dossier bridge, HR-group-owned retention and the hard disposable feasibility gate. The 2026-09-02 feasibility run is environment-blocked because Docker’s daemon and local LibreOffice are unavailable; architecture is not reopened and DM-1 is not started.
