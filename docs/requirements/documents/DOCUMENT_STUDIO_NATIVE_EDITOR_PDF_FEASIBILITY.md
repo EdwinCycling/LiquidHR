@@ -1,9 +1,12 @@
-# DOCUMENT STUDIO NATIVE EDITOR → HTML/PDF FEASIBILITY — PARTIAL
+# DOCUMENT STUDIO NATIVE EDITOR → HTML/PDF FEASIBILITY — FEASIBILITY GREEN
 
 **Datum:** 2 september 2026  
 **Scope:** disposable synthetic spike, geen production implementation  
-**Baseline:** `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e` (`origin/work/document-studio-native-editor-amendment`)  
-**Evidence directory:** `C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-pdf-20260902`
+**Baseline:** closure from `a63313ae54c79781e598b8ca362104f8993592cc`
+(`origin/spike/document-studio-native-editor-pdf`), descended from approved
+amendment `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e`
+(`origin/work/document-studio-native-editor-amendment`).
+**Evidence directory:** `C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-closure-20260902`
 
 ## BASELINE
 
@@ -18,6 +21,10 @@ Preflight:
 - `origin/main`: `155ccbde373a06684e37d9746b01dd65931c870b`.
 - `work/document-studio-native-editor-amendment` lokaal en remote: exact
   `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e`, clean.
+- `spike/document-studio-native-editor-pdf` lokaal en remote: exact
+  `a63313ae54c79781e598b8ca362104f8993592cc`, clean.
+- Closure branch/worktree: `spike/document-studio-native-editor-pdf-closure`,
+  gestart vanaf exact de first-spike SHA.
 - Visible app version: `1.20260901.1`.
 - Canonical protected env bestaat; waarden zijn niet gelezen, gekopieerd,
   gewijzigd of gestaged.
@@ -34,6 +41,16 @@ Inventory vóór tijdelijke uitvoering:
 - Node `v22.14.0`, npm/npx `10.9.2`.
 - `@playwright/cli` is uitsluitend tijdelijk via npx gebruikt; de cache staat
   buiten Git.
+- Closure-only dependency probe buiten de monorepo: Tiptap/ProseMirror
+  `3.31.0`, `jsdom 29.0.0`, `sharp 0.35.3`, Playwright `1.62.1` en
+  `@fontsource/work-sans 5.3.0`.
+- `@fontsource/work-sans` is OFL-1.1; de closure gebruikt alleen tijdelijke
+  latin WOFF2-bestanden voor 400 normal, 700 normal en 400 italic.
+- Chromium production-candidate package-metadata: `@sparticuz/chromium
+  149.0.0`, 69,585,980 bytes packed / 69,678,316 bytes unpacked. Dit is een
+  bundle-size probe, geen production install; package license is MIT.
+- `playwright-core 1.62.1` is the matching candidate control layer (3,070,300
+  bytes packed, Apache-2.0); neither candidate is added to the monorepo here.
 - Lokale Poppler bevat `pdfinfo` en `pdftoppm`; `soffice`/LibreOffice is niet
   gebruikt. Docker is niet gebruikt. Er is geen externe service of betaald
   product gebruikt.
@@ -44,6 +61,15 @@ belangrijke guardrail gevonden: die uitvoer was Letter. De reproduceerbare
 correcte run gebruikt daarom expliciet `format: A4` en
 `preferCSSPageSize: true`. Een production seam moet deze instelling pinnen en
 testen.
+
+## FEASIBILITY CLOSURE — GREEN
+
+De closure sluit de zes resterende spikevragen zonder de goedgekeurde
+product- of architectuurbesluiten te wijzigen: echte Tiptap/ProseMirror
+runtime, 105-rijen multi-page table continuation, pinned Work Sans, bounded
+PNG/JPEG decoding/resource limits, een geloofwaardige Node.js/Vercel
+server-side renderer-richting en 1/2/4 concurrency smoke. De lokale closure
+PDF- en preview-evidence is groen; productie-deployment blijft een DM-1 gate.
 
 ## STRUCTURED MODEL
 
@@ -69,11 +95,13 @@ image-cases en de presets `25/75`, `33/67` en `50/50`. De fixture gebruikt
 fictieve context: Ada Voorbeeld, LiquidHR Test B.V., `€ 4.250,00`, toekomstige
 waarde `€ 4.500,00`, 2 september 2026 en optioneel vrij veld `Koffie`.
 
-Tiptap/ProseMirror is architectonisch passend als toekomstige editoradapter:
-de fixture gebruikt precies het type atomic node/content-model dat een
-ProseMirror-schema kan representeren. De feitelijke Tiptap runtime, schema
-extensions, paste sanitization en editor transactions zijn in deze spike niet
-geïnstalleerd of bewezen.
+De closure bewijst de feitelijke Tiptap/ProseMirror runtime in een tijdelijke
+jsdom-harness. `@tiptap/core`, StarterKit, Underline, Image en Table
+extensions werken samen met custom atomic `knownPlaceholder`,
+`freePlaceholder`, `temporalPlaceholder`, `pageBreak`, `blockImage` en
+`twoColumnBlock` nodes. Insert/edit/delete, whole-node atomic delete,
+undo/redo, semantic JSON reload en allowlisted paste-sanitization zijn groen.
+De echte browser clipboard-event wiring blijft terecht een DM-1 integratiegate.
 
 ## PDF
 
@@ -96,6 +124,13 @@ overlap, escape of clipping in deze fixture.
 Dit bewijst een lokale server-side browser-PDF-boundary. Het bewijst geen
 production Vercel/Next sandbox, concurrency, font packaging, resource limits
 of deployment provenance.
+
+De closure herhaalt deze route met een 105-rijen synthetic table en pinned
+Work Sans. De closure-PDF heeft 13 pagina’s, `594.96 x 841.92 pt (A4)`,
+82.360 bytes, PDF 1.4, geen encryptie en geen JavaScript. Dezelfde HTML maakt
+14 tabel-fragmenten over pagina 5–11; elk fragment bevat maximaal 8 complete
+rijen en een eigen herhaalde header. De eerste en laatste rijen zijn visueel
+gecontroleerd op pagina 5, 6 en 11.
 
 ## IMAGE STABILITY
 
@@ -120,16 +155,13 @@ niet bewezen.
 
 ## TABLE / LAYOUT
 
-Bewezen: bordered en borderless tabellen, headers, meerdere rijen,
-placeholder-cellen en image-cellen. De `TwoColumnBlock`-presets 25/75, 33/67
-en 50/50 zijn bewezen met image+text, text+image en placeholder-rich
-text+text. De content blijft binnen de bounded columns.
-
-Niet bewezen: een zeer grote tabel die over meerdere fysieke pagina’s doorloopt,
-herhaalde table headers bij zo’n split, merged cells, nested tables, complexe
-Word-layouts, orphan/widow-regels of volledige browser auto-flow. De spike
-materialiseert een eenvoudige deterministische block paginator; dit is een
-feasibility render model, geen Word-paginering.
+De closure bewijst naast bordered/borderless tabellen nu een 105-rijen tabel
+over 7 fysieke A4-pagina’s. De paginator maakt controlled fragments op
+complete rijgrenzen; elk fragment schrijft dezelfde `thead`, waardoor de
+header herhaald wordt zonder dat een rij wordt gesplitst. Een heading,
+paragraph, 33/67 TwoColumnBlock en image staan bewust direct vóór de tabel om
+de boundary-regel te belasten. Merged cells, nested tables, complexe
+Word-layouts en orphan/widow-regels blijven buiten V1.
 
 ## PREVIEW
 
@@ -141,9 +173,10 @@ De volgende views gebruiken één `normalize → paginate → renderHtml`-semant
   optioneel `Koffie`-veld als lege string.
 - **Final PDF:** dezelfde Generation Preview HTML, met expliciete A4 printopties.
 
-De PDF zelf is de authoritative physical preview voor deze spike. De browser
-page-stack is een bruikbare inspectie-/editorrepresentatie, maar wordt niet als
-bewijs van exacte print-paginering gebruikt.
+De PDF zelf is de authoritative physical preview voor deze spike. De closure
+bevestigt dat de 13-pagina table-preview en pinned-font PDF uit dezelfde
+normalized HTML komen; de browser page-stack is daarnaast bruikbaar voor
+inspectie, maar niet het enige bewijs van exacte print-paginering.
 
 ## REPEATABILITY
 
@@ -162,11 +195,13 @@ contentlaag vergelijken.
 
 ## FONTS / CHARACTERS
 
-De spike gebruikt de kleine CSS-allowlist `Arial, "Segoe UI", sans-serif`,
-zonder gedownloade font binary. Body, headings, bold, italic, euroteken en
-Nederlandse accenten (`naïef`, `beëindiging`, `één`) zijn in Chromium visueel
-leesbaar. Fallbackgedrag is niet op andere deployment images getest; font
-packaging en een production allowlist blijven open.
+De closure kiest als DM-1 fontstrategie een exact gepinde lokale Work Sans
+asset-set: `@fontsource/work-sans 5.3.0`, licentie OFL-1.1, latin WOFF2 voor
+400 normal, 700 normal en 400 italic. De PDF injecteert deze assets als
+embedded data URI; er is geen runtime Google-font fetch. Body, headings, bold,
+italic, euroteken en Nederlandse accenten blijven leesbaar in de pinned-font
+PDF. De uiteindelijke app/renderer moet dezelfde pinned files in de traced
+server bundle opnemen en een `Arial, "Segoe UI", sans-serif` fallback behouden.
 
 ## SECURITY
 
@@ -179,9 +214,13 @@ negative checks rejecteerden:
 - unsupported `style` attribute.
 
 Er is geen client filesystem path, runtime remote fetch, arbitrary expression,
-SQL, real HR data of secret in de fixture/evidence. De PDF meldt geen
-JavaScript. Een echte image decoder-fuzz, malware scanner/quarantine en private
-storage/RLS flow vallen buiten deze disposable spike en zijn niet opgelost.
+SQL, real HR data of secret in de fixture/evidence. De closure gebruikt
+`sharp 0.35.3` met signature/MIME-match, alleen PNG/JPEG, `5 MiB` encoded input,
+`4000 px` max edge, `16M` max pixels, `2 MiB` genormaliseerde output,
+`failOn:error`, `limitInputPixels`, rotate en bounded resize. Geldige PNG/JPEG
+worden geaccepteerd; SVG, remote URL, corrupt PNG, MIME mismatch en oversized
+input/dimensions worden geweigerd. Malware scanner/quarantine en private
+storage/RLS flow blijven implementatiegates.
 
 ## PERFORMANCE
 
@@ -195,13 +234,17 @@ Gemeten op deze lokale synthetic fixture:
 | Node RSS tijdens check | 60,596,224 bytes | ACCEPTABLE voor synthetic run |
 | PDF size | 114309 bytes | GOOD voor synthetic run |
 
-Dit is geen load test. Worker memory, timeout, page/node/asset limits,
-concurrent render isolation en Vercel runtime budget zijn nog niet vastgesteld.
+Closure smoke: zeven lokale Chromium PDF-renders met concurrency `1`, `2` en
+`4` waren groen; alle output was 13 A4-pagina’s en 82.360 bytes. De maximale
+gemeten renderduur was 1.455,6 ms en RSS-delta 20.852.736 bytes. Iedere
+Playwright-browser werd in `finally` gesloten en rapporteerde disconnected na
+close. Dit is geen Vercel load test: cold starts, planquota en productie-
+resourcebudget blijven deploymentgates.
 
 ## VISUAL EVIDENCE
 
 Extern bewaard in:
-`C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-pdf-20260902`
+`C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-closure-20260902`
 
 - `editor-desktop-1440x900.png` — editor surface desktop;
 - `template-preview-desktop-1440x900.png` — Template Preview;
@@ -209,6 +252,16 @@ Extern bewaard in:
 - `editor-mobile-390x844.png` — editor mobile;
 - `generation-proof-a4.pdf` — final PDF proof;
 - `pdf-page-1.png` t/m `pdf-page-6.png` — rasterized PDF pages.
+
+Closure evidence:
+
+- `closure-pinned-work-sans.pdf` — 13-page pinned Work Sans A4 PDF;
+- `table-page-05.png`, `table-page-06.png`, `table-page-11.png` — visual table
+  boundary checks;
+- `closure/closure-table-preview.html` and `closure/closure-run-summary.json`
+  — 105 rows, 14 fragments, repeated headers;
+- `tiptap-result.json`, `asset-result.json` and `concurrency-result.json` —
+  runtime, decoder-policy and 1/2/4 smoke evidence.
 
 De browserconsole had 0 errors en 0 warnings. Op 390×844 waren body- en
 document-scroll-width beide 390 px; overflow delta was 0 px; 3 TwoColumn-nodes
@@ -220,9 +273,9 @@ browser cache is gecommit.
 | Capability | Status | Evidence / limit |
 |---|---|---|
 | Structured JSON | GREEN | Versioned JSON + normalizer |
-| Tiptap/ProseMirror suitability | PARTIAL | Model maps cleanly; runtime not installed/selected |
+| Tiptap/ProseMirror suitability | GREEN | Real Tiptap 3.31.0/jsdom runtime with custom nodes, transactions and paste seam |
 | Atomic placeholders | GREEN | Known, temporal, free; no split-run output |
-| Tables | PARTIAL | Borders, cells, images proven; multi-page split open |
+| Tables | GREEN | 105 rows, 14 row-boundary fragments, repeated headers over pages 5–11 |
 | TwoColumnBlock | GREEN | 25/75, 33/67, 50/50 + geometry |
 | Images | GREEN | Structural cases in PDF |
 | Image stability | GREEN | Repeated visual/geometry checks on synthetic cases |
@@ -237,9 +290,9 @@ browser cache is gecommit.
 | Generation Preview | GREEN | Concrete synthetic context |
 | Preview/final fidelity | GREEN | Same normalized HTML semantics; visual anchors match |
 | Repeatability | GREEN | HTML identical; PDF metadata-only hash variance |
-| Fonts | PARTIAL | Current Chromium allowlist; deployment fallback open |
-| Asset safety | PARTIAL | Boundary negatives/signature proven; fuzz/scan/storage open |
-| Performance | PARTIAL | Synthetic timing only; no load/concurrency budget |
+| Fonts | GREEN | Pinned Work Sans 5.3.0 OFL-1.1 WOFF2 set embedded in closure PDF |
+| Asset safety | GREEN | sharp decode, PNG/JPEG signature/MIME and bounded resource policy |
+| Performance | GREEN | Local 1/2/4 concurrency smoke; Vercel production budget remains open |
 | Desktop/mobile | GREEN | 1440×900 and 390×844, no horizontal overflow |
 
 ## PRODUCTION IMPLICATIONS
@@ -256,34 +309,72 @@ Production design should preserve:
 - bounded pages, nodes, text, rows, assets, bytes, time and memory;
 - a controlled font allowlist and pinned runtime/Chromium provenance.
 
-No new editor library, renderer, container, license, service or production
-infrastructure is approved by this report.
+No production dependency, renderer, container, service or infrastructure is
+changed by this report. The closure does select a concrete DM-1 direction:
+Tiptap/ProseMirror as the editor adapter and an isolated Node.js server-side
+Vercel Function/worker seam using pinned Chromium plus pinned Work Sans assets.
+
+## RENDERER
+
+The credible production direction is one dedicated Node.js render function or
+worker boundary inside the current Next.js/Vercel project, receiving only an
+authorized normalized document and returning an immutable PDF. It must run
+Chromium with explicit A4 options, use pinned `playwright-core` plus
+`@sparticuz/chromium 149.0.0` (temporary package probe: 69,585,980 packed
+bytes), load the pinned Work Sans files, enforce page/node/asset/time limits,
+and close the browser in every success/error path. The existing project region
+`cdg1` can be retained for the first DM-1 implementation; no `vercel.json`,
+route, package or deployment was changed here.
+
+This direction is compatible with Vercel’s Node.js runtime, which exposes full
+Node APIs for computationally intense functions, and the current documented
+250 MB compressed function bundle limit. Vercel documents `maxDuration` for
+Next.js functions and `outputFileTracingIncludes` for files that must enter a
+Next.js function bundle; the DM-1 design must verify both with a real preview
+deployment. See [Node.js runtime](https://vercel.com/docs/functions/runtimes/node-js),
+[Function limits](https://vercel.com/docs/functions/limitations) and
+[static Vercel configuration](https://vercel.com/docs/project-configuration/vercel-json).
+
+Edge is not suitable for this renderer because the seam needs Node APIs and a
+native/browser runtime. Vercel Sandbox remains a credible fallback if the
+function bundle or browser isolation is not acceptable: its official SDK runs
+isolated Linux images and supports custom images, but adopting it would be a
+separate infrastructure decision and is not silently selected here. See
+[Vercel Sandbox](https://vercel.com/docs/sandbox).
+
+The local proof establishes the boundary and bundle headroom direction, not
+Vercel deployment provenance. A real DM-1 gate must prove Linux Chromium
+launch, traced font/browser assets, private authorized input, cancellation,
+timeout and 1/2/4 request behavior on the selected plan.
 
 ## DECISION
 
-**PARTIAL — bounded native editor → controlled HTML/CSS → local server-side A4
-PDF is technically feasible for the frozen MVP primitives.**
+**FEASIBILITY GREEN — bounded native editor → controlled HTML/CSS → isolated
+Node.js server-side A4 PDF is technically feasible for the frozen MVP
+primitives.**
 
-`READY FOR DM-1 DESIGN: NO`.
+`READY FOR DM-1 DESIGN: YES`.
 
-The hard production gate remains open until the follow-up design explicitly
-resolves the editor adapter, renderer runtime/sandbox, table pagination model,
-font packaging, asset decoder/security boundary and resource limits. This is a
-follow-up decision gate, not a reopening of the approved native product model.
+The closure resolves the editor runtime, row-preserving multi-page table
+strategy, pinned Work Sans asset strategy, PNG/JPEG decoder/resource boundary
+and a credible Vercel-compatible renderer direction. It does not reopen any
+approved product or architecture decision; Vercel deployment, private storage
+authorization, malware quarantine and real browser clipboard wiring remain
+explicit DM-1 implementation gates.
 
 ## REMAINING RISKS
 
-- Tiptap/ProseMirror editor runtime and paste/transaction behavior are not
-  proven.
-- The simple paginator does not prove large table continuation or all
-  near-boundary combinations.
-- Chromium PDF defaults can silently produce Letter unless A4 options are
-  pinned.
-- Production runtime, sandbox, Vercel/Next limits, egress policy and renderer
-  provenance are unverified.
-- Font fallback, decoder fuzzing, malware quarantine, private storage and
-  tenant/group authorization need their own implementation/test gates.
-- The synthetic timing is not a capacity or concurrency guarantee.
+- The local Tiptap proof uses jsdom and a sanitizer seam; real browser
+  clipboard-event wiring and editor UX integration belong to DM-1.
+- The table strategy is proven for controlled row fragments; merged cells,
+  nested tables, very long wrapped cells and orphan/widow rules remain out of
+  frozen V1.
+- Production Linux Chromium launch, Vercel deployment provenance, plan quota,
+  cancellation and egress policy remain unverified.
+- Private object-storage resolution, tenant/group authorization and malware
+  quarantine must be implemented around the bounded image decoder.
+- PDF metadata is not a byte-stable golden hash; compare normalized content or
+  raster/layout invariants instead.
 
 ## FILES
 
@@ -291,6 +382,9 @@ Committed source/report scope:
 
 - `spike/document-studio-native-editor-pdf/synthetic-document.json`
 - `spike/document-studio-native-editor-pdf/spike.mjs`
+- `spike/document-studio-native-editor-pdf/tiptap-runtime.mjs`
+- `spike/document-studio-native-editor-pdf/asset-runtime.mjs`
+- `spike/document-studio-native-editor-pdf/concurrency-runtime.mjs`
 - `spike/document-studio-native-editor-pdf/README.md`
 - `docs/requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md`
 - minimal status/index entries in `docs/README.md` and
@@ -301,40 +395,44 @@ artifacts remain outside Git in the evidence directory.
 
 ## VERIFICATION
 
-Run only for this spike:
+Run only for this closure spike:
 
 - `node spike\document-studio-native-editor-pdf\spike.mjs --check --out <evidence>` — GREEN;
+- `node spike\document-studio-native-editor-pdf\tiptap-runtime.mjs --deps <temp-deps> --out <evidence>\tiptap-result.json` — GREEN;
+- `node spike\document-studio-native-editor-pdf\asset-runtime.mjs --deps <temp-deps> --out <evidence>\asset-result.json` — GREEN;
+- `node spike\document-studio-native-editor-pdf\spike.mjs --closure-check --out <evidence>\closure --font-dir <temp-font-files>` — GREEN;
 - Playwright CLI localhost browser proof, snapshots, screenshots and console — GREEN;
-- `pdfinfo` + `pdftoppm` on the generated PDF — GREEN, A4/6 pages/raster review;
-- 3× same-document PDF render — GREEN for page/layout/size, metadata hash variance recorded;
-- mobile overflow/geometry assertion — GREEN;
+- `pdfinfo` + `pdftoppm` on the generated pinned-font PDF — GREEN, A4/13 pages/raster review;
+- `node spike\document-studio-native-editor-pdf\concurrency-runtime.mjs --deps <temp-deps> --url <closure-url> --out <evidence>\concurrency-result.json` — GREEN for 1/2/4 concurrency and cleanup;
+- `sharp` PNG/JPEG acceptance plus SVG, MIME, corrupt, byte and dimension negatives — GREEN;
 - `git diff --check` — run at handoff;
 - scope verification — run at handoff.
 
-No full LiquidHR tests, typecheck, lint, build, migration, Supabase, Vercel,
-GitHub or production check was run.
+No full LiquidHR tests, typecheck, lint, build, migration, Supabase, Vercel
+deployment or production check was run.
 
 ## MUTATIONS
 
-- Created isolated worktree/branch `spike/document-studio-native-editor-pdf`
-  from the exact approved amendment SHA.
-- Added only disposable spike source and the feasibility documentation/status
+- Created isolated worktree/branch `spike/document-studio-native-editor-pdf-closure`
+  from first-spike SHA `a63313ae54c79781e598b8ca362104f8993592cc`.
+- Added only disposable closure source and the feasibility documentation/status
   records listed above.
-- Used temporary npx Playwright tooling and external test evidence.
+- Used temporary external Tiptap, jsdom, sharp, Playwright, Work Sans and npx
+  tooling; all generated evidence and caches remain outside Git.
 - Did not install or alter a production dependency, manifest, lockfile,
-  browser binary, font, service, container or infrastructure.
+  browser binary, font, service, container, Vercel setting or infrastructure.
 
 ## CANDIDATE
 
-Branch: `spike/document-studio-native-editor-pdf`  
-Base: `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e`  
-Remote target: `origin/spike/document-studio-native-editor-pdf` (non-force push).
+Branch: `spike/document-studio-native-editor-pdf-closure`
+Base: `a63313ae54c79781e598b8ca362104f8993592cc`
+Remote target: `origin/spike/document-studio-native-editor-pdf-closure` (non-force push).
 
 ## NEXT
 
-Use this report as the DM-1 input gate. Before implementation, make a separate
-approved decision for the editor adapter and isolated PDF runtime, then extend
-the spike/golden suite for multi-page tables, larger boundary matrices,
-production fonts, decoder/resource limits and the real deployment runtime.
+Use this report as the DM-1 input gate. Design the selected Tiptap/ProseMirror
+adapter and isolated Node.js renderer, then prove the real Vercel deployment
+boundary, private authorized input, browser clipboard wiring, malware
+quarantine and non-synthetic golden fixtures before implementation release.
 
 STOP.

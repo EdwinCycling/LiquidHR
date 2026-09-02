@@ -11,18 +11,19 @@
 - Amendment branch/worktree: `work/document-studio-native-editor-amendment` in `.codex-worktrees/document-studio-native-editor-amendment`, created from that exact source head.
 - The active product direction is LiquidHR-native structured authoring: Document/Cover/Appendix composition, atomic placeholders, Document Profile seam, bounded formatting and deterministic image/layout rules, one controlled render model, mandatory Generation Preview and immutable PDF.
 - Word-first authoring, DOCX canonical source/import/export, Gotenberg/LibreOffice as required V1 infrastructure and the former split-run path are SUPERSEDED for V1 but remain documented as historical rationale. The former rendering-feasibility result remains an environment block, not an architecture rejection.
-- The exact editor library and server-side PDF runtime are not selected. The native editor → HTML/PDF feasibility spike is the next hard gate; no implementation or infrastructure was started.
+- The closure now identifies Tiptap/ProseMirror plus an isolated Node.js/Vercel renderer direction for DM-1. No implementation or infrastructure was started; production deployment and authorization gates remain open.
 - This amendment changed only product/architecture documentation, the minimal documentation index and this delivery context. No app code, package, migration, Supabase/Vercel/GitHub setting, version or protected env state was changed.
 
-## Document Studio native editor → HTML/PDF feasibility spike — 2026-09-02
+## Document Studio native editor → HTML/PDF feasibility closure — 2026-09-02
 
-**Status: PARTIAL — LOCAL NATIVE EDITOR → A4 HTML/PDF PROOF GREEN; DM-1 DESIGN NOT READY**
+**Status: FEASIBILITY GREEN — READY FOR DM-1 DESIGN**
 
-- Isolated branch/worktree: `spike/document-studio-native-editor-pdf`, based on the exact approved amendment SHA `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e`.
-- A synthetic versioned JSON model rendered Cover, Header, Body, two Appendices, Footer, atomic known/temporal/free placeholders, structural images, tables, 25/75/33/67/50/50 TwoColumnBlocks, page break and a 6-page A4 PDF from the same preview HTML semantics.
-- Local Chromium PDF proof is GREEN only with explicit `format: A4` and `preferCSSPageSize`; the default CLI PDF option produced Letter and is recorded as a renderer guardrail. Preview/final visual anchors, image geometry, repeatability, desktop/mobile overflow and asset negative cases passed for the fixture.
-- Tiptap/ProseMirror runtime, production renderer/sandbox/deployment, large-table continuation, font packaging, decoder/resource limits and capacity remain open. `READY FOR DM-1 DESIGN: NO`; no application code, production dependency, migration, Supabase/Vercel/GitHub setting or version changed.
-- External evidence: `C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-pdf-20260902`.
+- Isolated closure branch/worktree: `spike/document-studio-native-editor-pdf-closure`, based on the exact first-spike SHA `a63313ae54c79781e598b8ca362104f8993592cc`, descended from approved amendment `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e`.
+- The earlier 6-page bounded JSON/HTML/CSS proof remains the baseline. The closure adds a real Tiptap/ProseMirror runtime with custom atomic placeholders/page-break/image/two-column nodes, transaction undo/redo, semantic JSON reload and paste-sanitization seam.
+- Closure table proof: 105 rows, 14 row-boundary fragments, repeated headers across pages 5–11; pinned Work Sans 5.3.0 OFL-1.1 WOFF2 proof; sharp PNG/JPEG bounded decode policy; and seven local Chromium PDFs at concurrency 1/2/4 with cleanup.
+- The credible DM-1 production direction is an isolated Node.js render function/worker inside the current Next/Vercel project boundary, using pinned Chromium, pinned fonts, explicit A4 options, traced assets, authorization before retrieval, hard resource limits and guaranteed browser cleanup. Edge is unsuitable; Vercel Sandbox remains a separately approved fallback, not an automatic selection.
+- `READY FOR DM-1 DESIGN: YES`; no application code, production dependency, migration, Supabase/Vercel/GitHub setting or version changed.
+- External evidence: `C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-closure-20260902`.
 - Detailed report: [`requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md`](../requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md).
 
 ## Historical DM-0 Document Studio product review — 2026-09-02

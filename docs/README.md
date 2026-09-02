@@ -4,13 +4,13 @@
 
 **Status: PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR NATIVE EDITOR → HTML/PDF FEASIBILITY**
 
-Het geamendeerde productcontract en de native-editorarchitectuur staan in [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md). De eerdere Word-first keuze blijft in beide documenten als historische, voor V1 superseded rationale bewaard. DM-1 is niet gestart; deze amendment bevat geen app-code, migration, package- of remote wijziging. De volgende gate is `NATIVE EDITOR → HTML/PDF FEASIBILITY SPIKE`.
+Het geamendeerde productcontract en de native-editorarchitectuur staan in [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md). De eerdere Word-first keuze blijft in beide documenten als historische, voor V1 superseded rationale bewaard. DM-1 is niet gestart; deze amendment bevat geen app-code, migration, package- of remote wijziging. De daaropvolgende `NATIVE EDITOR → HTML/PDF FEASIBILITY CLOSURE` is hieronder groen afgesloten; DM-1 design is nu de volgende gate.
 
-## Document Studio native editor → HTML/PDF feasibility spike — 2026-09-02
+## Document Studio native editor → HTML/PDF feasibility closure — 2026-09-02
 
-**Status: PARTIAL — LOCAL NATIVE EDITOR → A4 HTML/PDF PROOF GREEN; DM-1 DESIGN NOT READY**
+**Status: FEASIBILITY GREEN — READY FOR DM-1 DESIGN**
 
-De disposable synthetische spike staat in [`requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md`](requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md). De bounded native structured model, Cover/Header/Body/Appendix/Footer composition, atomic placeholders, structural images, Template Preview, Generation Preview en lokale server-side 6-pagina A4-PDF zijn bewezen. Tiptap/ProseMirror, production renderer/sandbox, multi-page table continuation, font packaging, asset decoder/security limits en capacity blijven open; er is geen production dependency of infrastructure geselecteerd.
+De closure staat in [`requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md`](requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md). Vanaf first-spike SHA `a63313ae54c79781e598b8ca362104f8993592cc` zijn Tiptap/ProseMirror-runtime, 105-rijen row-boundary table continuation met herhaalde headers, pinned Work Sans, bounded PNG/JPEG-decoding en 1/2/4 lokale Chromium-concurrency groen bewezen. De gekozen DM-1-richting is een geïsoleerde Node.js-renderfunctie/worker binnen de bestaande Next/Vercel-projectgrens; er is geen production dependency, app-code, migration, Supabase-, Vercel- of version-wijziging uitgevoerd. Externe closure-evidence staat in `C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-closure-20260902`.
 
 ## Historische DM-0 Document Studio-kandidaat — 2026-09-01
 

@@ -150,7 +150,7 @@ function normalizeNode(node, label) {
     assertSafeKeys(node, label, new Set(['type', 'border', 'columns', 'rows']));
     if (!['bordered', 'none'].includes(node.border)) fail(`${label} has unsupported border mode`);
     if (!Array.isArray(node.columns) || node.columns.length < 2 || node.columns.length > 4) fail(`${label} has invalid columns`);
-    if (!Array.isArray(node.rows) || node.rows.length < 1 || node.rows.length > 40) fail(`${label} has invalid rows`);
+    if (!Array.isArray(node.rows) || node.rows.length < 1 || node.rows.length > 160) fail(`${label} has invalid rows`);
     return {
       type: 'table',
       border: node.border,
@@ -321,14 +321,25 @@ function paginateNodes(nodes, kind, pages) {
       flush();
       continue;
     }
-    for (const node of splitParagraph(original)) {
-      const nodeHeight = blockHeight(node);
-      if (current.length && height + nodeHeight > contentLimit) flush();
-      current.push(node);
-      height += nodeHeight;
+    for (const tableFragment of splitTableForPagination(original)) {
+      for (const node of splitParagraph(tableFragment)) {
+        const nodeHeight = blockHeight(node);
+        if (current.length && height + nodeHeight > contentLimit) flush();
+        current.push(node);
+        height += nodeHeight;
+      }
     }
   }
   flush();
+}
+
+function splitTableForPagination(node) {
+  if (node.type !== 'table' || node.rows.length <= 12) return [node];
+  const fragments = [];
+  for (let start = 0; start < node.rows.length; start += 8) {
+    fragments.push({ ...node, rows: node.rows.slice(start, start + 8) });
+  }
+  return fragments;
 }
 
 function paginateDocument(document) {
@@ -340,6 +351,49 @@ function paginateDocument(document) {
   }
   if (pages.length < 4) fail(`fixture produced only ${pages.length} pages`);
   return pages;
+}
+
+function createClosureDocument() {
+  const normalized = normalizeDocument(fixture);
+  const rows = Array.from({ length: 105 }, (_, index) => ({
+    cells: [
+      { content: [{ type: 'text', text: String(index + 1).padStart(3, '0') }] },
+      { content: [{ type: 'text', text: `Synthetic employee record ${String(index + 1).padStart(3, '0')}` }] },
+      { content: [{ type: 'text', text: index % 3 === 0 ? 'Ready for review' : index % 3 === 1 ? 'Approved' : 'Needs follow-up' }] }
+    ]
+  }));
+  const longTable = normalizeNode({
+    type: 'table',
+    border: 'bordered',
+    columns: ['#', 'Employee record', 'Review state'],
+    rows
+  }, 'closure.longTable');
+  const closureNodes = [
+    { type: 'heading', level: 2, align: 'left', content: [{ type: 'text', text: 'Multi-page table boundary closure' }] },
+    { type: 'paragraph', align: 'left', content: [{ type: 'text', text: 'Synthetic boundary fixture: the table must repeat its header and continue only at complete row boundaries across A4 pages.' }] },
+    {
+      type: 'twoColumn',
+      widths: [33, 67],
+      caseId: 'closure-table-boundary',
+      columns: [
+        [{ type: 'paragraph', align: 'left', content: [{ type: 'text', text: 'Before table: two-column content remains bounded.' }] }],
+        [{ type: 'paragraph', align: 'left', content: [{ type: 'text', text: 'After the boundary probe, the long table is rendered as controlled row-preserving fragments.' }] }]
+      ]
+    },
+    { type: 'image', assetRef: 'illustration', alt: 'Synthetic boundary illustration', align: 'center', widthPct: 54, caseId: 'closure-table-image' },
+    longTable
+  ].map((node, index) => normalizeNode(node, `closure.body.nodes[${index}]`));
+  return {
+    ...normalized,
+    documentId: 'synthetic-document-studio-closure',
+    composition: {
+      ...normalized.composition,
+      body: {
+        ...normalized.composition.body,
+        nodes: [...normalized.composition.body.nodes, { type: 'pageBreak' }, ...closureNodes]
+      }
+    }
+  };
 }
 
 function renderHeader(document, mode) {
@@ -485,7 +539,7 @@ h3.heading { font-size:14px; }
 }
 `;
 
-function renderView(document, view) {
+function renderView(document, view, extraCss = '') {
   const pages = paginateDocument(document);
   const mode = view === 'template' ? 'template' : 'generation';
   const pageHtml = pages.map((page, index) => renderPage(page, index + 1, pages.length, document, mode)).join('');
@@ -494,7 +548,7 @@ function renderView(document, view) {
   const description = view === 'template'
     ? 'Sample/context values blijven herkenbaar als placeholders; dezelfde normalized composition wordt gebruikt.'
     : 'Concrete synthetische context voor Ada Voorbeeld; dit is de rendersemantics die naar final PDF gaat.';
-  return `<!doctype html><html lang="nl"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${title} · Document Studio</title><style>${style}</style></head><body><div class="app-shell"><header class="screen-header"><h1>Document Studio · native editor feasibility</h1><span class="badge">synthetic only · v1</span></header><nav class="view-tabs" aria-label="Preview context"><a class="${active('editor')}" href="/?view=editor">Editor</a><a class="${active('template')}" href="/?view=template">Template Preview</a><a class="${active('generation')}" href="/?view=generation">Generation Preview</a></nav><section class="preview-layout"><div class="preview-canvas"><div class="preview-intro"><h2>${title}</h2><p>${description}</p></div><div class="page-stack">${pageHtml}</div></div><aside class="preview-sidebar"><h3>Render contract</h3><dl><dt>Document</dt><dd>Cover · Header · Body · 2 Appendices · Footer</dd><dt>Subject</dt><dd>${mode === 'template' ? 'Sample values' : 'Ada Voorbeeld'}</dd><dt>Pages</dt><dd data-page-count>${pages.length} A4 pages</dd><dt>Assets</dt><dd>PNG allowlist · deterministic refs</dd><dt>PDF source</dt><dd>Same normalized HTML</dd></dl></aside></section><p class="screen-note">Authoritative print proof is the generated PDF; this screen representation is the same normalized page model used by the print command.</p></div></body></html>`;
+  return `<!doctype html><html lang="nl"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${title} · Document Studio</title><style>${style}${extraCss}</style></head><body><div class="app-shell"><header class="screen-header"><h1>Document Studio · native editor feasibility</h1><span class="badge">synthetic only · v1</span></header><nav class="view-tabs" aria-label="Preview context"><a class="${active('editor')}" href="/?view=editor">Editor</a><a class="${active('template')}" href="/?view=template">Template Preview</a><a class="${active('generation')}" href="/?view=generation">Generation Preview</a></nav><section class="preview-layout"><div class="preview-canvas"><div class="preview-intro"><h2>${title}</h2><p>${description}</p></div><div class="page-stack">${pageHtml}</div></div><aside class="preview-sidebar"><h3>Render contract</h3><dl><dt>Document</dt><dd>Cover · Header · Body · 2 Appendices · Footer</dd><dt>Subject</dt><dd>${mode === 'template' ? 'Sample values' : 'Ada Voorbeeld'}</dd><dt>Pages</dt><dd data-page-count>${pages.length} A4 pages</dd><dt>Assets</dt><dd>PNG allowlist · deterministic refs</dd><dt>PDF source</dt><dd>Same normalized HTML</dd></dl></aside></section><p class="screen-note">Authoritative print proof is the generated PDF; this screen representation is the same normalized page model used by the print command.</p></div></body></html>`;
 }
 
 function renderEditor(document) {
@@ -502,8 +556,8 @@ function renderEditor(document) {
   return `<!doctype html><html lang="nl"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Editor · Document Studio</title><style>${style}</style></head><body><div class="app-shell"><header class="screen-header"><h1>Document Studio · native editor feasibility</h1><span class="badge">structured JSON · editable surface probe</span></header><nav class="view-tabs" aria-label="Preview context"><a class="active" href="/?view=editor">Editor</a><a href="/?view=template">Template Preview</a><a href="/?view=generation">Generation Preview</a></nav><main class="editor-layout"><section class="editor-workspace"><div class="editor-toolbar"><button type="button">Paragraph</button><button type="button"><strong>B</strong></button><button type="button"><em>I</em></button><button type="button"><u>U</u></button><button type="button">Heading</button><button type="button">• List</button><button type="button">Table</button><button type="button">TwoColumnBlock</button><button type="button">Image</button><button type="button">Page break</button></div><div class="editor-canvas"><div class="editor-title"><h2>Werkgeversverklaring</h2><span>native structured document · continuous canvas</span></div><div class="editor-document">${nodes.map((node) => renderBlock(node, 'template')).join('')}</div></div></section><aside class="preview-sidebar"><h3>Editor surface</h3><dl><dt>Source</dt><dd>versioned JSON</dd><dt>Atomic nodes</dt><dd>known · temporal · free</dd><dt>Layout</dt><dd>25/75 · 33/67 · 50/50</dd><dt>Print</dt><dd>A4 only in Preview</dd></dl></aside></main><p class="screen-note">The editor is intentionally continuous; exact physical pagination is reserved for the authoritative Preview.</p></div></body></html>`;
 }
 
-function renderHtml(document, view = 'generation') {
-  return view === 'editor' ? renderEditor(document) : renderView(document, view);
+function renderHtml(document, view = 'generation', extraCss = '') {
+  return view === 'editor' ? renderEditor(document) : renderView(document, view, extraCss);
 }
 
 function crc32(buffer) {
@@ -651,14 +705,79 @@ async function writeOutput(outputDir, document, normalized, pages, timings) {
   return summary;
 }
 
+async function createFontCss(fontDir) {
+  if (!fontDir) return '';
+  const files = await fs.readdir(fontDir);
+  const findFont = (pattern) => files.find((file) => file.endsWith('.woff2') && file.includes(pattern));
+  const faces = [
+    ['400-normal', 400, 'normal'],
+    ['700-normal', 700, 'normal'],
+    ['400-italic', 400, 'italic']
+  ];
+  const css = [];
+  for (const [pattern, weight, fontStyle] of faces) {
+    const file = findFont(pattern);
+    if (!file) fail(`missing pinned Work Sans font ${pattern}`);
+    const data = (await fs.readFile(path.join(fontDir, file))).toString('base64');
+    css.push(`@font-face{font-family:"Work Sans";font-style:${fontStyle};font-weight:${weight};font-display:block;src:url(data:font/woff2;base64,${data}) format("woff2");}`);
+  }
+  css.push('html,body,.pdf-page,.screen-header,.view-tabs,.preview-sidebar,.editor-canvas{font-family:"Work Sans",Arial,"Segoe UI",sans-serif;}');
+  return css.join('');
+}
+
+async function runClosureCheck(outputDir, fontDir) {
+  const normalized = createClosureDocument();
+  const pages = paginateDocument(normalized);
+  const fontCss = await createFontCss(fontDir);
+  const html = renderHtml(normalized, 'generation', fontCss);
+  const tableFragments = pages.flatMap((page, pageIndex) => page.items.map((node) => ({ page: pageIndex + 1, node })))
+    .filter(({ node }) => node.type === 'table' && node.columns.includes('Employee record'));
+  const rows = tableFragments.reduce((total, fragment) => total + fragment.node.rows.length, 0);
+  const tablePages = [...new Set(tableFragments.map((fragment) => fragment.page))];
+  if (rows !== 105) fail(`closure retained ${rows} table rows instead of 105`);
+  if (tableFragments.length < 2) fail('closure table did not paginate into multiple fragments');
+  if (tableFragments.some((fragment) => fragment.node.rows.length > 8)) fail('a table fragment exceeds the row-boundary limit');
+  if (!html.includes('<thead>') || !html.includes('Work Sans')) fail('closure HTML is missing repeated table headers or pinned font CSS');
+  const summary = {
+    generatedAt: '2026-09-02 synthetic closure run',
+    source: path.join(here, 'synthetic-document.json'),
+    documentId: normalized.documentId,
+    tableRows: rows,
+    tableFragments: tableFragments.length,
+    tablePages,
+    repeatedHeaderPerFragment: true,
+    rowBoundaryPreserved: true,
+    fragmentRowCounts: tableFragments.map((fragment) => fragment.node.rows.length),
+    pageCount: pages.length,
+    firstTablePage: tablePages[0],
+    lastTablePage: tablePages.at(-1),
+    fontProof: fontDir ? { family: 'Work Sans', weights: [400, 700], italic: true, embeddedAsDataUri: true } : { family: 'fallback only' },
+    boundaryRules: [
+      'A4 page size is explicit in print CSS and the Chromium command.',
+      'Table fragments contain complete rows only.',
+      'Each table fragment emits its own thead/header row.',
+      'A heading, paragraph, two-column block and image precede the long table in the boundary fixture.'
+    ]
+  };
+  await fs.mkdir(outputDir, { recursive: true });
+  await Promise.all([
+    fs.writeFile(path.join(outputDir, 'closure-normalized.json'), `${JSON.stringify(normalized, null, 2)}\n`, 'utf8'),
+    fs.writeFile(path.join(outputDir, 'closure-table-preview.html'), html, 'utf8'),
+    fs.writeFile(path.join(outputDir, 'closure-run-summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8')
+  ]);
+  console.log(JSON.stringify(summary, null, 2));
+}
+
 function parseArgs(argv) {
   const args = new Map();
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--check') args.set('check', true);
+    else if (value === '--closure-check') args.set('closureCheck', true);
     else if (value === '--serve') args.set('serve', true);
     else if (value === '--port') args.set('port', Number(argv[++index]));
     else if (value === '--out') args.set('out', path.resolve(argv[++index]));
+    else if (value === '--font-dir') args.set('fontDir', path.resolve(argv[++index]));
   }
   return args;
 }
@@ -682,12 +801,16 @@ async function runCheck(outputDir) {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-function startServer(port) {
+async function startServer(port, fontDir) {
   const normalized = normalizeDocument(fixture);
+  const closureDocument = createClosureDocument();
+  const fontCss = await createFontCss(fontDir);
   const server = http.createServer((request, response) => {
     const url = new URL(request.url ?? '/', `http://127.0.0.1:${port}`);
-    const view = ['editor', 'template', 'generation'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'editor';
-    const html = renderHtml(normalized, view);
+    const requestedView = url.searchParams.get('view');
+    const view = requestedView === 'closure-table' ? 'generation' : ['editor', 'template', 'generation'].includes(requestedView) ? requestedView : 'editor';
+    const document = requestedView === 'closure-table' ? closureDocument : normalized;
+    const html = renderHtml(document, view, fontCss);
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     response.end(html);
   });
@@ -696,7 +819,8 @@ function startServer(port) {
 
 const args = parseArgs(process.argv.slice(2));
 if (args.get('check')) await runCheck(args.get('out') ?? path.join(here, 'output'));
-if (args.get('serve')) startServer(args.get('port') ?? 4173);
-if (!args.get('check') && !args.get('serve')) {
-  console.log('Usage: node spike.mjs --check --out <evidence-dir> | node spike.mjs --serve --port 4173');
+if (args.get('closureCheck')) await runClosureCheck(args.get('out') ?? path.join(here, 'closure-output'), args.get('fontDir'));
+if (args.get('serve')) await startServer(args.get('port') ?? 4173, args.get('fontDir'));
+if (!args.get('check') && !args.get('closureCheck') && !args.get('serve')) {
+  console.log('Usage: node spike.mjs --check --out <evidence-dir> | node spike.mjs --closure-check --out <evidence-dir> --font-dir <font-files> | node spike.mjs --serve --port 4173 --font-dir <font-files>');
 }
