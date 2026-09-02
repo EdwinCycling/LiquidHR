@@ -1,4 +1,4 @@
--- SEC-012: additive public Recruitment anti-abuse claim/proof lifecycle.
+-- SEC-012 EXPAND: additive public Recruitment anti-abuse claim/proof lifecycle.
 -- This migration is a local forward candidate and must not be applied remotely
 -- until the migration-history gate receives separate explicit authorization.
 
@@ -124,24 +124,6 @@ begin
     'proofId', proof_id,
     'expiresAt', issued_at + interval '10 minutes'
   );
-end;
-$$;
-
--- Retain the old signature only as a revoked compatibility tombstone. It is
--- never an active proof source after this migration.
-create or replace function public.recruitment_submit_public_application(
-  requested_publication_id uuid,
-  requested_slug text,
-  requested_payload jsonb,
-  requested_intake_proof text
-)
-returns uuid
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  raise exception 'RECRUITMENT_PUBLIC_PROOF_INVALID' using errcode = '42501';
 end;
 $$;
 
@@ -274,7 +256,6 @@ $$;
 revoke all on function public.recruitment_claim_public_intake(uuid, text, text) from public, anon, authenticated;
 grant execute on function public.recruitment_claim_public_intake(uuid, text, text) to service_role;
 
-revoke all on function public.recruitment_submit_public_application(uuid, text, jsonb, text) from public, anon, authenticated, service_role;
 revoke all on function public.recruitment_submit_public_application(uuid, text, jsonb, text, text) from public;
 grant execute on function public.recruitment_submit_public_application(uuid, text, jsonb, text, text) to anon, authenticated, service_role;
 

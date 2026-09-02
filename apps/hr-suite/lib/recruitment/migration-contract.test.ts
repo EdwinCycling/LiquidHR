@@ -12,7 +12,7 @@ function migration(suffix: string): string {
 }
 
 describe('guided recruitment migration contract', () => {
-  it('legt SEC-012 vast met additive claim/proof, fail-closed grants en cleanup', () => {
+  it('legt de SEC-012 EXPAND-migratie vast zonder legacy submit-cutover', () => {
     const sql = migration('secure_public_recruitment_intake')
     expect(sql).toContain('create table public.recruitment_public_intake_proofs')
     expect(sql).toContain('alter table public.recruitment_public_intake_proofs enable row level security')
@@ -26,8 +26,19 @@ describe('guided recruitment migration contract', () => {
     expect(sql).toContain('recruitment_cleanup_public_intake(integer)')
     expect(sql).toContain('grant execute on function public.recruitment_claim_public_intake(uuid, text, text) to service_role')
     expect(sql).toContain('grant execute on function public.recruitment_submit_public_application(uuid, text, jsonb, text, text) to anon, authenticated, service_role')
-    expect(sql).toContain('revoke all on function public.recruitment_submit_public_application(uuid, text, jsonb, text) from public, anon, authenticated, service_role')
     expect(sql).toContain('grant execute on function public.recruitment_cleanup_public_intake(integer) to service_role')
+    expect(sql).not.toMatch(/create\s+or\s+replace\s+function\s+public\.recruitment_submit_public_application\s*\(\s*requested_publication_id\s+uuid\s*,\s*requested_slug\s+text\s*,\s*requested_payload\s+jsonb\s*,\s*requested_intake_proof\s+text\s*\)/)
+    expect(sql).not.toContain('revoke all on function public.recruitment_submit_public_application(uuid, text, jsonb, text)')
+  })
+
+  it('legt de SEC-012 CONTRACT-migratie vast als uitsluitend legacy cutover', () => {
+    const sql = migration('disable_legacy_public_recruitment_submit')
+    expect((sql.match(/create\s+or\s+replace\s+function/g) ?? [])).toHaveLength(1)
+    expect(sql).toMatch(/create\s+or\s+replace\s+function\s+public\.recruitment_submit_public_application\s*\(\s*requested_publication_id\s+uuid\s*,\s*requested_slug\s+text\s*,\s*requested_payload\s+jsonb\s*,\s*requested_intake_proof\s+text\s*\)/)
+    expect(sql).toContain("raise exception 'recruitment_public_proof_invalid'")
+    expect(sql).toContain('revoke all on function public.recruitment_submit_public_application(uuid, text, jsonb, text) from public, anon, authenticated, service_role')
+    expect(sql).not.toContain('requested_bucket_key_hash')
+    expect(sql).not.toMatch(/create\s+table|alter\s+table|drop\s+table|create\s+index|insert\s+into|update\s+|delete\s+from|grant\s+/)
   })
 
   it('legt het applicatiegebonden dossier vast zonder unieke kandidaatmail', () => {

@@ -282,7 +282,7 @@ This is the approved implementation scope for the candidate; the evidence below 
 
 ### Database and generated contracts
 
-- **Add** one timestamped migration under `apps/hr-suite/supabase/migrations/`: proof table, indexes, RLS/policies, grants/revokes, claim RPC, submit-RPC binding, bounded cleanup RPC, and compatibility handling for legacy proof columns.
+- **Add** two ordered timestamped migrations under `apps/hr-suite/supabase/migrations/`: an EXPAND migration for the new proof/claim/submit/cleanup objects and a CONTRACT migration for the later legacy-submit cutover.
 - **Modify** `apps/hr-suite/supabase/tests/recruitment_foundation_contract.sql`: atomic claim, proof lifecycle, binding, cleanup, RLS, and direct-access denial assertions.
 - **Modify** `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`: assert the claim RPC is service-only and the three existing anonymous Recruitment functions remain the sole intended public boundary.
 - **Modify** `apps/hr-suite/lib/recruitment/migration-contract.test.ts`: assert table/RLS/grant/index/function contracts.
@@ -382,17 +382,18 @@ The policy is exactly 5 successful claims per 15-minute database-owned UTC-align
 
 ### DATABASE
 
-Freeze one additive migration, to be created only during the separately authorized implementation:
+Freeze two ordered migrations, to be created only during the separately authorized implementation:
 
-- Add `public.recruitment_public_intake_proofs` with UUID identity; publication/tenant/HR-group scope; lowercase 64-hex `bucket_key_hash`; unique lowercase 64-hex `proof_hash`; `window_started_at`, `issued_at`, `expires_at`, nullable `consumed_at`, and UTC `created_at`; composite publication foreign-key coverage; and non-volatile lifetime checks.
-- Add `public.recruitment_claim_public_intake(uuid, text, text)` as a `SECURITY DEFINER` function with `SET search_path = ''`, explicit schema qualification, strict hash validation, database-owned time, and execute granted only to `service_role`.
+- The EXPAND migration `20260902113235_secure_public_recruitment_intake.sql` adds `public.recruitment_public_intake_proofs` with UUID identity; publication/tenant/HR-group scope; lowercase 64-hex `bucket_key_hash`; unique lowercase 64-hex `proof_hash`; `window_started_at`, `issued_at`, `expires_at`, nullable `consumed_at`, and UTC `created_at`; composite publication foreign-key coverage; and non-volatile lifetime checks.
+- EXPAND adds `public.recruitment_claim_public_intake(uuid, text, text)` as a `SECURITY DEFINER` function with `SET search_path = ''`, explicit schema qualification, strict hash validation, database-owned time, and execute granted only to `service_role`.
 - The claim locks the `OPEN` publication/module/active-vacancy scope, derives tenant and HR group, performs an atomic counter insert/update with `request_count < 5`, and inserts the proof digest in the same transaction. The sixth or concurrent losing claim returns a generic 429 result and does not increment.
-- Replace the active submit function with `recruitment_submit_public_application(uuid, text, jsonb, text, text)`, adding the bucket hash. It locks the new proof by digest/publication/tenant/HR-group/bucket, validates expiry and single use, and preserves the existing vacancy/candidate/application/event checks. The old four-argument overload is not an active proof source and, if retained for compatibility, is revoked for every caller and made inert.
-- Add service-only `public.recruitment_cleanup_public_intake(integer)` with the same definer/search-path discipline, an explicit service-role guard, bounded `SKIP LOCKED` cleanup, and grants only to `service_role`. Reuse the existing `CRON_SECRET`-protected recruitment-retention route and service wrapper.
-- Cleanup eligibility is frozen at one hour after proof expiry/consumption; counter rows are eligible after two hours only when no unexpired proof remains. Legacy proof columns remain untouched in this additive migration and are removed only by a later reviewed cleanup migration.
+- EXPAND adds `recruitment_submit_public_application(uuid, text, jsonb, text, text)`, adding the bucket hash. It locks the new proof by digest/publication/tenant/HR-group/bucket, validates expiry and single use, and preserves the existing vacancy/candidate/application/event checks. It does not redefine or revoke the four-argument overload, so the deployed application remains compatible during the window.
+- EXPAND adds service-only `public.recruitment_cleanup_public_intake(integer)` with the same definer/search-path discipline, an explicit service-role guard, bounded `SKIP LOCKED` cleanup, and grants only to `service_role`. Reuse the existing `CRON_SECRET`-protected recruitment-retention route and service wrapper.
+- Cleanup eligibility is frozen at one hour after proof expiry/consumption; counter rows are eligible after two hours only when no unexpired proof remains. Legacy proof columns remain untouched in EXPAND and are removed only by a later reviewed cleanup migration.
 - Enable RLS on the proof table, add an explicit deny-all policy for `anon`/`authenticated`, revoke direct table privileges from `public`, `anon`, and `authenticated`, and preserve the existing exact anonymous Recruitment RPC boundary. The claim RPC is service-only; browsers cannot read or write either intake table.
+- The CONTRACT migration `20260902133055_disable_legacy_public_recruitment_submit.sql` only replaces the four-argument overload with the inert proof-invalid tombstone and revokes its execution from `public`, `anon`, `authenticated`, and `service_role`. It does not redefine or revoke the five-argument function.
 
-Current read-only catalog evidence: Supabase project `wnpfloqpjvaacobppbpk` is active/healthy; the implementation worktree started from exact review SHA `28f905189a1fe7de1ee972ed55ce69b362b915d0`; remote migration history remains `DIVERGED` (`409` remote versus `390` local before this candidate, with maximum remote timestamp `20260831165143`); remote `recruitment_public_intake_limits` and `recruitment_documents` row counts are both `0`; and remote `public.recruitment_claim_public_intake` does not exist. The candidate created exactly one local migration, `20260902113235_secure_public_recruitment_intake.sql`; it was not applied remotely. This drift is not a reason for `db push`, history repair, pull, or manual edits. Before any future remote apply, stop and request explicit authorization naming the exact migration filename and purpose.
+Current read-only catalog evidence: Supabase project `wnpfloqpjvaacobppbpk` is active/healthy; the implementation worktree started from exact review SHA `28f905189a1fe7de1ee972ed55ce69b362b915d0`; remote migration history remains `DIVERGED` (`409` remote versus `392` local, with maximum remote timestamp `20260831165143`); remote `recruitment_public_intake_limits` and `recruitment_documents` row counts are both `0`; and remote `public.recruitment_claim_public_intake` does not exist. The candidate now contains exactly two local migrations, `20260902113235_secure_public_recruitment_intake.sql` and `20260902133055_disable_legacy_public_recruitment_submit.sql`; neither was applied remotely. This drift is not a reason for `db push`, history repair, pull, or manual edits. Before any future remote apply, stop and request explicit authorization naming the exact migration filename and purpose.
 
 ### SCANNER / REQUEST ORDER
 
@@ -415,7 +416,7 @@ No document means no scanner. Body rejection, identity rejection, Turnstile reje
 
 ### MIGRATION
 
-The implementation candidate created one forward additive migration locally, but did not apply it. The current local/remote history is `DIVERGED` (`390` local versus `409` remote before the candidate, with different latest timestamps), and the remote Recruitment catalog has legacy proof columns with no current rows. `packages/db/types.ts` was not hand-edited or regenerated because the canonical schema was not updated. The local database lint could not run because no local Postgres was listening on `127.0.0.1:54322`; remote advisors were read-only and reported existing baseline findings, including the old four-argument submit function. Any remote apply remains separately authorization-gated.
+The implementation candidate now contains two forward migrations locally and neither was applied: EXPAND adds the new objects while preserving the deployed four-argument contract; CONTRACT performs the later legacy cutover. The current local/remote history is `DIVERGED` (`392` local versus `409` remote, with different latest timestamps), and the remote Recruitment catalog has legacy proof columns with no current rows. `packages/db/types.ts` was not hand-edited or regenerated because the canonical schema was not updated. The local database lint could not run because no local Postgres was listening on `127.0.0.1:54322`; remote advisors were read-only and reported existing baseline findings, including the old four-argument submit function. Any remote apply remains separately authorization-gated.
 
 ### TESTS
 
@@ -439,7 +440,7 @@ The implementation candidate file scope is frozen to:
 - Application: `apps/hr-suite/app/api/public/recruitment/vacancies/[publicId]/applications/route.ts`.
 - Helpers: add `apps/hr-suite/lib/security/trusted-client-identity.ts` and `apps/hr-suite/lib/http/bounded-request-body.ts`; modify `apps/hr-suite/lib/recruitment/public-security.ts`.
 - Services: modify `apps/hr-suite/lib/recruitment/public-intake-service.ts`, `apps/hr-suite/lib/recruitment/application-service.ts`, `apps/hr-suite/lib/recruitment/errors.ts`, `apps/hr-suite/lib/recruitment/guided-service.ts`, and `apps/hr-suite/app/api/cron/recruitment-retention/route.ts`.
-- Database: add one timestamped migration; modify `apps/hr-suite/supabase/tests/recruitment_foundation_contract.sql`, `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`, and `apps/hr-suite/lib/recruitment/migration-contract.test.ts`; regenerate `packages/db/types.ts` only after the approved local schema change.
+- Database: add two ordered timestamped migrations; modify `apps/hr-suite/supabase/tests/recruitment_foundation_contract.sql`, `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`, and `apps/hr-suite/lib/recruitment/migration-contract.test.ts`; regenerate `packages/db/types.ts` only after the approved local schema change.
 - Tests: add `apps/hr-suite/lib/security/trusted-client-identity.test.ts`, `apps/hr-suite/lib/http/bounded-request-body.test.ts`, and the public application route test; modify the public security and public intake tests.
 
 Explicitly out of this implementation candidate: `next.config.ts`, `apps/hr-suite/lib/recruitment/document-service.ts` behavior, UI, package/dependency changes, visible version, migration-history edits, `.env.local`, GitHub settings, Vercel settings/configuration, production deployment, and remote Supabase mutation without separate explicit authorization.
@@ -447,7 +448,7 @@ Explicitly out of this implementation candidate: `next.config.ts`, `apps/hr-suit
 ### OPEN ITEMS
 
 - Production acceptance must re-confirm that the inspected public domains terminate directly at Vercel and that no custom reverse proxy/CDN is introduced before trusting the provider header contract.
-- The additive migration must perform a read-only legacy-proof preflight immediately before implementation. The current inspected remote intake-limit and document tables are empty.
+- The EXPAND migration must perform a read-only legacy-proof preflight immediately before implementation. The current inspected remote intake-limit and document tables are empty.
 - Operations must confirm platform log retention/access for the allowlisted security events; this is a governance follow-up, not an SEC-012 correctness blocker.
 - SEC-005 remains a separate residual for canonical host/origin resolution and future proxy/custom-domain changes.
 
@@ -457,11 +458,11 @@ The candidate performed exact-baseline/worktree checks, read-only Supabase catal
 
 ### MUTATIONS
 
-The implementation-candidate mutation is limited to the listed app helpers/route/service changes, tests, one local migration, and this evidence update. No package or lockfile, version, `next.config.ts`, canonical environment file, migration history, remote Supabase schema/data, Vercel/GitHub setting, deployment, or `main` branch was changed. The canonical `apps/hr-suite/.env.local` was verified to exist and remain ignored; its values were not read or printed.
+The implementation-candidate mutation is limited to the listed app helpers/route/service changes, tests, two local migrations, and this evidence update. No package or lockfile, version, `next.config.ts`, canonical environment file, migration history, remote Supabase schema/data, Vercel/GitHub setting, deployment, or `main` branch was changed. The canonical `apps/hr-suite/.env.local` was verified to exist and remain ignored; its values were not read or printed.
 
 ### CANDIDATE
 
-The implementation candidate is branch `security/sec012-public-intake-implementation`, based on review SHA `28f905189a1fe7de1ee972ed55ce69b362b915d0`. The candidate commit contains the scoped route, helpers, services, tests, one local migration, SQL contracts, and this evidence update. No merge to `main` or remote migration apply is part of this candidate. The candidate branch is pushed non-force only if the explicitly requested remote branch operation succeeds.
+The implementation candidate is branch `security/sec012-public-intake-implementation`, based on review SHA `28f905189a1fe7de1ee972ed55ce69b362b915d0`. The candidate commit contains the scoped route, helpers, services, tests, two ordered local migrations, SQL contracts, and this evidence update. No merge to `main` or remote migration apply is part of this candidate. The candidate branch is pushed non-force only if the explicitly requested remote branch operation succeeds.
 
 ### NEXT
 
