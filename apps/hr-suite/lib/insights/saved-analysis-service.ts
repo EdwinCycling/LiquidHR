@@ -21,10 +21,9 @@ import { SavedAnalysisError } from './saved-analysis-errors'
 const SAVED_ANALYSIS_TABLE = 'saved_analysis_definitions' as const
 const SAVED_ANALYSIS_SELECT = 'id,tenant_id,hr_group_id,owner_user_id,name,analysis_spec,definition_version,created_at,updated_at' as const
 export const SAVED_ANALYSIS_LIST_LIMIT = 100 as const
-// The forward migration is intentionally not applied in this candidate. The
-// existing V1-only database constraint must never turn a V2 save into a
-// database error or become externally usable before that migration is gated.
-export const SAVED_ANALYSIS_V2_PERSISTENCE_ENABLED = false as const
+// The reviewed V2 forward migration is applied; V2 definitions may now be
+// persisted while the existing V1 behavior remains unchanged.
+export const SAVED_ANALYSIS_V2_PERSISTENCE_ENABLED = true as const
 
 export interface SavedAnalysisPersistenceRow {
   readonly id: string

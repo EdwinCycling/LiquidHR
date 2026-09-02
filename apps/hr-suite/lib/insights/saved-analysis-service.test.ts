@@ -68,7 +68,7 @@ function repository(initialRows: readonly SavedAnalysisPersistenceRow[] = [row()
     list: vi.fn(async (scope) => rows.filter((candidate) => scopeMatches(candidate, scope))),
     get: vi.fn(async (scope, id) => rows.find((candidate) => candidate.id === id && scopeMatches(candidate, scope)) ?? null),
     create: vi.fn(async (scope, input) => {
-      const created = row({ id: otherAnalysisId, name: input.name, analysis_spec: input.analysisSpec, tenant_id: scope.tenantId, hr_group_id: scope.hrGroupId, owner_user_id: scope.ownerUserId })
+      const created = row({ id: otherAnalysisId, name: input.name, analysis_spec: input.analysisSpec, definition_version: input.definitionVersion, tenant_id: scope.tenantId, hr_group_id: scope.hrGroupId, owner_user_id: scope.ownerUserId })
       rows.push(created)
       return created
     }),
@@ -152,7 +152,7 @@ describe('saved analysis service security contract', () => {
     expect(JSON.stringify(createCall?.[1])).not.toContain('result')
   })
 
-  it('keeps V2 save-as disabled until the forward migration is separately applied and verified', async () => {
+  it('allows V2 save-as after the forward migration is applied and verified', async () => {
     const requestedRepository = repository([])
     const v2Spec = {
       ...spec,
@@ -162,8 +162,11 @@ describe('saved analysis service security contract', () => {
       comparison: null,
       presentation: { intent: 'auto' as const },
     }
-    await expect(createSavedAnalysis({ name: 'V2 snapshot', analysisSpec: v2Spec }, dependencies(auth(), requestedRepository))).rejects.toMatchObject({ code: 'SAVED_ANALYSIS_VERSION_UNAVAILABLE', status: 409 })
-    expect(requestedRepository.create).not.toHaveBeenCalled()
+    await expect(createSavedAnalysis({ name: 'V2 snapshot', analysisSpec: v2Spec }, dependencies(auth(), requestedRepository))).resolves.toMatchObject({ spec: { version: 2 } })
+    expect(requestedRepository.create).toHaveBeenCalledWith(
+      { tenantId: 'tenant-a', hrGroupId: 'group-a', ownerUserId: 'user-a' },
+      expect.objectContaining({ name: 'V2 snapshot', definitionVersion: 2 }),
+    )
   })
 
   it('fails closed for a malformed persisted spec and unsupported client spec', async () => {
