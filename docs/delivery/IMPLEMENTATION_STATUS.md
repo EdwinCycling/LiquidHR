@@ -1689,3 +1689,8 @@ Aanvulling 2026-08-16: de aanmaakwizard verwerkt roosterdagen voortaan als uren 
 # UX Foundation v1 — Employee Personal Tab
 
 De featurebranch `feature/ux-employee-personal-tab` migreert de vijf subtabs van `/employees/[employeeId]?tab=personal` naar Foundation v1. De outer surface, tablist, persoonsgegevens read/edit, rolweergave, BSN-presentatie, bank- en relatiepresentatie en embedded custom fields zijn aangepast zonder schema-, API-, permission-, RLS- of securitywijziging. De finale test-, build- en browserverificatie staat nog open.
+## Comprehensive security re-review — 2026-09-02
+
+**Status: REVIEW COMPLETE — READY FOR ROADMAP REVIEW; NO REMEDIATION**
+
+Fresh independent security review from exact `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b` is documented in [`docs/security/SECURITY_REVIEW_20260902_LUNA_MAX.md`](../security/SECURITY_REVIEW_20260902_LUNA_MAX.md). The current candidate contains only review/index/status documentation. SEC-001/002/003/010 are closed and verified; SEC-004/005/006 retain residual hardening; SEC-007/008/009/011 remain open; SEC-012/013/014/015 are new. No product fix, schema/migration, dependency, remote, deployment, or GitHub settings action was performed.

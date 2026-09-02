@@ -2426,3 +2426,12 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 
 - De compacte `/dashboard/start`-weergave hield na de eerdere redesign alleen de begroeting over. De bestaande datavensters worden nu ook in compact gerenderd; vensterdragging en volgordeacties blijven daar verborgen. Uitgebreid behoudt de bestaande vensteracties.
 - Geen schema-, API-, RLS-, permissie- of dataladingswijziging. Definitieve verificatie: 2 gerichte start-page regressietests, strict typecheck, productiebuild, `git diff --check` en authenticated Test HR-browsercontrole op localhost:3000. Compacte widgets, verborgen drag/reorder en refresh zijn groen; uitgebreide widgets, drag/reorder en refresh zijn groen; 0 relevante console-errors. De voorgeschreven `docs/delivery/TEST_ACCEPTANCE_MATRIX.md` ontbreekt in deze checkout.
+## Comprehensive security re-review — 2026-09-02
+
+**Status: REVIEW COMPLETE — DOCS-ONLY CANDIDATE; NO MAIN INTEGRATION**
+
+- Authoritative baseline: `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b`; visible version `1.20260901.1`.
+- Review candidate: isolated branch `security/comprehensive-rereview-20260902-luna-max`; report [`docs/security/SECURITY_REVIEW_20260902_LUNA_MAX.md`](../security/SECURITY_REVIEW_20260902_LUNA_MAX.md).
+- Historical register: 4 closed verified, 3 hardened with residual, 4 open; 4 new findings (SEC-012 through SEC-015); no proven regression.
+- Evidence: targeted security set `111/111` tests, strict TypeScript, lint, read-only Supabase/GitHub/Vercel checks, dependency audit, and passive production HTTP checks passed or were recorded in the report.
+- Boundary: no app/test/migration/package/version changes, remote mutation, deploy, GitHub settings change, or protected `.env.local` action. Roadmap review and remediation remain open.

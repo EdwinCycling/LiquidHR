@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Comprehensive security re-review — 2026-09-02
+
+**Status: REVIEW COMPLETE — READY FOR ROADMAP REVIEW; NO REMEDIATION**
+
+Een onafhankelijke review vanaf exact `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b` is uitgevoerd in een geïsoleerde review-worktree. De review behandelt de historische SEC-001 t/m SEC-011 opnieuw en registreert vier nieuwe bevindingen (SEC-012 t/m SEC-015). De kandidaatwijziging is docs-only; er zijn geen applicatie-, test-, migration-, package-, database-, Vercel- of GitHub-mutaties uitgevoerd. Zie [`security/SECURITY_REVIEW_20260902_LUNA_MAX.md`](security/SECURITY_REVIEW_20260902_LUNA_MAX.md).
+
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
