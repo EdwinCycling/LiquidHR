@@ -6,6 +6,12 @@
 
 Het geamendeerde productcontract en de native-editorarchitectuur staan in [`requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](requirements/documents/DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md) en [`requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md`](requirements/documents/DM0_DOCUMENT_STUDIO_ARCHITECTURE.md). De eerdere Word-first keuze blijft in beide documenten als historische, voor V1 superseded rationale bewaard. DM-1 is niet gestart; deze amendment bevat geen app-code, migration, package- of remote wijziging. De volgende gate is `NATIVE EDITOR → HTML/PDF FEASIBILITY SPIKE`.
 
+## Document Studio native editor → HTML/PDF feasibility spike — 2026-09-02
+
+**Status: PARTIAL — LOCAL NATIVE EDITOR → A4 HTML/PDF PROOF GREEN; DM-1 DESIGN NOT READY**
+
+De disposable synthetische spike staat in [`requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md`](requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md). De bounded native structured model, Cover/Header/Body/Appendix/Footer composition, atomic placeholders, structural images, Template Preview, Generation Preview en lokale server-side 6-pagina A4-PDF zijn bewezen. Tiptap/ProseMirror, production renderer/sandbox, multi-page table continuation, font packaging, asset decoder/security limits en capacity blijven open; er is geen production dependency of infrastructure geselecteerd.
+
 ## Historische DM-0 Document Studio-kandidaat — 2026-09-01
 
 **Status: HISTORISCH — WORD-FIRST RATIONALE SUPERSEDED VOOR V1**

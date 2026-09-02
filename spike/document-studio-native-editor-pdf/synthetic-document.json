@@ -1,0 +1,478 @@
+{
+  "schema": "liquid-hr.document-studio.native.v1",
+  "documentId": "synthetic-feasibility-2026-09-02",
+  "language": "nl",
+  "templateVersion": 1,
+  "composition": {
+    "cover": {
+      "type": "COVER_TEMPLATE",
+      "nodes": [
+        {
+          "type": "image",
+          "assetRef": "logo",
+          "alt": "LiquidHR Test B.V. logo",
+          "align": "center",
+          "widthPct": 62,
+          "caseId": "cover-logo"
+        },
+        {
+          "type": "heading",
+          "level": 1,
+          "align": "center",
+          "content": [
+            { "type": "text", "text": "Werkgeversverklaring" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "align": "center",
+          "content": [
+            { "type": "text", "text": "Voor " },
+            { "type": "placeholder", "field": "employee.firstName" },
+            { "type": "text", "text": " " },
+            { "type": "placeholder", "field": "employee.lastName" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "align": "center",
+          "content": [
+            { "type": "text", "text": "LiquidHR Test B.V. · 2 september 2026" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "align": "center",
+          "content": [
+            { "type": "text", "text": "SYNTHETISCHE FEASIBILITY-FIXTURE · GEEN ECHTE HR-DATA" }
+          ]
+        }
+      ]
+    },
+    "header": {
+      "type": "HEADER",
+      "nodes": [
+        {
+          "type": "twoColumn",
+          "widths": [25, 75],
+          "columns": [
+            [
+              {
+                "type": "image",
+                "assetRef": "logo",
+                "alt": "Logo",
+                "align": "left",
+                "widthPct": 100,
+                "caseId": "header-logo"
+              }
+            ],
+            [
+              {
+                "type": "paragraph",
+                "align": "right",
+                "content": [
+                  { "type": "text", "text": "LiquidHR Test B.V.", "marks": ["bold"] },
+                  { "type": "text", "text": " · Document Studio feasibility" }
+                ]
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "body": {
+      "type": "DOCUMENT_TEMPLATE",
+      "nodes": [
+        {
+          "type": "heading",
+          "level": 1,
+          "content": [
+            { "type": "text", "text": "Werkgeversverklaring" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Ondergetekende verklaart dat " },
+            { "type": "placeholder", "field": "employee.firstName" },
+            { "type": "text", "text": " " },
+            { "type": "placeholder", "field": "employee.lastName", "marks": ["bold"] },
+            { "type": "text", "text": " werkzaam is bij " },
+            { "type": "placeholder", "field": "company.name" },
+            { "type": "text", "text": "." }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "align": "center",
+          "content": [
+            { "type": "text", "text": "Vaste aanstelling · gecontroleerde native structured render", "marks": ["italic"] }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "content": [
+            { "type": "text", "text": "Dienstverband en functie" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "De medewerker vervult de functie " },
+            { "type": "placeholder", "field": "employment.jobTitle" },
+            { "type": "text", "text": " op basis van een arbeidsovereenkomst voor onbepaalde tijd. De gegevens in deze synthetische verklaring zijn uitsluitend bedoeld om opmaak, placeholders en pagina-opbouw te testen." }
+          ]
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            [
+              { "type": "text", "text": "De gegevens zijn afkomstig uit een allowlisted semantic field catalog." }
+            ],
+            [
+              { "type": "text", "text": "Bekende placeholders worden als atomic nodes opgeslagen." }
+            ],
+            [
+              { "type": "text", "text": "Vrije code " },
+              { "type": "free_placeholder", "key": "Koffie" },
+              { "type": "text", "text": " is generation-only en optioneel." }
+            ]
+          ]
+        },
+        {
+          "type": "horizontalRule"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Verificatie van opmaak: " },
+            { "type": "text", "text": "vet", "marks": ["bold"] },
+            { "type": "text", "text": ", " },
+            { "type": "text", "text": "cursief", "marks": ["italic"] },
+            { "type": "text", "text": " en " },
+            { "type": "text", "text": "onderstreept", "marks": ["underline"] },
+            { "type": "text", "text": ". Euro: € 4.250,00. Accenten: naïef, beëindiging, één." }
+          ]
+        },
+        {
+          "type": "table",
+          "border": "bordered",
+          "columns": ["Onderdeel", "Waarde", "Controle"],
+          "rows": [
+            {
+              "cells": [
+                { "content": [{ "type": "text", "text": "Medewerker" }] },
+                { "content": [{ "type": "placeholder", "field": "employee.firstName" }, { "type": "text", "text": " " }, { "type": "placeholder", "field": "employee.lastName" }] },
+                { "content": [{ "type": "text", "text": "Known" }] }
+              ]
+            },
+            {
+              "cells": [
+                { "content": [{ "type": "text", "text": "Salaris [Is]" }] },
+                { "content": [{ "type": "placeholder", "field": "salary", "temporal": "is" }] },
+                { "content": [{ "type": "text", "text": "Temporal" }] }
+              ]
+            },
+            {
+              "cells": [
+                { "content": [{ "type": "text", "text": "Effectief per" }] },
+                { "content": [{ "type": "placeholder", "field": "document.effectiveDate" }] },
+                { "image": { "assetRef": "stamp", "alt": "Synthetische controlemarkering", "align": "center", "widthPct": 60, "caseId": "table-cell-image" } }
+              ]
+            },
+            {
+              "cells": [
+                { "content": [{ "type": "text", "text": "Optioneel vrij veld" }] },
+                { "content": [{ "type": "free_placeholder", "key": "Koffie" }] },
+                { "content": [{ "type": "text", "text": "Empty-safe" }] }
+              ]
+            },
+            {
+              "cells": [
+                { "content": [{ "type": "text", "text": "Valuta / teken" }] },
+                { "content": [{ "type": "text", "text": "€ 4.250,00 · één" }] },
+                { "content": [{ "type": "text", "text": "Font" }] }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "content": [
+            { "type": "text", "text": "Structurele beeldblokken" }
+          ]
+        },
+        {
+          "type": "twoColumn",
+          "widths": [25, 75],
+          "caseId": "two-column-image-left",
+          "columns": [
+            [
+              {
+                "type": "image",
+                "assetRef": "illustration",
+                "alt": "Synthetische illustratie links",
+                "align": "center",
+                "widthPct": 100,
+                "caseId": "two-column-left-image"
+              }
+            ],
+            [
+              {
+                "type": "paragraph",
+                "content": [
+                  { "type": "text", "text": "De " },
+                  { "type": "text", "text": "25/75 TwoColumnBlock", "marks": ["bold"] },
+                  { "type": "text", "text": " is structureel, kent geen vrije X/Y-positie en bewaart de verhouding in preview en PDF." }
+                ]
+              }
+            ]
+          ]
+        },
+        {
+          "type": "twoColumn",
+          "widths": [33, 67],
+          "caseId": "two-column-text-image",
+          "columns": [
+            [
+              {
+                "type": "paragraph",
+                "content": [
+                  { "type": "text", "text": "Tekst links met vaste 33/67-kolombreedte. De renderlaag begrenst de inhoud zodat een afbeelding rechts niet over de pagina kan ontsnappen." }
+                ]
+              }
+            ],
+            [
+              {
+                "type": "image",
+                "assetRef": "illustration",
+                "alt": "Synthetische illustratie rechts",
+                "align": "right",
+                "widthPct": 92,
+                "caseId": "two-column-right-image"
+              }
+            ]
+          ]
+        },
+        {
+          "type": "twoColumn",
+          "widths": [50, 50],
+          "caseId": "two-column-placeholder-rich",
+          "columns": [
+            [
+              {
+                "type": "paragraph",
+                "content": [
+                  { "type": "placeholder", "field": "employee.firstName" },
+                  { "type": "text", "text": " ontvangt " },
+                  { "type": "placeholder", "field": "salary", "temporal": "is", "marks": ["bold"] },
+                  { "type": "text", "text": " per maand." }
+                ]
+              }
+            ],
+            [
+              {
+                "type": "paragraph",
+                "content": [
+                  { "type": "text", "text": "Toekomstige waarde: " },
+                  { "type": "placeholder", "field": "salary", "temporal": "wordt" },
+                  { "type": "text", "text": "." }
+                ]
+              }
+            ]
+          ]
+        },
+        {
+          "type": "image",
+          "assetRef": "diagram",
+          "alt": "Synthetisch diagram in het bodydocument",
+          "align": "left",
+          "widthPct": 44,
+          "caseId": "body-image-left-near-boundary"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Dit blok volgt bewust direct op de links uitgelijnde afbeelding om tekst vóór en na een structural image te controleren. De afbeelding gebruikt een veilige asset reference; er is geen externe URL en geen client filesystem path." }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Lange-flow proef: LiquidHR-native authoring bewaart structuur als nodes en laat de renderlaag gecontroleerde pagina's vullen. Deze tekst is lang genoeg om de normale flow en het vermijden van half afgesneden kleine blokken te oefenen. De spike belooft geen volledige Microsoft Word-paginering; hij controleert juist dat dezelfde beperkte semantiek in een browser-preview en een server-side PDF voorspelbaar blijft. Een nieuwe pagina ontstaat door auto-flow wanneer een block niet meer binnen de beschikbare contenthoogte past, of door een expliciete pageBreak node. " },
+            { "type": "text", "text": "Herhaalzin voor flow: Ada Voorbeeld · LiquidHR Test B.V. · € 4.250,00 · 2 september 2026. ", "marks": ["italic"] },
+            { "type": "text", "text": "Herhaalzin voor flow: de inhoud is fictief en uitsluitend bedoeld voor technische bewijsvoering. " },
+            { "type": "text", "text": "Herhaalzin voor flow: placeholder resolution blijft atomic en veroorzaakt geen split-run reparatie. " }
+          ]
+        },
+        {
+          "type": "pageBreak"
+        },
+        {
+          "type": "heading",
+          "level": 2,
+          "content": [
+            { "type": "text", "text": "Expliciete pagina-opbouw" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "De vorige node was een first-class pageBreak. Er zijn geen lege paragraphs gebruikt om pagina-opbouw te simuleren. De resterende bodytekst blijft bewust eenvoudig: headings, paragraphs, lijsten, tabel, beeldblokken en placeholders." }
+          ]
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            [{ "type": "text", "text": "Normaliseer het versioned documentmodel." }],
+            [{ "type": "text", "text": "Resolve bekende, temporal en vrije placeholders." }],
+            [{ "type": "text", "text": "Materialiseer gecontroleerde A4-rendersemantics." }],
+            [{ "type": "text", "text": "Maak Template Preview, Generation Preview en final PDF gelijk." }]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "De output bevat geen " },
+            { "type": "text", "text": "null", "marks": ["bold"] },
+            { "type": "text", "text": ", " },
+            { "type": "text", "text": "undefined", "marks": ["bold"] },
+            { "type": "text", "text": " of onopgeloste ##-code wanneer een optioneel vrij veld leeg blijft." }
+          ]
+        },
+        {
+          "type": "table",
+          "border": "none",
+          "columns": ["Renderlaag", "Bewijs"],
+          "rows": [
+            { "cells": [{ "content": [{ "type": "text", "text": "Structured JSON" }] }, { "content": [{ "type": "text", "text": "Versioned nodes, atomic placeholders" }] }] },
+            { "cells": [{ "content": [{ "type": "text", "text": "HTML/CSS" }] }, { "content": [{ "type": "text", "text": "Controlled A4 page wrappers" }] }] },
+            { "cells": [{ "content": [{ "type": "text", "text": "PDF" }] }, { "content": [{ "type": "text", "text": "Chromium print vanaf dezelfde HTML" }] }] }
+          ]
+        },
+        {
+          "type": "image",
+          "assetRef": "diagram",
+          "alt": "Synthetisch diagram gecentreerd",
+          "align": "center",
+          "widthPct": 58,
+          "caseId": "body-image-center"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Laatste body-image case: dezelfde asset wordt kleiner en rechts uitgelijnd weergegeven in de volgende blockpositie. Dit maakt resize, aspect-ratio en location assertions zichtbaar zonder floating of text wrapping." }
+          ]
+        },
+        {
+          "type": "image",
+          "assetRef": "diagram",
+          "alt": "Synthetisch diagram rechts",
+          "align": "right",
+          "widthPct": 32,
+          "caseId": "body-image-right-resized"
+        }
+      ]
+    },
+    "appendices": [
+      {
+        "type": "APPENDIX_TEMPLATE",
+        "title": "Appendix 1 — Rendercontract",
+        "nodes": [
+          {
+            "type": "heading",
+            "level": 1,
+            "content": [{ "type": "text", "text": "Appendix 1 — Rendercontract" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              { "type": "text", "text": "Deze appendix begint door composition-semantics op een nieuwe pagina. Header en footer worden door de renderlaag uit één first-class region herhaald; ze zijn geen handmatig gekopieerde bodytekst." }
+            ]
+          },
+          {
+            "type": "table",
+            "border": "none",
+            "columns": ["Capability", "Status"],
+            "rows": [
+              { "cells": [{ "content": [{ "type": "text", "text": "Known placeholder" }] }, { "content": [{ "type": "placeholder", "field": "employee.firstName" }] }] },
+              { "cells": [{ "content": [{ "type": "text", "text": "Free placeholder" }] }, { "content": [{ "type": "free_placeholder", "key": "Koffie" }] }] },
+              { "cells": [{ "content": [{ "type": "text", "text": "Image cell" }] }, { "image": { "assetRef": "stamp", "alt": "Appendix asset", "align": "center", "widthPct": 48, "caseId": "appendix-table-image" } }] }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              { "type": "text", "text": "Security boundary: de fixture gebruikt PNG-signature, MIME-allowlist, dimension checks en een deterministische assetRef. SVG, remote URL, arbitrary HTML/CSS en scripts vallen buiten de geaccepteerde bronvorm." }
+            ]
+          },
+          {
+            "type": "twoColumn",
+            "widths": [50, 50],
+            "columns": [
+              [{ "type": "paragraph", "content": [{ "type": "text", "text": "Appendix links: text." }] }],
+              [{ "type": "image", "assetRef": "stamp", "alt": "Appendix right image", "align": "right", "widthPct": 70, "caseId": "appendix-two-column-image" }]
+            ]
+          }
+        ]
+      },
+      {
+        "type": "APPENDIX_TEMPLATE",
+        "title": "Appendix 2 — Synthetic test context",
+        "nodes": [
+          {
+            "type": "heading",
+            "level": 1,
+            "content": [{ "type": "text", "text": "Appendix 2 — Synthetic test context" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              { "type": "text", "text": "Concrete Generation Preview context: " },
+              { "type": "placeholder", "field": "employee.firstName" },
+              { "type": "text", "text": " " },
+              { "type": "placeholder", "field": "employee.lastName" },
+              { "type": "text", "text": ", " },
+              { "type": "placeholder", "field": "company.name" },
+              { "type": "text", "text": ", salaris " },
+              { "type": "placeholder", "field": "salary", "temporal": "wordt" },
+              { "type": "text", "text": ", effectief " },
+              { "type": "placeholder", "field": "document.effectiveDate" },
+              { "type": "text", "text": "." }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              { "type": "text", "text": "Dit is geen realistische klantbrief en bevat geen echte personeelsgegevens. Het doel is controle van pagina-aantallen, anchors, values, appendices, fonts, euro/accenten en herhaalbaarheid." }
+            ]
+          },
+          {
+            "type": "image",
+            "assetRef": "logo",
+            "alt": "Logo in appendix",
+            "align": "center",
+            "widthPct": 54,
+            "caseId": "appendix-logo"
+          }
+        ]
+      }
+    ],
+    "footer": {
+      "type": "FOOTER",
+      "nodes": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            { "type": "text", "text": "Vertrouwelijk · LiquidHR Test B.V. · Synthetische feasibility" }
+          ]
+        }
+      ]
+    }
+  }
+}

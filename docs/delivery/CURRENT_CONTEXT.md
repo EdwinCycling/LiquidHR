@@ -14,6 +14,17 @@
 - The exact editor library and server-side PDF runtime are not selected. The native editor → HTML/PDF feasibility spike is the next hard gate; no implementation or infrastructure was started.
 - This amendment changed only product/architecture documentation, the minimal documentation index and this delivery context. No app code, package, migration, Supabase/Vercel/GitHub setting, version or protected env state was changed.
 
+## Document Studio native editor → HTML/PDF feasibility spike — 2026-09-02
+
+**Status: PARTIAL — LOCAL NATIVE EDITOR → A4 HTML/PDF PROOF GREEN; DM-1 DESIGN NOT READY**
+
+- Isolated branch/worktree: `spike/document-studio-native-editor-pdf`, based on the exact approved amendment SHA `8132dde3b7efc5c6a3ebb9c7b8df661b8911441e`.
+- A synthetic versioned JSON model rendered Cover, Header, Body, two Appendices, Footer, atomic known/temporal/free placeholders, structural images, tables, 25/75/33/67/50/50 TwoColumnBlocks, page break and a 6-page A4 PDF from the same preview HTML semantics.
+- Local Chromium PDF proof is GREEN only with explicit `format: A4` and `preferCSSPageSize`; the default CLI PDF option produced Letter and is recorded as a renderer guardrail. Preview/final visual anchors, image geometry, repeatability, desktop/mobile overflow and asset negative cases passed for the fixture.
+- Tiptap/ProseMirror runtime, production renderer/sandbox/deployment, large-table continuation, font packaging, decoder/resource limits and capacity remain open. `READY FOR DM-1 DESIGN: NO`; no application code, production dependency, migration, Supabase/Vercel/GitHub setting or version changed.
+- External evidence: `C:\Users\Edwin\AppData\Local\Temp\liquidhr-document-studio-native-editor-pdf-20260902`.
+- Detailed report: [`requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md`](../requirements/documents/DOCUMENT_STUDIO_NATIVE_EDITOR_PDF_FEASIBILITY.md).
+
 ## Historical DM-0 Document Studio product review — 2026-09-02
 
 **Status: DM-0 ARCHITECTURE — PRODUCT APPROVED, READY FOR FEASIBILITY GATE**
