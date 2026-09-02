@@ -386,6 +386,34 @@ safe synthetic DOCX
 
 The spike is disposable and outside committed application code. No spike dependency or package may be committed or installed unless separately approved. A failed or incomplete spike blocks the full DM-1 implementation/migration commitment.
 
+## 10a. RENDERING FEASIBILITY GATE — BLOCKED
+
+**Execution date:** 2 september 2026
+**Result:** `FEASIBILITY BLOCKED — LOCAL RENDERER INFRASTRUCTURE UNAVAILABLE`
+
+### Environment
+
+- Docker CLI is installed at `C:\Program Files\Docker\Docker\resources\bin\docker.exe`.
+- The Docker daemon is unavailable; the configured Docker Desktop Linux engine named pipe could not be opened. Therefore no ephemeral Gotenberg container could be started or used.
+- Local `soffice`/LibreOffice is not installed or discoverable.
+- Existing Poppler `pdfinfo` and `pdftoppm` utilities are available, as are existing Python and Node runtimes. They do not provide the approved DOCX-to-PDF renderer and cannot substitute for it.
+
+### Spike execution boundary
+
+Because neither approved renderer path was executable, the rendering portion stopped before fixture generation, replacement and conversion. No synthetic DOCX, PDF, screenshot or other spike artifact was created; consequently there is no claimed content, split-run, fidelity or performance result.
+
+The synthetic-only invariant remains intact: no real HR data, employee document or customer document was used. The approved production rule remains unchanged:
+
+```text
+untrusted uploaded DOCX
+→ private quarantine
+→ structural validation
+→ malware/security scan GREEN
+→ only then renderer/preview/activation/generate
+```
+
+This BLOCKED result is an environment availability result, not an architecture failure and does not reopen the approved Gotenberg + pinned LibreOffice decision. DM-1 is not ready: rerun the disposable gate on a host with the approved private Gotenberg boundary executable, or with already-installed local LibreOffice for the approved fallback. Do not substitute HTML, browser print-to-PDF or managed SaaS conversion.
+
 ## 11. Validation design
 
 | Area | Blocking | Warning/allowed continuation |
@@ -501,7 +529,7 @@ Executed for this architecture slice:
 - official Vercel, Gotenberg, LibreOffice and Docxtemplater documentation checked for renderer feasibility;
 - no application tests, typecheck, lint or build run, as required by the user’s architecture-only scope.
 
-The disposable renderer/replacement spike was not run in this documentation-only amendment. It is the next hard feasibility gate and must complete before the full DM-1 implementation/migration commitment.
+The disposable renderer/replacement spike was not run because the approved local renderer infrastructure was unavailable. The gate remains hard and must complete before the full DM-1 implementation/migration commitment; this environment block does not invalidate the approved architecture.
 
 Amendment handoff checks:
 
@@ -513,6 +541,6 @@ Amendment handoff checks:
 
 ## 18. Result
 
-Product Review is closed. DM-0 is approved and ready for the feasibility gate, not for DM-1 implementation. The essential foundation decision is to keep the existing dossier/file infrastructure as a set of secure storage, download, validation, tag, context and audit patterns, while introducing a separate Document Studio semantic model for template versions, resolved source snapshots, immutable PDF artifacts, dossier links and deletion tombstones.
+Product Review is closed. DM-0 architecture is approved, but rendering feasibility is currently environment-blocked and DM-1 is not ready. The essential foundation decision is to keep the existing dossier/file infrastructure as a set of secure storage, download, validation, tag, context and audit patterns, while introducing a separate Document Studio semantic model for template versions, resolved source snapshots, immutable PDF artifacts, dossier links and deletion tombstones.
 
 The main feasibility risk is not placeholder replacement; it is a secure, generic, typed temporal resolver for Salary Change and a private office-native renderer with malware/quarantine controls. Those risks and decisions are explicit above. No DM-1 work has started.
