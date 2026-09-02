@@ -5,7 +5,7 @@ export const SIDEBAR_SECTION_DEFINITIONS: readonly { id: SidebarSectionId; hrefs
   { id: 'peopleOrganization', hrefs: ['/employees', '/organization-chart', '/workforce'] },
   { id: 'hrProcesses', hrefs: ['/recruitment', '/journeys', '/research'] },
   { id: 'steering', hrefs: ['/insights'] },
-  { id: 'management', hrefs: ['/settings'] },
+  { id: 'management', hrefs: ['/settings', '/document-studio'] },
 ]
 
 export const SIDEBAR_MENU_HREFS = SIDEBAR_SECTION_DEFINITIONS.flatMap((section) => section.hrefs)

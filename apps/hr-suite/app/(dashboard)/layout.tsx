@@ -47,6 +47,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     || (authContext.employeeId !== null && authContext.permissions.includes('self:employee:read'))
   const canReadHrCalendar = authContext.permissions.includes('hr-calendar:read')
   const canReadSettings = authContext.permissions.includes('settings:read')
+  const canReadDocumentStudio = authContext.permissions.includes('document-template:read')
   const canShowSetupAssistant = canUseSetupAssistant(authContext)
   const researchAccess = resolveResearchAccess(authContext)
   const canReadAnalysis = authContext.permissions.includes(ANALYSIS_PERMISSION)
@@ -121,6 +122,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canOpenResearch={researchAccess.canOpenHub && (enabledModules.includes('SURVEYS') || enabledModules.includes('ENPS'))}
         canReadRecruitment={canReadRecruitment}
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
+        canReadDocumentStudio={canReadDocumentStudio}
         labels={{
           appName: common('appName'),
           startPage: navigation('startPage'),
@@ -136,6 +138,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           research: navigation('research'),
           recruitment: navigation('recruitment'),
           journeys: navigation('journeys'),
+          documentStudio: navigation('documentStudio'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

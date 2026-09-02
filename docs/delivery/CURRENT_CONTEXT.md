@@ -2,6 +2,17 @@
 
 > **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
+## Document Studio DM-1 Native Template Library & Structured Editor — 2026-09-02
+
+**Status: IMPLEMENTATION CANDIDATE — LOCAL PARTIAL, NO REMOTE APPLY**
+
+- Candidate worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\document-studio-dm1-native-template-editor-implementation`; branch `work/document-studio-dm1-native-template-editor-implementation`; exact baseline `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b`.
+- Approved designauthority: remote design branch SHA `8bc61fdbb45f8d3bdf9905c58ad416d8ba035ae6`; design document status `DESIGN APPROVED — IMPLEMENTATION IN PROGRESS`. Product version remains `1.20260901.1`.
+- Implemented: canonical JSON schema/parser/normalizer/hash, strict Tiptap 3.31.0 adapter with atomic placeholders and paste sanitizer, template library/editor routes, guarded draft/lifecycle RPC contract, document types/profiles, fixed category enum, tenant tag-cloud replacement RPC, structural PNG/JPEG normalize/re-encode and private storage policies.
+- Migration: local unapplied candidate `apps/hr-suite/supabase/migrations/20260902132228_document_studio_dm1_native_template_editor.sql`; `packages/db/types.ts` intentionally unchanged until an authorized apply/advisor/typegen follow-up. No remote SQL, storage, bucket, grants or typegen mutation performed.
+- Verification: targeted DM-1 `4` test files / `10/10` tests, strict TypeScript, ESLint (`0 errors / 0 warnings`), i18n (`34` equal NL/EN namespaces), production build (`245/245` routes) and diff-check green. Full suite and browser/persona acceptance are not run because the migration is unapplied.
+- Protected state: canonical `apps/hr-suite/.env.local` exists in the root and was not read, copied, changed, staged or removed. Root worktree remains untouched.
+
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
 **Status: RELEASED — PRODUCTION GREEN**
