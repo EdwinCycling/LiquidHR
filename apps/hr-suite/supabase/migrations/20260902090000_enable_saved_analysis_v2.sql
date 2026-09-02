@@ -259,7 +259,7 @@ begin
   end if;
 
   if (
-    select count(distinct element.value #>> '{}')
+    select count(distinct element.value ->> 'dimension')
     from jsonb_array_elements(candidate -> 'filters') as element(value)
   ) <> jsonb_array_length(candidate -> 'filters') then
     return false;
