@@ -8,10 +8,15 @@ De product- en architectuurdiscovery voor Liquid Analyse V2 is gesloten in [`LIQ
 
 ## Liquid Analyse V2A-1 Snapshot Core implementation design — 2026-09-02
 
-**Status: DESIGN APPROVED CANDIDATE — READY FOR V2A-1 IMPLEMENTATION REVIEW**
+**Status: IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
 
-De repository-discovery en technische uitwerking voor V2A-1 zijn document-only
-vastgelegd in [`LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md`](requirements/reports/LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md). Er is op deze design-branch geen V2A-1 implementatie, migration, version bump of deployment uitgevoerd.
+De repository-discovery, technische uitwerking en implementation freeze voor
+V2A-1 zijn document-only vastgelegd in
+[`LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md`](requirements/reports/LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md).
+De review kiest een server-only retrieval repository; V2 execution is
+implementatie-ready, terwijl V2 saved persistence wacht op een afzonderlijk
+goedgekeurde forward migration. Er is op deze review-branch geen V2A-1
+implementatie, migration, version bump of deployment uitgevoerd.
 
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31

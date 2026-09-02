@@ -2,6 +2,29 @@
 
 > **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
+## Liquid Analyse V2A-1 implementation review — 2026-09-02
+
+**Status: IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
+
+- De review staat geïsoleerd op `work/v2a1-snapshot-core-implementation-review`,
+  gestart vanaf design-SHA `fd52134b0c4239d31f1c30653c30cc4cdb3b0e4e` en
+  vergeleken met actuele `origin/main`
+  `155ccbde373a06684e37d9746b01dd65931c870b`.
+- De complete V2-retrieval seam is bevroren als server-only repository met
+  service-role reads, vaste tenant/HR-group/date-predicates, interne keyset
+  paging en fail-closed completeness. De bestaande current-date overview-RPC
+  en Manager-scope zijn geen V2-historybron. Manager A/B wordt onafhankelijk
+  op iedere asOf bewezen; geen HR_GROUP-fallback.
+- De huidige database is voldoende voor V2 execution. Een forward migration is
+  alleen vereist voor V2 saved persistence; Save-as-V2 blijft uitgeschakeld
+  tot die migration lokaal en remote afzonderlijk is goedgekeurd. Geen
+  migration, typegen, remote write, app-codewijziging, version bump, merge of
+  deployment is in deze review uitgevoerd.
+- De volledige freeze, inclusief acht actuele `employment_type`-waarden,
+  historische labelregel, optionele indexkandidaten, security residual en
+  implementatievolgorde staat in
+  [`LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md`](../requirements/reports/LIQUID_ANALYSE_V2A1_SNAPSHOT_CORE_DESIGN.md).
+
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 
 **Status: RELEASED — PRODUCTION GREEN**

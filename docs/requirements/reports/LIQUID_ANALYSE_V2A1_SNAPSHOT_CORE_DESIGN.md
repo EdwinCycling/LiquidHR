@@ -1,6 +1,6 @@
 # Liquid Analyse V2A-1 Snapshot Core — implementation design
 
-**Status:** DESIGN APPROVED CANDIDATE — READY FOR V2A-1 IMPLEMENTATION REVIEW
+**Status:** IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE
 **Datum:** 2026-09-02
 **Mode:** implementation design / repository discovery / documentation only
 **Product scope:** V2A-1 Snapshot Core, canonical questions Q1, Q2, Q3, Q4 en Q7
@@ -249,7 +249,7 @@ V2 filters use semantic values rather than arbitrary database expressions:
 | `employment_status` | enum | `ACTIVE_EMPLOYEE` only in this slice | fixed invariant; non-active expansion is a later contract |
 | `department` | authorized reference key | opaque department semantic key | match against the authorized snapshot option set; label is server-resolved |
 | `job` | authorized reference key | opaque job semantic key | match against the authorized snapshot option set; label is server-resolved |
-| `employment_type` | enum | `EMPLOYEE`, `INTERN`, `APPRENTICE`, `CONTRACTOR` | exact enum allowlist from the canonical employment source |
+| `employment_type` | enum | `EMPLOYEE`, `INTERN`, `APPRENTICE`, `CONTRACTOR`, `TEMPORARY_AGENCY`, `FREELANCER`, `VOLUNTEER`, `NO_PAYROLL` | exact enum allowlist from the canonical employment source |
 
 The registry may publish the complete employment-status enum for typed
 compatibility, but V2A-1's default population and headcount invariant remain
@@ -467,26 +467,33 @@ contract. Ordering by `effective_from desc, id` is only a deterministic
 diagnostic order; it must not be used to hide overlapping valid candidates.
 
 Legacy employee-level placement rows with `employment_id is null` are not
-silently projected onto parallel employments. They can be used only when the
-employee has exactly one qualifying employment at D, no employment-specific
-candidate exists and the implementation explicitly accepts the legacy
-compatibility rule. Otherwise the dimension is unresolved/ambiguous.
+silently projected onto parallel employments. For V2A-1 Manager scope they
+never prove a historical direct-report relationship. For an HR-group
+snapshot, they may supply a dimension only when the employee has exactly one
+qualifying employment, no employment-specific candidate exists and the
+implementation explicitly enables the legacy compatibility branch. Otherwise
+the dimension is unresolved/ambiguous.
 
 ### Dimension rules
 
 | Dimension | Source at D | Key | Label | Missing/invalid behavior |
 |---|---|---|---|---|
 | `department` | effective `employee_organizations.department_id` | stable department semantic key | resolved department label | no placement may become Unknown only if the dimension policy includes it; missing reference label is typed invalid |
-| `job` | effective `job_id`/historical `job_title` on placement | stable job semantic key | placement's effective job title; reference metadata may enrich | null job is Unknown when allowed; inconsistent key/title or ambiguous rows is typed invalid |
+| `job` | effective `job_id` on placement | stable job semantic key | currently resolvable master label from the current job revision | null job is Unknown when allowed; missing current reference/label or ambiguous rows is typed invalid |
 | `employment_type` | selected qualifying `employments.employment_type` | enum code | localized UI label from messages | null/unknown is impossible under current DB contract; invalid source is typed invalid |
 | `employment_status` filter | resolver-derived status at D | fixed `ACTIVE_EMPLOYEE` in V2A-1 | not an output dimension in this slice | non-active expansion rejected |
 
 The analytic truth for historical department is membership at D, not the
-employee's current department. Department master-data labels are presentation
-labels; the stable historical assignment key is what grouping/filtering uses.
-The current schema does not provide effective-dated department-name revisions.
-If historical label-as-of semantics are later required, that is a separate
-master-data decision and is not fabricated in V2A-1.
+employee's current department. Department and job master-data labels are
+presentation labels; the stable historical assignment key is what
+grouping/filtering uses. The current schema does not provide a separate
+historical department-label contract, and job names are held in
+`job_revisions`. V2A-1 resolves `departments.name` and the currently
+resolvable current `job_revisions.name` in the authorized tenant/HR group.
+It does not claim either label is the label-as-of D. If a non-null reference
+cannot be resolved safely, the result is a typed data-quality error; it is not
+silently renamed or mapped to Unknown. Historical master-data labels remain a
+separate future decision.
 
 ### Unknown policy
 
@@ -891,13 +898,15 @@ Read-only migration/type evidence shows that the current schema already has:
   `employment_id`, department, job, manager and effective date columns;
 - tenant/HR-group-scoped foreign keys and RLS policies for employment and
   organization data; and
-- a current `employment_type` enum of `EMPLOYEE`, `INTERN`, `APPRENTICE` and
-  `CONTRACTOR` in the canonical employment migration/typegen.
+- the current `employment_type` enum values `EMPLOYEE`, `INTERN`,
+  `APPRENTICE`, `CONTRACTOR`, `TEMPORARY_AGENCY`, `FREELANCER`, `VOLUNTEER`
+  and `NO_PAYROLL`, confirmed by live type metadata and the local
+  `20260807193000_expand_employment_types_and_wizard_flow.sql` migration.
 
 V2A-1 does not need a snapshot table or result cache. A snapshot is a fresh
 execution at an explicit date.
 
-### Conclusion: MIGRATION LIKELY REQUIRED
+### Conclusion: MIGRATION REQUIRED ONLY FOR SAVED V2 PERSISTENCE
 
 The `saved_analysis_definitions` table is JSONB, but its database contract is
 not version-neutral:
@@ -920,10 +929,12 @@ likely required before “Save as V2” is enabled. Conceptually it must:
 5. update comments and generated `packages/db/types.ts` through the normal
    typegen process.
 
-If the implementation chooses a new historical snapshot RPC or adds indexes
-for complete keyset reads, that is a separate forward migration candidate.
-No schema, migration, RLS, grant, typegen or remote Supabase action is part of
-this design run. Migration history drift is not to be repaired or replayed.
+V2 execution does not require a new table, snapshot cache, RPC or migration
+under the selected server-only repository seam. A forward migration is
+required only for safely enabling persisted V2 definitions. If measured
+implementation profiling later justifies historical-read indexes, those are a
+separate optional migration candidate. Migration history drift is not to be
+repaired or replayed.
 
 ## 16. Ordered implementation slices
 
@@ -1156,8 +1167,8 @@ semantics.
 | Candidate | State in this run | Concept |
 |---|---|---|
 | forward saved-definition migration | not created | V1/V2 JSON validator, version check and comments |
-| snapshot retrieval RPC migration | not determined until implementation seam review | only if the chosen secure complete read needs a DB function |
-| historical query indexes | not created | only after query-plan evidence |
+| snapshot retrieval RPC migration | not selected | the chosen server-only repository does not need a new DB function |
+| historical query indexes | not created | optional only after measured implementation profiling; existing indexes are the correctness baseline |
 | `packages/db/types.ts` | unchanged | regenerate only after an approved schema migration |
 
 ## 20. Technical questions by classification
@@ -1187,13 +1198,15 @@ semantics.
 
 ### C — implementation approval gates, not product blockers
 
-- approve whether the complete retrieval seam is a security-definer RPC or a
-  narrow server-only repository after query-plan and security review;
-- approve the forward saved-definition migration before enabling V2 persistence;
-- approve any new historical-read index/RPC migration from read-only evidence;
-- confirm that current master-data labels are acceptable presentation labels
-  for historical department keys, since department names are not separately
-  date-versioned in the current schema.
+- the complete retrieval seam is frozen as a narrow server-only repository;
+  no new snapshot RPC is part of the implementation candidate;
+- approve the forward saved-definition migration before enabling V2
+  persistence;
+- approve any new historical-read index migration only after measured
+  implementation evidence; it is not required for the selected seam's
+  correctness;
+- current department/job master labels are frozen as presentation labels for
+  historical stable keys; V2A-1 makes no label-as-of claim.
 
 None of these reopens product discovery. If an implementation cannot prove
 historical Manager scope or effective values, the correct outcome is a typed
@@ -1201,16 +1214,16 @@ failure and an implementation stop, not a new product interpretation.
 
 ## 21. Design verification boundary
 
-This design run intentionally does not run TypeScript, ESLint, tests, build,
-browser acceptance, Supabase advisors, typegen, migrations, remote reads or
-deployments. Those are implementation/release checks, not evidence needed to
-write this repository design. The documentation-only verification for this
-run is:
+The original design pass intentionally did not run TypeScript, ESLint, tests,
+build, browser acceptance, Supabase advisors, typegen, migrations or
+deployments. The implementation review below added read-only live schema,
+policy, grant, function, index and `EXPLAIN` checks; it performed no remote
+write. The documentation-only verification for this run is:
 
 - governing Foundation and relevant repository seams were read;
 - the design worktree starts at the approved Foundation SHA;
-- only this design document and the minimal documentation index entry are
-  intended to change;
+- only this design document and the minimal documentation/delivery index
+  entries are intended to change;
 - no app code, migration, package, Supabase, Vercel or version file is part of
   the change;
 - canonical `apps/hr-suite/.env.local` remains present and untouched; and
@@ -1224,7 +1237,347 @@ of the existing analysis pipeline. The critical implementation risks are
 explicitly contained: complete server-side retrieval, historical Manager
 scope, deterministic parallel-employment/history handling and the saved V2
 database validator migration. None requires changing the frozen product
-direction. The implementation review may proceed from this document only
-after the stated C approval gates are answered in the implementation task.
+direction. The implementation-review decisions and remaining approval gates
+are recorded in section 23 below.
 
-**DESIGN APPROVED CANDIDATE — READY FOR V2A-1 IMPLEMENTATION REVIEW**
+**IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
+
+## 23. IMPLEMENTATION REVIEW — TECHNICAL FREEZE (2026-09-02)
+
+**Status: CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
+
+This section resolves the implementation-review questions. It is
+documentation-only. It does not implement V2A-1, create a migration, change
+the application, regenerate types, apply a Supabase action or reopen the
+approved product boundary.
+
+### Review baseline and evidence
+
+| Item | Review evidence |
+|---|---|
+| comparison baseline | current `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b` |
+| approved Foundation | `ec66f981c9bc732b4445c76ea3d1d363b1ad567d` |
+| approved design source | `fd52134b0c4239d31f1c30653c30cc4cdb3b0e4e` |
+| review branch | `work/v2a1-snapshot-core-implementation-review` |
+| review HEAD at start | exact design commit `fd52134b0c4239d31f1c30653c30cc4cdb3b0e4e` |
+| visible app version | `1.20260901.1` |
+| live Supabase readback | project `wnpfloqpjvaacobppbpk`, `LiquidHR`, `ACTIVE_HEALTHY`, PostgreSQL `17.6.1.141` |
+| protected environment | `apps/hr-suite/.env.local` exists; values were not read or emitted |
+
+The review worktree is isolated under
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\v2a1-snapshot-core-implementation-review`.
+The root worktree and Foundation/design branches were not changed. The
+design-vs-`origin/main` difference remains documentation-only.
+
+### Retrieval decision — B, server-only repository
+
+The one selected complete retrieval seam is a server-only repository in
+`apps/hr-suite/lib/insights/analysis-snapshot-retrieval.ts`, backed by the
+existing `createAdminClient()` service-role client. This is a narrow internal
+read boundary, not a public data endpoint and not a second analytics engine.
+The choice is based on the following repository/live evidence:
+
+- `analysis-engine.ts` currently authorizes before retrieving, but its default
+  source is the current `listEmployeesOverview` projection;
+- `team-scope.ts` is explicitly current-date and has a 500-row limit;
+- live `public.list_employee_overviews` is a `SECURITY DEFINER` overview
+  projection with current authorization helpers and one effective placement,
+  so it is not a complete historical V2 source;
+- live employee, employment and organization SELECT policies and
+  `internal_security.can_manage_employee` are current/current-date oriented;
+- the existing server-only saved-analysis repository already proves the
+  application pattern of authenticating first, deriving tenant/group/owner
+  scope and then constructing a service-role repository; and
+- a new `SECURITY DEFINER` RPC would add a privileged callable boundary and
+  would need separate grant, fixed-`search_path`, actor-context and raw-row
+  leakage proof. It is not needed for the selected read path.
+
+The service-role residual is explicit: service role bypasses RLS. Therefore
+the repository must be `server-only`, created only after the request
+authorization boundary, receive a server-owned immutable scope, use fixed
+tenant/HR-group predicates, post-validate every returned row and never be
+imported by client code or exposed through a generic query endpoint. Ordinary
+browser reads retain their existing RLS defense-in-depth.
+
+The exact contract is:
+
+```text
+loadSnapshotSource({
+  authContext: verified server AuthContext,
+  asOf: validated DateOnly,
+  populationMode: server-derived HR_GROUP | DIRECT_REPORTS,
+}) -> complete internal SnapshotSourceRow[]
+```
+
+The request body cannot supply tenant, HR group, actor, Manager ID,
+population mode, permission, RLS bypass, table/column names or a cursor. The
+repository uses only fixed query projections.
+
+1. Capture `getRequestAuthorizationContext()` once. Require
+   `dashboard:read`, the registry-approved employee data permission and
+   `requireHrGroupId`. Derive the mode and, for Manager mode, the actor's
+   server-resolved `employeeId`.
+2. For each requested date, read qualifying `employments` with exact
+   tenant/group predicates, a non-deleted employee in the same boundary,
+   `deleted_at IS NULL`, `record_status = CONFIRMED`, `starts_on <= asOf` and
+   inclusive `ends_on >= asOf`/NULL semantics.
+3. Page by the immutable UUID primary key: `id > cursor`, `ORDER BY id ASC`,
+   fixed page size `P = 200`. A head-only exact count for the same predicate
+   is an internal completeness invariant. Continue until the count of
+   validated rows equals that count. A short page with remaining expected
+   rows, a duplicate/regressing cursor, a page error or a count mismatch is a
+   typed `ANALYSIS_RETRIEVAL_INCOMPLETE` failure; it is never a plausible
+   partial result.
+4. Resolve placement for each qualifying employment with the same tenant,
+   group and `employment_id` predicates, `effective_from <= asOf` and
+   inclusive `effective_to >= asOf`/NULL semantics. Order by
+   `effective_from DESC, id DESC`. Two candidates are a deliberate ambiguity
+   sentinel; any ambiguity fails rather than selecting the first row.
+5. Keep employee and employment IDs only in the server-local resolver map for
+   deduplication, primary/common-value resolution and Manager authorization.
+   Erase that map before producing `AnalysisResult V2`, which contains only
+   aggregate measures, semantic keys/labels, period/comparison metadata and
+   presentation hints.
+
+The server loops internally for both a single snapshot and comparison. It
+does not expose source pages, cursors, exact source counts or query plans to
+the browser. An approved safety budget may fail with a typed too-large error,
+but may not truncate.
+
+### Manager snapshot and comparison scope
+
+For `DIRECT_REPORTS`, the source population at date D is the distinct set of
+employees with a qualifying employment whose authoritative,
+employment-specific effective placement at D has
+`direct_manager_id = context.employeeId`; the actor is excluded where the
+existing employee rule requires it.
+
+The current and comparison sides each execute this resolution independently:
+
+```text
+scope(A, asOfA, actor, tenant, hrGroup, rules)
+scope(B, asOfB, actor, tenant, hrGroup, rules)
+```
+
+The two employee sets may differ. The implementation must not reuse current
+reports for both dates, union the sides before aggregation, broaden to
+HR_GROUP, use `can_manage_employee` as historical proof, or accept a client
+employee/Manager ID. Missing or ambiguous employment-specific placement,
+cross-scope placement, stale/unavailable actor context, incomplete paging or
+any other inability to prove the full Manager population fails the entire
+requested snapshot with typed `ANALYSIS_SCOPE_NOT_PROVABLE`/snapshot-data
+error. It does not exclude an unresolved employee and continue.
+
+HR-group mode is available only when the captured server permissions authorize
+the complete active HR-group population. The same tenant/group predicates,
+row assertions and completeness rules remain mandatory. Department-management
+hierarchy is not a hidden fallback or an additional V2A-1 scope.
+
+### Historical dimensions and labels
+
+The grouping/filter keys are stable effective assignment values at D:
+
+- `department`: `employee_organizations.department_id`; label from the
+  currently resolvable scoped `departments.name`.
+- `job`: `employee_organizations.job_id`; label from the currently resolvable
+  scoped job master/current `job_revisions.name`. `job_title` is not promoted
+  to a historical semantic key.
+- `employment_type`: the selected qualifying employment enum value. The
+  complete current canonical allowlist is `EMPLOYEE`, `INTERN`, `APPRENTICE`,
+  `CONTRACTOR`, `TEMPORARY_AGENCY`, `FREELANCER`, `VOLUNTEER` and `NO_PAYROLL`.
+
+Labels are current presentation labels only. They are not claimed to be
+labels-as-of D, and no master-data-history model is added in V2A-1. A null
+job key may use the declared Unknown bucket. A non-null department/job key
+whose current scoped master reference or label cannot be resolved safely is a
+typed `ANALYSIS_SNAPSHOT_DATA_INVALID` error, not an arbitrary label, historical `job_title`, or
+silent Unknown substitution.
+
+Parallel qualifying employments remain internal until one employee projection
+is resolved: one primary is selected; absent a primary, common dimension
+values may be used; multiple primaries or conflicting requested dimension
+values fail with typed ambiguity. An undimensioned headcount may still count
+an employee when the ambiguous value is not required by the request. The
+legacy `employment_id IS NULL` placement branch is never sufficient to prove
+historical Manager scope.
+
+### Database and index decision
+
+The current schema is sufficient for V2 execution. Live and local evidence
+confirmed effective employment/placement columns, tenant/HR-group foreign-key
+boundaries, the employment enum, and existing scoped indexes. No snapshot
+table, result cache, new RPC or execution migration is required.
+
+The read-only live `EXPLAIN` checks showed:
+
+- the employment keyset predicate uses the existing
+  `employments_tenant_hr_group_id_key` path and applies lifecycle/date
+  predicates as filters;
+- employment placement resolution uses an existing tenant/HR-group scoped
+  organization index and applies the effective-date predicate, with a small
+  deterministic sort; and
+- direct-manager historical lookup uses
+  `employee_organizations_group_manager_idx` and applies the effective-date
+  predicate, with a deterministic sort.
+
+No index is required for correctness and no index migration is included in
+this candidate. If implementation measurements show that the deliberate
+sorts are material, the exact optional candidates are:
+
+```sql
+create index employee_organizations_snapshot_employment_idx
+  on public.employee_organizations
+    (tenant_id, hr_group_id, employment_id, effective_from desc, id desc)
+  where employment_id is not null;
+
+create index employee_organizations_snapshot_manager_idx
+  on public.employee_organizations
+    (tenant_id, hr_group_id, direct_manager_id, effective_from desc, id desc)
+  where direct_manager_id is not null;
+```
+
+They require a separately reviewed forward migration and are not a reason to
+repair or replay the known migration-history drift.
+
+### Saved V2 migration and enablement boundary
+
+The current `saved_analysis_definitions` contract is V1-only: the exact
+constraint `saved_analysis_definitions_version_check` requires
+`definition_version = 1`, and the immutable service-role validator requires
+the V1 nine-key shape. JSONB flexibility does not make V2 persistence safe.
+
+The exact forward migration operations for a future governed implementation
+are, in this order:
+
+```sql
+begin;
+
+alter table public.saved_analysis_definitions
+  drop constraint saved_analysis_definitions_version_check;
+
+alter table public.saved_analysis_definitions
+  add constraint saved_analysis_definitions_version_check
+  check (definition_version in (1, 2));
+
+create or replace function internal_security.is_valid_saved_analysis_spec(candidate jsonb)
+returns boolean
+language plpgsql
+immutable
+security invoker
+set search_path = pg_catalog
+as $function$
+-- Keep the existing V1 validator body unchanged for version = 1.
+-- Add the strict version = 2 branch described below.
+-- Return false for every other version or malformed value.
+$function$;
+
+comment on column public.saved_analysis_definitions.analysis_spec is
+  'Gesloten AnalysisSpec V1/V2; bij openen wordt actuele geautoriseerde data opnieuw opgehaald.';
+
+commit;
+```
+
+The function block above is the exact migration shape, not executable
+migration content in this review. The future candidate must contain the full
+function body and pass migration-contract tests before any apply decision.
+The version-dispatched validator must retain the current V1 contract exactly
+and add a strict V2 branch with:
+
+- exact V2 root keys `version`, `source`, `entity`, `measures`,
+  `dimensions`, `filters`, `period`, `comparison`, `sort`, `limit` and
+  `presentation`; no V1/V2 mixed fields;
+- `version = 2`, `source = workforce`, `entity = employees` and exactly
+  `measures = ["headcount"]` for this capability;
+- zero to two unique dimensions from `department`, `job` and
+  `employment_type`, and at most eight unique-dimension filters from the
+  approved V2 filter registry;
+- exact snapshot `period` and optional exact second snapshot in
+  `comparison.kind = explicit_period`, with date-only values and unequal
+  dates; no event/relative/previous-equal period;
+- recursively strict filter, period, comparison, sort and presentation
+  objects, including selected-measure/dimension and presentation
+  compatibility rules; and
+- the V2 active-only status invariant and the complete eight-value
+  `employment_type` enum allowlist above.
+
+The implementation must keep the server parser as the strict semantic
+authority and use the DB function as the alternate-writer structural and
+semantic guard. It must preserve the existing identity trigger, owner/tenant/
+HR-group RLS/privilege boundary, no-result/no-source-row storage rule and
+service-role-only database function execution. After an approved migration is
+applied, regenerate `packages/db/types.ts` through the normal governed
+typegen process. None of those actions is performed in this review.
+
+Save-as decision: **B, same governed implementation slice with an explicit
+enablement gate**. V2 execution and the version-aware saved code may be
+implemented in one candidate, but the Save-as-V2 control and V2 persistence
+path remain disabled until the forward migration is locally verified and its
+remote apply is separately approved. Save-as-V2 creates a new version-2 row;
+it never mutates or silently upgrades a V1 row. V1 save/open/execute remains
+functional throughout.
+
+### Frozen implementation order
+
+1. Add V2 types, strict version dispatch, errors and registry entries while
+   preserving the V1 parser, registry, engine and result contracts.
+2. Add the server-owned authorization/snapshot-scope object and the selected
+   service-only complete repository. Add keyset/completeness/ambiguity tests
+   before wiring the public route.
+3. Add active qualification, independent historical placement/label
+   resolution, parallel-employment rules, filters, grouping and aggregate-only
+   V2 result construction.
+4. Extend the existing analysis API route with version dispatch. No V2 route
+   accepts client scope, cursor or raw source data.
+5. Prepare the saved-definition forward migration candidate and versioned
+   saved runtime. Stop at the migration approval boundary; enable Save-as-V2
+   only after the migration and typegen gates are green.
+6. Add the minimal existing-Foundation Canvas/table result branch after the
+   API/result contract is stable. The UI remains a renderer and does not
+   retrieve or recalculate data.
+7. Run targeted validator/retrieval/history/security/saved/V1 regression
+   tests, then the required broader build/browser/release gates in the future
+   implementation task. No merge, deployment or version bump follows from
+   this freeze.
+
+### Security freeze and open items
+
+Security is closed for this review with one documented residual: the selected
+service-role repository bypasses RLS and therefore depends on the preceding
+server authentication, immutable scope construction, fixed projections,
+tenant/group row assertions, complete-page checks and absence of any generic
+browser-callable endpoint. The future implementation must negative-test
+unauthenticated/no-permission/missing-group requests, forged asOf/comparison/
+filter/reference values, tenant/group crossings, current-vs-historical
+Manager changes, ambiguous/missing placements, cursor failures and raw result
+leakage.
+
+There is no product blocker and no open product decision. The remaining gates
+are implementation approvals: review the future code/tests, review and
+approve the saved-definition migration before V2 persistence, and separately
+approve any measured optional index migration. Remote migration apply,
+Supabase advisors, typegen, browser acceptance, production verification,
+merge, deployment and versioning remain outside this review.
+
+### Review verification and mutations
+
+Completed read-only checks:
+
+- exact Git preflight, branch/worktree isolation and current `origin/main`;
+- Foundation/design SHA verification and visible version readback;
+- protected `.env.local` existence check without reading values;
+- local migration/typegen inspection for employment, placement and saved
+  definition contracts;
+- live Supabase schema, migration-registration, function, RLS-policy,
+  privilege, grant and index readback; and
+- live read-only `EXPLAIN` checks for employment keyset, historical placement
+  and historical Manager predicates.
+
+Not run by design: TypeScript, ESLint, tests, production build, browser
+acceptance, Supabase advisors, typegen, migrations, remote writes, Vercel,
+merge and version bump.
+
+Mutations in this review: documentation only. No app code, migration file,
+package, generated type, Supabase object/data, Vercel deployment or version
+file changed.
+
+**IMPLEMENTATION REVIEW CLOSED — READY FOR V2A-1 IMPLEMENTATION CANDIDATE**
