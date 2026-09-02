@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Document Studio DM-1 native template/editor design — 2026-09-02
+
+**Status: IMPLEMENTATION DESIGN CANDIDATE — BLOCKED FOR IMPLEMENTATION**
+
+- De geïsoleerde worktree work/document-studio-dm1-native-template-editor-design staat op closure SHA d5dc1472067200f0e3d00150adc00c331f86d7e2, die afstamt van actuele origin/main 155ccbde373a06684e37d9746b01dd65931c870b; de root-worktree is niet aangeraakt.
+- Het ontwerp staat in docs/requirements/documents/DM1_DOCUMENT_STUDIO_NATIVE_TEMPLATE_EDITOR_DESIGN.md en bevriest de DM-1-contracten voor standalone navigation/library, HR-groep-scope, Document/Cover/Appendix, canonical JSON, Tiptap-adapter, atomic placeholders, types/categories/tags/Document Profiles, version/lifecycle/concurrency, private normalized PNG/JPEG-assets, RLS/API/UI en DM-3 seam.
+- Twee gates blijven expliciet open: product-owned categoriecodes/catalogus en de security-classificatie van decoder-only normalized raster-assets versus een goedgekeurde scanner/quarantine-adapter. De bestaande SEC-006 residual is niet stil gesloten.
+- Alleen documentatie is gewijzigd: dit contextblok, de index en het DM-1-ontwerp. Geen app-code, package-install, migration/typegen, Supabase/storage/Vercel/GitHub write, version bump, test, lint, typecheck, build, browser run, merge of productionactie.
+- Read-only preflight omvat current main, closure ancestry/version, protected env existence zonder waarden, remote schema/policies/storage/migration inventory en advisors. Live git ls-remote kon op deze host niet authenticeren (SEC_E_NO_CREDENTIALS); de fetched remote-tracking ref matcht de closure SHA exact.
+
 > **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
 ## Document Studio native editor amendment — 2026-09-02

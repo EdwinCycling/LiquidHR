@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Document Studio DM-1 Native Template Library & Structured Editor — 2026-09-02
+
+**Status: IMPLEMENTATION DESIGN CANDIDATE — BLOCKED FOR IMPLEMENTATION**
+
+Het DM-1-ontwerp staat in [DM1_DOCUMENT_STUDIO_NATIVE_TEMPLATE_EDITOR_DESIGN.md](requirements/documents/DM1_DOCUMENT_STUDIO_NATIVE_TEMPLATE_EDITOR_DESIGN.md). Het ontwerp bevriest de standalone Template Library, HR-groep-scoped Document/Cover/Appendix-versies, canonical native JSON, atomic placeholders, Document Profiles, private normalized PNG/JPEG-assets, lifecycle/RLS/API/UI-seams en de DM-3 handoff. Implementatie blijft geblokkeerd door de nog niet goedgekeurde categoriecodes en de open SEC-006 asset-securityclassificatie; er is geen app-code, package, migration, remote, version of productionwijziging uitgevoerd.
+
 ## Document Studio Native Editor Amendment — 2026-09-02
 
 **Status: PRODUCT AMENDED / APPROVED — NATIVE EDITOR V1 FROZEN — READY FOR NATIVE EDITOR → HTML/PDF FEASIBILITY**
