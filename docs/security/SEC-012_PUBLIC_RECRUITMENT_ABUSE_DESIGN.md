@@ -1,6 +1,6 @@
 # SEC-012 PUBLIC RECRUITMENT ABUSE & EDGE TRUST — REMEDIATION DESIGN
 
-**Status: DESIGN APPROVED CANDIDATE — READY FOR SEC-012 IMPLEMENTATION REVIEW**
+**Status: IMPLEMENTATION REVIEW CLOSED — READY FOR SEC-012 IMPLEMENTATION CANDIDATE**
 
 This is a documentation-only design candidate. It does not implement application code, SQL, migrations, tests, configuration, deployment, or provider changes.
 
@@ -13,7 +13,7 @@ The recommended SEC-012 control is a server-owned, fail-closed public-intake gat
 3. A service-only atomic database RPC claims one request slot and creates one short-lived proof in the same transaction. The public submit RPC consumes that proof exactly once and verifies its publication and bucket binding under its existing tenant/vacancy checks.
 4. The request body is bounded before multipart parsing. Invalid, missing, or forged `Content-Length` cannot cause an unbounded `formData()` parse.
 
-The upload-capacity decision is now frozen for Public Recruitment V1: the maximum uploaded recruitment document is exactly `4,000,000` bytes and the maximum complete public recruitment request body is exactly `4,250,000` bytes. The previous `10 * 1024 * 1024` allowance is superseded for the Vercel public Recruitment application route only. This leaves headroom below Vercel's documented 4.5 MB Function boundary for multipart framing and normal recruitment fields. No upload-transport redesign is part of SEC-012; larger public files require a separate Public Recruitment Upload Transport capability/design.
+The upload-capacity decision is frozen for Public Recruitment V1: the maximum uploaded recruitment document is exactly `4,000,000` decimal bytes and the maximum complete public recruitment request body is exactly `4,250,000` decimal bytes. The previous `10 * 1024 * 1024` allowance is superseded for the Vercel public Recruitment application route only. This leaves headroom below Vercel's documented 4.5 MB Function boundary for multipart framing and normal recruitment fields. No upload-transport redesign is part of SEC-012; larger public files require a separate Public Recruitment Upload Transport capability/design.
 
 ## Baseline
 
@@ -82,7 +82,7 @@ The route also scans the document again in `scanAndStorePublicDocument` after ap
 - The public submit RPC remains the tenant/vacancy authorization boundary and continues to reject cross-tenant, closed, inactive, or invalid publications.
 - Document type, magic-byte, size, private-storage, cleanup, and scanner-reference checks remain in force.
 - The existing 5 claims per 15-minute window per public publication and abuse bucket remain the starting policy; changing this threshold is not part of SEC-012.
-- The existing 10-minute proof lifetime and single-use behavior remain the starting policy, subject to the upload-capacity decision below.
+- The proof lifetime is exactly 10 minutes and each proof is independent, publication-bound, bucket-bound, single-use, and fail-closed on expiry or replay.
 - The current public `idempotencyKey` input is not silently promoted to a business idempotency guarantee. In the current path it is used for rate fingerprinting but is not passed as a persisted public duplicate key to `recruitment_submit_public_application`. It may remain in the input contract, but it must not influence abuse identity.
 
 ## Recommended design
@@ -114,26 +114,30 @@ Add one narrowly scoped server-only helper, separate from the existing origin he
 The production route may return a usable identity only when all of the following hold:
 
 - The runtime is an explicitly recognized Vercel Production or Preview runtime (`VERCEL=1` and `VERCEL_ENV` is `production` or `preview`). Unknown, missing, or local values fail closed for the public route.
-- `x-forwarded-for` is present as one syntactically valid IPv4 or IPv6 address. A comma-separated chain, blank value, malformed value, or ambiguous value is rejected rather than choosing a hop.
-- When `x-vercel-forwarded-for` is present, it must normalize to the same address. A mismatch fails closed. `x-real-ip` is not used as an independent fallback.
+- `x-vercel-forwarded-for` is present as exactly one syntactically valid IPv4 or IPv6 address. A comma-separated chain, blank value, malformed value, or ambiguous value is rejected rather than choosing a hop.
+- `x-vercel-id` and `x-vercel-deployment-url` are present as provider deployment/provenance headers. Their presence is a required part of the direct-Vercel contract; no request header is treated as a cryptographic authentication token.
+- If `x-forwarded-for` or `x-real-ip` is present, it is only a cross-check and must normalize to the same address. A mismatch, malformed value, or comma-separated value fails closed. Neither header is an independent fallback.
 - The deployment is not fronted by an unverified custom reverse proxy. If a proxy is introduced, the Vercel Verified Proxy contract and its custom client-IP header must be explicitly verified and added as a separate reviewed adapter; until then the route blocks.
 
-Normalization is limited to trimming, removing an enclosing IPv6 bracket pair when the provider supplies one, lowercasing, and validating one address with the existing runtime facilities. Do not truncate IPv6, collapse to a prefix, select the first address in a list, or accept arbitrary `x-client-ip`/`cf-connecting-ip`/similar headers.
+Normalization is limited to trimming, removing an enclosing IPv6 bracket pair when the provider supplies one, lowercasing, and validating one address with `node:net` `isIP`. Do not truncate IPv6, collapse to a prefix, select the first address in a list, or accept arbitrary `x-client-ip`/`cf-connecting-ip`/similar headers. The implementation must not add `@vercel/functions`: the dependency is absent and direct parsing of the reviewed provider header contract is the smaller dependency-safe boundary. Vercel's documentation describes `x-vercel-forwarded-for`/`x-real-ip` as request-header IP signals and notes that an upstream proxy can affect `x-forwarded-for`; this review therefore treats an unreviewed proxy as fail-closed, not as a reason to trust another header ([Vercel request headers](https://vercel.com/docs/headers/request-headers)).
 
 The helper returns a typed result such as `TRUSTED_VERCEL_CLIENT` plus a normalized identity for key derivation. It never returns raw identity data to the client and does not write raw identity to logs or database rows. Unit tests may inject a typed identity fixture; they must not make arbitrary request headers trusted in production code.
+
+Local and test runtimes do not establish a production identity. Deterministic tests may use a typed dependency/argument injection seam guarded by the test harness and `NODE_ENV=test`; request headers and environment values cannot enable that seam in Production or Preview. There is no trusted-proxy fallback in this candidate. A future Vercel Enterprise Trusted Proxy configuration requires a separate reviewed adapter and configuration evidence.
 
 This helper is not a change to `resolveRequestOrigin`. SEC-005 host/origin resolution and SEC-012 client-network identity are distinct trust decisions.
 
 ### Abuse key and scope
 
-Replace the current `networkAddress + email + idempotencyKey` fingerprint with a versioned HMAC-SHA-256 bucket key:
+Replace the current `networkAddress + email + idempotencyKey` fingerprint with a versioned HMAC-SHA-256 bucket key. The implementation uses the platform Web Crypto API in `public-security.ts`; no package is added:
 
 ```text
-HMAC-SHA-256(RECRUITMENT_RATE_LIMIT_PEPPER,
-  "v1\0PUBLIC_RECRUITMENT\0" + publicationId + "\0" + trustedClientIdentity)
+key    = UTF-8(RECRUITMENT_RATE_LIMIT_PEPPER)
+message = "v1\0PUBLIC_RECRUITMENT\0" + publicationId + "\0" + trustedClientIdentity
+bucketKeyHash = lowercase-hex(HMAC-SHA-256(key, message))
 ```
 
-The stored value is lowercase hexadecimal only. Raw IP, email, idempotency key, challenge token, document name, and document bytes never enter the database key or telemetry.
+`RECRUITMENT_RATE_LIMIT_PEPPER` must be present and at least 32 characters in the implementation configuration check. The stored value is lowercase hexadecimal only. Raw IP, email, idempotency key, challenge token, document name, and document bytes never enter the database key or telemetry. The implementation must include a known HMAC test vector, not merely a shape/length assertion.
 
 The database, rather than a caller-provided timestamp, owns the 15-minute UTC-aligned window. The HMAC intentionally does not include the window; the same server-derived bucket identity is stored once per publication/window and cannot be made inconsistent by clock skew between the route and the database.
 
@@ -143,9 +147,9 @@ The initial scope remains one bucket per public publication and trusted client i
 
 Use one service-only database RPC, conceptually:
 
-`public.recruitment_claim_public_intake(requested_publication_id uuid, requested_bucket_key_hash text)`
+`public.recruitment_claim_public_intake(requested_publication_id uuid, requested_bucket_key_hash text, requested_proof_hash text)`
 
-The route calls it with the publication ID and the HMAC produced by the trusted-identity helper. It never sends raw network data, email, idempotency, or a client timestamp.
+The route generates a fresh 256-bit raw proof with the server Web Crypto API, hashes it with SHA-256, and calls the RPC with the publication ID, the HMAC produced by the trusted-identity helper, and the proof digest. It never sends raw network data, email, idempotency, or a client timestamp to the database. The raw proof remains only in the server request flow and is passed to the submit RPC after a clean scan.
 
 Inside one transaction the function must:
 
@@ -153,10 +157,10 @@ Inside one transaction the function must:
 2. Derive the current UTC-aligned 15-minute window from database time.
 3. Atomically insert the bucket counter or update it with `request_count = request_count + 1` only while the current count is below `5`. Use the existing unique publication/bucket/window constraint and an `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE request_count < 5 ... RETURNING` pattern, or an equivalent row-locking SQL operation.
 4. Return a stable rate-limited result if no row is returned. The failed concurrent contender must not increment the count.
-5. Generate a fresh high-entropy proof, store only its SHA-256 digest in a separate proof table, and return the raw proof only to the server route. Insert the proof row in the same transaction as the counter increment so a proof-insert failure rolls back the allowance.
+5. Accept the server-generated proof digest, store only that SHA-256 digest in a separate proof table, and return claim metadata to the server route. Insert the proof row in the same transaction as the counter increment so a proof-insert failure rolls back the allowance. The raw proof is generated and retained by the server route, not by SQL and not by a browser.
 6. Set `issued_at` from database time, `expires_at` to `issued_at + 10 minutes`, and `consumed_at` to null. Never overwrite another proof.
 
-The new proof record is bound to `publication_id`, `bucket_key_hash`, and the current window. Update `recruitment_submit_public_application` to accept the server-derived bucket hash and require the matching proof row. The proof remains a bearer secret within the same request, but a stolen proof cannot be replayed from a different bucket identity. A legitimate client whose network changes between claim and submit receives the same generic proof-invalid response; that trade-off is intentional and should be covered by acceptance tests.
+The new proof record is bound to `publication_id`, `tenant_id`, `hr_group_id`, `bucket_key_hash`, and the current window. Update `recruitment_submit_public_application` to accept the server-derived bucket hash and require the matching proof row. The proof remains a bearer secret within the same request, but a stolen proof cannot be replayed from a different publication or bucket identity. A legitimate client whose network changes between claim and submit receives the same generic proof-invalid response; that trade-off is intentional and should be covered by acceptance tests.
 
 The submit function continues to lock the proof row before checking expiry/consumption and consuming it. It retains its existing publication, tenant, HR-group, vacancy, module, payload, candidate, application, and event checks. No public caller receives direct table access or a way to mint a proof.
 
@@ -170,15 +174,17 @@ The route must apply it before `request.formData()` or `request.json()`:
 
 - Parse `Content-Length` strictly as a non-negative decimal. Reject a value above the configured public request cap immediately with a stable 413 response.
 - Treat missing, invalid, or suspiciously small `Content-Length` as untrusted. Read the request stream with a hard byte limit of `cap + 1`; stop and reject as soon as the limit is exceeded.
-- Reconstruct a bounded `Request` from the accepted bytes while preserving the original content type and parse the reconstructed request only after the bound passes. Do not use `clone()` as the security control and then parse the original unbounded stream.
+- On a boundary-crossing chunk, retain only enough data to establish `cap + 1`, cancel the original reader, and reject. Reconstruct a bounded `Request` from the accepted bytes while preserving the original `content-type` (including multipart boundary) and safe end-to-end headers. Remove forged `content-length` and hop-by-hop headers before reconstruction; the reconstructed body is the only body subsequently parsed. Do not use `clone()` as the security control and then parse the original unbounded stream.
 - Apply the same cap to JSON and multipart. Keep field count, field length, answer count, filename length, and document-byte checks bounded in the schema/service layer.
 - Return 413 without Turnstile, database access, scanner access, storage access, or detailed body diagnostics.
 
-The configured cap is frozen as `4,250,000` bytes for this public Recruitment route, not silently inherited from the current generic 27 MiB `proxyClientMaxBodySize`. The individual public document cap is frozen as `4,000,000` bytes. Vercel's documented 4.5 MB Node.js Function limit applies before application code; the approved caps intentionally retain provider headroom. The implementation must not lower unrelated internal upload limits or attempt to maximize the public file size up to the provider boundary.
+The configured cap is frozen as `4,250,000` bytes for this public Recruitment route, not silently inherited from the current generic 27 MiB `proxyClientMaxBodySize`. The individual public document cap is frozen as `4,000,000` bytes. Exactly `4,250,000` bytes is accepted when the request is otherwise valid; `4,250,001` is rejected. Vercel's documented Node.js Function limit is 4.5 MB and an over-limit request returns 413 before application handling ([Vercel Functions limitations](https://vercel.com/docs/functions/limitations)). The approved decimal caps intentionally retain provider headroom. The implementation must not lower unrelated internal upload limits or attempt to maximize the public file size up to the provider boundary.
+
+`next.config.ts` is explicitly unchanged. Its current `experimental.proxyClientMaxBodySize` remains the generic internal 27 MiB proxy-buffer contract; Next.js documents that this setting applies when Proxy is used and buffers/truncates the body rather than providing the route's application-level 413 decision ([Next.js `proxyClientMaxBodySize`](https://nextjs.org/docs/app/api-reference/config/next-config-js/proxyClientMaxBodySize)). The public route's bounded reader is therefore the authoritative public boundary.
 
 ### Scanner and downstream ordering
 
-After a successful claim, validate the exact parsed document bytes and call the existing remote scanner once. Pass the clean result/reference through the service boundary to storage metadata persistence so the same accepted bytes and scan reference are used. If implementation retains a second scan temporarily for defense in depth, it remains bounded after the claim and must never permit storage on a non-clean or unavailable result; the targeted tests must assert that scanner cost is not reachable before the claim.
+After a successful claim, call the existing remote scanner exactly once for the exact immutable document bytes that will be stored. Pass the clean result/reference through the service boundary to storage metadata persistence so the same accepted bytes, checksum, detected type, and scan reference are used. There is no second scan in the candidate: `scanAndStorePublicDocument` must be split or replaced so storage consumes the already-clean result. Scanner unavailable or rejected remains fail-closed; no storage or application rollback is invented for a post-claim scanner failure.
 
 The existing private `recruitment-documents` bucket, tenant/HR-group storage key, checksum, scan status, scanner reference, and cleanup-on-metadata-failure behavior remain unchanged.
 
@@ -227,14 +233,15 @@ SEC-005 remains a separate residual for canonical host/origin resolution, forwar
 
 The implementation migration should:
 
-- Keep `public.recruitment_public_intake_limits` as the per-publication/per-bucket/per-window counter with its existing unique key and request-count constraint. Use an additive forward migration: retain existing objects initially where required, deploy the new flow using only the new authoritative proof table, verify it, and leave destructive cleanup/removal of obsolete proof columns or objects to a separately reviewed cleanup migration. Do not build a complex migration for short-lived legacy proofs and do not maintain two active proof sources after cutover.
-- Add `public.recruitment_public_intake_proofs` with UUID primary key, publication/tenant/HR-group scope, `bucket_key_hash`, unique `proof_hash`, `window_started_at`, `issued_at`, `expires_at`, `consumed_at`, and creation metadata. Store only the digest, never the raw proof.
-- Add a composite publication/bucket/window lookup index if the existing unique index does not provide the required plan, a proof-hash lookup index/constraint, and a partial expiry index for unconsumed proofs. Keep tenant/HR-group/publication foreign-key coverage consistent with Recruitment foundation constraints.
-- Enable RLS on the new table and add an explicit deny-all policy for public access. Revoke table privileges from `public`, `anon`, and `authenticated`; grant only the minimum service/definer privileges needed by the claim and submit functions. Direct table reads/writes by a browser remain impossible.
-- Add `recruitment_claim_public_intake` with explicit execute granted only to `service_role`; revoke `PUBLIC`, `anon`, and `authenticated`. It must validate bounded inputs, use schema-qualified names, and either run as invoker under the service client or use a narrowly scoped `SECURITY DEFINER` body with `SET search_path = ''`; do not expose a raw table operation.
-- Keep only the three intended anonymous Recruitment execute boundaries: `recruitment_public_vacancy`, `recruitment_public_vacancy_state`, and `recruitment_submit_public_application`. The claim RPC is not one of them.
-- Update the public submit RPC signature and body to find/lock/consume the new proof by digest, publication, and bucket binding while preserving `SECURITY DEFINER`, `SET search_path = ''`, explicit schema qualification, and existing tenant/vacancy checks.
-- Add a bounded service-only purge operation for expired/consumed proof rows and old counter rows. Reuse the existing `app/api/cron/recruitment-retention/route.ts` authorization and scheduling path rather than adding a second public or scheduler surface. Delete in a bounded batch, retain a grace period for clock skew, and never remove a counter row while it has an unexpired proof. Legacy proof columns can be removed only in a separately reviewed cleanup migration after the compatibility window is proven empty.
+- Keep `public.recruitment_public_intake_limits` as the per-publication/per-bucket/per-window counter with its existing unique key and request-count constraint. Use an additive forward migration: retain legacy columns/objects initially, deploy the new flow using only the new authoritative proof table, and leave destructive cleanup/removal to a separately reviewed cleanup migration. Do not maintain two active proof sources after cutover. The read-only current remote catalog has zero rows in both intake limits and documents, so no data migration is frozen for this candidate.
+- Add `public.recruitment_public_intake_proofs` with: UUID primary key; `publication_id`, `tenant_id`, and `hr_group_id`; lowercase 64-hex `bucket_key_hash`; unique lowercase 64-hex `proof_hash`; `window_started_at`; `issued_at`; `expires_at`; nullable `consumed_at`; and UTC `created_at`. Add the composite publication foreign-key convention and checks for `expires_at > issued_at` and a maximum ten-minute lifetime. Store only the digest, never the raw proof.
+- Add/retain indexes needed for the proof-hash lookup and bounded cleanup: the unique proof-hash constraint, a partial index for unconsumed expiry, and a partial index for consumed expiry if the cleanup plan requires it. The existing unique publication/bucket/window index remains the counter conflict key; add no redundant index without a query-plan reason.
+- Enable RLS on the new table and add an explicit deny-all policy for public access. Revoke table privileges from `public`, `anon`, and `authenticated`; do not grant browser access. The service-only definer functions use owner privileges under an empty `search_path`; the browser reaches only the intended public submit/vacancy RPC boundary.
+- Add `public.recruitment_claim_public_intake(uuid, text, text)` with explicit execute granted only to `service_role`; revoke `PUBLIC`, `anon`, `authenticated`, and any broader role. It must be `SECURITY DEFINER`, use `SET search_path = ''`, schema-qualify every object, validate both lowercase hashes, derive publication scope and time from the database, and expose no raw table operation.
+- Implement the claim as one transaction. The RPC locks/validates the `OPEN` publication, module, and active vacancy, derives `tenant_id`/`hr_group_id`, computes a database-owned UTC-aligned 15-minute window, and uses `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE request_count < 5 ... RETURNING`. A sixth or losing concurrent claim returns a generic rate-limit result and does not increment the counter. The successful counter increment and proof-row insert roll back together if proof insertion fails. `expires_at` is `issued_at + 10 minutes`; the database owns `issued_at` and `window_started_at`.
+- Keep only the three intended anonymous Recruitment execute boundaries: `recruitment_public_vacancy`, `recruitment_public_vacancy_state`, and the new five-argument `recruitment_submit_public_application`. The claim RPC is not one of them.
+- Replace the active public submit contract with `recruitment_submit_public_application(uuid, text, jsonb, text, text)`, adding the server-derived bucket hash. Preserve the existing publication, tenant, HR-group, module, vacancy, stage, payload, candidate, application, duplicate, and event checks. Look up the new proof by SHA-256 digest, publication, tenant/HR group, and bucket hash; lock it; require `expires_at > database_now` and `consumed_at IS NULL`; then consume it exactly once. Missing, expired, consumed, wrong-publication, and wrong-bucket proofs all map to `RECRUITMENT_PUBLIC_PROOF_INVALID`. The old four-argument overload may remain only as a revoked compatibility tombstone that cannot execute for any caller; it is not an active proof source.
+- Add `public.recruitment_cleanup_public_intake(requested_limit integer default 100)` as a service-only `SECURITY DEFINER` RPC with `SET search_path = ''`, explicit `service_role` claim guard, and revokes from `PUBLIC`, `anon`, and `authenticated`. Delete in bounded batches using row locking/`SKIP LOCKED`: unconsumed proofs after `expires_at < database_now - 1 hour`, consumed proofs after `consumed_at < database_now - 1 hour`, and counter rows only after a two-hour eligibility grace and only when no unexpired proof remains. Reuse the existing `CRON_SECRET`-protected recruitment-retention route and narrow service wrapper; add no public or second scheduler surface.
 - Regenerate `packages/db/types.ts` after the migration. This is an implementation step only; no generated type or migration is changed in this design branch.
 
 The migration must be checked against the known remote/local migration-history drift. Drift is evidence to stop and report, never a reason to run `db push`, repair history, pull remote schema, or edit migration history in place.
@@ -266,12 +273,12 @@ This is the proposed implementation scope, not work performed on this branch.
 - **Add** `apps/hr-suite/lib/security/trusted-client-identity.ts`: verified Vercel edge identity contract, strict single-IP normalization, typed fail-closed result, test injection seam.
 - **Add** `apps/hr-suite/lib/http/bounded-request-body.ts`: strict declared-length check and bounded stream buffering/reconstruction before parsing.
 - **Modify** `apps/hr-suite/app/api/public/recruitment/vacancies/[publicId]/applications/route.ts`: apply body gate first, use trusted identity, remove email/idempotency from abuse key, call claim before scanner, pass bucket binding to submit, preserve stable response headers and security failures.
-- **Modify** `apps/hr-suite/lib/recruitment/public-security.ts`: versioned HMAC bucket-key derivation and typed identity/key contracts; retain document validation and fail-closed adapters.
+- **Modify** `apps/hr-suite/lib/recruitment/public-security.ts`: versioned Web Crypto HMAC bucket-key derivation and typed identity/key contracts; add an explicit public document limit option while retaining the default 10 MiB validator contract and fail-closed adapters.
 - **Modify** `apps/hr-suite/lib/recruitment/public-intake-service.ts`: replace read/compare/update logic with the claim RPC, preserve config checks, and thread one clean scan result into storage.
 - **Modify** `apps/hr-suite/lib/recruitment/application-service.ts`: pass the server-derived bucket binding to the public submit RPC without making client idempotency a rate-limit input.
 - **Modify** `apps/hr-suite/lib/recruitment/errors.ts`: add stable 413/503/403 mappings while preserving current bot, malware, input, and vacancy contracts.
 - **Modify** `apps/hr-suite/app/api/cron/recruitment-retention/route.ts` and the narrow Recruitment service wrapper: invoke bounded intake-proof/counter cleanup through the existing CRON_SECRET-protected route.
-- **Review/possibly modify** `apps/hr-suite/next.config.ts`: align the configured proxy body setting with the approved public upload cap; do not leave a misleading generic 27 MiB setting as the only boundary.
+- **Do not modify** `apps/hr-suite/next.config.ts`: retain the generic 27 MiB `experimental.proxyClientMaxBodySize` contract for unrelated internal paths; the public route-specific bounded reader is the security boundary.
 
 ### Database and generated contracts
 
@@ -289,7 +296,7 @@ This is the proposed implementation scope, not work performed on this branch.
 - **Modify** `apps/hr-suite/lib/recruitment/public-security.test.ts` for HMAC separation, stable normalization, and absence of raw identity.
 - **Modify** `apps/hr-suite/lib/recruitment/public-intake.test.ts` for claim result mapping, proof binding, and idempotency/email independence.
 
-No unrelated app, UI, package, version, migration-history, or deployment file belongs in the implementation diff.
+No unrelated app, UI, package, version, migration-history, or deployment file belongs in the implementation diff. `apps/hr-suite/lib/recruitment/document-service.ts` remains on its existing default validator contract and is not in the candidate scope unless a type-only call-site adjustment is proved necessary. No `@vercel/functions` dependency is added.
 
 ## Test plan
 
@@ -322,6 +329,144 @@ Do not use a mocked final flow as production evidence. Test doubles are appropri
 
 3. **Log retention — governance follow-up.** Confirm platform log retention/access policy for the allowlisted security events. This is not an SEC-012 correctness blocker and no new persistent audit table is proposed.
 
+## IMPLEMENTATION REVIEW — TECHNICAL FREEZE
+
+This section is the authoritative implementation-review result for SEC-012. It freezes the implementation candidate; it does not implement or authorize implementation. `SEC-012` itself remains `OPEN` until the candidate, migration, acceptance evidence, and Production verification are complete.
+
+### BASELINE
+
+- Exact source baseline: `origin/main` at `155ccbde373a06684e37d9746b01dd65931c870b`.
+- Design source: `52e701daf00de816135727c5dc9f73f6fc5e25f8`.
+- Review source: `9372c05ebb20c298e85b683e6bf3fc8479f1ad92`, with `SEC-012 OPEN`, severity `Medium`, confidence `High`.
+- The isolated review branch is `security/sec012-public-intake-implementation-review`; the source worktree was clean and the dirty root was not modified.
+- Visible application version at the baseline is `1.20260901.1` from `apps/hr-suite/lib/app-version.ts`. No version bump is part of SEC-012.
+
+Read-only comparison confirmed that `origin/main` is the direct merge base for the design source and that no material Recruitment, security, routing, Supabase, Vercel, or request-handling drift was found between the approved baseline and the review source.
+
+### TRUSTED IDENTITY
+
+Freeze the direct-Vercel contract as follows:
+
+- Production and Preview require server-side `VERCEL=1`, `VERCEL_ENV` equal to `production` or `preview`, `x-vercel-id`, `x-vercel-deployment-url`, and exactly one valid `x-vercel-forwarded-for` IPv4/IPv6 token.
+- Use `x-vercel-forwarded-for` as the sole provider identity source. Trim, remove one enclosing IPv6 bracket pair when present, lowercase, and validate with `node:net` `isIP`.
+- Reject missing, blank, malformed, comma-separated, or otherwise ambiguous values. Never select the first value from a chain.
+- If `x-forwarded-for` or `x-real-ip` is present, use it only as an exact normalized cross-check. A malformed, comma-separated, or mismatching value fails closed; neither is a fallback.
+- Local and test requests fail closed by default. Tests may inject a typed identity through a test-only dependency seam guarded by the test harness; no request header or production environment value may activate that seam.
+- No external proxy/CDN header is trusted. Current Vercel read-only project metadata showed the configured Vercel domains and Git integration, with no configured external reverse-proxy field. This is `DIRECT VERCEL — VERIFIED` for the inspected Vercel project metadata, not proof for arbitrary DNS outside that project. A future custom/Enterprise Trusted Proxy needs a separate reviewed adapter and evidence.
+- No raw IP is returned to clients, stored, or logged. Do not add `@vercel/functions`; it is absent and its IP helper would not replace this provenance contract.
+
+### BODY / DOCUMENT LIMIT
+
+- Public Recruitment document limit: exactly `4,000,000` decimal bytes.
+- Complete public Recruitment request limit: exactly `4,250,000` decimal bytes, for both JSON and multipart.
+- `4,250,000` is accepted; `4,250,001` is rejected with `RECRUITMENT_PUBLIC_REQUEST_TOO_LARGE` and HTTP `413`.
+- A valid `Content-Length` above the cap is rejected before stream consumption. Missing, malformed, or suspiciously small `Content-Length` is untrusted; the original stream is read once with a hard `cap + 1` limit. A boundary-crossing chunk is cancelled and rejected.
+- Parse only the reconstructed bounded `Request`; preserve `content-type` and safe end-to-end headers, strip `content-length` and hop-by-hop headers, and do not use `clone()` as the security control.
+- The public route calls document validation with an explicit `4,000,000` limit. The shared default remains unchanged for unrelated callers: internal Recruitment document handling remains 10 MiB at the current validator/storage contract, and Employee/Company/internal upload contracts (including the current 25 MiB generic document rule) are not reduced.
+- `next.config.ts` is unchanged. The existing generic `experimental.proxyClientMaxBodySize` setting remains the internal 27 MiB proxy-buffer contract; it is not the public route's 413 enforcement. Vercel documents a 4.5 MB Node.js Function payload ceiling, so these decimal caps retain provider headroom ([Vercel Functions limitations](https://vercel.com/docs/functions/limitations), [Next.js `proxyClientMaxBodySize`](https://nextjs.org/docs/app/api-reference/config/next-config-js/proxyClientMaxBodySize)).
+- No transport redesign is included: no direct-to-storage flow, presigned quarantine, chunking, Vercel Blob, new upload provider, or public preservation of files above `4,000,000` bytes.
+
+### ABUSE KEY
+
+Use Web Crypto HMAC-SHA-256 with no new package:
+
+```text
+key     = UTF-8(RECRUITMENT_RATE_LIMIT_PEPPER)
+message = "v1\0PUBLIC_RECRUITMENT\0" + publicationId + "\0" + trustedClientIdentity
+bucket  = lowercase-hex(HMAC-SHA-256(key, message))
+```
+
+`RECRUITMENT_RATE_LIMIT_PEPPER` is required and must be at least 32 characters. The key is per public publication and trusted client identity; it excludes email, idempotency, challenge token, document metadata, and bytes. The same publication/identity is stable across requests; changing publication or identity changes the key. No raw identity or pepper enters storage or telemetry.
+
+The policy is exactly 5 successful claims per 15-minute database-owned UTC-aligned window per publication/bucket. Each successful claim receives a fresh 256-bit server-generated proof. Proofs are independent, publication-bound, bucket-bound, single-use, and valid for exactly 10 minutes. A failed scanner, scanner unavailability, failed submit, or storage failure does not refund a successful claim; a proof-insert failure rolls back the counter increment in the same transaction.
+
+### DATABASE
+
+Freeze one additive migration, to be created only during the separately authorized implementation:
+
+- Add `public.recruitment_public_intake_proofs` with UUID identity; publication/tenant/HR-group scope; lowercase 64-hex `bucket_key_hash`; unique lowercase 64-hex `proof_hash`; `window_started_at`, `issued_at`, `expires_at`, nullable `consumed_at`, and UTC `created_at`; composite publication foreign-key coverage; and non-volatile lifetime checks.
+- Add `public.recruitment_claim_public_intake(uuid, text, text)` as a `SECURITY DEFINER` function with `SET search_path = ''`, explicit schema qualification, strict hash validation, database-owned time, and execute granted only to `service_role`.
+- The claim locks the `OPEN` publication/module/active-vacancy scope, derives tenant and HR group, performs an atomic counter insert/update with `request_count < 5`, and inserts the proof digest in the same transaction. The sixth or concurrent losing claim returns a generic 429 result and does not increment.
+- Replace the active submit function with `recruitment_submit_public_application(uuid, text, jsonb, text, text)`, adding the bucket hash. It locks the new proof by digest/publication/tenant/HR-group/bucket, validates expiry and single use, and preserves the existing vacancy/candidate/application/event checks. The old four-argument overload is not an active proof source and, if retained for compatibility, is revoked for every caller and made inert.
+- Add service-only `public.recruitment_cleanup_public_intake(integer)` with the same definer/search-path discipline, an explicit service-role guard, bounded `SKIP LOCKED` cleanup, and grants only to `service_role`. Reuse the existing `CRON_SECRET`-protected recruitment-retention route and service wrapper.
+- Cleanup eligibility is frozen at one hour after proof expiry/consumption; counter rows are eligible after two hours only when no unexpired proof remains. Legacy proof columns remain untouched in this additive migration and are removed only by a later reviewed cleanup migration.
+- Enable RLS on the proof table, add an explicit deny-all policy for `anon`/`authenticated`, revoke direct table privileges from `public`, `anon`, and `authenticated`, and preserve the existing exact anonymous Recruitment RPC boundary. The claim RPC is service-only; browsers cannot read or write either intake table.
+
+Current read-only catalog evidence: Supabase project `wnpfloqpjvaacobppbpk` is active/healthy; local migration filenames count `390` with local maximum `20260831151639`; remote migration history count `409` with maximum `20260831165143`; remote `recruitment_public_intake_limits` and `recruitment_documents` row counts are both `0`; and remote `public.recruitment_claim_public_intake` does not exist. This is `DIVERGED`, not a reason for `db push`, history repair, pull, or manual edits. No migration filename was created or applied in this review. Before a future remote apply, stop and request explicit authorization naming the exact migration filename and purpose.
+
+### SCANNER / REQUEST ORDER
+
+The runtime order is frozen as:
+
+```text
+bounded body gate
+  -> JSON/multipart parse
+  -> input schema and cheap local document validation
+  -> public vacancy/config checks
+  -> trusted edge identity
+  -> Turnstile
+  -> server proof generation and atomic service-only claim
+  -> exactly one remote malware scan of immutable exact bytes
+  -> public submit RPC with raw proof plus bucket hash
+  -> private storage and CLEAN metadata using the same bytes and scan result
+```
+
+No document means no scanner. Body rejection, identity rejection, Turnstile rejection, and rate-limit denial must not reach scanner or storage; body rejection must not parse or reach any external service. Scanner rejection/unavailability remains fail-closed. There is no second scan: storage receives the clean result/reference/checksum from the single scan. A post-submit storage failure follows the existing cleanup/error contract and does not invent an application rollback.
+
+### MIGRATION
+
+Migration is required for the implementation, but not performed here. The current local/remote history is `DIVERGED` (`390` local versus `409` remote, with different latest timestamps), and the remote Recruitment catalog has legacy proof columns with no current rows. The implementation must start with one forward additive migration, regenerate `packages/db/types.ts` only after the canonical local schema is updated, run the required local advisors/contracts, and stop before any remote apply until explicit remote-mutation authorization is given.
+
+### TESTS
+
+The candidate must add/adjust tests for the following exact matrix:
+
+- Body: `4,250,000` valid; `4,250,001` rejected; declared oversized length rejected immediately; missing/invalid/suspiciously small length; forged-small length; JSON; multipart; truncated stream; no parse/Turnstile/DB/scanner/storage after rejection.
+- Document: `4,000,000` valid; `4,000,001` invalid; PDF/DOCX signature and MIME/extension checks; unrelated internal Recruitment 10 MiB and generic Employee/Company 25 MiB limits unchanged.
+- Identity: direct Vercel IPv4 and IPv6; missing/malformed/comma values; mismatched provider cross-check; spoofed `x-real-ip`; unknown/local runtime; unsupported/unreviewed proxy; typed test injection only.
+- HMAC: stable same publication/identity; distinct publication/identity; email/idempotency rotation unchanged; real known HMAC vector; no raw IP/pepper in output or telemetry.
+- Atomicity: first five claims succeed and sixth fails; concurrent boundary has no lost increments or count above five; every success has an independent proof.
+- Proof: valid, expired, consumed, replayed, wrong publication, wrong bucket, and concurrent consume all fail closed with the stable generic proof-invalid response.
+- Grants/RLS: claim is service-only; `anon` cannot execute claim or read/write proof/counter tables; existing three anonymous Recruitment RPCs remain the only intended anonymous functions.
+- Ordering/regression: no scanner before accepted claim; exactly one scanner after claim; normal public application; required/optional/hidden CV modes; existing vacancy checks; retention; internal Recruitment behavior.
+
+Final production acceptance remains separate: verify released SHA and visible version, direct Vercel topology and identity behavior, normal synthetic public flow without personal data, oversize rejection, safe synthetic rate-limit boundary, no unexpected errors/raw identity logs, migration readback/RLS/grants/proof lifecycle, and no persistent synthetic residue after cleanup.
+
+### FILES
+
+The implementation candidate file scope is frozen to:
+
+- Application: `apps/hr-suite/app/api/public/recruitment/vacancies/[publicId]/applications/route.ts`.
+- Helpers: add `apps/hr-suite/lib/security/trusted-client-identity.ts` and `apps/hr-suite/lib/http/bounded-request-body.ts`; modify `apps/hr-suite/lib/recruitment/public-security.ts`.
+- Services: modify `apps/hr-suite/lib/recruitment/public-intake-service.ts`, `apps/hr-suite/lib/recruitment/application-service.ts`, `apps/hr-suite/lib/recruitment/errors.ts`, `apps/hr-suite/lib/recruitment/guided-service.ts`, and `apps/hr-suite/app/api/cron/recruitment-retention/route.ts`.
+- Database: add one timestamped migration; modify `apps/hr-suite/supabase/tests/recruitment_foundation_contract.sql`, `apps/hr-suite/supabase/tests/security_wave_b_rpc_grants.sql`, and `apps/hr-suite/lib/recruitment/migration-contract.test.ts`; regenerate `packages/db/types.ts` only after the approved local schema change.
+- Tests: add `apps/hr-suite/lib/security/trusted-client-identity.test.ts`, `apps/hr-suite/lib/http/bounded-request-body.test.ts`, and the public application route test; modify the public security and public intake tests.
+
+Explicitly out of this implementation candidate: `next.config.ts`, `apps/hr-suite/lib/recruitment/document-service.ts` behavior, UI, package/dependency changes, visible version, migration-history edits, `.env.local`, GitHub settings, Vercel settings/configuration, production deployment, and remote Supabase mutation without separate explicit authorization.
+
+### OPEN ITEMS
+
+- Production acceptance must re-confirm that the inspected public domains terminate directly at Vercel and that no custom reverse proxy/CDN is introduced before trusting the provider header contract.
+- The additive migration must perform a read-only legacy-proof preflight immediately before implementation. The current inspected remote intake-limit and document tables are empty.
+- Operations must confirm platform log retention/access for the allowlisted security events; this is a governance follow-up, not an SEC-012 correctness blocker.
+- SEC-005 remains a separate residual for canonical host/origin resolution and future proxy/custom-domain changes.
+
+### VERIFICATION
+
+This review performed read-only repository, exact-baseline, current `origin/main`, local migration, Supabase catalog, Vercel project/deployment, and official Next.js/Vercel documentation checks. It did not run the full application suite, production build, browser flow, advisors, migration, deployment, or provider settings mutation because this request is documentation-only. Those are implementation/release gates, not evidence of completion.
+
+### MUTATIONS
+
+The only in-scope mutation for this review is this existing design document. No app code, test, migration, package, version, environment, Supabase, Vercel, GitHub, production, or migration-history mutation is authorized or performed. The canonical `apps/hr-suite/.env.local` was verified to exist and remain ignored; its values were not read or printed.
+
+### CANDIDATE
+
+The review candidate is branch `security/sec012-public-intake-implementation-review`, based on design SHA `52e701daf00de816135727c5dc9f73f6fc5e25f8`. The candidate commit is created only after scoped whitespace and file-list checks, and contains only this document. A non-force push, if credentials and remote policy permit, targets the same branch; no merge to `main` is part of this review.
+
+### NEXT
+
+After this document is committed and pushed, begin a separate SEC-012 implementation candidate from the freshly verified baseline. Repeat the protected-environment and migration-drift preflight, create the single forward migration locally, regenerate generated types after local schema verification, run the targeted test matrix, and obtain the explicit remote-apply authorization before any remote Supabase mutation. SEC-012 remains `OPEN` until the complete evidence gate is green.
+
 ## Files changed by this design candidate
 
 - `docs/security/SEC-012_PUBLIC_RECRUITMENT_ABUSE_DESIGN.md`
@@ -331,7 +476,3 @@ Only this documentation file is intended to be committed and pushed from the des
 ## Design verification boundary
 
 This branch will receive documentation-only checks: whitespace validation, exact changed-file scope, clean worktree verification, baseline/commit identity verification, canonical environment-file existence verification, and confirmation that no app/test/migration/package/version file changed. Full app tests, production builds, browser checks, Supabase advisors, database pushes, Vercel operations, and production changes are intentionally out of scope for this design-only task.
-
-## Next
-
-Proceed to SEC-012 implementation review. Before implementation, confirm the direct-Vercel topology and perform the additive migration preflight against read-only local/approved remote state. Implementation must start from a freshly verified baseline and repeat the migration-drift and canonical-environment preflight. SEC-012 remains OPEN until implementation, migration, acceptance, and Production verification are complete.
