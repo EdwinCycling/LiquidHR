@@ -2,14 +2,14 @@
 
 > **Authoritative current baseline:** current `origin/main` after the AN-6 release, visible version `1.20260901.1`. Historical delivery snapshots below remain preserved; the current delivery status is the AN-6 Production release.
 
-## DM-0 Document Studio architecture candidate — 2026-09-01
+## DM-0 Document Studio product review closed — 2026-09-02
 
-**Status: ARCHITECTURE CANDIDATE — PRODUCT REVIEW REQUIRED**
+**Status: DM-0 ARCHITECTURE — PRODUCT APPROVED, READY FOR FEASIBILITY GATE**
 
 - Isolated candidate worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\dm0-document-studio-architecture`, branch `work/dm0-document-studio-architecture`, exact baseline `origin/main` `155ccbde373a06684e37d9746b01dd65931c870b`.
-- Added only the frozen Document Studio product contract and DM-0 architecture candidate, with minimal documentation-index/context pointers. DM-1 is not started.
+- Product Review amendments are applied to the architecture: fixed catalog requiredness, `##EffectiveDate`, frozen first Salary Change fieldset, fail-closed private DOCX quarantine, approved private Gotenberg/LibreOffice renderer, no-duplicate dossier bridge, HR-group-owned retention and the hard disposable feasibility gate. DM-1 is not started.
 - The design separates existing dossier/company-document infrastructure from the new immutable Document Studio model, records the temporal resolver/Salary Change gap, recommends a private office-native renderer boundary, and keeps the SEC-006 malware-scanning residual explicit.
-- No app code, migration, package install, Supabase/Vercel action, version bump, test/typecheck/lint/build or main merge was performed. Required final checks are diff-check, changed-path proof, canonical env existence and non-force candidate push.
+- No app code, migration, package install, Supabase/Vercel action, version bump, test/typecheck/lint/build or main merge was performed. Amendment handoff checks are diff-check, changed-path proof, canonical env existence and non-force push on this same branch; the disposable renderer spike remains the next hard feasibility gate.
 
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
 

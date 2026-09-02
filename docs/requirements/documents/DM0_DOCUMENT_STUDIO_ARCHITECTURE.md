@@ -1,6 +1,6 @@
 # LiquidHR — DM-0 Document Studio Architecture & Foundation
 
-**Status:** DM-0 ARCHITECTURE CANDIDATE — PRODUCT REVIEW REQUIRED
+**Status:** DM-0 ARCHITECTURE — PRODUCT APPROVED, READY FOR FEASIBILITY GATE
 **Datum:** 1 september 2026
 **Scope:** repository discovery, architecture and delivery design only
 **Product:** Document Studio
@@ -9,7 +9,7 @@
 
 ## 1. Besluit en grenzen
 
-Dit document is het architectuurvoorstel voor het frozen productcontract [`DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md). Het contract is leidend voor productsemantiek; dit document maakt alleen technische keuzes en markeert onzekerheden.
+Dit document is het door Product Review geamendeerde architectuurdocument voor het frozen productcontract [`DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md`](DOCUMENT_STUDIO_MVP_PRODUCT_CONTRACT.md). Het contract is leidend voor productsemantiek; dit document maakt alleen technische keuzes en markeert resterende implementatiedetails.
 
 DM-0 implementeert geen productfunctionaliteit. Er zijn in deze slice geen app-code, migration, package-installatie, Supabase/Vercel-mutatie, versie-bump of main-merge toegestaan. DM-1 is niet gestart.
 
@@ -149,7 +149,7 @@ Er is op dit moment geen kandidaatveld dat als volledig bewezen, generiek Docume
 - `NONE`: nu bruikbaar voor static/current merge zonder temporal placeholders. Dit ondersteunt E2E-2 conceptueel zodra de resolver is gebouwd.
 - `AS_OF`: contractueel ondersteund, maar per field gated. Alleen fields met een bewezen resolver mogen worden geactiveerd.
 - `TWO_POINT`: modelmatig voorbereiden; geen fieldclaim zonder twee-point tests.
-- `WAS_IS_WORDT`: nodig voor E2E-1. `Was` en `Is` kunnen alleen uit bronnen komen die de resolver veilig afhandelt. `Wordt` kan persisted future-effective data gebruiken als die bestaat, anders een handmatige documentwaarde zijn.
+- `WAS_IS_WORDT`: het platformcontract blijft reëel. Voor de eerste Salary Change-journey zijn alleen `Is` en `Wordt` nodig; historische `Was`-resolutie wordt afzonderlijk bewezen in DM-2. `Wordt` kan persisted future-effective data gebruiken als die bestaat, anders een handmatige documentwaarde zijn.
 
 De templatescan en preparation state dragen de gevraagde temporal mode; de catalogus beslist per field of de combinatie uitvoerbaar is. Een template wordt niet ACTIVE wanneer het een required temporal capability vraagt die niet beschikbaar is.
 
@@ -167,33 +167,47 @@ De huidige code heeft salarisgeschiedenis en een beperkte as-of-query, maar mist
 
 Daarom is E2E-1 niet bewezen door bestaande salary queries. DM-2 moet deze gap oplossen met een typed, allowlisted, server-side resolver en een expliciete negative/overlap testset. Document Studio mag het salarisrecord niet muteren.
 
+### Frozen Salary Change MVP-fieldset
+
+De eerste Salary Change-journey bewijst minimaal:
+
+- employee identity;
+- `##Salary[Is]`;
+- `##Salary[Wordt]`;
+- `##EffectiveDate`;
+- relevante Company-fields.
+
+`##Salary[Was]` is geen vereiste in het eerste Salary Change-document. DM-2 moet historische `[Was]`-resolutie wel afzonderlijk aantonen, zodat de generieke `WAS_IS_WORDT`-capability geen papieren contract blijft. Handmatige `Salary[Wordt]` blijft uitsluitend documentcontext en muteert nooit HR-data.
+
 ## 6. Semantic field catalog — ontwerpcontract
 
-De catalogus is een allowlist van stabiele interne keys met zichtbare templatecodes als alias. Er is geen executable SQL in de catalogus en onbekende codes worden er niet aan toegevoegd.
+De catalogus is een allowlist van stabiele interne keys met zichtbare templatecodes als alias. Er is geen executable SQL in de catalogus en onbekende codes worden er niet aan toegevoegd. Iedere bekende entry heeft een vaste requiredness policy, conceptueel `requiredWhenReferenced=true` of `requiredWhenReferenced=false`. Een template mag die policy in MVP niet overrulen.
 
 | Domain | Visible code | Internal key | Type | Requiredness | Temporal mode | Resolver contract | Sensitivity/formatting |
 |---|---|---|---|---|---|---|---|
-| Employee | `##EmployeeFirstName` | `employee.first_name` | text | configurable; default required voor identity templates | NONE | authorized employee read | HR-PII; plain text, trim |
-| Employee | `##EmployeeLastName` | `employee.last_name` | text | configurable; default required | NONE | authorized employee read | HR-PII; plain text, trim |
-| Employee | `##EmployeeNumber` | `employee.employee_number` | text | optional by template | NONE | authorized employee read | identifier; no locale mutation |
-| Employment | `##EmploymentNumber` | `employment.number` | text | optional by template | AS_OF-capable after seam | selected employment resolver | identifier; no placeholder fallback |
-| Employment | `##EmploymentStartDate` | `employment.starts_on` | date | required when template needs it | AS_OF | employment-at-date resolver | locale-aware NL/EN date |
-| Employment | `##EmploymentEndDate` | `employment.ends_on` | date | optional | AS_OF | employment-at-date resolver | empty only when genuinely absent |
-| Employment | `##EmploymentStatus` | `employment.status` | enum label | required when template needs it | AS_OF | allowlisted status mapping | unknown codes block; no raw code output |
-| Employment | `##ContractType` | `employment.contract_type` | enum label | required when template needs it | AS_OF/TWO_POINT gated | contract-at-date resolver | unknown codes block |
-| Employment | `##Salary` | `employment.salary` | money | required in salary templates | AS_OF/TWO_POINT/WAS_IS_WORDT gated | salary effective-range resolver | currency, decimal and frequency policy fixed per locale |
-| Employment | `##WeeklyHours` | `employment.weekly_hours` | decimal | required where used | AS_OF/TWO_POINT/WAS_IS_WORDT gated | schedule effective-range resolver | locale decimal formatting |
-| Employment | `##JobTitle` | `employment.job_title` | text | required where used | AS_OF/TWO_POINT/WAS_IS_WORDT gated | organization effective-range resolver | plain text |
-| Employment | `##Department` | `employment.department_name` | text | optional by template | AS_OF/TWO_POINT/WAS_IS_WORDT gated | organization effective-range resolver | plain text |
-| Employment | `##ManagerName` | `employment.manager_name` | text | optional by template | AS_OF/TWO_POINT/WAS_IS_WORDT gated | authorized manager identity resolver | HR-PII; plain text |
-| Company | `##CompanyName` | `company.name` | text | required in employer templates | NONE | authorized current company resolver | legal/current label |
-| Company | `##CompanyAddress` | `company.address` | multiline text | optional/required by template | NONE | authorized current company resolver | line breaks preserved |
-| Context | `##GenerationDate` | `context.generated_at` | date | system value | NONE | server clock at Generate | locale-aware; not client supplied |
+| Employee | `##EmployeeFirstName` | `employee.first_name` | text | `requiredWhenReferenced=true` | NONE | authorized employee read | HR-PII; plain text, trim |
+| Employee | `##EmployeeLastName` | `employee.last_name` | text | `requiredWhenReferenced=true` | NONE | authorized employee read | HR-PII; plain text, trim |
+| Employee | `##EmployeeNumber` | `employee.employee_number` | text | `requiredWhenReferenced=false` | NONE | authorized employee read | identifier; no locale mutation |
+| Employment | `##EmploymentNumber` | `employment.number` | text | `requiredWhenReferenced=false` | AS_OF-capable after seam | selected employment resolver | identifier; no placeholder fallback |
+| Employment | `##EmploymentStartDate` | `employment.starts_on` | date | `requiredWhenReferenced=true` | AS_OF | employment-at-date resolver | locale-aware NL/EN date |
+| Employment | `##EmploymentEndDate` | `employment.ends_on` | date | `requiredWhenReferenced=false` | AS_OF | employment-at-date resolver | empty only when genuinely absent |
+| Employment | `##EmploymentStatus` | `employment.status` | enum label | `requiredWhenReferenced=true` | AS_OF | allowlisted status mapping | unknown codes block; no raw code output |
+| Employment | `##ContractType` | `employment.contract_type` | enum label | `requiredWhenReferenced=true` | AS_OF/TWO_POINT gated | contract-at-date resolver | unknown codes block |
+| Employment | `##Salary` | `employment.salary` | money | `requiredWhenReferenced=true` | AS_OF/TWO_POINT/WAS_IS_WORDT gated | salary effective-range resolver | currency, decimal and frequency policy fixed per locale |
+| Employment | `##WeeklyHours` | `employment.weekly_hours` | decimal | `requiredWhenReferenced=true` | AS_OF/TWO_POINT/WAS_IS_WORDT gated | schedule effective-range resolver | locale decimal formatting |
+| Employment | `##JobTitle` | `employment.job_title` | text | `requiredWhenReferenced=true` | AS_OF/TWO_POINT/WAS_IS_WORDT gated | organization effective-range resolver | plain text |
+| Employment | `##Department` | `employment.department_name` | text | `requiredWhenReferenced=false` | AS_OF/TWO_POINT/WAS_IS_WORDT gated | organization effective-range resolver | plain text |
+| Employment | `##ManagerName` | `employment.manager_name` | text | `requiredWhenReferenced=false` | AS_OF/TWO_POINT/WAS_IS_WORDT gated | authorized manager identity resolver | HR-PII; plain text |
+| Company | `##CompanyName` | `company.name` | text | `requiredWhenReferenced=true` | NONE | authorized current company resolver | legal/current label |
+| Company | `##CompanyAddress` | `company.address` | multiline text | `requiredWhenReferenced=true` | NONE | authorized current company resolver | line breaks preserved |
+| Context | `##EffectiveDate` | `context.effective_date` | date | `requiredWhenReferenced=true` | AS_OF/TWO_POINT/WAS_IS_WORDT | temporal/document context resolver | business/effective date; locale-aware |
+| Context | `##GenerationDate` | `context.generated_at` | date | `requiredWhenReferenced=true` | NONE | server clock at Generate | locale-aware; not client supplied |
 
 ### Contractregels
 
 - Visible codes are normalized only for scanning/lookup; output preserves values, not source placeholder syntax.
-- A catalog entry has one resolver owner, a type, a sensitivity class, a formatting rule, requiredness policy and supported temporal modes.
+- A catalog entry has one resolver owner, a type, a sensitivity class, a formatting rule, a fixed `requiredWhenReferenced` policy and supported temporal modes.
+- Templates cannot override the requiredness policy of a known field in MVP. When a referenced known field has `requiredWhenReferenced=true` and cannot be resolved or validly supplied, Generate blocks.
 - Missing optional known value is a warning and can be manually supplied or intentionally blank.
 - Missing required known value blocks Generate.
 - Unknown valid `##Code` values are generation-only optional inputs. They are tracked in preparation and final snapshot, not in this catalog or `custom_field_definitions`.
@@ -230,7 +244,11 @@ The existing file rules are a lower-level starting point, not the complete profi
 - placeholder syntax across supported Word XML parts, including headers/footers, without evaluating any expression;
 - quarantine/scan status before Active.
 
-SEC-006’s current residual remains: the repository upload baseline has no complete malware scanner/quarantine proof. DM-0 does not claim this solved. The recommended release gate is fail-closed for `ACTIVE` when the approved malware/security scan is unavailable or inconclusive; the exact scanner boundary is an open product/security decision for DM-1.
+### Approved fail-closed security gate
+
+A newly uploaded DOCX may be stored only in a private quarantine state before security approval. While it is quarantined or its scan state is unknown, unavailable or inconclusive, it must not be rendered, previewed, converted by LibreOffice/Gotenberg, activated or used for Generate. All required structural validation and malware/quarantine checks must be GREEN before the source can leave quarantine or enter any renderer pipeline.
+
+This is a Document Studio gate in addition to the existing lower-level upload rules. SEC-006 is not globally closed; the repository’s current malware-scanning/quarantine residual remains explicit.
 
 ## 8. Generated document, snapshot and deletion model
 
@@ -254,6 +272,8 @@ Do not copy the PDF into `employee_documents` merely to make it appear in a doss
 
 An explicit link is not a second owner and cannot change employee, source snapshot or template version.
 
+Product Review approves this bridge direction. Link and unlink require a separate authorization capability from basic document create/read; the exact permission identifier follows current repository conventions and is finalized in implementation design.
+
 ### Idempotency and concurrency
 
 The Generate request gets a server-created/request-bound idempotency key. A group-scoped uniqueness rule and a transaction-level duplicate check prevent two final rows for the same accepted request. Generate re-authorizes and re-resolves after Preview; it does not trust client preparation state. Storage staging and cleanup must be compensating and idempotent so a failed metadata transaction cannot leave an accessible orphan.
@@ -262,7 +282,7 @@ The Generate request gets a server-created/request-bound idempotency key. A grou
 
 ### Policy
 
-The document type owns `PERMANENT` or `YEARS` retention. At Generate, the selected policy and calculated `expires_at` are snapshotted on the generated document. A later document-type policy change does not silently rewrite historical obligations.
+The document type owns `PERMANENT` or `YEARS` retention. An HR-group-authorized administrator owns configuration of that document-type policy. At Generate, the selected policy and calculated `expires_at` are snapshotted on the generated document. A later document-type policy change does not silently rewrite historical obligations.
 
 ### MVP enforcement design
 
@@ -282,9 +302,9 @@ The document type owns `PERMANENT` or `YEARS` retention. At Generate, the select
 
 Vercel documents function limits for memory, bundle size, request/response payloads and execution duration; the current page documents a 4.5 MB function body limit and finite runtime/memory ceilings. That makes a 25 MiB DOCX upload and native office renderer a poor direct fit for a normal route handler. The application should upload/download through private storage and keep the renderer outside the Next function boundary. See [Vercel Functions limits](https://vercel.com/docs/functions/limitations).
 
-### Recommended architecture
+### Approved renderer decision
 
-Use a private, isolated document-renderer boundary with Gotenberg’s LibreOffice route:
+Product Review approves a private, isolated document-renderer boundary with pinned Gotenberg + LibreOffice as primary:
 
 ```text
 Next server route/service
@@ -312,7 +332,7 @@ validate source
 → return PDF bytes, content metadata, hash, renderer version and diagnostics
 ```
 
-The same adapter and pinned renderer image/version are mandatory for preview and final. Preview output is ephemeral; only Generate persists the controlled artifact. Final output is PDF only; no DOCX export endpoint is planned for MVP.
+The same adapter and pinned renderer image/version are mandatory for preview and final. Preview output is ephemeral; only Generate persists the controlled artifact. Ordinary PDF is the MVP controlled output; PDF/A is not required and no DOCX export endpoint is planned for MVP. A managed third-party document conversion service is not allowed for MVP unless separately approved later.
 
 ### Replacement technology assessment
 
@@ -338,6 +358,33 @@ The golden-document suite must cover headers, footers, page breaks, page numberi
 - Delete temporary DOCX/PDF files in success and failure paths.
 - Cap retries; a malformed document is a blocking input error, not an infinite retry. Gotenberg explicitly distinguishes input-related `400` failures from server/resource `500` failures and recommends capped attempts.
 - Security tests must include malformed XML/ZIP, oversized expansion, external references, wrong MIME/signature, duplicate generation and cross-group input.
+
+### Hard pre-implementation feasibility gate
+
+Before committing to the full DM-1 implementation/migration sequence, run a disposable renderer/replacement spike. It must use a safe synthetic DOCX with no real HR data and prove, through the same intended renderer boundary:
+
+- `##EmployeeFirstName` in normal body text;
+- a token split across Word XML runs;
+- `##Salary[Is]`;
+- `##Salary[Wordt]`;
+- `##EffectiveDate`;
+- header and footer;
+- existing table;
+- image/logo;
+- page break;
+- special characters, euro sign and accents.
+
+Required pipeline:
+
+```text
+safe synthetic DOCX
+→ placeholder detection/replacement
+→ approved private renderer boundary
+→ PDF
+→ golden/visual fidelity assessment
+```
+
+The spike is disposable and outside committed application code. No spike dependency or package may be committed or installed unless separately approved. A failed or incomplete spike blocks the full DM-1 implementation/migration commitment.
 
 ## 11. Validation design
 
@@ -424,7 +471,7 @@ Before any future migration apply, the canonical application schema, local migra
 
 | Slice | Scope | Dependencies | Migration/permission/security/test gate | Explicit non-goals |
 |---|---|---|---|---|
-| DM-1 Template Library & Secure Word Upload | module/navigation, list-first library, metadata, controlled category, existing tags, group scope, Draft/Active/Archived, versioning, DOCX upload, OOXML placeholder scan and validation | approved model, storage boundary, scanner decision | new tables/RLS/grants; malware/active-content gate; upload corpus, ZIP limits, tenant/group tamper tests; no remote apply without approval | no employee merge, preview, PDF, AI, free-field persistence |
+| DM-1 Template Library & Secure Word Upload | module/navigation, list-first library, metadata, controlled category, existing tags, group scope, Draft/Active/Archived, versioning, DOCX upload, OOXML placeholder scan and validation | approved model, storage boundary, scanner decision, successful disposable renderer/replacement feasibility gate | new tables/RLS/grants; malware/active-content gate; upload corpus, ZIP limits, tenant/group tamper tests; no remote apply without approval | no employee merge, preview, PDF, AI, free-field persistence |
 | DM-2 Data Resolver & Temporal Context | allowlisted semantic catalog, known `##Field`, required/optional resolution, `NONE`/`AS_OF`/`TWO_POINT`/`WAS_IS_WORDT`, generation-only free inputs | DM-1 active versions; Salary Change gap decision | typed resolver tests, cross-domain authorization/RLS, overlap/future-effective/unknown-code tests, no HR writeback | no renderer/final artifact, no custom-field catalog |
 | DM-3 Preview & PDF Generation | preparation state, same render pipeline, mandatory preview, PDF generation, immutable artifact, source snapshot/hash, idempotency | DM-1 source and DM-2 resolver; approved private renderer | renderer golden suite, sandbox/resource tests, PDF integrity, duplicate/concurrency, no final row on preview | no overview/delete/retention scheduler |
 | DM-4 Document Studio, Dossier, Audit & Retention | overview/detail, final document history, label-before-generate, optional dossier bridge, delete choices, tombstone, retention config/enforcement seam | DM-3 artifact; approved dossier relation | RLS/download/delete/link tests, deletion artifact proof, snapshot leakage test, retention dates; no scheduler if not approved | no relink, signing, tasks, bulk, AI |
@@ -434,13 +481,13 @@ Each slice must remain independently reviewable. The repository order remains sc
 
 ## 16. Open decisions requiring Product/Security review
 
-1. Approve a private Gotenberg/LibreOffice renderer boundary as the default, or authorize the direct LibreOffice worker fallback. Decide whether any external managed conversion service is prohibited for HR data.
+1. Renderer choice is approved: private pinned Gotenberg + LibreOffice primary, private isolated direct LibreOffice worker fallback. Managed third-party document conversion is outside MVP unless separately approved later; remaining work is operational boundary, hosting and hardening design.
 2. Confirm the malware scanner/quarantine provider and the release rule when scanning is unavailable. Until then, keep the SEC-006 residual explicit and block activation on an unknown scan state.
-3. Confirm the minimum E2E-1 Salary Change field set and whether manual `Wordt` is acceptable whenever a future value is not persisted. The current repository does not prove a complete generic as-of resolver.
-4. Confirm document-type ownership and whether HR-group administrators may configure `Permanent`/`X jaar`, including the upper bound and timezone rule.
-5. Confirm the dedicated permission names and their grants in the current role/permission matrix, including whether dossier linking needs a separate permission.
-6. Confirm the bridge presentation contract for generated documents in the existing employee dossier without copying the artifact into `employee_documents`.
-7. Confirm whether the generated PDF must be PDF/A or ordinary PDF for MVP. The frozen contract requires controlled PDF but does not mandate archival conformance.
+3. The minimum E2E-1 Salary Change field set is frozen: employee identity, `##Salary[Is]`, `##Salary[Wordt]`, `##EffectiveDate` and relevant Company-fields. DM-2 must separately prove historical `[Was]` resolution; the current repository does not prove a complete generic as-of resolver.
+4. Retention ownership is approved: an HR-group-authorized administrator configures document-type `PERMANENT`/`X jaar`. Remaining implementation details are safe numeric bounds and timezone/date rule.
+5. Confirm the dedicated permission names and their grants in the current role/permission matrix. Dossier link/unlink must have a separate authorization capability from basic document create/read.
+6. The no-duplicate dossier bridge is approved; implementation must expose one GeneratedDocument artifact through a bridge/read-model without copying to `employee_documents`. Exact read-model details remain for DM-4.
+7. Ordinary PDF is approved for MVP. PDF/A is explicitly not required.
 
 ## 17. DM-0 verification and evidence boundary
 
@@ -454,16 +501,18 @@ Executed for this architecture slice:
 - official Vercel, Gotenberg, LibreOffice and Docxtemplater documentation checked for renderer feasibility;
 - no application tests, typecheck, lint or build run, as required by the user’s architecture-only scope.
 
-Required before handoff:
+The disposable renderer/replacement spike was not run in this documentation-only amendment. It is the next hard feasibility gate and must complete before the full DM-1 implementation/migration commitment.
+
+Amendment handoff checks:
 
 - `git diff --check`;
-- prove changed paths are limited to this contract, DM-0 architecture, minimal index and delivery-context records;
+- prove changed paths are limited to the DM-0 architecture and necessary delivery-context record;
 - prove no app code, migration, package manifest/lockfile or version file changed;
 - recheck canonical env existence;
-- commit and non-force push only this isolated candidate branch; do not merge to `main`.
+- commit and non-force push only this same isolated branch; do not merge to `main`.
 
 ## 18. Result
 
-The architecture is ready for Product Review, not for DM-1 implementation. The essential foundation decision is to keep the existing dossier/file infrastructure as a set of secure storage, download, validation, tag, context and audit patterns, while introducing a separate Document Studio semantic model for template versions, resolved source snapshots, immutable PDF artifacts, dossier links and deletion tombstones.
+Product Review is closed. DM-0 is approved and ready for the feasibility gate, not for DM-1 implementation. The essential foundation decision is to keep the existing dossier/file infrastructure as a set of secure storage, download, validation, tag, context and audit patterns, while introducing a separate Document Studio semantic model for template versions, resolved source snapshots, immutable PDF artifacts, dossier links and deletion tombstones.
 
 The main feasibility risk is not placeholder replacement; it is a secure, generic, typed temporal resolver for Salary Change and a private office-native renderer with malware/quarantine controls. Those risks and decisions are explicit above. No DM-1 work has started.
