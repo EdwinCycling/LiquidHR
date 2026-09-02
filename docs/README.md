@@ -1,10 +1,10 @@
 # Liquid HR documentatie-index
 
-## Liquid Analyse V2 Foundation discovery — 2026-09-01
+## Liquid Analyse V2 Foundation product review — 2026-09-02
 
-**Status: DRAFT — PRODUCT/ARCHITECTURE DISCOVERY**
+**Status: PRODUCT APPROVED — READY FOR V2A-1 IMPLEMENTATION DESIGN**
 
-De product- en architectuurdiscovery voor Liquid Analyse V2 staat in [`LIQUID_ANALYSE_V2_FOUNDATION.md`](requirements/reports/LIQUID_ANALYSE_V2_FOUNDATION.md). Er is geen V2-implementatie gestart.
+De product- en architectuurdiscovery voor Liquid Analyse V2 is gesloten in [`LIQUID_ANALYSE_V2_FOUNDATION.md`](requirements/reports/LIQUID_ANALYSE_V2_FOUNDATION.md). De richting is goedgekeurd, V2A-1 Snapshot Core is het volgende engineering target en er is geen V2-implementatie gestart.
 
 ## AN-6 Contextual Drill & Compare — 2026-09-01
 ## Security Wave B — SEC-006/SEC-010 — 2026-08-31
