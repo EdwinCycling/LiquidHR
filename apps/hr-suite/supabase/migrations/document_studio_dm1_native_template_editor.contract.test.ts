@@ -72,6 +72,19 @@ describe('Document Studio DM-1 migration candidate', () => {
     }
   })
 
+  it('parenthesizes the asset storage-key CASE expression at the IF boundary', async () => {
+    const sql = await readFile(migrationPath, 'utf8')
+    const assetServerBlock = sql.slice(sql.indexOf('create or replace function internal_security.create_document_studio_asset_server'))
+
+    expect(assetServerBlock).toContain(`|| (
+    case
+      when requested_mime = 'image/png' then 'png'
+      else 'jpg'
+    end
+  ) then`)
+    expect(assetServerBlock).not.toContain("|| case when requested_mime = 'image/png' then 'png' else 'jpg' end then")
+  })
+
   it('seeds Document Studio permissions only for the existing TENANT_ADMIN role code', async () => {
     const sql = await readFile(migrationPath, 'utf8')
     expect(sql).toContain("where role.code = 'TENANT_ADMIN'")

@@ -1942,7 +1942,12 @@ declare
 begin
   if auth.role() <> 'service_role' then raise exception 'DOCUMENT_ASSET_SERVER_ONLY' using errcode = '42501'; end if;
   if requested_actor_user_id is null then raise exception 'DOCUMENT_ASSET_ACTOR_REQUIRED' using errcode = '22023'; end if;
-  if requested_storage_key <> requested_tenant_id::text || '/' || requested_hr_group_id::text || '/' || requested_asset_id::text || '/normalized.' || case when requested_mime = 'image/png' then 'png' else 'jpg' end then
+  if requested_storage_key <> requested_tenant_id::text || '/' || requested_hr_group_id::text || '/' || requested_asset_id::text || '/normalized.' || (
+    case
+      when requested_mime = 'image/png' then 'png'
+      else 'jpg'
+    end
+  ) then
     raise exception 'DOCUMENT_ASSET_STORAGE_KEY_INVALID' using errcode = '22023';
   end if;
   insert into public.document_studio_assets (
