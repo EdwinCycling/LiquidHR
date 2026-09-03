@@ -432,7 +432,7 @@ export async function callDocumentStudioRpc(
   functionName: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
-  const rpc = client.rpc as unknown as (name: string, parameters: Record<string, unknown>) => Promise<DocumentStudioRpcResult>
+  const rpc = client.rpc.bind(client) as unknown as (name: string, parameters: Record<string, unknown>) => Promise<DocumentStudioRpcResult>
   return read<unknown>(rpc(functionName, args))
 }
 
