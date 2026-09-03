@@ -47,7 +47,14 @@ async function sha256Bytes(value: Uint8Array): Promise<string> {
 
 function requirePublicSecurityConfig(): { readonly pepper: string } {
   const pepper = process.env.RECRUITMENT_RATE_LIMIT_PEPPER
-  if (!pepper || pepper.length < 32) throw new RecruitmentError('RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE', 503)
+  if (!pepper || pepper.length < 32) {
+    console.warn(JSON.stringify({
+      event: 'SEC012_PUBLIC_SECURITY_BLOCKED',
+      phase: 'RATE_LIMIT_CONFIG',
+      reason: 'MISSING_OR_INVALID_PEPPER',
+    }))
+    throw new RecruitmentError('RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE', 503)
+  }
   if (!process.env.TURNSTILE_SECRET_KEY) throw new RecruitmentError('RECRUITMENT_BOT_CHALLENGE_UNAVAILABLE', 503)
   return { pepper }
 }
