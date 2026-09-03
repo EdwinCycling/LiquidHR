@@ -12,6 +12,33 @@ function migration(suffix: string): string {
 }
 
 describe('guided recruitment migration contract', () => {
+  it('legt de SEC-012 claim-ambiguityfix vast als uitsluitend forward function replacement', () => {
+    const sql = migration('fix_sec012_public_intake_claim_ambiguity')
+    expect((sql.match(/create\s+or\s+replace\s+function/g) ?? [])).toHaveLength(1)
+    expect(sql).toMatch(/create\s+or\s+replace\s+function\s+public\.recruitment_claim_public_intake\s*\(\s*requested_publication_id\s+uuid\s*,\s*requested_bucket_key_hash\s+text\s*,\s*requested_proof_hash\s+text\s*\)/)
+    expect(sql).toContain('security definer')
+    expect(sql).toContain("set search_path = ''")
+    expect(sql).toContain('declare v_window_started_at timestamptz')
+    expect(sql).toContain('declare v_issued_at timestamptz')
+    expect(sql).toContain('declare v_next_window_at timestamptz')
+    expect(sql).toContain('declare v_counter_id uuid')
+    expect(sql).toContain('declare v_proof_id uuid')
+    expect(sql).not.toMatch(/declare\s+(?:window_started_at|issued_at|next_window_at|counter_id|proof_id)\b/)
+    expect(sql).toContain("requested_bucket_key_hash !~ '^[a-f0-9]{64}$'")
+    expect(sql).toContain("requested_proof_hash !~ '^[a-f0-9]{64}$'")
+    expect(sql).toContain("row.status = 'open'")
+    expect(sql).toContain("module.module_code = 'recruitment'")
+    expect(sql).toContain("vacancy.status = 'active'")
+    expect(sql).toContain("date_bin(interval '15 minutes'")
+    expect(sql).toContain('v_next_window_at := v_window_started_at + interval \'15 minutes\'')
+    expect(sql).toContain('on conflict (publication_id, bucket_key_hash, window_started_at)')
+    expect(sql).toContain('request_count < 5')
+    expect(sql).toContain("v_issued_at + interval '10 minutes'")
+    expect(sql).toContain('recruitment_public_intake_limits')
+    expect(sql).toContain('recruitment_public_intake_proofs')
+    expect(sql).not.toMatch(/create\s+table|alter\s+table|drop\s+table|create\s+index|alter\s+index|drop\s+index|create\s+policy|alter\s+policy|drop\s+policy|enable\s+row\s+level\s+security|grant\s+|revoke\s+|insert\s+into\s+.*migration|update\s+.*migration|delete\s+from\s+.*migration/)
+  })
+
   it('legt de SEC-012 EXPAND-migratie vast zonder legacy submit-cutover', () => {
     const sql = migration('secure_public_recruitment_intake')
     expect(sql).toContain('create table public.recruitment_public_intake_proofs')
