@@ -58,6 +58,20 @@ describe('Document Studio DM-1 migration candidate', () => {
     expect(validationBlock).not.toContain('validation_diagnostics = requested_diagnostics')
   })
 
+  it('uses one recursive reference per JSON walker while traversing arrays and objects', async () => {
+    const sql = await readFile(migrationPath, 'utf8')
+    const walkers = [...sql.matchAll(/with recursive nodes\(value\) as \(([\s\S]*?)\n  \)/g)].map((match) => match[1])
+
+    expect(walkers).toHaveLength(2)
+    for (const walker of walkers) {
+      expect(walker.match(/\bfrom nodes\b/g)).toHaveLength(1)
+      expect(walker).toContain('from nodes n')
+      expect(walker).toContain('cross join lateral (')
+      expect(walker).toContain('from jsonb_array_elements(')
+      expect(walker).toContain('from jsonb_each(')
+    }
+  })
+
   it('seeds Document Studio permissions only for the existing TENANT_ADMIN role code', async () => {
     const sql = await readFile(migrationPath, 'utf8')
     expect(sql).toContain("where role.code = 'TENANT_ADMIN'")

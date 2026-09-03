@@ -704,16 +704,18 @@ as $$
     select requested_document
     union all
     select child.value
-    from nodes
-    cross join lateral jsonb_array_elements(
-      case when jsonb_typeof(nodes.value) = 'array' then nodes.value else '[]'::jsonb end
-    ) child(value)
-    union all
-    select child.value
-    from nodes
-    cross join lateral jsonb_each(
-      case when jsonb_typeof(nodes.value) = 'object' then nodes.value else '{}'::jsonb end
-    ) child(key, value)
+    from nodes n
+    cross join lateral (
+      select array_child.value
+      from jsonb_array_elements(
+        case when jsonb_typeof(n.value) = 'array' then n.value else '[]'::jsonb end
+      ) array_child(value)
+      union all
+      select object_child.value
+      from jsonb_each(
+        case when jsonb_typeof(n.value) = 'object' then n.value else '{}'::jsonb end
+      ) object_child(key, value)
+    ) child
   )
   select distinct value -> 'attrs' ->> 'assetRef'
   from nodes
@@ -1061,9 +1063,19 @@ begin
   with recursive nodes(value) as (
     select requested_document
     union all
-    select child.value from nodes cross join lateral jsonb_array_elements(case when jsonb_typeof(nodes.value) = 'array' then nodes.value else '[]'::jsonb end) child(value)
-    union all
-    select child.value from nodes cross join lateral jsonb_each(case when jsonb_typeof(nodes.value) = 'object' then nodes.value else '{}'::jsonb end) child(key, value)
+    select child.value
+    from nodes n
+    cross join lateral (
+      select array_child.value
+      from jsonb_array_elements(
+        case when jsonb_typeof(n.value) = 'array' then n.value else '[]'::jsonb end
+      ) array_child(value)
+      union all
+      select object_child.value
+      from jsonb_each(
+        case when jsonb_typeof(n.value) = 'object' then n.value else '{}'::jsonb end
+      ) object_child(key, value)
+    ) child
   )
   select count(*) filter (where value ? 'type'), coalesce(sum(char_length(value ->> 'text')) filter (where value ->> 'type' = 'text'), 0)
     into node_count, text_count
