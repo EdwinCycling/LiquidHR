@@ -23,7 +23,11 @@ function withoutHeader(headers: Record<string, string>, name: string): Record<st
 
 describe('trusted public client identity', () => {
   it('accepts a single documented x-forwarded-for IPv4 identity with provenance', () => {
-    expect(getTrustedClientIdentity(request(directHeaders('203.0.113.42')), {}, production)).toEqual({
+    expect(getTrustedClientIdentity(request({
+      ...directHeaders('203.0.113.42'),
+      forwarded: 'for=198.51.100.7',
+      'x-real-ip': '198.51.100.7',
+    }), {}, production)).toEqual({
       ok: true,
       kind: 'TRUSTED_VERCEL_CLIENT',
       identity: '203.0.113.42',
@@ -45,17 +49,19 @@ describe('trusted public client identity', () => {
     ['proxy chain', { ...directHeaders('203.0.113.42'), 'x-forwarded-for': '203.0.113.42, 198.51.100.7' }],
     ['whitespace list', { ...directHeaders('203.0.113.42'), 'x-forwarded-for': '203.0.113.42 198.51.100.7' }],
     ['invalid address', { ...directHeaders('not-an-ip') }],
-    ['mismatched real-ip cross-check', { ...directHeaders('203.0.113.42'), 'x-real-ip': '198.51.100.7' }],
     ['unsupported proxy header', { ...directHeaders('203.0.113.42'), 'cf-connecting-ip': '203.0.113.42' }],
+    ['unsupported proxy header', { ...directHeaders('203.0.113.42'), 'true-client-ip': '203.0.113.42' }],
+    ['unsupported proxy header', { ...directHeaders('203.0.113.42'), 'x-client-ip': '203.0.113.42' }],
   ])('fails closed for %s', (_label, headers) => {
     expect(getTrustedClientIdentity(request(headers), {}, production)).toMatchObject({ ok: false, kind: 'UNAVAILABLE' })
   })
 
-  it('does not let legacy or fallback headers replace x-forwarded-for', () => {
+  it('ignores forwarded and x-real-ip without allowing either to replace x-forwarded-for', () => {
     expect(getTrustedClientIdentity(request({
       ...directHeaders('203.0.113.42'),
+      forwarded: 'not-a-trusted-client-identity',
       'x-vercel-forwarded-for': '198.51.100.7',
-      'x-real-ip': '203.0.113.42',
+      'x-real-ip': '198.51.100.7',
     }), {}, production)).toEqual({
       ok: true,
       kind: 'TRUSTED_VERCEL_CLIENT',
@@ -64,6 +70,7 @@ describe('trusted public client identity', () => {
 
     expect(getTrustedClientIdentity(request({
       ...withoutHeader(directHeaders('203.0.113.42'), 'x-forwarded-for'),
+      forwarded: 'for=203.0.113.42',
       'x-real-ip': '203.0.113.42',
     }), {}, production)).toMatchObject({ ok: false, kind: 'UNAVAILABLE', reason: 'MISSING_CLIENT_IDENTITY' })
   })

@@ -25,22 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pub
     const mode = (value: unknown): 'HIDDEN' | 'OPTIONAL' | 'REQUIRED' => value === 'HIDDEN' || value === 'REQUIRED' ? value : 'OPTIONAL'
     if ((mode(config.phone) === 'REQUIRED' && !parsed.data.phone.trim()) || (mode(config.motivation) === 'REQUIRED' && !parsed.data.motivation.trim()) || (mode(config.cv) === 'REQUIRED' && !payload.file) || (mode(config.cv) === 'HIDDEN' && payload.file)) return NextResponse.json({ code: 'RECRUITMENT_PUBLIC_INPUT_INVALID' }, { status: 422 })
     const identity = getTrustedClientIdentity(request)
-    if (!identity.ok) {
-      console.warn(JSON.stringify({
-        event: 'SEC012_PUBLIC_SECURITY_BLOCKED',
-        phase: 'TRUSTED_CLIENT_IDENTITY',
-        reason: identity.reason,
-        has_x_vercel_id: request.headers.has('x-vercel-id'),
-        has_x_vercel_deployment_url: request.headers.has('x-vercel-deployment-url'),
-        has_x_forwarded_for: request.headers.has('x-forwarded-for'),
-        has_x_real_ip: request.headers.has('x-real-ip'),
-        has_forwarded: request.headers.has('forwarded'),
-        has_cf_connecting_ip: request.headers.has('cf-connecting-ip'),
-        has_true_client_ip: request.headers.has('true-client-ip'),
-        has_x_client_ip: request.headers.has('x-client-ip'),
-      }))
-      throw new RecruitmentError('RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE', 503)
-    }
+    if (!identity.ok) throw new RecruitmentError('RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE', 503)
     const claim = await createPublicIntakeProof({ publicationId: publicId, challengeToken: parsed.data.challengeToken, trustedClientIdentity: identity.identity })
     const scan = document ? await scanPublicDocument(document) : null
     const applicationId = await submitPublicRecruitmentApplication(publicId, payload.slug, parsed.data, claim.proof, claim.bucketKeyHash)

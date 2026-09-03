@@ -22,7 +22,7 @@ type RuntimeEnvironment = {
   readonly vercelEnvironment?: string
 }
 
-const UNSUPPORTED_PROXY_HEADERS = ['cf-connecting-ip', 'forwarded', 'true-client-ip', 'x-client-ip']
+const UNSUPPORTED_PROXY_HEADERS = ['cf-connecting-ip', 'true-client-ip', 'x-client-ip']
 
 function unavailable(reason: TrustedClientIdentityFailure): TrustedClientIdentityResult {
   return { ok: false, kind: 'UNAVAILABLE', reason }
@@ -64,11 +64,6 @@ export function getTrustedClientIdentity(
 
   const identity = normalizeAddress(request.headers.get('x-forwarded-for'))
   if (!identity) return unavailable(request.headers.has('x-forwarded-for') ? 'INVALID_CLIENT_IDENTITY' : 'MISSING_CLIENT_IDENTITY')
-
-  if (request.headers.has('x-real-ip')) {
-    const crossCheck = normalizeAddress(request.headers.get('x-real-ip'))
-    if (crossCheck === null || crossCheck !== identity) return unavailable('MISMATCHED_CROSS_CHECK')
-  }
 
   return { ok: true, kind: 'TRUSTED_VERCEL_CLIENT', identity }
 }
