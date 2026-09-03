@@ -31,7 +31,7 @@ function unavailable(reason: TrustedClientIdentityFailure): TrustedClientIdentit
 function normalizeAddress(value: string | null): string | null {
   if (value === null) return null
   const trimmed = value.trim()
-  if (!trimmed || trimmed.includes(',') || trimmed.includes(';') || /\s/.test(trimmed)) return null
+  if (!trimmed || value !== trimmed || trimmed.includes(',') || trimmed.includes(';') || /\s/.test(trimmed)) return null
   const candidate = trimmed.startsWith('[') && trimmed.endsWith(']') ? trimmed.slice(1, -1) : trimmed
   if (!candidate || candidate.includes('[') || candidate.includes(']')) return null
   return isIP(candidate) === 0 ? null : candidate.toLowerCase()
@@ -62,12 +62,11 @@ export function getTrustedClientIdentity(
   if (UNSUPPORTED_PROXY_HEADERS.some((name) => request.headers.has(name))) return unavailable('UNSUPPORTED_PROXY_HEADER')
   if (!hasSingleProvenanceValue(request.headers, 'x-vercel-id') || !hasSingleProvenanceValue(request.headers, 'x-vercel-deployment-url')) return unavailable('MISSING_PROVENANCE')
 
-  const identity = normalizeAddress(request.headers.get('x-vercel-forwarded-for'))
-  if (!identity) return unavailable(request.headers.has('x-vercel-forwarded-for') ? 'INVALID_CLIENT_IDENTITY' : 'MISSING_CLIENT_IDENTITY')
+  const identity = normalizeAddress(request.headers.get('x-forwarded-for'))
+  if (!identity) return unavailable(request.headers.has('x-forwarded-for') ? 'INVALID_CLIENT_IDENTITY' : 'MISSING_CLIENT_IDENTITY')
 
-  for (const headerName of ['x-forwarded-for', 'x-real-ip']) {
-    if (!request.headers.has(headerName)) continue
-    const crossCheck = normalizeAddress(request.headers.get(headerName))
+  if (request.headers.has('x-real-ip')) {
+    const crossCheck = normalizeAddress(request.headers.get('x-real-ip'))
     if (crossCheck === null || crossCheck !== identity) return unavailable('MISMATCHED_CROSS_CHECK')
   }
 
