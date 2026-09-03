@@ -1402,6 +1402,10 @@ begin
   if not internal_security.current_user_has_hr_group_permission(template_row.tenant_id, template_row.hr_group_id, 'document-template:write') then
     raise exception 'DOCUMENT_TEMPLATE_FORBIDDEN' using errcode = '42501';
   end if;
+  result := internal_security.document_studio_replay_idempotency(
+    template_row.tenant_id, template_row.hr_group_id, 'CREATE', requested_idempotency_key, requested_request_hash
+  );
+  if result is not null then return result; end if;
   if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED' using errcode = '55000'; end if;
   select * into active_row
   from public.document_studio_template_versions
