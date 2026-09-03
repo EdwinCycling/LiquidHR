@@ -12,6 +12,7 @@ import { canAddComposition, compositionItemsFromRows, compositionRowsForSave } f
 import type { DocumentStudioEditorData } from '@/lib/document-studio/service'
 import type { CompositionItem } from '@/lib/document-studio/schemas'
 import { StructuredEditor, type StructuredEditorLabels } from './structured-editor'
+import { unwrapDocumentStudioData } from './api-response'
 
 export interface TemplateWorkbenchLabels {
   readonly title: string
@@ -159,11 +160,12 @@ export function TemplateWorkbench({ data, labels }: { data: DocumentStudioEditor
     setPending(true); setNotice(null)
     try {
       const response = await fetch(path, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-      const result = await response.json() as Record<string, unknown>
+      const result = unwrapDocumentStudioData(await response.json())
       if (!response.ok) {
         if (response.status === 409) throw new Error(labels.conflict)
         throw new Error(labels.failed)
       }
+      if (!result) throw new Error(labels.failed)
       return result
     } catch (error) {
       setNotice(error instanceof Error ? error.message : labels.failed)
