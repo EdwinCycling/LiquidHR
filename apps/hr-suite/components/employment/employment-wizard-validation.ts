@@ -72,8 +72,8 @@ export function isEmploymentWizardStepValid(
     return Boolean(input.laborConditionSetId
       && (input.employmentType !== 'TEMPORARY_AGENCY' || input.flexPhaseId)
       && (input.durationType !== 'DEFINITE' || (input.endsOn && input.endsOn >= input.startsOn))
-      && (!input.probationApplies || (input.probationEndsOn && input.probationEndsOn >= input.startsOn
-        && !isBlockingProbationValidation(probationError))))
+      && (!input.probationApplies || (input.probationEndsOn && input.probationEndsOn >= input.startsOn))
+      && !isBlockingProbationValidation(probationError))
   }
   if (step === 'schedule') {
     const weeklyHours = parseDecimalInput(input.weeklyHours)
@@ -89,8 +89,9 @@ export function isEmploymentWizardStepValid(
     if (!input.salaryFrequencyId) return false
     if (input.salaryBasis === 'MINIMUM_WAGE') return Boolean(input.minimumWageScheme)
     if (input.salaryBasis === 'CUSTOM_SCALE') return Boolean(input.salaryScaleStepId)
-    if (input.salaryBasis === 'SALARY_BAND') return Boolean(input.salaryBandId) && Number(input.fulltimeAmount) > 0
-    return Boolean(input.fulltimeAmount)
+    const fulltimeAmount = parseDecimalInput(input.fulltimeAmount)
+    if (input.salaryBasis === 'SALARY_BAND') return Boolean(input.salaryBandId) && Number.isFinite(fulltimeAmount) && fulltimeAmount > 0
+    return Number.isFinite(fulltimeAmount) && fulltimeAmount > 0
   }
   return Boolean(input.jobGroupId && input.jobId && input.departmentId
     && input.allocations.every((allocation) => allocation.costCenterId && allocation.costCarrierId)

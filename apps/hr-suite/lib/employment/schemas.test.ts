@@ -173,12 +173,19 @@ describe('completeEmploymentCreateSchema', () => {
     }).success).toBe(false)
   })
 
-  it('laat een proeftijd buiten het tijdelijke contract als waarschuwing door', () => {
+  it('weigert een proeftijd buiten het tijdelijke contract als structurele fout', () => {
     expect(completeEmploymentCreateSchema.safeParse({
       ...valid,
       employment: { ...valid.employment, startsOn: '2026-08-01', seniorityDate: '2026-08-01' },
       contract: { ...valid.contract, durationType: 'DEFINITE', endsOn: '2026-09-01', probationApplies: true, probationEndsOn: '2026-09-02' },
-    }).success).toBe(true)
+    }).success).toBe(false)
+  })
+
+  it('weigert een proeftijd-einddatum wanneer proeftijd niet van toepassing is', () => {
+    expect(completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      contract: { ...valid.contract, probationApplies: false, probationEndsOn: '2026-09-01' },
+    }).success).toBe(false)
   })
 
   it('laat een niet-toegestane proeftijd als waarschuwing door', () => {

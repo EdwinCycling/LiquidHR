@@ -75,17 +75,20 @@ export function validateProbation(input: ProbationRuleInput & {
     return 'PROBATION_DATE_INVALID'
   }
 
+  if (input.endsOn && input.probationEndsOn > input.endsOn) {
+    return 'PROBATION_DATE_OUTSIDE_CONTRACT'
+  }
+
   const rule = getProbationRule(input)
   if (!rule.allowed) return 'PROBATION_NOT_ALLOWED'
   if (input.probationEndsOn > addContractPeriodEnd(input.startsOn, rule.maximumMonths)) {
     return 'PROBATION_MAXIMUM_EXCEEDED'
   }
-  if (input.endsOn && input.probationEndsOn > input.endsOn) {
-    return 'PROBATION_DATE_OUTSIDE_CONTRACT'
-  }
   return null
 }
 
-export function isBlockingProbationValidation(code: ProbationValidationCode | null): code is 'PROBATION_DATE_INVALID' {
+export function isBlockingProbationValidation(code: ProbationValidationCode | null): code is 'PROBATION_DATE_INVALID' | 'PROBATION_DATE_NOT_ALLOWED' | 'PROBATION_DATE_OUTSIDE_CONTRACT' {
   return code === 'PROBATION_DATE_INVALID'
+    || code === 'PROBATION_DATE_NOT_ALLOWED'
+    || code === 'PROBATION_DATE_OUTSIDE_CONTRACT'
 }

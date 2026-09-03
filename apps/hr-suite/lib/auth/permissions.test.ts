@@ -8,10 +8,12 @@ const { createClient, loadActiveContext } = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/context/server-context', () => ({ loadActiveContext }))
 
-import { AuthorizationError, requireAuthContext, requirePermission } from './permissions'
+import { AuthenticationError, AuthorizationError, requireAuthContext, requirePermission } from './permissions'
 
 interface FakeClientOptions {
   actor?: { id: string; tenant_id: string } | null
+  authenticatedUser?: { id: string } | null
+  authenticatedUserError?: Error | null
   accessRoleIds?: string[]
   assignmentRoleIds?: string[]
   roleCodes?: Record<string, string>
@@ -26,6 +28,10 @@ function createFakeClient(options: FakeClientOptions = {}) {
   return {
     auth: {
       getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'user-1' } }, error: null }),
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: options.authenticatedUser === undefined ? { id: 'user-1' } : options.authenticatedUser },
+        error: options.authenticatedUserError ?? null,
+      }),
     },
     rpc,
     from(table: string) {
@@ -169,6 +175,30 @@ describe('requirePermission', () => {
     )
 
     await expect(requirePermission('salary:read', 'employee-1')).rejects.toBeInstanceOf(AuthorizationError)
+  })
+
+  it('weigert een getUser-fout voordat de autorisatiecontext wordt opgebouwd', async () => {
+    const client = createFakeClient({ authenticatedUserError: new Error('sessiecontrole mislukt') })
+    createClient.mockResolvedValue(client)
+
+    await expect(requirePermission('department:read')).rejects.toBeInstanceOf(AuthenticationError)
+    expect(loadActiveContext).not.toHaveBeenCalled()
+  })
+
+  it('weigert een sessie zonder actuele gebruiker', async () => {
+    const client = createFakeClient({ authenticatedUser: null })
+    createClient.mockResolvedValue(client)
+
+    await expect(requirePermission('department:read')).rejects.toBeInstanceOf(AuthenticationError)
+    expect(loadActiveContext).not.toHaveBeenCalled()
+  })
+
+  it('weigert wanneer getUser en de autorisatieclaims een verschillende identiteit geven', async () => {
+    const client = createFakeClient({ authenticatedUser: { id: 'different-user' } })
+    createClient.mockResolvedValue(client)
+
+    await expect(requirePermission('department:read')).rejects.toBeInstanceOf(AuthenticationError)
+    expect(loadActiveContext).not.toHaveBeenCalled()
   })
 
   it('retourneert user-access- en afdelingsrollen gescheiden van permissions', async () => {

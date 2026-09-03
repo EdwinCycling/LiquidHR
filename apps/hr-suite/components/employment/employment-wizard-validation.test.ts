@@ -36,6 +36,13 @@ describe('employment wizard validation', () => {
     }
   })
 
+  it('keeps missing, invalid, and non-positive manual salary blocking', () => {
+    for (const fulltimeAmount of ['', 'not-a-number', '0', '-1']) {
+      expect(isEmploymentWizardStepValid('salary', { ...validInput, fulltimeAmount }, validOptions)).toBe(false)
+    }
+    expect(isEmploymentWizardStepValid('salary', { ...validInput, fulltimeAmount: '2000' }, validOptions)).toBe(true)
+  })
+
   it('requires an explicit worker type before continuing from employment details', () => {
     expect(isEmploymentWizardStepValid('employment', { ...validInput, employmentType: '' }, validOptions)).toBe(false)
   })
@@ -73,7 +80,7 @@ describe('employment wizard validation', () => {
     expect(isEmploymentWizardStepValid('schedule', minuteRoster, validOptions)).toBe(true)
   })
 
-  it('keeps probation outside the contract as a warning', () => {
+  it('blocks probation outside the contract as a structural error', () => {
     expect(isEmploymentWizardStepValid('contract', {
       ...validInput,
       durationType: 'DEFINITE',
@@ -81,7 +88,15 @@ describe('employment wizard validation', () => {
       endsOn: '2026-09-08',
       probationApplies: true,
       probationEndsOn: '2026-09-09',
-    }, validOptions)).toBe(true)
+    }, validOptions)).toBe(false)
+  })
+
+  it('blocks a probation end date when probation does not apply', () => {
+    expect(isEmploymentWizardStepValid('contract', {
+      ...validInput,
+      probationApplies: false,
+      probationEndsOn: '2026-09-01',
+    }, validOptions)).toBe(false)
   })
 
   it('keeps legal probation warnings non-blocking during review', () => {

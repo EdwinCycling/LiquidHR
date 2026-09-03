@@ -24,11 +24,16 @@ describe('probation rules', () => {
     expect(addContractPeriodEnd('2026-09-01', 12)).toBe('2027-08-31')
   })
 
-  it('returns explicit validation codes for prohibited and excessive probation', () => {
+  it('keeps legal probation warnings non-blocking while blocking structural errors', () => {
     expect(validateProbation({ durationType: 'DEFINITE', startsOn: '2026-01-01', endsOn: '2026-06-30', probationApplies: true, probationEndsOn: '2026-02-01' })).toBe('PROBATION_NOT_ALLOWED')
     expect(validateProbation({ durationType: 'DEFINITE', startsOn: '2026-01-01', endsOn: '2027-01-01', probationApplies: true, probationEndsOn: '2026-03-01' })).toBe('PROBATION_MAXIMUM_EXCEEDED')
+    expect(validateProbation({ durationType: 'DEFINITE', startsOn: '2026-01-01', endsOn: '2026-06-30', probationApplies: true, probationEndsOn: '2026-07-01' })).toBe('PROBATION_DATE_OUTSIDE_CONTRACT')
+    expect(validateProbation({ durationType: 'DEFINITE', startsOn: '2026-01-01', endsOn: '2026-12-31', probationApplies: false, probationEndsOn: '2026-02-01' })).toBe('PROBATION_DATE_NOT_ALLOWED')
+    expect(validateProbation({ durationType: 'DEFINITE', startsOn: '2026-01-01', endsOn: '2026-12-31', probationApplies: true, probationEndsOn: '2025-12-31' })).toBe('PROBATION_DATE_INVALID')
     expect(isBlockingProbationValidation('PROBATION_NOT_ALLOWED')).toBe(false)
     expect(isBlockingProbationValidation('PROBATION_MAXIMUM_EXCEEDED')).toBe(false)
     expect(isBlockingProbationValidation('PROBATION_DATE_INVALID')).toBe(true)
+    expect(isBlockingProbationValidation('PROBATION_DATE_NOT_ALLOWED')).toBe(true)
+    expect(isBlockingProbationValidation('PROBATION_DATE_OUTSIDE_CONTRACT')).toBe(true)
   })
 })
