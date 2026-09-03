@@ -27,6 +27,21 @@ export interface TemplateCreateLabels {
   readonly kinds: Readonly<Record<string, string>>
 }
 
+export interface CreatedTemplateResult {
+  readonly templateId: string
+  readonly draftId: string
+}
+
+export function parseCreatedTemplateResponse(value: unknown): CreatedTemplateResult | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const data = (value as { data?: unknown }).data
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return null
+  const templateId = (data as { templateId?: unknown }).templateId
+  const draftId = (data as { draftId?: unknown }).draftId
+  if (typeof templateId !== 'string' || typeof draftId !== 'string') return null
+  return { templateId, draftId }
+}
+
 export function TemplateCreateForm({ types, profiles, labels }: { types: readonly DocumentStudioTypeRow[]; profiles: readonly DocumentStudioProfileRow[]; labels: TemplateCreateLabels }) {
   const [kind, setKind] = useState<TemplateKind>('DOCUMENT')
   const [language, setLanguage] = useState<TemplateLanguage>('NL')
@@ -64,8 +79,8 @@ export function TemplateCreateForm({ types, profiles, labels }: { types: readonl
           assetRefs: [],
         }),
       })
-      const result = await response.json() as { templateId?: string; draftId?: string }
-      if (!response.ok || !result.templateId || !result.draftId) throw new Error(labels.failed)
+      const result = parseCreatedTemplateResponse(await response.json())
+      if (!response.ok || !result) throw new Error(labels.failed)
       router.push(`/document-studio/templates/${result.templateId}/edit?version=${result.draftId}`)
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : labels.failed)
