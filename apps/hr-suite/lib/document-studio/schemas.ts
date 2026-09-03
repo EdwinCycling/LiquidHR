@@ -70,14 +70,16 @@ export const assetUploadMetadataSchema = z.object({
   filename: z.string().trim().min(1).max(180),
 })
 
-export const documentTypeInputSchema = z.object({
+const documentTypeInputBaseSchema = z.object({
   code: z.string().regex(/^[a-z][a-z0-9_-]{0,79}$/),
   name: localizedTextSchema,
   description: z.object({ nl: z.string().max(4000), en: z.string().max(4000) }),
   retentionKind: z.enum(['PERMANENT', 'YEARS']),
   retentionYears: z.number().int().min(1).max(100).nullable(),
   isActive: z.boolean(),
-}).superRefine((value, context) => {
+})
+
+export const documentTypeInputSchema = documentTypeInputBaseSchema.superRefine((value, context) => {
   if (value.retentionKind === 'PERMANENT' && value.retentionYears !== null) context.addIssue({ code: 'custom', path: ['retentionYears'], message: 'PERMANENT_RETENTION_YEARS' })
   if (value.retentionKind === 'YEARS' && value.retentionYears === null) context.addIssue({ code: 'custom', path: ['retentionYears'], message: 'YEARS_RETENTION_REQUIRED' })
 })
@@ -89,6 +91,9 @@ export const documentProfileInputSchema = z.object({
   isDefault: z.boolean(),
   isActive: z.boolean(),
 })
+
+export const documentTypeUpdateSchema = documentTypeInputBaseSchema.partial()
+export const documentProfileUpdateSchema = documentProfileInputSchema.partial()
 
 export type TemplateMetadata = z.infer<typeof templateMetadataSchema>
 export type CreateTemplatePayload = z.infer<typeof createTemplatePayloadSchema>

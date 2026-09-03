@@ -1,4 +1,5 @@
 import { getRequestAuthorizationContext, requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { randomUUID } from 'node:crypto'
 import { sha256CanonicalJson } from './canonical-hash'
 import { AssetPolicyError, normalizeStructuralImage, type NormalizedStructuralImage } from './asset-policy'
@@ -19,8 +20,14 @@ import {
 } from './schemas'
 import {
   callDocumentStudioRpc,
+  createDocumentStudioAssetServer,
+  finalizeDocumentStudioAssetServer,
+  getDocumentStudioProfile,
   getDocumentStudioTemplate,
+  getDocumentStudioAssetInternal,
+  getDocumentStudioType,
   getDocumentStudioVersion,
+  getDocumentStudioVersionAssetIds,
   insertDocumentStudioProfile,
   insertDocumentStudioType,
   listDocumentStudioAssets,
@@ -28,16 +35,19 @@ import {
   listDocumentStudioTags,
   listDocumentStudioTemplateTagIds,
   listDocumentStudioCompositions,
+  listDocumentStudioCompositionOptions,
   listDocumentStudioProfiles,
   listDocumentStudioTemplates,
   listDocumentStudioVersions,
   listDocumentStudioTypes,
+  retireDocumentStudioAssetServer,
   type DocumentStudioAssetRow,
   type DocumentStudioAdministrationOption,
   updateDocumentStudioProfile,
   updateDocumentStudioTemplate,
   updateDocumentStudioType,
   type DocumentStudioCompositionRow,
+  type DocumentStudioCompositionOption,
   type DocumentStudioProfileRow,
   type SupabaseServerClient,
   type DocumentStudioTemplateRow,
@@ -45,7 +55,9 @@ import {
   type DocumentStudioTagRow,
   type DocumentStudioVersionRow,
 } from './repository'
-import { documentProfileInputSchema, documentTypeInputSchema, templateMetadataUpdateSchema } from './schemas'
+import { createNormalizedDocumentV1, type NormalizedDocumentV1 } from './normalized-document'
+import { mergeDocumentProfileEditableState, mergeDocumentTypeEditableState } from './state-preservation'
+import { documentProfileInputSchema, documentProfileUpdateSchema, documentTypeInputSchema, documentTypeUpdateSchema, templateMetadataUpdateSchema } from './schemas'
 
 export class DocumentStudioServiceError extends Error {
   constructor(
@@ -73,6 +85,8 @@ export interface DocumentStudioEditorData {
   readonly template: DocumentStudioTemplateDetail
   readonly version: DocumentStudioVersionRow
   readonly compositions: readonly DocumentStudioCompositionRow[]
+  readonly compositionOptions: readonly DocumentStudioCompositionOption[]
+  readonly assets: readonly DocumentStudioAssetRow[]
   readonly types: readonly DocumentStudioTypeRow[]
   readonly profiles: readonly DocumentStudioProfileRow[]
   readonly tags: readonly DocumentStudioTagRow[]
@@ -176,14 +190,16 @@ export async function getEditorData(versionId: string): Promise<DocumentStudioEd
   const template = await getDocumentStudioTemplate(client, auth.tenantId, hrGroupId, version.template_id)
   if (!template) return null
   const versions = await listDocumentStudioVersions(client, auth.tenantId, hrGroupId, template.id)
-  const [compositions, types, profiles, tags, tagIds] = await Promise.all([
+  const [compositions, compositionOptions, assets, types, profiles, tags, tagIds] = await Promise.all([
     listDocumentStudioCompositions(client, auth.tenantId, hrGroupId, version.id),
+    listDocumentStudioCompositionOptions(client, auth.tenantId, hrGroupId),
+    listDocumentStudioAssets(client, auth.tenantId, hrGroupId),
     listDocumentStudioTypes(client, auth.tenantId, hrGroupId),
     listDocumentStudioProfiles(client, auth.tenantId, hrGroupId),
     listDocumentStudioTags(client, auth.tenantId),
     listDocumentStudioTemplateTagIds(client, auth.tenantId, hrGroupId, template.id),
   ])
-  return { template: { ...mapTemplateSummary(template, versions), versions, compositions: {} }, version, compositions, types, profiles, tags, tagIds }
+  return { template: { ...mapTemplateSummary(template, versions), versions, compositions: {} }, version, compositions, compositionOptions, assets, types, profiles, tags, tagIds }
 }
 
 export async function createDraftFromActive(templateId: string): Promise<Record<string, unknown>> {
@@ -289,6 +305,7 @@ export async function validateDraft(value: unknown): Promise<{ readonly valid: b
   }
   const canonicalJson = normalized?.canonicalJson ?? JSON.stringify(version.document_json)
   const contentHash = sha256CanonicalJson(canonicalJson)
+  if (errors.length > 0 || !normalized) return { valid: false, errors, warnings: [], contentHash }
   const result = rpcRecord(await callDocumentStudioRpc(client, 'validate_document_studio_template_draft', {
     requested_draft_id: payload.draftVersionId,
     requested_expected_revision: payload.expectedRevision,
@@ -332,7 +349,7 @@ export async function discardDraft(versionId: string, value: unknown): Promise<R
   return { templateId: requiredString(result.templateId, 'DOCUMENT_STUDIO_RESPONSE_INVALID'), draftId: requiredString(result.draftId, 'DOCUMENT_STUDIO_RESPONSE_INVALID'), discarded: result.discarded === true }
 }
 
-export async function createStructuralAsset(file: File): Promise<{ readonly assetId: string; readonly storageKey: string; readonly asset: DocumentStudioAssetRow }> {
+export async function createStructuralAsset(file: File): Promise<{ readonly assetId: string; readonly asset: DocumentStudioAssetRow }> {
   const { client, auth, hrGroupId } = await authorize('document-asset:write')
   let normalized: NormalizedStructuralImage
   try {
@@ -343,28 +360,41 @@ export async function createStructuralAsset(file: File): Promise<{ readonly asse
   }
   const assetId = randomUUID()
   const storageKey = `${auth.tenantId}/${hrGroupId}/${assetId}/normalized.${normalized.normalizedMime === 'image/png' ? 'png' : 'jpg'}`
-  await callDocumentStudioRpc(client, 'create_document_studio_asset', {
-    requested_tenant_id: auth.tenantId,
-    requested_hr_group_id: hrGroupId,
-    requested_asset_id: assetId,
-    requested_filename: normalized.originalFilename,
-    requested_mime: normalized.normalizedMime,
-    requested_byte_size: normalized.byteSize,
-    requested_width: normalized.width,
-    requested_height: normalized.height,
-    requested_pixel_count: normalized.pixelCount,
-    requested_sha256: normalized.sha256,
-    requested_storage_key: storageKey,
-  })
-  const upload = await client.storage.from('document-studio-assets').upload(storageKey, Buffer.from(normalized.normalizedBytes), { contentType: normalized.normalizedMime, upsert: false })
-  if (upload.error) {
-    await callDocumentStudioRpc(client, 'retire_document_studio_asset', { requested_asset_id: assetId }).catch(() => undefined)
+  // Alleen deze smalle server-seam mag de door Sharp genormaliseerde bytes afronden;
+  // tenant en HR-groep komen uit de geauthentiseerde requestcontext, niet uit de browser.
+  const admin = createAdminClient()
+  let createdAssetId: string | null = null
+  try {
+    const created = await createDocumentStudioAssetServer(admin, {
+      requested_tenant_id: auth.tenantId,
+      requested_hr_group_id: hrGroupId,
+      requested_asset_id: assetId,
+      requested_filename: normalized.originalFilename,
+      requested_mime: normalized.normalizedMime,
+      requested_byte_size: normalized.byteSize,
+      requested_width: normalized.width,
+      requested_height: normalized.height,
+      requested_pixel_count: normalized.pixelCount,
+      requested_sha256: normalized.sha256,
+      requested_storage_key: storageKey,
+      requested_actor_user_id: auth.userId,
+    })
+    createdAssetId = created.assetId
+    const upload = await admin.storage.from('document-studio-assets').upload(storageKey, Buffer.from(normalized.normalizedBytes), { contentType: normalized.normalizedMime, upsert: false })
+    if (upload.error) throw new DocumentStudioServiceError('DOCUMENT_ASSET_STORAGE_FAILED', 502)
+    await finalizeDocumentStudioAssetServer(admin, created.assetId)
+  } catch (error) {
+    if (createdAssetId) {
+      await retireDocumentStudioAssetServer(admin, createdAssetId).catch(() => undefined)
+      await admin.storage.from('document-studio-assets').remove([storageKey]).catch(() => undefined)
+    }
+    if (error instanceof DocumentStudioServiceError) throw error
     throw new DocumentStudioServiceError('DOCUMENT_ASSET_STORAGE_FAILED', 502)
   }
   const assets = await listDocumentStudioAssets(client, auth.tenantId, hrGroupId)
-  const asset = assets.find((candidate) => candidate.id === assetId)
+  const asset = assets.find((candidate) => candidate.id === createdAssetId)
   if (!asset) throw new DocumentStudioServiceError('DOCUMENT_ASSET_NOT_FOUND', 502)
-  return { assetId, storageKey, asset }
+  return { assetId: asset.id, asset }
 }
 
 export async function retireAsset(assetId: string): Promise<Record<string, unknown>> {
@@ -375,6 +405,16 @@ export async function retireAsset(assetId: string): Promise<Record<string, unkno
 export async function listAssets(): Promise<readonly DocumentStudioAssetRow[]> {
   const { client, auth, hrGroupId } = await authorize('document-asset:read')
   return listDocumentStudioAssets(client, auth.tenantId, hrGroupId)
+}
+
+export async function getAssetPreview(assetId: string): Promise<{ readonly assetId: string; readonly previewUrl: string; readonly expiresIn: number }> {
+  const { client, auth, hrGroupId } = await authorize('document-asset:read')
+  const asset = await getDocumentStudioAssetInternal(client, auth.tenantId, hrGroupId, assetId)
+  if (!asset) throw new DocumentStudioServiceError('DOCUMENT_ASSET_NOT_FOUND', 404)
+  const expiresIn = 300
+  const signed = await client.storage.from('document-studio-assets').createSignedUrl(asset.storage_key, expiresIn)
+  if (signed.error || !signed.data?.signedUrl) throw new DocumentStudioServiceError('DOCUMENT_ASSET_PREVIEW_FAILED', 502)
+  return { assetId: asset.id, previewUrl: signed.data.signedUrl, expiresIn }
 }
 
 export async function listTypes(): Promise<readonly DocumentStudioTypeRow[]> {
@@ -409,7 +449,10 @@ export async function createDocumentType(value: unknown): Promise<DocumentStudio
 
 export async function updateDocumentType(id: string, value: unknown): Promise<DocumentStudioTypeRow> {
   const { client, auth, hrGroupId } = await authorize('document-type:write')
-  const input = parsePayload(documentTypeInputSchema, value)
+  const current = await getDocumentStudioType(client, auth.tenantId, hrGroupId, id)
+  if (!current) throw new DocumentStudioServiceError('DOCUMENT_TYPE_NOT_FOUND', 404)
+  const patch = parsePayload(documentTypeUpdateSchema, value)
+  const input = parsePayload(documentTypeInputSchema, mergeDocumentTypeEditableState(current, patch))
   return updateDocumentStudioType(client, id, auth.tenantId, hrGroupId, {
     code: input.code, name: input.name, description: input.description, retention_kind: input.retentionKind,
     retention_years: input.retentionYears, is_active: input.isActive, updated_by_user_id: auth.userId,
@@ -428,9 +471,54 @@ export async function createDocumentProfile(value: unknown): Promise<DocumentStu
 
 export async function updateDocumentProfile(id: string, value: unknown): Promise<DocumentStudioProfileRow> {
   const { client, auth, hrGroupId } = await authorize('document-profile:write')
-  const input = parsePayload(documentProfileInputSchema, value)
+  const current = await getDocumentStudioProfile(client, auth.tenantId, hrGroupId, id)
+  if (!current) throw new DocumentStudioServiceError('DOCUMENT_PROFILE_NOT_FOUND', 404)
+  const patch = parsePayload(documentProfileUpdateSchema, value)
+  const input = parsePayload(documentProfileInputSchema, mergeDocumentProfileEditableState(current, patch))
   return updateDocumentStudioProfile(client, id, auth.tenantId, hrGroupId, {
     name: input.name, source_administration_id: input.sourceAdministrationId, logo_asset_id: input.logoAssetId,
     is_default: input.isDefault, is_active: input.isActive, updated_by_user_id: auth.userId,
+  })
+}
+
+export async function getNormalizedDocumentV1(versionId: string): Promise<NormalizedDocumentV1 | null> {
+  const { client, auth, hrGroupId } = await authorize('document-template:read')
+  const version = await getDocumentStudioVersion(client, auth.tenantId, hrGroupId, versionId)
+  if (!version) return null
+  const template = await getDocumentStudioTemplate(client, auth.tenantId, hrGroupId, version.template_id)
+  if (!template || version.version_number === null) throw new DocumentStudioServiceError('DOCUMENT_TEMPLATE_VERSION_NOT_ACTIVE', 422)
+  let normalized: NormalizedCanonicalDocument
+  try {
+    normalized = normalizeCanonicalDocument(version.document_json)
+  } catch (error) {
+    if (error instanceof Error && 'issues' in error) {
+      const issues = (error as { readonly issues?: readonly DocumentValidationIssue[] }).issues ?? []
+      throw new DocumentStudioServiceError('DOCUMENT_SCHEMA_INVALID', 422, issues)
+    }
+    throw error
+  }
+  const compositions = await listDocumentStudioCompositions(client, auth.tenantId, hrGroupId, version.id)
+  const composition = await Promise.all(compositions.map(async (item) => {
+    const component = await getDocumentStudioVersion(client, auth.tenantId, hrGroupId, item.component_template_version_id)
+    const componentTemplate = component ? await getDocumentStudioTemplate(client, auth.tenantId, hrGroupId, component.template_id) : null
+    if (!component || !componentTemplate || component.version_number === null || (componentTemplate.kind !== 'COVER' && componentTemplate.kind !== 'APPENDIX')) throw new DocumentStudioServiceError('DOCUMENT_TEMPLATE_COMPOSITION_INVALID', 422)
+    return { kind: item.component_kind, templateId: component.template_id, versionId: component.id, version: component.version_number, sortOrder: item.sort_order }
+  }))
+  const assetIds = await getDocumentStudioVersionAssetIds(client, auth.tenantId, hrGroupId, version.id)
+  const assets = await Promise.all(assetIds.map((assetId) => getDocumentStudioAssetInternal(client, auth.tenantId, hrGroupId, assetId)))
+  if (assets.some((asset) => !asset)) throw new DocumentStudioServiceError('DOCUMENT_ASSET_NOT_FOUND', 422)
+  return createNormalizedDocumentV1({
+    templateId: template.id,
+    templateVersionId: version.id,
+    templateVersion: version.version_number,
+    document: normalized.document,
+    composition,
+    assets: assets.filter((asset): asset is NonNullable<typeof asset> => asset !== null).map((asset) => ({
+      assetRef: asset.id,
+      normalizedMime: asset.normalized_mime,
+      width: asset.width,
+      height: asset.height,
+      storageRef: asset.id,
+    })),
   })
 }

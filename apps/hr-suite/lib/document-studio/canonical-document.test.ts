@@ -42,6 +42,18 @@ describe('Document Studio canonical document', () => {
     expect(validateCanonicalDocument({ ...document, regions: { ...document.regions, body: { type: 'region', content: [{ type: 'paragraph', attrs: { align: 'LEFT' }, content: [malformed] }] } } }).valid).toBe(false)
   })
 
+  it('keeps the placeholder grammar and bounded table shape closed', () => {
+    const base = emptyCanonicalDocument('DOCUMENT')
+    const temporal = { type: 'temporalPlaceholder' as const, attrs: { field: 'employment.start_date', temporal: 'was' as const } }
+    const free = { type: 'freePlaceholder' as const, attrs: { key: 'LetterSubject' } }
+    const valid = { ...base, regions: { ...base.regions, body: { type: 'region' as const, content: [{ type: 'paragraph' as const, attrs: { align: 'JUSTIFY' as const }, content: [temporal, free] }] } } }
+    expect(validateCanonicalDocument(valid).valid).toBe(true)
+    const tooManyColumns = { ...base, regions: { ...base.regions, body: { type: 'region' as const, content: [{ type: 'table' as const, attrs: {}, content: [{ type: 'tableRow' as const, content: Array.from({ length: 9 }, () => ({ type: 'tableCell' as const, attrs: { align: 'LEFT' as const }, content: [{ type: 'paragraph' as const, attrs: { align: 'LEFT' as const }, content: [] }] })) }] }] } } }
+    expect(validateCanonicalDocument(tooManyColumns).valid).toBe(false)
+    const unsupportedMark = { ...base, regions: { ...base.regions, body: { type: 'region' as const, content: [{ type: 'paragraph' as const, attrs: { align: 'LEFT' as const }, content: [{ type: 'text' as const, text: 'x', marks: [{ type: 'strike' }] }] }] } } }
+    expect(validateCanonicalDocument(unsupportedMark).valid).toBe(false)
+  })
+
   it('normalizes deterministically and enforces text limits', () => {
     const base = emptyCanonicalDocument('DOCUMENT')
     const first = normalizeCanonicalDocument(base)

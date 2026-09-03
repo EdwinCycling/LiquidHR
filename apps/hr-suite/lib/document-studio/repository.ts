@@ -70,6 +70,14 @@ export interface DocumentStudioCompositionRow {
   readonly sort_order: number
 }
 
+export interface DocumentStudioCompositionOption {
+  readonly versionId: string
+  readonly templateId: string
+  readonly kind: 'COVER' | 'APPENDIX'
+  readonly version: number
+  readonly name: string
+}
+
 export interface DocumentStudioTypeRow {
   readonly id: string
   readonly tenant_id: string
@@ -115,9 +123,34 @@ export interface DocumentStudioAssetRow {
   readonly height: number
   readonly pixel_count: number
   readonly sha256: string
-  readonly storage_key: string
   readonly created_at: string
   readonly retired_at: string | null
+}
+
+export interface DocumentStudioAssetInternalRow extends DocumentStudioAssetRow {
+  readonly storage_key: string
+}
+
+export function mapDocumentStudioTemplateTagRows(rows: readonly { readonly tag_id: string }[]): string[] {
+  return rows.map((row) => row.tag_id)
+}
+
+export function toDocumentStudioAssetDto(row: DocumentStudioAssetInternalRow): DocumentStudioAssetRow {
+  return {
+    id: row.id,
+    tenant_id: row.tenant_id,
+    hr_group_id: row.hr_group_id,
+    status: row.status,
+    original_filename: row.original_filename,
+    normalized_mime: row.normalized_mime,
+    byte_size: row.byte_size,
+    width: row.width,
+    height: row.height,
+    pixel_count: row.pixel_count,
+    sha256: row.sha256,
+    created_at: row.created_at,
+    retired_at: row.retired_at,
+  }
 }
 
 function table(client: SupabaseServerClient, relation: string): DocumentStudioQuery {
@@ -215,6 +248,29 @@ export async function listDocumentStudioCompositions(
     .order('sort_order', { ascending: true }))
 }
 
+export async function listDocumentStudioCompositionOptions(
+  client: SupabaseServerClient,
+  tenantId: string,
+  hrGroupId: string,
+): Promise<DocumentStudioCompositionOption[]> {
+  const [templates, versions] = await Promise.all([
+    listDocumentStudioTemplates(client, tenantId, hrGroupId),
+    read<Array<{ id: string; template_id: string; status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'; version_number: number | null }>>(table(client, 'document_studio_template_versions')
+      .select('id,template_id,status,version_number')
+      .eq('tenant_id', tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .eq('status', 'ACTIVE')
+      .order('version_number', { ascending: false })
+      .limit(500)),
+  ])
+  const templateById = new Map(templates.map((template) => [template.id, template]))
+  return versions.flatMap((version) => {
+    const template = templateById.get(version.template_id)
+    if (!template || template.lifecycle !== 'ACTIVE' || (template.kind !== 'COVER' && template.kind !== 'APPENDIX') || version.version_number === null) return []
+    return [{ versionId: version.id, templateId: template.id, kind: template.kind, version: version.version_number, name: template.name }]
+  })
+}
+
 export async function listDocumentStudioTypes(
   client: SupabaseServerClient,
   tenantId: string,
@@ -229,6 +285,20 @@ export async function listDocumentStudioTypes(
     .limit(500))
 }
 
+export async function getDocumentStudioType(
+  client: SupabaseServerClient,
+  tenantId: string,
+  hrGroupId: string,
+  typeId: string,
+): Promise<DocumentStudioTypeRow | null> {
+  return read<DocumentStudioTypeRow | null>(table(client, 'document_studio_document_types')
+    .select('id,tenant_id,hr_group_id,code,name,description,retention_kind,retention_years,is_active')
+    .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('id', typeId)
+    .maybeSingle())
+}
+
 export async function listDocumentStudioProfiles(
   client: SupabaseServerClient,
   tenantId: string,
@@ -241,6 +311,20 @@ export async function listDocumentStudioProfiles(
     .order('is_default', { ascending: false })
     .order('name', { ascending: true })
     .limit(500))
+}
+
+export async function getDocumentStudioProfile(
+  client: SupabaseServerClient,
+  tenantId: string,
+  hrGroupId: string,
+  profileId: string,
+): Promise<DocumentStudioProfileRow | null> {
+  return read<DocumentStudioProfileRow | null>(table(client, 'document_studio_document_profiles')
+    .select('id,tenant_id,hr_group_id,name,source_administration_id,logo_asset_id,is_default,is_active')
+    .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('id', profileId)
+    .maybeSingle())
 }
 
 export async function listDocumentStudioAdministrationOptions(
@@ -264,13 +348,44 @@ export async function listDocumentStudioAssets(
   tenantId: string,
   hrGroupId: string,
 ): Promise<DocumentStudioAssetRow[]> {
-  return read<DocumentStudioAssetRow[]>(table(client, 'document_studio_assets')
+  const rows = await read<DocumentStudioAssetInternalRow[]>(table(client, 'document_studio_assets')
     .select('id,tenant_id,hr_group_id,status,original_filename,normalized_mime,byte_size,width,height,pixel_count,sha256,storage_key,created_at,retired_at')
     .eq('tenant_id', tenantId)
     .eq('hr_group_id', hrGroupId)
     .eq('status', 'APPROVED')
     .order('created_at', { ascending: false })
     .limit(500))
+  return rows.map(toDocumentStudioAssetDto)
+}
+
+export async function getDocumentStudioAssetInternal(
+  client: SupabaseServerClient,
+  tenantId: string,
+  hrGroupId: string,
+  assetId: string,
+): Promise<DocumentStudioAssetInternalRow | null> {
+  return read<DocumentStudioAssetInternalRow | null>(table(client, 'document_studio_assets')
+    .select('id,tenant_id,hr_group_id,status,original_filename,normalized_mime,byte_size,width,height,pixel_count,sha256,storage_key,created_at,retired_at')
+    .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('id', assetId)
+    .eq('status', 'APPROVED')
+    .maybeSingle())
+}
+
+export async function getDocumentStudioVersionAssetIds(
+  client: SupabaseServerClient,
+  tenantId: string,
+  hrGroupId: string,
+  versionId: string,
+): Promise<string[]> {
+  const rows = await read<Array<{ asset_id: string }>>(table(client, 'document_studio_template_version_assets')
+    .select('asset_id')
+    .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .eq('template_version_id', versionId)
+    .limit(200))
+  return rows.map((row) => row.asset_id)
 }
 
 export async function listDocumentStudioTags(client: SupabaseServerClient, tenantId: string): Promise<DocumentStudioTagRow[]> {
@@ -285,7 +400,31 @@ export async function listDocumentStudioTemplateTagIds(
   hrGroupId: string,
   templateId: string,
 ): Promise<string[]> {
-  return read<string[]>(table(client, 'document_studio_template_tags').select('tag_id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('template_id', templateId).limit(50))
+  const rows = await read<Array<{ tag_id: string }>>(table(client, 'document_studio_template_tags').select('tag_id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('template_id', templateId).limit(50))
+  return mapDocumentStudioTemplateTagRows(rows)
+}
+
+export async function createDocumentStudioAssetServer(
+  client: SupabaseServerClient,
+  values: Record<string, unknown>,
+): Promise<{ readonly assetId: string }> {
+  const result = await callDocumentStudioRpc(client, 'create_document_studio_asset_server', values)
+  if (typeof result !== 'object' || result === null || Array.isArray(result) || typeof (result as { assetId?: unknown }).assetId !== 'string') throw new Error('DOCUMENT_STUDIO_RESPONSE_INVALID')
+  return { assetId: (result as { assetId: string }).assetId }
+}
+
+export async function finalizeDocumentStudioAssetServer(
+  client: SupabaseServerClient,
+  assetId: string,
+): Promise<void> {
+  await callDocumentStudioRpc(client, 'finalize_document_studio_asset_server', { requested_asset_id: assetId })
+}
+
+export async function retireDocumentStudioAssetServer(
+  client: SupabaseServerClient,
+  assetId: string,
+): Promise<void> {
+  await callDocumentStudioRpc(client, 'retire_document_studio_asset_server', { requested_asset_id: assetId })
 }
 
 export async function callDocumentStudioRpc(
