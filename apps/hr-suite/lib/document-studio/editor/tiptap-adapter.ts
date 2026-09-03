@@ -8,6 +8,8 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { Plugin } from '@tiptap/pm/state'
 import {
   emptyCanonicalDocument,
+  MAX_TABLE_COLUMNS,
+  MAX_TABLE_ROWS,
   parseCanonicalDocument,
   type CanonicalBlock,
   type CanonicalDocument,
@@ -220,6 +222,8 @@ export const TwoColumnBlockNode = Node.create({
   },
 })
 
+export type EditableDocumentRegion = 'cover' | 'header' | 'body' | 'appendix' | 'footer'
+
 function markToTiptap(mark: CanonicalMark): JSONContent {
   return mark.type === 'fontSize' ? { type: 'fontSize', attrs: { size: mark.attrs?.size ?? 12 } } : { type: mark.type }
 }
@@ -273,12 +277,12 @@ function blockToTiptap(node: CanonicalBlock): JSONContent {
   }
 }
 
-export function canonicalToEditorJson(document: CanonicalDocument): JSONContent {
-  const region = document.kind === 'DOCUMENT'
-    ? document.regions.body
-    : document.kind === 'COVER'
-      ? document.regions.cover
-      : document.regions.appendix
+function defaultEditableRegion(document: CanonicalDocument): EditableDocumentRegion {
+  return document.kind === 'DOCUMENT' ? 'body' : document.kind === 'COVER' ? 'cover' : 'appendix'
+}
+
+export function canonicalToEditorJson(document: CanonicalDocument, requestedRegion?: EditableDocumentRegion): JSONContent {
+  const region = document.regions[requestedRegion ?? defaultEditableRegion(document)]
   return { type: 'doc', content: region?.content.map(blockToTiptap) ?? [] }
 }
 
@@ -353,28 +357,39 @@ function blockFromTiptap(node: JSONContent): Record<string, unknown> {
   throw new Error('DOCUMENT_BLOCK_NODE_UNSUPPORTED')
 }
 
-export function editorJsonToCanonical(editorJson: JSONContent, base: CanonicalDocument): CanonicalDocument {
-  return parseCanonicalDocument({
-    ...base,
-    regions: {
-      ...base.regions,
-      cover: base.kind === 'COVER' ? { type: 'region', content: contentOf(editorJson).map(blockFromTiptap) } : null,
-      body: base.kind === 'DOCUMENT' ? { type: 'region', content: contentOf(editorJson).map(blockFromTiptap) } : null,
-      appendix: base.kind === 'APPENDIX' ? { type: 'region', content: contentOf(editorJson).map(blockFromTiptap) } : null,
-    },
-  })
+export function editorJsonToCanonical(editorJson: JSONContent, base: CanonicalDocument, requestedRegion?: EditableDocumentRegion): CanonicalDocument {
+  const region = requestedRegion ?? defaultEditableRegion(base)
+  try {
+    return parseCanonicalDocument({
+      ...base,
+      regions: { ...base.regions, [region]: { type: 'region', content: contentOf(editorJson).map(blockFromTiptap) } },
+    })
+  } catch {
+    return base
+  }
 }
 
 export function sanitizePastedHtml(html: string): string {
-  if (typeof DOMParser === 'undefined') return html.replace(/<[^>]*>/g, '')
+  if (typeof DOMParser === 'undefined') return html
+    .replace(/<(?:script|style|iframe|object|embed|svg|img|video|audio|link|meta)\b[^>]*>[\s\S]*?<\/(?:script|style|iframe|object|embed|svg|img|video|audio|link|meta)>/gi, '')
+    .replace(/<[^>]*>/g, '')
   const document = new DOMParser().parseFromString(html, 'text/html')
   document.querySelectorAll('script,style,iframe,object,embed,svg,img,video,audio,link,meta').forEach((element) => element.remove())
+  const supportedTags = new Set(['p', 'h1', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'hr', 'table', 'thead', 'tbody', 'tr', 'td', 'th'])
   document.querySelectorAll('*').forEach((element) => {
     const tag = element.tagName.toLowerCase()
-    for (const attribute of [...element.attributes]) {
-      if (attribute.name.toLowerCase() !== 'align' || !['td', 'th'].includes(tag)) element.removeAttribute(attribute.name)
+    if (element === document.body || tag === 'html') return
+    if (tag === 'br') {
+      element.replaceWith(document.createTextNode(' '))
+      return
     }
-    if (tag === 'a') element.replaceWith(...element.childNodes)
+    if (!supportedTags.has(tag)) {
+      element.replaceWith(...Array.from(element.childNodes))
+      return
+    }
+    for (const attribute of [...element.attributes]) {
+      if (attribute.name.toLowerCase() !== 'align' || !['td', 'th'].includes(tag) || !['LEFT', 'CENTER', 'RIGHT', 'JUSTIFY'].includes(attribute.value.toUpperCase())) element.removeAttribute(attribute.name)
+    }
   })
   return document.body.innerHTML
 }
@@ -397,8 +412,34 @@ export const StrictPasteSanitizer = Extension.create({
   },
 })
 
+export const BoundedDocumentStructure = Extension.create({
+  name: 'liquidHrBoundedDocumentStructure',
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      filterTransaction: (transaction) => {
+        let invalid = false
+        transaction.doc.descendants((node) => {
+          if (node.type.name !== 'table') return !invalid
+          const columns = node.firstChild?.childCount ?? 0
+          if (columns < 1 || columns > MAX_TABLE_COLUMNS || node.childCount < 1 || node.childCount > MAX_TABLE_ROWS) invalid = true
+          return !invalid
+        })
+        return !invalid
+      },
+    })]
+  },
+})
+
 export const documentEditorExtensions = [
-  StarterKit.configure({ heading: false, paragraph: false }),
+  StarterKit.configure({
+    heading: false,
+    paragraph: false,
+    blockquote: false,
+    codeBlock: false,
+    code: false,
+    strike: false,
+    hardBreak: false,
+  }),
   ParagraphNode,
   HeadingNode,
   Underline,
@@ -415,6 +456,7 @@ export const documentEditorExtensions = [
   ColumnNode,
   TwoColumnBlockNode,
   StrictPasteSanitizer,
+  BoundedDocumentStructure,
 ]
 
 export function editorDocumentForKind(kind: TemplateKind): CanonicalDocument {

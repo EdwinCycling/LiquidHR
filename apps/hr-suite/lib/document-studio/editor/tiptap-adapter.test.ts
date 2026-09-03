@@ -20,4 +20,13 @@ describe('Document Studio Tiptap adapter', () => {
     expect(sanitized).not.toContain('<img')
     expect(sanitized).not.toContain('evil.invalid')
   })
+
+  it('flattens unsupported paste markup and keeps the editor boundary safe', () => {
+    const sanitized = sanitizePastedHtml('<blockquote><pre><code><a href="https://evil.invalid">Text</a></code></pre></blockquote><s>old</s><svg><text>bad</text></svg>')
+    expect(sanitized).toContain('Text')
+    expect(sanitized).toContain('old')
+    expect(sanitized).not.toMatch(/blockquote|pre|code|a |<s|svg|evil\.invalid/i)
+    const base = emptyCanonicalDocument('DOCUMENT')
+    expect(() => editorJsonToCanonical({ type: 'doc', content: [{ type: 'blockquote', content: [{ type: 'paragraph', attrs: { align: 'LEFT' }, content: [] }] }] }, base)).not.toThrow()
+  })
 })

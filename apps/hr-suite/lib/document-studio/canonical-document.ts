@@ -207,6 +207,8 @@ const MAX_TEXT_CODE_POINTS = 250_000
 const MAX_NODES = 10_000
 const MAX_TEXT_NODE = 10_000
 const MAX_DEPTH = 32
+export const MAX_TABLE_COLUMNS = 8
+export const MAX_TABLE_ROWS = 200
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -387,8 +389,8 @@ function parseTable(value: Record<string, unknown>, path: readonly DocumentPathP
     }
   })
   const columns = rows[0]?.content.length ?? 0
-  if (columns < 1 || columns > 8) throw issue('DOCUMENT_TABLE_COLUMN_LIMIT', [...path, 'content'])
-  if (rows.length < 1 || rows.length > 200) throw issue('DOCUMENT_TABLE_ROW_LIMIT', [...path, 'content'])
+  if (columns < 1 || columns > MAX_TABLE_COLUMNS) throw issue('DOCUMENT_TABLE_COLUMN_LIMIT', [...path, 'content'])
+  if (rows.length < 1 || rows.length > MAX_TABLE_ROWS) throw issue('DOCUMENT_TABLE_ROW_LIMIT', [...path, 'content'])
   if (rows.some((row) => row.content.length !== columns)) throw issue('DOCUMENT_TABLE_RECTANGULAR_INVALID', [...path, 'content'])
   if (columnWidths && columnWidths.length !== columns) throw issue('DOCUMENT_TABLE_WIDTH_COUNT_INVALID', [...path, 'attrs', 'columnWidths'])
   return { type: 'table', attrs: columnWidths ? { columnWidths } : {}, content: rows }
