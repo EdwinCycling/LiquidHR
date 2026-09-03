@@ -63,11 +63,11 @@ export async function normalizeStructuralImage(
     limitInputPixels: MAX_PIXELS,
     sequentialRead: true,
   }).rotate()
-  const metadata = await image.metadata()
-  const width = metadata.width ?? 0
-  const height = metadata.height ?? 0
-  const pixelCount = width * height
-  if (!width || !height || width > MAX_EDGE || height > MAX_EDGE || pixelCount > MAX_PIXELS) {
+  const inputMetadata = await image.metadata()
+  const inputWidth = inputMetadata.width ?? 0
+  const inputHeight = inputMetadata.height ?? 0
+  const inputPixelCount = inputWidth * inputHeight
+  if (!inputWidth || !inputHeight || inputWidth > MAX_EDGE || inputHeight > MAX_EDGE || inputPixelCount > MAX_PIXELS) {
     throw new AssetPolicyError('DOCUMENT_ASSET_DIMENSIONS_INVALID')
   }
 
@@ -75,6 +75,13 @@ export async function normalizeStructuralImage(
     ? await image.png({ compressionLevel: 9, force: true }).toBuffer()
     : await image.jpeg({ quality: 90, force: true }).toBuffer()
   if (output.byteLength < 1 || output.byteLength > MAX_OUTPUT_BYTES) throw new AssetPolicyError('DOCUMENT_ASSET_OUTPUT_TOO_LARGE')
+  const outputMetadata = await sharp(output, { failOn: 'error', limitInputPixels: MAX_PIXELS }).metadata()
+  const width = outputMetadata.width ?? 0
+  const height = outputMetadata.height ?? 0
+  const pixelCount = width * height
+  if (!width || !height || width > MAX_EDGE || height > MAX_EDGE || pixelCount > MAX_PIXELS) {
+    throw new AssetPolicyError('DOCUMENT_ASSET_DIMENSIONS_INVALID')
+  }
 
   return {
     normalizedBytes: new Uint8Array(output),

@@ -326,6 +326,15 @@ security definer
 set search_path = pg_catalog
 as $$
 begin
+  if tg_op = 'UPDATE' and (
+    old.id is distinct from new.id
+    or old.tenant_id is distinct from new.tenant_id
+    or old.hr_group_id is distinct from new.hr_group_id
+    or old.created_by_user_id is distinct from new.created_by_user_id
+    or old.created_at is distinct from new.created_at
+  ) then
+    raise exception 'DOCUMENT_STUDIO_CONFIG_IDENTITY_IMMUTABLE' using errcode = '55000';
+  end if;
   if new.logo_asset_id is not null and not exists (
     select 1
     from public.document_studio_assets asset
@@ -339,6 +348,30 @@ begin
   return new;
 end;
 $$;
+
+create or replace function internal_security.document_studio_guard_document_type()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+begin
+  if tg_op = 'UPDATE' and (
+    old.id is distinct from new.id
+    or old.tenant_id is distinct from new.tenant_id
+    or old.hr_group_id is distinct from new.hr_group_id
+    or old.created_by_user_id is distinct from new.created_by_user_id
+    or old.created_at is distinct from new.created_at
+  ) then
+    raise exception 'DOCUMENT_STUDIO_CONFIG_IDENTITY_IMMUTABLE' using errcode = '55000';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger document_studio_guard_document_type_trigger
+before update on public.document_studio_document_types
+for each row execute function internal_security.document_studio_guard_document_type();
 
 create trigger document_studio_guard_profile_trigger
 before insert or update on public.document_studio_document_profiles
@@ -359,12 +392,27 @@ declare
 begin
   if tg_op = 'UPDATE' and old.status <> 'DRAFT' then
     if not (old.status = 'ACTIVE' and new.status = 'ARCHIVED'
+      and old.id = new.id
+      and old.tenant_id = new.tenant_id
+      and old.hr_group_id = new.hr_group_id
+      and old.template_id = new.template_id
+      and old.version_number = new.version_number
+      and old.revision = new.revision
+      and old.schema_id = new.schema_id
+      and old.schema_version = new.schema_version
       and old.document_json = new.document_json
       and old.content_hash = new.content_hash
+      and old.validation_state = new.validation_state
+      and old.validation_diagnostics = new.validation_diagnostics
       and old.document_type_id = new.document_type_id
       and old.category_code = new.category_code
       and old.default_dossier = new.default_dossier
       and old.document_profile_id is not distinct from new.document_profile_id
+      and old.created_by_user_id = new.created_by_user_id
+      and old.created_at = new.created_at
+      and old.activated_by_user_id is not distinct from new.activated_by_user_id
+      and old.activated_at is not distinct from new.activated_at
+      and old.updated_by_user_id = new.updated_by_user_id
       and new.archived_at is not null
       and new.archived_by_user_id is not null) then
       raise exception 'DOCUMENT_TEMPLATE_VERSION_IMMUTABLE' using errcode = '55000';
@@ -473,6 +521,77 @@ begin
     requested_tenant_id, requested_hr_group_id, actor_id, requested_operation, requested_key, requested_hash, requested_result
   );
   return jsonb_build_object('existing', false, 'result', requested_result);
+end;
+$$;
+
+create or replace function internal_security.document_studio_replay_idempotency(
+  requested_tenant_id uuid,
+  requested_hr_group_id uuid,
+  requested_operation text,
+  requested_key uuid,
+  requested_hash text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+declare
+  actor_id uuid := auth.uid();
+  previous_request_hash text;
+  previous_result jsonb;
+begin
+  if actor_id is null then
+    raise exception 'DOCUMENT_STUDIO_AUTHENTICATION_REQUIRED' using errcode = '28000';
+  end if;
+  select request_hash, result
+    into previous_request_hash, previous_result
+  from public.document_studio_operation_idempotency
+  where tenant_id = requested_tenant_id
+    and hr_group_id = requested_hr_group_id
+    and actor_user_id = actor_id
+    and operation = requested_operation
+    and idempotency_key = requested_key
+  for update;
+  if not found then return null; end if;
+  if previous_request_hash <> requested_hash then
+    raise exception 'DOCUMENT_STUDIO_IDEMPOTENCY_REUSE' using errcode = '40001';
+  end if;
+  return previous_result;
+end;
+$$;
+
+create or replace function internal_security.document_studio_replay_discard_idempotency(
+  requested_draft_id uuid,
+  requested_key uuid,
+  requested_hash text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+declare
+  actor_id uuid := auth.uid();
+  previous_request_hash text;
+  previous_result jsonb;
+begin
+  if actor_id is null then
+    raise exception 'DOCUMENT_STUDIO_AUTHENTICATION_REQUIRED' using errcode = '28000';
+  end if;
+  select request_hash, result
+    into previous_request_hash, previous_result
+  from public.document_studio_operation_idempotency
+  where actor_user_id = actor_id
+    and operation = 'DISCARD'
+    and idempotency_key = requested_key
+    and result ->> 'draftId' = requested_draft_id::text
+  for update;
+  if not found then return null; end if;
+  if previous_request_hash <> requested_hash then
+    raise exception 'DOCUMENT_STUDIO_IDEMPOTENCY_REUSE' using errcode = '40001';
+  end if;
+  return previous_result;
 end;
 $$;
 
@@ -1158,7 +1277,7 @@ begin
   where id = requested_draft_id
   for update;
 
-  if not found or draft_row.status <> 'DRAFT' then
+  if not found then
     raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002';
   end if;
   select * into template_row
@@ -1166,10 +1285,17 @@ begin
   where tenant_id = draft_row.tenant_id and hr_group_id = draft_row.hr_group_id and id = draft_row.template_id
   for update;
   if not found then raise exception 'DOCUMENT_TEMPLATE_NOT_FOUND' using errcode = 'P0002'; end if;
-  if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED' using errcode = '55000'; end if;
   if not internal_security.current_user_has_hr_group_permission(draft_row.tenant_id, draft_row.hr_group_id, 'document-template:write') then
     raise exception 'DOCUMENT_TEMPLATE_FORBIDDEN' using errcode = '42501';
   end if;
+  result := internal_security.document_studio_replay_idempotency(
+    draft_row.tenant_id, draft_row.hr_group_id, 'SAVE', requested_idempotency_key, requested_request_hash
+  );
+  if result is not null then return result; end if;
+  if draft_row.status <> 'DRAFT' then
+    raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002';
+  end if;
+  if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED' using errcode = '55000'; end if;
   if draft_row.revision <> requested_expected_revision then
     raise exception 'DOCUMENT_TEMPLATE_DRAFT_CONFLICT' using errcode = '40001';
   end if;
@@ -1352,7 +1478,7 @@ begin
   from public.document_studio_template_versions
   where id = requested_draft_id
   for update;
-  if not found or draft_row.status <> 'DRAFT' then
+  if not found then
     raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002';
   end if;
   if not internal_security.current_user_has_hr_group_permission(draft_row.tenant_id, draft_row.hr_group_id, 'document-template:write') then
@@ -1423,7 +1549,7 @@ begin
   from public.document_studio_template_versions
   where id = requested_draft_id
   for update;
-  if not found or draft_row.status <> 'DRAFT' then
+  if not found then
     raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002';
   end if;
   select * into template_row
@@ -1431,10 +1557,17 @@ begin
   where tenant_id = draft_row.tenant_id and hr_group_id = draft_row.hr_group_id and id = draft_row.template_id
   for update;
   if not found then raise exception 'DOCUMENT_TEMPLATE_NOT_FOUND' using errcode = 'P0002'; end if;
-  if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED' using errcode = '55000'; end if;
   if not internal_security.current_user_has_hr_group_permission(draft_row.tenant_id, draft_row.hr_group_id, 'document-template:activate') then
     raise exception 'DOCUMENT_TEMPLATE_FORBIDDEN' using errcode = '42501';
   end if;
+  result := internal_security.document_studio_replay_idempotency(
+    draft_row.tenant_id, draft_row.hr_group_id, 'ACTIVATE', requested_idempotency_key, requested_request_hash
+  );
+  if result is not null then return result; end if;
+  if draft_row.status <> 'DRAFT' then
+    raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002';
+  end if;
+  if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED' using errcode = '55000'; end if;
   if draft_row.revision <> requested_expected_revision then
     raise exception 'DOCUMENT_TEMPLATE_DRAFT_CONFLICT' using errcode = '40001';
   end if;
@@ -1652,10 +1785,14 @@ begin
   if actor_id is null then raise exception 'DOCUMENT_STUDIO_AUTHENTICATION_REQUIRED' using errcode = '28000'; end if;
   select * into template_row from public.document_studio_templates where id = requested_template_id for update;
   if not found then raise exception 'DOCUMENT_TEMPLATE_NOT_FOUND' using errcode = 'P0002'; end if;
-  if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED_TERMINAL' using errcode = '55000'; end if;
   if not internal_security.current_user_has_hr_group_permission(template_row.tenant_id, template_row.hr_group_id, 'document-template:archive') then
     raise exception 'DOCUMENT_TEMPLATE_FORBIDDEN' using errcode = '42501';
   end if;
+  result := internal_security.document_studio_replay_idempotency(
+    template_row.tenant_id, template_row.hr_group_id, 'ARCHIVE', requested_idempotency_key, requested_request_hash
+  );
+  if result is not null then return result; end if;
+  if template_row.lifecycle = 'ARCHIVED' then raise exception 'DOCUMENT_TEMPLATE_ARCHIVED_TERMINAL' using errcode = '55000'; end if;
   if exists (select 1 from public.document_studio_template_versions where template_id = template_row.id and status = 'DRAFT') then
     raise exception 'DOCUMENT_TEMPLATE_DRAFT_EXISTS' using errcode = '23514';
   end if;
@@ -1727,11 +1864,21 @@ declare
   draft_row public.document_studio_template_versions%rowtype;
   result jsonb;
 begin
+  if actor_id is null then raise exception 'DOCUMENT_STUDIO_AUTHENTICATION_REQUIRED' using errcode = '28000'; end if;
   select * into draft_row from public.document_studio_template_versions where id = requested_draft_id for update;
-  if not found or draft_row.status <> 'DRAFT' then raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002'; end if;
+  if not found then
+    result := internal_security.document_studio_replay_discard_idempotency(requested_draft_id, requested_idempotency_key, requested_request_hash);
+    if result is not null then return result; end if;
+    raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002';
+  end if;
   if not internal_security.current_user_has_hr_group_permission(draft_row.tenant_id, draft_row.hr_group_id, 'document-template:write') then
     raise exception 'DOCUMENT_TEMPLATE_FORBIDDEN' using errcode = '42501';
   end if;
+  result := internal_security.document_studio_replay_idempotency(
+    draft_row.tenant_id, draft_row.hr_group_id, 'DISCARD', requested_idempotency_key, requested_request_hash
+  );
+  if result is not null then return result; end if;
+  if draft_row.status <> 'DRAFT' then raise exception 'DOCUMENT_TEMPLATE_DRAFT_NOT_FOUND' using errcode = 'P0002'; end if;
   result := jsonb_build_object('templateId', draft_row.template_id, 'draftId', requested_draft_id, 'discarded', true);
   result := internal_security.document_studio_write_idempotency(
     draft_row.tenant_id, draft_row.hr_group_id, 'DISCARD', requested_idempotency_key, requested_request_hash, result
@@ -2162,8 +2309,11 @@ revoke all on function public.replace_document_studio_template_tags(uuid, jsonb)
 revoke all on function internal_security.document_studio_guard_version() from public, anon, authenticated;
 revoke all on function internal_security.document_studio_guard_template() from public, anon, authenticated;
 revoke all on function internal_security.document_studio_guard_profile() from public, anon, authenticated;
+revoke all on function internal_security.document_studio_guard_document_type() from public, anon, authenticated;
 revoke all on function internal_security.document_studio_guard_composition() from public, anon, authenticated;
 revoke all on function internal_security.document_studio_write_idempotency(uuid, uuid, text, uuid, text, jsonb) from public, anon, authenticated;
+revoke all on function internal_security.document_studio_replay_idempotency(uuid, uuid, text, uuid, text) from public, anon, authenticated;
+revoke all on function internal_security.document_studio_replay_discard_idempotency(uuid, uuid, text) from public, anon, authenticated;
 revoke all on function internal_security.document_studio_audit(uuid, uuid, text, uuid, text, jsonb) from public, anon, authenticated;
 revoke all on function internal_security.document_studio_audit_config_change() from public, anon, authenticated;
 revoke all on function internal_security.document_studio_asset_refs(uuid, uuid, jsonb) from public, anon, authenticated;

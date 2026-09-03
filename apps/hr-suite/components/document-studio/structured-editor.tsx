@@ -74,6 +74,7 @@ export function StructuredEditor({
   const [assetError, setAssetError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const loadedRegionRef = useRef<EditableDocumentRegion | null>(null)
   const editor = useEditor({
     extensions: documentEditorExtensions,
     content: canonicalToEditorJson(baseDocument, activeRegion),
@@ -92,8 +93,9 @@ export function StructuredEditor({
   })
 
   useEffect(() => {
-    if (!editor) return
+    if (!editor || loadedRegionRef.current === activeRegion) return
     editor.commands.setContent(canonicalToEditorJson(baseDocument, activeRegion), { emitUpdate: false })
+    loadedRegionRef.current = activeRegion
   }, [activeRegion, baseDocument, editor])
 
   async function uploadAsset(file: File) {

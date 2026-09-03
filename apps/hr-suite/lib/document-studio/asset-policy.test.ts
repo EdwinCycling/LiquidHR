@@ -13,6 +13,14 @@ describe('Document Studio structural asset policy', () => {
     expect(result.normalizedBytes.byteLength).toBe(result.byteSize)
   })
 
+  it('records dimensions after EXIF orientation is normalized', async () => {
+    const input = await sharp({ create: { width: 8, height: 12, channels: 3, background: 'white' } }).jpeg().withMetadata({ orientation: 6 }).toBuffer()
+    const result = await normalizeStructuralImage(new Uint8Array(input), 'portrait.jpg', 'image/jpeg')
+    expect(result.width).toBe(12)
+    expect(result.height).toBe(8)
+    expect(result.pixelCount).toBe(96)
+  })
+
   it('rejects signature, extension and claimed MIME mismatches', async () => {
     const input = await sharp({ create: { width: 2, height: 2, channels: 3, background: 'white' } }).jpeg().toBuffer()
     await expect(normalizeStructuralImage(new Uint8Array(input), 'logo.png', 'image/jpeg')).rejects.toMatchObject({ code: 'DOCUMENT_ASSET_MIME_MISMATCH' })

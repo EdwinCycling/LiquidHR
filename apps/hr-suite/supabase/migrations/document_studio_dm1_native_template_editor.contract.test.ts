@@ -12,6 +12,9 @@ describe('Document Studio DM-1 migration candidate', () => {
     expect(sql).toContain("create unique index document_studio_versions_one_active_idx")
     expect(sql).toContain('DOCUMENT_TEMPLATE_DRAFT_CONFLICT')
     expect(sql).toContain('DOCUMENT_TEMPLATE_VERSION_IMMUTABLE')
+    expect(sql).toContain('DOCUMENT_STUDIO_CONFIG_IDENTITY_IMMUTABLE')
+    expect(sql).toContain('document_studio_replay_idempotency')
+    expect(sql).toContain('document_studio_replay_discard_idempotency')
     expect(sql).toContain('create_document_studio_draft_from_active')
     expect(sql).toContain('document_studio_assert_document_assets')
     expect(sql).toContain('DOCUMENT_ASSET_REFS_MISMATCH')
@@ -32,6 +35,7 @@ describe('Document Studio DM-1 migration candidate', () => {
   it('keeps lifecycle pointers RPC-owned and the asset finalization seam server-only', async () => {
     const sql = await readFile(migrationPath, 'utf8')
     expect(sql).toContain('create trigger document_studio_guard_template_trigger')
+    expect(sql).toContain('create trigger document_studio_guard_document_type_trigger')
     expect(sql).toContain("grant update (name, description, updated_by_user_id) on public.document_studio_templates to authenticated;")
     expect(sql).not.toContain('grant update on public.document_studio_templates to authenticated;')
     expect(sql).toContain('DOCUMENT_TEMPLATE_LIFECYCLE_RPC_REQUIRED')
