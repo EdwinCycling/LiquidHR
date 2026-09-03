@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Public legal pages and anonymous icon routing — 2026-09-03
+
+**Status: LOCAL GREEN — RELEASE GATES OPEN**
+
+LiquidHR now contains the public English `/privacy` and `/terms` legal pages and explicitly allows only `/icon.svg`, `/privacy`, and `/terms` through the existing anonymous route boundary. The supplied Edwin Solutions BV content, metadata, cross-links, responsive styling, and existing icon are covered by targeted tests. No database, auth-flow, permission, RLS, or business-functionality change was made. Local targeted tests, i18n, strict TypeScript, ESLint, Webpack `247/247`, anonymous HTTP/browser checks, and diff-check are green; the full suite remains `1324/1326` due two unrelated baseline failures. Commit/push and external Production verification remain open.
+
 ## Liquid Analyse V2 Foundation product review — 2026-09-02
 
 **Status: PRODUCT APPROVED — READY FOR V2A-1 IMPLEMENTATION DESIGN**

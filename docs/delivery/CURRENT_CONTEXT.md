@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Public legal pages and anonymous icon routing — 2026-09-03
+
+**Status: LOCAL GREEN — READY FOR RELEASE**
+
+- `/privacy` and `/terms` are public English legal pages for Edwin Solutions BV, with the supplied privacy/terms content, metadata, responsive LiquidHR styling, login links, and cross-links. The existing `app/icon.svg` is reused.
+- The existing proxy route allowlist now explicitly permits only `/privacy`, `/terms`, and `/icon.svg`; protected dashboard/application paths remain protected. No business functionality, database, permissions, RLS, or authentication flow was changed.
+- Verification: targeted legal/routing tests `14/14`, i18n `35` namespaces, strict TypeScript, ESLint, Webpack production build `247/247`, local HTTP `200` for all three public URLs, SVG body/content type for `/icon.svg`, anonymous browser checks with zero console errors and no narrow-viewport overflow, and `git diff --check` are green. Full suite is `1324/1326` because of two pre-existing unrelated failures: stale app-version assertion and DM-1 migration-contract formatting assertion.
+- Open release gates: commit/push to `main`, Vercel Production READY on the exact main SHA, and external HTTP verification of the three Nmbrs URLs.
+
 ## Liquid Analyse V2A-1 Snapshot Core targeted fix candidate — 2026-09-02
 
 **Status: GREEN — TARGETED FIX CANDIDATE, NOT RELEASED**

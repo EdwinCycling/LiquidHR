@@ -1,5 +1,13 @@
 # Implementatiestatus Liquid HR
 
+## Public legal pages and anonymous icon routing — 2026-09-03
+
+**Status: LOCAL GREEN — RELEASE GATES OPEN**
+
+The public `/privacy` and `/terms` pages are implemented in English with the supplied Edwin Solutions BV legal content and cross-navigation. The existing `/icon.svg` is reused. The proxy allowlist explicitly makes only these three requested paths public; existing dashboard and application routes remain protected.
+
+Targeted legal/routing tests (`14/14`), i18n (`35` namespaces), strict TypeScript, ESLint, Webpack production build (`247/247`), local anonymous HTTP/browser checks, and `git diff --check` are green. The full suite has two unrelated baseline failures: the stale app-version assertion and the existing DM-1 migration-contract formatting assertion (`1324/1326`). No database, auth-flow, permission, RLS, or business-functionality change was made. Commit, push, Vercel READY, and external production URL checks remain open.
+
 ## Liquid Analyse V2A-1 Snapshot Core targeted fix candidate — 2026-09-02
 
 **Status: GREEN — TARGETED FIX CANDIDATE, NOT RELEASED**

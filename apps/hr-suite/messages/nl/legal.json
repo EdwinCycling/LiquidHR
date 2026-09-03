@@ -1,0 +1,289 @@
+{
+  "shared": {
+    "brand": "LiquidHR",
+    "eyebrow": "LiquidHR legal",
+    "backToLogin": "Back to LiquidHR login",
+    "privacyLink": "Privacy Policy",
+    "termsLink": "Terms of Service",
+    "contactEmail": "edwin@editsolutions.nl",
+    "company": "Edwin Solutions BV",
+    "country": "The Netherlands"
+  },
+  "privacy": {
+    "metadataTitle": "Privacy Policy | LiquidHR",
+    "title": "Privacy Policy",
+    "description": "How LiquidHR processes personal data when you use the service or connect an external provider.",
+    "lastUpdated": "Last updated: 3 September 2026",
+    "lead": "This Privacy Policy describes how LiquidHR processes personal data and how organizations and individuals can contact Edwin Solutions BV about that processing.",
+    "sections": [
+      {
+        "title": "1. About LiquidHR",
+        "paragraphs": [
+          "LiquidHR is an HR software service operated by Edwin Solutions BV.",
+          "For questions about this Privacy Policy or the processing of personal data, please contact:",
+          "Edwin Solutions BV\nContact: Edwin Dingjan\nEmail: edwin@editsolutions.nl\nThe Netherlands"
+        ]
+      },
+      {
+        "title": "2. Scope of this policy",
+        "paragraphs": [
+          "This Privacy Policy explains how LiquidHR processes personal data when people use the LiquidHR service, when organizations administer HR information through LiquidHR, and when LiquidHR connects to external services such as payroll providers.",
+          "Organizations using LiquidHR remain responsible for determining which employee and HR information they enter into or connect with LiquidHR and for ensuring that their use of the service has an appropriate legal basis."
+        ]
+      },
+      {
+        "title": "3. Categories of data",
+        "paragraphs": [
+          "Depending on the features used by an organization, LiquidHR may process information such as:"
+        ],
+        "bullets": [
+          "names and contact details;",
+          "employee and employment information;",
+          "organizational and job information;",
+          "HR administration data;",
+          "information required for enabled HR processes;",
+          "technical account and authentication information;",
+          "audit and security information;",
+          "identifiers and data exchanged with connected third-party services."
+        ],
+        "closing": "LiquidHR only intends to process information that is required for the enabled functionality."
+      },
+      {
+        "title": "4. Purposes of processing",
+        "paragraphs": [
+          "Personal data may be processed to:"
+        ],
+        "bullets": [
+          "provide and operate the LiquidHR service;",
+          "administer users, employees and employment relationships;",
+          "support HR workflows and functionality selected by the customer;",
+          "connect LiquidHR with external services selected by the customer;",
+          "synchronize authorized data with payroll or other integration providers;",
+          "maintain the security, reliability and auditability of the service;",
+          "investigate errors and provide support;",
+          "comply with applicable legal obligations."
+        ]
+      },
+      {
+        "title": "5. External integrations",
+        "paragraphs": [
+          "LiquidHR can connect to external services selected and authorized by the customer, including payroll providers.",
+          "When an integration is enabled, LiquidHR may exchange the information required for the selected integration functionality with that provider.",
+          "The exact information exchanged depends on the integration, the permissions granted by the customer, and the functionality enabled in LiquidHR.",
+          "For example, an integration with a payroll provider may allow LiquidHR to read or synchronize employee and employment information.",
+          "LiquidHR aims to request only the permissions needed for the enabled integration functionality."
+        ]
+      },
+      {
+        "title": "6. Service providers",
+        "paragraphs": [
+          "LiquidHR may use technology and infrastructure providers to operate the service. These providers may process information on behalf of Edwin Solutions BV where this is required to provide LiquidHR.",
+          "Where applicable, appropriate contractual and security arrangements are used with such providers."
+        ]
+      },
+      {
+        "title": "7. Security",
+        "paragraphs": [
+          "LiquidHR takes reasonable technical and organizational measures intended to protect personal data against unauthorized access, loss, alteration or disclosure.",
+          "No internet-based service can guarantee absolute security.",
+          "Credentials and authorization tokens used for external integrations are intended to be handled server-side and must not be exposed to ordinary LiquidHR users."
+        ]
+      },
+      {
+        "title": "8. Data retention",
+        "paragraphs": [
+          "Personal data is retained only for as long as reasonably required for the purpose for which it is processed, for operation of the service, or to meet applicable legal and contractual requirements.",
+          "Retention periods may depend on the type of data and the configuration and instructions of the customer organization."
+        ]
+      },
+      {
+        "title": "9. Customer responsibilities",
+        "paragraphs": [
+          "Organizations using LiquidHR are responsible for:"
+        ],
+        "bullets": [
+          "determining which personal data is entered into LiquidHR;",
+          "managing authorized users and access;",
+          "configuring integrations appropriately;",
+          "ensuring that use of employee data complies with applicable law;",
+          "responding to employee requests where the organization acts as the controller of that data."
+        ]
+      },
+      {
+        "title": "10. Individual rights",
+        "paragraphs": [
+          "Depending on applicable law and the circumstances, individuals may have rights relating to their personal data, including rights of access, correction, deletion, restriction, objection and data portability.",
+          "For HR information controlled by an employer or another LiquidHR customer, requests should normally first be directed to that organization.",
+          "Questions relating specifically to processing by Edwin Solutions BV can be sent to edwin@editsolutions.nl."
+        ]
+      },
+      {
+        "title": "11. International processing",
+        "paragraphs": [
+          "Technology providers used by LiquidHR may process information in different countries.",
+          "Where required, appropriate safeguards are used for international transfers of personal data."
+        ]
+      },
+      {
+        "title": "12. Changes to this policy",
+        "paragraphs": [
+          "This Privacy Policy may be updated when LiquidHR functionality, integrations, legal requirements or processing practices change.",
+          "The current version will be published on this page."
+        ]
+      },
+      {
+        "title": "13. Contact",
+        "paragraphs": [
+          "Edwin Solutions BV\nContact: Edwin Dingjan\nEmail: edwin@editsolutions.nl\nThe Netherlands"
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "metadataTitle": "Terms of Service | LiquidHR",
+    "title": "Terms of Service",
+    "description": "The terms that govern access to and use of the LiquidHR service.",
+    "lastUpdated": "Last updated: 3 September 2026",
+    "lead": "These Terms of Service describe the permitted use of LiquidHR and the responsibilities of customers and users.",
+    "sections": [
+      {
+        "title": "1. About LiquidHR",
+        "paragraphs": [
+          "LiquidHR is an HR software service operated by Edwin Solutions BV.",
+          "These Terms of Service govern access to and use of LiquidHR unless separate written contractual terms have been agreed."
+        ]
+      },
+      {
+        "title": "2. Use of the service",
+        "paragraphs": [
+          "LiquidHR may be used only by authorized users and organizations.",
+          "Users must use LiquidHR in accordance with applicable laws, organizational policies and the permissions assigned to them.",
+          "Customers are responsible for the users to whom they provide access."
+        ]
+      },
+      {
+        "title": "3. Accounts and access",
+        "paragraphs": [
+          "Users are responsible for maintaining the confidentiality and security of their account credentials.",
+          "Access rights should be granted only where required and removed when no longer needed.",
+          "Users must not attempt to bypass access controls, obtain unauthorized access, interfere with the operation of LiquidHR or misuse data available through the service."
+        ]
+      },
+      {
+        "title": "4. HR data",
+        "paragraphs": [
+          "Customers determine which employee, employment and other HR information they process through LiquidHR.",
+          "Customers are responsible for ensuring that they have an appropriate basis for processing this information and for configuring LiquidHR in accordance with their legal and organizational requirements."
+        ]
+      },
+      {
+        "title": "5. External integrations",
+        "paragraphs": [
+          "LiquidHR may provide integrations with third-party services, including payroll providers.",
+          "Integrations are activated and authorized by the customer.",
+          "Third-party services are operated independently from LiquidHR and may have their own terms, availability, functionality and privacy practices.",
+          "Edwin Solutions BV does not control the availability or operation of those third-party services.",
+          "Changes made by a third-party provider may affect an integration."
+        ]
+      },
+      {
+        "title": "6. Payroll integrations",
+        "paragraphs": [
+          "Payroll integrations may exchange employee, employment or payroll-related information with a provider selected by the customer.",
+          "Available functionality can differ by provider and by integration version.",
+          "LiquidHR may therefore support only part of the functionality technically available from a payroll provider.",
+          "Customers remain responsible for reviewing payroll information and ensuring that payroll processing and statutory submissions are correct.",
+          "LiquidHR must not be treated as a substitute for professional payroll, tax, legal or employment-law advice."
+        ]
+      },
+      {
+        "title": "7. Availability and development",
+        "paragraphs": [
+          "LiquidHR is under active development.",
+          "Features may be introduced, modified, improved or discontinued.",
+          "Beta, preview or development functionality may be incomplete and should not be relied upon as the sole control for critical HR or payroll processes.",
+          "Reasonable efforts are made to keep the service available and reliable, but uninterrupted or error-free operation is not guaranteed."
+        ]
+      },
+      {
+        "title": "8. Customer responsibilities",
+        "paragraphs": [
+          "Customers are responsible for:"
+        ],
+        "bullets": [
+          "providing accurate information;",
+          "managing their users and access rights;",
+          "reviewing important HR and payroll information;",
+          "maintaining appropriate internal controls;",
+          "configuring enabled integrations;",
+          "maintaining any required relationship or account with third-party providers;",
+          "complying with applicable employment, payroll, tax and privacy requirements."
+        ]
+      },
+      {
+        "title": "9. Intellectual property",
+        "paragraphs": [
+          "LiquidHR, its software, design, documentation and related materials remain the property of Edwin Solutions BV or its licensors unless explicitly agreed otherwise.",
+          "Use of the service does not transfer ownership of LiquidHR intellectual property to the customer.",
+          "Customers retain their rights in the data they submit to the service."
+        ]
+      },
+      {
+        "title": "10. Prohibited use",
+        "paragraphs": [
+          "LiquidHR may not be used to:"
+        ],
+        "bullets": [
+          "violate applicable law;",
+          "obtain unauthorized access to systems or information;",
+          "introduce malicious code;",
+          "interfere with service operation or security;",
+          "unlawfully process personal data;",
+          "copy, reverse engineer or exploit the service except where applicable law expressly permits this."
+        ]
+      },
+      {
+        "title": "11. Suspension and termination",
+        "paragraphs": [
+          "Access may be suspended or terminated where necessary for security, legal or operational reasons, including material misuse of the service.",
+          "On termination, access to the service may end subject to applicable contractual and legal obligations relating to customer data."
+        ]
+      },
+      {
+        "title": "12. Liability",
+        "paragraphs": [
+          "LiquidHR is software used to support HR processes and decisions.",
+          "Customers remain responsible for reviewing information and decisions with legal, payroll, employment or financial consequences.",
+          "To the maximum extent permitted by applicable law, Edwin Solutions BV is not liable for indirect, incidental or consequential losses resulting from use of LiquidHR or from unavailable or incorrect third-party services.",
+          "Any additional liability arrangements may be governed by separately agreed commercial terms."
+        ]
+      },
+      {
+        "title": "13. Privacy",
+        "paragraphs": [
+          "Processing of personal data is further described in the LiquidHR Privacy Policy."
+        ]
+      },
+      {
+        "title": "14. Changes",
+        "paragraphs": [
+          "These Terms may be updated to reflect changes to LiquidHR, integrations, commercial arrangements or applicable law.",
+          "The current version will be published on this page."
+        ]
+      },
+      {
+        "title": "15. Governing law",
+        "paragraphs": [
+          "Unless separately agreed otherwise, these Terms are governed by the laws of the Netherlands.",
+          "Disputes will be submitted to the competent courts in the Netherlands, subject to any mandatory legal rules that apply."
+        ]
+      },
+      {
+        "title": "16. Contact",
+        "paragraphs": [
+          "Edwin Solutions BV\nContact: Edwin Dingjan\nEmail: edwin@editsolutions.nl\nThe Netherlands"
+        ]
+      }
+    ]
+  }
+}
