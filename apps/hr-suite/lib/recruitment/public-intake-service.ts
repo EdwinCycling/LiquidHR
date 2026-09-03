@@ -49,7 +49,6 @@ function requirePublicSecurityConfig(): { readonly pepper: string } {
   const pepper = process.env.RECRUITMENT_RATE_LIMIT_PEPPER
   if (!pepper || pepper.length < 32) throw new RecruitmentError('RECRUITMENT_PUBLIC_SECURITY_UNAVAILABLE', 503)
   if (!process.env.TURNSTILE_SECRET_KEY) throw new RecruitmentError('RECRUITMENT_BOT_CHALLENGE_UNAVAILABLE', 503)
-  if (!process.env.RECRUITMENT_MALWARE_SCAN_URL || !process.env.RECRUITMENT_MALWARE_SCAN_API_KEY) throw new RecruitmentError('RECRUITMENT_MALWARE_SCANNER_UNAVAILABLE', 503)
   return { pepper }
 }
 
