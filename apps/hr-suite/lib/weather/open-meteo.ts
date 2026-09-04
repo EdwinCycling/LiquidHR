@@ -1,4 +1,7 @@
 import 'server-only'
+import type { WeatherDay } from './forecast'
+
+export type { WeatherDay } from './forecast'
 
 export interface WeatherLocation {
   name: string
@@ -27,18 +30,10 @@ export interface WeatherCurrent {
   weatherCode: number
 }
 
-/** Kept for the existing weather-card type boundary while the header uses the instrument view. */
-export interface WeatherDay {
-  date: string
-  weatherCode: number
-  temperatureMax: number
-  temperatureMin: number
-  precipitationProbability: number | null
-}
-
 export interface WorkWeather {
   location: WeatherLocation
   current: WeatherCurrent
+  forecast: WeatherDay[]
 }
 
 interface GeocodingResult {
@@ -63,7 +58,11 @@ interface ForecastPayload {
     pressure_msl?: unknown
   }
   daily?: {
+    time?: unknown
+    weather_code?: unknown
     temperature_2m_max?: unknown
+    temperature_2m_min?: unknown
+    precipitation_probability_max?: unknown
   }
 }
 
@@ -139,8 +138,8 @@ export async function getWorkWeather(location: WeatherLocation): Promise<WorkWea
     url.searchParams.set('longitude', String(weatherLocation.longitude))
     url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,pressure_msl,wind_direction_10m,wind_speed_10m,weather_code')
     url.searchParams.set('hourly', 'pressure_msl')
-    url.searchParams.set('daily', 'temperature_2m_max')
-    url.searchParams.set('forecast_days', '1')
+    url.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max')
+    url.searchParams.set('forecast_days', '7')
     url.searchParams.set('past_hours', '6')
     url.searchParams.set('forecast_hours', '1')
     url.searchParams.set('wind_speed_unit', 'kmh')
@@ -149,7 +148,22 @@ export async function getWorkWeather(location: WeatherLocation): Promise<WorkWea
     const current = payload.current
     const currentTime = stringValue(current?.time)
     const temperature = finiteNumber(current?.temperature_2m)
-    const temperatureMax = Math.max(temperature ?? Number.NEGATIVE_INFINITY, arrayNumber(payload.daily?.temperature_2m_max, 0) ?? Number.NEGATIVE_INFINITY)
+    const dailyTimes: unknown[] = Array.isArray(payload.daily?.time) ? payload.daily.time : []
+    const forecast = dailyTimes.flatMap((value: unknown, index): WeatherDay[] => {
+      const date = stringValue(value)
+      const weatherCode = arrayNumber(payload.daily?.weather_code, index)
+      const temperatureMax = arrayNumber(payload.daily?.temperature_2m_max, index)
+      const temperatureMin = arrayNumber(payload.daily?.temperature_2m_min, index)
+      if (!date || weatherCode === null || temperatureMax === null || temperatureMin === null) return []
+      return [{
+        date,
+        weatherCode,
+        temperatureMax,
+        temperatureMin,
+        precipitationProbability: arrayNumber(payload.daily?.precipitation_probability_max, index),
+      }]
+    })
+    const temperatureMax = Math.max(temperature ?? Number.NEGATIVE_INFINITY, forecast[0]?.temperatureMax ?? Number.NEGATIVE_INFINITY)
     const humidity = finiteNumber(current?.relative_humidity_2m)
     const pressure = finiteNumber(current?.pressure_msl)
     const windDirection = finiteNumber(current?.wind_direction_10m)
@@ -168,6 +182,7 @@ export async function getWorkWeather(location: WeatherLocation): Promise<WorkWea
         windSpeed,
         weatherCode,
       },
+      forecast,
     }
   } catch {
     return null

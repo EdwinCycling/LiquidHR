@@ -1,6 +1,10 @@
 {
   "title": "Employments",
   "new": "New employment",
+  "parallelConfirmationTitle": "Create a second active employment?",
+  "parallelConfirmationDescription": "This employee already has an active employment. Are you sure you want to create a second, parallel employment?",
+  "parallelConfirmationConfirm": "Yes, continue",
+  "parallelConfirmationCancel": "No, cancel",
   "newWizardTitle": "Set up new employment",
   "period": "Period",
   "parallel": "Parallel employment",

@@ -1,6 +1,10 @@
 {
   "title": "Dienstverbanden",
   "new": "Nieuw dienstverband",
+  "parallelConfirmationTitle": "Tweede actief dienstverband aanmaken?",
+  "parallelConfirmationDescription": "Deze medewerker heeft al een actief dienstverband. Wil je zeker weten een tweede, parallel dienstverband aanmaken?",
+  "parallelConfirmationConfirm": "Ja, doorgaan",
+  "parallelConfirmationCancel": "Nee, annuleren",
   "newWizardTitle": "Nieuw dienstverband samenstellen",
   "period": "Periode",
   "parallel": "Parallel dienstverband",

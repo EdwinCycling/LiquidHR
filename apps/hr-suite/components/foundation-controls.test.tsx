@@ -193,6 +193,8 @@ describe('LiquidHR foundation controls', () => {
     act(() => (buttons[0] as HTMLButtonElement).dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })))
     expect(document.activeElement).toBe(second)
     expect(tabLinkClasses({ active: true })).toContain('border-b-[3px]')
+    expect(tabLinkClasses({ active: true })).toContain('bg-accent/45')
+    expect(tabLinkClasses({ active: false })).not.toContain('bg-accent/45')
     mounted.unmount()
   })
 

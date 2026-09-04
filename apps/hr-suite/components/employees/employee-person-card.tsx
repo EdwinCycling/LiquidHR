@@ -270,7 +270,7 @@ export function EmployeePersonCard({ detail, initialEdit = false, locale, dateFo
         {tab === 'addresses' && <AddressesPanelV2 employeeId={detail.employee.id} addresses={addresses} canManage={capabilities.canManageAddresses} locale={locale} dateFormat={dateFormat} labels={labels} />}
         {tab === 'bankAccounts' && <BankAccountsPanel employeeId={detail.employee.id} accounts={bankAccounts} canManage={capabilities.canManageBankAccounts} labels={labels} />}
         {tab === 'relations' && <RelationsPanel employeeId={detail.employee.id} relations={relations} relationTypes={detail.relationTypes ?? []} locale={locale} canManage={capabilities.canManageRelations} labels={labels} />}
-        {tab === 'additionalInformation' && <section><SectionHeader title={labels.additionalInformationTitle} /><div className="mt-6"><EmployeeCustomFields embedded employeeId={detail.employee.id} fields={customFields} labels={labels.customFields} /></div></section>}
+        {tab === 'additionalInformation' && <EmployeeCustomFields embedded employeeId={detail.employee.id} fields={customFields} labels={labels.customFields} />}
       </div>
     </Surface>
   )
@@ -653,7 +653,7 @@ function RelationsPanel({ employeeId, relations, relationTypes, locale, canManag
   return <>
   <section>
     <SectionHeader title={labels.relationsTitle} />
-    {relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-x-8 divide-y divide-border-subtle lg:grid-cols-2 lg:divide-y-0">{relations.map((relation) => <li key={relation.id} className="border-b border-border-subtle py-4 lg:first:border-t lg:nth-[2n+1]:border-t">
+    {relations.length === 0 ? <EmptyState icon={<HeartHandshake className="h-5 w-5" />} title={labels.relationsEmpty} /> : <ul className="mt-6 grid gap-4 lg:grid-cols-2">{relations.map((relation) => <li key={relation.id} className="rounded-[var(--radius-surface)] border border-border-subtle bg-surface p-4">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="break-words font-semibold">{[relation.firstName, relation.prefix, relation.lastName].filter(Boolean).join(' ')}</p>{relation.isEmergencyContact && <Badge tone="warning">{labels.emergencyContact}</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">{typeLabels[relation.relationType] ?? relation.relationType}</p></div>{canManage && <RowActions menuLabel={labels.moreActions} menuItems={[{ destructive: true, id: 'delete', label: labels.deleteResource, onSelect: () => setDeleteCandidate(relation.id) }]} primaryAction={<Button onClick={() => openEdit(relation)} size="sm" type="button" variant="secondary"><Pencil aria-hidden="true" className="h-4 w-4" />{labels.editResource}</Button>} />}</div>
       {(relation.mobile || relation.phone || relation.email) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">{(relation.mobile || relation.phone) && <span className="flex items-center gap-1.5"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{relation.mobile ?? relation.phone}</span>}{relation.email && <span className="flex items-center gap-1.5"><Mail aria-hidden="true" className="h-3.5 w-3.5" /><EmailLink email={relation.email} /></span>}</div>}
     </li>)}</ul>}

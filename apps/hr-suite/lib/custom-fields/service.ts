@@ -6,6 +6,7 @@ import type {
   CustomFieldDefinitionUpdateInput,
   CustomFieldValuesInput,
 } from './schemas'
+import { buildEmployeeCustomFieldValueRow } from './value-payload'
 
 type DefinitionRow = Database['public']['Tables']['custom_field_definitions']['Row']
 type OptionRow = Database['public']['Tables']['custom_field_select_options']['Row']
@@ -273,15 +274,7 @@ export async function setEmployeeCustomFieldValues(
       deleteIds.push(definition.id)
       continue
     }
-    const row = {
-      tenant_id: context.tenantId,
-      hr_group_id: hrGroupId,
-      administration_id: null,
-      employee_id: employeeId,
-      definition_id: definition.id,
-      field_key: key,
-      value: value as Json,
-    }
+    const row = buildEmployeeCustomFieldValueRow({ tenantId: context.tenantId, hrGroupId, employeeId, definitionId: definition.id, fieldKey: key, value: value as Json })
     if (definition.field_type === 'AUTO_INCREMENT') automaticRows.push(row)
     else regularRows.push(row)
   }

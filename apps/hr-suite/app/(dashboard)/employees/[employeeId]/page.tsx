@@ -17,6 +17,7 @@ import { EmployeeArchiveToggle } from '@/components/employees/employee-archive-t
 import { EmployeeAvatarManager } from '@/components/employees/employee-avatar-manager'
 import { EmployeeWeatherDrawer } from '@/components/employees/employee-weather-drawer'
 import { EmploymentTimeline } from '@/components/employment/employment-timeline'
+import { NewEmploymentButton } from '@/components/employment/new-employment-button'
 import { EmployeeDocumentDossier } from '@/components/documents/employee-document-dossier'
 import { AuthorizationError, getRequestAuthorizationContext, requirePermission } from '@/lib/auth/permissions'
 import {
@@ -28,6 +29,7 @@ import { getUserPreferences } from '@/lib/preferences/server'
 import { DEFAULT_EMPLOYEE_DASHBOARD_LAYOUT, getEmployeeDashboardLayout } from '@/lib/preferences/employee-dashboard'
 import { createServerPerformanceTrace, type ServerPerformanceTrace } from '@/lib/performance/server-trace'
 import { getEmployeeCustomFields } from '@/lib/custom-fields/service'
+import { hasActiveEmployment } from '@/lib/employment/employment-card-state'
 import { listEmployeeActivity } from '@/lib/employees/employee-activity-service'
 import { getDocumentOptions, listEmployeeDashboardDocuments, listEmployeeDocuments } from '@/lib/documents/document-service'
 import { listEmployeePayslips } from '@/lib/documents/payslip-service'
@@ -166,7 +168,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
   const tWeather = await getTranslator('startpage', locale)
-  const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherTodayMax: tWeather('weatherTodayMax'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
+  const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherToday: tWeather('weatherToday'), weatherTomorrow: tWeather('weatherTomorrow'), weatherNextWorkingDay: tWeather('weatherNextWorkingDay'), weatherDayToggle: tWeather('weatherDayToggle'), weatherTodayMax: tWeather('weatherTodayMax'), weatherForecastHigh: tWeather('weatherForecastHigh'), weatherForecastLow: tWeather('weatherForecastLow'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
   const canStartProcess = authContext.permissions.includes('process-instance:start') || (authContext.permissions.includes('self:process-instance:start') && authContext.employeeId === employeeId)
   const processWork = (tab === 'overview' || tab === 'processes') && canReadProcesses
     ? await listProcessWork({ subjectEmployeeId: employeeId, tab: 'ALL', language: locale }).catch(() => null)
@@ -205,7 +207,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
               <EmployeeAvatarManager compact employeeId={employeeId} avatarUrl={detail.employee.avatarUrl} gender={detail.employee.gender} name={`${detail.employee.firstName} ${detail.employee.birthName}`} canManage={detail.capabilities.canEditEmployee} labels={{ upload: tEmployees('photoUpload'), replace: tEmployees('photoReplace'), remove: tEmployees('photoRemove'), failed: tEmployees('archiveFailed'), close: tEmployees('cancel'), removeTitle: tEmployees('photoRemoveTitle'), removeDescription: tEmployees('photoRemoveDescription'), removeConfirm: tEmployees('photoRemoveConfirm'), removeCancel: tEmployees('cancel') }} />
               <div className="min-w-0"><h1 className="truncate text-base font-semibold tracking-tight">{detail.employee.firstName} {detail.employee.birthName}</h1>{profileContext ? <p className="truncate text-xs text-muted-foreground">{profileContext}</p> : null}</div>
             </div>
-            <div className="flex shrink-0 items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} /><Link aria-label={tEmployees('expand')} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} prefetch={false} title={tEmployees('expand')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Maximize2 aria-hidden="true" size={18} /></Link></div>
+            <div className="flex shrink-0 items-center gap-2"><EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} /><Link aria-label={tEmployees('expand')} href={`/employees/${employeeId}?tab=${tab}&view=expanded`} prefetch={false} title={tEmployees('expand')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Maximize2 aria-hidden="true" size={18} /></Link></div>
           </div><EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} /></> : <>
             <div aria-hidden="true" className="h-16 border-b border-subtle bg-surface-subtle sm:h-20" />
             <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
@@ -221,7 +223,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 md:max-w-[15rem] md:justify-end">
-                  <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} weather={workWeather} />
+                  <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} />
                   <Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Minimize2 aria-hidden="true" size={18} /></Link>
                   <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
                 </div>
@@ -318,7 +320,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
 
         {tab === 'employments' && <div className="mt-8">
           <section className="space-y-5">
-            <SectionHeader title={tEmployment('title')} actions={canManageEmployments ? <Link href={`/employees/${employeeId}/employments/new`} className={buttonClasses()}>{tEmployment('new')}</Link> : null} />
+            <SectionHeader title={tEmployment('title')} actions={canManageEmployments ? <NewEmploymentButton href={`/employees/${employeeId}/employments/new`} hasActiveEmployment={hasActiveEmployment(detail.employments.map((employment) => ({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status })), new Date().toISOString().slice(0, 10))} labels={{ new: tEmployment('new'), confirmationTitle: tEmployment('parallelConfirmationTitle'), confirmationDescription: tEmployment('parallelConfirmationDescription'), confirmationConfirm: tEmployment('parallelConfirmationConfirm'), confirmationCancel: tEmployment('parallelConfirmationCancel') }} /> : null} />
             <EmploymentTimeline
               employments={detail.employments}
               summaries={detail.employmentCards}

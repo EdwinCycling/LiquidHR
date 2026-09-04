@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## UX-fix 2026-09-04: medewerkerdetail, weer en custom fields
+
+**Status: LOCAL GREEN — klaar voor lokaal testen**
+
+- Het medewerkerdetail gebruikt nu overal dezelfde, duidelijk gemarkeerde actieve tabstijl. Aanvullende informatie toont nog maar één titel en relaties staan als afzonderlijke kaarten.
+- De weerdrawer schakelt tussen vandaag en de volgende werkdag. Valt morgen in het weekend, dan wordt de maandag met datum expliciet getoond. Het weer haalt hiervoor een zevendaagse voorspelling op.
+- Custom fields bewaren bestaande waarden zonder de oudere `administration_id`-identiteit te overschrijven; de gemelde 400 (`CUSTOM_FIELD_VALUE_IDENTITY_IMMUTABLE`) is lokaal opgelost. Een tweede actief dienstverband vraagt eerst om expliciete bevestiging.
+- Verificatie: gerichte tests `17/17`, strict TypeScript, i18n-pariteit `35` namespaces, gerichte ESLint, browsercontrole op `http://localhost:3000` voor save, tabs, relaties, weer en parallel dienstverband, en `git diff --check` zijn groen.
+- Geen schemawijziging, remote database-write, push of deployment uitgevoerd.
+
 ## UX-fix 2026-09-04: ziekmelding medewerkercontext
 
 **Status: LOCAL GREEN — klaar voor lokaal testen**
