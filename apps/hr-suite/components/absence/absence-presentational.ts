@@ -1,5 +1,26 @@
 export type IndicatorValue = 'UNKNOWN' | 'YES' | 'NO'
 
+export type AbsenceEmployeePickerData = {
+  firstName: string
+  birthNamePrefix: string | null
+  birthName: string
+  employmentCount: number
+  departmentName: string | null
+  jobTitle: string | null
+}
+
+export function formatAbsenceEmployeeName(employee: Pick<AbsenceEmployeePickerData, 'firstName' | 'birthNamePrefix' | 'birthName'>): string {
+  return [employee.firstName, employee.birthNamePrefix, employee.birthName].filter(Boolean).join(' ')
+}
+
+export function formatAbsenceEmployeePickerLabel(employee: AbsenceEmployeePickerData): string {
+  const name = formatAbsenceEmployeeName(employee)
+  if (employee.employmentCount <= 1) return name
+
+  const employmentContext = [employee.departmentName, employee.jobTitle].filter(Boolean).join(' / ')
+  return employmentContext ? `${name} [${employmentContext}]` : name
+}
+
 export type AbsenceReportPayload = {
   employeeId: string
   employmentId: string | undefined

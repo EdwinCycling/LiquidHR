@@ -14,6 +14,9 @@ import { buildAbsenceCapacityPayload, buildAbsenceRecoveryPayload, buildAbsenceR
 
 interface AbsenceQuickFormProps {
   employeeId: string
+  employeeName?: string
+  employeeFunction?: string | null
+  employeeDepartment?: string | null
   employmentId?: string
   employmentOptions?: LeaveEmploymentOption[]
   currentCase?: AbsenceCaseSummary | null
@@ -28,11 +31,12 @@ interface AbsenceQuickFormProps {
     report: string; startDate: string; percentage: string; expectedRecovery: string; hasSafetyNet: string; workAccident: string; thirdPartyAccident: string
     unknown: string; yes: string; no: string; submit: string; recover: string; partialRecover?: string; recoveredOn: string; capacityEffectiveOn?: string
     failed: string; close: string; cancel?: string; employment?: string; employmentPlaceholder?: string; employmentSearch?: string; saving?: string; selfServiceIntro?: string
+    employeeInfoTitle?: string; function?: string; department?: string; notRecorded?: string
     discardTitle?: string; discardDescription?: string; discardConfirm?: string; discardCancel?: string
   }
 }
 
-export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, openOnMount = false, selfService = false, labels }: AbsenceQuickFormProps) {
+export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, employeeName, employeeFunction, employeeDepartment, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, openOnMount = false, selfService = false, labels }: AbsenceQuickFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(openOnMount)
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
@@ -103,6 +107,11 @@ export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, 
   }
 
   const showEmploymentSelector = availableEmploymentOptions.length > 1 || (!employmentId && availableEmploymentOptions.length === 1)
+  const selectedEmployment = availableEmploymentOptions.find((option) => option.id === selectedEmploymentId) ?? null
+  const missingEmploymentDetailLabel = labels.notRecorded ?? labels.employmentPlaceholder ?? labels.report
+  const employmentIsUnselected = availableEmploymentOptions.length > 1 && !selectedEmploymentId
+  const functionName = employmentIsUnselected ? null : selectedEmployment?.functionName ?? employeeFunction
+  const departmentName = employmentIsUnselected ? null : selectedEmployment?.departmentName ?? employeeDepartment
   const isOpen = currentCase?.status === 'ACTIVE' || currentCase?.status === 'RECOVERY_WINDOW'
   const isActive = currentCase?.status === 'ACTIVE'
 
@@ -121,6 +130,20 @@ export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, 
     {error && !open ? <p role="alert" className="text-sm font-medium text-destructive">{labels.failed}</p> : null}
     <FormDrawer cancelLabel={labels.cancel ?? labels.close} closeLabel={labels.close} dirty={reportDirty} dirtyProtection={{ description: labels.discardDescription ?? labels.report, discardLabel: labels.discardConfirm ?? labels.close, keepEditingLabel: labels.discardCancel ?? labels.close, title: labels.discardTitle ?? labels.report }} onDiscard={discardReportChanges} onOpenChange={setOpen} onSubmit={submitReport} open={open} saveLabel={labels.submit} saving={saving} title={labels.report}>
       {selfService && labels.selfServiceIntro ? <p className="text-sm leading-6 text-muted-foreground">{labels.selfServiceIntro}</p> : null}
+      {employeeName ? <section aria-label={labels.employeeInfoTitle ?? labels.report} className="rounded-[var(--radius-surface)] border border-primary/20 bg-primary/5 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">{labels.employeeInfoTitle ?? labels.report}</p>
+        <p className="mt-1 text-base font-semibold text-foreground">{employeeName}</p>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs text-muted-foreground">{labels.function ?? labels.report}</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{functionName ?? missingEmploymentDetailLabel}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">{labels.department ?? labels.report}</dt>
+            <dd className="mt-1 text-sm font-medium text-foreground">{departmentName ?? missingEmploymentDetailLabel}</dd>
+          </div>
+        </dl>
+      </section> : null}
       <div className="grid gap-4 sm:grid-cols-2">
         {showEmploymentSelector ? <FormField className="sm:col-span-2" label={labels.employment ?? labels.report} required control={<DropdownSelect aria-label={labels.employment ?? labels.report} emptyLabel={labels.employmentPlaceholder ?? labels.report} id="absence-employment" name="employmentId" onChange={(event) => setSelectedEmploymentId(event.target.value)} placeholder={labels.employmentPlaceholder ?? labels.report} required searchPlaceholder={labels.employmentSearch ?? labels.report} searchable value={selectedEmploymentId}><option disabled value="">{labels.employmentPlaceholder ?? labels.report}</option>{availableEmploymentOptions.map((option) => <option key={option.id} value={option.id}>{[option.employmentNumber, option.administrationName, option.departmentName, option.functionName].filter(Boolean).join(' · ')}</option>)}</DropdownSelect>} /> : null}
         <FormField label={labels.startDate} required control={<TextInput required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />} />

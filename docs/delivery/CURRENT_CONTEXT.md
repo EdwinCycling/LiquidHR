@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## UX-fix 2026-09-04: ziekmelding medewerkercontext
+
+**Status: LOCAL GREEN — klaar voor lokaal testen**
+
+- De ziekmeldingsdrawer toont bovenaan de gekozen medewerker en de functie/afdeling van het geselecteerde dienstverband. Bij meerdere dienstverbanden wordt de context ook in de medewerkerkeuze tussen vierkante haken getoond.
+- Alleen bestaande employee-overview- en employment-resolvergegevens worden gebruikt. Schema, API, Supabase, RLS en remote state zijn niet gewijzigd.
+- Verificatie: gerichte absence-presentational tests `6/6`, strict TypeScript, i18n-pariteit `35` namespaces, gerichte ESLint, browsercontrole op `http://localhost:3000` en `git diff --check` zijn groen.
+- Geen schema/API/Supabase/RLS-wijziging, remote database-write, push of deployment uitgevoerd.
+
 ## Hotfix 2026-09-04: medewerkerwizard identiteit en review
 
 **Status: LOCAL GREEN — BSN identity match locally blocked by missing configuration**

@@ -3,6 +3,7 @@ import {
   buildAbsenceCapacityPayload,
   buildAbsenceRecoveryPayload,
   buildAbsenceReportPayload,
+  formatAbsenceEmployeePickerLabel,
   getDefaultAbsenceCapacityEffectiveOn,
   toIndicator,
 } from './absence-presentational'
@@ -11,6 +12,20 @@ const employeeId = '11111111-1111-4111-8111-111111111111'
 const employmentId = '22222222-2222-4222-8222-222222222222'
 
 describe('absence presentation payload contracts', () => {
+  it('disambiguates employees only when they have multiple employments', () => {
+    const employee = {
+      firstName: 'Frans',
+      birthNamePrefix: null,
+      birthName: 'Bakker',
+      employmentCount: 1,
+      departmentName: 'Finance',
+      jobTitle: 'Controller',
+    }
+
+    expect(formatAbsenceEmployeePickerLabel(employee)).toBe('Frans Bakker')
+    expect(formatAbsenceEmployeePickerLabel({ ...employee, employmentCount: 2 })).toBe('Frans Bakker [Finance / Controller]')
+  })
+
   it('preserves the tri-state mapping', () => {
     expect(toIndicator('UNKNOWN')).toBeNull()
     expect(toIndicator('YES')).toBe(true)
