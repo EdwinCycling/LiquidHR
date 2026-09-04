@@ -125,6 +125,12 @@ function isValidIban(input: string): boolean {
 
 const ibanSchema = z.string().transform((value) => value.replace(/\s/g, '').toUpperCase()).refine(isValidIban, 'IBAN_INVALID')
 
+const optionalIbanSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') return value
+  const normalized = value.replace(/\s/g, '').toUpperCase()
+  return normalized === '' || /^[•*]{4}\d{4}$/u.test(normalized) ? undefined : value
+}, ibanSchema.optional())
+
 export const bankAccountSchema = z.object({
   iban: ibanSchema,
   bic: z.string().trim().max(11).nullish(),
@@ -134,7 +140,7 @@ export const bankAccountSchema = z.object({
 }).strict()
 
 export const bankAccountUpdateSchema = z.object({
-  iban: ibanSchema.optional(),
+  iban: optionalIbanSchema,
   bic: z.string().trim().max(11).nullish(),
   accountHolder: z.string().trim().min(1).max(160),
   description: nullableText(240),

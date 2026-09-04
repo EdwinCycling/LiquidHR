@@ -1,9 +1,11 @@
 import type { Database } from '@scope/db'
-import type { EmployeeCreateInput, EmployeeUpdateInput } from './schemas'
+import type { BankAccountUpdateInput, EmployeeCreateInput, EmployeeUpdateInput } from './schemas'
 
 type EmployeeInsert = Database['public']['Tables']['employees']['Insert']
 type EmployeeUpdate = Database['public']['Tables']['employees']['Update']
 type EmployeeRow = Database['public']['Tables']['employees']['Row']
+type EmployeeBankAccountUpdate = Pick<Database['public']['Tables']['employee_bank_accounts']['Update'], 'iban_ciphertext' | 'iban_last_four' | 'bic' | 'account_holder' | 'description' | 'is_primary'>
+type PiiEncryptor = (value: string, tenantId: string) => string
 
 export interface PublicEmployee {
   id: string
@@ -70,6 +72,21 @@ export function toEmployeeUpdate(input: EmployeeUpdateInput): EmployeeUpdate {
   assign('work_phone_ext', input.workPhoneExt === undefined ? undefined : optionalText(input.workPhoneExt))
   assign('work_mobile', input.workMobile === undefined ? undefined : optionalText(input.workMobile))
   assign('avatar_url', input.avatarUrl); assign('original_hire_date', input.originalHireDate)
+  return row
+}
+
+export function toEmployeeBankAccountUpdate(tenantId: string, input: BankAccountUpdateInput, encryptPii: PiiEncryptor): EmployeeBankAccountUpdate {
+  const row: EmployeeBankAccountUpdate = {
+    bic: input.bic ?? null,
+    account_holder: input.accountHolder,
+    description: input.description ?? null,
+    is_primary: input.isPrimary,
+  }
+  const normalizedIban = input.iban?.replace(/\s/g, '').toUpperCase()
+  if (normalizedIban && !/^[•*]{4}\d{4}$/u.test(normalizedIban)) {
+    row.iban_ciphertext = encryptPii(normalizedIban, tenantId)
+    row.iban_last_four = normalizedIban.slice(-4)
+  }
   return row
 }
 

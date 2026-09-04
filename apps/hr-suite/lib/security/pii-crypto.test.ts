@@ -27,4 +27,9 @@ describe('PII-encryptie', () => {
     process.env.EMPLOYEE_PII_ENCRYPTION_KEY = Buffer.from('te-kort').toString('base64')
     expect(() => encryptPii('waarde', 'tenant-een')).toThrow('PII_ENCRYPTION_KEY_INVALID')
   })
+
+  it('weigert nieuwe versleuteling als de sleutel ontbreekt', () => {
+    delete process.env.EMPLOYEE_PII_ENCRYPTION_KEY
+    expect(() => encryptPii('waarde', 'tenant-een')).toThrow('PII_ENCRYPTION_KEY_MISSING')
+  })
 })

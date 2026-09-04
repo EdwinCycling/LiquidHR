@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   isPostgresConflict,
+  toEmployeeBankAccountUpdate,
   toEmployeeInsert,
   toEmployeeUpdate,
   toPublicEmployee,
@@ -40,5 +41,23 @@ describe('employee service mappers', () => {
     expect(isPostgresConflict({ code: '23505' })).toBe(true)
     expect(isPostgresConflict({ code: '23P01' })).toBe(true)
     expect(isPostgresConflict({ code: '42501' })).toBe(false)
+  })
+
+  it('verandert de IBAN-kolommen alleen bij een echte nieuwe IBAN', () => {
+    const encryptPii = vi.fn(() => 'encrypted-iban')
+    const metadataOnly = toEmployeeBankAccountUpdate('tenant-een', {
+      accountHolder: 'Maya Bos', description: 'Aangepast', isPrimary: true,
+    }, encryptPii)
+    const masked = toEmployeeBankAccountUpdate('tenant-een', {
+      iban: '•••• 1032', accountHolder: 'Maya Bos', description: 'Aangepast', isPrimary: true,
+    }, encryptPii)
+    const changed = toEmployeeBankAccountUpdate('tenant-een', {
+      iban: 'NL91ABNA0417164300', accountHolder: 'Maya Bos', description: 'Aangepast', isPrimary: true,
+    }, encryptPii)
+
+    expect(metadataOnly).not.toHaveProperty('iban_ciphertext')
+    expect(masked).not.toHaveProperty('iban_ciphertext')
+    expect(changed).toMatchObject({ iban_ciphertext: 'encrypted-iban', iban_last_four: '4300' })
+    expect(encryptPii).toHaveBeenCalledTimes(1)
   })
 })
