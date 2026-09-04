@@ -363,23 +363,25 @@ export default async function EmploymentDetailPage({
           <div className="space-y-5">
             <Surface className="p-5 sm:p-6">
               <SectionHeader title={t("summaryTitle")} actions={<Badge tone="neutral">{detail.employment.employment_number}</Badge>} />
-              <InfoList className="mt-5" columns={2} items={[
-                { label: t("summaryAdministration"), value: detail.administration.name },
-                { label: t("seniorityDate"), value: <>{detail.employment.seniority_date ? formatDate(detail.employment.seniority_date, { locale, dateFormat: preferences.dateFormat }) : t("notRecorded")}{seniority ? <span className="mt-1 block text-sm text-muted-foreground">{t("seniorityDuration", { years: seniority.years, months: seniority.months })}</span> : null}</> },
-              ]} />
-              <div className="mt-6 border-t border-subtle pt-5">
-                {currentContract ? <>
-                  <SectionHeader title={t("contractDetails")} />
-                  <InfoList className="mt-4" columns={2} items={[
-                    { label: t("contractType"), value: contractTypeLabel },
-                    { label: t("laborConditions"), value: currentContract.labor_condition_sets?.name ?? t("notRecorded") },
-                    { label: t("weeklyHours"), value: contractHours === null ? t("notRecorded") : `${contractHours} ${t("hoursPerWeek")}` },
-                    { label: t("department"), value: currentOrganization?.departments?.name ?? t("notRecorded") },
-                    { label: t("jobTitle"), value: currentOrganization?.job_title ?? t("notRecorded") },
-                    { label: t("workerType"), value: workerTypeLabel },
-                  ]} />
-                </> : <p className="text-sm text-muted-foreground">{t("noActiveContract")}</p>}
-              </div>
+              {expanded ? <>
+                <InfoList className="mt-5" columns={2} items={[
+                  { label: t("summaryAdministration"), value: detail.administration.name },
+                  { label: t("seniorityDate"), value: <>{detail.employment.seniority_date ? formatDate(detail.employment.seniority_date, { locale, dateFormat: preferences.dateFormat }) : t("notRecorded")}{seniority ? <span className="mt-1 block text-sm text-muted-foreground">{t("seniorityDuration", { years: seniority.years, months: seniority.months })}</span> : null}</> },
+                ]} />
+                <div className="mt-6 border-t border-subtle pt-5">
+                  {currentContract ? <>
+                    <SectionHeader title={t("contractDetails")} />
+                    <InfoList className="mt-4" columns={2} items={[
+                      { label: t("contractType"), value: contractTypeLabel },
+                      { label: t("laborConditions"), value: currentContract.labor_condition_sets?.name ?? t("notRecorded") },
+                      { label: t("weeklyHours"), value: contractHours === null ? t("notRecorded") : `${contractHours} ${t("hoursPerWeek")}` },
+                      { label: t("department"), value: currentOrganization?.departments?.name ?? t("notRecorded") },
+                      { label: t("jobTitle"), value: currentOrganization?.job_title ?? t("notRecorded") },
+                      { label: t("workerType"), value: workerTypeLabel },
+                    ]} />
+                  </> : <p className="text-sm text-muted-foreground">{t("noActiveContract")}</p>}
+                </div>
+              </> : null}
             </Surface>
             {currentContract && <EmploymentOverviewActions
               labels={{
@@ -501,6 +503,12 @@ export default async function EmploymentDetailPage({
                 allocationMismatch: t("allocationMismatch"),
                 currentValue: t("currentValue"),
                 historyLabel: t("historyLabel"),
+                future: t("future"),
+                validUntil: t("validUntil"),
+                salaryHistoryTitle: t("salaryHistoryTitle"),
+                salaryHistoryEmpty: t("salaryHistoryEmpty"),
+                salaryIncrease: t("salaryIncrease"),
+                salaryDecrease: t("salaryDecrease"),
                 change: t("change"),
                 effectiveOn: t("effectiveOn"),
                 changeReason: t("changeReason"),

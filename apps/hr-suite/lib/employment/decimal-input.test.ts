@@ -6,6 +6,8 @@ describe('parseDecimalInput', () => {
     expect(parseDecimalInput('12,5')).toBe(12.5)
     expect(parseDecimalInput('12.5')).toBe(12.5)
     expect(parseDecimalInput('1.234,50')).toBe(1234.5)
+    expect(parseDecimalInput('1,234.50')).toBe(1234.5)
+    expect(parseDecimalInput('1.234,50')).toBe(1234.5)
   })
 
   it('keeps empty input invalid instead of turning it into zero', () => {

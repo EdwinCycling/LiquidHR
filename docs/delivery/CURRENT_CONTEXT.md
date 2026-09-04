@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## UX-fix 2026-09-04: salariswijziging dienstverband
+
+**Status: LOCAL GREEN — klaar voor lokaal testen op poort 3000**
+
+- De dienstverband-samenvatting volgt nu de bestaande compact/uitgebreid-knop. De salariswizard heeft een normale begrensde breedte, slaat de contractkeuze over bij één lopend contract en toont daaronder salarisgeschiedenis met huidig, historisch en toekomstig plus datumvolgorde.
+- Salarisbedragen accepteren komma- en puntnotatie en de zichtbare pijlen wijzigen met €100. Het opslaan van salariswijzigingen accepteert nu ook `parttimeAmount`; de review toont bij een salariswijziging geen niet-relevante urenregel.
+- Verificatie: gerichte tests `9/9`, strict TypeScript, i18n-pariteit `35` namespaces, ESLint, lokale HTTP `200`, browsercontrole op `localhost:3000` voor compact, single-contract, geschiedenis, €100-stepper, bedragnotatie en review zonder urenveld, en `git diff --check` zijn groen.
+- Geen remote database-write, migration apply, push of deployment uitgevoerd.
+
 ## UX-fix 2026-09-04: medewerkerdetail, weer en custom fields
 
 **Status: LOCAL GREEN — klaar voor lokaal testen**

@@ -41,6 +41,7 @@ const salaryPayload = z.object({
   salaryRoute: z.enum(['MANUAL', 'MINIMUM_WAGE', 'SCALE_WITH_STEPS', 'SALARY_BAND']).nullish(),
   minimumWageScheme: z.enum(['REGULAR', 'BBL']).nullish(),
   fulltimeAmount: nullableNumber,
+  parttimeAmount: nullableNumber,
   hourlyRate: nullableNumber,
   currencyCode: z.string().regex(/^[A-Z]{3}$/).default('EUR'),
   salaryScaleStepId: databaseUuid.nullish(),

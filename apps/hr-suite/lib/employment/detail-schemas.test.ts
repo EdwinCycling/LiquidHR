@@ -21,7 +21,7 @@ describe('timelineMutationSchema', () => {
     expect(timelineMutationSchema.safeParse({
       timeline: 'SALARY', effectiveOn: '2026-08-01', reason: 'Salarisverhoging',
       payload: { paymentType: 'PERIODIC_FIXED', paymentFrequency: 'MONTHLY',
-        salaryBasis: 'MANUAL', fulltimeAmount: 4200, currencyCode: 'EUR' },
+        salaryBasis: 'MANUAL', fulltimeAmount: 4200, parttimeAmount: 4200, currencyCode: 'EUR' },
     }).success).toBe(true)
   })
 
