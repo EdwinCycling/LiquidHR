@@ -1,7 +1,7 @@
 import 'server-only'
-import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync as readFile } from 'node:fs'
+import { resolve } from 'node:path'
 import serverlessChromium from '@sparticuz/chromium'
 import { chromium as playwrightChromium, type Browser } from 'playwright-core'
 import { renderResolvedSnapshotToHtml, type HtmlRenderOptions } from './html'
@@ -9,18 +9,27 @@ import type { ResolvedGenerationSnapshot } from './domain'
 
 export const DG1_RENDERER_VERSION = 'dg1-html-css-chromium-a4-work-sans-1'
 
-const nodeRequire = createRequire(import.meta.url)
-
 function fontFace(fontPath: string, weight: number, style: 'normal' | 'italic'): string {
   const encoded = readFile(fontPath).toString('base64')
   return `@font-face{font-family:'Work Sans';font-style:${style};font-weight:${weight};font-display:block;src:url(data:font/woff2;base64,${encoded}) format('woff2');}`
 }
 
+function resolveWorkSansFont(fileName: string): string {
+  const candidates = Array.from({ length: 5 }, (_, level) => {
+    let base = process.cwd()
+    for (let index = 0; index < level; index += 1) base = resolve(base, '..')
+    return resolve(base, 'node_modules', '@fontsource', 'work-sans', 'files', fileName)
+  })
+  const path = candidates.find((candidate) => existsSync(candidate))
+  if (!path) throw new Error(`DG1_WORK_SANS_FONT_NOT_FOUND:${fileName}`)
+  return path
+}
+
 function workSansFontCss(): string {
   return [
-    fontFace(nodeRequire.resolve('@fontsource/work-sans/files/work-sans-latin-400-normal.woff2'), 400, 'normal'),
-    fontFace(nodeRequire.resolve('@fontsource/work-sans/files/work-sans-latin-400-italic.woff2'), 400, 'italic'),
-    fontFace(nodeRequire.resolve('@fontsource/work-sans/files/work-sans-latin-700-normal.woff2'), 700, 'normal'),
+    fontFace(resolveWorkSansFont('work-sans-latin-400-normal.woff2'), 400, 'normal'),
+    fontFace(resolveWorkSansFont('work-sans-latin-400-italic.woff2'), 400, 'italic'),
+    fontFace(resolveWorkSansFont('work-sans-latin-700-normal.woff2'), 700, 'normal'),
   ].join('')
 }
 
