@@ -22,9 +22,9 @@ create table public.document_generation_snapshots (
   status public.document_generation_status not null default 'PREVIEW',
   final_pdf_hash text check (final_pdf_hash is null or final_pdf_hash ~ '^[0-9a-f]{64}$'), final_storage_key text,
   finalized_at timestamptz, finalized_by_user_id uuid references auth.users(id),
-  tenant_hr_group_employee_fk foreign key (tenant_id, hr_group_id, employee_id) references public.employees(tenant_id, hr_group_id, id) on delete restrict,
-  tenant_hr_group_template_fk foreign key (tenant_id, hr_group_id, template_id) references public.document_studio_templates(tenant_id, hr_group_id, id) on delete restrict,
-  tenant_hr_group_version_fk foreign key (tenant_id, hr_group_id, template_version_id) references public.document_studio_template_versions(tenant_id, hr_group_id, id) on delete restrict,
+  constraint tenant_hr_group_employee_fk foreign key (tenant_id, hr_group_id, employee_id) references public.employees(tenant_id, hr_group_id, id) on delete restrict,
+  constraint tenant_hr_group_template_fk foreign key (tenant_id, hr_group_id, template_id) references public.document_studio_templates(tenant_id, hr_group_id, id) on delete restrict,
+  constraint tenant_hr_group_version_fk foreign key (tenant_id, hr_group_id, template_version_id) references public.document_studio_template_versions(tenant_id, hr_group_id, id) on delete restrict,
   unique (tenant_id, hr_group_id, id)
 );
 
