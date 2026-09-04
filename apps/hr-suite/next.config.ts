@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/*': [
       '../../node_modules/playwright-core/browsers.json',
+      '../../node_modules/@sparticuz/chromium/bin/**/*',
       '../../node_modules/@sparticuz/chromium/build/**/*',
       '../../node_modules/@fontsource/work-sans/files/*.woff2',
     ],
