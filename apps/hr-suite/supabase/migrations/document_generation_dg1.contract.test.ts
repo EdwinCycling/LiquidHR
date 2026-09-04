@@ -1,0 +1,4 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+const sql = readFileSync('supabase/migrations/20260904100000_document_generation_dg1.sql', 'utf8')
+describe('DG1 migration contract', () => { it('creates immutable scoped snapshot and audit storage', () => { expect(sql).toContain("create type public.document_generation_status as enum ('PREVIEW', 'FINAL')"); expect(sql).toContain('create table public.document_generation_snapshots'); expect(sql).toContain('resolved_document_hash'); expect(sql).toContain('revoke update, delete on public.document_generation_snapshots'); expect(sql).toContain('enable row level security') }); it('does not expose document bodies to generic audit', () => { expect(sql).toContain('document_generation_audit'); expect(sql).toContain("action text not null check (action in ('PREVIEW_CREATED', 'FINALIZED'))") }) })
