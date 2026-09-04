@@ -8,9 +8,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
   outputFileTracingIncludes: {
     '/*': [
-      './node_modules/playwright-core/browsers.json',
-      './node_modules/@sparticuz/chromium/build/**/*',
-      './node_modules/@fontsource/work-sans/files/*.woff2',
+      '../../node_modules/playwright-core/browsers.json',
+      '../../node_modules/@sparticuz/chromium/build/**/*',
+      '../../node_modules/@fontsource/work-sans/files/*.woff2',
     ],
   },
   turbopack: {
