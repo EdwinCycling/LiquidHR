@@ -25,11 +25,11 @@ import { EmploymentMutationPanel } from "@/components/employment/employment-muta
 import { EmploymentTimeMap } from "@/components/employment/employment-time-map";
 import { EmploymentContractTimeline } from "@/components/employment/employment-contract-timeline";
 import { SelectableTimelineList } from "@/components/employment/selectable-timeline-list";
-import { OrganizationTimelineManager } from "@/components/employment/organization-timeline-manager";
 import { CompanyLocationTimelineManager } from "@/components/employment/company-location-timeline-manager";
 import { SalaryBandPositionCard } from "@/components/salary/salary-band-position-card";
 import { WorkPatternPanel } from "@/components/employment/work-pattern-panel";
-import { EmploymentOverviewActions } from "@/components/employment/employment-overview-actions";
+import { EmploymentChangeButton, EmploymentOverviewActions, type EmploymentOverviewActionLabels } from "@/components/employment/employment-overview-actions";
+import type { EmploymentOverviewChangeData } from "@/components/employment/employment-contract-change-dialog";
 import {
   EmploymentDetailError,
   getEmploymentDetail,
@@ -44,10 +44,11 @@ import { getRequestAuthorizationContext } from "@/lib/auth/permissions";
 import { listProcessWork } from "@/lib/process-automation/work-service";
 import { resolveSalaryBandAtDate, resolveSalaryScaleStepAtDate } from "@/lib/salary-application/resolution";
 import { employmentMutationTranslationKey } from "@/lib/employment/employment-mutation-labels";
+import type { Translator } from "@/lib/i18n/translator";
 
 interface PageProps {
   params: Promise<{ employeeId: string; employmentId: string }>;
-  searchParams: Promise<{ tab?: string; view?: string; date?: string; fromTab?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; date?: string; status?: string; lane?: string; fromTab?: string }>;
 }
 
 const tabs = [
@@ -61,6 +62,8 @@ const tabs = [
   "history",
 ] as const;
 type Tab = (typeof tabs)[number];
+const historyStatuses = ['all', 'past', 'current', 'future'] as const;
+const historyLanes = ['all', 'contract', 'organization', 'conditions', 'compensation', 'dossier'] as const;
 
 function periodLabel(
   from: string,
@@ -72,6 +75,120 @@ function periodLabel(
   const format = (value: string) =>
     formatDate(value, { locale, dateFormat });
   return `${format(from)} — ${until ? format(until) : open}`;
+}
+
+type EmploymentDetail = Awaited<ReturnType<typeof getEmploymentDetail>>;
+
+function buildChangeData(detail: EmploymentDetail, notRecorded: string): EmploymentOverviewChangeData {
+  return {
+    contracts: detail.contracts.map((contract) => ({
+      id: contract.id,
+      sequenceNumber: contract.sequence_number,
+      workerType: contract.worker_type,
+      flexPhaseId: contract.flex_phase_id,
+      flexPhaseName: contract.flex_phases?.name ?? null,
+      laborConditionSetId: contract.labor_condition_set_id,
+      laborConditionName: contract.labor_condition_sets?.name ?? notRecorded,
+      fulltimeHoursPerWeek: Number(contract.fulltime_hours_per_week ?? contract.labor_condition_sets?.standard_hours_per_week ?? 40),
+      durationType: contract.duration_type,
+      startsOn: contract.starts_on,
+      endsOn: contract.ends_on,
+      probationApplies: contract.probation_applies,
+      probationEndsOn: contract.probation_ends_on,
+    })),
+    schedules: detail.schedules.map((row) => ({
+      id: row.id,
+      validFrom: row.valid_from,
+      validUntil: row.valid_until,
+      averageHours: Number(row.average_hours_per_week),
+      averageDays: Number(row.average_days_per_week),
+      partTimeFactor: Number(row.part_time_factor),
+      scheduleType: row.schedule_type,
+      mondayHours: row.monday_hours,
+      tuesdayHours: row.tuesday_hours,
+      wednesdayHours: row.wednesday_hours,
+      thursdayHours: row.thursday_hours,
+      fridayHours: row.friday_hours,
+      saturdayHours: row.saturday_hours,
+      sundayHours: row.sunday_hours,
+    })),
+    salaries: detail.salaries.map((row) => ({
+      id: row.id,
+      validFrom: row.valid_from,
+      validUntil: row.valid_until,
+      paymentType: row.payment_type,
+      paymentFrequency: row.payment_frequency,
+      salaryBasis: row.salary_basis,
+      salaryRoute: row.salary_route,
+      minimumWageScheme: row.minimum_wage_scheme,
+      fulltimeAmount: row.fulltime_amount,
+      parttimeAmount: row.parttime_amount,
+      hourlyRate: row.hourly_rate,
+      currencyCode: row.currency_code,
+      salaryScaleStepId: row.salary_scale_step_id,
+      salaryStructureId: row.salary_structure_id,
+      salaryScaleId: row.salary_scale_id,
+      salaryStepCode: row.salary_step_code,
+      salaryBandId: row.salary_band_id,
+    })),
+    organizations: detail.organizations.map((row) => ({
+      id: row.id,
+      effectiveFrom: row.effective_from,
+      effectiveTo: row.effective_to,
+      departmentId: row.department_id,
+      departmentName: `${row.departments?.code ?? ""} · ${row.departments?.name ?? notRecorded}`,
+      jobId: row.job_id,
+      jobName: row.job_title ?? notRecorded,
+    })),
+    costAllocations: detail.costAllocations.map((row) => ({
+      id: row.id,
+      validFrom: row.valid_from,
+      validUntil: row.valid_until,
+      costCenterId: row.cost_center_id,
+      costCenterName: `${row.cost_centers?.code ?? ""} · ${row.cost_centers?.name ?? notRecorded}`,
+      costCarrierId: row.cost_carrier_id,
+      costCarrierName: `${row.cost_carriers?.code ?? ""} · ${row.cost_carriers?.name ?? notRecorded}`,
+      percentage: Number(row.percentage),
+    })),
+    options: {
+      laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: Number(item.standard_hours_per_week), probationMaximumMonths: item.probation_maximum_months === 2 ? 2 as const : 1 as const })),
+      flexPhases: [...detail.options.flexPhases],
+      departments: detail.options.departments.map((item) => ({ id: item.id, code: item.code, name: item.name })),
+      jobs: detail.options.jobs.map((item) => ({ id: item.id, code: item.code, name: item.name })),
+      costCenters: detail.options.costCenters.map((item) => ({ id: item.id, code: item.code, name: item.name })),
+      costCarriers: detail.options.costCarriers.map((item) => ({ id: item.id, code: item.code, name: item.name })),
+      salaryScaleSteps: detail.options.salaryScaleSteps.map((item) => ({ id: item.id, salaryScaleId: item.salary_scale_id, stepCode: item.step_code, label: `${item.salary_scales?.code ?? ""} · ${item.step_name || item.step_code}`, fulltimeAmount: Number(item.fulltime_amount) })),
+      salaryScales: detail.options.salaryScales,
+      salaryBands: detail.options.salaryBands,
+      salaryRoutes: detail.options.salaryRoutes,
+    },
+  };
+}
+
+function buildChangeLabels(t: Translator): EmploymentOverviewActionLabels {
+  return {
+    sectionTitle: t("changeActionsTitle"), hoursSchedule: t("changeHoursSchedule"), hoursScheduleSalary: t("changeHoursScheduleSalary"), functionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), salary: t("changeSalary"), laborConditions: t("changeLaborConditions"), contractTypeStartDate: t("changeContractTypeStartDate"), deleteContract: t("changeDeleteContract"),
+    modalTitle: t("changeModalTitle"), cancel: t("cancel"), changeDiscardTitle: t("changeDiscardTitle"), changeDiscardDescription: t("changeDiscardDescription"), changeDiscardConfirm: t("changeDiscardConfirm"), changeDiscardCancel: t("changeDiscardCancel"), chooseContract: t("chooseContract"), contractSelectionTitle: t("contractSelectionTitle"), contractSelectionHelp: t("contractSelectionHelp"), contractNumber: t("contractNumber"), period: t("period"), selectedContractStatement: t("selectedContractStatement"), dateOutsideContract: t("dateOutsideContract"), contractStartOption: t("contractStartOption"), currentMonthOption: t("currentMonthOption"), nextMonthOption: t("nextMonthOption"), customDateOption: t("customDateOption"), changeStartDateTitle: t("changeStartDateTitle"), changeStartDateHelp: t("changeStartDateHelp"), timelineBeforeChange: t("timelineBeforeChange"), stepSelection: t("stepSelection"), stepDate: t("stepDate"), stepDetails: t("stepDetails"), stepReview: t("stepReview"), changeDetailsTitle: t("changeDetailsTitle"), reviewChangeTitle: t("reviewChangeTitle"), changeNotAvailable: t("changeNotAvailable"), changeHoursSchedule: t("changeHoursSchedule"), changeHoursScheduleSalary: t("changeHoursScheduleSalary"), changeFunctionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"), changeSalary: t("changeSalary"), changeLaborConditions: t("changeLaborConditions"), changeContractTypeStartDate: t("changeContractTypeStartDate"), changeModalTitle: t("changeModalTitle"), stepSchedule: t("stepSchedule"), active: t("active"), definite: t("definite"), indefinite: t("indefinite"), temporaryWithoutEnd: t("temporaryWithoutEnd"), contractType: t("contractType"), workerType: t("workerType"), selectWorkerType: t("selectWorkerType"), workerEmployee: t("workerEmployee"), workerStudentIntern: t("workerStudentIntern"), workerTemporaryAgency: t("workerTemporaryAgency"), workerExternal: t("workerExternal"), notRecorded: t("notRecorded"), flexPhase: t("flexPhase"), laborConditionsLabel: t("laborConditions"), duration: t("duration"), startDate: t("startDate"), endDate: t("endsOn"), probation: t("probation"), probationEnd: t("probationEnd"), yes: t("yes"), no: t("no"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"), probationCaoMaximum: t("probationCaoMaximum"), employmentScope: t("employmentScope"), fullTime: t("fullTime"), partTime: t("partTime"), weeklyHours: t("weeklyHours"), hoursPerWeek: t("hoursPerWeek"), hourUnit: t("hourUnit"), fulltimeReference: t("fulltimeReference"), factorCalculated: t("factorCalculated"), hoursAgreement: t("hoursAgreement"), hoursAgreementHelp: t("hoursAgreementHelp"), averageDays: t("averageDays"), partTimeFactor: t("partTimeFactor"), roster: t("roster"), rosterHelp: t("rosterHelp"), rosterInputMode: t("rosterInputMode"), rosterDecimal: t("rosterDecimal"), rosterHoursMinutes: t("rosterHoursMinutes"), rosterDecimalHelp: t("rosterDecimalHelp"), rosterHoursMinutesHelp: t("rosterHoursMinutesHelp"), rosterDecimalUnit: t("rosterDecimalUnit"), rosterHoursMinutesUnit: t("rosterHoursMinutesUnit"), rosterDecimalPlaceholder: t("rosterDecimalPlaceholder"), rosterHoursMinutesPlaceholder: t("rosterHoursMinutesPlaceholder"), rosterAverage: t("rosterAverage"), rosterMismatch: t("rosterMismatch"), weekOne: t("weekOne"), weekTwo: t("weekTwo"), addSecondWeek: t("addSecondWeek"), removeSecondWeek: t("removeSecondWeek"), timeForTime: t("timeForTime"), hoursPerDay: t("hoursPerDay"), hoursAndAverageDays: t("hoursAndAverageDays"), hoursAndSpecificDays: t("hoursAndSpecificDays"), timesPerDay: t("timesPerDay"), stepSalary: t("stepSalary"), salaryCalculation: t("salaryCalculation"), salaryManual: t("salaryManual"), salaryMinimum: t("salaryMinimum"), salaryTable: t("salaryTable"), salaryBand: t("salaryApplication.salaryBand"), salaryApplicationScheme: t("salaryApplication.scheme"), salaryRegular: t("salaryApplication.regular"), salaryBbl: t("salaryApplication.bbl"), salaryApplicationExternalAmount: t("salaryApplication.externalAmount"), salaryScale: t("salaryScale"), salaryScaleStep: t("salaryScaleStep"), salaryScaleAmount: t("salaryScaleAmount"), fulltimeSalary: t("fulltimeSalary"), parttimeSalary: t("parttimeSalary"), hourlyRate: t("hourlyRate"), paymentFrequency: t("paymentFrequency"), monthly: t("monthly"), fourWeekly: t("fourWeekly"), salaryBandMinimum: t("salaryApplication.minimum"), salaryBandMidpoint: t("salaryApplication.midpoint"), salaryBandMaximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), salaryOpenEnded: t("salaryApplication.openEnded"), organizationPlacement: t("organizationPlacement"), department: t("department"), job: t("job"), costCenter: t("costCenter"), costCarrier: t("costCarrier"), addAllocation: t("addAllocation"), removeAllocation: t("removeAllocation"), allocationPercentage: t("allocationPercentage"), allocationTotal: t("allocationTotal"), allocationMismatch: t("allocationMismatch"), currentValue: t("currentValue"), historyLabel: t("historyLabel"), future: t("future"), validUntil: t("validUntil"), salaryHistoryTitle: t("salaryHistoryTitle"), salaryHistoryEmpty: t("salaryHistoryEmpty"), salaryIncrease: t("salaryIncrease"), salaryDecrease: t("salaryDecrease"), change: t("change"), effectiveOn: t("effectiveOn"), changeReason: t("changeReason"), requiredFields: t("requiredFields"), previous: t("previous"), next: t("next"), confirm: t("confirm"), saving: t("saving"), changeSaved: t("changeSaved"), changeFailed: t("changeFailed"),
+  };
+}
+
+type TimelineStatus = 'past' | 'current' | 'future';
+
+function timelineStatus(from: string, until: string | null, today: string, untilInclusive = false): TimelineStatus {
+  if (from > today) return 'future';
+  if (until && (untilInclusive ? until < today : until <= today)) return 'past';
+  return 'current';
+}
+
+function orderedTimelineRows<T>(rows: T[], getFrom: (row: T) => string, getUntil: (row: T) => string | null, today: string, untilInclusive = false): Array<{ row: T; status: TimelineStatus }> {
+  const statusOrder: Record<TimelineStatus, number> = { current: 0, past: 1, future: 2 };
+  return rows.map((row) => ({ row, status: timelineStatus(getFrom(row), getUntil(row), today, untilInclusive) })).sort((left, right) => {
+    const statusDifference = statusOrder[left.status] - statusOrder[right.status];
+    if (statusDifference !== 0) return statusDifference;
+    const leftDate = getFrom(left.row);
+    const rightDate = getFrom(right.row);
+    return left.status === 'future' ? leftDate.localeCompare(rightDate) : rightDate.localeCompare(leftDate);
+  });
 }
 
 async function loadPageData(employeeId: string, employmentId: string, tab: Tab) {
@@ -104,10 +221,11 @@ export default async function EmploymentDetailPage({
     ? (query.tab as Tab)
     : "overview";
   const tab: Tab = requestedTab === 'processes' && !canReadProcesses ? 'overview' : requestedTab;
+  const dataScope: Tab = tab === 'schedule' || tab === 'salary' || tab === 'organization' || tab === 'costs' ? 'overview' : tab;
   const [detail, locale, preferences, t, events] = await loadPageData(
     employeeId,
     employmentId,
-    tab,
+    dataScope,
   );
   const tProcess = await getTranslator('processAutomation');
   const processWork = tab === 'processes' && canReadProcesses
@@ -116,13 +234,19 @@ export default async function EmploymentDetailPage({
   const expanded = query.view !== "compact";
   const today = new Date().toISOString().slice(0, 10);
   const seniority = seniorityDuration(detail.employment.seniority_date, today);
-  const currentContract = detail.contracts.find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on >= today));
-  const currentSchedule = detail.schedules.find((schedule) => schedule.valid_from <= today && (!schedule.valid_until || schedule.valid_until >= today));
+  const currentContract = detail.contracts.find((contract) => contract.starts_on <= today && (!contract.ends_on || contract.ends_on > today));
+  const currentSchedule = detail.schedules.find((schedule) => schedule.valid_from <= today && (!schedule.valid_until || schedule.valid_until > today));
   const currentOrganization = detail.organizations.find((organization) => organization.effective_from <= today && (!organization.effective_to || organization.effective_to >= today));
   const contractHours = currentSchedule?.average_hours_per_week ?? currentContract?.fulltime_hours_per_week ?? null;
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(query.date ?? "")
     ? query.date!
     : today;
+  const selectedHistoryStatus = historyStatuses.includes(query.status as (typeof historyStatuses)[number])
+    ? query.status as (typeof historyStatuses)[number]
+    : 'all';
+  const selectedHistoryLane = historyLanes.includes(query.lane as (typeof historyLanes)[number])
+    ? query.lane as (typeof historyLanes)[number]
+    : 'all';
   const currentSalary = detail.salaries.find((salary) => salary.valid_from <= selectedDate && (!salary.valid_until || salary.valid_until > selectedDate)) ?? detail.salaries[0];
   const resolutionRevisions = detail.options.salaryRevisions.map((revision) => ({ id: revision.id, salaryStructureId: revision.salary_structure_id, effectiveFrom: revision.effective_from, revisionNumber: revision.revision_number, status: revision.status }));
   const resolutionScaleValues = detail.options.salaryScaleValues.map((value) => ({ revisionId: value.salary_structure_revision_id, salaryScaleId: value.salary_scale_id, code: value.code, name: value.name }));
@@ -263,9 +387,12 @@ export default async function EmploymentDetailPage({
   const timelineListLabels = {
     current: t("currentValue"),
     history: t("historyLabel"),
+    future: t("future"),
     empty: t("notRecorded"),
     close: t("cancel"),
   };
+  const changeLabels = buildChangeLabels(t);
+  const changeData = buildChangeData(detail, t("notRecorded"));
 
   return (
     <main>
@@ -424,6 +551,8 @@ export default async function EmploymentDetailPage({
                 changeHoursScheduleSalary: t("changeHoursScheduleSalary"),
                 changeFunctionDepartmentCostCenter: t("changeFunctionDepartmentCostCenter"),
                 changeSalary: t("changeSalary"),
+                changeLaborConditions: t("changeLaborConditions"),
+                changeContractTypeStartDate: t("changeContractTypeStartDate"),
                 changeModalTitle: t("changeModalTitle"),
                 stepSchedule: t("stepSchedule"),
                 active: t("active"),
@@ -432,11 +561,24 @@ export default async function EmploymentDetailPage({
                 temporaryWithoutEnd: t("temporaryWithoutEnd"),
                 contractType: t("contractType"),
                 workerType: t("workerType"),
+                selectWorkerType: t("selectWorkerType"),
                 workerEmployee: t("workerEmployee"),
                 workerStudentIntern: t("workerStudentIntern"),
                 workerTemporaryAgency: t("workerTemporaryAgency"),
                 workerExternal: t("workerExternal"),
                 notRecorded: t("notRecorded"),
+                flexPhase: t("flexPhase"),
+                laborConditionsLabel: t("laborConditions"),
+                duration: t("duration"),
+                startDate: t("startDate"),
+                endDate: t("endsOn"),
+                probation: t("probation"),
+                probationEnd: t("probationEnd"),
+                yes: t("yes"),
+                no: t("no"),
+                firstContractStartDateHelp: t("firstContractStartDateHelp"),
+                contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
+                probationCaoMaximum: t("probationCaoMaximum"),
                 employmentScope: t("employmentScope"),
                 fullTime: t("fullTime"),
                 partTime: t("partTime"),
@@ -448,8 +590,18 @@ export default async function EmploymentDetailPage({
                 hoursAgreement: t("hoursAgreement"),
                 hoursAgreementHelp: t("hoursAgreementHelp"),
                 averageDays: t("averageDays"),
+                partTimeFactor: t("partTimeFactor"),
                 roster: t("roster"),
                 rosterHelp: t("rosterHelp"),
+                rosterInputMode: t("rosterInputMode"),
+                rosterDecimal: t("rosterDecimal"),
+                rosterHoursMinutes: t("rosterHoursMinutes"),
+                rosterDecimalHelp: t("rosterDecimalHelp"),
+                rosterHoursMinutesHelp: t("rosterHoursMinutesHelp"),
+                rosterDecimalUnit: t("rosterDecimalUnit"),
+                rosterHoursMinutesUnit: t("rosterHoursMinutesUnit"),
+                rosterDecimalPlaceholder: t("rosterDecimalPlaceholder"),
+                rosterHoursMinutesPlaceholder: t("rosterHoursMinutesPlaceholder"),
                 rosterAverage: t("rosterAverage"),
                 rosterMismatch: t("rosterMismatch"),
                 weekOne: t("weekOne"),
@@ -529,11 +681,16 @@ export default async function EmploymentDetailPage({
                   id: contract.id,
                   sequenceNumber: contract.sequence_number,
                   workerType: contract.worker_type,
+                  flexPhaseId: contract.flex_phase_id,
+                  flexPhaseName: contract.flex_phases?.name ?? null,
+                  laborConditionSetId: contract.labor_condition_set_id,
                   laborConditionName: contract.labor_condition_sets?.name ?? t("notRecorded"),
                   fulltimeHoursPerWeek: Number(contract.fulltime_hours_per_week ?? contract.labor_condition_sets?.standard_hours_per_week ?? 40),
                   durationType: contract.duration_type,
                   startsOn: contract.starts_on,
                   endsOn: contract.ends_on,
+                  probationApplies: contract.probation_applies,
+                  probationEndsOn: contract.probation_ends_on,
                 })),
                 schedules: detail.schedules.map((row) => ({
                   id: row.id,
@@ -590,6 +747,8 @@ export default async function EmploymentDetailPage({
                   percentage: Number(row.percentage),
                 })),
                 options: {
+                  laborConditionSets: detail.options.laborConditionSets.map((item) => ({ id: item.id, name: item.name, standardHoursPerWeek: Number(item.standard_hours_per_week), probationMaximumMonths: item.probation_maximum_months === 2 ? 2 as const : 1 as const })),
+                  flexPhases: [...detail.options.flexPhases],
                   departments: detail.options.departments.map((item) => ({ id: item.id, code: item.code, name: item.name })),
                   jobs: detail.options.jobs.map((item) => ({ id: item.id, code: item.code, name: item.name })),
                   costCenters: detail.options.costCenters.map((item) => ({ id: item.id, code: item.code, name: item.name })),
@@ -641,22 +800,33 @@ export default async function EmploymentDetailPage({
         )}
         {tab === "schedule" && (
           <div className="space-y-6">
-            <SelectableTimelineList
-              labels={timelineListLabels}
-              items={detail.schedules.map((row) => ({
-                id: row.id,
-                title: `${row.average_hours_per_week} ${t("weeklyHours")}`,
-                period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
-                summary: `${row.average_days_per_week} ${t("averageDays")} · ${Math.round(Number(row.part_time_factor) * 100)}%`,
-                details: [
-                  { label: t("scheduleType"), value: row.schedule_type },
-                  { label: t("weeklyHours"), value: String(row.average_hours_per_week) },
-                  { label: t("fulltimeReference"), value: String(row.fulltime_hours_per_week) },
-                  { label: t("partTimeFactor"), value: `${Math.round(Number(row.part_time_factor) * 100)}%` },
-                  { label: t("onCallEmployee"), value: row.is_on_call ? t("yes") : t("no") },
-                ],
-              }))}
-            />
+            <Surface className="p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="eyebrow text-primary">{t("tabsSchedule")}</p>
+                  <h2 className="mt-1 text-xl font-semibold">{t("scheduleTimelineTitle")}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("scheduleTimelineDescription")}</p>
+                </div>
+                {detail.capabilities.canWriteWorkSchedule && currentContract ? <EmploymentChangeButton actionKey="hoursSchedule" actionTitle={t("changeHoursSchedule")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} /> : null}
+              </div>
+              <SelectableTimelineList
+                labels={timelineListLabels}
+                items={orderedTimelineRows(detail.schedules, (row) => row.valid_from, (row) => row.valid_until, today).map(({ row, status }) => ({
+                  id: row.id,
+                  status,
+                  title: `${row.average_hours_per_week} ${t("weeklyHours")}`,
+                  period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
+                  summary: `${row.average_days_per_week} ${t("averageDays")} · ${Math.round(Number(row.part_time_factor) * 100)}%`,
+                  details: [
+                    { label: t("scheduleType"), value: row.schedule_type },
+                    { label: t("weeklyHours"), value: String(row.average_hours_per_week) },
+                    { label: t("fulltimeReference"), value: String(row.fulltime_hours_per_week) },
+                    { label: t("partTimeFactor"), value: `${Math.round(Number(row.part_time_factor) * 100)}%` },
+                    { label: t("onCallEmployee"), value: row.is_on_call ? t("yes") : t("no") },
+                  ],
+                }))}
+              />
+            </Surface>
             <WorkPatternPanel
               employmentId={employmentId}
               canWrite={detail.capabilities.canWriteWorkSchedule}
@@ -707,15 +877,6 @@ export default async function EmploymentDetailPage({
                 ],
               }}
             />
-            <EmploymentMutationPanel
-              employmentId={employmentId}
-              timeline="SCHEDULE"
-              canWrite={detail.capabilities.canWriteContract}
-              blockCount={detail.schedules.length}
-              latestEffectiveOn={detail.schedules[0]?.valid_from}
-              fulltimeHoursPerWeek={Number(detail.schedules[0]?.fulltime_hours_per_week ?? 40)}
-              labels={mutationLabels}
-            />
           </div>
         )}
         {tab === "salary" && !detail.capabilities.canReadSalary && (
@@ -732,68 +893,62 @@ export default async function EmploymentDetailPage({
                 preview: t("salaryApplication.preview"), currentSalary: t("salaryApplication.currentSalary"), minimum: t("salaryApplication.minimum"), midpoint: t("salaryApplication.midpoint"), maximum: t("salaryApplication.maximum"), compaRatio: t("salaryApplication.compaRatio"), rangePenetration: t("salaryApplication.rangePenetration"), status: t("salaryApplication.status"), underMinimum: t("salaryApplication.underMinimum"), withinRange: t("salaryApplication.withinRange"), aboveMaximum: t("salaryApplication.aboveMaximum"), noValidBand: t("salaryApplication.noValidBand"), openEnded: t("salaryApplication.openEnded"),
               }}
             />}
-            <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
-            <SelectableTimelineList
-              labels={timelineListLabels}
-              items={detail.salaries.map((row) => ({
-                id: row.id,
-                title: new Intl.NumberFormat(locale, {
-                    style: "currency",
-                    currency: row.currency_code,
-                }).format(Number(row.parttime_amount ?? resolvedSalaryAmount(row, row.valid_from) ?? row.hourly_rate ?? 0)),
-                period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
-                 summary: `${row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual")} · ${row.payment_frequency}`,
-                 details: [
-                   { label: t("salaryCalculation"), value: row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual") },
-                   { label: t("fulltimeSalary"), value: String(resolvedSalaryAmount(row, selectedDate) ?? "—") },
-                   { label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") },
-                   { label: t("frequency"), value: row.payment_frequency },
-                   ...(row.salary_route === 'MINIMUM_WAGE' ? [{ label: t("salaryApplication.minimumWage"), value: row.minimum_wage_scheme ?? "—" }] : []),
-                   ...(row.salary_route === 'SCALE_WITH_STEPS' ? [{ label: t("salaryScale"), value: row.salary_step_code ?? "—" }] : []),
-                 ],
-              }))}
-            />
-            <EmploymentMutationPanel
-              employmentId={employmentId}
-              timeline="SALARY"
-              canWrite={detail.capabilities.canWriteSalary}
-              blockCount={detail.salaries.length}
-              latestEffectiveOn={detail.salaries[0]?.valid_from}
-              salaryRoutes={detail.options.salaryRoutes}
-              salaryScales={detail.options.salaryScales}
-              salaryScaleSteps={detail.options.salaryScaleSteps.map((item) => ({ id: item.id, salaryScaleId: item.salary_scale_id, stepCode: item.step_code, label: `${item.salary_scales?.code ?? ''} · ${item.step_name || item.step_code}`, fulltimeAmount: Number(item.fulltime_amount) }))}
-              salaryBands={detail.options.salaryBands}
-              salaryBandLocale={locale}
-              salaryBandLabels={{ preview: t('salaryApplication.preview'), currentSalary: t('salaryApplication.currentSalary'), minimum: t('salaryApplication.minimum'), midpoint: t('salaryApplication.midpoint'), maximum: t('salaryApplication.maximum'), compaRatio: t('salaryApplication.compaRatio'), rangePenetration: t('salaryApplication.rangePenetration'), status: t('salaryApplication.status'), underMinimum: t('salaryApplication.underMinimum'), withinRange: t('salaryApplication.withinRange'), aboveMaximum: t('salaryApplication.aboveMaximum'), noValidBand: t('salaryApplication.noValidBand'), openEnded: t('salaryApplication.openEnded') }}
-              labels={mutationLabels}
-            />
-            </div>
+            <Surface className="p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="eyebrow text-primary">{t("tabsSalary")}</p>
+                  <h2 className="mt-1 text-xl font-semibold">{t("salaryTimelineTitle")}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("salaryTimelineDescription")}</p>
+                </div>
+                {detail.capabilities.canWriteSalary && currentContract ? <EmploymentChangeButton actionKey="salary" actionTitle={t("changeSalary")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} /> : null}
+              </div>
+              <SelectableTimelineList
+                labels={timelineListLabels}
+                items={orderedTimelineRows(detail.salaries, (row) => row.valid_from, (row) => row.valid_until, today).map(({ row, status }) => ({
+                  id: row.id,
+                  status,
+                  title: new Intl.NumberFormat(locale, { style: "currency", currency: row.currency_code }).format(Number(row.parttime_amount ?? resolvedSalaryAmount(row, row.valid_from) ?? row.hourly_rate ?? 0)),
+                  period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
+                  summary: `${row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual")} · ${row.payment_frequency}`,
+                  details: [
+                    { label: t("salaryCalculation"), value: row.salary_route === 'SALARY_BAND' ? t("salaryApplication.salaryBand") : row.salary_route === 'SCALE_WITH_STEPS' ? t("salaryApplication.scaleWithSteps") : row.salary_route === 'MINIMUM_WAGE' ? t("salaryApplication.minimumWage") : t("salaryApplication.manual") },
+                    { label: t("fulltimeSalary"), value: String(resolvedSalaryAmount(row, row.valid_from) ?? "—") },
+                    { label: t("parttimeSalary"), value: String(row.parttime_amount ?? "—") },
+                    { label: t("frequency"), value: row.payment_frequency },
+                    ...(row.salary_route === 'MINIMUM_WAGE' ? [{ label: t("salaryApplication.minimumWage"), value: row.minimum_wage_scheme ?? "—" }] : []),
+                    ...(row.salary_route === 'SCALE_WITH_STEPS' ? [{ label: t("salaryScale"), value: row.salary_step_code ?? "—" }] : []),
+                  ],
+                }))}
+              />
+            </Surface>
           </div>
         )}
         {tab === "organization" && (
-          <OrganizationTimelineManager
-            employmentId={employmentId}
-            canWrite={detail.capabilities.canWriteOrganization}
-            placements={detail.organizations.map((row) => ({
-              id: row.id,
-              departmentId: row.department_id,
-              departmentName: `${row.departments?.code ?? ""} · ${row.departments?.name ?? t("notRecorded")}`,
-              jobId: row.job_id,
-              jobName: row.job_title ?? t("notRecorded"),
-              effectiveFrom: row.effective_from,
-              effectiveTo: row.effective_to,
-            }))}
-            options={{
-              departments: [...detail.options.departments],
-              jobs: [...detail.options.jobs],
-            }}
-            labels={{
-              current: t("currentValue"), history: t("historyLabel"),
-              add: t("timelineAdd"), edit: t("change"), save: t("confirm"),
-              cancel: t("cancel"), department: t("department"), job: t("job"),
-              effectiveOn: t("effectiveOn"), active: t("active"), failed: t("changeFailed"), discardTitle: t("changeDiscardTitle"), discardDescription: t("changeDiscardDescription"), discardConfirm: t("changeDiscardConfirm"), discardCancel: t("changeDiscardCancel"),
-            }}
-          />
+          <Surface className="p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow text-primary">{t("tabsOrganization")}</p>
+                <h2 className="mt-1 text-xl font-semibold">{t("organizationTimelineTitle")}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{t("organizationTimelineDescription")}</p>
+              </div>
+              {detail.capabilities.canWriteOrganization && currentContract ? <EmploymentChangeButton actionKey="functionDepartmentCostCenter" actionTitle={t("changeFunctionDepartmentCostCenter")} buttonLabel={t("change")} labels={changeLabels} employmentId={employmentId} today={today} locale={locale} data={changeData} dayLabels={[t("dayMonday"), t("dayTuesday"), t("dayWednesday"), t("dayThursday"), t("dayFriday"), t("daySaturday"), t("daySunday")]} /> : null}
+            </div>
+            <SelectableTimelineList
+              labels={timelineListLabels}
+              items={orderedTimelineRows(detail.organizations, (row) => row.effective_from, (row) => row.effective_to, today, true).map(({ row, status }) => ({
+                id: row.id,
+                status,
+                title: row.job_title ?? t("notRecorded"),
+                period: periodLabel(row.effective_from, row.effective_to, locale, preferences.dateFormat, t("active")),
+                summary: `${row.departments?.code ?? ""} · ${row.departments?.name ?? t("notRecorded")}`,
+                details: [
+                  { label: t("job"), value: row.job_title ?? t("notRecorded") },
+                  { label: t("department"), value: row.departments?.name ?? t("notRecorded") },
+                  { label: t("effectiveOn"), value: row.effective_from },
+                ],
+              }))}
+            />
+          </Surface>
         )}
         {tab === "company-location" && (
           <CompanyLocationTimelineManager
@@ -819,7 +974,7 @@ export default async function EmploymentDetailPage({
             labels={{
               title: t("companyLocationTitle"), description: t("companyLocationDescription"),
               company: t("company"), companyAddress: t("companyAddress"), locations: t("locations"),
-              current: t("currentValue"), history: t("historyLabel"), active: t("active"),
+              current: t("currentValue"), history: t("historyLabel"), future: t("future"), active: t("active"),
               notRecorded: t("notRecorded"), readOnly: t("readOnly"), noLocations: t("noLocations"),
               location: t("location"), locationSearch: t("locationSearch"), locationSearchPlaceholder: t("locationSearchPlaceholder"),
               noLocationResults: t("noLocationResults"), add: t("timelineAdd"), edit: t("change"),
@@ -827,14 +982,16 @@ export default async function EmploymentDetailPage({
               failed: t("changeFailed"), saving: t("saving"), changeSaved: t("changeSaved"), discardTitle: t("changeDiscardTitle"), discardDescription: t("changeDiscardDescription"), discardConfirm: t("changeDiscardConfirm"), discardCancel: t("changeDiscardCancel"),
               singleLocationMode: t("singleLocationMode"),
             }}
+            today={today}
           />
         )}
         {tab === "costs" && (
           <div className="grid gap-5 lg:grid-cols-[1fr_.8fr]">
             <SelectableTimelineList
               labels={timelineListLabels}
-              items={detail.costAllocations.map((row) => ({
+              items={orderedTimelineRows(detail.costAllocations, (row) => row.valid_from, (row) => row.valid_until, today).map(({ row, status }) => ({
                 id: row.id,
+                status,
                 title: `${row.cost_centers?.code ?? ""} · ${row.cost_centers?.name ?? t("costCenter")}`,
                 period: periodLabel(row.valid_from, row.valid_until, locale, preferences.dateFormat, t("active")),
                 summary: `${row.percentage}% · ${row.cost_carriers?.name ?? t("costCarrier")}`,
@@ -866,11 +1023,22 @@ export default async function EmploymentDetailPage({
             <EmploymentTimeMap
               events={events}
               selectedDate={selectedDate}
+              selectedStatus={selectedHistoryStatus}
+              selectedLane={selectedHistoryLane}
+              locale={locale}
               labels={{
                 title: t("timeMapTitle"),
                 subtitle: t("timeMapSubtitle"),
                 empty: t("timeMapEmpty"),
+                noResults: t("historyNoResults"),
                 asOf: t("timeMapAsOf"),
+                filterStatus: t("historyFilterStatus"),
+                filterLane: t("historyFilterLane"),
+                filterAll: t("historyFilterAll"),
+                past: t("historyPast"),
+                current: t("historyCurrent"),
+                future: t("historyFuture"),
+                details: t("historyDetails"),
                 lanes: {
                   contract: t("timeLaneContract"),
                   organization: t("timeLaneOrganization"),
@@ -882,6 +1050,7 @@ export default async function EmploymentDetailPage({
                   EMPLOYMENT_STARTED: t("eventEmploymentStarted"),
                   EMPLOYMENT_ENDED: t("eventEmploymentEnded"),
                   INCOME_RELATIONSHIP_CHANGED: t("eventIncomeRelationship"),
+                  CONTRACT_CHANGED: t("eventContract"),
                   ORGANIZATION_CHANGED: t("eventOrganization"),
                   LABOR_CONDITIONS_CHANGED: t("eventLabor"),
                   SCHEDULE_CHANGED: t("eventSchedule"),
@@ -890,10 +1059,35 @@ export default async function EmploymentDetailPage({
                   DOCUMENT_ADDED: t("eventDocumentAdded"),
                   DOCUMENT_EXPIRES: t("eventDocumentExpires"),
                 },
+                values: {
+                  number: t("historyValueNumber"),
+                  contractType: t("historyValueContractType"),
+                  workerType: t("historyValueWorkerType"),
+                  department: t("historyValueDepartment"),
+                  jobTitle: t("historyValueJobTitle"),
+                  conditionGroup: t("historyValueConditionGroup"),
+                  hours: t("historyValueHours"),
+                  factor: t("historyValueFactor"),
+                  amount: t("historyValueAmount"),
+                  percentage: t("historyValuePercentage"),
+                  costCenter: t("historyValueCostCenter"),
+                  title: t("historyValueTitle"),
+                  startDate: t("historyValueStartDate"),
+                  historyContractIndefinite: t("historyContractIndefinite"),
+                  historyContractDefinite: t("historyContractDefinite"),
+                  historyContractTemporaryWithoutEnd: t("historyContractTemporaryWithoutEnd"),
+                  historyContractOnCall: t("onCallEmployee"),
+                  historyContractTemporaryAgency: t("workerTemporaryAgency"),
+                  historyContractExternal: t("workerExternal"),
+                  historyWorkerEmployee: t("historyWorkerEmployee"),
+                  historyWorkerStudentIntern: t("historyWorkerStudentIntern"),
+                  historyWorkerTemporaryAgency: t("historyWorkerTemporaryAgency"),
+                  historyWorkerExternal: t("historyWorkerExternal"),
+                },
               }}
             />
-            <Surface className="p-5">
-              <SectionHeader title={t("auditLog")} />
+            <details className="border border-subtle bg-surface p-5">
+              <summary className="cursor-pointer font-semibold">{t("historyTechnicalLog")}</summary>
               {detail.auditLogs.length === 0 ? (
                 <EmptyState className="mt-4" title={t("auditEmpty")} />
               ) : (
@@ -914,7 +1108,7 @@ export default async function EmploymentDetailPage({
                   ))}
                 </ol>
               )}
-            </Surface>
+            </details>
           </div>
         )}
       </div>

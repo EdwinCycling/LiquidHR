@@ -113,6 +113,7 @@ export default async function HrCalendarPage({ searchParams }: Props) {
     EMPLOYMENT_STARTED: t('eventEmploymentStarted'),
     EMPLOYMENT_ENDED: t('eventEmploymentEnded'),
     INCOME_RELATIONSHIP_CHANGED: t('eventIncomeRelationship'),
+    CONTRACT_CHANGED: t('eventContract'),
     ORGANIZATION_CHANGED: t('eventOrganization'),
     LABOR_CONDITIONS_CHANGED: t('eventLabor'),
     SCHEDULE_CHANGED: t('eventSchedule'),

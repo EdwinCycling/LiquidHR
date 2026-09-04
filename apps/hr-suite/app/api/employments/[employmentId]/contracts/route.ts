@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { employmentContractMutationSchema } from '@/lib/employment/contract-schemas'
+import { databaseUuid } from '@/lib/validation/database-uuid'
 import {
   EmploymentDetailError,
   manageEmploymentContract,
@@ -9,7 +10,7 @@ import {
 
 interface RouteContext { params: Promise<{ employmentId: string }> }
 const editSchema = z.object({
-  contractId: z.string().uuid(),
+  contractId: databaseUuid,
   input: employmentContractMutationSchema,
 }).strict()
 

@@ -263,11 +263,12 @@
 }
 
 [data-theme="linkedhr"] .button-secondary {
-  border-color: var(--border);
-  background: var(--surface);
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+  background: color-mix(in srgb, var(--surface) 70%, var(--accent) 30%);
+  color: var(--accent-foreground);
 }
 
 [data-theme="linkedhr"] .button-secondary:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
-  background: var(--surface-raised);
+  border-color: color-mix(in srgb, var(--primary) 48%, var(--border));
+  background: color-mix(in srgb, var(--surface) 58%, var(--accent) 42%);
 }

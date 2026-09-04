@@ -119,6 +119,44 @@ begin
     raise exception 'Atomaire HR-publicatie of doelgroepmaterialisatie is mislukt.';
   end if;
 
+  declare
+    unlinked_employee uuid;
+    unlinked_reminder uuid;
+  begin
+    select employee.id into unlinked_employee
+    from public.employees employee
+    where employee.tenant_id = tenant
+      and employee.auth_user_id is null
+      and employee.is_active
+      and employee.deleted_at is null
+    limit 1;
+
+    if unlinked_employee is not null then
+      unlinked_reminder := public.create_hr_reminder(
+        tenant,
+        administration,
+        'HR-reminder voor medewerker zonder account',
+        null,
+        timezone('utc', now()) + interval '5 days',
+        'EMPLOYEES',
+        array[unlinked_employee]
+      );
+      recipient_count := public.publish_reminder(unlinked_reminder);
+
+      if recipient_count < 1
+        or (select status from public.reminders where id = unlinked_reminder) <> 'PUBLISHED'
+        or not exists (
+          select 1
+          from public.reminder_recipients recipient
+          where recipient.reminder_id = unlinked_reminder
+            and recipient.user_id = actor
+            and recipient.employee_id is null
+        ) then
+        raise exception 'Een medewerker zonder account krijgt geen fallback-ontvanger.';
+      end if;
+    end if;
+  end;
+
   if exists (
     select 1 from public.reminders
     where id = md5('reminder:foreign-tenant')::uuid

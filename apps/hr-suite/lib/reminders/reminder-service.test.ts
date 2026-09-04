@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reminderActionUrl, reminderDatabaseError, toReminderItem } from './reminder-service'
+import { reminderActionUrl, reminderDatabaseError, toEmployeeTargetReminderItem, toReminderItem } from './reminder-service'
 
 describe('reminderDatabaseError', () => {
   it.each([
@@ -32,6 +32,23 @@ describe('toReminderItem', () => {
       description: null, remindAt: '2026-07-16T12:00:00.000Z', originalRemindAt: '2026-07-16T12:00:00.000Z',
       type: 'HR', targetType: 'EVERYONE', recipientStatus: 'PENDING', reminderStatus: 'PUBLISHED',
       createdByUserId: 'user-1',
+    })
+  })
+})
+
+describe('toEmployeeTargetReminderItem', () => {
+  it('maakt een medewerkergerichte reminder zichtbaar zonder recipient-account', () => {
+    expect(toEmployeeTargetReminderItem({
+      id: 'target-1', employee_id: 'employee-1',
+      employees: { id: 'employee-1', first_name: 'Maya', birth_name: 'Bos' },
+      reminders: {
+        id: 'reminder-1', title: 'Contract controleren', description: null,
+        remind_at: '2026-08-22T10:00:00.000Z', reminder_type: 'HR', target_type: 'EMPLOYEES',
+        status: 'PUBLISHED', created_by_user_id: 'user-1',
+      },
+    })).toMatchObject({
+      recipientId: 'target:target-1', employeeId: 'employee-1', employeeName: 'Maya Bos',
+      reminderId: 'reminder-1', remindAt: '2026-08-22T10:00:00.000Z', recipientStatus: 'PENDING',
     })
   })
 })

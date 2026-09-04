@@ -170,7 +170,7 @@ export async function getEmploymentDetail(
     : Promise.resolve({ data: [], error: null })
   const companyLocationAssignmentsQuery = includeCompanyLocation
     ? supabase.from('employee_organizations').select('id, location_id, effective_from, effective_to')
-      .eq('employment_id', employmentId).order('effective_from', { ascending: false }).limit(100)
+      .eq('employment_id', employmentId).not('location_id', 'is', null).order('effective_from', { ascending: false }).limit(100)
     : Promise.resolve({ data: [], error: null })
   const linksQuery = supabase.from('employee_profile_links').select('*').eq('employee_id', employeeId)
     .order('sort_order').order('created_at').limit(50)

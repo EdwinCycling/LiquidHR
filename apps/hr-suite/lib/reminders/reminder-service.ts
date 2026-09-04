@@ -58,6 +58,13 @@ interface ReminderRecipientResult {
   }
 }
 
+interface ReminderTargetResult {
+  id: string
+  employee_id: string
+  employees?: { id: string; first_name: string | null; birth_name: string | null } | null
+  reminders: ReminderRecipientResult['reminders']
+}
+
 export interface ReminderItem {
   recipientId: string
   employeeId: string | null
@@ -115,6 +122,26 @@ export function toReminderItem(row: ReminderRecipientResult): ReminderItem {
   }
 }
 
+export function toEmployeeTargetReminderItem(row: ReminderTargetResult): ReminderItem {
+  const actionUrl = reminderActionUrl(row.reminders.description)
+  return {
+    recipientId: `target:${row.id}`,
+    employeeId: row.employee_id,
+    employeeName: row.employees ? [row.employees.first_name, row.employees.birth_name].filter(Boolean).join(' ') || null : null,
+    reminderId: row.reminders.id,
+    title: row.reminders.title,
+    description: row.reminders.description,
+    remindAt: row.reminders.remind_at,
+    originalRemindAt: row.reminders.remind_at,
+    type: row.reminders.reminder_type,
+    targetType: row.reminders.target_type,
+    recipientStatus: 'PENDING',
+    reminderStatus: row.reminders.status,
+    createdByUserId: row.reminders.created_by_user_id,
+    ...(actionUrl ? { actionUrl } : {}),
+  }
+}
+
 async function requireReminderContext(): Promise<{
   tenantId: string
   administrationId: string | null
@@ -161,9 +188,35 @@ export async function listMyReminders(limit = 100, dependencies?: ReminderReadDe
 export async function listEmployeeReminders(employeeId: string, limit = 100): Promise<ReminderItem[]> {
   const context = await requirePermission('reminder:read', employeeId)
   const supabase = await createClient()
-  const { data, error } = await supabase.from('reminder_recipients').select(`id, status, effective_remind_at, employee_id, employees(id, first_name, birth_name), reminders!inner(id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id)`).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).neq('reminders.status', 'CANCELLED').order('effective_remind_at', { ascending: true }).limit(Math.min(Math.max(limit, 1), 200))
-  if (error) throw reminderDatabaseError(error)
-  return data.map((row) => toReminderItem(row as ReminderRecipientResult))
+  const boundedLimit = Math.min(Math.max(limit, 1), 200)
+  const [recipientResult, targetResult] = await Promise.all([
+    supabase
+      .from('reminder_recipients')
+      .select(`id, status, effective_remind_at, employee_id, employees(id, first_name, birth_name), reminders!inner(id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id)`)
+      .eq('tenant_id', context.tenantId)
+      .eq('employee_id', employeeId)
+      .neq('reminders.status', 'CANCELLED')
+      .order('effective_remind_at', { ascending: true })
+      .limit(boundedLimit),
+    supabase
+      .from('reminder_targets')
+      .select(`id, employee_id, employees(id, first_name, birth_name), reminders!inner(id, title, description, remind_at, reminder_type, target_type, status, created_by_user_id)`)
+      .eq('tenant_id', context.tenantId)
+      .eq('employee_id', employeeId)
+      .neq('reminders.status', 'CANCELLED')
+      .limit(boundedLimit),
+  ])
+  if (recipientResult.error) throw reminderDatabaseError(recipientResult.error)
+  if (targetResult.error) throw reminderDatabaseError(targetResult.error)
+
+  const recipientItems = recipientResult.data.map((row) => toReminderItem(row as ReminderRecipientResult))
+  const targetItems = targetResult.data.map((row) => toEmployeeTargetReminderItem(row as ReminderTargetResult))
+  const itemsByReminderId = new Map<string, ReminderItem>()
+  for (const item of targetItems) itemsByReminderId.set(item.reminderId, item)
+  for (const item of recipientItems) itemsByReminderId.set(item.reminderId, item)
+  return [...itemsByReminderId.values()]
+    .sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime())
+    .slice(0, boundedLimit)
 }
 
 export async function createPersonalReminder(input: PersonalReminderCreateInput): Promise<string> {

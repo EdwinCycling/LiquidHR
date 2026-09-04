@@ -109,6 +109,7 @@
   "eventEmploymentStarted": "Employment started",
   "eventEmploymentEnded": "Employment ends",
   "eventIncomeRelationship": "Income relationship changed",
+  "eventContract": "Contract changed",
   "eventOrganization": "Organization or job changed",
   "eventLabor": "Employment conditions changed",
   "eventSchedule": "Schedule changed",

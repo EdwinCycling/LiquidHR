@@ -20,6 +20,14 @@ describe('companyLocationMutationSchema', () => {
     }).success).toBe(true)
   })
 
+  it('accepteert bestaande PostgreSQL UUIDs zonder RFC-versienummer', () => {
+    expect(companyLocationMutationSchema.safeParse({
+      placementId: '33333333-3333-d333-1aaa-333333333333',
+      effectiveOn: '2026-01-01',
+      locationId: '44444444-4444-d444-1bbb-444444444444',
+    }).success).toBe(true)
+  })
+
   it('weigert een ongeldige datum of ontbrekende locatie', () => {
     expect(companyLocationMutationSchema.safeParse({ effectiveOn: '01-09-2026', locationId }).success).toBe(false)
     expect(companyLocationMutationSchema.safeParse({ effectiveOn: '2026-09-01', locationId: null }).success).toBe(false)

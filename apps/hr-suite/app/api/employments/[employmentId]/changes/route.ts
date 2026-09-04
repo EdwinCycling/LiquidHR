@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { combinedTimelineMutationSchema } from '@/lib/employment/detail-schemas'
 import { applyCombinedTimelineMutation, EmploymentDetailError } from '@/lib/employment/employment-detail-service'
+import { SalaryApplicationError } from '@/lib/salary-application/service'
 
 interface RouteContext { params: Promise<{ employmentId: string }> }
 
@@ -9,6 +10,7 @@ function errorResponse(error: unknown): NextResponse | null {
   const permission = permissionErrorResponse(error)
   if (permission) return permission
   if (error instanceof EmploymentDetailError) return NextResponse.json({ code: error.code }, { status: error.status })
+  if (error instanceof SalaryApplicationError) return NextResponse.json({ code: error.code }, { status: error.status })
   return null
 }
 

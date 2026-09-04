@@ -109,6 +109,7 @@
   "eventEmploymentStarted": "Dienstverband gestart",
   "eventEmploymentEnded": "Dienstverband eindigt",
   "eventIncomeRelationship": "IKV gewijzigd",
+  "eventContract": "Contract gewijzigd",
   "eventOrganization": "Organisatie of functie gewijzigd",
   "eventLabor": "Arbeidsvoorwaarden gewijzigd",
   "eventSchedule": "Rooster gewijzigd",

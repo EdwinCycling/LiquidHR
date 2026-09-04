@@ -10,7 +10,6 @@ import {
   ExternalLink,
   FileText,
   GraduationCap,
-  Hand,
   HeartPulse,
   Laptop2,
   Package,
@@ -51,6 +50,13 @@ export interface EmployeeDashboardLabels extends EmployeeDashboardSummaryLabels 
   absenceOpenCase: string; workflowsOpen: string; workflowsEmpty: string; workflowsUnavailable: string; workflowsBlocked: string; workflowsOverdue: string; workflowsStart: string; absenceDiscardTitle: string; absenceDiscardDescription: string; absenceDiscardConfirm: string; absenceDiscardCancel: string; absenceCaseNextReview?: string; absenceHours?: string; absenceCapacityInputMode?: string; absenceCapacityPercentageMode?: string; absenceCapacityHoursMode?: string; absenceCapacityScheduleUnavailable?: string; absenceCapacitySave?: string
 }
 
+export interface EmployeeDashboardLabels {
+  absenceLatestCase: string
+  absenceEndDate: string
+  absenceSickDays: string
+  absenceOngoing: string
+}
+
 interface EmployeeDashboardProps {
   detail: EmployeeDetailViewModel
   customFields: EmployeeCustomField[]
@@ -81,12 +87,13 @@ interface EmployeeDashboardProps {
 export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, compact, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, canReportAbsence = true, canRecoverAbsence = true, canChangeAbsenceCapacity = true, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
+  const today = new Date().toISOString().slice(0, 10)
   const visibleFields = customFields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
   const wide = [
     { id: 'personal' as const, node: <EmployeeDashboardSummary detail={detail} labels={labels} /> },
     { id: 'customFields' as const, node: <DashboardCard icon={<Sparkles className="h-4 w-4" />} title={labels.customFields} actionHref="?tab=personal" actionLabel={labels.edit}>{visibleFields.length > 0 ? <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">{visibleFields.slice(0, 9).map((field) => <DataPoint key={field.id} label={locale === 'en' ? field.labelEn : field.labelNl} value={formatCustomValue(field.value, labels.notRecorded)} />)}</dl> : <EmptyInline>{labels.customFieldsEmpty}</EmptyInline>}</DashboardCard> },
     { id: 'leave' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.leave}><EmptyModule title={labels.leaveDescription} labels={labels} /></DashboardCard> },
-    { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence}><div className="space-y-4">{absence ? <AbsenceStatusCard employeeId={employee.id} absence={absence} labels={labels} /> : <Surface variant="subtle" className="border-success/25 bg-success-surface/60 p-4 text-sm text-success"><div className="flex items-center gap-2 font-semibold"><CheckCircle2 aria-hidden="true" className="h-5 w-5" />{labels.absenceNowNotSick}</div><p className="mt-1 text-sm text-success/80">{labels.absenceNoHistory}</p></Surface>}<AbsenceQuickForm employeeId={employee.id} employmentId={absence?.employmentId ?? (absenceEmploymentOptions.length === 1 ? absenceEmploymentOptions[0]?.id : undefined)} employmentOptions={absenceEmploymentOptions} currentCase={absence} allowReportWithOpenCase={absenceEmploymentOptions.length > 0} showReportAction={canReportAbsence} canReport={canReportAbsence} canRecover={canRecoverAbsence} canChangeCapacity={canChangeAbsenceCapacity} selfService={selfReportAbsence} recoveryMode={canRecoverAbsence ? 'link' : 'hidden'} labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, hasSafetyNet: labels.absenceHasSafetyNet, workAccident: labels.absenceWorkAccident, thirdPartyAccident: labels.absenceThirdPartyAccident, unknown: labels.absenceUnknown, yes: labels.absenceYes, no: labels.absenceNo, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, nextReview: labels.absenceCaseNextReview, capacitySave: labels.absenceCapacitySave, failed: labels.absenceSaveFailed, close: labels.absenceClose, selfServiceIntro: labels.absenceNoHistory, capacityInputMode: labels.absenceCapacityInputMode, percentageMode: labels.absenceCapacityPercentageMode, hoursMode: labels.absenceCapacityHoursMode, capacityHours: labels.absenceHours, scheduleUnavailable: labels.absenceCapacityScheduleUnavailable, discardTitle: labels.absenceDiscardTitle, discardDescription: labels.absenceDiscardDescription, discardConfirm: labels.absenceDiscardConfirm, discardCancel: labels.absenceDiscardCancel }} /></div></DashboardCard> },
+    { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence}><div className="space-y-4">{absence ? <AbsenceStatusCard employeeId={employee.id} absence={absence} labels={labels} locale={locale} dateFormat={dateFormat} today={today} /> : null}<AbsenceQuickForm employeeId={employee.id} employmentId={absence?.employmentId ?? (absenceEmploymentOptions.length === 1 ? absenceEmploymentOptions[0]?.id : undefined)} employmentOptions={absenceEmploymentOptions} currentCase={absence} allowReportWithOpenCase={absenceEmploymentOptions.length > 0} showReportAction={canReportAbsence} canReport={canReportAbsence} canRecover={canRecoverAbsence} canChangeCapacity={canChangeAbsenceCapacity} selfService={selfReportAbsence} recoveryMode={absence?.status === 'ACTIVE' && canRecoverAbsence ? 'link' : 'hidden'} labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, hasSafetyNet: labels.absenceHasSafetyNet, workAccident: labels.absenceWorkAccident, thirdPartyAccident: labels.absenceThirdPartyAccident, unknown: labels.absenceUnknown, yes: labels.absenceYes, no: labels.absenceNo, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, nextReview: labels.absenceCaseNextReview, capacitySave: labels.absenceCapacitySave, failed: labels.absenceSaveFailed, close: labels.absenceClose, selfServiceIntro: labels.absenceNoHistory, capacityInputMode: labels.absenceCapacityInputMode, percentageMode: labels.absenceCapacityPercentageMode, hoursMode: labels.absenceHours, scheduleUnavailable: labels.absenceCapacityScheduleUnavailable, discardTitle: labels.absenceDiscardTitle, discardDescription: labels.absenceDiscardDescription, discardConfirm: labels.absenceDiscardConfirm, discardCancel: labels.absenceDiscardCancel }} /></div></DashboardCard> },
     { id: 'budgets' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.budgets}><EmptyModule title={labels.budgetsDescription} labels={labels} /></DashboardCard> },
     { id: 'contracts' as const, node: <DashboardCard icon={<BriefcaseBusiness className="h-4 w-4" />} title={labels.contracts} actionHref="?tab=employments" actionLabel={labels.viewContracts}><EmploymentSummaryList employeeId={employee.id} employments={detail.employments} summaries={detail.employmentCards} locale={locale} dateFormat={dateFormat} labels={labels} canManageEmployments={canManageEmployments} /></DashboardCard> },
     { id: 'activity' as const, node: <DashboardCard icon={<ClipboardList className="h-4 w-4" />} title={labels.activity}><EmployeeActivityFeed employeeId={employee.id} items={activity} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} canWrite={canWriteActivity} labels={{ placeholder: labels.activityPlaceholder, add: labels.activityAdd, save: labels.activitySave, saving: labels.activitySaving, empty: labels.activityEmpty, failed: labels.activityFailed }} /></DashboardCard> },
@@ -212,13 +219,28 @@ function EmptyInline({ children }: { children: React.ReactNode }) { return <Empt
 function DataPoint({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</dt><dd className="mt-1 break-words text-sm font-semibold">{value}</dd></div> }
 function formatCustomValue(value: Json | undefined, fallback: string): string { if (value === undefined || value === null) return fallback; if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value); if (Array.isArray(value)) return value.map((item) => formatCustomValue(item, fallback)).join(', '); return Object.entries(value).map(([key, item]) => `${key}: ${formatCustomValue(item, fallback)}`).join(', ') }
 
-function AbsenceStatusCard({ employeeId, absence, labels }: { employeeId: string; absence: AbsenceCaseSummary; labels: EmployeeDashboardLabels }) {
+function countCalendarDays(start: string, end: string): number {
+  const startTime = Date.parse(`${start.slice(0, 10)}T00:00:00Z`)
+  const endTime = Date.parse(`${end.slice(0, 10)}T00:00:00Z`)
+  if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return 0
+  return Math.max(1, Math.floor((endTime - startTime) / 86_400_000) + 1)
+}
+
+function AbsenceStatusCard({ employeeId, absence, labels, locale, dateFormat, today }: { employeeId: string; absence: AbsenceCaseSummary; labels: EmployeeDashboardLabels; locale: string; dateFormat: DateFormat; today: string }) {
   const isCurrentlySick = absence.status === 'ACTIVE'
   const spell = absence.spells[0]
+  const caseEndOn = spell?.recoveredOn ?? absence.closedAt?.slice(0, 10) ?? null
+  const totalSickDays = countCalendarDays(absence.firstAbsenceOn, caseEndOn ?? today)
+  const formattedStart = formatDate(absence.firstAbsenceOn, { locale, dateFormat })
+  const formattedEnd = caseEndOn ? formatDate(caseEndOn, { locale, dateFormat }) : labels.absenceOngoing
   return <Link prefetch={false} href={`/employees/${employeeId}?tab=absence&view=expanded&caseId=${absence.id}`} aria-label={labels.absenceOpenCase} title={labels.absenceOpenCase} className={`group block cursor-pointer rounded-[var(--radius-surface)] border p-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isCurrentlySick ? 'border-destructive/30 bg-destructive-surface/70 text-destructive hover:border-destructive/60' : 'border-success/25 bg-success-surface/60 text-success hover:border-success/60'}`}>
-    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 font-semibold">{isCurrentlySick ? <HeartPulse aria-hidden="true" className="h-5 w-5" /> : <CheckCircle2 aria-hidden="true" className="h-5 w-5" />}{isCurrentlySick ? labels.absenceNowSick : labels.absenceNowNotSick}</div><Hand aria-hidden="true" className="h-5 w-5 shrink-0 opacity-80 transition-transform group-hover:-rotate-6" /></div>
-    <p className="mt-2 text-sm">{isCurrentlySick ? labels.absenceActiveSince.replace('{date}', absence.firstAbsenceOn) : `${labels.absenceLastReport}: ${absence.firstAbsenceOn}`}</p>
-    {spell?.absencePercentage !== null && spell?.absencePercentage !== undefined ? <p className="mt-1 text-xs opacity-80">{spell.absencePercentage}%</p> : null}
-    {!isCurrentlySick && absence.status === 'RECOVERY_WINDOW' && absence.recoveryWindowEndsOn ? <p className="mt-1 text-xs opacity-80">{labels.absenceRecoveryWindow.replace('{date}', absence.recoveryWindowEndsOn)}</p> : null}
+    <div className="flex items-center gap-2 font-semibold">{isCurrentlySick ? <HeartPulse aria-hidden="true" className="h-5 w-5" /> : <CheckCircle2 aria-hidden="true" className="h-5 w-5" />}{labels.absenceLatestCase}</div>
+    <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+      <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] opacity-75">{labels.absenceStartDate}</dt><dd className="mt-1 font-semibold">{formattedStart}</dd></div>
+      <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] opacity-75">{labels.absenceEndDate}</dt><dd className="mt-1 font-semibold">{formattedEnd}</dd></div>
+      <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[0.11em] opacity-75">{labels.absenceSickDays}</dt><dd className="mt-1 font-semibold">{totalSickDays}</dd></div>
+    </dl>
+    {spell?.absencePercentage !== null && spell?.absencePercentage !== undefined ? <p className="mt-3 text-xs opacity-80">{labels.absencePercentage}: {spell.absencePercentage}%</p> : null}
+    {!isCurrentlySick && absence.status === 'RECOVERY_WINDOW' && absence.recoveryWindowEndsOn ? <p className="mt-1 text-xs opacity-80">{labels.absenceRecoveryWindow.replace('{date}', formatDate(absence.recoveryWindowEndsOn, { locale, dateFormat }))}</p> : null}
   </Link>
 }

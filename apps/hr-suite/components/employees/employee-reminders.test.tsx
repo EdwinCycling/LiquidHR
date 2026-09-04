@@ -161,6 +161,75 @@ describe('Employee reminders Foundation contract', () => {
     host.remove()
   })
 
+  it('publishes an HR reminder for the selected employee and refreshes after success', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-21T09:18:50Z'))
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { id: 'hr-reminder-1' } }) })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+    refreshMock.mockClear()
+
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    act(() => root.render(createElement(EmployeeReminders, { canManageHr: true, dateFormat: 'DMY', employeeId: 'employee-1', labels, locale: 'nl-NL', mode: 'HR', reminders: [], timeFormat: '24H' })))
+
+    act(() => [...host.querySelectorAll('button')].find((button) => button.textContent?.includes('Reminder toevoegen'))?.click())
+    const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+    const titleInput = dialog.querySelector('input[name="title"]') as HTMLInputElement
+    const dateInput = dialog.querySelector('input[name="remindAt"]') as HTMLInputElement
+    act(() => {
+      setInputValue(titleInput, 'HR-reminder voor Maya')
+      setInputValue(dateInput, '2026-08-21T12:00')
+    })
+    await act(async () => {
+      ;(dialog.querySelector('button[type="submit"]') as HTMLButtonElement).click()
+      await Promise.resolve()
+    })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/reminders', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'HR', title: 'HR-reminder voor Maya', description: '', remindAt: new Date('2026-08-21T12:00').toISOString(), targetType: 'EMPLOYEES', targetIds: ['employee-1'] }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/reminders/hr-reminder-1/publish', { method: 'POST' })
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(refreshMock).toHaveBeenCalledOnce()
+
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  it('keeps an HR drawer open when publishing has no recipient', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { id: 'hr-reminder-2' } }) })
+      .mockResolvedValueOnce({ ok: false })
+    vi.stubGlobal('fetch', fetchMock)
+    refreshMock.mockClear()
+
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    act(() => root.render(createElement(EmployeeReminders, { canManageHr: true, dateFormat: 'DMY', employeeId: 'employee-1', labels, locale: 'nl-NL', mode: 'HR', reminders: [], timeFormat: '24H' })))
+
+    act(() => [...host.querySelectorAll('button')].find((button) => button.textContent?.includes('Reminder toevoegen'))?.click())
+    const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement
+    const titleInput = dialog.querySelector('input[name="title"]') as HTMLInputElement
+    act(() => setInputValue(titleInput, 'HR-reminder zonder ontvanger'))
+    await act(async () => {
+      ;(dialog.querySelector('button[type="submit"]') as HTMLButtonElement).click()
+      await Promise.resolve()
+    })
+
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toBe('Mislukt')
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(refreshMock).not.toHaveBeenCalled()
+
+    act(() => root.unmount())
+    host.remove()
+  })
+
   it('keeps a failed save error inside the active drawer without refreshing', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false })
     vi.stubGlobal('fetch', fetchMock)

@@ -18,7 +18,7 @@ import {
 } from './employment-contract-change-dialog'
 import { buttonClasses } from '@/components/ui/button'
 
-interface EmploymentOverviewActionLabels extends EmploymentContractChangeLabels {
+export interface EmploymentOverviewActionLabels extends EmploymentContractChangeLabels {
   sectionTitle: string
   hoursSchedule: string
   hoursScheduleSalary: string
@@ -40,9 +40,38 @@ interface ActionDefinition {
   destructive?: boolean
 }
 
-export function EmploymentOverviewActions({ labels, employmentId, today, locale, data, dayLabels }: { labels: EmploymentOverviewActionLabels; employmentId: string; today: string; locale: string; data: EmploymentOverviewChangeData; dayLabels: string[] }) {
-  const [activeAction, setActiveAction] = useState<ActionDefinition | null>(null)
+const actionIcons: Record<EmploymentOverviewActionKey, LucideIcon> = {
+  hoursSchedule: Clock3,
+  hoursScheduleSalary: Banknote,
+  functionDepartmentCostCenter: Building2,
+  salary: Banknote,
+  laborConditions: Scale,
+  contractTypeStartDate: FilePenLine,
+  deleteContract: Trash2,
+}
 
+export function EmploymentChangeButton({ actionKey, actionTitle, buttonLabel, labels, employmentId, today, locale, data, dayLabels }: {
+  actionKey: EmploymentOverviewActionKey
+  actionTitle: string
+  buttonLabel: string
+  labels: EmploymentOverviewActionLabels
+  employmentId: string
+  today: string
+  locale: string
+  data: EmploymentOverviewChangeData
+  dayLabels: string[]
+}) {
+  const [active, setActive] = useState(false)
+  const Icon = actionIcons[actionKey]
+  return <>
+    <button className={buttonClasses({ variant: 'secondary', size: 'sm' })} onClick={() => setActive(true)} type="button">
+      <Icon aria-hidden="true" />{buttonLabel}
+    </button>
+    {active ? <EmploymentContractChangeDialog actionKey={actionKey} actionTitle={actionTitle} employmentId={employmentId} today={today} locale={locale} data={data} labels={labels} dayLabels={dayLabels} onClose={() => setActive(false)} /> : null}
+  </>
+}
+
+export function EmploymentOverviewActions({ labels, employmentId, today, locale, data, dayLabels }: { labels: EmploymentOverviewActionLabels; employmentId: string; today: string; locale: string; data: EmploymentOverviewChangeData; dayLabels: string[] }) {
   const actions: ActionDefinition[] = [
     { key: 'hoursSchedule', title: labels.hoursSchedule, icon: Clock3 },
     { key: 'hoursScheduleSalary', title: labels.hoursScheduleSalary, icon: Banknote },
@@ -59,25 +88,8 @@ export function EmploymentOverviewActions({ labels, employmentId, today, locale,
         <p className="eyebrow" id="employment-change-actions-title">{labels.sectionTitle}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {actions.map((action) => {
-          const Icon = action.icon
-          return (
-            <button
-              className={`${buttonClasses({ variant: 'secondary', className: 'min-h-20 w-full min-w-0 justify-start !whitespace-normal px-4 py-3 text-left' })} ${action.destructive ? '!border-destructive/30 !bg-destructive-surface !text-destructive hover:!bg-destructive-surface' : ''}`}
-              key={action.key}
-              onClick={() => setActiveAction(action)}
-              type="button"
-            >
-              <span className={`grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] ${action.destructive ? 'bg-destructive-surface text-destructive' : 'bg-accent text-accent-foreground'}`}>
-                <Icon aria-hidden="true" className="size-5" />
-              </span>
-              <span className="min-w-0 flex-1 font-semibold leading-5 group-hover:text-primary">{action.title}</span>
-            </button>
-          )
-        })}
+        {actions.map((action) => <EmploymentChangeButton key={action.key} actionKey={action.key} actionTitle={action.title} buttonLabel={action.title} labels={labels} employmentId={employmentId} today={today} locale={locale} data={data} dayLabels={dayLabels} />)}
       </div>
-
-      {activeAction ? <EmploymentContractChangeDialog actionKey={activeAction.key} actionTitle={activeAction.title} employmentId={employmentId} today={today} locale={locale} data={data} labels={labels} dayLabels={dayLabels} onClose={() => setActiveAction(null)} /> : null}
     </section>
   )
 }

@@ -16,6 +16,9 @@ const labels = new Proxy({} as StartPageLabels, {
     full: 'Volledig',
     compact: 'Compact',
     documentsTitle: 'Bedrijfsdocumenten',
+    absenceSince: 'Sinds',
+    absencePercentageSick: 'ziek',
+    kpiLongTermSick: 'Langdurig ziek',
     drag: 'Venster slepen om de volgorde te wijzigen',
     moveDown: 'Venster omlaag verplaatsen',
     moveUp: 'Venster omhoog verplaatsen',
@@ -23,8 +26,8 @@ const labels = new Proxy({} as StartPageLabels, {
 })
 
 const data: StartPageData = {
-  activeAbsenceItems: [],
-  activeAbsenceTotal: 0,
+  activeAbsenceItems: [{ caseId: 'case-1', employeeId: 'employee-2', employeeName: 'Maya Bos', avatarUrl: null, firstAbsenceOn: '2026-08-22', status: 'ACTIVE', absencePercentage: 100, days: 14 }],
+  activeAbsenceTotal: 1,
   administrationName: 'Administratie',
   canReadWorkforce: false,
   canReportAbsence: false,
@@ -40,7 +43,7 @@ const data: StartPageData = {
   journeys: [],
   journeyOnly: false,
   leaveAbsences: { today: [], tomorrow: [] },
-  longTermSickCount: 0,
+  longTermSickCount: 1,
   nextCompanyActivity: null,
   nextHolidayInDays: 25,
   nextLeaveInDays: null,
@@ -85,6 +88,14 @@ describe('StartPage view modes', () => {
     expect(markup).toContain('Venster slepen om de volgorde te wijzigen')
     expect(markup).toContain('Venster omhoog verplaatsen')
     expect(markup).toContain('Venster omlaag verplaatsen')
+  })
+
+  it('shows the sickness percentage and removes the quick-links window', () => {
+    const markup = render('compact')
+
+    expect(markup).toContain('Sinds 22-08-2026 · 100% ziek')
+    expect(markup).toContain('Langdurig ziek')
+    expect(markup).not.toContain('Snel naar')
   })
 
   it('keeps date-dependent markup stable when the client clock changes', () => {

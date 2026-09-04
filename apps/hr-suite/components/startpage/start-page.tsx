@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- administration branding is served by an authenticated route. */
 import Link from 'next/link'
-import { ArrowDown, ArrowRight, ArrowUp, BriefcaseBusiness, CalendarDays, ChartColumn, CircleDashed, ClipboardPlus, FileText, Gift, GripVertical, Grid2X2, HeartPulse, ListTodo, LoaderCircle, Maximize2, MessageSquareText, Minimize2, PartyPopper, Sparkles, Star, Tags, UserPlus, UserRound, Users, UsersRound } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CalendarDays, CircleDashed, ClipboardPlus, FileText, Gift, GripVertical, HeartPulse, ListTodo, LoaderCircle, Maximize2, MessageSquareText, Minimize2, PartyPopper, UserPlus, UserRound, Users, UsersRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, type DragEvent, type ReactNode } from 'react'
 import { formatDateTime } from '@/lib/preferences/formatters'
@@ -10,7 +10,7 @@ import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 import type { StartPagePreferences, StartPageViewMode } from '@/lib/preferences/start-page'
 import type { StartPageNarrowWindow, StartPageWideWindow } from '@/lib/preferences/start-page-layout'
 import type { Locale } from '@/lib/i18n/config'
-import type { StartPageData, StartPageLeavePerson, StartPageScope, StartPageWorkforceLink, StartPageWorkforceLinkId } from '@/lib/startpage/service'
+import type { StartPageData, StartPageLeavePerson, StartPageScope } from '@/lib/startpage/service'
 import type { StartPageTeamAvailability, StartPageTeamAvailabilityCell } from '@/lib/startpage/team-availability-service'
 import { employeeListMyTeamHref } from '@/lib/preferences/employee-list-state'
 import { journeyProgressPercent, localizedValue, type JourneyProjection } from '@/lib/journeys/projection-domain'
@@ -65,20 +65,8 @@ function StartPageCalendarTiles(_props: { data: StartPageData; labels: Pick<Star
   return null
 }
 
-function WorkforceLink({ link, labels }: { link: StartPageWorkforceLink; labels: StartPageLabels }) {
-  const content: Record<StartPageWorkforceLinkId, { icon: typeof Grid2X2; title: string; description: string }> = {
-    nineGrid: { icon: Grid2X2, title: labels.workforceNineGrid, description: labels.workforceNineGridDescription },
-    continuousAppraisal: { icon: MessageSquareText, title: labels.workforceContinuousAppraisal, description: labels.workforceContinuousAppraisalDescription },
-    talentProfiles: { icon: Sparkles, title: labels.workforceTalentProfiles, description: labels.workforceTalentProfilesDescription },
-    starPerformers: { icon: Star, title: labels.workforceStarPerformers, description: labels.workforceStarPerformersDescription },
-    starPerformerTags: { icon: Tags, title: labels.workforceStarPerformerTags, description: labels.workforceStarPerformerTagsDescription },
-  }
-  const item = content[link.id]
-  const Icon = item.icon
-  return <Link className="group flex min-w-0 items-start gap-3 rounded-[var(--radius-surface)] border border-primary/10 bg-surface-subtle p-4 transition-colors hover:border-primary/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={link.href}>
-    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground transition group-hover:bg-primary group-hover:text-primary-foreground"><Icon aria-hidden="true" size={18} /></span>
-    <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{item.title}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.description}</span><span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-accent-foreground">{labels.workforceOpenItem}<ArrowRight aria-hidden="true" size={13} /></span></span>
-  </Link>
+interface StartPageLabels {
+  absencePercentageSick: string
 }
 
 function ProcessWorkWindow({ data, dateLocale, labels }: { data: StartPageData['processWork']; dateLocale: string; labels: StartPageLabels }) {
@@ -160,6 +148,7 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
   const router = useRouter()
   const name = data.firstName ?? labels.fallbackName
   const dateLocale = locale === 'nl' ? 'nl-NL' : 'en-GB'
+  const percentageFormatter = new Intl.NumberFormat(dateLocale, { maximumFractionDigits: 2 })
   const nextCompanyActivityLabel = data.nextCompanyActivity ? labels.nextCompanyActivity.replace('{name}', data.nextCompanyActivity.name).replace('{date}', formatStartPageDate(data.nextCompanyActivity.date, dateLocale, 'medium')) : null
   const todayStr = today
   const todayEvents = data.upcomingEvents.filter((event) => event.date === todayStr)
@@ -272,7 +261,7 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
             const initials = item.employeeName.split(' ').filter(Boolean).map((part) => part.slice(0, 1)).slice(0, 2).join('').toUpperCase()
             return <li key={item.caseId}><Link className="flex items-center gap-3 px-5 py-4 transition hover:bg-muted/35" href={`/employees/${item.employeeId}?tab=absence`}>
               {item.avatarUrl ? <img alt="" className="size-10 shrink-0 rounded-full object-cover" src={item.avatarUrl} /> : <span className="grid size-10 shrink-0 place-items-center rounded-full bg-destructive-surface text-xs font-bold text-destructive">{initials}</span>}
-              <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-foreground">{item.employeeName}</span><span className="mt-0.5 block text-sm text-muted-foreground">{labels.absenceSince} {formatStartPageDate(item.firstAbsenceOn, dateLocale, 'numeric')}{item.status === 'RECOVERY_WINDOW' ? ` · ${labels.absenceRecovery}` : ''}</span></span>
+              <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-foreground">{item.employeeName}</span><span className="mt-0.5 block text-sm text-muted-foreground">{labels.absenceSince} {formatStartPageDate(item.firstAbsenceOn, dateLocale, 'numeric')}{item.absencePercentage !== null ? ` · ${percentageFormatter.format(item.absencePercentage)}% ${labels.absencePercentageSick}` : ''}{item.status === 'RECOVERY_WINDOW' ? ` · ${labels.absenceRecovery}` : ''}</span></span>
               <span className="shrink-0 text-right"><span className="block text-lg font-semibold tabular-nums text-foreground">{item.days}</span><span className="text-xs text-muted-foreground">{labels.absenceDays}</span></span>
             </Link></li>
           })}</ul> : <p className="p-6 text-center text-sm text-muted-foreground">{labels.noActiveAbsences}</p>}
@@ -318,6 +307,5 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
           {windowFrame('narrow', 'workInProgress', <ProcessWorkWindow data={data.processWork} dateLocale={dateLocale} labels={labels} />)}</aside>
       </div>
 
-      <section className="mt-8 rounded-[var(--radius-surface)] border bg-surface p-5 sm:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><p className="text-sm font-semibold">{labels.quickLinks}</p><p className="mt-1 text-sm text-muted-foreground">{labels.workforceDescription}</p></div><div className="flex flex-wrap gap-2">{data.canReadWorkforce ? <Link className="button-secondary gap-2" href="/workforce"><BriefcaseBusiness aria-hidden="true" size={16} />{labels.openWorkforce}</Link> : null}<Link className="button-secondary gap-2" href="/insights/analysis"><ChartColumn aria-hidden="true" size={16} />{labels.openAnalysis}</Link><Link className="button-secondary gap-2" href="/hr-calendar"><CalendarDays aria-hidden="true" size={16} />{labels.calendar}</Link><Link className="button-secondary gap-2" href="/insights"><BriefcaseBusiness aria-hidden="true" size={16} />{labels.insights}</Link></div></div>{data.canReadWorkforce && data.workforceLinks.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.workforceLinks.map((link) => <WorkforceLink key={link.id} link={link} labels={labels} />)}</div> : null}</section>
     </main></div>
 }

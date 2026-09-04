@@ -87,6 +87,7 @@ export interface StartPageAbsenceItem {
   avatarUrl: string | null
   firstAbsenceOn: string
   status: 'ACTIVE' | 'RECOVERY_WINDOW'
+  absencePercentage: number | null
   days: number
 }
 
@@ -201,45 +202,74 @@ async function listLeaveAbsences(auth: AuthContext, employeeScope: StartPageEmpl
   return { today: todayResult, tomorrow: tomorrowResult }
 }
 
-async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<{ items: StartPageAbsenceItem[]; total: number }> {
-  if (!auth.permissions.includes('absence:read')) return { items: [], total: 0 }
+function absenceDaysSince(firstAbsenceOn: string, today: Date): number {
+  const firstDate = new Date(`${firstAbsenceOn}T00:00:00Z`)
+  return Math.max(1, Math.floor((today.getTime() - firstDate.getTime()) / 86_400_000) + 1)
+}
+
+async function listActiveAbsences(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<{ items: StartPageAbsenceItem[]; total: number; longTermCount: number }> {
+  if (!auth.permissions.includes('absence:read')) return { items: [], total: 0, longTermCount: 0 }
   const hrGroupId = requireHrGroupId(auth)
-  let countQuery = supabase.from('absence_cases').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null)
-  if (employeeScope !== null) {
-    if (employeeScope.length === 0) return { items: [], total: 0 }
-    countQuery = countQuery.in('employee_id', employeeScope)
-  }
   let query = supabase.from('absence_cases')
-    .select('id, employee_id, first_absence_on, status')
+    .select('id, employee_id, first_absence_on, status', { count: 'exact' })
     .eq('tenant_id', auth.tenantId)
     .eq('hr_group_id', hrGroupId)
     .in('status', ['ACTIVE', 'RECOVERY_WINDOW'])
     .is('archived_at', null)
     .order('first_absence_on', { ascending: false })
-    .limit(5)
-  if (employeeScope !== null) query = query.in('employee_id', employeeScope)
-  const [{ count: total }, { data: cases, error }] = await Promise.all([countQuery, query])
-  if (error || !cases?.length) return { items: [], total: total ?? 0 }
-  const employeeIds = [...new Set(cases.map((item) => item.employee_id))]
+    .limit(10000)
+  if (employeeScope !== null) {
+    if (employeeScope.length === 0) return { items: [], total: 0, longTermCount: 0 }
+    query = query.in('employee_id', employeeScope)
+  }
+  const { data: cases, count: total, error } = await query
+  if (error || !cases?.length) return { items: [], total: total ?? 0, longTermCount: 0 }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const longTermCount = cases.filter((item) => absenceDaysSince(item.first_absence_on, today) >= 14).length
+  const displayCases = cases.slice(0, 5)
+  const displayCaseIds = displayCases.map((item) => item.id)
+  const employeeIds = [...new Set(displayCases.map((item) => item.employee_id))]
   const { data: employees, error: employeeError } = await supabase.from('employees')
     .select('id, first_name, birth_name, avatar_url')
     .eq('tenant_id', auth.tenantId)
     .in('id', employeeIds)
-  if (employeeError) return { items: [], total: total ?? 0 }
+  if (employeeError) return { items: [], total: total ?? 0, longTermCount }
+  const { data: spells, error: spellError } = await supabase.from('absence_spells')
+    .select('id, case_id, started_on, recovered_on')
+    .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .in('case_id', displayCaseIds)
+    .order('started_on', { ascending: false })
+    .limit(10000)
+  if (spellError) return { items: [], total: total ?? 0, longTermCount }
+  const spellIds = (spells ?? []).map((spell) => spell.id)
+  const todayString = today.toISOString().slice(0, 10)
+  const { data: capacities, error: capacityError } = spellIds.length
+    ? await supabase.from('absence_capacity_changes')
+      .select('spell_id, effective_on, absence_percentage')
+      .eq('tenant_id', auth.tenantId)
+      .eq('hr_group_id', hrGroupId)
+      .in('spell_id', spellIds)
+      .lte('effective_on', todayString)
+      .order('effective_on', { ascending: false })
+      .limit(10000)
+    : { data: [], error: null }
+  if (capacityError) return { items: [], total: total ?? 0, longTermCount }
   const employeeMap = new Map((employees ?? []).map((employee) => [employee.id, employee]))
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const items = cases.flatMap((item) => {
+  const spellByCase = new Map<string, (typeof spells)[number]>()
+  for (const spell of spells ?? []) if (!spellByCase.has(spell.case_id)) spellByCase.set(spell.case_id, spell)
+  const capacityBySpell = new Map<string, number>()
+  for (const capacity of capacities ?? []) if (!capacityBySpell.has(capacity.spell_id)) capacityBySpell.set(capacity.spell_id, capacity.absence_percentage)
+  const items = displayCases.flatMap((item) => {
     const employee = employeeMap.get(item.employee_id)
     if (!employee) return []
-    const firstDate = new Date(`${item.first_absence_on}T00:00:00Z`)
-    const days = Math.max(1, Math.floor((today.getTime() - firstDate.getTime()) / 86_400_000) + 1)
     const employeeName = [employee.first_name, employee.birth_name].filter((part): part is string => Boolean(part?.trim())).join(' ').trim()
-    return [{ caseId: item.id, employeeId: item.employee_id, employeeName: employeeName || 'Onbekende medewerker', avatarUrl: resolveStoredImageUrl(employee.avatar_url, { kind: 'employee-avatar', employeeId: employee.id }), firstAbsenceOn: item.first_absence_on, status: item.status as 'ACTIVE' | 'RECOVERY_WINDOW', days }]
+    const spell = spellByCase.get(item.id)
+    return [{ caseId: item.id, employeeId: item.employee_id, employeeName: employeeName || 'Onbekende medewerker', avatarUrl: resolveStoredImageUrl(employee.avatar_url, { kind: 'employee-avatar', employeeId: employee.id }), firstAbsenceOn: item.first_absence_on, status: item.status as 'ACTIVE' | 'RECOVERY_WINDOW', absencePercentage: spell ? capacityBySpell.get(spell.id) ?? null : null, days: absenceDaysSince(item.first_absence_on, today) }]
   })
   items.sort((a, b) => a.days - b.days)
-  return { items, total: total ?? 0 }
+  return { items, total: total ?? 0, longTermCount }
 }
 
 async function countCompanyDocuments(auth: AuthContext, supabase: SupabaseServerClient): Promise<number | null> {
@@ -373,21 +403,6 @@ async function countRecurringAbsence(auth: AuthContext, employeeScope: StartPage
   return [...counts.values()].filter((count) => count > 1).length
 }
 
-async function countLongTermSick(auth: AuthContext, employeeScope: StartPageEmployeeScope, supabase: SupabaseServerClient): Promise<number | null> {
-  if (!auth.permissions.includes('absence:read')) return null
-  if (employeeScope !== null && employeeScope.length === 0) return 0
-  const hrGroupId = requireHrGroupId(auth)
-  const twoWeeksAgo = new Date()
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-  const cutoff = twoWeeksAgo.toISOString().slice(0, 10)
-  let query = supabase.from('absence_cases').select('id', { count: 'exact', head: true })
-    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('status', 'ACTIVE').is('archived_at', null)
-    .lte('first_absence_on', cutoff)
-  if (employeeScope !== null) query = query.in('employee_id', employeeScope)
-  const { count, error } = await query
-  return error ? null : count ?? 0
-}
-
 async function getStartPageContinuousAppraisal(dependencies: { context: AuthContext; supabase: SupabaseServerClient }): Promise<ContinuousAppraisalSummary | null> {
   try {
     return await getContinuousAppraisalSummary(dependencies)
@@ -491,7 +506,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, longTermSickCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -500,7 +515,6 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     employeeScopePromise.then((employeeScope) => measure('events', () => listUpcomingEvents(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('employeeCount', () => countEmployees(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('recurringAbsence', () => countRecurringAbsence(auth, employeeScope, supabase))),
-    employeeScopePromise.then((employeeScope) => measure('longTermSick', () => countLongTermSick(auth, employeeScope, supabase))),
     measure('countdowns', () => getStartPageCountdowns(auth, supabase)),
     measure('continuousAppraisal', () => getStartPageContinuousAppraisal({ context: auth, supabase })),
     measure('processWork', () => getStartPageProcessWork(auth, supabase, dependencies?.locale ?? 'nl')),
@@ -526,7 +540,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     upcomingEvents,
     employeeCount,
     recurringAbsenceCount,
-    longTermSickCount,
+    longTermSickCount: absenceResult.longTermCount,
     nextLeaveInDays: countdowns.nextLeaveInDays,
     nextHolidayInDays: countdowns.nextHolidayInDays,
     nextCompanyActivity: countdowns.nextCompanyActivity,
