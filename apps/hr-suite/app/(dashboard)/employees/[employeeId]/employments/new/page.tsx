@@ -6,11 +6,12 @@ import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createEmployeeCreateWizardLabels } from '@/lib/employees/employee-create-wizard-labels'
 import { getEmployeeEmploymentDetail, getEmploymentCreationOptions } from '@/lib/employment/employment-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getUserPreferences } from '@/lib/preferences/server'
 
 export default async function NewEmploymentPage({ params }: { params: Promise<{ employeeId: string }> }) {
   const { employeeId } = await params
   await requireEmploymentCreation(employeeId)
-  const [options, detail, tEmployees, tErrors, tValidation, tEmployment, locale] = await Promise.all([
+  const [options, detail, tEmployees, tErrors, tValidation, tEmployment, locale, preferences] = await Promise.all([
     getEmploymentCreationOptions(employeeId),
     getEmployeeEmploymentDetail(employeeId, 'employments', { includeSalary: false }),
     getTranslator('employees'),
@@ -18,6 +19,7 @@ export default async function NewEmploymentPage({ params }: { params: Promise<{ 
     getTranslator('validation'),
     getTranslator('employment'),
     getLocale(),
+    getUserPreferences(),
   ])
 
   return (
@@ -29,6 +31,7 @@ export default async function NewEmploymentPage({ params }: { params: Promise<{ 
       <div className="mt-5 min-w-0 max-w-full">
         <EmployeeCreateWizard
           locale={locale}
+          dateFormat={preferences.dateFormat}
            initialEmploymentEmployeeId={employeeId}
            initialEmploymentOptions={options}
            initialEmployeeSummary={{ name: composeEmployeeName(detail.employee), birthDate: detail.employee.birthDate, gender: detail.employee.gender }}

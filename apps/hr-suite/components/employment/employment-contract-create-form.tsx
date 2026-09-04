@@ -3,6 +3,8 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { employmentContractMutationSchema, isEmploymentContractStartDateValid, type EmploymentContractMutationInput } from '@/lib/employment/contract-schemas'
 import { addContractPeriodEnd, validateProbation } from '@/lib/employment/probation-rules'
+import { formatDate } from '@/lib/preferences/formatters'
+import type { DateFormat } from '@/lib/preferences/user-preferences'
 import type { EmploymentCreateFormProps, EmploymentWizardEmployeeSummary } from './employment-create-form'
 
 export type EmploymentContractWizardWorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL_NO_PAYROLL'
@@ -30,6 +32,8 @@ interface Props {
   initialDraft: EmploymentContractWizardDraft
   employmentStartsOn: string
   isFirstContract: boolean
+  locale: string
+  dateFormat: DateFormat
   labels: EmploymentCreateFormProps['labels']
   submitLabel: string
   employeeSummary?: EmploymentWizardEmployeeSummary
@@ -39,7 +43,7 @@ interface Props {
 
 type State = 'idle' | 'saving' | 'saved' | 'failed'
 
-export function EmploymentContractCreateForm({ employmentId, options, initialDraft, employmentStartsOn, isFirstContract, labels, submitLabel, employeeSummary, onStepChange, onSaved }: Props) {
+export function EmploymentContractCreateForm({ employmentId, options, initialDraft, employmentStartsOn, isFirstContract, locale, dateFormat, labels, submitLabel, employeeSummary, onStepChange, onSaved }: Props) {
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState(() => ({ ...initialDraft, startsOn: isFirstContract ? employmentStartsOn : initialDraft.startsOn }))
   const [state, setState] = useState<State>('idle')
@@ -127,10 +131,10 @@ export function EmploymentContractCreateForm({ employmentId, options, initialDra
       <dl className="mt-5 grid gap-3 sm:grid-cols-2">
         <Summary label={labels.laborConditions} value={selectedLaborConditionSet?.name ?? ''} />
         <Summary label={labels.duration} value={draft.durationType === 'INDEFINITE' ? labels.indefinite : draft.durationType === 'DEFINITE' ? labels.definite : labels.temporaryWithoutEnd} />
-        <Summary label={labels.startDate} value={draft.startsOn} />
-        <Summary label={labels.endDate} value={draft.endsOn || labels.indefinite} />
+        <Summary label={labels.startDate} value={formatDate(draft.startsOn, { locale, dateFormat })} />
+        <Summary label={labels.endDate} value={draft.endsOn ? formatDate(draft.endsOn, { locale, dateFormat }) : labels.indefinite} />
         <Summary label={labels.probation} value={draft.probationApplies ? labels.yes : labels.no} />
-        {draft.probationApplies && <Summary label={labels.probationEnd} value={draft.probationEndsOn} />}
+        {draft.probationApplies && <Summary label={labels.probationEnd} value={formatDate(draft.probationEndsOn, { locale, dateFormat })} />}
       </dl>
     </section>}
 

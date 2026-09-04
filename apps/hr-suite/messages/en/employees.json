@@ -236,6 +236,7 @@
   "updateExistingEmployee": "Update employee",
   "createEmployeeAndEmployment": "Create employee + employment",
   "creatingEmployee": "Creating…",
+  "identityCheckUnavailable": "The identity check is not available locally because a server setting (BSN_HASH_KEY) is missing. Ask for it to be added to the local server configuration.",
   "employmentLoading": "Loading employment steps…",
   "numberConflict": "This employee number was just taken. We have suggested a new available number.",
   "identityConflict": "This citizen service number is already linked to an employee. Check whether you want to use the existing employee first.",

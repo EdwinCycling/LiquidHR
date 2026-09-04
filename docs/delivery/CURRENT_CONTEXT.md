@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Hotfix 2026-09-04: medewerkerwizard identiteit en review
+
+**Status: LOCAL GREEN — BSN identity match locally blocked by missing configuration**
+
+- De wizard gebruikt een inset focus-ring, toont BSN op halve breedte en plaatst fouten boven de vaste knoppenbalk. De review toont een geuploade foto als thumbnail of anders het bestaande profielicoon.
+- Datums in de wizard, review en dienstverband-/contractreviews volgen nu de gebruikersvoorkeur voor datumformaat. De identity-check geeft bij ontbrekende `BSN_HASH_KEY` een gerichte foutmelding in plaats van een onverklaarde 500.
+- Verificatie: strict TypeScript, i18n-pariteit, gerichte ESLint, formatter-tests, browsercontrole op `http://localhost:3000/employees/new` en `git diff --check` zijn groen. De beschermde `apps/hr-suite/.env.local` is niet gewijzigd.
+- Open: voeg lokaal een server-only `BSN_HASH_KEY` toe om de echte BSN-match volledig te testen. Geen remote database-write, push of deployment uitgevoerd.
+
 ## Public legal pages and anonymous icon routing — 2026-09-03
 
 **Status: LOCAL GREEN — READY FOR RELEASE**

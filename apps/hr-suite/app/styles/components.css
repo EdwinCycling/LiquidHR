@@ -108,7 +108,7 @@
 
   .form-field,
   .input {
-    @apply min-h-11 w-full rounded-[var(--radius-input)] border bg-surface px-3 py-2 text-foreground shadow-sm transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-primary/40 hover:bg-surface-raised focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-focus/20;
+    @apply min-h-11 w-full rounded-[var(--radius-input)] border bg-surface px-3 py-2 text-foreground shadow-sm transition-[background-color,border-color,box-shadow] placeholder:text-muted-foreground hover:border-primary/40 hover:bg-surface-raised focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-inset focus:ring-focus/20;
   }
 
   .dropdown-trigger {

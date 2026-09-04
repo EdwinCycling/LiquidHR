@@ -7,17 +7,19 @@ import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { createEmployeeCreateWizardLabels } from '@/lib/employees/employee-create-wizard-labels'
 import { getEmploymentDetail } from '@/lib/employment/employment-detail-service'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getUserPreferences } from '@/lib/preferences/server'
 
 export default async function NewEmploymentContractPage({ params }: { params: Promise<{ employeeId: string; employmentId: string }> }) {
   const { employeeId, employmentId } = await params
   await requireContractCreation(employeeId)
-  const [detail, tEmployees, tErrors, tValidation, tEmployment, locale] = await Promise.all([
+  const [detail, tEmployees, tErrors, tValidation, tEmployment, locale, preferences] = await Promise.all([
     getEmploymentDetail(employeeId, employmentId, 'overview'),
     getTranslator('employees'),
     getTranslator('errors'),
     getTranslator('validation'),
     getTranslator('employment'),
     getLocale(),
+    getUserPreferences(),
   ])
   if (!detail.capabilities.canWriteContract) redirect(`/employees/${employeeId}/employments/${employmentId}?tab=overview`)
 
@@ -33,6 +35,7 @@ export default async function NewEmploymentContractPage({ params }: { params: Pr
       <div className="mt-5 min-w-0 max-w-full">
         <EmployeeCreateWizard
           locale={locale}
+          dateFormat={preferences.dateFormat}
            initialContractEmployeeId={employeeId}
            initialContractEmploymentId={employmentId}
            initialEmployeeSummary={{ name: `${detail.employee.first_name} ${detail.employee.birth_name}`, birthDate: detail.employee.birth_date, gender: detail.employee.gender }}

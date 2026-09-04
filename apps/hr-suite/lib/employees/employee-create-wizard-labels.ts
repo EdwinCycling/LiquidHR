@@ -41,7 +41,7 @@ export function createEmployeeCreateWizardLabels(
     employmentOptional: tEmployees('employmentOptional'), employmentOptionalHelp: tEmployees('employmentOptionalHelp'),
     previous: tEmployees('previous'), continue: tEmployees('continue'), create: tEmployees('createEmployee'), updateExistingEmployee: tEmployees('updateExistingEmployee'), updateExistingEmployeeShort: tEmployees('updateExistingEmployeeShort'), createAndEmployment: tEmployees('createEmployeeAndEmployment'), createAndEmploymentShort: tEmployees('createAndEmploymentShort'), creating: tEmployees('creatingEmployee'),
     genericError: tErrors('generic'), numberConflict: tEmployees('numberConflict'), identityConflict: tEmployees('identityConflict'), addressSaveFailed: tEmployees('addressSaveFailed'),
-    addressIncomplete: tEmployees('addressIncomplete'), validationFieldsMissing: tEmployees('validationFieldsMissing'), validationCorrectFields: tEmployees('validationCorrectFields'), openEmployee: tEmployees('openEmployee'), creationComplete: tEmployees('creationComplete'), creationCompleteHelp: tEmployees('creationCompleteHelp'),
+    addressIncomplete: tEmployees('addressIncomplete'), validationFieldsMissing: tEmployees('validationFieldsMissing'), validationCorrectFields: tEmployees('validationCorrectFields'), openEmployee: tEmployees('openEmployee'), creationComplete: tEmployees('creationComplete'), creationCompleteHelp: tEmployees('creationCompleteHelp'), identityCheckUnavailable: tEmployees('identityCheckUnavailable'),
     required: tEmployees('required'),
     validationRequired: tValidation('required'), validationEmail: tValidation('email'),
     invalidBsn: tEmployees('invalidBsn'), invalidCountryCode: tEmployees('invalidCountryCode'),

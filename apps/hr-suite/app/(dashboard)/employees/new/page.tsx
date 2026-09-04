@@ -4,15 +4,17 @@ import { redirect } from 'next/navigation'
 import { EmployeeCreateWizard } from '@/components/employees/employee-create-wizard'
 import { AuthorizationError, requirePermission } from '@/lib/auth/permissions'
 import { getLocale, getTranslator } from '@/lib/i18n/server'
+import { getUserPreferences } from '@/lib/preferences/server'
 
 export default async function NewEmployeePage() {
   await requireEmployeeCreation()
-  const [tEmployees, tErrors, tValidation, tEmployment, locale] = await Promise.all([
+  const [tEmployees, tErrors, tValidation, tEmployment, locale, preferences] = await Promise.all([
     getTranslator('employees'),
     getTranslator('errors'),
     getTranslator('validation'),
     getTranslator('employment'),
     getLocale(),
+    getUserPreferences(),
   ])
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
@@ -21,7 +23,7 @@ export default async function NewEmployeePage() {
       </Link>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{tEmployees('new')}</h1>
       <div className="mt-5 min-w-0 max-w-full">
-        <EmployeeCreateWizard locale={locale} labels={{
+        <EmployeeCreateWizard locale={locale} dateFormat={preferences.dateFormat} labels={{
           steps: [tEmployees('wizardStepIdentity'), tEmployees('wizardStepCore'), tEmployees('wizardStepAdditional'), tEmployees('wizardStepContact'), tEmployees('wizardStepReview')],
           identityTitle: tEmployees('wizardIdentityTitle'), identityHelp: tEmployees('wizardIdentityHelp'),
           bsn: tEmployees('bsn'), birthDate: tEmployees('birthDate'), ageRangeInvalid: tEmployees('ageRangeInvalid'), birthName: tEmployees('birthName'),
@@ -54,7 +56,7 @@ export default async function NewEmployeePage() {
           additionalSection: tEmployees('additionalSection'), contactSection: tEmployees('contactSection'), addressSection: tEmployees('addressSection'), noAddress: tEmployees('noAddress'),
           employmentOptional: tEmployees('employmentOptional'), employmentOptionalHelp: tEmployees('employmentOptionalHelp'),
           previous: tEmployees('previous'), continue: tEmployees('continue'), create: tEmployees('createEmployee'), updateExistingEmployee: tEmployees('updateExistingEmployee'), updateExistingEmployeeShort: tEmployees('updateExistingEmployeeShort'), createAndEmployment: tEmployees('createEmployeeAndEmployment'), createAndEmploymentShort: tEmployees('createAndEmploymentShort'), creating: tEmployees('creatingEmployee'),
-          genericError: tErrors('generic'), numberConflict: tEmployees('numberConflict'), identityConflict: tEmployees('identityConflict'), addressSaveFailed: tEmployees('addressSaveFailed'),
+          genericError: tErrors('generic'), identityCheckUnavailable: tEmployees('identityCheckUnavailable'), numberConflict: tEmployees('numberConflict'), identityConflict: tEmployees('identityConflict'), addressSaveFailed: tEmployees('addressSaveFailed'),
           addressIncomplete: tEmployees('addressIncomplete'), validationFieldsMissing: tEmployees('validationFieldsMissing'), validationCorrectFields: tEmployees('validationCorrectFields'), openEmployee: tEmployees('openEmployee'), creationComplete: tEmployees('creationComplete'), creationCompleteHelp: tEmployees('creationCompleteHelp'),
           required: tEmployees('required'),
           validationRequired: tValidation('required'), validationEmail: tValidation('email'),

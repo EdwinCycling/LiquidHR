@@ -2,13 +2,15 @@
 
 /* eslint-disable @next/next/no-img-element -- the selected photo is a local object URL preview. */
 
-import { AlertTriangle, ArrowDown, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle, MapPin, Save, Search, ShieldCheck, UserRoundPlus } from 'lucide-react'
+import { AlertTriangle, ArrowDown, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle, MapPin, Save, Search, ShieldCheck, UserRound, UserRoundPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type ChangeEventHandler, type FocusEvent, type FocusEventHandler, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { EmploymentCreateForm, type EmploymentCreateFormProps, type EmploymentWizardEmployeeSummary } from '@/components/employment/employment-create-form'
 import { EmploymentContractCreateForm, type EmploymentContractWizardDraft, type EmploymentContractWizardOptions } from '@/components/employment/employment-contract-create-form'
+import { formatDate } from '@/lib/preferences/formatters'
+import type { DateFormat } from '@/lib/preferences/user-preferences'
 import type { EmploymentCreationOptions } from '@/lib/employment/employment-service'
 import type { AddressSuggestion } from '@/lib/address/address-suggestions'
 import type { CustomFieldDefinition } from '@/lib/custom-fields/service'
@@ -129,6 +131,7 @@ interface ContactDraft {
 }
 
 interface ApiError {
+  code?: string
   error?: string
   details?: { suggestedEmployeeNumber?: string }
 }
@@ -326,6 +329,7 @@ export interface EmployeeCreateWizardLabels {
   rehireActionShort: string
   creating: string
   genericError: string
+  identityCheckUnavailable: string
   numberConflict: string
   identityConflict: string
   addressSaveFailed: string
@@ -359,6 +363,7 @@ export interface EmployeeCreateWizardLabels {
 interface EmployeeCreateWizardProps {
   labels: EmployeeCreateWizardLabels
   locale: string
+  dateFormat: DateFormat
   initialEmploymentEmployeeId?: string
   initialEmploymentOptions?: EmploymentCreationOptions
   initialContractEmployeeId?: string
@@ -410,7 +415,7 @@ function isValidBsn(input: string): boolean {
   return (checksum - digits[8]) % 11 === 0
 }
 
-export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployeeId, initialEmploymentOptions, initialContractEmployeeId, initialContractEmploymentId, initialContractOptions, initialContractEmploymentStartsOn, initialContractIsFirst, initialContractDraft, initialContractSubmitLabel, initialEmployeeSummary }: EmployeeCreateWizardProps) {
+export function EmployeeCreateWizard({ labels, locale, dateFormat, initialEmploymentEmployeeId, initialEmploymentOptions, initialContractEmployeeId, initialContractEmploymentId, initialContractOptions, initialContractEmploymentStartsOn, initialContractIsFirst, initialContractDraft, initialContractSubmitLabel, initialEmployeeSummary }: EmployeeCreateWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [identity, setIdentity] = useState<IdentityDraft>(EMPTY_IDENTITY)
@@ -584,6 +589,10 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
     return labels.noEmployment
   }
 
+  function formatWizardDate(value: string | null | undefined): string {
+    return value ? formatDate(value, { locale, dateFormat }) : ''
+  }
+
   useEffect(() => {
     if (step !== 2) return
     void fetch('/api/custom-fields')
@@ -706,6 +715,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
     }
     setState('checking')
     setIdentityCheckProgress(0)
+    setCandidates(null)
     try {
       const response = await fetch('/api/employees/matches', {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -714,9 +724,12 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
           birthName: draft.birthName || undefined, privateEmail: draft.privateEmail || undefined,
         }),
       })
-      if (!response.ok) throw new Error('IDENTITY_CHECK_FAILED')
-      const payload: { data: Candidate[] } = await response.json()
-      setCandidates(payload.data)
+      const payload = await response.json().catch(() => ({})) as ApiError & { data?: Candidate[] }
+      if (!response.ok) {
+        setError(payload.code === 'BSN_HASH_KEY_MISSING' ? labels.identityCheckUnavailable : labels.genericError)
+        return
+      }
+      setCandidates(payload.data ?? [])
     } catch {
       setError(labels.genericError)
     } finally {
@@ -1179,8 +1192,12 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
   const activeStep = contractOnlyFlow ? contractStep : employmentOnlyFlow ? employmentStep : employmentFlow ? labels.steps.length + employmentStep : step
   const displayedNumberCheck = step === 1 && numberInput.trim() ? numberCheck : 'idle'
   const previewParts = getNamePreviewParts(namePreview)
-  const employeeSummary: EmploymentWizardEmployeeSummary | undefined = initialEmployeeSummary ?? (core.firstName || core.birthName ? { name: previewParts.displayName, birthDate: core.birthDate || null, gender: core.gender } : undefined)
-  const additionalReviewLines = [additional.title, additional.initials, additional.birthPlace, additional.birthCountry, additional.nationality, additional.maritalStatus, additional.educationLevel, additional.privatePhone, additional.workPhone, additional.originalHireDate]
+  const employeeSummary: EmploymentWizardEmployeeSummary | undefined = initialEmployeeSummary
+    ? { ...initialEmployeeSummary, birthDate: formatWizardDate(initialEmployeeSummary.birthDate) || null }
+    : core.firstName || core.birthName
+      ? { name: previewParts.displayName, birthDate: formatWizardDate(core.birthDate) || null, gender: core.gender }
+      : undefined
+  const additionalReviewLines = [additional.title, additional.initials, additional.birthPlace, additional.birthCountry, additional.nationality, additional.maritalStatus, additional.educationLevel, additional.privatePhone, additional.workPhone, formatWizardDate(additional.originalHireDate)]
 
   return (
     <div className="grid min-w-0 max-w-full gap-7 overflow-x-hidden xl:grid-cols-[13rem_minmax(0,1fr)]">
@@ -1229,6 +1246,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               employeeId={createdEmployeeId}
               options={employmentOptions}
               labels={labels.employment}
+              locale={locale}
+              dateFormat={dateFormat}
               canScrollDown={canScrollDown}
               moreDataAvailable={labels.moreDataAvailable}
               showNavigation={false}
@@ -1269,6 +1288,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                employeeSummary={employeeSummary}
               labels={labels.employment}
               submitLabel={initialContractSubmitLabel ?? labels.employment.submit}
+              locale={locale}
+              dateFormat={dateFormat}
               onStepChange={setContractStep}
               onSaved={() => router.push(`/employees/${initialContractEmployeeId}/employments/${initialContractEmploymentId}?tab=overview`)}
             />
@@ -1296,7 +1317,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.identityHelp}</p>
               </header>
             <form id="identity-check-form" onSubmit={checkIdentity} noValidate className="mt-6 grid min-w-0 gap-4 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
+              <label className="grid gap-1.5 text-sm font-medium">
                 <FieldLabel labels={labels} required={false}>{labels.bsn}</FieldLabel>
                 <input name="bsn" defaultValue={identity.bsn} inputMode="numeric" autoComplete="off" className="form-field" onBlur={(event) => void validateFieldOnBlur('bsn', event)} {...errorAttributes('bsn')} />
                 <FieldError field="bsn" errors={fieldErrors} />
@@ -1338,7 +1359,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                             <dl className="mt-3 grid gap-2 rounded-lg bg-muted/30 p-3 sm:grid-cols-2">
                               <div><dt className="text-xs text-muted-foreground">{labels.archiveStatus}</dt><dd>{candidate.isArchived ? labels.archivedYes : labels.archivedNo}</dd></div>
                               <div><dt className="text-xs text-muted-foreground">{labels.employmentType}</dt><dd>{employmentTypeLabel(candidate.employment.employmentType)}</dd></div>
-                              <div><dt className="text-xs text-muted-foreground">{candidate.employment.status === 'ACTIVE' ? labels.activeEmployment : candidate.employment.status === 'LAST' ? labels.lastEmployment : labels.noEmployment}</dt><dd>{candidate.employment.startsOn ? `${candidate.employment.startsOn}${candidate.employment.endsOn ? ` – ${candidate.employment.endsOn}` : ''}` : labels.noEmployment}</dd></div>
+                               <div><dt className="text-xs text-muted-foreground">{candidate.employment.status === 'ACTIVE' ? labels.activeEmployment : candidate.employment.status === 'LAST' ? labels.lastEmployment : labels.noEmployment}</dt><dd>{candidate.employment.startsOn ? `${formatWizardDate(candidate.employment.startsOn)}${candidate.employment.endsOn ? ` – ${formatWizardDate(candidate.employment.endsOn)}` : ''}` : labels.noEmployment}</dd></div>
                               <div><dt className="text-xs text-muted-foreground">{labels.administration}</dt><dd>{candidate.employment.administrationNumber && candidate.employment.administrationName ? `${candidate.employment.administrationNumber} — ${candidate.employment.administrationName}` : labels.noAdministration}</dd></div>
                             </dl>
                           </details>
@@ -1359,7 +1380,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                 ) : null}
               </div>
             )}
-            <div className="sticky bottom-0 z-10 mt-auto flex items-center justify-between gap-2 border-t border-border/70 bg-surface/95 py-2.5 backdrop-blur-sm">
+             <WizardError error={error} />
+             <div className="sticky bottom-0 z-10 mt-auto flex items-center justify-between gap-2 border-t border-border/70 bg-surface/95 py-2.5 backdrop-blur-sm">
               {candidates ? <button type="button" onClick={cancelNewEmployee} className="button-secondary shrink-0">{labels.cancelNewEmployee}</button> : <button type="button" onClick={() => void skipIdentityCheck()} disabled={state !== 'idle'} className="button-secondary shrink-0 gap-2">
                 {state === 'loading-number' && <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />}
                 {labels.skipIdentityCheck}<ChevronRight aria-hidden="true" className="h-4 w-4" />
@@ -1478,7 +1500,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                 </select>
               </label>
             </div>
-            <WizardActions labels={labels} canScrollDown={canScrollDown} onBack={() => { setFieldErrors({}); setError(null); setStep(0) }} />
+             <WizardError error={error} />
+             <WizardActions labels={labels} canScrollDown={canScrollDown} onBack={() => { setFieldErrors({}); setError(null); setStep(0) }} />
           </form>
         )}
 
@@ -1543,7 +1566,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                 </div>
               </details>}
             </div>
-            <WizardActions labels={labels} canScrollDown={canScrollDown} onBack={() => { setFieldErrors({}); setError(null); setStep(1) }} />
+             <WizardError error={error} />
+             <WizardActions labels={labels} canScrollDown={canScrollDown} onBack={() => { setFieldErrors({}); setError(null); setStep(1) }} />
           </form>
         )}
 
@@ -1580,7 +1604,8 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                 {addressLookupState === 'failed' && <p role="alert" className="text-xs text-destructive sm:col-span-full">{labels.lookupUnavailable}</p>}
               </div>
             </div>
-            <WizardActions labels={labels} canScrollDown={canScrollDown} onBack={() => { setFieldErrors({}); setError(null); setStep(2) }} />
+             <WizardError error={error} />
+             <WizardActions labels={labels} canScrollDown={canScrollDown} onBack={() => { setFieldErrors({}); setError(null); setStep(2) }} />
           </form>
         )}
 
@@ -1600,9 +1625,9 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
                 reviewLine(labels.nameUsage, nameUsageLabel(nameUsage, labels)),
                 reviewLine(labels.employeeNumber, core.employeeNumber),
                 reviewLine(labels.gender, genderLabel(core.gender, labels)),
-                reviewLine(labels.birthDate, core.birthDate),
+                reviewLine(labels.birthDate, formatWizardDate(core.birthDate)),
                 reviewLine(labels.preferredLanguage, languageLabel(core.preferredLanguage, labels)),
-              ]} />
+              ]} aside={photoPreviewUrl ? <img src={photoPreviewUrl} alt={previewParts.displayName || labels.photoTitle} className="size-14 rounded-full object-cover ring-2 ring-primary/10" /> : <span className="grid size-14 place-items-center rounded-full bg-primary/10 text-primary ring-2 ring-primary/10"><UserRound aria-hidden="true" className="size-7" /></span>} />
               {additionalReviewLines.some(Boolean) && <ReviewSection title={labels.additionalSection} lines={additionalReviewLines} />}
               <ReviewSection title={labels.contactSection} lines={[contact.privateEmail, contact.privateMobile, contact.workEmail, contact.workMobile]} />
               <ReviewSection title={labels.addressSection} lines={contact.street ? [`${contact.street} ${contact.houseNumber}${contact.addition ? ` ${contact.addition}` : ''}`, `${contact.postalCode} ${contact.city}`, contact.countryCode] : [labels.noAddress]} />
@@ -1611,6 +1636,7 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
               <p className="font-semibold text-accent-foreground">{labels.employmentOptional}</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.employmentOptionalHelp}</p>
             </div>
+            <WizardError error={error} />
             <div className="absolute inset-x-5 bottom-5 z-10 flex min-w-0 items-center gap-2 border-t border-border/70 bg-surface/95 py-2.5 backdrop-blur-sm sm:inset-x-7 sm:bottom-7">
               <button type="button" onClick={() => { setFieldErrors({}); setError(null); setStep(3) }} disabled={state === 'creating'} className="button-secondary inline-flex shrink-0 gap-1 whitespace-nowrap text-xs sm:text-sm"><ChevronLeft aria-hidden="true" className="h-4 w-4" />{labels.previous}</button>
               <ScrollHint labels={labels} visible={canScrollDown} />
@@ -1640,7 +1666,6 @@ export function EmployeeCreateWizard({ labels, locale, initialEmploymentEmployee
         )}
 
         </>}
-        {error && !createdEmployeeId && <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl bg-destructive-surface p-4 text-sm text-destructive"><AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
         </div>
         {state === 'creating' && !(createdEmployeeId && createDestination === 'employment') && <EmploymentCreateProgress labels={labels} progress={employmentCreateProgress} />}
         {showNumberUsage && numberUsage && <div className="fixed inset-0 z-50 grid place-items-center bg-sidebar/70 p-4" role="presentation" onMouseDown={() => setShowNumberUsage(false)}>
@@ -1814,6 +1839,11 @@ function ScrollHint({ labels, visible }: { labels: Pick<EmployeeCreateWizardLabe
   return <span className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 px-1 text-center text-xs font-semibold text-success" role="status" aria-live="polite"><ArrowDown aria-hidden="true" className="h-3.5 w-3.5 shrink-0 animate-bounce" />{labels.moreDataAvailable}</span>
 }
 
+function WizardError({ error }: { error: string | null }) {
+  if (!error) return null
+  return <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl bg-destructive-surface p-4 text-sm text-destructive"><AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>
+}
+
 function WizardActions({ labels, canScrollDown, onBack }: { labels: EmployeeCreateWizardLabels; canScrollDown: boolean; onBack: () => void }) {
   return (
     <div className="sticky bottom-0 z-10 mt-auto flex items-center justify-between gap-2 border-t border-border/70 bg-surface/95 py-2.5 backdrop-blur-sm">
@@ -1824,12 +1854,13 @@ function WizardActions({ labels, canScrollDown, onBack }: { labels: EmployeeCrea
   )
 }
 
-function ReviewSection({ title, lines }: { title: string; lines: string[] }) {
+function ReviewSection({ title, lines, aside }: { title: string; lines: string[]; aside?: ReactNode }) {
   const visible = lines.filter(Boolean)
   return (
-    <section className="grid gap-2 p-4 sm:grid-cols-[10rem_1fr] sm:p-5">
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <div className="space-y-1 text-sm text-muted-foreground">{visible.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
+    <section className="grid gap-2 p-4 sm:grid-cols-[10rem_minmax(0,1fr)_auto] sm:p-5">
+      {aside ? <div className="order-first justify-self-end sm:col-start-3 sm:row-start-1 sm:order-none">{aside}</div> : null}
+      <h3 className="sm:col-start-1 sm:row-start-1 text-sm font-semibold">{title}</h3>
+      <div className="space-y-1 text-sm text-muted-foreground sm:col-start-2 sm:row-start-1">{visible.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
     </section>
   )
 }

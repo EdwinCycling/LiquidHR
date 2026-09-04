@@ -236,6 +236,7 @@
   "updateExistingEmployee": "Medewerker bijwerken",
   "createEmployeeAndEmployment": "Medewerker + dienstverband aanmaken",
   "creatingEmployee": "Aanmaken…",
+  "identityCheckUnavailable": "De identiteitscontrole is lokaal niet beschikbaar door een ontbrekende serverinstelling (BSN_HASH_KEY). Laat deze instelling toevoegen aan de lokale serverconfiguratie.",
   "employmentLoading": "Dienstverbandstappen laden…",
   "numberConflict": "Dit personeelsnummer is zojuist in gebruik genomen. We hebben een nieuw vrij nummer voorgesteld.",
   "identityConflict": "Deze BSN is al aan een medewerker gekoppeld. Controleer eerst of je de bestaande medewerker wilt gebruiken.",
