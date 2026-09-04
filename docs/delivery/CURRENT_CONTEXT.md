@@ -1,15 +1,61 @@
 # Actuele overdracht Liquid HR
 
+## UX-fix 2026-09-04: startpagina verzuimduiding
+
+De startpagina toont bij ieder lopend verzuimgeval de startdatum en het actuele ziektepercentage. De tekst voor een herstelstatus is verduidelijkt naar “Herstelperiode na betermelding”. De langdurig-ziek-tegel gebruikt dezelfde open verzuimcases en datumlogica als de lijst en telt gevallen van 14 dagen of langer. Het blok “Snel naar” is verwijderd op verzoek.
+
+Verificatie: gerichte startpaginatest `4/4`, strict TypeScript, ESLint, i18n-pariteit en lokale browsercontrole op `http://localhost:3000/dashboard/start` zijn groen. Browserreadback bevestigt Maya Bos `100% ziek`, de tegelwaarde `4` en het ontbreken van “Snel naar”. Geen schema-, migratie-, remote database-, push-, deployment- of version bump-wijziging.
+
+## Aanvulling 2026-09-04: organogram layout en rapportagelijnen
+
+De organogramcanvas gebruikt één gedeelde deterministische layout voor Organisatiestructuur en Rapportagelijnen. Afdelingen vormen zichtbaar de overgang naar medewerkers; kaartgroepen worden maximaal vier kolommen breed geplaatst met vaste rij- en tussenruimtes. Manager-subtrees worden recursief geplaatst, zodat directe rapporten onder hun manager blijven staan. Verbindingen zijn duidelijke afgeronde segmenten en de canvas-fit wordt na dataset-/weergavewissels automatisch herhaald.
+
+Lokaal gecontroleerd op poort 3000 met de bestaande administratiecontext: beide desktopweergaven renderen met 31 medewerkers, afdelingen en managerrelaties; het handmatige passend-tonen blijft beschikbaar. Gerichte tests `14/14`, strict TypeScript, ESLint, i18n-pariteit en diff-check zijn groen. Geen schema-, API-, database- of remote wijziging; mobiele browsercontrole en volledige suite blijven open.
+
+## Aanvulling 2026-09-04: dienstverbandstabs en locatievalidatie
+
+De dienstverbandtabs Rooster, Salaris en Functie/Afdeling tonen actuele, historische en toekomstige perioden en gebruiken dezelfde wijzigingswizard als Overzicht. Bedrijf en locatie en Kostenverdeling volgen dezelfde indeling; Historie bevat de verticale tijdlijn met peildatum-, status- en onderdeel-filters. Maya Bos is op poort 3000 gecontroleerd met blijvende synthetische testdata voor rooster, salaris, functie/afdeling, locatie en kostenverdeling.
+
+De locatie-opslag accepteert nu ook bestaande PostgreSQL-UUIDs die geen RFC-versienibble hebben. Inclusieve einddatums voor organisatie- en locatieperioden worden correct als huidig tot en met de einddatum en daarna als toekomstig getoond. Geen nieuwe migratie of remote schemawijziging is nodig of toegepast.
+
+## Hotfix 2026-09-04: bestaande bankrekening wijzigen zonder IBAN
+
+**Status: LOCAL GREEN — PATCH 204 op poort 3000 en ciphertext-behoud bewezen**
+
+- Een bestaande bankrekening kan metadata wijzigen zonder opnieuw een IBAN in te voeren. Lege en gemaskeerde waarden (`•••• 1032`) worden als “IBAN behouden” behandeld; een echte nieuwe IBAN blijft verplicht door de encryptielaag lopen.
+- De route gebruikt het update-schema, de service bouwt uitsluitend de gewijzigde IBAN-kolommen wanneer dat nodig is, en autorisatie/RLS blijven ongewijzigd. Er is geen database-migratie nodig.
+- Verificatie: gerichte route-, schema-, service-mapper- en PII-tests `20/20`, strict TypeScript, gerichte ESLint en `git diff --check`. De echte Maya Bos-flow gaf `PATCH 204`; veilige readback bevestigde `iban_last_four=1032`, ciphertext-lengte `59` en dezelfde ciphertext-digest vóór/na.
+- Geen plaintext IBAN gelezen of gelogd; protected `.env.local`, remote schema, push, version bump en Vercel zijn niet gewijzigd.
+
+## QA-fix 2026-09-04: dienstverbandwijzigingen Maya Bos
+
+**Status: LOCAL + TEST DATABASE GREEN — klaar voor lokaal testen op poort 3000**
+
+- Voor Maya Bos zijn de zes toegestane opties voor loon-/dienstverbandwijziging getest en werkend gemaakt: Uren / Rooster, Uren / Rooster / Salaris, Functie / afdeling / kostenplaats, Salaris, CAO / arbeidsvoorwaarden en Type contract / Startdatum. Contract verwijderen is bewust niet uitgevoerd.
+- De opslag gebruikt nu veilige datumgrenzen en behoudt bestaande tussenliggende arbeidsvoorwaardenperioden. De organisatie-opslag kan bestaande functies zonder functierevisie gebruiken. Contractvalidatie accepteert de bestaande database-UUID-vorm. Testdata en de gemaakte toekomstige wijzigingen voor Maya Bos blijven staan conform opdracht.
+- De tab Historie toont alle gebeurtenissen als verticale tijdlijn met peildatum-, status- en onderdeel-filter. Heden, verleden en toekomst zijn zichtbaar; technische enumwaarden worden vertaald naar gebruikerslabels.
+- Voorwaartse migraties `20260904150000_complete_employment_history_timeline.sql`, `20260904153000_fix_employment_organization_job_fallback.sql` en `20260904160000_fix_contract_labor_timeline_reconciliation.sql` zijn op de geautoriseerde testdatabase toegepast.
+- Verificatie: 5 gerichte testbestanden / 20 tests, strict TypeScript, i18n-pariteit (35 namespaces), ESLint en `git diff --check` zijn groen. Browsercontrole op `localhost:3000` bevestigt alle historie-events, labels en filters. Delete, volledige suite, production build, push en deployment zijn niet uitgevoerd.
+
+## UX-fix 2026-09-04: mobile sidebar follow-up
+
+**Status: LOCAL GREEN — klaar voor lokaal testen in Codex-browser**
+
+- De bestaande sidebar op `main` is compacter gemaakt voor mobiel: Gift, testrolwissel en panelcontrol staan als compacte utilities in de header. De testrolwissel gebruikt een popover met behoud van de bestaande POST-flow, `#test-role-switch-target` en stabiele test-id's.
+- De onderzijde gebruikt nu een compacte reminder/klokstrip en één account-row met avatar, naam en chevron. Persoonlijke instellingen, uitloggen en versie-info staan in een compact accountmenu. Sectielabels en menu-gaps zijn verdicht; routes, permissions en dataflows zijn behouden.
+- Verificatie: gerichte tests `6/6`, scoped ESLint, `git diff --check`, Codex in-app browser op `390×844` en `1440×900`, Gift Drawer, testrolpopover, accountpopover, navigatie, collapsed sidebar, overflow en verse console `0 errors / 0 warnings`. Strict typecheck blijft geblokkeerd door de bestaande dirty employment-file met dubbele objectproperty op `page.tsx:452`.
+- Geen schema/API/RLS/permission-wijziging, remote write, push of deployment uitgevoerd. Zie [`REDESIGN_SIDEBAR_MOBILE_FOLLOWUP.md`](../requirements/ux/REDESIGN_SIDEBAR_MOBILE_FOLLOWUP.md).
+
 ## P0-fix 2026-09-04: verzuimcorrecties
 
-**Status: LOCAL GREEN — DB approval required before runtime acceptance**
+**Status: ACCEPTED — TEST DATABASE AND RUNTIME ACCEPTANCE GREEN**
 
 - De lokale verzuimflow valideert operationele datums server-side en database-side, houdt ziekmeldingen per dienstverband gescheiden, ondersteunt 27-dagen-compound versus 28-dagen-nieuwe casus en herberekent de effectieve WVP-klok na een herreport.
 - Capaciteitswijzigingen ondersteunen uren of percentage met wederzijdse afleiding, bewaren de rooster- en verzuimuren-snapshot en tonen de volledige historie. Historische rijen worden alleen aangevuld wanneer op de effectieve datum een betrouwbaar rooster bestaat; anders blijven de nieuwe snapshotvelden bewust leeg.
 - De ziekmeldings-UI toont alleen het privacy-veilige vangnet/ongeval/derde-partij-indicatoren, laat geen open dienstverband dubbel rapporteren en biedt een ander open dienstverband expliciet aan.
-- Additieve migratiecandidate: `apps/hr-suite/supabase/migrations/20260904130000_absence_p0_corrective_workflow.sql`. De SQL-contracttest staat in `apps/hr-suite/supabase/tests/absence_p0_contract.sql`. De migratie is niet toegepast; gegenereerde DB-types zijn lokaal kandidaatmatig bijgewerkt omdat lokale Postgres/Supabase typegen niet beschikbaar was.
-- Verificatie: absence/page gerichte tests `22/22`, strict TypeScript, ESLint, i18n-pariteit `35` namespaces, lokale HTTP `200` op poort `3000`, lokale browser-smoke en `git diff --check` zijn groen. Runtime persistence, DB-contracttest, desktop/mobile acceptance en self-service acceptance zijn **NOT PROVEN** zolang de migratie niet op een geautoriseerde testdatabase staat.
-- Geen remote database-write, migration apply, push, deployment of version bump uitgevoerd. De beschermde `apps/hr-suite/.env.local` is niet gewijzigd.
+- De additieve migraties `20260904130000_absence_p0_corrective_workflow.sql` en `20260904180000_fix_absence_future_mutation_trigger.sql` zijn geregistreerd op de geautoriseerde testdatabase als `20260904163251_absence_p0_corrective_workflow` en `20260904172754_fix_absence_future_mutation_trigger`; de SQL-contracttest staat in `apps/hr-suite/supabase/tests/absence_p0_contract.sql`.
+- Verificatie: absence/page gerichte tests `22/22`, strict TypeScript, ESLint, i18n-pariteit `35` namespaces, lokale HTTP `200` op poort `3000`, lokale browser-smoke, runtime persistence en de P0-flow zijn groen. De volledige P0-acceptance is eerder afgerond; deze release heropent die suite niet.
+- Geen nieuwe remote database-write in deze release. De beschermde `apps/hr-suite/.env.local` is niet gewijzigd.
 
 ## QA-fix 2026-09-04: persoonsgegevens-tabs Maya Bos
 
@@ -2578,3 +2624,18 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 
 - De compacte `/dashboard/start`-weergave hield na de eerdere redesign alleen de begroeting over. De bestaande datavensters worden nu ook in compact gerenderd; vensterdragging en volgordeacties blijven daar verborgen. Uitgebreid behoudt de bestaande vensteracties.
 - Geen schema-, API-, RLS-, permissie- of dataladingswijziging. Definitieve verificatie: 2 gerichte start-page regressietests, strict typecheck, productiebuild, `git diff --check` en authenticated Test HR-browsercontrole op localhost:3000. Compacte widgets, verborgen drag/reorder en refresh zijn groen; uitgebreide widgets, drag/reorder en refresh zijn groen; 0 relevante console-errors. De voorgeschreven `docs/delivery/TEST_ACCEPTANCE_MATRIX.md` ontbreekt in deze checkout.
+
+## Reminder QA — Maya Bos — 2026-09-04
+
+- Root cause: Maya heeft geen gekoppeld auth-account. Publicatie voor een expliciete medewerker kon daardoor nul ontvangers materialiseren en eindigde in `REMINDER_NO_RECIPIENTS`.
+- Oplossing: target-only medewerkerweergave in `lib/reminders/reminder-service.ts` en twee forward migrations (`20260904170000_fix_employee_target_reminder_delivery.sql`, `20260904173000_fix_employee_reminder_fallback_uuid.sql`). Een ongekoppelde medewerker krijgt voor een expliciete reminder een fallback-ontvanger voor de maker en de actieve directe manager; de medewerker-target blijft leidend.
+- Remote TEST Supabase `wnpfloqpjvaacobppbpk`: beide migrations toegepast en geregistreerd; typegeneratie en advisors uitgevoerd. Geen nieuwe reminder-securitywaarschuwing.
+- Browsercontrole op poort 3000: HR Admin heeft via Maya's medewerker-tab reminders aangemaakt, alle vier datumacties getest, gewijzigd/gepubliceerd, annuleren met dirty-state getest en verwijderen zowel geannuleerd als bevestigd. De reminder is teruggelezen op Maya's tab, in HR-beheer, bij HR Admin en op Yara's manager-startpagina.
+- Testdata blijft bewust staan. Geen push, deploy of versiebump uitgevoerd.
+- Verificatie: gerichte tests 20/20, strict typecheck, gerichte lint en Webpack-build groen. Volledige suite: 1353/1355; twee bestaande, niet-gerelateerde failures in Document Studio-contracttest en PDF-test. Supabase pgTAP kon niet starten door Windows `C:\Users\Edwin\.supabase\telemetry.json`-EPERM.
+
+## Employment roosterinvoer — 2026-09-04
+
+- De Uren/Rooster-wizard toont nu alle urenafspraakvelden met consistente labels en uitlijning. De roosterinvoer kan schakelen tussen decimale uren en uren:minuten; waarden worden bij omschakelen geconverteerd en payload/work-pattern-minuten blijven numeriek correct.
+- De secundaire knopstijl is in de gedeelde Foundation en LinkedHR-theme duidelijker gemaakt met een accent-surface en primaire randkleur; bestaande knopgebruikers erven dit app-breed.
+- Verificatie: parser-tests 3/3, strict TypeScript, gerichte ESLint, i18n (35 namespaces), diff-check en geauthenticeerde browsercontrole op localhost:3000. Maya's `7.8` werd `7,48`; invoer `7,30` werd terug `7.5`. Geen schema-, API-, database-, push-, deploy- of versiebumpwijziging.

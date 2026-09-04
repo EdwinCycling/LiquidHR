@@ -1,8 +1,44 @@
 # Implementatiestatus Liquid HR
 
+## Organogram uitlijning en rapportagelijnen — 2026-09-04
+
+**Status: LOCAL GREEN — beide organogramweergaven geverifieerd**
+
+De canvas-layout is vervangen door één gedeelde, deterministische boom-/grid-layout voor organisatiestructuur en rapportagelijnen. Afdelingen en administratie blijven als hiërarchische laag boven medewerkers staan; medewerkers en manager-subtrees worden uitgelijnd met maximaal vier kaarten per rij en vaste tussenruimtes. De lijnstijl is versterkt met afgeronde segmenten en duidelijke accentkleur. Bij asynchroon geladen of gewisselde graph-data wordt het canvas automatisch opnieuw passend getoond.
+
+De managerweergave verwerkt nu ook medewerkers met eigen onderliggende medewerkers correct; die kinderen vallen niet meer terug op een los rootniveau. Er zijn geen schema-, API-, RLS- of databasewijzigingen gedaan.
+
+Gerichte verificatie: layout/projector/schema/API-tests `14/14`, strict TypeScript, scoped ESLint, i18n-pariteit (`35` namespaces), `git diff --check` en lokale desktop-browsercontrole van beide weergaven zijn groen. Volledige suite, mobiele browsercontrole, commit, push en deployment zijn niet uitgevoerd.
+
+## Dienstverbandstabs en tijdlijnweergave — 2026-09-04
+
+**Status: LOCAL + TEST DATABASE GREEN — Maya Bos-flow geverifieerd**
+
+Rooster, Salaris en Functie/Afdeling tonen nu de actuele periode bovenaan en historische/toekomstige perioden daaronder. De knop `Wijzigen` opent in alle drie tabs dezelfde bestaande dienstverbandwizard als in Overzicht. Bedrijf en locatie en Kostenverdeling tonen eveneens huidige/verleden/toekomst; Historie ondersteunt een verticale tijdlijn met peildatum-, status- en onderdeel-filter.
+
+De locatieflow is gericht hersteld: bestaande PostgreSQL-UUIDs zonder RFC-versienibble worden door hetzelfde database-UUID-schema geaccepteerd en locatieperioden worden met inclusieve einddatums geclassificeerd. Maya Bos is browsermatig gecontroleerd op toevoegen, wijzigen en annuleren voor locatie en opslaan van kostenverdeling; testdata blijft staan conform opdracht.
+
+Gerichte verificatie: 20/20 tests, strict TypeScript, ESLint, i18n-pariteit en `git diff --check` groen. Geen nieuwe migratie, remote schemawijziging, push, deployment of version bump uitgevoerd.
+
+## Bestaande bankrekening PATCH — 2026-09-04
+
+**Status: LOCAL GREEN — metadata-update zonder IBAN werkt veilig**
+
+De update-route accepteert een weggelaten, lege of gemaskeerde IBAN als behoud van de bestaande versleutelde waarde. Alleen een echte nieuwe IBAN wordt genormaliseerd, gevalideerd en via `encryptPii` naar de database geschreven. Gerichte tests, strict TypeScript, ESLint, diff-check en een echte Maya Bos UI-readback zijn groen; de testdatabase bevestigde dat de ciphertext-digest niet veranderde. Geen migration apply, push, version bump of deployment uitgevoerd.
+
+## Dienstverbandwijzigingen en tijdlijn — 2026-09-04
+
+**Status: LOCAL + TEST DATABASE GREEN — klaar voor lokaal testen**
+
+De zes niet-destructieve wijzigopties op een dienstverband zijn aangesloten op de bestaande timeline-/contract-API's en databasefuncties: rooster, rooster+salaris, organisatie+kosten, salaris, arbeidsvoorwaarden en contract/startdatum. De opslag bewaart effectieve perioden zonder overlappende arbeidsvoorwaardensegmenten; bestaande functies zonder `job_revisions` vallen veilig terug op hun stamdata.
+
+De historie-tab gebruikt de `hr_change_events`-projectie voor één verticale tijdlijn met peildatum, status (verleden/heden/toekomst) en onderdeel-filter. Contract- en medewerkertype-enums worden in de UI gelokaliseerd. Voor Maya Bos zijn de flows op `main` en poort `3000` geverifieerd met blijvende testdata. De drie voorwaartse migraties uit `CURRENT_CONTEXT.md` zijn op de geautoriseerde testdatabase toegepast. Contract verwijderen is bewust niet getest; volledige suite, productiebuild, push en deployment blijven open.
+
+Gerichte verificatie: 20/20 tests, strict TypeScript, ESLint, i18n-pariteit en `git diff --check` groen.
+
 ## Document Studio DG1 Generation Pipeline — 2026-09-04
 
-**Status: DG1 RELEASE CANDIDATE — MIGRATION AND AUTHENTICATED E2E GREEN**
+**Status: RELEASED — PRODUCTION GREEN**
 
 - Geïsoleerde candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR-DG1`, branch
   `work/document-studio-dg1-generation-pipeline`, exact review-baseline
@@ -1752,3 +1788,15 @@ Aanvulling 2026-08-16: de aanmaakwizard verwerkt roosterdagen voortaan als uren 
 # UX Foundation v1 — Employee Personal Tab
 
 De featurebranch `feature/ux-employee-personal-tab` migreert de vijf subtabs van `/employees/[employeeId]?tab=personal` naar Foundation v1. De outer surface, tablist, persoonsgegevens read/edit, rolweergave, BSN-presentatie, bank- en relatiepresentatie en embedded custom fields zijn aangepast zonder schema-, API-, permission-, RLS- of securitywijziging. De finale test-, build- en browserverificatie staat nog open.
+
+## Reminder QA — Maya Bos — 2026-09-04
+
+De reminderflow voor een expliciete, niet aan een auth-account gekoppelde medewerker is hersteld. De target blijft op Maya's medewerkerkaart zichtbaar; publicatie materialiseert een fallback-ontvanger voor de maker en de actieve directe manager, zodat de reminder ook in HR-beheer en de manager-startpagina verschijnt. De forward migrations `20260904170000_fix_employee_target_reminder_delivery.sql` en `20260904173000_fix_employee_reminder_fallback_uuid.sql` zijn op de lokale TEST-Supabase toegepast. Aangemaakte testdata blijft staan.
+
+Gerichte reminder-tests (20/20), typecheck, lint en productiebuild zijn groen. De volledige suite heeft 1353/1355 tests groen met twee bestaande, niet-gerelateerde failures (Document Studio-contracttest en PDF-timeout); de Supabase pgTAP-runner was geblokkeerd door een Windows-EPERM op `.supabase/telemetry.json`. Browsercontrole bevestigde create, alle datumacties, edit, dirty cancel, delete cancel/confirm en readback voor Maya, HR Admin en manager Yara. Push/deploy/versiebump zijn niet uitgevoerd.
+
+## Employment roosterinvoer — 2026-09-04
+
+De Uren/Rooster-wizard is aangescherpt: de urenafspraakvelden zijn verticaal uitgelijnd en de deeltijdfactor heeft weer een zichtbaar label. Een toegankelijke switch biedt decimale uren of uren:minuten; omschakelen converteert bestaande waarden en de save-payload gebruikt in beide gevallen de juiste uren en minuten. De gedeelde secundaire knopstijl gebruikt nu een duidelijkere accent-surface, inclusief de LinkedHR-theme.
+
+Gerichte verificatie is groen: roster-parser 3/3, strict TypeScript, ESLint, i18n (35 namespaces), diff-check en localhost-browsercontrole. Geen schema/API/databasewijziging en geen push, deploy of versiebump.

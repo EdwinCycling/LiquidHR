@@ -1,10 +1,20 @@
 # Liquid HR documentatie-index
 
+## Organogram uitlijning en rapportagelijnen — 2026-09-04
+
+De interactieve organogramweergave gebruikt nu voor beide varianten dezelfde deterministische boom-/grid-layout. Afdelingen vormen een duidelijke tussenlaag naar medewerkers; medewerkers worden met vaste tussenruimtes en maximaal vier kaarten per rij geplaatst. Managerketens worden volledig onder hun manager uitgelijnd, ook wanneer een medewerker zelf rapporten heeft. Verbindingen gebruiken duidelijke, afgeronde lijnsegmenten en het canvas centreert opnieuw wanneer de dataset of weergave wisselt. Er is geen schema-, API- of databasewijziging gedaan.
+
+Gerichte layout-, projector-, schema- en route-tests (`14/14`), strict TypeScript, scoped ESLint, i18n-pariteit en lokale browsercontrole van Organisatiestructuur en Rapportagelijnen zijn groen.
+
+## Dienstverbandstabs en tijdlijnweergave — 2026-09-04
+
+De tabs Rooster, Salaris en Functie/Afdeling tonen voor een dienstverband eerst de actuele periode en daarna verleden/toekomst, met dezelfde wijzigingswizard als het Overzicht. Bedrijf en locatie en Kostenverdeling volgen dezelfde tijdlijnindeling; Historie biedt een verticale tijdlijn met peildatum-, status- en onderdeel-filter. De Maya Bos-flow is lokaal op poort 3000 getest met blijvende synthetische testdata. Een bestaande PostgreSQL-UUID zonder RFC-versienibble wordt nu correct geaccepteerd door het locatieformulier. Er is geen nieuwe migratie toegepast, geen push of deployment uitgevoerd.
+
 ## Document Studio DG1 Generation Pipeline — 2026-09-04
 
-**Status: DG1 RELEASE CANDIDATE — MIGRATION AND AUTHENTICATED E2E GREEN**
+**Status: RELEASED — PRODUCTION GREEN**
 
-DG1 is uitgewerkt als geïsoleerde candidate op branch
+DG1 is afgerond vanuit de geïsoleerde candidate op branch
 `work/document-studio-dg1-generation-pipeline` in worktree
 `C:\Users\Edwin\Documents\Apps\LiquidHR-DG1`, vanaf review-SHA
 `a85b957e0ef628c6b13621804e2c7f025c98ea17`. De slice bevat de server-only

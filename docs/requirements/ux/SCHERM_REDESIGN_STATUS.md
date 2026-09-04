@@ -2,6 +2,20 @@
 
 Dit is het centrale register voor schermen die volgens de Liquid Flow UX-redesignskill worden aangepakt. Werk dit document bij wanneer een schermvoorstel, implementatie of verificatie is afgerond.
 
+## Dienstverbandhistorie — 2026-09-04
+
+| Scherm | Route | Status | Resultaat / resterend |
+|---|---|---|---|
+| Historie dienstverband | `/employees/[employeeId]/employments/[employmentId]?tab=history` | LOCAL + TEST DATABASE GREEN | Verticale tijdlijn met peildatum-, status- en onderdeel-filters; alle wijzigopties behalve verwijderen getest. |
+
+## Sidebar mobile follow-up — 2026-09-04
+
+| Scherm | Route | Status | Resultaat / resterend |
+|---|---|---|---|
+| Sidebar mobile follow-up | Dashboard-shell / alle dashboardroutes | LOCAL GREEN | Header utilities, testrolpopover, compact accountmenu en rustige footerstrip; browsercontrole op 390×844 en 1440×900 geslaagd |
+
+Zie [`REDESIGN_SIDEBAR_MOBILE_FOLLOWUP.md`](REDESIGN_SIDEBAR_MOBILE_FOLLOWUP.md). Geen API-, schema-, RLS-, permission- of remote wijziging.
+
 ## Roadmap 7 Slice 1 — Settings Hub & Platform Settings Model — 2026-08-28
 
 | Scherm | Route | Status | Resultaat / resterend |
