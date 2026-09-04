@@ -2,7 +2,7 @@
 
 ## Document Studio DG1 Generation Pipeline — 2026-09-04
 
-**Status: IMPLEMENTATION CANDIDATE — READY FOR DG1 MIGRATION REVIEW**
+**Status: DG1 RELEASE CANDIDATE — MIGRATION AND AUTHENTICATED E2E GREEN**
 
 DG1 is uitgewerkt als geïsoleerde candidate op branch
 `work/document-studio-dg1-generation-pipeline` in worktree
@@ -16,15 +16,18 @@ controlled download en exactly-once koppeling met de bestaande
 
 De forward migration
 `apps/hr-suite/supabase/migrations/20260904100000_document_generation_dg1.sql`
-is alleen lokaal voorbereid en niet remote toegepast. Remote migration,
-advisors/typegen, browser/persona-acceptance, `main`, Vercel, Nmbrs en
-version bump blijven afzonderlijke gates.
+is exact eenmaal remote toegepast and registered as
+`20260904093131_document_generation_dg1`. Post-apply DG1 prerequisites,
+RLS/wrappers and advisors are green. Official typegen exposed broad unrelated
+`company_activities` drift and is therefore not committed; DG1 runs without
+that generated drift.
 
 Gerichte DG1-tests (`6` bestanden / `10/10` tests), strict TypeScript,
 scoped ESLint, i18n (`35` namespaces), production build (`250/250` routes)
-en `git diff --check` zijn groen. De volledige suite, remote proof en
-authenticated browser/persona-acceptance zijn niet uitgevoerd omdat de
-migration unapplied blijft.
+en `git diff --check` zijn groen. Authenticated HR Admin preview/final PDF,
+history/download/dossier/idempotency and Manager/Employee `403` checks are
+green. The synthetic template was created and activated through Document
+Studio; the Work Sans resolver fix is included for bundled runtimes.
 
 ## Public legal pages and anonymous icon routing — 2026-09-03
 

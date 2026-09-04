@@ -2,7 +2,7 @@
 
 ## Document Studio DG1 Generation Pipeline — 2026-09-04
 
-**Status: IMPLEMENTATION CANDIDATE — READY FOR DG1 MIGRATION REVIEW**
+**Status: DG1 RELEASE CANDIDATE — MIGRATION AND AUTHENTICATED E2E GREEN**
 
 - Geïsoleerde candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR-DG1`, branch
   `work/document-studio-dg1-generation-pipeline`, exact review-baseline
@@ -13,19 +13,18 @@
   refs, immutable persisted snapshots, deterministic idempotency, echte
   A4/Work Sans Chromium-PDF-output, controlled downloads en exactly-once
   dossier linking via bestaande `employee_documents`.
-- Migration candidate:
+- Migration source is frozen after the applied syntax correction:
   `apps/hr-suite/supabase/migrations/20260904100000_document_generation_dg1.sql`.
-  Niet remote toegepast; `packages/db/types.ts` is daarom bewust niet
-  gegenereerd of gewijzigd.
+  It is registered in production as `20260904093131_document_generation_dg1`.
+  `packages/db/types.ts` remains unchanged because official typegen exposed
+  broad unrelated `company_activities` drift.
 - Verification: targeted DG1 `6` test files / `10/10` tests, strict TypeScript,
-  scoped ESLint, i18n (`35` equal NL/EN namespaces), production build
-  (`250/250` routes) and `git diff --check` are green. Full suite, remote
-  proof and authenticated browser/persona acceptance are not run because the
-  migration remains unapplied.
-- Open afzonderlijke gates: migration review/apply, advisors/typegen,
-  authenticated browser/persona acceptance, `main`/Vercel/Nmbrs release en
-  version bump. Full suite en remote proof zijn niet onderdeel van deze
-  candidate-run.
+  production build (`250/250` routes), authenticated HR Admin preview/final
+  PDF/history/download/dossier/idempotency, Manager/Employee API `403`,
+  production post-apply prerequisites/advisors and `git diff --check` are
+  green. The Work Sans bundled-runtime resolver is covered by the PDF test.
+- Remaining release gate: push main once and verify Vercel Production. No
+  Vercel configuration, secrets or Nmbrs keys are changed.
 
 ## Public legal pages and anonymous icon routing — 2026-09-03
 

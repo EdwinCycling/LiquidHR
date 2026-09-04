@@ -58,7 +58,7 @@
 - Open: voeg lokaal een server-only `BSN_HASH_KEY` toe om de echte BSN-match volledig te testen. Geen remote database-write, push of deployment uitgevoerd.
 ## Document Studio DG1 Generation Pipeline — 2026-09-04
 
-**Status: IMPLEMENTATION CANDIDATE — READY FOR DG1 MIGRATION REVIEW**
+**Status: DG1 RELEASE CANDIDATE — MIGRATION AND AUTHENTICATED E2E GREEN**
 
 - Geïsoleerde worktree `C:\Users\Edwin\Documents\Apps\LiquidHR-DG1` op
   branch `work/document-studio-dg1-generation-pipeline`, vanaf exact
@@ -70,15 +70,17 @@
   references; persisted snapshot replay; echte idempotent preview/finalize;
   immutable PDF-artifact en controlled download; exactly-once dossier-link
   via bestaande `employee_documents`; Document Studio generate/history UI.
-- Lokale migration candidate
+- Migration source
   `apps/hr-suite/supabase/migrations/20260904100000_document_generation_dg1.sql`
-  is niet remote toegepast. Advisors, typegen, authenticated browser/persona
-  acceptance, `main`, Vercel, Nmbrs en version bump zijn bewust niet
-  uitgevoerd en blijven vervolg-gates.
-- Verificatie groen: targeted DG1 `6` test files / `10/10` tests, strict
-  TypeScript, scoped ESLint, i18n (`35` gelijke NL/EN-namespaces), production
-  build (`250/250` routes), `git diff --check` en root-invariantie vóór
-  staging. Commit/push is de laatste overdrachtshandeling.
+  is exact eenmaal remote toegepast and registered as
+  `20260904093131_document_generation_dg1`. DG1 post-apply prerequisites,
+  RLS/wrappers and advisors are green; broad unrelated typegen drift remains
+  backlog.
+- Authenticated E2E is green with the synthetic active template: HR Admin
+  preview, resolved employee, final PDF, history, download, dossier and
+  idempotent retry; Manager and Employee generation API access are `403`.
+  Remaining gate is main/Vercel release. Edwin's root-local dirty fixes stay
+  uncommitted and out of the DG1 release staging scope.
 
 ## Public legal pages and anonymous icon routing — 2026-09-03
 
