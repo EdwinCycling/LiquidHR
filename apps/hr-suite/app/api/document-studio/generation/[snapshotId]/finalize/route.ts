@@ -1,4 +1,3 @@
 import { NextResponse } from 'next/server'
 import { DocumentGenerationError, finalizeGeneration } from '@/lib/document-generation/service'
-export async function POST(_request: Request, context: { params: Promise<{ snapshotId: string }> }) { try { return NextResponse.json({ data: await finalizeGeneration((await context.params).snapshotId) }) } catch (error) { if (error instanceof DocumentGenerationError) return NextResponse.json({ code: error.code }, { status: error.status }); throw error } }
-
+export async function POST(request: Request, context: { params: Promise<{ snapshotId: string }> }) { try { const body = await request.json().catch(() => ({})) as { idempotencyKey?: string }; return NextResponse.json({ data: await finalizeGeneration((await context.params).snapshotId, body.idempotencyKey) }) } catch (error) { if (error instanceof DocumentGenerationError) return NextResponse.json({ code: error.code }, { status: error.status }); throw error } }
