@@ -4,7 +4,6 @@ import { ArrowLeft } from 'lucide-react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
-import { SectionHeader } from '@/components/patterns/section-header'
 import { FormField } from '@/components/patterns/form-field'
 import { Button } from '@/components/ui/button'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
@@ -48,11 +47,6 @@ export default async function NewAbsencePage({ searchParams }: NewAbsencePagePro
       </form>
     </Surface>
 
-    {selectedEmployee && detail ? <Surface className="mt-6 p-5 sm:p-6">
-      <SectionHeader title={t('absenceCreateSelected')} description={<><span className="font-semibold text-foreground">{[selectedEmployee.firstName, selectedEmployee.birthNamePrefix, selectedEmployee.birthName].filter(Boolean).join(' ')}</span><span className="ml-2">{selectedEmployee.departmentName ?? t('notRecorded')}</span></>} />
-      <div className="mt-5 border-t border-border-subtle pt-5">
-      <AbsenceQuickForm employeeId={selectedEmployee.id} employmentId={employmentSelection?.employment?.id} employmentOptions={employmentSelection?.options} recoveryMode="hidden" labels={{ report: t('absenceReport'), startDate: t('absenceStartDate'), percentage: t('absencePercentage'), expectedRecovery: t('absenceExpectedRecovery'), hasSafetyNet: t('absenceHasSafetyNet'), workAccident: t('absenceWorkAccident'), thirdPartyAccident: t('absenceThirdPartyAccident'), unknown: t('absenceUnknown'), yes: t('absenceYes'), no: t('absenceNo'), submit: t('absenceSubmit'), recover: t('absenceRecover'), partialRecover: t('absencePartialRecover'), recoveredOn: t('absenceRecoveredOn'), capacityEffectiveOn: t('absenceCaseCapacityEffectiveOn'), failed: t('absenceSaveFailed'), close: t('absenceClose'), discardTitle: t('absenceDiscardTitle'), discardDescription: t('absenceDiscardDescription'), discardConfirm: t('absenceDiscardConfirm'), discardCancel: t('absenceDiscardCancel'), employment: t('absenceEmployment'), employmentPlaceholder: t('absenceEmploymentPlaceholder'), employmentSearch: t('absenceEmploymentSearch'), saving: t('saving') }} />
-      </div>
-    </Surface> : <p className="mt-6 rounded-[var(--radius-surface)] border border-dashed border-border-subtle px-5 py-8 text-center text-sm text-muted-foreground">{t('absenceCreateEmployeePlaceholder')}</p>}
+    {selectedEmployee && detail ? <AbsenceQuickForm employeeId={selectedEmployee.id} employmentId={employmentSelection?.employment?.id} employmentOptions={employmentSelection?.options} openOnMount recoveryMode="hidden" showReportAction={false} labels={{ report: t('absenceReport'), startDate: t('absenceStartDate'), percentage: t('absencePercentage'), expectedRecovery: t('absenceExpectedRecovery'), hasSafetyNet: t('absenceHasSafetyNet'), workAccident: t('absenceWorkAccident'), thirdPartyAccident: t('absenceThirdPartyAccident'), unknown: t('absenceUnknown'), yes: t('absenceYes'), no: t('absenceNo'), submit: t('absenceSubmit'), recover: t('absenceRecover'), partialRecover: t('absencePartialRecover'), recoveredOn: t('absenceRecoveredOn'), capacityEffectiveOn: t('absenceCaseCapacityEffectiveOn'), failed: t('absenceSaveFailed'), close: t('absenceClose'), cancel: t('cancel'), discardTitle: t('absenceDiscardTitle'), discardDescription: t('absenceDiscardDescription'), discardConfirm: t('absenceDiscardConfirm'), discardCancel: t('absenceDiscardCancel'), employment: t('absenceEmployment'), employmentPlaceholder: t('absenceEmploymentPlaceholder'), employmentSearch: t('absenceEmploymentSearch'), saving: t('saving') }} /> : <p className="mt-6 rounded-[var(--radius-surface)] border border-dashed border-border-subtle px-5 py-8 text-center text-sm text-muted-foreground">{t('absenceCreateEmployeePlaceholder')}</p>}
   </PageShell>
 }

@@ -60,16 +60,9 @@ function StartPageViewToggle({ viewMode, labels, onChange }: { viewMode: StartPa
   return <button aria-label={`${labels.layoutLabel}: ${label}`} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition-colors hover:bg-primary-foreground/20" onClick={() => onChange(nextViewMode)} title={label} type="button"><Icon aria-hidden="true" size={18} /></button>
 }
 
-function StartPageCalendarTiles({ data, labels, nextCompanyActivityLabel }: { data: StartPageData; labels: Pick<StartPageLabels, 'nextLeave' | 'nextHoliday'>; nextCompanyActivityLabel: string | null }) {
-  const items = [
-    data.nextLeaveInDays !== null ? labels.nextLeave.replace('{days}', String(data.nextLeaveInDays)) : null,
-    data.nextHolidayInDays !== null ? labels.nextHoliday.replace('{days}', String(data.nextHolidayInDays)) : null,
-    nextCompanyActivityLabel,
-  ].filter((item): item is string => item !== null)
-  if (!items.length) return null
-  return <div className="relative mt-3 flex flex-wrap gap-2 border-t border-primary-foreground/25 pt-3">
-    {items.map((item) => <span className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-primary-foreground/15 bg-primary-foreground/10 px-3 py-2 text-xs leading-4 text-primary-foreground/80" key={item}><CalendarDays aria-hidden="true" className="size-3.5 shrink-0" />{item}</span>)}
-  </div>
+function StartPageCalendarTiles(_props: { data: StartPageData; labels: Pick<StartPageLabels, 'nextLeave' | 'nextHoliday'>; nextCompanyActivityLabel: string | null }) {
+  void _props
+  return null
 }
 
 function WorkforceLink({ link, labels }: { link: StartPageWorkforceLink; labels: StartPageLabels }) {

@@ -19,6 +19,7 @@ interface AbsenceQuickFormProps {
   currentCase?: AbsenceCaseSummary | null
   recoveryMode?: 'link' | 'form' | 'hidden'
   showReportAction?: boolean
+  openOnMount?: boolean
   canReport?: boolean
   canRecover?: boolean
   canChangeCapacity?: boolean
@@ -26,14 +27,14 @@ interface AbsenceQuickFormProps {
   labels: {
     report: string; startDate: string; percentage: string; expectedRecovery: string; hasSafetyNet: string; workAccident: string; thirdPartyAccident: string
     unknown: string; yes: string; no: string; submit: string; recover: string; partialRecover?: string; recoveredOn: string; capacityEffectiveOn?: string
-    failed: string; close: string; employment?: string; employmentPlaceholder?: string; employmentSearch?: string; saving?: string; selfServiceIntro?: string
+    failed: string; close: string; cancel?: string; employment?: string; employmentPlaceholder?: string; employmentSearch?: string; saving?: string; selfServiceIntro?: string
     discardTitle?: string; discardDescription?: string; discardConfirm?: string; discardCancel?: string
   }
 }
 
-export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, selfService = false, labels }: AbsenceQuickFormProps) {
+export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, openOnMount = false, selfService = false, labels }: AbsenceQuickFormProps) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(openOnMount)
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
   const [percentage, setPercentage] = useState('100')
   const [expectedRecovery, setExpectedRecovery] = useState('')
@@ -118,7 +119,7 @@ export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, 
       </> : null}
     </div>
     {error && !open ? <p role="alert" className="text-sm font-medium text-destructive">{labels.failed}</p> : null}
-    <FormDrawer cancelLabel={labels.close} closeLabel={labels.close} dirty={reportDirty} dirtyProtection={{ description: labels.discardDescription ?? labels.report, discardLabel: labels.discardConfirm ?? labels.close, keepEditingLabel: labels.discardCancel ?? labels.close, title: labels.discardTitle ?? labels.report }} onDiscard={discardReportChanges} onOpenChange={setOpen} onSubmit={submitReport} open={open} saveLabel={labels.submit} saving={saving} title={labels.report}>
+    <FormDrawer cancelLabel={labels.cancel ?? labels.close} closeLabel={labels.close} dirty={reportDirty} dirtyProtection={{ description: labels.discardDescription ?? labels.report, discardLabel: labels.discardConfirm ?? labels.close, keepEditingLabel: labels.discardCancel ?? labels.close, title: labels.discardTitle ?? labels.report }} onDiscard={discardReportChanges} onOpenChange={setOpen} onSubmit={submitReport} open={open} saveLabel={labels.submit} saving={saving} title={labels.report}>
       {selfService && labels.selfServiceIntro ? <p className="text-sm leading-6 text-muted-foreground">{labels.selfServiceIntro}</p> : null}
       <div className="grid gap-4 sm:grid-cols-2">
         {showEmploymentSelector ? <FormField className="sm:col-span-2" label={labels.employment ?? labels.report} required control={<DropdownSelect aria-label={labels.employment ?? labels.report} emptyLabel={labels.employmentPlaceholder ?? labels.report} id="absence-employment" name="employmentId" onChange={(event) => setSelectedEmploymentId(event.target.value)} placeholder={labels.employmentPlaceholder ?? labels.report} required searchPlaceholder={labels.employmentSearch ?? labels.report} searchable value={selectedEmploymentId}><option disabled value="">{labels.employmentPlaceholder ?? labels.report}</option>{availableEmploymentOptions.map((option) => <option key={option.id} value={option.id}>{[option.employmentNumber, option.administrationName, option.departmentName, option.functionName].filter(Boolean).join(' · ')}</option>)}</DropdownSelect>} /> : null}
