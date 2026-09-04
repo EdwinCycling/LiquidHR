@@ -18,7 +18,7 @@ vi.mock('@/components/patterns/form-field', () => ({ FormField: () => null }))
 vi.mock('@/components/ui/button', () => ({ Button: () => null }))
 vi.mock('@/components/ui/dropdown-select', () => ({ DropdownSelect: () => null }))
 vi.mock('@/components/ui/surface', () => ({ Surface: ({ children }: { children: unknown }) => children }))
-vi.mock('@/lib/absence/service', () => ({ resolveEmployeeAbsenceEmployment: vi.fn() }))
+vi.mock('@/lib/absence/service', () => ({ listEmployeeAbsenceEmploymentOptions: vi.fn() }))
 vi.mock('@/lib/employment/employment-service', () => ({ getEmployeeEmploymentDetail: vi.fn(), listEmployeesOverview: vi.fn() }))
 vi.mock('@/lib/i18n/server', () => ({ getTranslator: vi.fn() }))
 

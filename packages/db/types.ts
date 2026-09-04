@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       absence_capacity_changes: {
         Row: {
+          absence_hours_per_week: number | null
           absence_percentage: number
           case_id: string
           created_at: string
@@ -24,10 +25,13 @@ export type Database = {
           expected_next_review_on: string | null
           hr_group_id: string
           id: string
+          input_mode: string | null
+          scheduled_hours_per_week_snapshot: number | null
           spell_id: string
           tenant_id: string
         }
         Insert: {
+          absence_hours_per_week?: number | null
           absence_percentage: number
           case_id: string
           created_at?: string
@@ -36,10 +40,13 @@ export type Database = {
           expected_next_review_on?: string | null
           hr_group_id: string
           id?: string
+          input_mode?: string | null
+          scheduled_hours_per_week_snapshot?: number | null
           spell_id: string
           tenant_id: string
         }
         Update: {
+          absence_hours_per_week?: number | null
           absence_percentage?: number
           case_id?: string
           created_at?: string
@@ -48,6 +55,8 @@ export type Database = {
           expected_next_review_on?: string | null
           hr_group_id?: string
           id?: string
+          input_mode?: string | null
+          scheduled_hours_per_week_snapshot?: number | null
           spell_id?: string
           tenant_id?: string
         }
@@ -17641,6 +17650,18 @@ export type Database = {
           requested_effective_on: string
           requested_expected_next_review_on?: string
           requested_idempotency_key?: string
+        }
+        Returns: string
+      }
+      change_absence_capacity_v2: {
+        Args: {
+          requested_absence_hours_per_week?: number
+          requested_absence_percentage?: number
+          requested_case_id: string
+          requested_effective_on: string
+          requested_expected_next_review_on?: string
+          requested_idempotency_key?: string
+          requested_input_mode?: string
         }
         Returns: string
       }

@@ -123,8 +123,18 @@ function isValidIban(input: string): boolean {
   return remainder === 1
 }
 
+const ibanSchema = z.string().transform((value) => value.replace(/\s/g, '').toUpperCase()).refine(isValidIban, 'IBAN_INVALID')
+
 export const bankAccountSchema = z.object({
-  iban: z.string().transform((value) => value.replace(/\s/g, '').toUpperCase()).refine(isValidIban, 'IBAN_INVALID'),
+  iban: ibanSchema,
+  bic: z.string().trim().max(11).nullish(),
+  accountHolder: z.string().trim().min(1).max(160),
+  description: nullableText(240),
+  isPrimary: z.boolean().default(false),
+}).strict()
+
+export const bankAccountUpdateSchema = z.object({
+  iban: ibanSchema.optional(),
   bic: z.string().trim().max(11).nullish(),
   accountHolder: z.string().trim().min(1).max(160),
   description: nullableText(240),
@@ -151,4 +161,5 @@ export type EmployeeUpdateInput = z.infer<typeof employeeUpdateSchema>
 export type AddressInput = z.infer<typeof addressSchema>
 export type AddressType = AddressInput['addressType']
 export type BankAccountInput = z.infer<typeof bankAccountSchema>
+export type BankAccountUpdateInput = z.infer<typeof bankAccountUpdateSchema>
 export type RelationInput = z.infer<typeof relationSchema>

@@ -3,7 +3,7 @@ const DAY_IN_MS = 86_400_000
 export type AbsenceCaseRelationship = 'COMPOUND' | 'NEW_CASE'
 
 export class AbsenceEngineError extends Error {
-  constructor(public readonly code: 'ABSENCE_DATE_INVALID' | 'ABSENCE_DATE_ORDER_INVALID' | 'ABSENCE_PERCENTAGE_INVALID') {
+  constructor(public readonly code: 'ABSENCE_DATE_INVALID' | 'ABSENCE_DATE_ORDER_INVALID' | 'ABSENCE_DATE_IN_FUTURE' | 'ABSENCE_PERCENTAGE_INVALID' | 'ABSENCE_CAPACITY_HOURS_INVALID') {
     super(code)
     this.name = 'AbsenceEngineError'
   }
@@ -28,6 +28,10 @@ function addDays(value: string, days: number): string {
 
 function dateDifferenceInDays(start: string, end: string): number {
   return Math.round((parseDate(end).getTime() - parseDate(start).getTime()) / DAY_IN_MS)
+}
+
+export function isAbsenceActualDate(value: string, today: string): boolean {
+  return parseDate(value).getTime() <= parseDate(today).getTime()
 }
 
 export function getAbsenceCaseRelationship(input: { previousRecoveredOn: string; newStartedOn: string }): AbsenceCaseRelationship {
@@ -60,7 +64,7 @@ export function calculateEffectiveClockStartOn(input: {
   for (const gap of input.recoveryGaps) {
     const days = dateDifferenceInDays(gap.recoveredOn, gap.nextStartedOn)
     if (days <= 0) throw new AbsenceEngineError('ABSENCE_DATE_ORDER_INVALID')
-    gapDays += days
+    gapDays += days - 1
   }
   return addDays(input.rootStartOn, gapDays)
 }
@@ -75,4 +79,40 @@ export function validateAbsencePercentage(value: number): boolean {
 
 export function assertAbsencePercentage(value: number): void {
   if (!validateAbsencePercentage(value)) throw new AbsenceEngineError('ABSENCE_PERCENTAGE_INVALID')
+}
+
+function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals
+  return Math.round((value + Number.EPSILON) * factor) / factor
+}
+
+export function calculateAbsenceCapacity(input: {
+  scheduledHoursPerWeek: number
+  absencePercentage?: number
+  absenceHoursPerWeek?: number
+}): { absenceHoursPerWeek: number; absencePercentage: number } {
+  if (!Number.isFinite(input.scheduledHoursPerWeek) || input.scheduledHoursPerWeek <= 0) {
+    throw new AbsenceEngineError('ABSENCE_CAPACITY_HOURS_INVALID')
+  }
+  const hasPercentage = input.absencePercentage !== undefined
+  const hasHours = input.absenceHoursPerWeek !== undefined
+  if (hasPercentage === hasHours) throw new AbsenceEngineError('ABSENCE_CAPACITY_HOURS_INVALID')
+
+  if (hasPercentage) {
+    const percentage = input.absencePercentage as number
+    assertAbsencePercentage(percentage)
+    return {
+      absenceHoursPerWeek: round(input.scheduledHoursPerWeek * percentage / 100, 4),
+      absencePercentage: round(percentage, 4),
+    }
+  }
+
+  const hours = input.absenceHoursPerWeek as number
+  if (!Number.isFinite(hours) || hours <= 0 || hours > input.scheduledHoursPerWeek) {
+    throw new AbsenceEngineError('ABSENCE_CAPACITY_HOURS_INVALID')
+  }
+  return {
+    absenceHoursPerWeek: round(hours, 4),
+    absencePercentage: round(hours / input.scheduledHoursPerWeek * 100, 4),
+  }
 }

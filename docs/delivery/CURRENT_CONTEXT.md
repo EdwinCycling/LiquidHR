@@ -1,5 +1,25 @@
 # Actuele overdracht Liquid HR
 
+## P0-fix 2026-09-04: verzuimcorrecties
+
+**Status: LOCAL GREEN — DB approval required before runtime acceptance**
+
+- De lokale verzuimflow valideert operationele datums server-side en database-side, houdt ziekmeldingen per dienstverband gescheiden, ondersteunt 27-dagen-compound versus 28-dagen-nieuwe casus en herberekent de effectieve WVP-klok na een herreport.
+- Capaciteitswijzigingen ondersteunen uren of percentage met wederzijdse afleiding, bewaren de rooster- en verzuimuren-snapshot en tonen de volledige historie. Historische rijen worden alleen aangevuld wanneer op de effectieve datum een betrouwbaar rooster bestaat; anders blijven de nieuwe snapshotvelden bewust leeg.
+- De ziekmeldings-UI toont alleen het privacy-veilige vangnet/ongeval/derde-partij-indicatoren, laat geen open dienstverband dubbel rapporteren en biedt een ander open dienstverband expliciet aan.
+- Additieve migratiecandidate: `apps/hr-suite/supabase/migrations/20260904130000_absence_p0_corrective_workflow.sql`. De SQL-contracttest staat in `apps/hr-suite/supabase/tests/absence_p0_contract.sql`. De migratie is niet toegepast; gegenereerde DB-types zijn lokaal kandidaatmatig bijgewerkt omdat lokale Postgres/Supabase typegen niet beschikbaar was.
+- Verificatie: absence/page gerichte tests `22/22`, strict TypeScript, ESLint, i18n-pariteit `35` namespaces, lokale HTTP `200` op poort `3000`, lokale browser-smoke en `git diff --check` zijn groen. Runtime persistence, DB-contracttest, desktop/mobile acceptance en self-service acceptance zijn **NOT PROVEN** zolang de migratie niet op een geautoriseerde testdatabase staat.
+- Geen remote database-write, migration apply, push, deployment of version bump uitgevoerd. De beschermde `apps/hr-suite/.env.local` is niet gewijzigd.
+
+## QA-fix 2026-09-04: persoonsgegevens-tabs Maya Bos
+
+**Status: LOCAL GREEN — klaar voor lokaal testen op poort 3000; bankrekening toevoegen geblokkeerd door lokale configuratie**
+
+- Alle vijf tabs van Persoonsgegevens zijn lokaal gecontroleerd met Maya Bos. Persoonsgegevens, adressen, relaties en aanvullende informatie zijn met testdata bewerkt/opgeslagen en teruggelezen; tijdelijke records zijn verwijderd en bestaande waarden zijn hersteld. Bankrekening bewerken zonder opnieuw invoeren van de gemaskeerde IBAN werkt.
+- De country-picker accepteert ook bestaande Nederlandse landwaarden naast ISO-codes. De bankrekening-update bewaart de bestaande versleutelde IBAN wanneer het IBAN-veld leeg blijft. Adresformulieren hebben een begrensde invoerbreedte, tonen fouten in de drawer en vragen bij een secundair adres om een einddatum.
+- Bankrekening toevoegen kon lokaal niet worden bewezen omdat de beschermde `apps/hr-suite/.env.local` geen `EMPLOYEE_PII_ENCRYPTION_KEY` bevat. De encryptie-eis is niet omzeild en de beschermde configuratie is niet gewijzigd; er is geen tijdelijke bankrekening opgeslagen.
+- Verificatie: strict TypeScript, gerichte employee-schema/card-tests `7/7`, i18n-pariteit `35` namespaces, ESLint, browsercontrole op `http://localhost:3000`, en `git diff --check` zijn groen. Geen remote database-write, migration apply, push of deployment uitgevoerd.
+
 ## UX-fix 2026-09-04: salariswijziging dienstverband
 
 **Status: LOCAL GREEN — klaar voor lokaal testen op poort 3000**

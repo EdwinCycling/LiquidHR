@@ -1,14 +1,15 @@
-import type { Database, Tables } from '@scope/db'
+import type { Database } from '@scope/db'
 import { requirePermission, requireAuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
+import { getEffectiveEmploymentSchedule, type EmploymentScheduleRow } from '@/lib/employment/schedule-resolver'
 import { LeaveServiceError } from './leave-service'
 import type { LeaveRequestConfirmInput, LeaveRequestPreviewQuery } from './schemas'
 import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOption } from './employment-resolver'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = LeaveEmployment
-type ScheduleRow = Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'average_hours_per_week' | 'fulltime_hours_per_week' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>
+type ScheduleRow = EmploymentScheduleRow
 type ConfirmLeaveRequestArgs = Omit<
   Database['public']['Functions']['confirm_group_leave_request']['Args'],
   'requested_priority_rule_id' | 'requested_leave_type_id' | 'requested_specific_start' | 'requested_specific_end'
@@ -86,20 +87,11 @@ function dateRange(startDate: string, endDate: string): string[] {
 }
 
 async function effectiveSchedule(supabase: SupabaseServerClient, employment: EmploymentRow, date: string): Promise<ScheduleRow | null> {
-  const result = await supabase
-    .from('employment_schedules')
-    .select('valid_from, valid_until, average_hours_per_week, fulltime_hours_per_week, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours')
-    .eq('tenant_id', employment.tenant_id)
-    .eq('administration_id', employment.administration_id)
-    .eq('employee_id', employment.employee_id)
-    .eq('employment_id', employment.id)
-    .lte('valid_from', date)
-    .or(`valid_until.is.null,valid_until.gte.${date}`)
-    .order('valid_from', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (result.error) databaseError(result.error)
-  return result.data
+  try {
+    return await getEffectiveEmploymentSchedule(supabase, employment, date)
+  } catch (error) {
+    databaseError(error instanceof Error ? error : null)
+  }
 }
 
 export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): Promise<LeaveRequestPreview> {

@@ -3,6 +3,7 @@ import {
   buildAbsenceCapacityPayload,
   buildAbsenceRecoveryPayload,
   buildAbsenceReportPayload,
+  getReportableAbsenceEmploymentOptions,
   formatAbsenceEmployeePickerLabel,
   getDefaultAbsenceCapacityEffectiveOn,
   toIndicator,
@@ -75,10 +76,19 @@ describe('absence presentation payload contracts', () => {
   it('keeps recovery and partial-capacity payloads unchanged', () => {
     expect(buildAbsenceRecoveryPayload('case-1', '2026-08-22', 'recovery-2026-08-22')).toEqual({ caseId: 'case-1', recoveredOn: '2026-08-22', idempotencyKey: 'recovery-2026-08-22' })
     expect(buildAbsenceCapacityPayload('case-1', '2026-08-23', '37.5', 'capacity-2026-08-23')).toEqual({ caseId: 'case-1', effectiveOn: '2026-08-23', absencePercentage: 37.5, expectedNextReviewOn: null, idempotencyKey: 'capacity-2026-08-23' })
+    expect(buildAbsenceCapacityPayload('case-1', '2026-08-23', '18', 'capacity-hours-2026-08-23', { inputMode: 'HOURS', absenceHoursPerWeek: '18' })).toEqual({ caseId: 'case-1', effectiveOn: '2026-08-23', inputMode: 'HOURS', absenceHoursPerWeek: 18, expectedNextReviewOn: null, idempotencyKey: 'capacity-hours-2026-08-23' })
   })
 
-  it('defaults capacity changes to the next date after the latest capacity row', () => {
-    expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-22' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-23')
+  it('laat een tweede dienstverband rapporteerbaar als het eerste al open is', () => {
+    const options = [
+      { id: 'employment-a', employmentNumber: 'A', startsOn: '2020-01-01', endsOn: null, administrationName: 'BV A', departmentName: 'HR', functionName: 'Manager' },
+      { id: 'employment-b', employmentNumber: 'B', startsOn: '2020-01-01', endsOn: null, administrationName: 'BV B', departmentName: 'Finance', functionName: 'Analist' },
+    ]
+    expect(getReportableAbsenceEmploymentOptions(options, [{ employmentId: 'employment-a', status: 'ACTIVE' }]).map((option) => option.id)).toEqual(['employment-b'])
+  })
+
+  it('defaults capacity changes to an actual date', () => {
+    expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-22' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')
     expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-21' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')
     expect(getDefaultAbsenceCapacityEffectiveOn(null, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')
   })

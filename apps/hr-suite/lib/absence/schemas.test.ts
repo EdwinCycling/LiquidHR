@@ -45,6 +45,8 @@ describe('absence schemas', () => {
 
   it('valideert percentagewijziging en herstel', () => {
     expect(absenceCapacityChangeSchema.safeParse({ caseId: employeeId, effectiveOn: '2026-07-27', absencePercentage: 50, idempotencyKey: 'capacity-change-2026-07-26' }).success).toBe(true)
+    expect(absenceCapacityChangeSchema.safeParse({ caseId: employeeId, effectiveOn: '2026-07-27', inputMode: 'HOURS', absenceHoursPerWeek: 18, idempotencyKey: 'capacity-hours-2026-07-26' }).success).toBe(true)
+    expect(absenceCapacityChangeSchema.safeParse({ caseId: employeeId, effectiveOn: '2026-07-27', inputMode: 'HOURS', idempotencyKey: 'capacity-hours-2026-07-26' }).success).toBe(false)
     expect(absenceRecoverySchema.safeParse({ caseId: employeeId, recoveredOn: '2026-07-30', idempotencyKey: 'recovery-2026-07-26' }).success).toBe(true)
   })
 })

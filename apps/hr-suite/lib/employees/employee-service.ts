@@ -17,6 +17,7 @@ import {
 import type {
   AddressInput,
   BankAccountInput,
+  BankAccountUpdateInput,
   EmployeeCreateInput,
   EmployeeUpdateInput,
   RelationInput,
@@ -553,15 +554,26 @@ export async function createEmployeeBankAccount(employeeId: string, input: BankA
 export async function updateEmployeeBankAccount(
   employeeId: string,
   bankAccountId: string,
-  input: BankAccountInput,
+  input: BankAccountUpdateInput,
 ): Promise<void> {
   const context = await requirePermission('bank-account:write', employeeId)
   const supabase = await createClient()
-  const { error } = await supabase.from('employee_bank_accounts').update({
-    iban_ciphertext: encryptPii(input.iban, context.tenantId), iban_last_four: input.iban.slice(-4),
+  const updateRow: {
+    iban_ciphertext?: string
+    iban_last_four?: string
+    bic: string | null
+    account_holder: string
+    description: string | null
+    is_primary: boolean
+  } = {
     bic: input.bic ?? null, account_holder: input.accountHolder,
     description: input.description ?? null, is_primary: input.isPrimary,
-  }).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', bankAccountId)
+  }
+  if (input.iban) {
+    updateRow.iban_ciphertext = encryptPii(input.iban, context.tenantId)
+    updateRow.iban_last_four = input.iban.slice(-4)
+  }
+  const { error } = await supabase.from('employee_bank_accounts').update(updateRow).eq('tenant_id', context.tenantId).eq('employee_id', employeeId).eq('id', bankAccountId)
     .is('deleted_at', null)
   if (isPostgresConflict(error)) throw new EmployeeServiceError('PRIMARY_BANK_ACCOUNT_CONFLICT', 409)
   if (error) throw new EmployeeServiceError('BANK_ACCOUNT_UPDATE_FAILED', 500)

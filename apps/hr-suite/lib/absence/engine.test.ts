@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  calculateAbsenceCapacity,
   calculateEffectiveClockStartOn,
   countPriorAbsenceCases,
   getAbsenceCaseRelationship,
   getRecoveryWindowEnd,
+  isAbsenceActualDate,
   validateAbsencePercentage,
 } from './engine'
 
@@ -21,7 +23,28 @@ describe('absence engine', () => {
   })
 
   it('schuift de effectieve klok op met herstelgaten', () => {
-    expect(calculateEffectiveClockStartOn({ rootStartOn: '2026-01-01', recoveryGaps: [{ recoveredOn: '2026-01-10', nextStartedOn: '2026-01-20' }] })).toBe('2026-01-11')
+    expect(calculateEffectiveClockStartOn({ rootStartOn: '2026-01-01', recoveryGaps: [{ recoveredOn: '2026-01-10', nextStartedOn: '2026-01-20' }] })).toBe('2026-01-10')
+  })
+
+  it('telt de hersteldag en nieuwe eerste ziektedag niet als herstelgat', () => {
+    expect(calculateEffectiveClockStartOn({
+      rootStartOn: '2026-01-01',
+      recoveryGaps: [
+        { recoveredOn: '2026-01-10', nextStartedOn: '2026-01-20' },
+        { recoveredOn: '2026-02-01', nextStartedOn: '2026-02-04' },
+      ],
+    })).toBe('2026-01-12')
+  })
+
+  it('herkent toekomstige operationele mutatiedatums', () => {
+    expect(isAbsenceActualDate('2026-09-04', '2026-09-04')).toBe(true)
+    expect(isAbsenceActualDate('2026-09-03', '2026-09-04')).toBe(true)
+    expect(isAbsenceActualDate('2026-09-05', '2026-09-04')).toBe(false)
+  })
+
+  it('rekent uren en percentage vanuit dezelfde weekcapaciteit', () => {
+    expect(calculateAbsenceCapacity({ scheduledHoursPerWeek: 40, absencePercentage: 50 })).toEqual({ absenceHoursPerWeek: 20, absencePercentage: 50 })
+    expect(calculateAbsenceCapacity({ scheduledHoursPerWeek: 36, absenceHoursPerWeek: 18 })).toEqual({ absenceHoursPerWeek: 18, absencePercentage: 50 })
   })
 
   it('berekent de einddatum van de vierwekentermijn', () => {

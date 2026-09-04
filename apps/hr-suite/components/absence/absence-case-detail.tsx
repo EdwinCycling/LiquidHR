@@ -55,8 +55,16 @@ interface AbsenceCaseDetailProps {
     submit: string
     better: string
     partialRecover?: string
+    capacitySave?: string
     saveFailed: string
     close: string
+    capacityHistory?: string
+    scheduledHours?: string
+    absenceHours?: string
+    capacityInputMode?: string
+    percentageMode?: string
+    hoursMode?: string
+    scheduleUnavailable?: string
     employment?: string
     employmentPlaceholder?: string
     employmentSearch?: string
@@ -120,7 +128,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
               <DetailField label={labels.capacity} value={spell.absencePercentage === null ? labels.noValue : `${spell.absencePercentage}%`} />
               <DetailField label={labels.capacityEffectiveOn} value={spell.capacityEffectiveOn ? formatDate(spell.capacityEffectiveOn, { locale, dateFormat }) : labels.noValue} />
               <DetailField label={labels.nextReview} value={spell.expectedNextReviewOn ? formatDate(spell.expectedNextReviewOn, { locale, dateFormat }) : labels.noValue} />
-            </dl></div>
+            </dl>{spell.capacityChanges.length > 0 ? <div className="mt-5 border-t border-border/70 pt-4"><p className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{labels.capacityHistory ?? labels.capacity}</p><ul className="mt-3 divide-y divide-border/70 rounded-[var(--radius-control)] border border-border/70"><li className="grid gap-2 px-3 py-3 text-xs font-semibold text-muted-foreground sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"><span>{labels.capacityEffectiveOn}</span><span>{labels.capacity}</span><span>{labels.nextReview}</span></li>{spell.capacityChanges.map((change) => <li key={change.id} className="grid gap-2 px-3 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"><time dateTime={change.effectiveOn}>{formatDate(change.effectiveOn, { locale, dateFormat })}</time><span>{change.absencePercentage}%{change.absenceHoursPerWeek !== null && change.scheduledHoursPerWeekSnapshot !== null ? ` · ${change.absenceHoursPerWeek}/${change.scheduledHoursPerWeekSnapshot} ${labels.absenceHours ?? ''}` : ''}</span><span>{change.expectedNextReviewOn ? formatDate(change.expectedNextReviewOn, { locale, dateFormat }) : labels.noValue}</span></li>)}</ul></div> : null}</div>
           </details>
         })}
       </div>
@@ -130,7 +138,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
   const actionPanel = hasActions ? <Surface className="p-5 lg:sticky lg:top-5">
     <SectionHeader title={labels.better} />
     <div className="mt-4">
-      <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} canRecover={canRecover} canChangeCapacity={canChangeCapacity} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
+      <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} canRecover={canRecover} canChangeCapacity={canChangeCapacity} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, capacitySave: labels.capacitySave, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, nextReview: labels.nextReview, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, capacityInputMode: labels.capacityInputMode, percentageMode: labels.percentageMode, hoursMode: labels.hoursMode, capacityHours: labels.absenceHours, scheduleUnavailable: labels.scheduleUnavailable, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
     </div>
   </Surface> : null
 

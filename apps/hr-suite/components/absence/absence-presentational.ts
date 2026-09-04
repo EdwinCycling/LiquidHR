@@ -77,24 +77,24 @@ export function buildAbsenceRecoveryPayload(caseId: string, recoveredOn: string,
   return { caseId, recoveredOn, idempotencyKey }
 }
 
-export function buildAbsenceCapacityPayload(caseId: string, effectiveOn: string, percentage: string, idempotencyKey: string) {
-  return {
-    caseId,
-    effectiveOn,
-    absencePercentage: Number(percentage),
-    expectedNextReviewOn: null,
-    idempotencyKey,
-  }
+export function buildAbsenceCapacityPayload(caseId: string, effectiveOn: string, percentage: string, idempotencyKey: string, options: { inputMode?: 'PERCENTAGE' | 'HOURS'; absenceHoursPerWeek?: string; expectedNextReviewOn?: string } = {}) {
+  const inputMode = options.inputMode ?? 'PERCENTAGE'
+  const expectedNextReviewOn = options.expectedNextReviewOn || null
+  return inputMode === 'HOURS'
+    ? { caseId, effectiveOn, inputMode, absenceHoursPerWeek: parseDecimalInput(options.absenceHoursPerWeek ?? ''), expectedNextReviewOn, idempotencyKey }
+    : { caseId, effectiveOn, absencePercentage: parseDecimalInput(percentage), expectedNextReviewOn, idempotencyKey }
+}
+
+function parseDecimalInput(value: string): number {
+  return Number(value.trim().replace(',', '.'))
+}
+
+export function getReportableAbsenceEmploymentOptions<T extends { id: string }>(options: readonly T[], cases: readonly { employmentId: string; status: string }[]): T[] {
+  const openEmploymentIds = new Set(cases.filter((item) => item.status === 'ACTIVE' || item.status === 'RECOVERY_WINDOW').map((item) => item.employmentId))
+  return options.filter((option) => !openEmploymentIds.has(option.id))
 }
 
 export function getDefaultAbsenceCapacityEffectiveOn(currentCase: { spells: Array<{ capacityEffectiveOn: string | null }> } | null | undefined, now = new Date()): string {
   const today = now.toISOString().slice(0, 10)
-  const latestCapacityDate = (currentCase?.spells ?? []).reduce<string | null>((latest, spell) => {
-    if (!spell.capacityEffectiveOn) return latest
-    return latest === null || spell.capacityEffectiveOn > latest ? spell.capacityEffectiveOn : latest
-  }, null)
-  const baseDate = latestCapacityDate !== null && latestCapacityDate >= today ? latestCapacityDate : today
-  const nextDate = new Date(`${baseDate}T00:00:00.000Z`)
-  if (baseDate === latestCapacityDate) nextDate.setUTCDate(nextDate.getUTCDate() + 1)
-  return nextDate.toISOString().slice(0, 10)
+  return today
 }

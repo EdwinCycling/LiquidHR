@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addressSchema,
   bankAccountSchema,
+  bankAccountUpdateSchema,
   employeeCreateSchema,
   employeeUpdateSchema,
   relationSchema,
@@ -65,5 +66,7 @@ describe('employee subresources', () => {
       validFrom: '2026-02-01', validUntil: '2026-01-01',
     }).success).toBe(false)
     expect(bankAccountSchema.safeParse({ iban: 'NL00FOUT', accountHolder: 'A', isPrimary: false }).success).toBe(false)
+    expect(bankAccountUpdateSchema.safeParse({ accountHolder: 'Sanne Jansen', isPrimary: false }).success).toBe(true)
+    expect(bankAccountUpdateSchema.safeParse({ iban: 'NL00FOUT', accountHolder: 'Sanne Jansen', isPrimary: false }).success).toBe(false)
   })
 })

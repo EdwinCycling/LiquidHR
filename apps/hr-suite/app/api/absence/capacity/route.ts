@@ -5,11 +5,13 @@ import { permissionErrorResponse } from '@/lib/auth/permissions'
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const body = await request.json() as { caseId?: unknown; effectiveOn?: unknown; absencePercentage?: unknown; expectedNextReviewOn?: unknown; idempotencyKey?: unknown }
+    const body = await request.json() as { caseId?: unknown; effectiveOn?: unknown; inputMode?: unknown; absencePercentage?: unknown; absenceHoursPerWeek?: unknown; expectedNextReviewOn?: unknown; idempotencyKey?: unknown }
     if (typeof body.caseId !== 'string') return NextResponse.json({ error: 'ABSENCE_INPUT_INVALID' }, { status: 400 })
     const caseId = await changeEmployeeAbsenceCapacity(body.caseId, {
       effectiveOn: body.effectiveOn,
+      inputMode: body.inputMode,
       absencePercentage: body.absencePercentage,
+      absenceHoursPerWeek: body.absenceHoursPerWeek,
       expectedNextReviewOn: body.expectedNextReviewOn,
       idempotencyKey: body.idempotencyKey,
     })
