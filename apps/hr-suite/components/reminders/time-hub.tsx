@@ -46,6 +46,7 @@ export interface TimeHubLabels {
 
 interface TimeHubProps {
   collapsed: boolean
+  compact?: boolean
   initialReminders: ReminderItem[]
   labels: TimeHubLabels
   locale: Locale
@@ -53,7 +54,7 @@ interface TimeHubProps {
   timeFormat: TimeFormat
 }
 
-export function TimeHub({ collapsed, initialReminders, labels, locale, dateFormat, timeFormat }: TimeHubProps) {
+export function TimeHub({ collapsed, compact = false, initialReminders, labels, locale, dateFormat, timeFormat }: TimeHubProps) {
   const router = useRouter()
   const [now, setNow] = useState(() => new Date())
   const [removedRecipientIds, setRemovedRecipientIds] = useState<ReadonlySet<string>>(() => new Set())
@@ -148,7 +149,7 @@ export function TimeHub({ collapsed, initialReminders, labels, locale, dateForma
 
   return (
     <div className={`relative flex min-w-0 items-center gap-1.5 ${collapsed ? '' : 'flex-1 justify-end'}`}>
-      {!collapsed && nextUpcoming ? <Button aria-label={`${labels.nextReminder}: ${nextUpcoming.title}, ${formatReminderDaysUntil(now, new Date(nextUpcoming.remindAt), locale)}`} className="relative max-w-52 -rotate-1 whitespace-normal border border-warning/40 bg-warning-surface px-3 py-2 text-left text-warning shadow-[0_.35rem_1rem_color-mix(in_srgb,var(--warning)_22%,transparent)] transition hover:rotate-0 hover:shadow-[0_.5rem_1.15rem_color-mix(in_srgb,var(--warning)_28%,transparent)] focus-visible:rotate-0" onClick={() => selectReminder(nextUpcoming.recipientId)} size="sm" type="button" variant="ghost"><span className="pointer-events-none absolute -top-1 left-1/2 h-3 w-10 -translate-x-1/2 -rotate-2 rounded-sm bg-warning/20" /><span className="block break-words text-xs font-semibold leading-4">{nextUpcoming.title}</span><span className="mt-1 block text-[10px] font-medium text-warning/75">{formatReminderDaysUntil(now, new Date(nextUpcoming.remindAt), locale)}</span></Button> : null}
+      {!collapsed && !compact && nextUpcoming ? <Button aria-label={`${labels.nextReminder}: ${nextUpcoming.title}, ${formatReminderDaysUntil(now, new Date(nextUpcoming.remindAt), locale)}`} className="relative max-w-52 -rotate-1 whitespace-normal border border-warning/40 bg-warning-surface px-3 py-2 text-left text-warning shadow-[0_.35rem_1rem_color-mix(in_srgb,var(--warning)_22%,transparent)] transition hover:rotate-0 hover:shadow-[0_.5rem_1.15rem_color-mix(in_srgb,var(--warning)_28%,transparent)] focus-visible:rotate-0" onClick={() => selectReminder(nextUpcoming.recipientId)} size="sm" type="button" variant="ghost"><span className="pointer-events-none absolute -top-1 left-1/2 h-3 w-10 -translate-x-1/2 -rotate-2 rounded-sm bg-warning/20" /><span className="block break-words text-xs font-semibold leading-4">{nextUpcoming.title}</span><span className="mt-1 block text-[10px] font-medium text-warning/75">{formatReminderDaysUntil(now, new Date(nextUpcoming.remindAt), locale)}</span></Button> : null}
       <div className="flex shrink-0 flex-col items-end gap-1">
         <IconButton aria-controls={isOpen && panelSection === 'upcoming' ? 'time-hub-panel' : undefined} aria-expanded={isOpen && panelSection === 'upcoming'} className={`${collapsed ? 'size-11' : 'size-9'} text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground`} label={`${labels.upcomingTitle}: ${upcomingSevenDays.length}`} onClick={(event) => togglePanel('upcoming', event)} size="sm" type="button" variant="ghost"><Clock3 aria-hidden="true" /></IconButton>
         {upcomingSevenDays.length > 0 ? <Badge className="pointer-events-none absolute right-0 top-0 min-w-4 justify-center border-0 bg-primary px-1 text-[10px] font-bold text-primary-foreground" tone="info">{Math.min(upcomingSevenDays.length, 99)}</Badge> : null}
