@@ -191,5 +191,6 @@
     "notFound": "De gevraagde Document Studio-resource bestaat niet.",
     "input": "Controleer de ingevoerde gegevens.",
     "generic": "Er ging iets mis. Probeer het opnieuw."
+  },
+  "generation": { "title": "Document genereren", "subtitle": "Maak vanuit een actieve template een gecontroleerd document.", "template": "Actieve template", "employee": "Medewerker", "choose": "Selecteer", "freeInputs": "Handmatige invoer", "inputHint": "Deze waarden worden alleen in deze generatie opgeslagen.", "temporalInputs": "Tijdelijke invoer", "temporalHint": "Vul voor elk vereist tijdsmoment de waarde in.", "createPreview": "Preview maken", "preview": "PREVIEW — NIET DEFINITIEF", "finalize": "Finaliseren", "final": "DEFINITIEF — IMMUTABLE", "download": "PDF downloaden", "history": "Generatiehistorie", "status": "Status", "generatedAt": "Gegenereerd op", "generatedBy": "Gegenereerd door", "noHistory": "Nog geen documenten gegenereerd.", "failed": "Genereren is mislukt.", "dossier": "Dossier", "dossierCreated": "Aan dossier toegevoegd", "dossierPending": "Dossierkoppeling in afwachting", "dossierNotSaved": "Niet aan dossier toegevoegd" }
   }
-}

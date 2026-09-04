@@ -1,22 +1,78 @@
+import 'server-only'
+import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
-import type { CanonicalBlock, CanonicalDocument } from '@/lib/document-studio/canonical-document'
+import { existsSync, readFileSync as readFile } from 'node:fs'
+import serverlessChromium from '@sparticuz/chromium'
+import { chromium as playwrightChromium, type Browser } from 'playwright-core'
+import { renderResolvedSnapshotToHtml, type HtmlRenderOptions } from './html'
 import type { ResolvedGenerationSnapshot } from './domain'
-export const DG1_RENDERER_VERSION = 'dg1-a4-work-sans-pdf-1'
-function plainText(block: CanonicalBlock): string[] {
-  if (block.type === 'paragraph' || block.type === 'heading') return [block.content.map((node) => node.type === 'text' ? node.text : '').join('')]
-  if (block.type === 'bulletList' || block.type === 'orderedList') return block.content.flatMap((item) => item.content.map((paragraph) => paragraph.content.map((node) => node.type === 'text' ? node.text : '').join('')))
-  if (block.type === 'table') return block.content.flatMap((row) => row.content.flatMap((cell) => cell.content.flatMap((paragraph) => [paragraph.content.map((node) => node.type === 'text' ? node.text : '').join('')])))
-  if (block.type === 'twoColumnBlock') return block.content.flatMap((column) => column.content.flatMap((child) => plainText(child)))
-  return block.type === 'pageBreak' ? ['\f'] : []
+
+export const DG1_RENDERER_VERSION = 'dg1-html-css-chromium-a4-work-sans-1'
+
+const nodeRequire = createRequire(import.meta.url)
+
+function fontFace(fontPath: string, weight: number, style: 'normal' | 'italic'): string {
+  const encoded = readFile(fontPath).toString('base64')
+  return `@font-face{font-family:'Work Sans';font-style:${style};font-weight:${weight};font-display:block;src:url(data:font/woff2;base64,${encoded}) format('woff2');}`
 }
-function lines(document: CanonicalDocument): string[] { return Object.values(document.regions).flatMap((region) => region ? region.content.flatMap(plainText) : []).flatMap((line) => line.split(/\r?\n/)).slice(0, 120) }
-function literal(value: string): string { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e]/g, '?').replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)') }
-export function renderResolvedSnapshotToPdf(snapshot: ResolvedGenerationSnapshot): Uint8Array {
-  const content = ['BT', '/F1 11 Tf', '50 790 Td', ...lines(snapshot.resolvedDocument).flatMap((line, index) => [index ? '0 -16 Td' : '', `(${literal(line.slice(0, 140))}) Tj`]).filter(Boolean)].join('\n')
-  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>', `<< /Length ${new TextEncoder().encode(content).length} >>\nstream\n${content}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']
-  const encoder = new TextEncoder(); const header = '%PDF-1.4\n%DG1\n'; const chunks = [header]; const offsets = [0]; let size = encoder.encode(header).length
-  objects.forEach((object, index) => { offsets.push(size); const chunk = `${index + 1} 0 obj\n${object}\nendobj\n`; chunks.push(chunk); size += encoder.encode(chunk).length })
-  chunks.push(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${size}\n%%EOF\n`)
-  return encoder.encode(chunks.join(''))
+
+function workSansFontCss(): string {
+  return [
+    fontFace(nodeRequire.resolve('@fontsource/work-sans/files/work-sans-latin-400-normal.woff2'), 400, 'normal'),
+    fontFace(nodeRequire.resolve('@fontsource/work-sans/files/work-sans-latin-400-italic.woff2'), 400, 'italic'),
+    fontFace(nodeRequire.resolve('@fontsource/work-sans/files/work-sans-latin-700-normal.woff2'), 700, 'normal'),
+  ].join('')
 }
-export function pdfHash(pdf: Uint8Array): string { return createHash('sha256').update(pdf).digest('hex') }
+
+function localExecutablePath(): string | null {
+  const configured = process.env.DG1_CHROME_EXECUTABLE_PATH?.trim()
+  const candidates = process.platform === 'win32'
+    ? [
+        configured,
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      ]
+    : [configured, '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser']
+  for (const candidate of candidates) {
+    if (candidate && existsSync(/* turbopackIgnore: true */ candidate)) return candidate
+  }
+  return null
+}
+
+async function launchBrowser(): Promise<Browser> {
+  const localPath = localExecutablePath()
+  const useServerlessChromium = process.env.VERCEL === '1' || process.env.DG1_USE_SERVERLESS_CHROMIUM === 'true' || !localPath
+  if (!useServerlessChromium && localPath) {
+    return playwrightChromium.launch({ executablePath: localPath, headless: true })
+  }
+  const executablePath = await serverlessChromium.executablePath()
+  return playwrightChromium.launch({
+    args: [...serverlessChromium.args, '--disable-dev-shm-usage', '--no-sandbox'],
+    executablePath,
+    headless: true,
+  })
+}
+
+function normalizePdfMetadata(bytes: Uint8Array): Uint8Array {
+  const source = Buffer.from(bytes).toString('latin1')
+  const stable = source.replace(/\(D:\d{14}[+-]\d{2}'\d{2}'\)/g, "(D:20000101000000+00'00')")
+  return new Uint8Array(Buffer.from(stable, 'latin1'))
+}
+
+export async function renderResolvedSnapshotToPdf(snapshot: ResolvedGenerationSnapshot, options: HtmlRenderOptions = {}): Promise<Uint8Array> {
+  const browser = await launchBrowser()
+  try {
+    const page = await browser.newPage({ viewport: { width: 794, height: 1123 } })
+    await page.setContent(renderResolvedSnapshotToHtml(snapshot, { ...options, fontFaceCss: workSansFontCss() }), { waitUntil: 'load' })
+    await page.emulateMedia({ media: 'print' })
+    await page.evaluate(() => document.fonts.ready)
+    const bytes = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true })
+    return normalizePdfMetadata(bytes)
+  } finally {
+    await browser.close()
+  }
+}
+
+export function pdfHash(pdf: Uint8Array): string {
+  return createHash('sha256').update(pdf).digest('hex')
+}

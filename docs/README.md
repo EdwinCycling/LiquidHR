@@ -1,5 +1,31 @@
 # Liquid HR documentatie-index
 
+## Document Studio DG1 Generation Pipeline — 2026-09-04
+
+**Status: IMPLEMENTATION CANDIDATE — READY FOR DG1 MIGRATION REVIEW**
+
+DG1 is uitgewerkt als geïsoleerde candidate op branch
+`work/document-studio-dg1-generation-pipeline` in worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR-DG1`, vanaf review-SHA
+`a85b957e0ef628c6b13621804e2c7f025c98ea17`. De slice bevat de server-only
+generation seam, read/write-permissies, bounded semantic resolution en
+organisatieprofielen, immutable composition/snapshots, een echte A4
+Work Sans HTML/CSS/Chromium-PDF renderer, idempotent preview/finalize,
+controlled download en exactly-once koppeling met de bestaande
+`employee_documents`-dossierinfrastructuur.
+
+De forward migration
+`apps/hr-suite/supabase/migrations/20260904100000_document_generation_dg1.sql`
+is alleen lokaal voorbereid en niet remote toegepast. Remote migration,
+advisors/typegen, browser/persona-acceptance, `main`, Vercel, Nmbrs en
+version bump blijven afzonderlijke gates.
+
+Gerichte DG1-tests (`6` bestanden / `10/10` tests), strict TypeScript,
+scoped ESLint, i18n (`35` namespaces), production build (`250/250` routes)
+en `git diff --check` zijn groen. De volledige suite, remote proof en
+authenticated browser/persona-acceptance zijn niet uitgevoerd omdat de
+migration unapplied blijft.
+
 ## Public legal pages and anonymous icon routing — 2026-09-03
 
 **Status: LOCAL GREEN — RELEASE GATES OPEN**

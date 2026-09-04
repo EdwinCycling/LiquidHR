@@ -1,5 +1,29 @@
 # Actuele overdracht Liquid HR
 
+## Document Studio DG1 Generation Pipeline — 2026-09-04
+
+**Status: IMPLEMENTATION CANDIDATE — READY FOR DG1 MIGRATION REVIEW**
+
+- Geïsoleerde worktree `C:\Users\Edwin\Documents\Apps\LiquidHR-DG1` op
+  branch `work/document-studio-dg1-generation-pipeline`, vanaf exact
+  `a85b957e0ef628c6b13621804e2c7f025c98ea17`; root en canonical
+  `apps/hr-suite/.env.local` zijn niet aangeraakt.
+- DG1-slice afgerond: server-only trusted mutation seam; read-history,
+  read-preview en read-download; bounded known/temporal/free resolution;
+  bounded profile/organisatie-snapshots; exacte actieve template/component
+  references; persisted snapshot replay; echte idempotent preview/finalize;
+  immutable PDF-artifact en controlled download; exactly-once dossier-link
+  via bestaande `employee_documents`; Document Studio generate/history UI.
+- Lokale migration candidate
+  `apps/hr-suite/supabase/migrations/20260904100000_document_generation_dg1.sql`
+  is niet remote toegepast. Advisors, typegen, authenticated browser/persona
+  acceptance, `main`, Vercel, Nmbrs en version bump zijn bewust niet
+  uitgevoerd en blijven vervolg-gates.
+- Verificatie groen: targeted DG1 `6` test files / `10/10` tests, strict
+  TypeScript, scoped ESLint, i18n (`35` gelijke NL/EN-namespaces), production
+  build (`250/250` routes), `git diff --check` en root-invariantie vóór
+  staging. Commit/push is de laatste overdrachtshandeling.
+
 ## Public legal pages and anonymous icon routing — 2026-09-03
 
 **Status: LOCAL GREEN — READY FOR RELEASE**

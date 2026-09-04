@@ -22,7 +22,7 @@ describe('NormalizedDocumentV1 handoff', () => {
     const result = createNormalizedDocumentV1({
       templateId: 'template-id', templateVersionId: 'version-id', templateVersion: 2, document,
       composition: [{ kind: 'COVER', templateId: 'cover-template', versionId: 'cover-version', version: 1, sortOrder: 0 }],
-      assets: [{ assetRef: 'asset-id', normalizedMime: 'image/png', width: 100, height: 50, storageRef: 'opaque-asset-id' }],
+      assets: [{ assetRef: 'asset-id', normalizedMime: 'image/png', width: 100, height: 50, storageRef: 'opaque-asset-id', sha256: 'a'.repeat(64) }],
     })
     expect(result.schemaId).toBe('liquid-hr.document-studio.native.v1')
     expect(result.schemaVersion).toBe(1)

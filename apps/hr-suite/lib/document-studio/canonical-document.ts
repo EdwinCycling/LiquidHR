@@ -544,6 +544,8 @@ export function validateCanonicalDocument(input: unknown): { readonly valid: boo
   }
 }
 
+export function emptyCanonicalDocument(kind: 'DOCUMENT'): Omit<CanonicalDocument, 'kind'> & { readonly kind: 'DOCUMENT' }
+export function emptyCanonicalDocument(kind: TemplateKind): CanonicalDocument
 export function emptyCanonicalDocument(kind: TemplateKind): CanonicalDocument {
   const region = (): CanonicalRegion => ({ type: 'region', content: [{ type: 'paragraph', attrs: { align: 'LEFT' }, content: [] }] })
   return {
