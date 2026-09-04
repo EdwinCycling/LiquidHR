@@ -29,6 +29,7 @@ export interface NormalizedDocumentV1 {
     readonly width: number
     readonly height: number
     readonly storageRef: string
+    readonly sha256: string
   }[]
   readonly placeholderManifest: readonly {
     readonly type: 'KNOWN' | 'TEMPORAL' | 'FREE'
@@ -51,6 +52,7 @@ export interface NormalizedDocumentAssetInput {
   readonly width: number
   readonly height: number
   readonly storageRef: string
+  readonly sha256: string
 }
 
 export interface NormalizedDocumentV1Input {

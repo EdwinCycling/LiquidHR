@@ -5,6 +5,7 @@ import { securityHeaders } from './lib/security/security-headers'
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@scope/db'],
+  serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
   turbopack: {
     root: path.resolve(__dirname, '../..'),
   },

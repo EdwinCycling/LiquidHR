@@ -1,0 +1,1 @@
+export interface GenerationOptions { readonly templates: readonly { readonly id: string; readonly name: string; readonly versionId: string; readonly version: number }[]; readonly employees: readonly { readonly id: string; readonly name: string; readonly employeeNumber: string | null }[] }

@@ -1,5 +1,32 @@
 # Implementatiestatus Liquid HR
 
+## Document Studio DG1 Generation Pipeline — 2026-09-04
+
+**Status: IMPLEMENTATION CANDIDATE — READY FOR DG1 MIGRATION REVIEW**
+
+- Geïsoleerde candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR-DG1`, branch
+  `work/document-studio-dg1-generation-pipeline`, exact review-baseline
+  `a85b957e0ef628c6b13621804e2c7f025c98ea17`; root-worktree en `main` zijn
+  buiten scope gebleven.
+- DG1 implementeert server-only trusted writes, expliciete read/write
+  permissions, bounded resolver-inputs, actieve template/profile/component
+  refs, immutable persisted snapshots, deterministic idempotency, echte
+  A4/Work Sans Chromium-PDF-output, controlled downloads en exactly-once
+  dossier linking via bestaande `employee_documents`.
+- Migration candidate:
+  `apps/hr-suite/supabase/migrations/20260904100000_document_generation_dg1.sql`.
+  Niet remote toegepast; `packages/db/types.ts` is daarom bewust niet
+  gegenereerd of gewijzigd.
+- Verification: targeted DG1 `6` test files / `10/10` tests, strict TypeScript,
+  scoped ESLint, i18n (`35` equal NL/EN namespaces), production build
+  (`250/250` routes) and `git diff --check` are green. Full suite, remote
+  proof and authenticated browser/persona acceptance are not run because the
+  migration remains unapplied.
+- Open afzonderlijke gates: migration review/apply, advisors/typegen,
+  authenticated browser/persona acceptance, `main`/Vercel/Nmbrs release en
+  version bump. Full suite en remote proof zijn niet onderdeel van deze
+  candidate-run.
+
 ## Public legal pages and anonymous icon routing — 2026-09-03
 
 **Status: LOCAL GREEN — RELEASE GATES OPEN**

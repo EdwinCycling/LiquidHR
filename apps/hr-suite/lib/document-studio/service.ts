@@ -486,7 +486,7 @@ export async function getNormalizedDocumentV1(versionId: string): Promise<Normal
   const version = await getDocumentStudioVersion(client, auth.tenantId, hrGroupId, versionId)
   if (!version) return null
   const template = await getDocumentStudioTemplate(client, auth.tenantId, hrGroupId, version.template_id)
-  if (!template || version.version_number === null) throw new DocumentStudioServiceError('DOCUMENT_TEMPLATE_VERSION_NOT_ACTIVE', 422)
+  if (!template || version.status !== 'ACTIVE' || template.lifecycle !== 'ACTIVE' || template.current_active_version_id !== version.id || version.version_number === null) throw new DocumentStudioServiceError('DOCUMENT_TEMPLATE_VERSION_NOT_ACTIVE', 422)
   let normalized: NormalizedCanonicalDocument
   try {
     normalized = normalizeCanonicalDocument(version.document_json)
@@ -501,7 +501,7 @@ export async function getNormalizedDocumentV1(versionId: string): Promise<Normal
   const composition = await Promise.all(compositions.map(async (item) => {
     const component = await getDocumentStudioVersion(client, auth.tenantId, hrGroupId, item.component_template_version_id)
     const componentTemplate = component ? await getDocumentStudioTemplate(client, auth.tenantId, hrGroupId, component.template_id) : null
-    if (!component || !componentTemplate || component.version_number === null || (componentTemplate.kind !== 'COVER' && componentTemplate.kind !== 'APPENDIX')) throw new DocumentStudioServiceError('DOCUMENT_TEMPLATE_COMPOSITION_INVALID', 422)
+    if (!component || !componentTemplate || component.status !== 'ACTIVE' || componentTemplate.lifecycle !== 'ACTIVE' || componentTemplate.current_active_version_id !== component.id || component.version_number === null || componentTemplate.kind !== item.component_kind) throw new DocumentStudioServiceError('DOCUMENT_TEMPLATE_COMPOSITION_INVALID', 422)
     return { kind: item.component_kind, templateId: component.template_id, versionId: component.id, version: component.version_number, sortOrder: item.sort_order }
   }))
   const assetIds = await getDocumentStudioVersionAssetIds(client, auth.tenantId, hrGroupId, version.id)
@@ -519,6 +519,7 @@ export async function getNormalizedDocumentV1(versionId: string): Promise<Normal
       width: asset.width,
       height: asset.height,
       storageRef: asset.id,
+      sha256: asset.sha256,
     })),
   })
 }
