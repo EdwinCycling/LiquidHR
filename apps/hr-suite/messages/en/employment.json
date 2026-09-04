@@ -280,6 +280,7 @@
   "countryNoResults": "No country found",
   "bsn": "Citizen service number",
   "bsnOptionalHelp": "Not required to create an employment. Leave it empty if the citizen service number is not known yet.",
+  "bsnHashKeyMissing": "The citizen service number cannot be saved locally because the server setting BSN_HASH_KEY is missing. Have this setting added and try again.",
   "nationality": "Nationality",
   "birthDate": "Date of birth",
   "ageRangeInvalid": "The employee must be between 10 and 90 years old.",

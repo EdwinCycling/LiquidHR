@@ -280,6 +280,7 @@
   "countryNoResults": "Geen land gevonden",
   "bsn": "BSN-nummer",
   "bsnOptionalHelp": "Niet verplicht voor het aanmaken van een dienstverband. Laat leeg als het BSN nog niet bekend is.",
+  "bsnHashKeyMissing": "Het BSN kan lokaal niet worden opgeslagen omdat de serverinstelling BSN_HASH_KEY ontbreekt. Laat deze instelling toevoegen en probeer het daarna opnieuw.",
   "nationality": "Nationaliteit",
   "birthDate": "Geboortedatum",
   "ageRangeInvalid": "De medewerker moet tussen 10 en 90 jaar oud zijn.",
