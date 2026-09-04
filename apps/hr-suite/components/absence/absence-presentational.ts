@@ -90,7 +90,7 @@ function parseDecimalInput(value: string): number {
 }
 
 export function getReportableAbsenceEmploymentOptions<T extends { id: string }>(options: readonly T[], cases: readonly { employmentId: string; status: string }[]): T[] {
-  const openEmploymentIds = new Set(cases.filter((item) => item.status === 'ACTIVE' || item.status === 'RECOVERY_WINDOW').map((item) => item.employmentId))
+  const openEmploymentIds = new Set(cases.filter((item) => item.status === 'ACTIVE').map((item) => item.employmentId))
   return options.filter((option) => !openEmploymentIds.has(option.id))
 }
 

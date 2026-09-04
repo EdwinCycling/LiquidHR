@@ -93,41 +93,49 @@ $$;
 -- beschikbaar is. Historische rijen zonder zo'n rooster blijven bewust
 -- nullable; actuele employment-uren worden nooit teruggeschreven over de
 -- historische werkelijkheid heen.
+with capacity_backfill as (
+  select capacity.id,
+         capacity.absence_percentage,
+         schedule.average_hours_per_week
+  from public.absence_capacity_changes capacity
+  join public.absence_cases absence_case
+    on absence_case.tenant_id = capacity.tenant_id
+   and absence_case.hr_group_id = capacity.hr_group_id
+   and absence_case.id = capacity.case_id
+  join public.absence_spells spell
+    on spell.tenant_id = absence_case.tenant_id
+   and spell.hr_group_id = absence_case.hr_group_id
+   and spell.case_id = absence_case.id
+   and spell.id = capacity.spell_id
+  join lateral (
+    select employment_schedule.average_hours_per_week
+    from public.employment_schedules employment_schedule
+    where employment_schedule.tenant_id = absence_case.tenant_id
+      and employment_schedule.administration_id = absence_case.administration_id
+      and employment_schedule.employee_id = absence_case.employee_id
+      and employment_schedule.employment_id = absence_case.employment_id
+      and employment_schedule.valid_from <= capacity.effective_on
+      and (
+        employment_schedule.valid_until is null
+        or employment_schedule.valid_until > capacity.effective_on
+      )
+      and employment_schedule.average_hours_per_week > 0
+    order by employment_schedule.valid_from desc
+    limit 1
+  ) schedule on true
+  where capacity.scheduled_hours_per_week_snapshot is null
+    and capacity.absence_hours_per_week is null
+    and capacity.input_mode is null
+)
 update public.absence_capacity_changes capacity
-set scheduled_hours_per_week_snapshot = schedule.average_hours_per_week,
+set scheduled_hours_per_week_snapshot = capacity_backfill.average_hours_per_week,
     absence_hours_per_week = round(
-      schedule.average_hours_per_week * capacity.absence_percentage / 100,
+      capacity_backfill.average_hours_per_week * capacity_backfill.absence_percentage / 100,
       4
     ),
     input_mode = 'PERCENTAGE'
-from public.absence_cases absence_case
-join public.absence_spells spell
-  on spell.tenant_id = absence_case.tenant_id
- and spell.hr_group_id = absence_case.hr_group_id
- and spell.case_id = absence_case.id
-join lateral (
-  select employment_schedule.average_hours_per_week
-  from public.employment_schedules employment_schedule
-  where employment_schedule.tenant_id = absence_case.tenant_id
-    and employment_schedule.administration_id = absence_case.administration_id
-    and employment_schedule.employee_id = absence_case.employee_id
-    and employment_schedule.employment_id = absence_case.employment_id
-    and employment_schedule.valid_from <= capacity.effective_on
-    and (
-      employment_schedule.valid_until is null
-      or employment_schedule.valid_until > capacity.effective_on
-    )
-    and employment_schedule.average_hours_per_week > 0
-  order by employment_schedule.valid_from desc
-  limit 1
-) schedule on true
-where capacity.tenant_id = absence_case.tenant_id
-  and capacity.hr_group_id = absence_case.hr_group_id
-  and capacity.case_id = absence_case.id
-  and capacity.spell_id = spell.id
-  and capacity.scheduled_hours_per_week_snapshot is null
-  and capacity.absence_hours_per_week is null
-  and capacity.input_mode is null;
+from capacity_backfill
+where capacity.id = capacity_backfill.id;
 
 create or replace function internal_security.fill_absence_capacity_values()
 returns trigger

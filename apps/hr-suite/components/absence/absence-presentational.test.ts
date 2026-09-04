@@ -87,6 +87,11 @@ describe('absence presentation payload contracts', () => {
     expect(getReportableAbsenceEmploymentOptions(options, [{ employmentId: 'employment-a', status: 'ACTIVE' }]).map((option) => option.id)).toEqual(['employment-b'])
   })
 
+  it('laat een herreport binnen het herstelvenster rapporteerbaar', () => {
+    const options = [{ id: 'employment-a' }, { id: 'employment-b' }]
+    expect(getReportableAbsenceEmploymentOptions(options, [{ employmentId: 'employment-a', status: 'RECOVERY_WINDOW' }]).map((option) => option.id)).toEqual(['employment-a', 'employment-b'])
+  })
+
   it('defaults capacity changes to an actual date', () => {
     expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-22' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')
     expect(getDefaultAbsenceCapacityEffectiveOn({ spells: [{ capacityEffectiveOn: '2026-08-21' }] }, new Date('2026-08-22T12:00:00.000Z'))).toBe('2026-08-22')

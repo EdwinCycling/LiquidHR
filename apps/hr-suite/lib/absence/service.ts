@@ -261,7 +261,7 @@ export async function listEmployeeAbsenceEmploymentOptions(employeeId: string) {
   ])
   const openEmploymentIds = new Set(
     cases
-      .filter((item) => item.status === 'ACTIVE' || item.status === 'RECOVERY_WINDOW')
+      .filter((item) => item.status === 'ACTIVE')
       .map((item) => item.employmentId),
   )
   return {
