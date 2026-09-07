@@ -35,6 +35,7 @@ export interface StartPageData {
   administrationName: string | null
   isEmployeeOnly: boolean
   companyDocuments: number | null
+  pendingSigningCount: number | null
   reminders: ReminderItem[]
   leaveAbsences: StartPageLeaveAbsences
   activeAbsenceItems: StartPageAbsenceItem[]
@@ -126,6 +127,11 @@ interface StartPageCountdowns {
 }
 
 type StartPageEmployeeScope = string[] | null
+
+interface StartPageSigningQuery extends PromiseLike<{ readonly count: number | null; readonly error: unknown }> {
+  select(columns: string, options: { count: 'exact'; head: true }): StartPageSigningQuery
+  eq(column: string, value: unknown): StartPageSigningQuery
+}
 
 function listStartPageWorkforceLinks(permissions: string[], personalOnly: boolean): StartPageWorkforceLink[] {
   const links: StartPageWorkforceLink[] = []
@@ -276,6 +282,17 @@ async function countCompanyDocuments(auth: AuthContext, supabase: SupabaseServer
   const query = supabase.from('company_documents').select('id', { count: 'exact', head: true })
     .eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId ?? '').is('deleted_at', null)
   const { count, error } = await query
+  return error ? null : count ?? 0
+}
+
+async function countPendingDocumentSignings(auth: AuthContext, supabase: SupabaseServerClient): Promise<number | null> {
+  if (!auth.employeeId || !auth.hrGroupId) return null
+  const query = (supabase.from as unknown as (relation: string) => StartPageSigningQuery)('document_signing_requests')
+  const { count, error } = await query.select('id', { count: 'exact', head: true })
+    .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', auth.hrGroupId)
+    .eq('signer_employee_id', auth.employeeId)
+    .eq('status', 'PENDING')
   return error ? null : count ?? 0
 }
 
@@ -459,6 +476,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       administrationName: context.activeAdministration?.name ?? null,
       isEmployeeOnly: true,
       companyDocuments: null,
+      pendingSigningCount: null,
       reminders: [],
       leaveAbsences: { today: [], tomorrow: [] },
       activeAbsenceItems: [],
@@ -506,11 +524,12 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
     measure('companyDocuments', () => countCompanyDocuments(auth, supabase)),
+    measure('pendingSigningCount', () => countPendingDocumentSignings(auth, supabase)),
     measure('reminders', () => listMyReminders(8, { context: auth, supabase }).catch(() => [])),
     employeeScopePromise.then((employeeScope) => measure('events', () => listUpcomingEvents(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('employeeCount', () => countEmployees(auth, employeeScope, supabase))),
@@ -533,6 +552,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     administrationName: context.activeAdministration?.name ?? null,
     isEmployeeOnly,
     companyDocuments,
+    pendingSigningCount,
     reminders: reminders.filter((reminder) => reminder.recipientStatus === 'PENDING' && reminder.reminderStatus === 'PUBLISHED'),
     leaveAbsences,
     activeAbsenceItems: absenceResult.items,

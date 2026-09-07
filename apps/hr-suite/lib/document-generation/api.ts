@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
+import { DocumentSigningError } from './signing-service'
 import { DocumentGenerationError } from './service'
 
 export function documentGenerationErrorResponse(error: unknown): NextResponse | null {
@@ -8,6 +9,9 @@ export function documentGenerationErrorResponse(error: unknown): NextResponse | 
   if (permission) return permission
   if (error instanceof DocumentGenerationError) {
     return NextResponse.json({ code: error.code, details: error.details }, { status: error.status })
+  }
+  if (error instanceof DocumentSigningError) {
+    return NextResponse.json({ code: error.code }, { status: error.status })
   }
   return null
 }
