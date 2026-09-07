@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## Vercel cleanup 2026-09-07
+
+Onder team `edwinitsolutions` is de deploymenthistorie opgeschoond zonder project-, domein-, alias-, Supabase- of secretwijziging. `liquidhr` behield alleen `dpl_848YQEawuYBx1QAmgNdQU5iUv7B9` (`READY`, Production); 188 van 189 deployments zijn verwijderd. `liquidhr-agent-workspace` behield alleen `dpl_F5WceLuhP2LRNDswkQJFRx3aduXh` (`READY`, Production); 2 van 3 deployments zijn verwijderd. De aliases zijn opnieuw gecontroleerd en blijven op de behouden deployments staan; er is geen nieuwe deployment aangemaakt.
+
+In `vercel.json` is `git.deploymentEnabled` op `false` gezet. De gewenste workflow blijft localhost → Supabase DEV → Codex browser/persona acceptance → tests/build → alleen expliciete Vercel-release.
+
 ## UX-fix 2026-09-04: startpagina verzuimduiding
 
 De startpagina toont bij ieder lopend verzuimgeval de startdatum en het actuele ziektepercentage. De tekst voor een herstelstatus is verduidelijkt naar “Herstelperiode na betermelding”. De langdurig-ziek-tegel gebruikt dezelfde open verzuimcases en datumlogica als de lijst en telt gevallen van 14 dagen of langer. Het blok “Snel naar” is verwijderd op verzoek.
