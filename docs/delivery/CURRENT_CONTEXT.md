@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## AI Everywhere V1 candidate — 2026-09-07
+
+De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op `work/ai-everywhere-v1`, vanaf vers gefetchte `origin/main` `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root `C:\Users\Edwin\Documents\Apps\LiquidHR` en de bestaande dirty `apps/hr-suite/next-env.d.ts` zijn niet gewijzigd.
+
+Afgerond: centrale AI Foundation-adaptatie voor exact vier capabilities (`EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART`, `VACANCY_DRAFT`); server-side minimale context, dubbele permissioncheck, governance/credits, idempotency, audit/usage en proposal-validator; Employee Overview-acties; SMART-goal lokale Apply/Cancel; vacatureblok lokale Apply/Cancel; NL/EN i18n; source-only credit-catalogusmigration; gerichte tests.
+
+Verificatie: i18n `35` namespaces groen; directe strict TypeScript-check met `tsc --noEmit --incremental false` groen; gerichte AI-contracttests `14/14`; SMART/vacature UI-tests `3/3`; `git diff --check` groen. De npm-typecheck-wrapper kan geen `tsconfig.tsbuildinfo` schrijven, daarom is de identieke typecheck zonder incremental-output gebruikt.
+
+Open: laatste volledige candidate review, eventuele volledige suite/build en daarna lokale commit + non-force push van `work/ai-everywhere-v1`. Remote Supabase-migration/apply, remote credit readback, main-merge, version bump, Vercel en Production acceptance blijven expliciet niet uitgevoerd. De canonical root `.env.local` is niet gelezen, gekopieerd of gewijzigd.
+
 ## UX-fix 2026-09-04: startpagina verzuimduiding
 
 De startpagina toont bij ieder lopend verzuimgeval de startdatum en het actuele ziektepercentage. De tekst voor een herstelstatus is verduidelijkt naar “Herstelperiode na betermelding”. De langdurig-ziek-tegel gebruikt dezelfde open verzuimcases en datumlogica als de lijst en telt gevallen van 14 dagen of langer. Het blok “Snel naar” is verwijderd op verzoek.

@@ -13,6 +13,10 @@ const CHARGE_UNITS_BY_FEATURE: Readonly<Record<string, Readonly<Record<AiQuality
     BALANCED: 2,
     IN_DEPTH: 3,
   },
+  EMPLOYEE_SUMMARY: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
+  CONVERSATION_PREPARATION: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
+  DEVELOPMENT_GOAL_SMART: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
+  VACANCY_DRAFT: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
 }
 
 const CHARGE_REFERENCES_BY_FEATURE: Readonly<Record<string, Readonly<Record<AiQualityProfile, string>>>> = {
@@ -21,12 +25,44 @@ const CHARGE_REFERENCES_BY_FEATURE: Readonly<Record<string, Readonly<Record<AiQu
     BALANCED: 'ai.improve-existing-hr-text.balanced',
     IN_DEPTH: 'ai.improve-existing-hr-text.in-depth',
   },
+  EMPLOYEE_SUMMARY: {
+    EFFICIENT: 'ai.employee-summary.efficient',
+    BALANCED: 'ai.employee-summary.balanced',
+    IN_DEPTH: 'ai.employee-summary.in-depth',
+  },
+  CONVERSATION_PREPARATION: {
+    EFFICIENT: 'ai.conversation-preparation.efficient',
+    BALANCED: 'ai.conversation-preparation.balanced',
+    IN_DEPTH: 'ai.conversation-preparation.in-depth',
+  },
+  DEVELOPMENT_GOAL_SMART: {
+    EFFICIENT: 'ai.development-goal-smart.efficient',
+    BALANCED: 'ai.development-goal-smart.balanced',
+    IN_DEPTH: 'ai.development-goal-smart.in-depth',
+  },
+  VACANCY_DRAFT: {
+    EFFICIENT: 'ai.vacancy-draft.efficient',
+    BALANCED: 'ai.vacancy-draft.balanced',
+    IN_DEPTH: 'ai.vacancy-draft.in-depth',
+  },
 }
 
 const CHARGE_UNITS_BY_REFERENCE: Readonly<Record<string, number>> = {
   'ai.improve-existing-hr-text.efficient': 1,
   'ai.improve-existing-hr-text.balanced': 2,
   'ai.improve-existing-hr-text.in-depth': 3,
+  'ai.employee-summary.efficient': 1,
+  'ai.employee-summary.balanced': 2,
+  'ai.employee-summary.in-depth': 3,
+  'ai.conversation-preparation.efficient': 1,
+  'ai.conversation-preparation.balanced': 2,
+  'ai.conversation-preparation.in-depth': 3,
+  'ai.development-goal-smart.efficient': 1,
+  'ai.development-goal-smart.balanced': 2,
+  'ai.development-goal-smart.in-depth': 3,
+  'ai.vacancy-draft.efficient': 1,
+  'ai.vacancy-draft.balanced': 2,
+  'ai.vacancy-draft.in-depth': 3,
 }
 
 export const AI_LIQUID_CREDIT_CHARGE_UNITS = CHARGE_UNITS_BY_REFERENCE

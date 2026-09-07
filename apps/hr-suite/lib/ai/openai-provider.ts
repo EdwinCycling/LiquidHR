@@ -127,12 +127,15 @@ function responseError(
 }
 
 function buildInstructions(request: AiProviderRequest): string {
-  return [
-    'You are the LiquidHR server-side proposal generator.',
-    'Return only one JSON proposal matching the supplied structured-output contract.',
+  const featureInstructions = request.authorizedContext.prompt?.instructions ?? [
     'Transform only the supplied sourceText using the supplied transformation and locale.',
     'Preserve meaning and existing facts. Do not invent information, infer employee facts, add names or details, introduce HR judgments, or add recommendations.',
-    'Return only the transformed content required by the response contract.',
+  ].join(' ')
+  return [
+    'You are the LiquidHR server-side proposal generator.',
+    featureInstructions,
+    'Return only one JSON proposal matching the supplied structured-output contract.',
+    'Return only the content required by the response contract.',
     'Do not make HR decisions, do not write data, and do not include provider metadata.',
     'Human review is mandatory for every proposal.',
     `Prompt contract version: ${request.promptTemplateVersion}.`,

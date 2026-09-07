@@ -7,12 +7,12 @@ import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import { EntityList } from '@/components/patterns/entity-list'
 import { FormDrawer } from '@/components/patterns/form-drawer'
 import { FormField } from '@/components/patterns/form-field'
+import { AiResultSurface } from '@/components/patterns/ai-result-surface'
 import { RowActions } from '@/components/patterns/row-actions'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ActionMenu } from '@/components/ui/action-menu'
-import { Surface } from '@/components/ui/surface'
 import { TextInput } from '@/components/ui/text-input'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDateTime } from '@/lib/preferences/formatters'
@@ -269,18 +269,9 @@ export function EmployeeNotes({ employeeId, notes, canWrite, canDelete, canImpro
               /> : null}
             </div>
             <Textarea aria-required="true" id="employee-note-description" name="description" onChange={(event) => updateFormValue('description', event.target.value)} required value={formValues.description} />
-            {aiPending ? <p className="text-xs text-muted-foreground" role="status">{labels.aiWorking}</p> : null}
-            {aiError ? <p className="text-xs text-destructive" role="alert">{aiError}</p> : null}
-            {aiProposal ? <Surface className="grid gap-3 p-3" variant="subtle">
-              <div>
-                <p className="font-medium text-foreground">{labels.aiReviewTitle}</p>
-                <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{aiProposal.proposedText}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={applyAiProposal} type="button">{labels.applyAi}</Button>
-                <Button onClick={invalidateAi} type="button" variant="ghost">{labels.cancelAi}</Button>
-              </div>
-            </Surface> : null}
+            {aiPending ? <AiResultSurface labels={{ reviewTitle: labels.aiReviewTitle, working: labels.aiWorking, cancel: labels.cancelAi }} onCancel={invalidateAi} state="loading" /> : null}
+            {aiError ? <AiResultSurface error={aiError} labels={{ reviewTitle: labels.aiReviewTitle, working: labels.aiWorking, cancel: labels.cancelAi }} onCancel={invalidateAi} state="error" /> : null}
+            {aiProposal ? <AiResultSurface labels={{ reviewTitle: labels.aiReviewTitle, working: labels.aiWorking, apply: labels.applyAi, cancel: labels.cancelAi }} onApply={applyAiProposal} onCancel={invalidateAi} state="success" text={aiProposal.proposedText} /> : null}
           </div>
         </div>
       </FormDrawer>

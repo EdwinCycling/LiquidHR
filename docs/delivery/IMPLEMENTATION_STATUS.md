@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## AI Everywhere V1 — 2026-09-07
+
+**Status: LOCAL CANDIDATE GREEN — REMOTE CATALOG/RELEASE GATES OPEN**
+
+De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op branch `work/ai-everywhere-v1`, vanaf exact de vers gefetchte `origin/main`-SHA `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root-worktree bleef buiten scope; de bestaande dirty wijziging in `apps/hr-suite/next-env.d.ts` is niet aangeraakt.
+
+AI Everywhere V1 bevat exact `EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART` en `VACANCY_DRAFT`. De implementatie hergebruikt de centrale AI Foundation: server-side context loader, `ai:use` plus feature-business-permission, governance/credits, provider safety, validator, idempotency, audit en usage. Context blijft minimaal en de browser ontvangt alleen `proposedText`. Employee-context sluit verzuim/medische en beschermde HR-informatie uit; conversation preparation weigert score, classificatie en disciplinaire output. SMART en vacaturetekst vervangen alleen na expliciete actie lokale form state; opslaan/publiceren blijft de bestaande gebruikersactie.
+
+Er is één source-only migration toegevoegd: `apps/hr-suite/supabase/migrations/20260907120000_ai_everywhere_v1_credit_catalog.sql`, met twaalf vaste feature/profile-prijzen. Deze is niet op Supabase toegepast. Geen RLS/schemawijziging, version bump, main-merge, productie-deployment of Vercel-mutatie is uitgevoerd.
+
+Verificatie: `check:i18n` groen (`35` namespaces), strict TypeScript groen met `tsc --noEmit --incremental false`, gerichte AI-contract-/catalogus-/adaptertests `14/14` en gerichte SMART/vacature UI-tests `3/3`. `git diff --check` is groen. De gewone npm-typecheck-wrapper blijft technisch geblokkeerd door een niet-schrijfbare `apps/hr-suite/tsconfig.tsbuildinfo`; de onderliggende typecheck is wel direct groen. Browseracceptance en remote credit readback zijn niet uitgevoerd omdat de migration niet remote is toegepast; volledige suite, productiebuild, commit en branch-push volgen pas na de laatste kandidaatcontrole.
+
 ## Organogram uitlijning en rapportagelijnen — 2026-09-04
 
 **Status: LOCAL GREEN — beide organogramweergaven geverifieerd**

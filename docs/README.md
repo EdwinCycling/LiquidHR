@@ -116,6 +116,12 @@ AI Usage Insights is geïntegreerd als permission-gated Insights-report op `/ins
 
 De eerste product-capability bovenop de centrale AI Foundation is geïmplementeerd op de omschrijving van Employee Notes. Zie [`LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md`](requirements/ai/LIQUIDHR_AI_IMPROVE_V1_EMPLOYEE_NOTES.md) voor het afgebakende contract en de autorisatie-/lifecyclegrenzen. De formele deliverystatus staat in [`IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md) en [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
 
+## AI Everywhere V1 — vier proposal-only capabilities — 2026-09-07
+
+De kandidaatimplementatie op geïsoleerde branch `work/ai-everywhere-v1` voegt exact vier capabilities toe bovenop dezelfde AI Foundation: `EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART` en `VACANCY_DRAFT`. De eerste twee tonen uitsluitend leesvoorstellen in Employee Overview; SMART-doelen en vacatureblokken worden alleen na expliciete actie lokaal in het actieve formulier vervangen. Geen autonome opslag, publicatie, statuswijziging, score of beoordeling.
+
+De server laadt en minimaliseert de geautoriseerde context, controleert feature- en business-permissions, rekent Liquid Credits af en gebruikt de bestaande audit/usage-lifecycle. Medische/verzuimcontext is uitgesloten van employee-context; vacatureteksten mogen geen feiten, salaris, voorwaarden, voordelen of skills verzinnen. Zie [`LIQUIDHR_AI_EVERYWHERE_V1.md`](requirements/ai/LIQUIDHR_AI_EVERYWHERE_V1.md) en de formele deliverystatus. De lokale credit-catalogusmigration is nog niet remote toegepast; main, productie, version bump en merge blijven buiten scope.
+
 ## Liquid Analyse AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
 
 **Status: AN-4/5 TEST GREEN — READY FOR FINAL INTEGRATION**
