@@ -1,13 +1,22 @@
+import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/patterns/page-header'
 import { PageShell } from '@/components/layout/page-shell'
 import { GenerationWorkbench } from '@/components/document-studio/generation-workbench'
 import { GenerationHistory } from '@/components/document-studio/generation-history'
+import { AuthorizationError } from '@/lib/auth/permissions'
 import { listGenerationHistory, listGenerationOptions } from '@/lib/document-generation/service'
 import { getTranslator } from '@/lib/i18n/server'
 
 export default async function DocumentGenerationPage() {
   const t = await getTranslator('documentStudio')
-  const [options, history] = await Promise.all([listGenerationOptions(), listGenerationHistory()])
+  let options: Awaited<ReturnType<typeof listGenerationOptions>>
+  let history: Awaited<ReturnType<typeof listGenerationHistory>>
+  try {
+    ;[options, history] = await Promise.all([listGenerationOptions(), listGenerationHistory()])
+  } catch (error) {
+    if (error instanceof AuthorizationError) redirect('/geen-toegang')
+    throw error
+  }
   return <PageShell className="space-y-6 py-7 lg:py-10" width="wide">
     <PageHeader description={t('generation.subtitle')} title={t('generation.title')} />
     <GenerationWorkbench labels={{

@@ -1,5 +1,28 @@
 # Liquid HR documentatie-index
 
+## Document Studio DG2 + DG3 — 2026-09-07
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**
+
+DG2/DG3 is implemented and accepted in the isolated worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\document-studio-dg2-dg3-implementation` on branch
+`work/document-studio-dg2-dg3-implementation`, from production/main baseline
+`1.20260904.2` / `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. The additive migration
+`apps/hr-suite/supabase/migrations/20260907071315_document_generation_dg2_dg3_distribution_signing.sql`
+adds scoped multi-recipient generation batches, per-recipient status/audit, employee
+self dossier visibility, and provider-neutral internal signing with immutable events.
+The server-only routes and Document Studio pages cover distribution, recipient status,
+HR signing preparation, employee signing, and startpage visibility. The migration has
+been applied only to the authorized LiquidHR development/test Supabase project
+`wnpfloqpjvaacobppbpk`; remote history contains the DG2/DG3 migration and a narrow
+tenant-admin role-scope correction. Browser acceptance covered HR Admin, Manager, and
+Employee with normal login, successful 3-recipient batch distribution, persisted FINAL
+snapshots/dossier links, INTERNAL signing, signed-state readback, and scope-denial
+checks. No merge, production deploy, production Supabase change, version bump, or
+external signing provider integration was performed. See
+[`DG2_DG3_DOCUMENTS_AND_SIGNING_DESIGN.md`](requirements/documents/DG2_DG3_DOCUMENTS_AND_SIGNING_DESIGN.md)
+for the frozen delta and non-goals.
+
 ## Organogram uitlijning en rapportagelijnen — 2026-09-04
 
 De interactieve organogramweergave gebruikt nu voor beide varianten dezelfde deterministische boom-/grid-layout. Afdelingen vormen een duidelijke tussenlaag naar medewerkers; medewerkers worden met vaste tussenruimtes en maximaal vier kaarten per rij geplaatst. Managerketens worden volledig onder hun manager uitgelijnd, ook wanneer een medewerker zelf rapporten heeft. Verbindingen gebruiken duidelijke, afgeronde lijnsegmenten en het canvas centreert opnieuw wanneer de dataset of weergave wisselt. Er is geen schema-, API- of databasewijziging gedaan.

@@ -33,6 +33,7 @@ const data: StartPageData = {
   canReportAbsence: false,
   canSwitchScope: false,
   companyDocuments: 3,
+  pendingSigningCount: 0,
   continuousAppraisal: null,
   employeeCount: 1,
   employeeId: 'employee-1',

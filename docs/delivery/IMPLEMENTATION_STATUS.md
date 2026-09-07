@@ -1,5 +1,35 @@
 # Implementatiestatus Liquid HR
 
+## Document Studio DG2 + DG3 — 2026-09-07
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**
+
+The isolated candidate starts from exact main/Production baseline
+`1.20260904.2` / `6484b12d4a01d9b1433496cb8cce4828ceab6c97` on branch
+`work/document-studio-dg2-dg3-implementation`. It adds an additive Supabase migration
+for employee-group distribution batches, idempotency, recipient/audit status, self
+dossier visibility, and internal signing requests/events. The UI and server-only
+services expose HR distribution and status, internal signing preparation, employee
+signing, and a startpage count/link for the employee's own pending requests.
+
+The migration is applied only to the authorized LiquidHR development/test Supabase
+project `wnpfloqpjvaacobppbpk`; the remote history also contains a narrow corrective
+permission migration for the active tenant-scoped TENANT_ADMIN fixture. Readback and
+browser acceptance are green for HR Admin, Manager, and Employee: normal login, a
+3-recipient DG2 batch with all recipients FINAL, immutable snapshot/PDF/dossier
+persistence, DG3 INTERNAL preparation/signing, audit/events, and cross-employee and
+permission-denial checks. Remote typegen was regenerated and the six DG2/DG3 tables,
+RLS/policies, constraints/indexes, and RPC execute grants were verified.
+
+Verification completed locally: i18n parity, strict TypeScript, scoped ESLint,
+`git diff --check`, webpack production build (`256/256` routes), existing startpage
+tests `4/4`, and DG2/DG3 migration contract tests `3/3`. The full suite retains one
+pre-existing unrelated DM-1 migration-contracttest failure concerning CASE-expression
+parenthesization; it was not repaired in this slice. Supabase advisor notices are
+informational/existing only. External signing providers, Payroll, AI Everywhere,
+sidebar redesign, production Supabase, merge, deployment, and unrelated refactors
+remain explicitly out of scope.
+
 ## Organogram uitlijning en rapportagelijnen — 2026-09-04
 
 **Status: LOCAL GREEN — beide organogramweergaven geverifieerd**
