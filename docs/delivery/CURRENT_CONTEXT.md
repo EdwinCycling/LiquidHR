@@ -8,7 +8,46 @@ Afgerond: centrale AI Foundation-adaptatie voor exact vier capabilities (`EMPLOY
 
 Verificatie: i18n `35` namespaces groen; directe strict TypeScript-check met `tsc --noEmit --incremental false` groen; gerichte AI-contracttests `14/14`; SMART/vacature UI-tests `3/3`; `git diff --check` groen. De npm-typecheck-wrapper kan geen `tsconfig.tsbuildinfo` schrijven, daarom is de identieke typecheck zonder incremental-output gebruikt.
 
-Open: laatste volledige candidate review, eventuele volledige suite/build en daarna lokale commit + non-force push van `work/ai-everywhere-v1`. Remote Supabase-migration/apply, remote credit readback, main-merge, version bump, Vercel en Production acceptance blijven expliciet niet uitgevoerd. De canonical root `.env.local` is niet gelezen, gekopieerd of gewijzigd.
+Open: remote Supabase-migration/apply, remote credit readback, authenticated persona acceptance, volledige candidate gate en daarna main integration. De canonical root `.env.local` is niet gelezen, gekopieerd of gewijzigd.
+
+## Vercel cleanup 2026-09-07
+
+Onder team `edwinitsolutions` is de deploymenthistorie opgeschoond zonder project-, domein-, alias-, Supabase- of secretwijziging. `liquidhr` behield alleen `dpl_848YQEawuYBx1QAmgNdQU5iUv7B9` (`READY`, Production); 188 van 189 deployments zijn verwijderd. `liquidhr-agent-workspace` behield alleen `dpl_F5WceLuhP2LRNDswkQJFRx3aduXh` (`READY`, Production); 2 van 3 deployments zijn verwijderd. De aliases zijn opnieuw gecontroleerd en blijven op de behouden deployments staan; er is geen nieuwe deployment aangemaakt.
+
+In `vercel.json` is `git.deploymentEnabled` op `false` gezet. De gewenste workflow blijft localhost → Supabase DEV → Codex browser/persona acceptance → tests/build → alleen expliciete Vercel-release.
+
+## Document Studio DG2 + DG3 — 2026-09-07
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; RELEASE GATES CLOSED**
+
+The candidate is isolated on branch
+`work/document-studio-dg2-dg3-implementation` in worktree
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\document-studio-dg2-dg3-implementation`,
+from exact main/Production baseline `1.20260904.2` /
+`6484b12d4a01d9b1433496cb8cce4828ceab6c97`. The implementation keeps DG1
+single-document generation and DM-1 native templates intact and adds only the frozen
+DG2/DG3 delta: selected-employee distribution batches with shared unresolved-field
+inputs, immutable per-recipient DG1 snapshots/PDFs, HR batch/recipient status, scoped
+employee dossier visibility, and one-signer provider-neutral internal signing. External
+signing is represented only by the bounded `INTERNAL` seam and reference field.
+
+Development acceptance is complete against the authorized Supabase project
+`wnpfloqpjvaacobppbpk`. Remote migration history contains the DG2/DG3 migration and
+the narrow tenant-scoped TENANT_ADMIN permission correction. Readback confirms all six
+DG2/DG3 tables have RLS, scoped policies, composite integrity constraints, indexes, and
+service-role-only mutation wrappers. The browser gate covered normal login for HR
+Admin, Manager, and Employee, a 3-recipient batch with all items FINAL, INTERNAL
+signing preparation and Employee signing, persisted audit/events/status, and negative
+cross-employee/permission checks. The generated DB types were refreshed from remote.
+
+Local verification is green for the targeted DG2/DG3 contract and startpage tests,
+strict TypeScript, scoped ESLint, i18n parity, webpack production build (`256/256`
+routes), and `git diff --check`. The full suite still has the pre-existing unrelated
+DM-1 migration-contracttest failure for the asset-storage-key CASE parenthesization;
+it was not changed in this DG2/DG3 slice. Supabase advisors report only existing or
+informational notices, including the intentional internal-only idempotency table
+without a policy and informational FK/index suggestions. No protected `.env.local`,
+production Supabase project, merge, or deployment was changed.
 
 ## UX-fix 2026-09-04: startpagina verzuimduiding
 

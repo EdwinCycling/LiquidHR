@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -963,516 +963,6 @@ export type Database = {
           },
         ]
       }
-      ai_conversations: {
-        Row: {
-          administration_id: string | null
-          created_at: string
-          id: string
-          origin_channel: string
-          owner_user_id: string
-          summary: string | null
-          summary_cursor_at: string | null
-          tenant_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          administration_id?: string | null
-          created_at?: string
-          id?: string
-          origin_channel?: string
-          owner_user_id: string
-          summary?: string | null
-          summary_cursor_at?: string | null
-          tenant_id: string
-          title?: string
-          updated_at?: string
-        }
-        Update: {
-          administration_id?: string | null
-          created_at?: string
-          id?: string
-          origin_channel?: string
-          owner_user_id?: string
-          summary?: string | null
-          summary_cursor_at?: string | null
-          tenant_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_conversations_administration_same_tenant_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_conversations_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_memory_items: {
-        Row: {
-          category: Database["public"]["Enums"]["ai_memory_category"]
-          consented_at: string
-          content: string
-          created_at: string
-          id: string
-          owner_user_id: string
-          source_conversation_id: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          category: Database["public"]["Enums"]["ai_memory_category"]
-          consented_at?: string
-          content: string
-          created_at?: string
-          id?: string
-          owner_user_id: string
-          source_conversation_id?: string | null
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          category?: Database["public"]["Enums"]["ai_memory_category"]
-          consented_at?: string
-          content?: string
-          created_at?: string
-          id?: string
-          owner_user_id?: string
-          source_conversation_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_memory_items_source_conversation_fkey"
-            columns: ["source_conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_memory_items_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_messages: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          external_message_id: string | null
-          id: string
-          metadata: Json
-          model_id: string | null
-          origin_channel: string
-          owner_user_id: string
-          role: Database["public"]["Enums"]["ai_message_role"]
-          tenant_id: string
-          visible_tool_name: string | null
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string
-          external_message_id?: string | null
-          id?: string
-          metadata?: Json
-          model_id?: string | null
-          origin_channel?: string
-          owner_user_id: string
-          role: Database["public"]["Enums"]["ai_message_role"]
-          tenant_id: string
-          visible_tool_name?: string | null
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          external_message_id?: string | null
-          id?: string
-          metadata?: Json
-          model_id?: string | null
-          origin_channel?: string
-          owner_user_id?: string
-          role?: Database["public"]["Enums"]["ai_message_role"]
-          tenant_id?: string
-          visible_tool_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_messages_conversation_same_tenant_fkey"
-            columns: ["tenant_id", "conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_conversations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      ai_user_preferences: {
-        Row: {
-          created_at: string
-          detail_level: string
-          id: string
-          owner_user_id: string
-          seniority_level: string
-          tenant_id: string
-          tone: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          detail_level?: string
-          id?: string
-          owner_user_id: string
-          seniority_level?: string
-          tenant_id: string
-          tone?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          detail_level?: string
-          id?: string
-          owner_user_id?: string
-          seniority_level?: string
-          tenant_id?: string
-          tone?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_user_preferences_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_invocations: {
-        Row: {
-          actor_employee_id: string | null
-          actor_user_id: string
-          administration_id: string | null
-          business_object_id: string
-          business_object_type: string
-          business_permission_code: string | null
-          charged_credits: number
-          config_version: string
-          correlation_id: string
-          created_at: string
-          execution_status: string
-          failure_code: string | null
-          feature_code: string
-          feedback_outcome: string | null
-          finished_at: string | null
-          hr_group_id: string
-          id: string
-          idempotency_key: string
-          latency_ms: number | null
-          model_family: string | null
-          prompt_template_version: string
-          provider_code: string | null
-          provider_input_units: number | null
-          provider_output_units: number | null
-          provider_request_id: string | null
-          quality_profile: string | null
-          reasoning_profile: string | null
-          request_fingerprint: string
-          reserved_credits: number
-          result_status: string
-          started_at: string | null
-          tenant_id: string
-          updated_at: string
-          writing_style: string | null
-        }
-        Insert: {
-          actor_employee_id?: string | null
-          actor_user_id: string
-          administration_id?: string | null
-          business_object_id: string
-          business_object_type: string
-          business_permission_code?: string | null
-          charged_credits?: number
-          config_version: string
-          correlation_id: string
-          created_at?: string
-          execution_status?: string
-          failure_code?: string | null
-          feature_code: string
-          feedback_outcome?: string | null
-          finished_at?: string | null
-          hr_group_id: string
-          id?: string
-          idempotency_key: string
-          latency_ms?: number | null
-          model_family?: string | null
-          prompt_template_version: string
-          provider_code?: string | null
-          provider_input_units?: number | null
-          provider_output_units?: number | null
-          provider_request_id?: string | null
-          quality_profile?: string | null
-          reasoning_profile?: string | null
-          request_fingerprint: string
-          reserved_credits?: number
-          result_status?: string
-          started_at?: string | null
-          tenant_id: string
-          updated_at?: string
-          writing_style?: string | null
-        }
-        Update: {
-          actor_employee_id?: string | null
-          actor_user_id?: string
-          administration_id?: string | null
-          business_object_id?: string
-          business_object_type?: string
-          business_permission_code?: string | null
-          charged_credits?: number
-          config_version?: string
-          correlation_id?: string
-          created_at?: string
-          execution_status?: string
-          failure_code?: string | null
-          feature_code?: string
-          feedback_outcome?: string | null
-          finished_at?: string | null
-          hr_group_id?: string
-          id?: string
-          idempotency_key?: string
-          latency_ms?: number | null
-          model_family?: string | null
-          prompt_template_version?: string
-          provider_code?: string | null
-          provider_input_units?: number | null
-          provider_output_units?: number | null
-          provider_request_id?: string | null
-          quality_profile?: string | null
-          reasoning_profile?: string | null
-          request_fingerprint?: string
-          reserved_credits?: number
-          result_status?: string
-          started_at?: string | null
-          tenant_id?: string
-          updated_at?: string
-          writing_style?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_invocations_actor_employee_same_tenant_fkey"
-            columns: ["tenant_id", "actor_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_invocations_administration_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_invocations_tenant_hr_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_invocations_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_provider_execution_leases: {
-        Row: {
-          actor_user_id: string
-          completed_at: string | null
-          environment: string
-          expires_at: string
-          hr_group_id: string
-          id: string
-          invocation_id: string
-          reserved_at: string
-          status: string
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          completed_at?: string | null
-          environment: string
-          expires_at: string
-          hr_group_id: string
-          id?: string
-          invocation_id: string
-          reserved_at: string
-          status?: string
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          completed_at?: string | null
-          environment?: string
-          expires_at?: string
-          hr_group_id?: string
-          id?: string
-          invocation_id?: string
-          reserved_at?: string
-          status?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_provider_execution_leases_environment_fkey"
-            columns: ["environment"]
-            isOneToOne: false
-            referencedRelation: "ai_provider_safety_environments"
-            referencedColumns: ["environment"]
-          },
-          {
-            foreignKeyName: "ai_provider_execution_leases_invocation_scope_fkey"
-            columns: ["tenant_id", "hr_group_id", "invocation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_invocations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_provider_execution_leases_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_provider_safety_environments: {
-        Row: {
-          created_at: string
-          environment: string
-        }
-        Insert: {
-          created_at?: string
-          environment: string
-        }
-        Update: {
-          created_at?: string
-          environment?: string
-        }
-        Relationships: []
-      }
-      ai_technical_usage: {
-        Row: {
-          actor_user_id: string
-          config_version: string
-          correlation_id: string
-          feature_code: string
-          hr_group_id: string
-          id: string
-          invocation_id: string
-          latency_ms: number
-          model_family: string | null
-          outcome: string
-          prompt_template_version: string
-          provider_code: string | null
-          provider_input_units: number | null
-          provider_output_units: number | null
-          provider_request_id: string | null
-          quality_profile: string
-          reasoning_profile: string | null
-          recorded_at: string
-          tenant_id: string
-        }
-        Insert: {
-          actor_user_id: string
-          config_version: string
-          correlation_id: string
-          feature_code: string
-          hr_group_id: string
-          id?: string
-          invocation_id: string
-          latency_ms: number
-          model_family?: string | null
-          outcome: string
-          prompt_template_version: string
-          provider_code?: string | null
-          provider_input_units?: number | null
-          provider_output_units?: number | null
-          provider_request_id?: string | null
-          quality_profile: string
-          reasoning_profile?: string | null
-          recorded_at?: string
-          tenant_id: string
-        }
-        Update: {
-          actor_user_id?: string
-          config_version?: string
-          correlation_id?: string
-          feature_code?: string
-          hr_group_id?: string
-          id?: string
-          invocation_id?: string
-          latency_ms?: number
-          model_family?: string | null
-          outcome?: string
-          prompt_template_version?: string
-          provider_code?: string | null
-          provider_input_units?: number | null
-          provider_output_units?: number | null
-          provider_request_id?: string | null
-          quality_profile?: string
-          reasoning_profile?: string | null
-          recorded_at?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_technical_usage_invocation_id_fkey"
-            columns: ["invocation_id"]
-            isOneToOne: true
-            referencedRelation: "ai_invocations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_technical_usage_invocation_scope_fkey"
-            columns: ["tenant_id", "hr_group_id", "invocation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_invocations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_technical_usage_tenant_hr_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_technical_usage_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_business_audit: {
         Row: {
           action: string
@@ -1581,6 +1071,60 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_business_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          administration_id: string | null
+          created_at: string
+          id: string
+          origin_channel: string
+          owner_user_id: string
+          summary: string | null
+          summary_cursor_at: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id?: string | null
+          created_at?: string
+          id?: string
+          origin_channel?: string
+          owner_user_id: string
+          summary?: string | null
+          summary_cursor_at?: string | null
+          tenant_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string | null
+          created_at?: string
+          id?: string
+          origin_channel?: string
+          owner_user_id?: string
+          summary?: string | null
+          summary_cursor_at?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_administration_same_tenant_fkey"
+            columns: ["tenant_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1944,6 +1488,462 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_invocations: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string
+          administration_id: string | null
+          business_object_id: string
+          business_object_type: string
+          business_permission_code: string | null
+          charged_credits: number
+          config_version: string
+          correlation_id: string
+          created_at: string
+          execution_status: string
+          failure_code: string | null
+          feature_code: string
+          feedback_outcome: string | null
+          finished_at: string | null
+          hr_group_id: string
+          id: string
+          idempotency_key: string
+          latency_ms: number | null
+          model_family: string | null
+          prompt_template_version: string
+          provider_code: string | null
+          provider_input_units: number | null
+          provider_output_units: number | null
+          provider_request_id: string | null
+          quality_profile: string | null
+          reasoning_profile: string | null
+          request_fingerprint: string
+          reserved_credits: number
+          result_status: string
+          started_at: string | null
+          tenant_id: string
+          updated_at: string
+          writing_style: string | null
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id: string
+          administration_id?: string | null
+          business_object_id: string
+          business_object_type: string
+          business_permission_code?: string | null
+          charged_credits?: number
+          config_version: string
+          correlation_id: string
+          created_at?: string
+          execution_status?: string
+          failure_code?: string | null
+          feature_code: string
+          feedback_outcome?: string | null
+          finished_at?: string | null
+          hr_group_id: string
+          id?: string
+          idempotency_key: string
+          latency_ms?: number | null
+          model_family?: string | null
+          prompt_template_version: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile?: string | null
+          reasoning_profile?: string | null
+          request_fingerprint: string
+          reserved_credits?: number
+          result_status?: string
+          started_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          writing_style?: string | null
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          administration_id?: string | null
+          business_object_id?: string
+          business_object_type?: string
+          business_permission_code?: string | null
+          charged_credits?: number
+          config_version?: string
+          correlation_id?: string
+          created_at?: string
+          execution_status?: string
+          failure_code?: string | null
+          feature_code?: string
+          feedback_outcome?: string | null
+          finished_at?: string | null
+          hr_group_id?: string
+          id?: string
+          idempotency_key?: string
+          latency_ms?: number | null
+          model_family?: string | null
+          prompt_template_version?: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile?: string | null
+          reasoning_profile?: string | null
+          request_fingerprint?: string
+          reserved_credits?: number
+          result_status?: string
+          started_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          writing_style?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_invocations_actor_employee_same_tenant_fkey"
+            columns: ["tenant_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_invocations_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_invocations_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_invocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memory_items: {
+        Row: {
+          category: Database["public"]["Enums"]["ai_memory_category"]
+          consented_at: string
+          content: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          source_conversation_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["ai_memory_category"]
+          consented_at?: string
+          content: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          source_conversation_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["ai_memory_category"]
+          consented_at?: string
+          content?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          source_conversation_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_items_source_conversation_fkey"
+            columns: ["source_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_memory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          external_message_id: string | null
+          id: string
+          metadata: Json
+          model_id: string | null
+          origin_channel: string
+          owner_user_id: string
+          role: Database["public"]["Enums"]["ai_message_role"]
+          tenant_id: string
+          visible_tool_name: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          external_message_id?: string | null
+          id?: string
+          metadata?: Json
+          model_id?: string | null
+          origin_channel?: string
+          owner_user_id: string
+          role: Database["public"]["Enums"]["ai_message_role"]
+          tenant_id: string
+          visible_tool_name?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          external_message_id?: string | null
+          id?: string
+          metadata?: Json
+          model_id?: string | null
+          origin_channel?: string
+          owner_user_id?: string
+          role?: Database["public"]["Enums"]["ai_message_role"]
+          tenant_id?: string
+          visible_tool_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_same_tenant_fkey"
+            columns: ["tenant_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      ai_provider_execution_leases: {
+        Row: {
+          actor_user_id: string
+          completed_at: string | null
+          environment: string
+          expires_at: string
+          hr_group_id: string
+          id: string
+          invocation_id: string
+          reserved_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          completed_at?: string | null
+          environment: string
+          expires_at: string
+          hr_group_id: string
+          id?: string
+          invocation_id: string
+          reserved_at: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          completed_at?: string | null
+          environment?: string
+          expires_at?: string
+          hr_group_id?: string
+          id?: string
+          invocation_id?: string
+          reserved_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_execution_leases_environment_fkey"
+            columns: ["environment"]
+            isOneToOne: false
+            referencedRelation: "ai_provider_safety_environments"
+            referencedColumns: ["environment"]
+          },
+          {
+            foreignKeyName: "ai_provider_execution_leases_invocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "invocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_provider_execution_leases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_provider_safety_environments: {
+        Row: {
+          created_at: string
+          environment: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+        }
+        Relationships: []
+      }
+      ai_technical_usage: {
+        Row: {
+          actor_user_id: string
+          config_version: string
+          correlation_id: string
+          feature_code: string
+          hr_group_id: string
+          id: string
+          invocation_id: string
+          latency_ms: number
+          model_family: string | null
+          outcome: string
+          prompt_template_version: string
+          provider_code: string | null
+          provider_input_units: number | null
+          provider_output_units: number | null
+          provider_request_id: string | null
+          quality_profile: string
+          reasoning_profile: string | null
+          recorded_at: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          config_version: string
+          correlation_id: string
+          feature_code: string
+          hr_group_id: string
+          id?: string
+          invocation_id: string
+          latency_ms: number
+          model_family?: string | null
+          outcome: string
+          prompt_template_version: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile: string
+          reasoning_profile?: string | null
+          recorded_at?: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          config_version?: string
+          correlation_id?: string
+          feature_code?: string
+          hr_group_id?: string
+          id?: string
+          invocation_id?: string
+          latency_ms?: number
+          model_family?: string | null
+          outcome?: string
+          prompt_template_version?: string
+          provider_code?: string | null
+          provider_input_units?: number | null
+          provider_output_units?: number | null
+          provider_request_id?: string | null
+          quality_profile?: string
+          reasoning_profile?: string | null
+          recorded_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_technical_usage_invocation_id_fkey"
+            columns: ["invocation_id"]
+            isOneToOne: true
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_technical_usage_invocation_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "invocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_invocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_technical_usage_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_technical_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_user_preferences: {
+        Row: {
+          created_at: string
+          detail_level: string
+          id: string
+          owner_user_id: string
+          seniority_level: string
+          tenant_id: string
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail_level?: string
+          id?: string
+          owner_user_id: string
+          seniority_level?: string
+          tenant_id: string
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail_level?: string
+          id?: string
+          owner_user_id?: string
+          seniority_level?: string
+          tenant_id?: string
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -2666,86 +2666,6 @@ export type Database = {
           },
         ]
       }
-      dashboard_widget_configs: {
-        Row: {
-          created_at: string
-          id: string
-          is_enabled: boolean
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-          widget_type: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_enabled?: boolean
-          tenant_id: string
-          updated_at?: string
-          updated_by?: string | null
-          widget_type: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_enabled?: boolean
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          widget_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dashboard_widget_configs_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dashboard_widget_role_access: {
-        Row: {
-          created_at: string
-          id: string
-          management_role_id: string
-          tenant_id: string
-          updated_at: string
-          widget_type: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          management_role_id: string
-          tenant_id: string
-          updated_at?: string
-          widget_type: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          management_role_id?: string
-          tenant_id?: string
-          updated_at?: string
-          widget_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dashboard_widget_role_access_management_role_id_fkey"
-            columns: ["management_role_id"]
-            isOneToOne: false
-            referencedRelation: "management_roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dashboard_widget_role_access_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       department_management: {
         Row: {
           created_at: string
@@ -3011,6 +2931,1123 @@ export type Database = {
             columns: ["tenant_id", "administration_id"]
             isOneToOne: false
             referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_generation_audit: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          metadata: Json
+          snapshot_id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          metadata?: Json
+          snapshot_id: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          metadata?: Json
+          snapshot_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_audit_tenant_id_hr_group_id_snapshot_i_fkey"
+            columns: ["tenant_id", "hr_group_id", "snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_snapshots"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_generation_batch_audit: {
+        Row: {
+          action: string
+          actor_user_id: string
+          batch_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          metadata: Json
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          batch_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          metadata?: Json
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          batch_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          metadata?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_batch_aud_tenant_id_hr_group_id_batch__fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_batches"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_generation_batch_idempotency: {
+        Row: {
+          actor_user_id: string
+          batch_id: string
+          created_at: string
+          hr_group_id: string
+          idempotency_key: string
+          request_hash: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          batch_id: string
+          created_at?: string
+          hr_group_id: string
+          idempotency_key: string
+          request_hash: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          batch_id?: string
+          created_at?: string
+          hr_group_id?: string
+          idempotency_key?: string
+          request_hash?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_batch_ide_tenant_id_hr_group_id_batch__fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_batches"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_generation_batch_items: {
+        Row: {
+          batch_id: string
+          completed_at: string | null
+          created_at: string
+          employee_id: string
+          error_code: string | null
+          hr_group_id: string
+          id: string
+          snapshot_id: string | null
+          status: Database["public"]["Enums"]["document_generation_batch_item_status"]
+          tenant_id: string
+        }
+        Insert: {
+          batch_id: string
+          completed_at?: string | null
+          created_at?: string
+          employee_id: string
+          error_code?: string | null
+          hr_group_id: string
+          id?: string
+          snapshot_id?: string | null
+          status?: Database["public"]["Enums"]["document_generation_batch_item_status"]
+          tenant_id: string
+        }
+        Update: {
+          batch_id?: string
+          completed_at?: string | null
+          created_at?: string
+          employee_id?: string
+          error_code?: string | null
+          hr_group_id?: string
+          id?: string
+          snapshot_id?: string | null
+          status?: Database["public"]["Enums"]["document_generation_batch_item_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_batch_ite_tenant_id_hr_group_id_batch__fkey"
+            columns: ["tenant_id", "hr_group_id", "batch_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_batches"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_batch_ite_tenant_id_hr_group_id_employ_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_batch_ite_tenant_id_hr_group_id_snapsh_fkey"
+            columns: ["tenant_id", "hr_group_id", "snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_snapshots"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_generation_batches: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string
+          failed_count: number
+          final_count: number
+          hr_group_id: string
+          id: string
+          request_hash: string
+          requested_count: number
+          status: Database["public"]["Enums"]["document_generation_batch_status"]
+          template_id: string
+          template_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id: string
+          failed_count?: number
+          final_count?: number
+          hr_group_id: string
+          id?: string
+          request_hash: string
+          requested_count: number
+          status?: Database["public"]["Enums"]["document_generation_batch_status"]
+          template_id: string
+          template_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          failed_count?: number
+          final_count?: number
+          hr_group_id?: string
+          id?: string
+          request_hash?: string
+          requested_count?: number
+          status?: Database["public"]["Enums"]["document_generation_batch_status"]
+          template_id?: string
+          template_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_batches_group_fk"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_batches_template_fk"
+            columns: ["tenant_id", "hr_group_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_templates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_batches_version_fk"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_generation_dossier_links: {
+        Row: {
+          administration_id: string
+          created_at: string
+          created_by_user_id: string
+          employee_document_id: string
+          hr_group_id: string
+          snapshot_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          created_by_user_id: string
+          employee_document_id: string
+          hr_group_id: string
+          snapshot_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          created_by_user_id?: string
+          employee_document_id?: string
+          hr_group_id?: string
+          snapshot_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_dossier_l_tenant_id_administration_id__fkey"
+            columns: ["tenant_id", "administration_id", "employee_document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["tenant_id", "administration_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_dossier_l_tenant_id_hr_group_id_admini_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_dossier_l_tenant_id_hr_group_id_snapsh_fkey"
+            columns: ["tenant_id", "hr_group_id", "snapshot_id"]
+            isOneToOne: true
+            referencedRelation: "document_generation_snapshots"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_generation_dossier_links_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_generation_idempotency: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          hr_group_id: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          snapshot_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          hr_group_id: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          snapshot_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          hr_group_id?: string
+          idempotency_key?: string
+          operation?: string
+          request_hash?: string
+          snapshot_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_idempotency_snapshot_fk"
+            columns: ["tenant_id", "hr_group_id", "snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_snapshots"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_generation_snapshots: {
+        Row: {
+          default_dossier: boolean
+          document_category: string
+          employee_id: string
+          employee_name: string
+          employee_number: string | null
+          final_pdf_hash: string | null
+          final_pdf_size: number | null
+          final_storage_key: string | null
+          finalized_at: string | null
+          finalized_by_user_id: string | null
+          generated_at: string
+          generated_by_user_id: string
+          hr_group_id: string
+          id: string
+          renderer_version: string
+          resolved_document_hash: string
+          resolved_document_json: Json
+          snapshot: Json
+          source_administration_id: string | null
+          status: Database["public"]["Enums"]["document_generation_status"]
+          template_id: string
+          template_name: string
+          template_version: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          default_dossier?: boolean
+          document_category: string
+          employee_id: string
+          employee_name: string
+          employee_number?: string | null
+          final_pdf_hash?: string | null
+          final_pdf_size?: number | null
+          final_storage_key?: string | null
+          finalized_at?: string | null
+          finalized_by_user_id?: string | null
+          generated_at?: string
+          generated_by_user_id: string
+          hr_group_id: string
+          id?: string
+          renderer_version: string
+          resolved_document_hash: string
+          resolved_document_json: Json
+          snapshot: Json
+          source_administration_id?: string | null
+          status?: Database["public"]["Enums"]["document_generation_status"]
+          template_id: string
+          template_name: string
+          template_version: number
+          template_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          default_dossier?: boolean
+          document_category?: string
+          employee_id?: string
+          employee_name?: string
+          employee_number?: string | null
+          final_pdf_hash?: string | null
+          final_pdf_size?: number | null
+          final_storage_key?: string | null
+          finalized_at?: string | null
+          finalized_by_user_id?: string | null
+          generated_at?: string
+          generated_by_user_id?: string
+          hr_group_id?: string
+          id?: string
+          renderer_version?: string
+          resolved_document_hash?: string
+          resolved_document_json?: Json
+          snapshot?: Json
+          source_administration_id?: string | null
+          status?: Database["public"]["Enums"]["document_generation_status"]
+          template_id?: string
+          template_name?: string
+          template_version?: number
+          template_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_generation_source_administration_fk"
+            columns: ["tenant_id", "hr_group_id", "source_administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "tenant_hr_group_employee_fk"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "tenant_hr_group_template_fk"
+            columns: ["tenant_id", "hr_group_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_templates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "tenant_hr_group_version_fk"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_signing_events: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          metadata: Json
+          request_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          metadata?: Json
+          request_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          metadata?: Json
+          request_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signing_events_tenant_id_hr_group_id_request_id_fkey"
+            columns: ["tenant_id", "hr_group_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "document_signing_requests"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_signing_requests: {
+        Row: {
+          created_at: string
+          decline_reason: string | null
+          declined_at: string | null
+          employee_id: string
+          external_reference: string | null
+          hr_group_id: string
+          id: string
+          prepared_at: string
+          prepared_by_user_id: string
+          provider_code: string
+          signed_at: string | null
+          signed_by_user_id: string | null
+          signer_employee_id: string
+          snapshot_id: string
+          status: Database["public"]["Enums"]["document_signing_status"]
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          employee_id: string
+          external_reference?: string | null
+          hr_group_id: string
+          id?: string
+          prepared_at?: string
+          prepared_by_user_id: string
+          provider_code?: string
+          signed_at?: string | null
+          signed_by_user_id?: string | null
+          signer_employee_id: string
+          snapshot_id: string
+          status?: Database["public"]["Enums"]["document_signing_status"]
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          employee_id?: string
+          external_reference?: string | null
+          hr_group_id?: string
+          id?: string
+          prepared_at?: string
+          prepared_by_user_id?: string
+          provider_code?: string
+          signed_at?: string | null
+          signed_by_user_id?: string | null
+          signer_employee_id?: string
+          snapshot_id?: string
+          status?: Database["public"]["Enums"]["document_signing_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signing_requests_employee_fk"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_signing_requests_group_fk"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "document_signing_requests_signer_fk"
+            columns: ["tenant_id", "signer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "document_signing_requests_snapshot_fk"
+            columns: ["tenant_id", "hr_group_id", "snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "document_generation_snapshots"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_studio_assets: {
+        Row: {
+          byte_size: number
+          created_at: string
+          height: number
+          hr_group_id: string
+          id: string
+          normalized_mime: string
+          original_filename: string
+          pixel_count: number
+          retired_at: string | null
+          sha256: string
+          status: Database["public"]["Enums"]["document_studio_asset_status"]
+          storage_key: string
+          tenant_id: string
+          uploaded_by_user_id: string
+          width: number
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          height: number
+          hr_group_id: string
+          id?: string
+          normalized_mime: string
+          original_filename: string
+          pixel_count: number
+          retired_at?: string | null
+          sha256: string
+          status?: Database["public"]["Enums"]["document_studio_asset_status"]
+          storage_key: string
+          tenant_id: string
+          uploaded_by_user_id: string
+          width: number
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          height?: number
+          hr_group_id?: string
+          id?: string
+          normalized_mime?: string
+          original_filename?: string
+          pixel_count?: number
+          retired_at?: string | null
+          sha256?: string
+          status?: Database["public"]["Enums"]["document_studio_asset_status"]
+          storage_key?: string
+          tenant_id?: string
+          uploaded_by_user_id?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_assets_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_studio_document_profiles: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          logo_asset_id: string | null
+          name: string
+          source_administration_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          logo_asset_id?: string | null
+          name: string
+          source_administration_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          logo_asset_id?: string | null
+          name?: string
+          source_administration_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_document_prof_tenant_id_hr_group_id_logo_a_fkey"
+            columns: ["tenant_id", "hr_group_id", "logo_asset_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_assets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_document_prof_tenant_id_hr_group_id_source_fkey"
+            columns: ["tenant_id", "hr_group_id", "source_administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_document_profiles_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_studio_document_types: {
+        Row: {
+          code: string
+          created_at: string
+          created_by_user_id: string
+          description: Json
+          hr_group_id: string
+          id: string
+          is_active: boolean
+          name: Json
+          retention_kind: Database["public"]["Enums"]["document_studio_retention_kind"]
+          retention_years: number | null
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by_user_id: string
+          description?: Json
+          hr_group_id: string
+          id?: string
+          is_active?: boolean
+          name: Json
+          retention_kind: Database["public"]["Enums"]["document_studio_retention_kind"]
+          retention_years?: number | null
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by_user_id?: string
+          description?: Json
+          hr_group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: Json
+          retention_kind?: Database["public"]["Enums"]["document_studio_retention_kind"]
+          retention_years?: number | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_document_types_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_studio_operation_idempotency: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          hr_group_id: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          result: Json
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          hr_group_id: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          result: Json
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          hr_group_id?: string
+          idempotency_key?: string
+          operation?: string
+          request_hash?: string
+          result?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_operation_idempotenc_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_studio_template_compositions: {
+        Row: {
+          component_kind: Database["public"]["Enums"]["document_studio_template_kind"]
+          component_template_version_id: string
+          document_template_version_id: string
+          hr_group_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          component_kind: Database["public"]["Enums"]["document_studio_template_kind"]
+          component_template_version_id: string
+          document_template_version_id: string
+          hr_group_id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Update: {
+          component_kind?: Database["public"]["Enums"]["document_studio_template_kind"]
+          component_template_version_id?: string
+          document_template_version_id?: string
+          hr_group_id?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_template_comp_tenant_id_hr_group_id_compon_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "component_template_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "document_studio_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_template_comp_tenant_id_hr_group_id_docume_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "document_template_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "document_studio_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_studio_template_tags: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          hr_group_id: string
+          tag_id: string
+          template_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          hr_group_id: string
+          tag_id: string
+          template_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          hr_group_id?: string
+          tag_id?: string
+          template_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_template_tags_tenant_id_hr_group_id_templa_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_templates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_template_tags_tenant_id_tag_id_fkey"
+            columns: ["tenant_id", "tag_id"]
+            isOneToOne: false
+            referencedRelation: "star_performer_tags"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      document_studio_template_version_assets: {
+        Row: {
+          asset_id: string
+          hr_group_id: string
+          template_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          asset_id: string
+          hr_group_id: string
+          template_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          asset_id?: string
+          hr_group_id?: string
+          template_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_template_ver_tenant_id_hr_group_id_templa_fkey1"
+            columns: ["tenant_id", "hr_group_id", "template_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_template_vers_tenant_id_hr_group_id_asset__fkey"
+            columns: ["tenant_id", "hr_group_id", "asset_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_assets"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_studio_template_versions: {
+        Row: {
+          activated_at: string | null
+          activated_by_user_id: string | null
+          archived_at: string | null
+          archived_by_user_id: string | null
+          category_code: Database["public"]["Enums"]["document_studio_category"]
+          content_hash: string
+          created_at: string
+          created_by_user_id: string
+          default_dossier: boolean
+          document_json: Json
+          document_profile_id: string | null
+          document_type_id: string
+          hr_group_id: string
+          id: string
+          revision: number
+          schema_id: string
+          schema_version: number
+          status: Database["public"]["Enums"]["document_studio_template_version_status"]
+          template_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+          validation_diagnostics: Json
+          validation_state: string
+          version_number: number | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by_user_id?: string | null
+          archived_at?: string | null
+          archived_by_user_id?: string | null
+          category_code: Database["public"]["Enums"]["document_studio_category"]
+          content_hash: string
+          created_at?: string
+          created_by_user_id: string
+          default_dossier?: boolean
+          document_json: Json
+          document_profile_id?: string | null
+          document_type_id: string
+          hr_group_id: string
+          id?: string
+          revision?: number
+          schema_id?: string
+          schema_version?: number
+          status?: Database["public"]["Enums"]["document_studio_template_version_status"]
+          template_id: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+          validation_diagnostics?: Json
+          validation_state?: string
+          version_number?: number | null
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by_user_id?: string | null
+          archived_at?: string | null
+          archived_by_user_id?: string | null
+          category_code?: Database["public"]["Enums"]["document_studio_category"]
+          content_hash?: string
+          created_at?: string
+          created_by_user_id?: string
+          default_dossier?: boolean
+          document_json?: Json
+          document_profile_id?: string | null
+          document_type_id?: string
+          hr_group_id?: string
+          id?: string
+          revision?: number
+          schema_id?: string
+          schema_version?: number
+          status?: Database["public"]["Enums"]["document_studio_template_version_status"]
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+          validation_diagnostics?: Json
+          validation_state?: string
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_template_ver_tenant_id_hr_group_id_docume_fkey1"
+            columns: ["tenant_id", "hr_group_id", "document_profile_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_document_profiles"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_template_vers_tenant_id_hr_group_id_docume_fkey"
+            columns: ["tenant_id", "hr_group_id", "document_type_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_document_types"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_template_vers_tenant_id_hr_group_id_templa_fkey"
+            columns: ["tenant_id", "hr_group_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_templates"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      document_studio_templates: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          current_active_version_id: string | null
+          description: string | null
+          hr_group_id: string
+          id: string
+          kind: Database["public"]["Enums"]["document_studio_template_kind"]
+          language: Database["public"]["Enums"]["document_studio_language"]
+          lifecycle: Database["public"]["Enums"]["document_studio_template_lifecycle"]
+          name: string
+          template_key: string
+          tenant_id: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          current_active_version_id?: string | null
+          description?: string | null
+          hr_group_id: string
+          id?: string
+          kind: Database["public"]["Enums"]["document_studio_template_kind"]
+          language: Database["public"]["Enums"]["document_studio_language"]
+          lifecycle?: Database["public"]["Enums"]["document_studio_template_lifecycle"]
+          name: string
+          template_key: string
+          tenant_id: string
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          current_active_version_id?: string | null
+          description?: string | null
+          hr_group_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["document_studio_template_kind"]
+          language?: Database["public"]["Enums"]["document_studio_language"]
+          lifecycle?: Database["public"]["Enums"]["document_studio_template_lifecycle"]
+          name?: string
+          template_key?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_studio_current_active_version_fk"
+            columns: ["tenant_id", "hr_group_id", "current_active_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_studio_template_versions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "document_studio_templates_tenant_id_hr_group_id_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -10260,85 +11297,6 @@ export type Database = {
         }
         Relationships: []
       }
-      personal_dashboard_widgets: {
-        Row: {
-          created_at: string
-          dashboard_id: string
-          id: string
-          position: number
-          settings: Json
-          tenant_id: string
-          updated_at: string
-          widget_type: string
-        }
-        Insert: {
-          created_at?: string
-          dashboard_id: string
-          id?: string
-          position: number
-          settings?: Json
-          tenant_id: string
-          updated_at?: string
-          widget_type: string
-        }
-        Update: {
-          created_at?: string
-          dashboard_id?: string
-          id?: string
-          position?: number
-          settings?: Json
-          tenant_id?: string
-          updated_at?: string
-          widget_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "personal_dashboard_widgets_dashboard_same_tenant_fkey"
-            columns: ["tenant_id", "dashboard_id"]
-            isOneToOne: false
-            referencedRelation: "personal_dashboards"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
-      personal_dashboards: {
-        Row: {
-          created_at: string
-          id: string
-          is_default: boolean
-          name: string
-          owner_user_id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          name: string
-          owner_user_id: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          name?: string
-          owner_user_id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "personal_dashboards_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       platform_audit_logs: {
         Row: {
           action: string
@@ -12818,6 +13776,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recruitment_public_intake_lim_tenant_id_hr_group_id_public_fkey"
+            columns: ["tenant_id", "hr_group_id", "publication_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_publications"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      recruitment_public_intake_proofs: {
+        Row: {
+          bucket_key_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          hr_group_id: string
+          id: string
+          issued_at: string
+          proof_hash: string
+          publication_id: string
+          tenant_id: string
+          window_started_at: string
+        }
+        Insert: {
+          bucket_key_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          hr_group_id: string
+          id?: string
+          issued_at: string
+          proof_hash: string
+          publication_id: string
+          tenant_id: string
+          window_started_at: string
+        }
+        Update: {
+          bucket_key_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          hr_group_id?: string
+          id?: string
+          issued_at?: string
+          proof_hash?: string
+          publication_id?: string
+          tenant_id?: string
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_public_intake_pro_tenant_id_hr_group_id_public_fkey"
             columns: ["tenant_id", "hr_group_id", "publication_id"]
             isOneToOne: false
             referencedRelation: "recruitment_publications"
@@ -17502,6 +18510,15 @@ export type Database = {
         }
         Returns: Json
       }
+      activate_document_studio_template_draft: {
+        Args: {
+          requested_draft_id: string
+          requested_expected_revision: number
+          requested_idempotency_key: string
+          requested_request_hash: string
+        }
+        Returns: Json
+      }
       activate_due_talent_review_campaigns: {
         Args: { requested_tenant_id: string }
         Returns: number
@@ -17622,6 +18639,14 @@ export type Database = {
         }
         Returns: Json
       }
+      archive_document_studio_template: {
+        Args: {
+          requested_idempotency_key: string
+          requested_request_hash: string
+          requested_template_id: string
+        }
+        Returns: Json
+      }
       attach_process_output_document: {
         Args: {
           requested_category_key: string
@@ -17731,6 +18756,14 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_ai_provider_execution: {
+        Args: { requested_invocation_id: string; requested_lease_id: string }
+        Returns: undefined
+      }
+      complete_document_signing: {
+        Args: { requested_actor_user_id: string; requested_request_id: string }
+        Returns: Json
+      }
       complete_process_output: {
         Args: {
           requested_document_id: string
@@ -17792,6 +18825,60 @@ export type Database = {
           requested_assessment_id: string
           requested_reason: string
           requested_scores: Json
+        }
+        Returns: Json
+      }
+      create_document_generation_batch: {
+        Args: { requested_payload: Json }
+        Returns: Json
+      }
+      create_document_generation_preview: {
+        Args: { requested_payload: Json }
+        Returns: Json
+      }
+      create_document_studio_asset_server: {
+        Args: {
+          requested_actor_user_id: string
+          requested_asset_id: string
+          requested_byte_size: number
+          requested_filename: string
+          requested_height: number
+          requested_hr_group_id: string
+          requested_mime: string
+          requested_pixel_count: number
+          requested_sha256: string
+          requested_storage_key: string
+          requested_tenant_id: string
+          requested_width: number
+        }
+        Returns: Json
+      }
+      create_document_studio_draft_from_active: {
+        Args: {
+          requested_idempotency_key: string
+          requested_request_hash: string
+          requested_template_id: string
+        }
+        Returns: Json
+      }
+      create_document_studio_template_draft: {
+        Args: {
+          requested_assets: Json
+          requested_category: Database["public"]["Enums"]["document_studio_category"]
+          requested_composition: Json
+          requested_default_dossier: boolean
+          requested_description: string
+          requested_document: Json
+          requested_document_type_id: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_kind: Database["public"]["Enums"]["document_studio_template_kind"]
+          requested_language: Database["public"]["Enums"]["document_studio_language"]
+          requested_name: string
+          requested_profile_id: string
+          requested_request_hash: string
+          requested_template_key: string
+          requested_tenant_id: string
         }
         Returns: Json
       }
@@ -18123,13 +19210,50 @@ export type Database = {
         }
         Returns: string
       }
+      discard_document_studio_template_draft: {
+        Args: {
+          requested_draft_id: string
+          requested_idempotency_key: string
+          requested_request_hash: string
+        }
+        Returns: Json
+      }
       end_platform_support_session: {
         Args: { requested_session_id: string }
         Returns: boolean
       }
+      ensure_ai_monthly_allowance: {
+        Args: {
+          requested_hr_group_id: string
+          requested_month: string
+          requested_tenant_id: string
+        }
+        Returns: undefined
+      }
+      ensure_document_generation_dossier: {
+        Args: { requested_actor_user_id: string; requested_snapshot_id: string }
+        Returns: Json
+      }
       expire_leave_buckets: {
         Args: { requested_as_of_date: string }
         Returns: number
+      }
+      finalize_document_generation: {
+        Args: {
+          requested_actor_user_id: string
+          requested_file_size: number
+          requested_idempotency_key: string
+          requested_pdf_hash: string
+          requested_renderer_version: string
+          requested_request_hash: string
+          requested_snapshot_id: string
+          requested_storage_key: string
+        }
+        Returns: Json
+      }
+      finalize_document_studio_asset_server: {
+        Args: { requested_asset_id: string }
+        Returns: undefined
       }
       finish_workflow_job: {
         Args: {
@@ -18140,6 +19264,57 @@ export type Database = {
           requested_worker_id: string
         }
         Returns: Json
+      }
+      get_ai_actor_quota: {
+        Args: {
+          requested_actor_user_id: string
+          requested_hr_group_id: string
+          requested_month: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          monthly_quota_credits: number
+          period_month: string
+          quality_profile: string
+          released_credits: number
+          remaining_credits: number
+          reserved_credits: number
+          role_codes: string[]
+          settled_credits: number
+          used_credits: number
+        }[]
+      }
+      get_ai_group_credit_balance: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: {
+          as_of: string
+          available_credits: number
+          expired_credits: number
+          monthly_allowance_credits: number
+          purchased_extra_credits: number
+          reserved_credits: number
+          settled_credits: number
+          test_grant_credits: number
+          total_credits: number
+        }[]
+      }
+      get_ai_reservation_allocations: {
+        Args: {
+          requested_invocation_id: string
+          requested_reservation_id: string
+        }
+        Returns: {
+          allocated_credits: number
+          allocation_id: string
+          allocation_type: string
+          created_at: string
+          expires_at: string
+          period_month: string
+          released_credits: number
+          reservation_id: string
+          reserved_credits: number
+          settled_credits: number
+        }[]
       }
       get_document_acknowledgement_document: {
         Args: { requested_work_item_id: string }
@@ -18357,6 +19532,15 @@ export type Database = {
         }
         Returns: Json
       }
+      grant_ai_controlled_test_credits: {
+        Args: {
+          requested_credit_amount: number
+          requested_hr_group_id: string
+          requested_source_reference: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       hire_recruitment_application: {
         Args: {
           requested_administration_id: string
@@ -18452,6 +19636,10 @@ export type Database = {
           requested_step_expected_version: number
           requested_work_item_id: string
         }
+        Returns: Json
+      }
+      prepare_document_signing: {
+        Args: { requested_actor_user_id: string; requested_snapshot_id: string }
         Returns: Json
       }
       publish_complete_employment: {
@@ -18553,6 +19741,18 @@ export type Database = {
         Args: { requested_application_id: string }
         Returns: Json
       }
+      recruitment_claim_public_intake: {
+        Args: {
+          requested_bucket_key_hash: string
+          requested_proof_hash: string
+          requested_publication_id: string
+        }
+        Returns: Json
+      }
+      recruitment_cleanup_public_intake: {
+        Args: { requested_limit?: number }
+        Returns: Json
+      }
       recruitment_document_download_claim: {
         Args: { requested_document_id: string }
         Returns: {
@@ -18607,14 +19807,33 @@ export type Database = {
         Args: { requested_limit?: number }
         Returns: Json
       }
-      recruitment_submit_public_application: {
+      recruitment_submit_public_application:
+        | {
+            Args: {
+              requested_intake_proof: string
+              requested_payload: Json
+              requested_publication_id: string
+              requested_slug: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              requested_bucket_key_hash: string
+              requested_intake_proof: string
+              requested_payload: Json
+              requested_publication_id: string
+              requested_slug: string
+            }
+            Returns: string
+          }
+      release_ai_credits: {
         Args: {
-          requested_intake_proof: string
-          requested_payload: Json
-          requested_publication_id: string
-          requested_slug: string
+          requested_invocation_id: string
+          requested_reason: string
+          requested_reservation_id: string
         }
-        Returns: string
+        Returns: undefined
       }
       release_process_work_item: {
         Args: {
@@ -18635,6 +19854,10 @@ export type Database = {
       reopen_talent_review_campaign: {
         Args: { requested_campaign_id: string }
         Returns: string
+      }
+      replace_document_studio_template_tags: {
+        Args: { requested_tag_ids: Json; requested_template_id: string }
+        Returns: Json
       }
       replace_journey_participant: {
         Args: {
@@ -18684,6 +19907,52 @@ export type Database = {
         Args: { requested_job_id: string }
         Returns: Json
       }
+      reserve_ai_credits: {
+        Args: {
+          requested_actor_user_id: string
+          requested_charge_reference: string
+          requested_feature_code: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_invocation_id: string
+          requested_month: string
+          requested_tenant_id: string
+        }
+        Returns: {
+          charge_reference: string
+          invocation_id: string
+          reservation_id: string
+          units: number
+        }[]
+      }
+      reserve_ai_provider_execution: {
+        Args: {
+          requested_actor_user_id: string
+          requested_enabled: boolean
+          requested_environment: string
+          requested_feature_max_input_characters: number
+          requested_global_max_input_characters: number
+          requested_global_max_output_tokens: number
+          requested_hr_group_id: string
+          requested_input_size_characters: number
+          requested_invocation_id: string
+          requested_lease_seconds: number
+          requested_max_calls_per_day: number
+          requested_max_calls_per_hour: number
+          requested_max_concurrent: number
+          requested_output_tokens: number
+          requested_tenant_id: string
+        }
+        Returns: {
+          allowed: boolean
+          block_reason: string
+          counted_at: string
+          environment: string
+          expires_at: string
+          invocation_id: string
+          lease_id: string
+        }[]
+      }
       reserve_employee_number: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -18716,6 +19985,14 @@ export type Database = {
         }
         Returns: string
       }
+      retire_document_studio_asset: {
+        Args: { requested_asset_id: string }
+        Returns: Json
+      }
+      retire_document_studio_asset_server: {
+        Args: { requested_asset_id: string }
+        Returns: undefined
+      }
       retire_journey_template: {
         Args: { requested_template_id: string }
         Returns: Json
@@ -18746,6 +20023,24 @@ export type Database = {
           requested_administration_id: string
           requested_routes: Database["public"]["Enums"]["salary_application_route"][]
           requested_structure_ids: string[]
+        }
+        Returns: Json
+      }
+      save_document_studio_template_draft: {
+        Args: {
+          requested_assets: Json
+          requested_category: Database["public"]["Enums"]["document_studio_category"]
+          requested_composition: Json
+          requested_default_dossier: boolean
+          requested_description: string
+          requested_document: Json
+          requested_document_type_id: string
+          requested_draft_id: string
+          requested_expected_revision: number
+          requested_idempotency_key: string
+          requested_name: string
+          requested_profile_id: string
+          requested_request_hash: string
         }
         Returns: Json
       }
@@ -18852,6 +20147,13 @@ export type Database = {
           requested_stage_id: string
         }
         Returns: Json
+      }
+      settle_ai_credits: {
+        Args: {
+          requested_invocation_id: string
+          requested_reservation_id: string
+        }
+        Returns: undefined
       }
       soft_delete_company_document: {
         Args: { requested_document_id: string }
@@ -19054,139 +20356,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      complete_ai_provider_execution: {
-        Args: { requested_invocation_id: string; requested_lease_id: string }
-        Returns: undefined
-      }
-      ensure_ai_monthly_allowance: {
-        Args: {
-          requested_hr_group_id: string
-          requested_month: string
-          requested_tenant_id: string
-        }
-        Returns: undefined
-      }
-      get_ai_actor_quota: {
-        Args: {
-          requested_actor_user_id: string
-          requested_hr_group_id: string
-          requested_month: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          monthly_quota_credits: number
-          period_month: string
-          quality_profile: string
-          released_credits: number
-          remaining_credits: number
-          reserved_credits: number
-          role_codes: string[]
-          settled_credits: number
-          used_credits: number
-        }[]
-      }
-      get_ai_group_credit_balance: {
-        Args: { requested_hr_group_id: string; requested_tenant_id: string }
-        Returns: {
-          as_of: string
-          available_credits: number
-          expired_credits: number
-          monthly_allowance_credits: number
-          purchased_extra_credits: number
-          reserved_credits: number
-          settled_credits: number
-          test_grant_credits: number
-          total_credits: number
-        }[]
-      }
-      get_ai_reservation_allocations: {
-        Args: {
-          requested_invocation_id: string
-          requested_reservation_id: string
-        }
-        Returns: {
-          allocated_credits: number
-          allocation_id: string
-          allocation_type: string
-          created_at: string
-          expires_at: string
-          period_month: string
-          released_credits: number
-          reservation_id: string
-          reserved_credits: number
-          settled_credits: number
-        }[]
-      }
-      grant_ai_controlled_test_credits: {
-        Args: {
-          requested_credit_amount: number
-          requested_hr_group_id: string
-          requested_source_reference: string
-          requested_tenant_id: string
-        }
-        Returns: string
-      }
-      reserve_ai_provider_execution: {
-        Args: {
-          requested_actor_user_id: string
-          requested_enabled: boolean
-          requested_environment: string
-          requested_feature_max_input_characters: number
-          requested_global_max_input_characters: number
-          requested_global_max_output_tokens: number
-          requested_hr_group_id: string
-          requested_input_size_characters: number
-          requested_invocation_id: string
-          requested_lease_seconds: number
-          requested_max_calls_per_day: number
-          requested_max_calls_per_hour: number
-          requested_max_concurrent: number
-          requested_output_tokens: number
-          requested_tenant_id: string
-        }
-        Returns: {
-          allowed: boolean
-          block_reason: string
-          counted_at: string
-          environment: string
-          expires_at: string
-          invocation_id: string
-          lease_id: string
-        }[]
-      }
-      release_ai_credits: {
-        Args: {
-          requested_invocation_id: string
-          requested_reason: string
-          requested_reservation_id: string
-        }
-        Returns: undefined
-      }
-      reserve_ai_credits: {
-        Args: {
-          requested_actor_user_id: string
-          requested_charge_reference: string
-          requested_feature_code: string
-          requested_hr_group_id: string
-          requested_idempotency_key: string
-          requested_invocation_id: string
-          requested_month: string
-          requested_tenant_id: string
-        }
-        Returns: {
-          charge_reference: string
-          invocation_id: string
-          reservation_id: string
-          units: number
-        }[]
-      }
-      settle_ai_credits: {
-        Args: {
-          requested_invocation_id: string
-          requested_reservation_id: string
-        }
-        Returns: undefined
-      }
       update_survey_draft: {
         Args: { p_campaign_id: string; p_payload: Json }
         Returns: string
@@ -19198,6 +20367,15 @@ export type Database = {
       upsert_star_performer_assessment: {
         Args: { requested_administration_id: string; requested_payload: Json }
         Returns: string
+      }
+      validate_document_studio_template_draft: {
+        Args: {
+          requested_diagnostics: Json
+          requested_draft_id: string
+          requested_expected_revision: number
+          requested_hash: string
+        }
+        Returns: Json
       }
     }
     Enums: {
@@ -19241,6 +20419,29 @@ export type Database = {
         | "MULTI_SELECT"
         | "AUTO_INCREMENT"
       date_format: "DMY" | "MDY" | "YMD"
+      document_generation_batch_item_status: "PENDING" | "FINAL" | "FAILED"
+      document_generation_batch_status:
+        | "RUNNING"
+        | "COMPLETED"
+        | "PARTIAL"
+        | "FAILED"
+      document_generation_status: "PREVIEW" | "FINAL"
+      document_signing_status: "PENDING" | "SIGNED" | "DECLINED" | "CANCELLED"
+      document_studio_asset_status: "PENDING" | "APPROVED" | "RETIRED"
+      document_studio_category:
+        | "EMPLOYMENT"
+        | "COMPENSATION"
+        | "ABSENCE_LEAVE"
+        | "PERFORMANCE_DEVELOPMENT"
+        | "ONBOARDING"
+        | "OFFBOARDING"
+        | "POLICY_COMPLIANCE"
+        | "GENERAL"
+      document_studio_language: "NL" | "EN"
+      document_studio_retention_kind: "PERMANENT" | "YEARS"
+      document_studio_template_kind: "DOCUMENT" | "COVER" | "APPENDIX"
+      document_studio_template_lifecycle: "ACTIVE" | "ARCHIVED"
+      document_studio_template_version_status: "DRAFT" | "ACTIVE" | "ARCHIVED"
       document_target_type: "EMPLOYEE" | "MANAGEMENT_ROLE" | "DEPARTMENT_BRANCH"
       education_level: "MBO" | "HBO" | "WO" | "HIGHSCHOOL" | "OTHER" | "UNKNOWN"
       employment_record_status: "DRAFT" | "CONFIRMED" | "CANCELLED"
@@ -19487,12 +20688,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19516,11 +20717,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19541,11 +20742,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19566,11 +20767,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19583,11 +20784,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19643,6 +20844,31 @@ export const Constants = {
         "AUTO_INCREMENT",
       ],
       date_format: ["DMY", "MDY", "YMD"],
+      document_generation_batch_item_status: ["PENDING", "FINAL", "FAILED"],
+      document_generation_batch_status: [
+        "RUNNING",
+        "COMPLETED",
+        "PARTIAL",
+        "FAILED",
+      ],
+      document_generation_status: ["PREVIEW", "FINAL"],
+      document_signing_status: ["PENDING", "SIGNED", "DECLINED", "CANCELLED"],
+      document_studio_asset_status: ["PENDING", "APPROVED", "RETIRED"],
+      document_studio_category: [
+        "EMPLOYMENT",
+        "COMPENSATION",
+        "ABSENCE_LEAVE",
+        "PERFORMANCE_DEVELOPMENT",
+        "ONBOARDING",
+        "OFFBOARDING",
+        "POLICY_COMPLIANCE",
+        "GENERAL",
+      ],
+      document_studio_language: ["NL", "EN"],
+      document_studio_retention_kind: ["PERMANENT", "YEARS"],
+      document_studio_template_kind: ["DOCUMENT", "COVER", "APPENDIX"],
+      document_studio_template_lifecycle: ["ACTIVE", "ARCHIVED"],
+      document_studio_template_version_status: ["DRAFT", "ACTIVE", "ARCHIVED"],
       document_target_type: [
         "EMPLOYEE",
         "MANAGEMENT_ROLE",

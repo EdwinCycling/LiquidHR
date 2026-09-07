@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": false
+  },
   "regions": ["cdg1"],
   "installCommand": "npm install",
   "buildCommand": "npm run build --workspace @liquid-hr/hr-suite",

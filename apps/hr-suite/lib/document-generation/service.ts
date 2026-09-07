@@ -15,7 +15,7 @@ import { renderResolvedSnapshotToHtml } from './html'
 
 const inputSchema = z.object({
   templateVersionId: z.string().uuid(),
-  employeeId: z.string().uuid(),
+  employeeId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
   idempotencyKey: z.string().uuid().optional(),
   freeInputs: z.record(z.string(), z.string()).default({}),
   temporalInputs: z.record(z.string(), z.string()).default({}),
