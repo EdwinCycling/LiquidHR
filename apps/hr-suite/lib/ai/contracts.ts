@@ -216,6 +216,10 @@ export interface AiGovernancePort {
 export interface AuthorizedAiContext {
   source: AiBusinessObjectRef
   fields: Readonly<Record<string, AiJsonValue>>
+  /** Feature-specific server prompt; never supplied by the browser. */
+  prompt?: {
+    instructions: string
+  }
 }
 
 export interface AuthorizedContextLoader {

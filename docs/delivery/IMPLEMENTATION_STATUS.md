@@ -1,5 +1,18 @@
 # Implementatiestatus Liquid HR
 
+## AI Everywhere V1 — 2026-09-07
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; MAIN INTEGRATION READY**
+
+De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op branch `work/ai-everywhere-v1`, vanaf exact de vers gefetchte `origin/main`-SHA `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root-worktree bleef buiten scope; de bestaande dirty wijziging in `apps/hr-suite/next-env.d.ts` is niet aangeraakt.
+
+AI Everywhere V1 bevat exact `EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART` en `VACANCY_DRAFT`. De implementatie hergebruikt de centrale AI Foundation: server-side context loader, `ai:use` plus feature-business-permission, governance/credits, provider safety, validator, idempotency, audit en usage. Context blijft minimaal en de browser ontvangt alleen `proposedText`. Employee-context sluit verzuim/medische en beschermde HR-informatie uit; conversation preparation weigert score, classificatie en disciplinaire output. SMART en vacaturetekst vervangen alleen na expliciete actie lokale form state; opslaan/publiceren blijft de bestaande gebruikersactie.
+
+De migration `apps/hr-suite/supabase/migrations/20260907120000_ai_everywhere_v1_credit_catalog.sql` is toegepast op uitsluitend DEV/TEST Supabase-project `wnpfloqpjvaacobppbpk`. De officiële CLI-history is daarna smal gerepareerd: connector-entry `20260908073556` is reverted en lokale versie `20260907120000` is als applied geregistreerd; de SQL is niet opnieuw uitgevoerd en er is geen brede `db push` of andere migration gebruikt. Readback bevestigt twaalf actieve catalogusregels, drie profile-prijzen per capability, `1..3` credits en config `ai-everywhere-v1.20260907.1`.
+
+Tijdens acceptance is één AI-only autorisatiekoppeling gecorrigeerd: SMART-doel-AI accepteert voor bestaande HR Admin-scope de canonieke `talent-goal:manage` naast `talent-goal:write`. De flow blijft proposal-only; Apply/Cancel wijzigt alleen lokale form state en Save/Publish blijft de persistence boundary. Geen extra schemawijziging, version bump, Production Supabase-mutatie of deployment is uitgevoerd.
+
+Verificatie: gerichte AI-tests `18/18`, `check:i18n` groen (`35` namespaces), strict TypeScript groen, scoped ESLint groen, `git diff --check` groen en Webpack production build groen (`258/258` routes). Browseracceptance via normale HR Admin-login bevestigde alle vier echte AI-requests, review/Apply/Cancel proposal-only UI, Liquid Credits, audit en technical usage readback. Manager en Employee kregen server-side `403` buiten AI-scope; vacancy scope werd eveneens geweigerd. Supabase advisors tonen alleen bestaande/informationele projectmeldingen; geen V1-specifieke blocker.
 ## Document Studio DG2 + DG3 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**

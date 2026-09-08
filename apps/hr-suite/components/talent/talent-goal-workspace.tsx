@@ -17,6 +17,7 @@ import { SectionHeader } from '@/components/patterns/section-header'
 import { ConfirmDialog } from '@/components/patterns/confirm-dialog'
 import type { TalentGoal, TalentGoalWorkspace as TalentGoalWorkspaceData } from '@/lib/talent/goal-service'
 import { TalentGoalCheckIns, type CheckInLabels } from './talent-goal-check-ins'
+import { TalentGoalSmartAction, type GoalSmartActionLabels } from './talent-goal-smart-action'
 
 type GoalMode = 'admin' | 'manager' | 'self'
 type GoalStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED'
@@ -71,6 +72,7 @@ export type GoalLabels = {
   confirmCancel: string
   confirmArchive: string
   readOnly: string
+  smart: GoalSmartActionLabels
   checkIns: CheckInLabels
 }
 
@@ -134,7 +136,7 @@ async function responseIsSuccessful(response: Response): Promise<boolean> {
   return response.ok
 }
 
-export function TalentGoalWorkspace({ mode, initial, labels }: { mode: GoalMode; initial: TalentGoalWorkspaceData; labels: GoalLabels }) {
+export function TalentGoalWorkspace({ locale, mode, initial, labels }: { locale: 'nl' | 'en'; mode: GoalMode; initial: TalentGoalWorkspaceData; labels: GoalLabels }) {
   const [workspace, setWorkspace] = useState(initial)
   const [draft, setDraft] = useState<GoalDraft>(() => emptyDraft(mode === 'self' ? '' : initial.employees[0]?.id ?? ''))
   const [editorOpen, setEditorOpen] = useState(false)
@@ -321,6 +323,7 @@ export function TalentGoalWorkspace({ mode, initial, labels }: { mode: GoalMode;
           <FormField className={mode === 'self' ? 'sm:col-span-2' : undefined} control={<DropdownSelect aria-label={labels.capability} onChange={(event) => setDraft({ ...draft, capabilityId: event.target.value })} searchable searchPlaceholder={labels.searchPlaceholder} value={draft.capabilityId}><option value="">{labels.noCapability}</option>{workspace.capabilities.map((capability) => <option key={capability.id} value={capability.id}>{capability.label}</option>)}</DropdownSelect>} label={labels.capability} />
           <FormField className="sm:col-span-2" control={<TextInput aria-label={labels.goalTitle} maxLength={160} onChange={(event) => setDraft({ ...draft, title: event.target.value })} required value={draft.title} />} label={labels.goalTitle} required />
           <FormField className="sm:col-span-2" control={<Textarea aria-label={labels.description} maxLength={4000} onChange={(event) => setDraft({ ...draft, description: event.target.value })} value={draft.description} />} label={labels.description} />
+          <div className="sm:col-span-2"><TalentGoalSmartAction employeeId={mode === 'self' ? undefined : draft.employeeId || undefined} goalId={editingId} labels={labels.smart} locale={locale} onApply={(text) => setDraft((current) => ({ ...current, description: text }))} sourceText={[draft.title, draft.description].filter(Boolean).join('\n\n')} /></div>
           <FormField control={<TextInput aria-label={labels.periodStart} onChange={(event) => setDraft({ ...draft, periodStart: event.target.value })} required type="date" value={draft.periodStart} />} label={labels.periodStart} required />
           <FormField control={<TextInput aria-label={labels.periodEnd} onChange={(event) => setDraft({ ...draft, periodEnd: event.target.value })} type="date" value={draft.periodEnd} />} label={labels.periodEnd} />
           <FormField control={<TextInput aria-label={labels.progress} max="100" min="0" onChange={(event) => setDraft({ ...draft, progressPercent: event.target.value })} type="number" value={draft.progressPercent} />} label={labels.progress} />
