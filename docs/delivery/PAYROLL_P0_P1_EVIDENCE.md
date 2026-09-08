@@ -69,10 +69,13 @@ De goedgekeurde productbaseline staat in [`LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRIN
 
 ## Browser/persona acceptance
 
-- HR Admin: `/payroll`, `/payroll/employees`, `/payroll/differences` en `/payroll/settings` laden correct; Payroll blijft zichtbaar na reload; settings-acties zijn disabled P0-controls.
-- Manager: Payroll-managementroute eindigt op `/geen-toegang`; geen management-UI of provideractie.
-- Employee: Payroll-managementroute eindigt op `/geen-toegang`; geen management-UI of provideractie. Zie de fixturebeperking bij de security-poorten.
-- HR Admin browser request/page scan: `0` onverwachte page errors, `0` onverwachte console errors en `0` Nmbrs-requests.
+- Authenticatiemethode HR Admin: geldige directe wachtwoordlogin met `hradmin.fixture@liquidhr.test` en de bestaande lokale canonical fixture-key; wachtwoord was daadwerkelijk vereist. Na login: `/dashboard/start`; daarna `/payroll` bleef geauthentiseerd en laadde als HR Admin.
+- Authenticatiemethode Manager: geldige directe wachtwoordlogin met `manager.fixture@liquidhr.test` en de bestaande lokale canonical fixture-key; wachtwoord was daadwerkelijk vereist. Na login: `/dashboard/start`; Payroll-management eindigde op `/geen-toegang`.
+- Authenticatiemethode Employee: geldige directe wachtwoordlogin met `employee.fixture@liquidhr.test` en de bestaande lokale canonical fixture-key; wachtwoord was daadwerkelijk vereist. Na login: `/dashboard/start`; Payroll-management eindigde op `/geen-toegang`.
+- HR Admin: `/payroll`, `/payroll/employees`, `/payroll/differences` en `/payroll/settings` laden correct; Payroll bleef zichtbaar na reload; settings-acties zijn disabled P0-controls.
+- HR Admin browser request/page scan: `0` onverwachte page errors, `0` onverwachte console errors, `0` Nmbrs-requests en geen credential-velden/woorden in HTML/API-response.
+- De zichtbare Codex in-app browser had geen bestaande sessie en bleef op `/login`; dit is nadrukkelijk geen acceptance-bewijs. `admin@example.com` is niet gebruikt. De bestaande allowlisted TEST role-switch magic-linkflow is beschikbaar in de code, maar was niet nodig omdat de canonical directe fixture-logins geldig waren.
+- De Employee-fixture heeft geen tenant membership; de route-denial is bewezen, maar een aparte in-tenant Employee-data-scopecheck blijft daardoor een fixturebeperking.
 
 ## Advisors en resterende scope
 

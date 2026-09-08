@@ -2,7 +2,7 @@
 
 ## Payroll P0/P1 — 2026-09-08
 
-Payroll worktree `work/payroll-p0-p1` starts at main `4adceda`. P0 is **GREEN** on DEV/TEST: migrations `payroll_p0_foundation` (`20260908181859`) and `payroll_p0_fk_indexes` (`20260908184235`) are applied, remote Payroll schema/RLS/grants/triggers/readback is complete, official types are generated, and authenticated HR Admin/Manager/Employee browser checks are recorded in [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). Decisions: PAYROLL is toggleable; existing TENANT_ADMIN/HR_ADMIN effective mapping governs administration; dedicated append-only payroll audit follows DG. P1 remains untouched. No Nmbrs call, Production mutation, deployment or protected `next-env.d.ts` change has occurred.
+Payroll worktree `work/payroll-p0-p1` starts at main `4adceda`. P0 is **GREEN** on DEV/TEST: migrations `payroll_p0_foundation` (`20260908181859`) and `payroll_p0_fk_indexes` (`20260908184235`) are applied, remote Payroll schema/RLS/grants/triggers/readback is complete, official types are generated, and authenticated HR Admin/Manager/Employee browser checks are recorded in [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). The canonical personas were authenticated with valid direct password logins from the local fixture keys; the visible Codex in-app browser was unauthenticated on `/login` and was not counted as evidence. Decisions: PAYROLL is toggleable; existing TENANT_ADMIN/HR_ADMIN effective mapping governs administration; dedicated append-only payroll audit follows DG. P1 remains untouched. No Nmbrs call, Production mutation, deployment or protected `next-env.d.ts` change has occurred.
 
 ## AI Everywhere V1 candidate — 2026-09-08
 
