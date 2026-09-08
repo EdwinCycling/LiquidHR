@@ -18,4 +18,11 @@ describe('Development goal SMART AI contract', () => {
   it('rejects empty source text', () => {
     expect(developmentGoalSmartRequestSchema.safeParse({ ...request, sourceText: ' ' }).success).toBe(false)
   })
+
+  it('supports the HR-admin goal permission for tenant-wide goal scope', () => {
+    expect(createDevelopmentGoalSmartInvocationInput(request, request.employeeId, 'key-1', 'talent-goal:manage')).toMatchObject({
+      businessPermissionCode: 'talent-goal:manage',
+      businessPermissionTargetId: request.employeeId,
+    })
+  })
 })

@@ -19,20 +19,26 @@ export const developmentGoalSmartRequestSchema = z.object({
 export type DevelopmentGoalSmartRequest = z.infer<typeof developmentGoalSmartRequestSchema>
 
 type GoalSource = { title: string | null; description: string | null; periodStart: string | null; periodEnd: string | null }
+type GoalAiPermission = 'talent-goal:manage' | 'talent-goal:write'
 
-async function resolveTarget(input: DevelopmentGoalSmartRequest): Promise<{ context: AuthContext; employeeId: string; source: GoalSource | null }> {
+function resolveGoalAiPermission(context: AuthContext): GoalAiPermission {
+  return context.permissions.includes('talent-goal:manage') ? 'talent-goal:manage' : 'talent-goal:write'
+}
+
+async function resolveTarget(input: DevelopmentGoalSmartRequest): Promise<{ context: AuthContext; employeeId: string; source: GoalSource | null; permissionCode: GoalAiPermission }> {
   const context = await requireAuthContext()
+  const permissionCode = resolveGoalAiPermission(context)
   if (input.goalId) {
     const supabase = await createClient()
     const result = await supabase.from('talent_development_goals').select('employee_id,title,description,period_start,period_end').eq('tenant_id', context.tenantId).eq('id', input.goalId).maybeSingle()
     if (result.error || !result.data) throw new AiExecutionError('UNAUTHORIZED')
-    await requirePermission('talent-goal:write', result.data.employee_id)
-    return { context, employeeId: result.data.employee_id, source: { title: result.data.title, description: result.data.description, periodStart: result.data.period_start, periodEnd: result.data.period_end } }
+    await requirePermission(permissionCode, result.data.employee_id)
+    return { context, employeeId: result.data.employee_id, permissionCode, source: { title: result.data.title, description: result.data.description, periodStart: result.data.period_start, periodEnd: result.data.period_end } }
   }
   const employeeId = input.employeeId ?? context.employeeId
   if (!employeeId) throw new AiExecutionError('UNAUTHORIZED')
-  await requirePermission('talent-goal:write', employeeId)
-  return { context, employeeId, source: null }
+  await requirePermission(permissionCode, employeeId)
+  return { context, employeeId, permissionCode, source: null }
 }
 
 function prompt(locale: DevelopmentGoalSmartRequest['locale']): string {
@@ -61,12 +67,12 @@ export function createDevelopmentGoalSmartContextLoader(input: DevelopmentGoalSm
   }
 }
 
-export function createDevelopmentGoalSmartInvocationInput(input: DevelopmentGoalSmartRequest, employeeId: string, idempotencyKey: string): Omit<AiInvocationInput, 'authContext'> {
+export function createDevelopmentGoalSmartInvocationInput(input: DevelopmentGoalSmartRequest, employeeId: string, idempotencyKey: string, permissionCode: GoalAiPermission = 'talent-goal:write'): Omit<AiInvocationInput, 'authContext'> {
   return {
     featureCode: DEVELOPMENT_GOAL_SMART_FEATURE,
     businessObject: { type: 'development-goal', id: businessObjectId(input, employeeId) },
     idempotencyKey,
-    businessPermissionCode: 'talent-goal:write',
+    businessPermissionCode: permissionCode,
     businessPermissionTargetId: employeeId,
     qualityProfile: 'EFFICIENT',
     writingStyle: null,
@@ -80,7 +86,7 @@ export async function runDevelopmentGoalSmart(input: { request: DevelopmentGoalS
     validator: createAiTextProposalValidator(),
   })
   const result: AiExecutionResult<AiTextProposal> = await runAuthorizedAiInvocation(
-    createDevelopmentGoalSmartInvocationInput(input.request, target.employeeId, input.idempotencyKey),
+    createDevelopmentGoalSmartInvocationInput(input.request, target.employeeId, input.idempotencyKey, target.permissionCode),
     dependencies,
   )
   if (result.kind === 'DUPLICATE') throw new AiExecutionError('DUPLICATE_COMPLETED')

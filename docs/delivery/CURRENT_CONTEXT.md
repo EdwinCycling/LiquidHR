@@ -1,14 +1,14 @@
 # Actuele overdracht Liquid HR
 
-## AI Everywhere V1 candidate — 2026-09-07
+## AI Everywhere V1 candidate — 2026-09-08
 
 De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op `work/ai-everywhere-v1`, vanaf vers gefetchte `origin/main` `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root `C:\Users\Edwin\Documents\Apps\LiquidHR` en de bestaande dirty `apps/hr-suite/next-env.d.ts` zijn niet gewijzigd.
 
-Afgerond: centrale AI Foundation-adaptatie voor exact vier capabilities (`EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART`, `VACANCY_DRAFT`); server-side minimale context, dubbele permissioncheck, governance/credits, idempotency, audit/usage en proposal-validator; Employee Overview-acties; SMART-goal lokale Apply/Cancel; vacatureblok lokale Apply/Cancel; NL/EN i18n; source-only credit-catalogusmigration; gerichte tests.
+Afgerond: centrale AI Foundation-adaptatie voor exact vier capabilities (`EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART`, `VACANCY_DRAFT`); server-side minimale context, dubbele permissioncheck, governance/credits, idempotency, audit/usage en proposal-validator; Employee Overview-acties; SMART-goal lokale Apply/Cancel; vacatureblok lokale Apply/Cancel; NL/EN i18n; DEV/TEST credit-catalogusmigration; officiële migration-history repair; en de minimale AI-only SMART-permissionfix voor HR Admin `talent-goal:manage`.
 
-Verificatie: i18n `35` namespaces groen; directe strict TypeScript-check met `tsc --noEmit --incremental false` groen; gerichte AI-contracttests `14/14`; SMART/vacature UI-tests `3/3`; `git diff --check` groen. De npm-typecheck-wrapper kan geen `tsconfig.tsbuildinfo` schrijven, daarom is de identieke typecheck zonder incremental-output gebruikt.
+Verificatie: remote project `wnpfloqpjvaacobppbpk` is actief; history toont lokale/remote alignment op `20260907120000`; catalogus-readback is `4 features × 3 profiles`, credits `1..3`, config `ai-everywhere-v1.20260907.1`. Browseracceptance is groen voor HR Admin op alle vier capabilities met echte requests, review/Apply/Cancel en screenshots; Manager/Employee en recruitment-scope negatieve checks zijn groen. Remote invocations, audit en technical usage tonen alleen `SUCCEEDED/VALIDATED` met gereserveerde en geladen credits. Lokaal: AI-tests `18/18`, i18n `35` namespaces, strict TypeScript, ESLint, diff-check en Webpack build `258/258` groen. De standaard Turbopack-build blijft onbruikbaar door de worktree-symlinkbeperking; Webpack is de geslaagde build-gate.
 
-Open: remote Supabase-migration/apply, remote credit readback, authenticated persona acceptance, volledige candidate gate en daarna main integration. De canonical root `.env.local` is niet gelezen, gekopieerd of gewijzigd.
+Open: alleen de geautoriseerde main-integration/push en daarna verificatie dat Vercel Git-deployments uitgeschakeld blijven. De canonical root `.env.local` en `apps/hr-suite/next-env.d.ts` zijn niet gelezen, gekopieerd of gewijzigd; Production Supabase is niet aangeraakt.
 
 ## Vercel cleanup 2026-09-07
 
