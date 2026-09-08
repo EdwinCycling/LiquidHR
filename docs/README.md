@@ -1,5 +1,11 @@
 # Liquid HR documentatie-index
 
+## Payroll P0/P1 — 2026-09-08
+
+**Status: PAYROLL P0 DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; P1 OPEN AND OUT OF SCOPE**
+
+The approved blueprint baseline and evidence ledger are tracked in [`docs/requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md`](requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) and [`docs/delivery/PAYROLL_P0_P1_EVIDENCE.md`](delivery/PAYROLL_P0_P1_EVIDENCE.md). P0 is accepted on DEV/TEST with remote schema/RLS/advisor/type and authenticated browser evidence. P1 remains untouched; no Nmbrs call, Production mutation or deployment has been performed.
+
 ## Document Studio DG2 + DG3 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**

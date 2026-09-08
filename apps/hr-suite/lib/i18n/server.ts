@@ -66,6 +66,8 @@ import recruitmentNl from '@/messages/nl/recruitment.json'
 import setupAssistantNl from '@/messages/nl/setupAssistant.json'
 import documentStudioNl from '@/messages/nl/documentStudio.json'
 import documentStudioEn from '@/messages/en/documentStudio.json'
+import payrollNl from '@/messages/nl/payroll.json'
+import payrollEn from '@/messages/en/payroll.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -108,6 +110,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     recruitment: recruitmentNl,
     setupAssistant: setupAssistantNl,
     documentStudio: documentStudioNl,
+    payroll: payrollNl,
   },
   en: {
     auth: authEn,
@@ -143,6 +146,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     recruitment: recruitmentEn,
     setupAssistant: setupAssistantEn,
     documentStudio: documentStudioEn,
+    payroll: payrollEn,
   },
 }
 

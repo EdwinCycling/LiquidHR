@@ -11177,6 +11177,456 @@ export type Database = {
           },
         ]
       }
+      payroll_audit_events: {
+        Row: {
+          actor_user_id: string | null
+          administration_id: string | null
+          company_binding_id: string | null
+          connection_id: string | null
+          created_at: string
+          event_type: string
+          hr_group_id: string
+          id: string
+          provider_id: string | null
+          reference_data: Json
+          result_code: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          administration_id?: string | null
+          company_binding_id?: string | null
+          connection_id?: string | null
+          created_at?: string
+          event_type: string
+          hr_group_id: string
+          id?: string
+          provider_id?: string | null
+          reference_data?: Json
+          result_code: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          administration_id?: string | null
+          company_binding_id?: string | null
+          connection_id?: string | null
+          created_at?: string
+          event_type?: string
+          hr_group_id?: string
+          id?: string
+          provider_id?: string | null
+          reference_data?: Json
+          result_code?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_audit_events_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_audit_events_binding_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "connection_id",
+              "company_binding_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_company_bindings"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "connection_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "payroll_audit_events_connection_fkey"
+            columns: ["tenant_id", "hr_group_id", "connection_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_connections"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_audit_events_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_audit_events_provider_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_company_bindings: {
+        Row: {
+          administration_id: string
+          bound_at: string | null
+          bound_by_user_id: string | null
+          connection_id: string
+          created_at: string
+          external_company_display_name: string
+          external_company_id: string
+          hr_group_id: string
+          id: string
+          last_seen_at: string | null
+          status: Database["public"]["Enums"]["payroll_binding_status"]
+          tenant_id: string
+          unbound_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          administration_id: string
+          bound_at?: string | null
+          bound_by_user_id?: string | null
+          connection_id: string
+          created_at?: string
+          external_company_display_name: string
+          external_company_id: string
+          hr_group_id: string
+          id?: string
+          last_seen_at?: string | null
+          status?: Database["public"]["Enums"]["payroll_binding_status"]
+          tenant_id: string
+          unbound_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string
+          bound_at?: string | null
+          bound_by_user_id?: string | null
+          connection_id?: string
+          created_at?: string
+          external_company_display_name?: string
+          external_company_id?: string
+          hr_group_id?: string
+          id?: string
+          last_seen_at?: string | null
+          status?: Database["public"]["Enums"]["payroll_binding_status"]
+          tenant_id?: string
+          unbound_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_company_bindings_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_company_bindings_connection_fkey"
+            columns: ["tenant_id", "hr_group_id", "connection_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_connections"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_company_bindings_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      payroll_connections: {
+        Row: {
+          connected_at: string | null
+          connected_by_user_id: string | null
+          created_at: string
+          disconnected_at: string | null
+          hr_group_id: string
+          id: string
+          last_checked_at: string | null
+          last_error_at: string | null
+          last_error_code: string | null
+          provider_id: string
+          status: Database["public"]["Enums"]["payroll_connection_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string | null
+          connected_by_user_id?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          hr_group_id: string
+          id?: string
+          last_checked_at?: string | null
+          last_error_at?: string | null
+          last_error_code?: string | null
+          provider_id: string
+          status?: Database["public"]["Enums"]["payroll_connection_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string | null
+          connected_by_user_id?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          hr_group_id?: string
+          id?: string
+          last_checked_at?: string | null
+          last_error_at?: string | null
+          last_error_code?: string | null
+          provider_id?: string
+          status?: Database["public"]["Enums"]["payroll_connection_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_connections_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_connections_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_providers: {
+        Row: {
+          capabilities: Json
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: Json
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: Json
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payroll_sync_issues: {
+        Row: {
+          code: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          message: string
+          severity: string
+          sync_item_id: string | null
+          sync_run_id: string
+          technical_reference: string | null
+          tenant_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          message: string
+          severity: string
+          sync_item_id?: string | null
+          sync_run_id: string
+          technical_reference?: string | null
+          tenant_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          message?: string
+          severity?: string
+          sync_item_id?: string | null
+          sync_run_id?: string
+          technical_reference?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_sync_issues_item_fkey"
+            columns: ["tenant_id", "hr_group_id", "sync_run_id", "sync_item_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_sync_items"
+            referencedColumns: ["tenant_id", "hr_group_id", "sync_run_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_sync_issues_run_fkey"
+            columns: ["tenant_id", "hr_group_id", "sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_sync_runs"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      payroll_sync_items: {
+        Row: {
+          created_at: string
+          decision_status: string
+          difference_summary: Json
+          entity_type: string
+          external_entity_id: string
+          hr_group_id: string
+          id: string
+          local_entity_id: string | null
+          match_status: string
+          normalized_payload: Json
+          sync_run_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_status?: string
+          difference_summary?: Json
+          entity_type: string
+          external_entity_id: string
+          hr_group_id: string
+          id?: string
+          local_entity_id?: string | null
+          match_status?: string
+          normalized_payload?: Json
+          sync_run_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_status?: string
+          difference_summary?: Json
+          entity_type?: string
+          external_entity_id?: string
+          hr_group_id?: string
+          id?: string
+          local_entity_id?: string | null
+          match_status?: string
+          normalized_payload?: Json
+          sync_run_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_sync_items_run_fkey"
+            columns: ["tenant_id", "hr_group_id", "sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_sync_runs"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      payroll_sync_runs: {
+        Row: {
+          company_binding_id: string | null
+          completed_at: string | null
+          connection_id: string
+          created_at: string
+          error_code: string | null
+          hr_group_id: string
+          id: string
+          mode: Database["public"]["Enums"]["payroll_sync_mode"]
+          started_at: string | null
+          started_by_user_id: string | null
+          status: Database["public"]["Enums"]["payroll_sync_run_status"]
+          summary: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_binding_id?: string | null
+          completed_at?: string | null
+          connection_id: string
+          created_at?: string
+          error_code?: string | null
+          hr_group_id: string
+          id?: string
+          mode: Database["public"]["Enums"]["payroll_sync_mode"]
+          started_at?: string | null
+          started_by_user_id?: string | null
+          status?: Database["public"]["Enums"]["payroll_sync_run_status"]
+          summary?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_binding_id?: string | null
+          completed_at?: string | null
+          connection_id?: string
+          created_at?: string
+          error_code?: string | null
+          hr_group_id?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["payroll_sync_mode"]
+          started_at?: string | null
+          started_by_user_id?: string | null
+          status?: Database["public"]["Enums"]["payroll_sync_run_status"]
+          summary?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_sync_runs_binding_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "connection_id",
+              "company_binding_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "payroll_company_bindings"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "connection_id",
+              "id",
+            ]
+          },
+          {
+            foreignKeyName: "payroll_sync_runs_connection_fkey"
+            columns: ["tenant_id", "hr_group_id", "connection_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_connections"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_sync_runs_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       payslips: {
         Row: {
           administration_id: string
@@ -20565,7 +21015,22 @@ export type Database = {
         | "MONTHLY_HOURS"
         | "YEARLY_HOURS"
         | "CONTRACT_HOURS_FACTOR"
+      payroll_binding_status: "ACTIVE" | "INACTIVE"
+      payroll_connection_status:
+        | "NOT_CONNECTED"
+        | "CONNECTING"
+        | "CONNECTED"
+        | "ACTION_REQUIRED"
+        | "ERROR"
+        | "DISCONNECTED"
       payroll_reporting_status: "DRAFT" | "READY" | "REPORTED" | "CLOSED"
+      payroll_sync_mode: "PREVIEW" | "APPLY"
+      payroll_sync_run_status:
+        | "PENDING"
+        | "RUNNING"
+        | "COMPLETED"
+        | "FAILED"
+        | "CANCELLED"
       platform_operator_role: "OWNER" | "OPERATOR" | "AUDITOR"
       platform_support_session_status: "ACTIVE" | "ENDED"
       process_assignment_mode: "EXACTLY_ONE" | "ANY_ONE" | "ALL"
@@ -21007,7 +21472,24 @@ export const Constants = {
         "YEARLY_HOURS",
         "CONTRACT_HOURS_FACTOR",
       ],
+      payroll_binding_status: ["ACTIVE", "INACTIVE"],
+      payroll_connection_status: [
+        "NOT_CONNECTED",
+        "CONNECTING",
+        "CONNECTED",
+        "ACTION_REQUIRED",
+        "ERROR",
+        "DISCONNECTED",
+      ],
       payroll_reporting_status: ["DRAFT", "READY", "REPORTED", "CLOSED"],
+      payroll_sync_mode: ["PREVIEW", "APPLY"],
+      payroll_sync_run_status: [
+        "PENDING",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+      ],
       platform_operator_role: ["OWNER", "OPERATOR", "AUDITOR"],
       platform_support_session_status: ["ACTIVE", "ENDED"],
       process_assignment_mode: ["EXACTLY_ONE", "ANY_ONE", "ALL"],

@@ -13,11 +13,12 @@ describe('module catalog', () => {
       'TEAM_COMPASS',
       'JOURNEYS',
       'RECRUITMENT',
+      'PAYROLL',
     ])
     expect(catalog.filter((module) => module.status === 'COMING_SOON').every((module) => !module.toggleable)).toBe(true)
   })
 
   it('negeert onbekende en toekomstige modules bij opslaan', () => {
-    expect(normalizeModuleSelection(['HERA', 'JOURNEYS', 'RECRUITMENT', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA', 'JOURNEYS', 'RECRUITMENT'])
+    expect(normalizeModuleSelection(['HERA', 'JOURNEYS', 'RECRUITMENT', 'PAYROLL', 'DOCUMENTS', 'LEAVE', 'UNKNOWN', 'HERA'])).toEqual(['HERA', 'JOURNEYS', 'RECRUITMENT', 'PAYROLL'])
   })
 })

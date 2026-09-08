@@ -69,6 +69,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       ? supabase.from('employees').select('first_name, avatar_url').eq('id', authContext.employeeId).eq('tenant_id', context.tenant.id).eq('hr_group_id', authContext.hrGroupId ?? '').is('deleted_at', null).maybeSingle().then(({ data: employee }) => employee)
       : Promise.resolve(null),
   ])
+  const canReadPayroll = authContext.permissions.includes('payroll:read') && enabledModules.includes('PAYROLL')
   const canReadRecruitment = enabledModules.includes('RECRUITMENT') && authContext.permissions.some((permission) => [
     'recruitment-vacancy:read',
     'recruitment-candidate:read',
@@ -123,6 +124,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         canReadRecruitment={canReadRecruitment}
         canReadJourneys={authContext.permissions.includes('journey:read') && enabledModules.includes('JOURNEYS')}
         canReadDocumentStudio={canReadDocumentStudio}
+        canReadPayroll={canReadPayroll}
         labels={{
           appName: common('appName'),
           startPage: navigation('startPage'),
@@ -139,6 +141,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
           recruitment: navigation('recruitment'),
           journeys: navigation('journeys'),
           documentStudio: navigation('documentStudio'),
+          payroll: navigation('payroll'),
           navigation: navigation('navigation'),
           openMenu: navigation('openMenu'),
           closeMenu: navigation('closeMenu'),

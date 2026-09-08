@@ -19,6 +19,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileStack,
+  WalletCards,
   UserRound,
   Users,
   X,
@@ -57,6 +58,7 @@ interface SidebarLabels {
   recruitment: string
   journeys: string
   documentStudio: string
+  payroll: string
   navigation: string
   openMenu: string
   closeMenu: string
@@ -87,6 +89,7 @@ interface SidebarProps {
   canReadRecruitment: boolean
   canReadJourneys: boolean
   canReadDocumentStudio: boolean
+  canReadPayroll: boolean
   labels: SidebarLabels
   preferences: UserPreferences
   profileFirstName: string
@@ -125,6 +128,7 @@ export function Sidebar({
   canReadRecruitment,
   canReadJourneys,
   canReadDocumentStudio,
+  canReadPayroll,
   labels,
   preferences,
   profileFirstName,
@@ -159,6 +163,7 @@ export function Sidebar({
     { href: '/recruitment', label: labels.recruitment, icon: ClipboardCheck, visible: canReadRecruitment },
     { href: '/journeys', label: labels.journeys, icon: Route, visible: canReadJourneys },
     { href: '/document-studio', label: labels.documentStudio, icon: FileStack, visible: canReadDocumentStudio },
+    { href: '/payroll', label: labels.payroll, icon: WalletCards, visible: canReadPayroll },
     { href: '/research', label: labels.research, icon: ClipboardList, visible: canOpenResearch },
     { href: '/insights', label: labels.insights, icon: ChartColumn, visible: canReadInsights },
     { href: '/settings', label: labels.settings, icon: Settings, visible: canReadSettings, exact: true },

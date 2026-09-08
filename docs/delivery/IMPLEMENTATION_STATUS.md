@@ -1,5 +1,11 @@
 # Implementatiestatus Liquid HR
 
+## Payroll P0/P1 — 2026-09-08
+
+**Status: PAYROLL P0 DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; P1 OPEN AND OUT OF SCOPE**
+
+The approved blueprint copy and compact evidence ledger are in [`docs/requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md`](../requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) and [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). Baseline is main `4adceda`; P0 is accepted on DEV/TEST after the authorized migration, remote readback, advisors/types and authenticated browser gate. P1 remains untouched; no Production mutation or deployment has occurred.
+
 ## AI Everywhere V1 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; MAIN INTEGRATION READY**

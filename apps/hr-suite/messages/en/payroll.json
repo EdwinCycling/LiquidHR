@@ -1,0 +1,29 @@
+{
+  "eyebrow": "Payroll",
+  "title": "Payroll integration",
+  "description": "Manage the payroll provider connection from the active HR group.",
+  "tabs": { "overview": "Overview", "employees": "Employees", "differences": "Differences", "settings": "Settings", "previous": "Previous sections", "next": "Next sections" },
+  "overview": {
+    "introTitle": "Payroll in LiquidHR",
+    "introDescription": "LiquidHR owns people and work. The payroll provider owns payroll.",
+    "notConnected": "No payroll provider connected yet",
+    "notConnectedDescription": "Connect a provider once the Payroll foundation is ready.",
+    "setup": "Set up Payroll",
+    "provider": "Provider",
+    "connectionStatus": "Connection status",
+    "lastChecked": "Last checked",
+    "administrations": "Linked administrations",
+    "none": "None"
+  },
+  "employees": { "title": "Payroll employees", "description": "This workspace becomes available after a payroll administration is linked.", "empty": "Available after a payroll administration is linked." },
+  "differences": { "title": "Differences", "description": "Review differences between LiquidHR and the payroll provider later.", "empty": "No checks have been run yet." },
+  "settings": {
+    "title": "Payroll settings", "description": "Manage payroll providers and administration bindings for the active HR group.",
+    "providerTitle": "Payroll providers", "providerDescription": "Nmbrs is the first provider behind the provider-neutral Payroll layer.", "providerFallback": "Nmbrs",
+    "notConnected": "Not connected", "connect": "Connect to Nmbrs", "check": "Check connection", "discover": "Fetch administrations",
+    "p0Notice": "The external Nmbrs flow is not started during this foundation phase.", "credentials": "Credentials are separate from functional connection data and server-only.",
+    "bindings": "Linked administrations", "noBindings": "No administrations linked yet.", "externalCompany": "Provider administration", "liquidAdministration": "LiquidHR administration"
+  },
+  "status": { "NOT_CONNECTED": "Not connected", "CONNECTING": "Connecting", "CONNECTED": "Connected", "ACTION_REQUIRED": "Action required", "ERROR": "Error", "DISCONNECTED": "Disconnected" },
+  "errors": { "readFailed": "Payroll data could not be loaded.", "moduleInactive": "Payroll is not active for this customer environment." }
+}

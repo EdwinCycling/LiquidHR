@@ -1,0 +1,29 @@
+{
+  "eyebrow": "Payroll",
+  "title": "Payrollintegratie",
+  "description": "Beheer de koppeling met een salarisprovider vanuit de actieve HR-groep.",
+  "tabs": { "overview": "Overzicht", "employees": "Medewerkers", "differences": "Verschillen", "settings": "Instellingen", "previous": "Vorige onderdelen", "next": "Volgende onderdelen" },
+  "overview": {
+    "introTitle": "Payroll in LiquidHR",
+    "introDescription": "LiquidHR beheert mensen en werk. De salarisprovider beheert payroll.",
+    "notConnected": "Nog geen salarisprovider verbonden",
+    "notConnectedDescription": "Verbind een provider wanneer de Payroll-foundation is ingericht.",
+    "setup": "Payroll instellen",
+    "provider": "Provider",
+    "connectionStatus": "Verbindingsstatus",
+    "lastChecked": "Laatste controle",
+    "administrations": "Gekoppelde administraties",
+    "none": "Geen"
+  },
+  "employees": { "title": "Payroll-medewerkers", "description": "Deze werkruimte wordt beschikbaar nadat een salarisadministratie is gekoppeld.", "empty": "Beschikbaar nadat een salarisadministratie is gekoppeld." },
+  "differences": { "title": "Verschillen", "description": "Controleer later verschillen tussen LiquidHR en de salarisprovider.", "empty": "Nog geen controles uitgevoerd." },
+  "settings": {
+    "title": "Payroll-instellingen", "description": "Beheer salarisproviders en de administratieve koppelingen voor de actieve HR-groep.",
+    "providerTitle": "Salarisproviders", "providerDescription": "Nmbrs is de eerste provider achter de provider-neutrale Payroll-laag.", "providerFallback": "Nmbrs",
+    "notConnected": "Niet verbonden", "connect": "Verbinden met Nmbrs", "check": "Verbinding controleren", "discover": "Administraties ophalen",
+    "p0Notice": "De externe Nmbrs-flow wordt in deze foundationfase nog niet gestart.", "credentials": "Credentials staan buiten de functionele connectiondata en zijn server-only.",
+    "bindings": "Gekoppelde administraties", "noBindings": "Nog geen administraties gekoppeld.", "externalCompany": "Provideradministratie", "liquidAdministration": "LiquidHR-administratie"
+  },
+  "status": { "NOT_CONNECTED": "Niet verbonden", "CONNECTING": "Verbinden", "CONNECTED": "Verbonden", "ACTION_REQUIRED": "Actie vereist", "ERROR": "Fout", "DISCONNECTED": "Verbinding verbroken" },
+  "errors": { "readFailed": "Payrollgegevens konden niet worden geladen.", "moduleInactive": "Payroll is niet actief voor deze klantomgeving." }
+}
