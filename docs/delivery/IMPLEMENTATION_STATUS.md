@@ -1,10 +1,10 @@
 # Implementatiestatus Liquid HR
 
-## Payroll P0/P1 — 2026-09-08
+## Payroll P0/P1 — 2026-09-09
 
-**Status: PAYROLL P0 DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; P1 OPEN AND OUT OF SCOPE**
+**Status: PAYROLL P1 DEVELOPMENT ACCEPTANCE BLOCKED — P0 GREEN; P1 CODE COMMITTED, DEV/TEST ADVISOR MIGRATION UNAPPLIED**
 
-The approved blueprint copy and compact evidence ledger are in [`docs/requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md`](../requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) and [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). Baseline is main `4adceda`; P0 is accepted on DEV/TEST after the authorized migration, remote readback, advisors/types and authenticated browser gate. P1 remains untouched; no Production mutation or deployment has occurred.
+The approved blueprint copy and compact evidence ledger are in [`docs/requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md`](../requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) and [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). Baseline is main `4adceda`; P0 is accepted on DEV/TEST. P1 is committed locally as `7afd8dd588c51fc7a22b18b348fa80d3d223c017` and remote migration `20260908203016 / payroll_p1_nmbrs_connection` is applied. Canonical local persona authentication, remote schema/RLS/grants, types, advisors, targeted/full tests and Webpack build are recorded in the evidence ledger. The advisor-index follow-up and branch push were blocked by external safety/authentication gates; no hosted P1 deployment or real Nmbrs OAuth E2E was claimed. Production, `main`, other worktrees and protected `next-env.d.ts` remain untouched.
 
 ## AI Everywhere V1 — 2026-09-07
 

@@ -1,23 +1,35 @@
 import { PAYROLL_PROVIDER_CAPABILITIES } from '@/lib/payroll/domain/types'
 import { PayrollProviderError, type PayrollProvider } from '@/lib/payroll/providers/payroll-provider'
+import { createNmbrsClient } from './client'
 
-// De adaptergrens bestaat in P0; netwerk-, OAuth- en employee-operaties volgen pas in P1/P2.
+function client() {
+  return createNmbrsClient()
+}
+
 export const nmbrsPayrollProvider: PayrollProvider = {
   code: 'NMBRS',
   capabilities: PAYROLL_PROVIDER_CAPABILITIES,
-  async createAuthorizationRequest() {
-    throw new PayrollProviderError('NMBRS_OAUTH_NOT_AVAILABLE_IN_P0')
+  async createAuthorizationRequest(input) {
+    return { authorizationUrl: client().buildAuthorizationUrl(input) }
   },
-  async exchangeAuthorizationCode() {
-    throw new PayrollProviderError('NMBRS_OAUTH_NOT_AVAILABLE_IN_P0')
+  async exchangeAuthorizationCode(input) {
+    return client().exchangeAuthorizationCode(input)
   },
-  async refreshCredentials() {
-    throw new PayrollProviderError('NMBRS_OAUTH_NOT_AVAILABLE_IN_P0')
+  async refreshCredentials(input) {
+    return client().refreshCredentials(input.refreshToken)
   },
-  async listCompanies() {
-    throw new PayrollProviderError('NMBRS_COMPANY_DISCOVERY_NOT_AVAILABLE_IN_P0')
+  async getConnectionHealth(input) {
+    return client().getConnectionHealth(input.accessToken)
   },
-  async listEmployees() {
-    throw new PayrollProviderError('NMBRS_EMPLOYEE_READ_NOT_AVAILABLE_IN_P0')
+  async listCompanies(input) {
+    return client().listCompanies(input.accessToken)
   },
+  async revokeCredentials(input) {
+    return client().revokeCredentials(input)
+  },
+}
+
+export function getPayrollProvider(code: string): PayrollProvider {
+  if (code === 'NMBRS') return nmbrsPayrollProvider
+  throw new PayrollProviderError('PAYROLL_PROVIDER_NOT_SUPPORTED', 422)
 }

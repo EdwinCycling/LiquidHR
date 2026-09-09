@@ -11404,6 +11404,72 @@ export type Database = {
           },
         ]
       }
+      payroll_provider_companies: {
+        Row: {
+          connection_id: string
+          created_at: string
+          external_company_display_name: string
+          external_company_id: string
+          external_company_number: string | null
+          external_debtor_id: string | null
+          first_seen_at: string
+          hr_group_id: string
+          id: string
+          last_seen_at: string
+          provider_metadata: Json
+          status: Database["public"]["Enums"]["payroll_provider_company_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          external_company_display_name: string
+          external_company_id: string
+          external_company_number?: string | null
+          external_debtor_id?: string | null
+          first_seen_at?: string
+          hr_group_id: string
+          id?: string
+          last_seen_at?: string
+          provider_metadata?: Json
+          status?: Database["public"]["Enums"]["payroll_provider_company_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          external_company_display_name?: string
+          external_company_id?: string
+          external_company_number?: string | null
+          external_debtor_id?: string | null
+          first_seen_at?: string
+          hr_group_id?: string
+          id?: string
+          last_seen_at?: string
+          provider_metadata?: Json
+          status?: Database["public"]["Enums"]["payroll_provider_company_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_provider_companies_connection_fkey"
+            columns: ["tenant_id", "hr_group_id", "connection_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_connections"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "payroll_provider_companies_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       payroll_providers: {
         Row: {
           capabilities: Json
@@ -21023,6 +21089,7 @@ export type Database = {
         | "ACTION_REQUIRED"
         | "ERROR"
         | "DISCONNECTED"
+      payroll_provider_company_status: "ACTIVE" | "INACTIVE"
       payroll_reporting_status: "DRAFT" | "READY" | "REPORTED" | "CLOSED"
       payroll_sync_mode: "PREVIEW" | "APPLY"
       payroll_sync_run_status:
@@ -21481,6 +21548,7 @@ export const Constants = {
         "ERROR",
         "DISCONNECTED",
       ],
+      payroll_provider_company_status: ["ACTIVE", "INACTIVE"],
       payroll_reporting_status: ["DRAFT", "READY", "REPORTED", "CLOSED"],
       payroll_sync_mode: ["PREVIEW", "APPLY"],
       payroll_sync_run_status: [

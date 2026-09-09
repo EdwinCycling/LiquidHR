@@ -20,8 +20,9 @@
   "settings": {
     "title": "Payroll-instellingen", "description": "Beheer salarisproviders en de administratieve koppelingen voor de actieve HR-groep.",
     "providerTitle": "Salarisproviders", "providerDescription": "Nmbrs is de eerste provider achter de provider-neutrale Payroll-laag.", "providerFallback": "Nmbrs",
-    "notConnected": "Niet verbonden", "connect": "Verbinden met Nmbrs", "check": "Verbinding controleren", "discover": "Administraties ophalen",
-    "p0Notice": "De externe Nmbrs-flow wordt in deze foundationfase nog niet gestart.", "credentials": "Credentials staan buiten de functionele connectiondata en zijn server-only.",
+    "notConnected": "Niet verbonden", "connect": "Verbinden met Nmbrs", "reconnect": "Opnieuw verbinden", "check": "Verbinding controleren", "discover": "Administraties ophalen", "bind": "Administratie koppelen", "unbind": "Ontkoppelen", "disconnect": "Verbinding verbreken", "confirmDisconnect": "Wil je de Nmbrs-verbinding verbreken?",
+    "selectCompany": "Kies een provideradministratie", "selectAdministration": "Kies een LiquidHR-administratie", "search": "Zoeken…", "noCompanies": "Haal eerst provideradministraties op.", "noAdministrations": "Geen actieve LiquidHR-administraties.", "noBinding": "Nog geen administraties gekoppeld.", "working": "Bezig…", "succeeded": "Opgeslagen.", "failed": "De actie kon niet worden uitgevoerd.", "discoveredCompanies": "Provideradministraties", "bindingHint": "Koppel een gevonden Nmbrs-administratie aan precies één actieve LiquidHR-administratie.", "remoteRevocationWarning": "De lokale verbinding is verbroken; controleer de providerrevocatie indien nodig.",
+    "p1Notice": "De Nmbrs-verbinding gebruikt OAuth en haalt alleen provideradministratiemetadata op. Medewerker- en dienstverbandgegevens blijven buiten deze fase.", "credentials": "Tokens worden versleuteld opgeslagen in een server-only schema en komen niet in de browser of API-response.",
     "bindings": "Gekoppelde administraties", "noBindings": "Nog geen administraties gekoppeld.", "externalCompany": "Provideradministratie", "liquidAdministration": "LiquidHR-administratie"
   },
   "status": { "NOT_CONNECTED": "Niet verbonden", "CONNECTING": "Verbinden", "CONNECTED": "Verbonden", "ACTION_REQUIRED": "Actie vereist", "ERROR": "Fout", "DISCONNECTED": "Verbinding verbroken" },

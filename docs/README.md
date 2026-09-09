@@ -1,10 +1,10 @@
 # Liquid HR documentatie-index
 
-## Payroll P0/P1 — 2026-09-08
+## Payroll P0/P1 — 2026-09-09
 
-**Status: PAYROLL P0 DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; P1 OPEN AND OUT OF SCOPE**
+**Status: PAYROLL P1 DEVELOPMENT ACCEPTANCE BLOCKED — P0 GREEN; P1 CODE COMMITTED, DEV/TEST ADVISOR MIGRATION UNAPPLIED**
 
-The approved blueprint baseline and evidence ledger are tracked in [`docs/requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md`](requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) and [`docs/delivery/PAYROLL_P0_P1_EVIDENCE.md`](delivery/PAYROLL_P0_P1_EVIDENCE.md). P0 is accepted on DEV/TEST with remote schema/RLS/advisor/type and authenticated browser evidence. P1 remains untouched; no Nmbrs call, Production mutation or deployment has been performed.
+The approved blueprint baseline and evidence ledger are tracked in [`docs/requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md`](requirements/payroll/LIQUIDHR_PAYROLL_INTEGRATION_BLUEPRINT_V0.3.md) and [`docs/delivery/PAYROLL_P0_P1_EVIDENCE.md`](delivery/PAYROLL_P0_P1_EVIDENCE.md). P0 is accepted on DEV/TEST. P1 is implemented and committed locally as `7afd8dd588c51fc7a22b18b348fa80d3d223c017`; `20260908203016 / payroll_p1_nmbrs_connection` is applied remotely, while the in-scope advisor-index migration remains unapplied after external safety rejection. Canonical local persona login, schema/RLS/grants, types, advisors, tests and Webpack build are recorded. The branch push was rejected, so no hosted P1 deployment or real Nmbrs OAuth E2E was claimed. Production Supabase, `main`, other worktrees and `next-env.d.ts` remain untouched; the separately authorized server-only Vercel key-name setup is recorded in the evidence ledger.
 
 ## Document Studio DG2 + DG3 — 2026-09-07
 

@@ -20,8 +20,9 @@
   "settings": {
     "title": "Payroll settings", "description": "Manage payroll providers and administration bindings for the active HR group.",
     "providerTitle": "Payroll providers", "providerDescription": "Nmbrs is the first provider behind the provider-neutral Payroll layer.", "providerFallback": "Nmbrs",
-    "notConnected": "Not connected", "connect": "Connect to Nmbrs", "check": "Check connection", "discover": "Fetch administrations",
-    "p0Notice": "The external Nmbrs flow is not started during this foundation phase.", "credentials": "Credentials are separate from functional connection data and server-only.",
+    "notConnected": "Not connected", "connect": "Connect to Nmbrs", "reconnect": "Reconnect", "check": "Check connection", "discover": "Fetch administrations", "bind": "Bind administration", "unbind": "Unbind", "disconnect": "Disconnect", "confirmDisconnect": "Do you want to disconnect the Nmbrs connection?",
+    "selectCompany": "Choose a provider company", "selectAdministration": "Choose a LiquidHR administration", "search": "Search…", "noCompanies": "Fetch provider companies first.", "noAdministrations": "No active LiquidHR administrations.", "noBinding": "No administrations linked yet.", "working": "Working…", "succeeded": "Saved.", "failed": "The action could not be completed.", "discoveredCompanies": "Provider companies", "bindingHint": "Bind a discovered Nmbrs company to exactly one active LiquidHR administration.", "remoteRevocationWarning": "The local connection is disconnected; verify provider revocation if needed.",
+    "p1Notice": "The Nmbrs connection uses OAuth and fetches provider-company metadata only. Employee and employment data remain outside this phase.", "credentials": "Tokens are encrypted in a server-only schema and never returned to the browser or API responses.",
     "bindings": "Linked administrations", "noBindings": "No administrations linked yet.", "externalCompany": "Provider administration", "liquidAdministration": "LiquidHR administration"
   },
   "status": { "NOT_CONNECTED": "Not connected", "CONNECTING": "Connecting", "CONNECTED": "Connected", "ACTION_REQUIRED": "Action required", "ERROR": "Error", "DISCONNECTED": "Disconnected" },

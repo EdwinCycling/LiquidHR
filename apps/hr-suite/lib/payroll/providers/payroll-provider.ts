@@ -1,10 +1,4 @@
-import type { PayrollConnectionStatus, PayrollProviderCapability } from '@/lib/payroll/domain/types'
-
-export type PayrollProviderContext = {
-  tenantId: string
-  hrGroupId: string
-  connectionId: string
-}
+import type { PayrollConnectionStatus, PayrollProviderCapability, PayrollProviderCompany } from '@/lib/payroll/domain/types'
 
 export type PayrollConnectionHealth = {
   status: Exclude<PayrollConnectionStatus, 'NOT_CONNECTED' | 'CONNECTING'>
@@ -12,16 +6,24 @@ export type PayrollConnectionHealth = {
   checkedAt: string
 }
 
+export type PayrollTokenSet = {
+  accessToken: string
+  refreshToken: string | null
+  expiresAt: string
+  scope: string | null
+}
+
+export type PayrollProviderCompanyMetadata = Pick<PayrollProviderCompany, 'externalCompanyId' | 'externalCompanyNumber' | 'externalCompanyDisplayName' | 'externalDebtorId'>
+
 export type PayrollProvider = {
   code: string
   capabilities: readonly PayrollProviderCapability[]
-  getConnectionHealth?: (context: PayrollProviderContext) => Promise<PayrollConnectionHealth>
-  createAuthorizationRequest?: (context: PayrollProviderContext) => Promise<never>
-  exchangeAuthorizationCode?: (input: { code: string; state: string }) => Promise<never>
-  refreshCredentials?: (context: PayrollProviderContext) => Promise<never>
-  disconnect?: (context: PayrollProviderContext) => Promise<void>
-  listCompanies?: (context: PayrollProviderContext) => Promise<never>
-  listEmployees?: (context: PayrollProviderContext, companyId: string) => Promise<never>
+  createAuthorizationRequest?: (input: { redirectUri: string; state: string }) => Promise<{ authorizationUrl: string }>
+  exchangeAuthorizationCode?: (input: { code: string; redirectUri: string }) => Promise<PayrollTokenSet>
+  refreshCredentials?: (input: { refreshToken: string }) => Promise<PayrollTokenSet>
+  getConnectionHealth?: (input: { accessToken: string }) => Promise<PayrollConnectionHealth>
+  listCompanies?: (input: { accessToken: string }) => Promise<PayrollProviderCompanyMetadata[]>
+  revokeCredentials?: (input: { accessToken: string; refreshToken: string | null }) => Promise<void>
 }
 
 export class PayrollProviderError extends Error {

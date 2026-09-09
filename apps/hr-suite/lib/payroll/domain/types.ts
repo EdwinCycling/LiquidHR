@@ -3,11 +3,7 @@ export const PAYROLL_PROVIDER_CODE = 'NMBRS' as const
 export const PAYROLL_PROVIDER_CAPABILITIES = [
   'AUTH_OAUTH',
   'COMPANY_DISCOVERY',
-  'EMPLOYEE_READ',
-  'EMPLOYEE_WRITE',
-  'EMPLOYMENT_READ',
-  'EMPLOYMENT_WRITE',
-  'PAYROLL_RESULT_READ',
+  'CONNECTION_HEALTH',
 ] as const
 
 export type PayrollProviderCapability = (typeof PAYROLL_PROVIDER_CAPABILITIES)[number]
@@ -44,6 +40,24 @@ export type PayrollCompanyBinding = {
   status: PayrollBindingStatus
   boundAt: string | null
   unboundAt: string | null
+}
+
+export type PayrollProviderCompany = {
+  id: string
+  connectionId: string
+  externalCompanyId: string
+  externalCompanyNumber: string | null
+  externalCompanyDisplayName: string
+  externalDebtorId: string | null
+  status: 'ACTIVE' | 'INACTIVE'
+  firstSeenAt: string
+  lastSeenAt: string
+}
+
+export type PayrollAdministration = {
+  id: string
+  code: string
+  name: string
 }
 
 export type PayrollSyncRun = {

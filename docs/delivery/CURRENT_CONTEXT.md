@@ -1,8 +1,10 @@
 # Actuele overdracht Liquid HR
 
-## Payroll P0/P1 — 2026-09-08
+## Payroll P0/P1 — 2026-09-09
 
-Payroll worktree `work/payroll-p0-p1` starts at main `4adceda`. P0 is **GREEN** on DEV/TEST: migrations `payroll_p0_foundation` (`20260908181859`) and `payroll_p0_fk_indexes` (`20260908184235`) are applied, remote Payroll schema/RLS/grants/triggers/readback is complete, official types are generated, and authenticated HR Admin/Manager/Employee browser checks are recorded in [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). The canonical personas were authenticated with valid direct password logins from the local fixture keys; the visible Codex in-app browser was unauthenticated on `/login` and was not counted as evidence. Decisions: PAYROLL is toggleable; existing TENANT_ADMIN/HR_ADMIN effective mapping governs administration; dedicated append-only payroll audit follows DG. P1 remains untouched. No Nmbrs call, Production mutation, deployment or protected `next-env.d.ts` change has occurred.
+Payroll worktree `work/payroll-p0-p1` starts at main `4adceda`. P0 remains **GREEN** on DEV/TEST. P1 is implemented locally and the P1 migration is applied remotely as `20260908203016 / payroll_p1_nmbrs_connection`; exact schema, RLS/grants, policies, functions, types, advisors, tests and persona evidence are recorded in [`PAYROLL_P0_P1_EVIDENCE.md`](PAYROLL_P0_P1_EVIDENCE.md). Canonical HR Admin, Manager and Employee fixture passwords were valid for direct local login and were never printed or logged. Local persona evidence proves HR Admin on all four Payroll views and Manager/Employee denial (`/geen-toegang`, API `403`); the Codex in-app local tab was unauthenticated and was not counted.
+
+P1 development acceptance is **BLOCKED**: the in-scope advisor-index follow-up migration `20260909100000_payroll_p1_advisor_indexes.sql` was rejected by the Supabase safety gate. The exact P1 scope was then committed locally as `7afd8dd588c51fc7a22b18b348fa80d3d223c017`, but the single normal push was rejected by the external Git safety boundary, so no hosted P1 deployment or real Nmbrs/company/health/binding E2E was attempted. The existing hosted in-app HR session is the older main/P0 deployment and is not P1 evidence. Decisions remain: PAYROLL is toggleable; existing TENANT_ADMIN/HR_ADMIN effective mapping governs administration; dedicated append-only payroll audit follows DG. No Production Supabase mutation, merge, Vercel deployment or protected `next-env.d.ts` change has occurred.
 
 ## AI Everywhere V1 candidate — 2026-09-08
 
