@@ -9,7 +9,7 @@ The original P1 implementation is committed and pushed. The advisor-index migrat
 ## Scope and baseline
 
 - P0 baseline: `4adcedaf7d4a227df6ee91a03e5e5741992fbd40`.
-- Current pushed branch base: `5d57323281b07bc2601c751db384ef3ad517ea6d` (`feat(payroll): complete P1 Nmbrs connection foundation`); the server-only façade follow-up is the current local closure change and is recorded in the final Git gate.
+- Current pushed branch base: `5d57323281b07bc2601c751db384ef3ad517ea6d` (`feat(payroll): complete P1 Nmbrs connection foundation`); server-only façade follow-up commit: `0ca7227ce9580c324e2afda7e61c63eb27a8c3d3`.
 - DEV fixture: tenant `07249eb9-545c-883b-b26b-d52f83b4f4a1` (`De Sterren holding`), HR group `80975e8a-b0dd-4552-be20-cd3944da9b2b` (`TEST (leeg)`, code `TEST-BOUNDARY`), administration `0ad929be-8dbf-4b8f-884e-46852f182512` (`Test BV`, code `TEST-BOUNDARY-ADMIN`, active).
 - The earlier P0 fixture baseline had `0` employees and `0` employments. No P1 operation or test path read or wrote employee/employment data.
 - `apps/hr-suite/next-env.d.ts` was not changed. Protected `.env.local` values were never printed, logged, staged or committed.
@@ -190,7 +190,7 @@ Relevant current DEV advisor output:
 
 - Existing Vercel deployment `dpl_6evf2p7D398NyxbPYL7o8Ev8tEvr` is READY/Production for project `liquidhr`, branch `work/payroll-p0-p1`, source commit `5d57323281b07bc2601c751db384ef3ad517ea6d`. It is the previously authorized deployment and does not contain the façade fix.
 - Its runtime logs show `/api/payroll/providers/nmbrs/authorize` returning `500` at `2026-09-09T13:08:20Z`, `13:09:36Z`, `13:10:05Z` and `13:12:17Z`; the old code still attempted the non-exposed `payroll_private` schema and returned `PAYROLL_OAUTH_STATE_WRITE_FAILED` before the Nmbrs redirect.
-- The original P1 commit was pushed successfully: `origin/work/payroll-p0-p1` points to `5d57323281b07bc2601c751db384ef3ad517ea6d`. The current façade/type/migration/test/evidence closure changes are local until the final Git gate; no merge to `main` occurred.
+- The original P1 commit was pushed successfully: `origin/work/payroll-p0-p1` points to `5d57323281b07bc2601c751db384ef3ad517ea6d`. The façade/type/migration/test/evidence closure is committed locally as `0ca7227ce9580c324e2afda7e61c63eb27a8c3d3`; no merge to `main` occurred.
 - No second Vercel deployment was triggered after the façade fix. The hosted real Nmbrs OAuth, health, discovery, bind/unbind/reconnect/disconnect and remote audit E2E gates therefore remain open.
 - The exact `C:\Users\Edwin\Documents\Apps\LiquidHR\.git\worktrees\payroll-p0-p1\index.lock` was absent at recovery time; no alternate index, force, reset or cleanup workaround was used. Protected `.env.local` and `next-env.d.ts` were not staged.
 
@@ -203,8 +203,8 @@ Relevant current DEV advisor output:
 | P1 remote advisor follow-up migration | GREEN — remote `20260909125131 / payroll_p1_advisor_indexes` |
 | P1 private RPC façade/readback/replay protection | GREEN — remote `20260909133103 / payroll_p1_private_rpc_facade` |
 | P1 hosted deployment and real Nmbrs E2E | BLOCKED — existing deployment predates façade; second deployment authorization is not yet available |
-| Commit feature branch | pending final closure commit |
-| Push feature branch | original `5d57323281b07bc2601c751db384ef3ad517ea6d` GREEN; closure push pending |
+| Commit feature branch | GREEN — `0ca7227ce9580c324e2afda7e61c63eb27a8c3d3` |
+| Push feature branch | original `5d57323281b07bc2601c751db384ef3ad517ea6d` GREEN; closure push BLOCKED by `SEC_E_NO_CREDENTIALS` |
 | Production / main / other worktrees | untouched |
 
 Final status: **PAYROLL P1 DEVELOPMENT ACCEPTANCE: BLOCKED**.
