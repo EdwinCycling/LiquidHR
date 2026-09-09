@@ -8,7 +8,7 @@ export const NMBRS_AUTHORIZATION_ENDPOINT = 'https://identityservice.nmbrs.com/c
 export const NMBRS_TOKEN_ENDPOINT = 'https://identityservice.nmbrs.com/connect/token'
 export const NMBRS_REVOCATION_ENDPOINT = 'https://identityservice.nmbrs.com/connect/revocation'
 export const NMBRS_DEFAULT_REDIRECT_URI = 'https://liquid-hr-hr-suite.vercel.app/api/payroll/providers/nmbrs/callback'
-export const NMBRS_P1_SCOPES = ['nmbrs_api', 'offline_access', 'company.info.read'] as const
+export const NMBRS_P1_SCOPES = ['offline_access', 'company.info.read'] as const
 
 const REQUEST_TIMEOUT_MS = 15_000
 const MAX_COMPANY_PAGES = 20
