@@ -20143,6 +20143,53 @@ export type Database = {
         }
         Returns: string
       }
+      payroll_private_consume_oauth_state: {
+        Args: { requested_consumed_at: string; requested_state_hash: string }
+        Returns: Json
+      }
+      payroll_private_delete_credentials: {
+        Args: {
+          requested_connection_id: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: number
+      }
+      payroll_private_insert_credential: {
+        Args: {
+          requested_connection_id: string
+          requested_credential_version: number
+          requested_encrypted_access_token: string
+          requested_encrypted_refresh_token: string
+          requested_expires_at: string
+          requested_hr_group_id: string
+          requested_provider_metadata: Json
+          requested_tenant_id: string
+        }
+        Returns: undefined
+      }
+      payroll_private_insert_oauth_state: {
+        Args: {
+          requested_connection_id: string
+          requested_expires_at: string
+          requested_hr_group_id: string
+          requested_initiated_by_user_id: string
+          requested_provider_id: string
+          requested_redirect_uri: string
+          requested_requested_scopes: string[]
+          requested_state_hash: string
+          requested_tenant_id: string
+        }
+        Returns: undefined
+      }
+      payroll_private_latest_credential: {
+        Args: {
+          requested_connection_id: string
+          requested_hr_group_id: string
+          requested_tenant_id: string
+        }
+        Returns: Json
+      }
       perform_process_work_item_action: {
         Args: {
           requested_action: string

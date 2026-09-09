@@ -281,38 +281,15 @@ export function payrollOAuthStateCookieOptions(): {
 }
 
 async function latestCredential(tenantId: string, hrGroupId: string, connectionId: string): Promise<PayrollCredentialRow | null> {
-  const result = await createPayrollPrivateClient().from('payroll_connection_credentials')
-    .select('tenant_id, hr_group_id, connection_id, credential_version, encrypted_access_token, encrypted_refresh_token, expires_at, provider_metadata, created_at, updated_at')
-    .eq('tenant_id', tenantId)
-    .eq('hr_group_id', hrGroupId)
-    .eq('connection_id', connectionId)
-    .order('credential_version', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const result = await createPayrollPrivateClient().latestCredential(tenantId, hrGroupId, connectionId)
   if (result.error) throw new PayrollServiceError('PAYROLL_CREDENTIAL_READ_FAILED')
   return privateRow<PayrollCredentialRow>(result.data)
 }
 
 async function consumeOAuthState(state: string): Promise<PayrollOAuthStateRow> {
   const hash = hashPayrollOAuthState(state)
-  const privateClient = createPayrollPrivateClient()
-  const current = await privateClient.from('payroll_oauth_states')
-    .select('state_hash, tenant_id, hr_group_id, provider_id, connection_id, initiated_by_user_id, redirect_uri, requested_scopes, expires_at, consumed_at, created_at')
-    .eq('state_hash', hash)
-    .is('consumed_at', null)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-  if (current.error) throw new PayrollServiceError('PAYROLL_OAUTH_STATE_READ_FAILED', 400)
-  const stateRow = privateRow<PayrollOAuthStateRow>(current.data)
-  if (!stateRow) throw new PayrollServiceError('PAYROLL_OAUTH_STATE_INVALID', 400)
   const consumedAt = new Date().toISOString()
-  const consumed = await privateClient.from('payroll_oauth_states')
-    .update({ consumed_at: consumedAt })
-    .eq('state_hash', hash)
-    .is('consumed_at', null)
-    .gt('expires_at', consumedAt)
-    .select('state_hash, tenant_id, hr_group_id, provider_id, connection_id, initiated_by_user_id, redirect_uri, requested_scopes, expires_at, consumed_at, created_at')
-    .maybeSingle()
+  const consumed = await createPayrollPrivateClient().consumeOAuthState(hash, consumedAt)
   if (consumed.error) throw new PayrollServiceError('PAYROLL_OAUTH_STATE_CONSUME_FAILED', 400)
   const consumedRow = privateRow<PayrollOAuthStateRow>(consumed.data)
   if (!consumedRow) throw new PayrollServiceError('PAYROLL_OAUTH_STATE_REPLAYED', 400)
@@ -364,17 +341,16 @@ export async function startNmbrsAuthorization(connectionIdInput?: unknown): Prom
   }
   const state = createPayrollOAuthState()
   const expiresAt = new Date(Date.now() + PAYROLL_OAUTH_STATE_MAX_AGE_SECONDS * 1000)
-  const privateClient = createPayrollPrivateClient()
-  const stateInsert = await privateClient.from('payroll_oauth_states').insert({
-    state_hash: hashPayrollOAuthState(state),
-    tenant_id: auth.tenantId,
-    hr_group_id: hrGroupId,
-    provider_id: providerRow.id,
-    connection_id: connection.id,
-    initiated_by_user_id: auth.userId,
-    redirect_uri: redirectValue,
-    requested_scopes: [...NMBRS_P1_SCOPES],
-    expires_at: expiresAt.toISOString(),
+  const stateInsert = await createPayrollPrivateClient().insertOAuthState({
+    stateHash: hashPayrollOAuthState(state),
+    tenantId: auth.tenantId,
+    hrGroupId: hrGroupId,
+    providerId: providerRow.id,
+    connectionId: connection.id,
+    initiatedByUserId: auth.userId,
+    redirectUri: redirectValue,
+    requestedScopes: [...NMBRS_P1_SCOPES],
+    expiresAt: expiresAt.toISOString(),
   })
   if (stateInsert.error) throw new PayrollServiceError('PAYROLL_OAUTH_STATE_WRITE_FAILED')
   const authorization = await nmbrsClient({ redirectUri: redirectValue, state })
@@ -399,15 +375,15 @@ export async function completeNmbrsAuthorization(input: { state: unknown; code: 
     if (!tokenSet.refreshToken) throw new PayrollServiceError('PAYROLL_REFRESH_TOKEN_MISSING', 502)
     const current = await latestCredential(connection.tenant_id, connection.hr_group_id, connection.id)
     const credentialVersion = (current?.credential_version ?? 0) + 1
-    const credentialInsert = await createPayrollPrivateClient().from('payroll_connection_credentials').insert({
-      tenant_id: connection.tenant_id,
-      hr_group_id: connection.hr_group_id,
-      connection_id: connection.id,
-      credential_version: credentialVersion,
-      encrypted_access_token: encryptPayrollCredential(tokenSet.accessToken),
-      encrypted_refresh_token: encryptPayrollCredential(tokenSet.refreshToken),
-      expires_at: tokenSet.expiresAt,
-      provider_metadata: { scope: tokenSet.scope, provider: 'NMBRS' },
+    const credentialInsert = await createPayrollPrivateClient().insertCredential({
+      tenantId: connection.tenant_id,
+      hrGroupId: connection.hr_group_id,
+      connectionId: connection.id,
+      credentialVersion,
+      encryptedAccessToken: encryptPayrollCredential(tokenSet.accessToken),
+      encryptedRefreshToken: encryptPayrollCredential(tokenSet.refreshToken),
+      expiresAt: tokenSet.expiresAt,
+      providerMetadata: { scope: tokenSet.scope, provider: 'NMBRS' },
     })
     if (credentialInsert.error) throw new PayrollServiceError('PAYROLL_CREDENTIAL_WRITE_FAILED')
     const reconnected = connection.connected_at !== null || connection.status === 'DISCONNECTED'
@@ -470,15 +446,15 @@ async function accessTokenForConnection(connection: ConnectionRow, forceRefresh 
   }
   const refreshedAccess = encryptPayrollCredential(refreshed.accessToken)
   const refreshedRefresh = encryptPayrollCredential(refreshed.refreshToken ?? refreshToken)
-  const inserted = await createPayrollPrivateClient().from('payroll_connection_credentials').insert({
-    tenant_id: current.tenant_id,
-    hr_group_id: current.hr_group_id,
-    connection_id: current.connection_id,
-    credential_version: current.credential_version + 1,
-    encrypted_access_token: refreshedAccess,
-    encrypted_refresh_token: refreshedRefresh,
-    expires_at: refreshed.expiresAt,
-    provider_metadata: { scope: refreshed.scope, provider: 'NMBRS' },
+  const inserted = await createPayrollPrivateClient().insertCredential({
+    tenantId: current.tenant_id,
+    hrGroupId: current.hr_group_id,
+    connectionId: current.connection_id,
+    credentialVersion: current.credential_version + 1,
+    encryptedAccessToken: refreshedAccess,
+    encryptedRefreshToken: refreshedRefresh,
+    expiresAt: refreshed.expiresAt,
+    providerMetadata: { scope: refreshed.scope, provider: 'NMBRS' },
   })
   if (inserted.error) {
     const newest = await latestCredential(connection.tenant_id, connection.hr_group_id, connection.id)
@@ -666,7 +642,7 @@ export async function disconnectNmbrsConnection(connectionIdInput: unknown): Pro
       revocationError = error
     }
   }
-  const deleted = await createPayrollPrivateClient().from('payroll_connection_credentials').delete().eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('connection_id', connection.id)
+  const deleted = await createPayrollPrivateClient().deleteCredentials(auth.tenantId, hrGroupId, connection.id)
   if (deleted.error) throw new PayrollServiceError('PAYROLL_CREDENTIAL_DELETE_FAILED')
   const now = new Date().toISOString()
   const bindings = await admin.from('payroll_company_bindings').update({ status: 'INACTIVE', unbound_at: now }).eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('connection_id', connection.id).eq('status', 'ACTIVE')

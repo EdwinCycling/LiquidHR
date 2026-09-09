@@ -34,39 +34,92 @@ export type PayrollPrivateQueryResult<T> = {
   readonly error: { readonly message?: string; readonly code?: string } | null
 }
 
-export type PayrollPrivateQuery = PromiseLike<PayrollPrivateQueryResult<unknown>> & {
-  select: (columns?: string) => PayrollPrivateQuery
-  insert: (values: Record<string, unknown> | readonly Record<string, unknown>[]) => PayrollPrivateQuery
-  update: (values: Record<string, unknown>) => PayrollPrivateQuery
-  delete: () => PayrollPrivateQuery
-  eq: (column: string, value: unknown) => PayrollPrivateQuery
-  is: (column: string, value: null) => PayrollPrivateQuery
-  gt: (column: string, value: unknown) => PayrollPrivateQuery
-  order: (column: string, options?: { readonly ascending?: boolean }) => PayrollPrivateQuery
-  limit: (count: number) => PayrollPrivateQuery
-  maybeSingle: () => Promise<PayrollPrivateQueryResult<unknown>>
-  single: () => Promise<PayrollPrivateQueryResult<unknown>>
+export type PayrollOAuthStateInsert = {
+  readonly stateHash: string
+  readonly tenantId: string
+  readonly hrGroupId: string
+  readonly providerId: string
+  readonly connectionId: string | null
+  readonly initiatedByUserId: string
+  readonly redirectUri: string
+  readonly requestedScopes: readonly string[]
+  readonly expiresAt: string
 }
 
-type PayrollPrivateTable = 'payroll_connection_credentials' | 'payroll_oauth_states'
+export type PayrollCredentialInsert = {
+  readonly tenantId: string
+  readonly hrGroupId: string
+  readonly connectionId: string
+  readonly credentialVersion: number
+  readonly encryptedAccessToken: string
+  readonly encryptedRefreshToken: string | null
+  readonly expiresAt: string | null
+  readonly providerMetadata: Record<string, unknown>
+}
 
 type PayrollPrivateClient = {
-  from: (table: PayrollPrivateTable) => PayrollPrivateQuery
+  insertOAuthState: (input: PayrollOAuthStateInsert) => PromiseLike<PayrollPrivateQueryResult<unknown>>
+  consumeOAuthState: (stateHash: string, consumedAt: string) => PromiseLike<PayrollPrivateQueryResult<unknown>>
+  latestCredential: (tenantId: string, hrGroupId: string, connectionId: string) => PromiseLike<PayrollPrivateQueryResult<unknown>>
+  insertCredential: (input: PayrollCredentialInsert) => PromiseLike<PayrollPrivateQueryResult<unknown>>
+  deleteCredentials: (tenantId: string, hrGroupId: string, connectionId: string) => PromiseLike<PayrollPrivateQueryResult<unknown>>
 }
 
-type SchemaClient = {
-  schema: (schema: string) => unknown
+type PayrollRpcClient = {
+  rpc: (functionName: string, args: Record<string, unknown>) => PromiseLike<PayrollPrivateQueryResult<unknown>>
 }
 
 export function createPayrollPrivateClient(): PayrollPrivateClient {
-  const client = createAdminClient() as unknown as SchemaClient
-  return client.schema('payroll_private') as PayrollPrivateClient
+  const client = createAdminClient() as unknown as PayrollRpcClient
+  return {
+    insertOAuthState(input) {
+      return client.rpc('payroll_private_insert_oauth_state', {
+        requested_state_hash: input.stateHash,
+        requested_tenant_id: input.tenantId,
+        requested_hr_group_id: input.hrGroupId,
+        requested_provider_id: input.providerId,
+        requested_connection_id: input.connectionId,
+        requested_initiated_by_user_id: input.initiatedByUserId,
+        requested_redirect_uri: input.redirectUri,
+        requested_requested_scopes: [...input.requestedScopes],
+        requested_expires_at: input.expiresAt,
+      })
+    },
+    consumeOAuthState(stateHash, consumedAt) {
+      return client.rpc('payroll_private_consume_oauth_state', {
+        requested_state_hash: stateHash,
+        requested_consumed_at: consumedAt,
+      })
+    },
+    latestCredential(tenantId, hrGroupId, connectionId) {
+      return client.rpc('payroll_private_latest_credential', {
+        requested_tenant_id: tenantId,
+        requested_hr_group_id: hrGroupId,
+        requested_connection_id: connectionId,
+      })
+    },
+    insertCredential(input) {
+      return client.rpc('payroll_private_insert_credential', {
+        requested_tenant_id: input.tenantId,
+        requested_hr_group_id: input.hrGroupId,
+        requested_connection_id: input.connectionId,
+        requested_credential_version: input.credentialVersion,
+        requested_encrypted_access_token: input.encryptedAccessToken,
+        requested_encrypted_refresh_token: input.encryptedRefreshToken,
+        requested_expires_at: input.expiresAt,
+        requested_provider_metadata: input.providerMetadata,
+      })
+    },
+    deleteCredentials(tenantId, hrGroupId, connectionId) {
+      return client.rpc('payroll_private_delete_credentials', {
+        requested_tenant_id: tenantId,
+        requested_hr_group_id: hrGroupId,
+        requested_connection_id: connectionId,
+      })
+    },
+  }
 }
 
 export function privateRow<T>(value: unknown): T | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as T : null
-}
-
-export function privateRows<T>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : []
 }
