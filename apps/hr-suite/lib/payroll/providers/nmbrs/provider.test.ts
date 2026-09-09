@@ -30,7 +30,7 @@ describe('Nmbrs Payroll adapter P1 boundary', () => {
     expect(result?.authorizationUrl).toContain('https://identityservice.nmbrs.com/connect/authorize')
     const url = new URL(result?.authorizationUrl ?? '')
     expect(url.searchParams.get('response_type')).toBe('code')
-    expect(url.searchParams.get('scope')).toBe('offline_access company.info.read user.info.read')
+    expect(url.searchParams.get('scope')).toBe('offline_access company.info.read')
   })
 
   it('discovers only company metadata through the official endpoint', async () => {
@@ -45,14 +45,14 @@ describe('Nmbrs Payroll adapter P1 boundary', () => {
 
   it('exchanges authorization codes and rotates refresh credentials server-side', async () => {
     const fetcher = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(response({ access_token: 'access-1', refresh_token: 'refresh-1', expires_in: 900, scope: 'offline_access company.info.read user.info.read' }))
-      .mockResolvedValueOnce(response({ access_token: 'access-2', refresh_token: 'refresh-2', expires_in: 900, scope: 'offline_access company.info.read user.info.read' }))
+      .mockResolvedValueOnce(response({ access_token: 'access-1', refresh_token: 'refresh-1', expires_in: 900, scope: 'offline_access company.info.read' }))
+      .mockResolvedValueOnce(response({ access_token: 'access-2', refresh_token: 'refresh-2', expires_in: 900, scope: 'offline_access company.info.read' }))
     const client = new NmbrsClient({ config: clientConfig, fetcher, now: () => 1_700_000_000_000 })
 
     const exchanged = await client.exchangeAuthorizationCode({ code: 'authorization-code', redirectUri: clientConfig.redirectUri })
     const refreshed = await client.refreshCredentials('refresh-1')
 
-    expect(exchanged).toMatchObject({ accessToken: 'access-1', refreshToken: 'refresh-1', scope: 'offline_access company.info.read user.info.read' })
+    expect(exchanged).toMatchObject({ accessToken: 'access-1', refreshToken: 'refresh-1', scope: 'offline_access company.info.read' })
     expect(refreshed).toMatchObject({ accessToken: 'access-2', refreshToken: 'refresh-2' })
     expect(fetcher).toHaveBeenCalledTimes(2)
     const exchangeInit = fetcher.mock.calls[0]?.[1]
