@@ -2,9 +2,9 @@
 
 Status: **PAYROLL P1 DEVELOPMENT ACCEPTANCE: BLOCKED** (P0 remains GREEN; the server-only RPC façade and local/DEV security gates are GREEN, while hosted real Nmbrs E2E still needs a deployment of the fix).
 
-Evidence captured on 2026-09-09 in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\payroll-p0-p1`, branch `work/payroll-p0-p1`, against DEV/TEST Supabase project `wnpfloqpjvaacobppbpk`. Production Supabase, `main`, other worktrees and `apps/hr-suite/next-env.d.ts` were not changed. The previously authorized Vercel environment setup added only the key name `PAYROLL_CREDENTIAL_ENCRYPTION_KEY` to Vercel Production; its value was never read back, printed, logged or committed. No additional Vercel deployment was triggered after the façade fix.
+Evidence captured on 2026-09-09 in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\payroll-p0-p1`, branch `work/payroll-p0-p1`, against DEV/TEST Supabase project `wnpfloqpjvaacobppbpk`. Production Supabase, `main`, other worktrees and `apps/hr-suite/next-env.d.ts` were not changed. The Vercel environment-name check confirmed the required encrypted entries by name only; secret values were never read back, printed, logged or committed. The one explicitly authorized post-push Vercel deployment was created from this P1 state but was server-side `BLOCKED` before runtime activation by the Hobby-team collaboration guard; no later deployment or retry was made.
 
-The original P1 implementation is committed and pushed. The advisor-index migration and the minimal server-only RPC façade are applied on DEV. Acceptance cannot be GREEN yet because the existing hosted deployment still runs the pre-façade commit and a second deployment is required to exercise the fixed runtime; no real Nmbrs OAuth round-trip is claimed from the old build.
+The original P1 implementation and closure commits are committed and pushed. The advisor-index migration and the minimal server-only RPC façade are applied on DEV. Acceptance cannot be GREEN yet because the existing hosted deployment still runs the pre-façade commit and the new deployment was blocked before activation; no real Nmbrs OAuth round-trip is claimed.
 
 ## Scope and baseline
 
@@ -130,8 +130,8 @@ Grant readback for every Payroll table:
 - Health uses Nmbrs user-info; company discovery uses metadata-only `/api/companies` pagination. No `/employees` or `/employments` provider endpoint exists in the adapter/service.
 - Disconnect revokes access and refresh credentials best-effort, deletes private credentials, inactivates companies/bindings and audits the outcome. Bind/unbind is tenant/HR-group/administration scoped.
 - The persistence adapter in `lib/payroll/server/private-client.ts` is the only code path that calls the five façade RPC names. It is `server-only`; `payroll-service.ts` calls the adapter methods and retains all OAuth, authorization, token, health, binding and audit business logic. No browser/client component calls the RPC, and `PayrollProvider` and the API route architecture are unchanged.
-- Local `.env.example` and Vercel environment-name readback confirm the Nmbrs client/subscription variables exist by name only; values were never read back or printed. The encryption key is configured for Vercel Production by name only; the existing deployment needs a new deployment to receive the façade fix.
-- P0 made no Nmbrs network call. P1 provider calls were covered with mocked wire-contract tests only. The old hosted build did reach `/api/payroll/providers/nmbrs/authorize`, but returned `500` before the Nmbrs redirect because it still called the non-exposed `payroll_private` schema. No real OAuth/company/health/revoke call was executed; the fixed runtime is not yet hosted.
+- Local `.env.example` and Vercel environment-name readback confirm the Nmbrs client/subscription variables exist by name only; values were never read back or printed. The encryption key is configured for Vercel Production by name only. The post-push deployment was sourced from `bf51065276352136ec4831ee0cd620ddb778e9ed` but was blocked before runtime activation.
+- P0 made no Nmbrs network call. P1 provider calls were covered with mocked wire-contract tests only. The old hosted build did reach `/api/payroll/providers/nmbrs/authorize`, but returned `500` before the Nmbrs redirect because it still called the non-exposed `payroll_private` schema. The fixed deployment `dpl_J6BJuruFW8NUPm1ca6UbYHQr5wh2` was `BLOCKED` with no build error, so no real OAuth/company/health/revoke call was executed.
 
 Official Nmbrs contract references used by the adapter: [scopes](https://developer.payroll.nmbrs.com/docs/auth/scopes), [how-to/OIDC](https://developer.payroll.nmbrs.com/how-to), [authentication](https://nmbrs.stoplight.io/docs/nmbrs-restapi/e9e0f5292b4a1-authentication), [company list](https://nmbrs.stoplight.io/docs/nmbrs-restapi/5fad7a8461a01-get-company-list).
 
@@ -190,8 +190,9 @@ Relevant current DEV advisor output:
 
 - Existing Vercel deployment `dpl_6evf2p7D398NyxbPYL7o8Ev8tEvr` is READY/Production for project `liquidhr`, branch `work/payroll-p0-p1`, source commit `5d57323281b07bc2601c751db384ef3ad517ea6d`. It is the previously authorized deployment and does not contain the façade fix.
 - Its runtime logs show `/api/payroll/providers/nmbrs/authorize` returning `500` at `2026-09-09T13:08:20Z`, `13:09:36Z`, `13:10:05Z` and `13:12:17Z`; the old code still attempted the non-exposed `payroll_private` schema and returned `PAYROLL_OAUTH_STATE_WRITE_FAILED` before the Nmbrs redirect.
-- The original P1 commit was pushed successfully: `origin/work/payroll-p0-p1` points to `5d57323281b07bc2601c751db384ef3ad517ea6d`. The façade/type/migration/test/evidence closure is committed locally as `0ca7227ce9580c324e2afda7e61c63eb27a8c3d3`; no merge to `main` occurred.
-- No second Vercel deployment was triggered after the façade fix. The hosted real Nmbrs OAuth, health, discovery, bind/unbind/reconnect/disconnect and remote audit E2E gates therefore remain open.
+- The full P1 closure through `bf51065276352136ec4831ee0cd620ddb778e9ed` was pushed successfully to `origin/work/payroll-p0-p1`; no merge to `main` occurred.
+- The one post-push deployment attempt `dpl_J6BJuruFW8NUPm1ca6UbYHQr5wh2` (`liquidhr-gy6kf8pkb-edwinitsolutions.vercel.app`) targeted Production for project `prj_h3voMtzXGfqG6QTodR5d1VTcC1zP`, source commit `bf51065276352136ec4831ee0cd620ddb778e9ed`, and returned `BLOCKED` with no build errors. Vercel linked the block to team configuration (`https://vercel.com/docs/deployments/troubleshoot-project-collaboration`); the team is Hobby and the commit identity could not be associated for collaboration. No deployment became runtime-active and no retry was made.
+- The hosted real Nmbrs OAuth, health, discovery, bind/unbind/reconnect/disconnect and remote audit E2E gates therefore remain open. The temporary local `.vercel` link metadata was removed and `.gitignore` restored after the attempt; the worktree is clean.
 - The exact `C:\Users\Edwin\Documents\Apps\LiquidHR\.git\worktrees\payroll-p0-p1\index.lock` was absent at recovery time; no alternate index, force, reset or cleanup workaround was used. Protected `.env.local` and `next-env.d.ts` were not staged.
 
 ## Gate disposition
@@ -202,9 +203,9 @@ Relevant current DEV advisor output:
 | P1 local schema/code/types/tests/build/security boundary | GREEN; intentional unused-index INFO only |
 | P1 remote advisor follow-up migration | GREEN — remote `20260909125131 / payroll_p1_advisor_indexes` |
 | P1 private RPC façade/readback/replay protection | GREEN — remote `20260909133103 / payroll_p1_private_rpc_facade` |
-| P1 hosted deployment and real Nmbrs E2E | BLOCKED — existing deployment predates façade; second deployment authorization is not yet available |
+| P1 hosted deployment and real Nmbrs E2E | BLOCKED — new deployment `dpl_J6BJuruFW8NUPm1ca6UbYHQr5wh2` was blocked by Vercel Hobby-team collaboration configuration before runtime activation |
 | Commit feature branch | GREEN — `0ca7227ce9580c324e2afda7e61c63eb27a8c3d3` |
-| Push feature branch | original `5d57323281b07bc2601c751db384ef3ad517ea6d` GREEN; closure push BLOCKED by `SEC_E_NO_CREDENTIALS` |
+| Push feature branch | GREEN — remote `work/payroll-p0-p1` reached `bf51065276352136ec4831ee0cd620ddb778e9ed` |
 | Production / main / other worktrees | untouched |
 
 Final status: **PAYROLL P1 DEVELOPMENT ACCEPTANCE: BLOCKED**.
