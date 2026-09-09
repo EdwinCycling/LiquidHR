@@ -30,7 +30,11 @@ describe('Nmbrs Payroll adapter P1 boundary', () => {
     expect(result?.authorizationUrl).toContain('https://identityservice.nmbrs.com/connect/authorize')
     const url = new URL(result?.authorizationUrl ?? '')
     expect(url.searchParams.get('response_type')).toBe('code')
-    expect(url.searchParams.get('scope')).toBe('offline_access company.info.read')
+    expect(url.searchParams.get('scope')).toBe('nmbrs offline_access company.info.read')
+    expect(url.searchParams.get('audience')).toBeNull()
+    expect(url.searchParams.get('resource')).toBeNull()
+    expect(url.searchParams.get('code_challenge')).toBeNull()
+    expect(url.searchParams.get('code_challenge_method')).toBeNull()
   })
 
   it('discovers only company metadata through the official endpoint', async () => {
