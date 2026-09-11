@@ -1,0 +1,1 @@
+drop policy if exists employment_contracts_hr_group_read on public.employment_contracts;

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import type { Database, Json } from '@scope/db'
-import { AuthorizationError, getRequestAuthorizationContext, requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthenticationError, AuthorizationError, getRequestAuthorizationContext, requireAnyPermission, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createBsnFingerprint } from '@/lib/security/bsn-fingerprint'
 import { createClient } from '@/lib/supabase/server'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
@@ -297,6 +297,13 @@ async function resolveEmploymentAdministration(employeeId: string, requestedAdmi
     throw new EmploymentServiceError('ADMINISTRATION_NOT_FOUND', 404)
   }
   return { context: authorization.context, supabase: authorization.supabase, administrationId, administrations }
+}
+
+async function verifyEmploymentRequestUser(supabase: SupabaseServerClient, expectedUserId: string): Promise<void> {
+  const { data, error } = await supabase.auth.getUser()
+  if (error || !data.user || data.user.id !== expectedUserId) {
+    throw new AuthenticationError('Je bent niet ingelogd.')
+  }
 }
 
 async function getRehireEmploymentDefaults(
@@ -619,6 +626,7 @@ export async function publishCompleteEmployment(
     requested_administration_id: administrationId,
     requested_payload: requestedInput as Json,
   }
+  await verifyEmploymentRequestUser(supabase, context.userId)
   const { data, error } = input.salary?.salaryRoute
     ? await supabase.rpc('publish_complete_salary_application_employment', rpcArgs)
     : await supabase.rpc('publish_complete_employment', rpcArgs)

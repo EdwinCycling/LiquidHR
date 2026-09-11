@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { createContext, type FormEvent, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown } from 'lucide-react'
 import { CountryPicker } from '@/components/ui/country-picker'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
@@ -22,6 +22,12 @@ type WorkerType = 'EMPLOYEE' | 'STUDENT_INTERN' | 'TEMPORARY_AGENCY' | 'EXTERNAL
 type DurationType = 'INDEFINITE' | 'DEFINITE' | 'TEMPORARY_NO_END'
 type SalaryBasis = 'MANUAL' | 'MINIMUM_WAGE' | 'CUSTOM_SCALE' | 'SALARY_BAND'
 type StepKey = EmploymentWizardStep
+
+export function resolveFulltimeSalaryAmount(salaryBasis: SalaryBasis, selectedScaleAmount: number | undefined, manualAmount: string): number {
+  return salaryBasis === 'CUSTOM_SCALE' && selectedScaleAmount !== undefined
+    ? selectedScaleAmount
+    : parseDecimalInput(manualAmount)
+}
 
 export interface EmploymentCreateFormProps {
   employeeId: string
@@ -473,8 +479,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, loca
     setStep((current) => Math.min(current + 1, stepKeys.length - 1)); setState('idle')
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
+  async function submit(): Promise<void> {
     if (!canSubmitEmploymentWizard(currentStep)) {
       next()
       return
@@ -503,7 +508,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, loca
         if (!bsnResponse.ok) { const result = await bsnResponse.json().catch(() => ({ error: '' })) as { error?: string }; setErrorCode(bsnResponse.status === 400 ? REQUIRED_FIELDS_ERROR : result.error ?? GENERIC_ERROR); onSaveFailed?.(); setState('failed'); return }
         setBsnSaved(true)
       }
-      const fulltimeAmount = selectedScale?.fulltimeAmount ?? parseDecimalInput(draft.fulltimeAmount)
+      const fulltimeAmount = resolveFulltimeSalaryAmount(draft.salaryBasis, selectedScale?.fulltimeAmount, draft.fulltimeAmount)
       const standardHours = selectedLaborSet?.standardHoursPerWeek ?? 40
       const factor = draft.isOnCall ? 0 : calculateCappedPartTimeFactor(parseDecimalInput(draft.weeklyHours), standardHours)
       const workScope = draft.isOnCall ? null : deriveEmploymentWorkScope(parseDecimalInput(draft.weeklyHours), standardHours)
@@ -558,7 +563,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, loca
   const inputClass = 'form-field'
   if (!prerequisitesComplete) return <employmentFieldLabelsContext.Provider value={labels}><section className="flex min-h-full flex-col rounded-2xl border bg-surface p-5 pb-3 shadow-sm"><h3 className="text-lg font-semibold">{labels.prerequisitesTitle}</h3><div className="mt-5 grid gap-4 sm:grid-cols-2"><Field required label={labels.country}><CountryPicker value={draft.countryCode} onChange={(value) => update('countryCode', value)} searchLabel={labels.countrySearch} emptyLabel={labels.countryNoResults} /></Field><Field required label={labels.nationality}><CountryPicker value={draft.nationality} onChange={(value) => update('nationality', value)} searchLabel={labels.countrySearch} emptyLabel={labels.countryNoResults} /></Field><Field required label={labels.birthDate}><input type="date" className={inputClass} value={draft.birthDate} onChange={(event) => update('birthDate', event.target.value)} /></Field><Field required label={labels.gender}><select className={inputClass} value={draft.gender} onChange={(event) => update('gender', event.target.value)}><option value="" /><option value="MALE">{labels.genderMale}</option><option value="FEMALE">{labels.genderFemale}</option><option value="OTHER">{labels.genderOther}</option><option value="PREFER_NOT_TO_SAY">{labels.genderUndisclosed}</option></select></Field>{draft.countryCode === 'NL' && !options.prerequisites.hasBsn && <Field label={labels.bsn}><input inputMode="numeric" className={inputClass} value={draft.bsn} onChange={(event) => update('bsn', event.target.value)} /><span className="text-xs font-normal text-muted-foreground">{labels.bsnOptionalHelp}</span></Field>}</div>{state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{errorMessage(errorCode, labels)}</p>}<div className="sticky bottom-0 z-10 mt-8 flex items-center justify-between gap-3 border-t border-border/70 bg-surface/95 py-3">{onCancel && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving'} onClick={onCancel}>{labels.cancel}</button>}<button type="button" className="button-primary ml-auto" disabled={state === 'saving'} onClick={() => void savePrerequisites()}>{labels.savePrerequisites}</button></div></section></employmentFieldLabelsContext.Provider>
 
-  return <employmentFieldLabelsContext.Provider value={labels}><form onSubmit={(event) => void submit(event)} className="flex min-h-full min-w-0 flex-col rounded-2xl border bg-surface p-5 shadow-sm">
+  return <employmentFieldLabelsContext.Provider value={labels}><form onSubmit={(event) => event.preventDefault()} className="flex min-h-full min-w-0 flex-col rounded-2xl border bg-surface p-5 shadow-sm">
     {showNavigation && <nav aria-label={labels.title}><ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">{stepKeys.map((key, index) => <li key={key} className={`rounded-xl border px-3 py-2 text-center text-xs font-semibold ${index === step ? 'border-primary bg-primary/10 text-primary' : index < step ? 'border-success/40 bg-success/10' : 'text-muted-foreground'}`}>{index + 1}. {stepLabels[key]}</li>)}</ol></nav>}
     {optionsLoading && <p className="mt-4 flex items-center gap-2 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{labels.optionsLoading}</p>}
 
@@ -636,7 +641,7 @@ export function EmploymentCreateForm({ employeeId, options: initialOptions, loca
 
     {currentStep === 'review' && <WizardStep title={labels.completeSummary}>{employeeSummary && <EmployeeSummaryCard summary={employeeSummary} labels={labels} />}<p className="text-sm text-muted-foreground">{labels.createHint}</p>{invalidStepKeys.length > 0 && <div role="alert" className="mt-4 rounded-xl border border-warning/40 bg-warning-surface p-4 text-sm"><p className="font-semibold">{labels.reviewMissingFields}</p><div className="mt-2 flex flex-wrap gap-2">{invalidStepKeys.map((key) => <button type="button" className="button-secondary text-xs" key={key} onClick={() => setStep(stepKeys.indexOf(key))}>{labels.reviewEditStep}: {stepLabels[key]}</button>)}</div></div>}<dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Summary label={labels.administration} value={options.administrations.find((item) => item.id === draft.administrationId)?.name ?? ''} /><Summary label={labels.employmentNumber} value={draft.employmentNumber} /><Summary label={labels.workerType} value={draft.employmentType} /><Summary label={labels.startDate} value={formatDate(draft.startsOn, { locale, dateFormat })} />{payrollDetails && <><Summary label={labels.laborConditions} value={selectedLaborSet?.name ?? ''} /><Summary label={labels.weeklyHours} value={draft.weeklyHours} /><Summary label={labels.department} value={options.departments.find((item) => item.id === draft.departmentId)?.name ?? ''} /><Summary label={labels.job} value={selectedJob?.name ?? ''} />{options.canWriteSalary && <Summary label={parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? labels.fulltimeSalary : labels.parttimeSalary} value={draft.salaryBasis === 'MINIMUM_WAGE' ? (minimumRate ? `€ ${money(minimumRate.hourlyAmount)}` : '') : `€ ${money(parseDecimalInput(draft.weeklyHours) === selectedFulltimeHours ? draft.fulltimeAmount : draft.parttimeAmount)}`} />}</>}</dl></WizardStep>}
 
-    {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{errorMessage(errorCode, labels)}</p>}{state === 'saved' && <p className="mt-4 text-sm text-success">{labels.saved}</p>}<div className="sticky bottom-0 z-10 mt-8 flex items-center justify-between gap-3 border-t border-border/70 bg-surface/95 py-3 backdrop-blur-sm"><div className="flex min-w-0 items-center gap-2">{onCancel && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving'} onClick={onCancel}>{labels.cancel}</button>}{step > 0 && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving' || optionsLoading} onClick={() => setStep((current) => Math.max(0, current - 1))}>{labels.previous}</button>}</div><EmploymentScrollHint label={moreDataAvailable} visible={canScrollDown} />{step < stepKeys.length - 1 ? <button type="button" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading || payrollChoicePending || (currentStep === 'employment' && !draft.employmentType)} onClick={next}>{labels.next}</button> : <button type="submit" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading}>{labels.submit}</button>}</div>
+    {state === 'failed' && <p role="alert" className="mt-4 text-sm text-destructive">{errorMessage(errorCode, labels)}</p>}{state === 'saved' && <p className="mt-4 text-sm text-success">{labels.saved}</p>}<div className="sticky bottom-0 z-10 mt-8 flex items-center justify-between gap-3 border-t border-border/70 bg-surface/95 py-3 backdrop-blur-sm"><div className="flex min-w-0 items-center gap-2">{onCancel && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving'} onClick={onCancel}>{labels.cancel}</button>}{step > 0 && <button type="button" className="button-secondary shrink-0" disabled={state === 'saving' || optionsLoading} onClick={() => setStep((current) => Math.max(0, current - 1))}>{labels.previous}</button>}</div><EmploymentScrollHint label={moreDataAvailable} visible={canScrollDown} />{step < stepKeys.length - 1 ? <button type="button" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading || payrollChoicePending || (currentStep === 'employment' && !draft.employmentType)} onClick={next}>{labels.next}</button> : <button type="button" className="button-primary shrink-0" disabled={state === 'saving' || optionsLoading} onClick={() => void submit()}>{labels.submit}</button>}</div>
   </form></employmentFieldLabelsContext.Provider>
 }
 

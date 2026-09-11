@@ -26,6 +26,7 @@ function createFakeClient(options: FakeClientOptions = {}) {
   return {
     auth: {
       getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'user-1' } }, error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null }),
     },
     rpc,
     from(table: string) {

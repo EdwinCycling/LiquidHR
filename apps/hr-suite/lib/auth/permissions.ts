@@ -48,6 +48,11 @@ export const getRequestAuthorizationContext = cache(async (): Promise<RequestAut
 
   if (claimsError || !userId) throw new AuthenticationError('Je bent niet ingelogd.')
 
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+  if (userError || !userData.user || userData.user.id !== userId) {
+    throw new AuthenticationError('Je bent niet ingelogd.')
+  }
+
   const activeContext = await loadActiveContext(userId, supabase)
   return {
     supabase,
