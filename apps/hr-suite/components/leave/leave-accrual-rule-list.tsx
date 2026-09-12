@@ -45,8 +45,8 @@ function frequencyLabel(frequency: LeaveCatalog['accrualRules'][number]['accrual
   return labels.yearly
 }
 
-export function LeaveAccrualRuleList({ catalog, leaveTypeId, labels, onAdd, onSelect }: { catalog: LeaveCatalog; leaveTypeId: string; labels: Labels; onAdd: () => void; onSelect: (ruleId: string) => void }) {
-  const rules = catalog.accrualRules.filter((rule) => rule.leave_type_id === leaveTypeId).sort((left, right) => left.valid_from.localeCompare(right.valid_from))
+export function LeaveAccrualRuleList({ catalog, leaveTypeId, profileId, labels, onAdd, onSelect }: { catalog: LeaveCatalog; leaveTypeId: string; profileId?: string; labels: Labels; onAdd: () => void; onSelect: (ruleId: string) => void }) {
+  const rules = catalog.accrualRules.filter((rule) => rule.leave_type_id === leaveTypeId && (!profileId || rule.leave_profile_id === profileId)).sort((left, right) => left.valid_from.localeCompare(right.valid_from))
   const profileNames = new Map(catalog.profiles.map((profile) => [profile.id, profile.name]))
   return (
     <Surface className="p-5 sm:p-6">

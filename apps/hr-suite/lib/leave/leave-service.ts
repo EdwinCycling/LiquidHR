@@ -66,6 +66,19 @@ async function assertWorkHourTypeNameAvailable(
   }
 }
 
+async function assertLeaveProfileNameAvailable(
+  supabase: SupabaseServerClient,
+  context: Awaited<ReturnType<typeof requireAuthContext>>,
+  hrGroupId: string,
+  name: string,
+  id?: string,
+) {
+  const result = await supabase.from('leave_profiles').select('id, name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(500)
+  if (result.error) databaseError(result.error)
+  const normalizedName = name.trim().toLocaleLowerCase()
+  if (result.data.some((item) => item.id !== id && item.name.trim().toLocaleLowerCase() === normalizedName)) throw new LeaveServiceError('LEAVE_PROFILE_NAME_EXISTS', 409)
+}
+
 async function loadEmployment(
   supabase: SupabaseServerClient,
   context: Awaited<ReturnType<typeof requireAuthContext>>,
@@ -249,7 +262,7 @@ export async function listLeaveCatalog() {
   const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
-  const [leaveTypes, workHourTypes, overtimeSettings, profiles, rules, bonusRules, bonusTiers, priorityRules, priorityRuleItems, accrualRuleWorkHourTypes, accrualRulePauseTypes, leaveAccrualExceptions, exceptionEmployees, exceptionEmployments, employeeSets, employeeSetMembers, leaveTypeOvertimeWorkHours] = await Promise.all([
+  const [leaveTypes, workHourTypes, overtimeSettings, profiles, rules, bonusRules, bonusTiers, priorityRules, priorityRuleItems, accrualRuleWorkHourTypes, accrualRulePauseTypes, leaveAccrualExceptions, exceptionEmployees, exceptionEmployments, employeeSets, employeeSetMembers, leaveTypeOvertimeWorkHours, employmentLeaveProfiles] = await Promise.all([
     supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap, is_active, is_self_service, is_system, allow_limit_overrun, pin_in_calendar, requires_manager_approval, notify_manager_on_request, requires_manager_approval_on_cancellation').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
     supabase.from('work_hour_types').select('id, name, color_code, category, is_active, is_self_service, pin_in_calendar').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
     supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, requires_manager_approval, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(500),
@@ -267,6 +280,7 @@ export async function listLeaveCatalog() {
     supabase.from('employee_sets').select('id, name, description, priority, is_active, leave_profile_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('priority').order('name').limit(500),
     supabase.from('employee_set_members').select('id, employee_set_id, employee_id, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('valid_from', { ascending: false }).limit(5000),
     supabase.from('leave_type_overtime_work_hours').select('leave_type_id, work_hour_type_id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(5000),
+    supabase.from('employment_leave_profiles').select('id, leave_profile_id, employee_id, employment_id, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('valid_from', { ascending: false }).limit(5000),
   ])
   if (leaveTypes.error) databaseError(leaveTypes.error)
   if (workHourTypes.error) databaseError(workHourTypes.error)
@@ -285,6 +299,7 @@ export async function listLeaveCatalog() {
   if (employeeSets.error) databaseError(employeeSets.error)
   if (employeeSetMembers.error) databaseError(employeeSetMembers.error)
   if (leaveTypeOvertimeWorkHours.error) databaseError(leaveTypeOvertimeWorkHours.error)
+  if (employmentLeaveProfiles.error) databaseError(employmentLeaveProfiles.error)
   const employeeNames = new Map(exceptionEmployees.data.map((employee) => [employee.id, [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ')]))
   return {
     leaveTypes: leaveTypes.data,
@@ -308,6 +323,7 @@ export async function listLeaveCatalog() {
     employeeSets: employeeSets.data,
     employeeSetMembers: employeeSetMembers.data,
     leaveTypeOvertimeWorkHours: leaveTypeOvertimeWorkHours.data,
+    employmentLeaveProfiles: employmentLeaveProfiles.data,
     employeeSetEmployees: exceptionEmployees.data.map((employee) => ({
       id: employee.id,
       employee_number: employee.employee_number,
@@ -387,24 +403,29 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
     return { kind: input.action, id: result.data.id }
   }
 
-  const result = await supabase.from('leave_profiles').insert({
-    tenant_id: context.tenantId,
-    hr_group_id: hrGroupId,
-    administration_id: null,
-    name: input.name,
-    description: input.description ?? null,
-    is_active: input.isActive,
-    created_by: context.userId,
-    updated_by: context.userId,
-  }).select('id').single()
-  if (result.error || !result.data) databaseError(result.error)
-  return { kind: input.action, id: result.data.id }
+  await assertLeaveProfileNameAvailable(supabase, context, hrGroupId, input.name, input.id)
+  const result = await supabase.rpc('save_group_leave_profile', {
+    requested_tenant_id: context.tenantId,
+    requested_hr_group_id: hrGroupId,
+    requested_leave_profile_id: input.id ?? null,
+    requested_name: input.name,
+    requested_description: input.description ?? null,
+    requested_is_active: input.isActive,
+    requested_is_group_default: input.isGroupDefault,
+  } as unknown as Database['public']['Functions']['save_group_leave_profile']['Args'])
+  if (result.error) {
+    if (result.error.message.includes('leave_profiles_tenant_hr_group_name_ci_key')) throw new LeaveServiceError('LEAVE_PROFILE_NAME_EXISTS', 409)
+    databaseError(result.error)
+  }
+  if (!result.data) databaseError(null)
+  return { kind: input.action, id: result.data }
 }
 
 type CatalogUpdateInput = Extract<LeaveConfigurationMutation, { action: 'UPDATE_PROFILE' }>
 type CatalogArchiveInput = Extract<LeaveConfigurationMutation, { action: 'ARCHIVE_LEAVE_TYPE' | 'ARCHIVE_WORK_HOUR_TYPE' | 'ARCHIVE_PROFILE' }>
+type SetGroupDefaultInput = Extract<LeaveConfigurationMutation, { action: 'SET_GROUP_DEFAULT' }>
 
-export async function updateLeaveCatalogItem(input: CatalogUpdateInput | CatalogArchiveInput) {
+export async function updateLeaveCatalogItem(input: CatalogUpdateInput | CatalogArchiveInput | SetGroupDefaultInput) {
   const context = await requirePermission('leave:write')
   const hrGroupId = requireHrGroupId(context)
   const supabase = await createClient()
@@ -424,22 +445,36 @@ export async function updateLeaveCatalogItem(input: CatalogUpdateInput | Catalog
   }
 
   if (input.action === 'ARCHIVE_PROFILE') {
-    const result = await supabase.from('leave_profiles').update({ is_active: false, updated_by: context.userId }).eq('id', input.id).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).select('id').maybeSingle()
+    const profile = await supabase.from('leave_profiles').select('id, name, description, is_active, is_group_default').eq('id', input.id).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
+    if (profile.error) databaseError(profile.error)
+    if (!profile.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
+    const activeSets = await supabase.from('employee_sets').select('id', { count: 'exact', head: true }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('leave_profile_id', input.id).eq('is_active', true)
+    if (activeSets.error) databaseError(activeSets.error)
+    if (profile.data.is_group_default) throw new LeaveServiceError('LEAVE_PROFILE_DEFAULT_REPLACEMENT_REQUIRED', 409)
+    if ((activeSets.count ?? 0) > 0) throw new LeaveServiceError('LEAVE_PROFILE_REFERENCED_BY_ACTIVE_SET', 409, { count: activeSets.count })
+    const result = await supabase.rpc('save_group_leave_profile', { requested_tenant_id: context.tenantId, requested_hr_group_id: hrGroupId, requested_leave_profile_id: input.id, requested_name: profile.data.name, requested_description: profile.data.description, requested_is_active: false, requested_is_group_default: false } as unknown as Database['public']['Functions']['save_group_leave_profile']['Args'])
     if (result.error) databaseError(result.error)
-    if (!result.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
-    return { id: result.data.id, action: input.action }
+    return { id: result.data, action: input.action }
+  }
+
+  if (input.action === 'SET_GROUP_DEFAULT') {
+    const profile = await supabase.from('leave_profiles').select('id, name, description, is_active').eq('id', input.id).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
+    if (profile.error) databaseError(profile.error)
+    if (!profile.data) throw new LeaveServiceError('LEAVE_PROFILE_NOT_FOUND', 404)
+    const result = await supabase.rpc('save_group_leave_profile', { requested_tenant_id: context.tenantId, requested_hr_group_id: hrGroupId, requested_leave_profile_id: profile.data.id, requested_name: profile.data.name, requested_description: profile.data.description, requested_is_active: true, requested_is_group_default: true } as unknown as Database['public']['Functions']['save_group_leave_profile']['Args'])
+    if (result.error) databaseError(result.error)
+    return { id: result.data, action: input.action }
   }
 
   if (!('description' in input)) throw new LeaveServiceError('LEAVE_CONFIGURATION_ACTION_NOT_AVAILABLE', 400)
-  const result = await supabase.from('leave_profiles').update({
-    ...(input.name !== undefined ? { name: input.name } : {}),
-    ...(input.description !== undefined ? { description: input.description } : {}),
-    ...(input.isActive !== undefined ? { is_active: input.isActive } : {}),
-    updated_by: context.userId,
-  }).eq('id', input.id).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).select('id').maybeSingle()
+  const profile = await supabase.from('leave_profiles').select('id, name, description, is_active, is_group_default').eq('id', input.id).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).maybeSingle()
+  if (profile.error) databaseError(profile.error)
+  if (!profile.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
+  const nextName = input.name ?? profile.data.name
+  await assertLeaveProfileNameAvailable(supabase, context, hrGroupId, nextName, input.id)
+  const result = await supabase.rpc('save_group_leave_profile', { requested_tenant_id: context.tenantId, requested_hr_group_id: hrGroupId, requested_leave_profile_id: input.id, requested_name: nextName, requested_description: input.description !== undefined ? input.description : profile.data.description, requested_is_active: input.isActive ?? profile.data.is_active, requested_is_group_default: input.isGroupDefault ?? profile.data.is_group_default } as unknown as Database['public']['Functions']['save_group_leave_profile']['Args'])
   if (result.error) databaseError(result.error)
-  if (!result.data) throw new LeaveServiceError('LEAVE_CATALOG_ITEM_NOT_FOUND', 404)
-  return { id: result.data.id, action: input.action }
+  return { id: result.data, action: input.action }
 }
 
 export interface OvertimeEmployeeOption {
@@ -747,6 +782,8 @@ export async function assignLeaveProfile(input: ProfileAssignmentInput) {
 }
 
 type EmployeeSetInput = Extract<LeaveConfigurationMutation, { action: 'EMPLOYEE_SET' }>
+type EmployeeSetUpdateInput = Extract<LeaveConfigurationMutation, { action: 'UPDATE_EMPLOYEE_SET' }>
+type EmployeeSetArchiveInput = Extract<LeaveConfigurationMutation, { action: 'ARCHIVE_EMPLOYEE_SET' }>
 type EmployeeSetMemberInput = Extract<LeaveConfigurationMutation, { action: 'EMPLOYEE_SET_MEMBER' }>
 
 export async function createEmployeeSet(input: EmployeeSetInput) {
@@ -769,6 +806,25 @@ export async function createEmployeeSet(input: EmployeeSetInput) {
   }).select('id').single()
   if (result.error || !result.data) databaseError(result.error)
   return { id: result.data.id }
+}
+
+export async function updateEmployeeSet(input: EmployeeSetUpdateInput | EmployeeSetArchiveInput) {
+  const context = await requirePermission('leave:write')
+  const hrGroupId = requireHrGroupId(context)
+  const supabase = await createClient()
+  if (input.action === 'ARCHIVE_EMPLOYEE_SET') {
+    const result = await supabase.from('employee_sets').update({ is_active: false, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('id', input.id).select('id').maybeSingle()
+    if (result.error) databaseError(result.error)
+    if (!result.data) throw new LeaveServiceError('EMPLOYEE_SET_NOT_FOUND', 404)
+    return { id: result.data.id, action: input.action }
+  }
+  const profile = await supabase.from('leave_profiles').select('id').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('id', input.leaveProfileId).eq('is_active', true).maybeSingle()
+  if (profile.error) databaseError(profile.error)
+  if (!profile.data) throw new LeaveServiceError('LEAVE_PROFILE_NOT_FOUND', 404)
+  const result = await supabase.from('employee_sets').update({ name: input.name, description: input.description ?? null, leave_profile_id: input.leaveProfileId, priority: input.priority, is_active: input.isActive, updated_by: context.userId }).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('id', input.id).select('id').maybeSingle()
+  if (result.error) databaseError(result.error)
+  if (!result.data) throw new LeaveServiceError('EMPLOYEE_SET_NOT_FOUND', 404)
+  return { id: result.data.id, action: input.action }
 }
 
 export async function addEmployeeSetMember(input: EmployeeSetMemberInput) {

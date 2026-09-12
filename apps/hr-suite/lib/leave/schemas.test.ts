@@ -43,6 +43,13 @@ describe('leave api schemas', () => {
     }).success).toBe(true)
   })
 
+  it('valideert profieldefaults en profiel/set-acties', () => {
+    expect(leaveCatalogMutationSchema.safeParse({ action: 'PROFILE', name: 'Standaard', isActive: false, isGroupDefault: true }).success).toBe(false)
+    expect(leaveConfigurationMutationSchema.safeParse({ action: 'SET_GROUP_DEFAULT', id: 'profile-1' }).success).toBe(true)
+    expect(leaveConfigurationMutationSchema.safeParse({ action: 'UPDATE_EMPLOYEE_SET', id: 'set-1', name: 'Parttimers', leaveProfileId: 'profile-1', priority: 10, isActive: true }).success).toBe(true)
+    expect(leaveConfigurationMutationSchema.safeParse({ action: 'ARCHIVE_EMPLOYEE_SET', id: 'set-1' }).success).toBe(true)
+  })
+
   it('vereist gekoppelde werkurentypen voor opbouw per gewerkt uur', () => {
     const result = leaveConfigurationMutationSchema.safeParse({
       action: 'ACCRUAL_RULE',

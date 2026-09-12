@@ -6,13 +6,14 @@ import { getTranslator } from '@/lib/i18n/server'
 import { listLeaveCatalog } from '@/lib/leave/leave-service'
 import { accrualRuleEditorLabels } from '@/lib/leave/editor-labels'
 
-export default async function LeaveTypePage({ params, searchParams }: { params: Promise<{ leaveTypeId: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function LeaveTypePage({ params, searchParams }: { params: Promise<{ leaveTypeId: string }>; searchParams: Promise<{ tab?: string; profileId?: string }> }) {
   try { await requirePermission('leave:write') } catch (error) { if (error instanceof AuthorizationError) redirect('/geen-toegang'); throw error }
   const [{ leaveTypeId }, query, catalog, labels] = await Promise.all([params, searchParams, listLeaveCatalog(), getTranslator('leave')])
   const leaveType = catalog.leaveTypes.find((item) => item.id === leaveTypeId)
   if (!leaveType) notFound()
   const year = new Date().getFullYear()
-  return <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-10"><AdminSettingsPageHeader backLabel={labels('page.back')} backHref="/settings/leave-accrual" eyebrow={labels('page.title')} title={labels('type.editTitle', { name: leaveType.name, year })} /><LeaveTypeEditor catalog={catalog} existing={leaveType} initialTab={query.tab === 'limits' ? 'limits' : query.tab === 'advanced' ? 'advanced' : 'base'} mode="leave" labels={typeLabels(labels)} /></div>
+  const backHref = query.profileId ? '/settings/leave-accrual?section=profiles' : '/settings/leave-accrual'
+  return <div className="mx-auto w-full max-w-6xl px-5 py-8 lg:px-10"><AdminSettingsPageHeader backLabel={labels('page.back')} backHref={backHref} eyebrow={labels('page.title')} title={labels('type.editTitle', { name: leaveType.name, year })} /><LeaveTypeEditor catalog={catalog} existing={leaveType} initialProfileId={query.profileId} initialTab={query.tab === 'limits' ? 'limits' : query.tab === 'advanced' ? 'advanced' : 'base'} mode="leave" labels={typeLabels(labels)} /></div>
 }
 
 function typeLabels(t: Awaited<ReturnType<typeof getTranslator>>) {
