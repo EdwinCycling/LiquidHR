@@ -10,7 +10,7 @@ import type {
 } from './detail-schemas'
 import { assessEmploymentChain } from './chain-assessment'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
-import { isEmploymentContractEffectiveDateValid, type EmploymentContractMutationInput } from './contract-schemas'
+import { isEmploymentContractEffectiveDateValid, type EmploymentContractEditInput, type EmploymentContractMutationInput } from './contract-schemas'
 import { isBlockingProbationValidation, validateProbation } from './probation-rules'
 import type { CompanyLocationMutationInput } from './company-location-schemas'
 import { applySalaryApplicationChange as applySalaryApplicationRouteChange } from '@/lib/salary-application/service'
@@ -515,7 +515,7 @@ export async function applyCombinedTimelineMutation(
 export async function manageEmploymentContract(
   employmentId: string,
   contractId: string | null,
-  input: EmploymentContractMutationInput,
+  input: EmploymentContractMutationInput | EmploymentContractEditInput,
 ): Promise<string> {
   const employment = await loadEmploymentForAction(employmentId, 'contract:write')
   const supabase = await createClient()

@@ -1,5 +1,69 @@
 # Actuele overdracht Liquid HR
 
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De bestaande QA-track is voortgezet op branch `work/employee-wizard-jan-test-e2e`
+vanaf baseline `99de0b8`. Piet Test en Frank Test zijn via de echte HR Admin
+Employee Wizard aangemaakt op uitsluitend DEV-project `wnpfloqpjvaacobppbpk`; de
+stabiele graph-ID's staan in [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
+Jan is niet opnieuw aangemaakt en zijn GREEN-grafiek is intact.
+
+Frank is via de normale contractdetail-flow gecorrigeerd van 2026-09-30 naar
+2026-10-01. De afhankelijke timeline-records volgen nu de contractperiode; er is
+geen SQL gebruikt voor de datumcorrectie. Twee pre-fix DRAFT change-setmetadata-
+records zijn na bewijs van succesvolle UI-mutaties exact op Frank naar APPLIED
+hersteld. De permanente remote migraties zijn
+`20260912072624_contract_change_audit_and_timeline` en
+`20260912074130_repair_contract_terminal_selection_status`; de contract-RPC blijft
+SECURITY INVOKER en VOLATILE, de bestaande insert-helper blijft SECURITY
+DEFINER/STABLE, en er zijn geen grants of RLS-policies verruimd.
+
+Remote readback is groen voor contracten, roosters, salarissen, inkomenslinks,
+organisatie- en administratieassignment; TEST-BOUNDARY blijft 0/0. HR Admin
+reloads en Manager/Employee/cross-scope-negatieven zijn uitgevoerd. De eindgate
+is groen voor de gerichte contract/migratietests `12/12`, lint, i18n (`35`),
+strict TypeScript, diff-check en Webpack (`258/258`). De volledige suite is
+`359/360` bestanden en `1390/1391` tests; de ene failure is de bekende,
+ongerelateerde DM-1 CASE-parenthesization-baselinefailure. Alleen commit en één
+push van deze branch zijn nog open.
+
+## Employee Wizard Jan Test E2E — 2026-09-11
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; PUSH READY**
+
+De bestaande synthetische Jan Test is via de echte HR Admin Employee Wizard-flow
+gepubliceerd op DEV/TEST Supabase-project `wnpfloqpjvaacobppbpk` en remote
+teruggelezen. De bewezen root cause van `employment_contracts` 42501 was de
+combinatie van een SECURITY INVOKER `publish_complete_employment`, contract-INSERT
+vóór organisatieplaatsing en `RETURNING id`: de INSERT-check mocht door de
+complete-employment helper, maar de directe SELECT-zichtbaarheid via
+`can_manage_employee` was zonder organisatieplaatsing false. De fix pre-genereert
+het contract-ID en gebruikt een expliciete `id`; RLS, grants, tenant-/HR-groep-
+isolatie en de bestaande authorization architecture zijn intact gebleven.
+
+Dezelfde run heeft de direct gerelateerde vervolgbugs opgelost: pre-generated
+change-set/income IDs, correcte administratie-/tenant-scope voor salary settings,
+manual fulltime salary mapping, gecontroleerde initial-salary same-date correction
+en begrenzing van alle contractafhankelijke timeline-einddatums. Tijdelijke
+diagnostics en speculative policy zijn verwijderd en remote markers zijn 0. De
+helper `can_insert_complete_employment_contract` is de bestaande SECURITY
+DEFINER/STABLE helper; de publieke write-RPC's blijven SECURITY INVOKER. De eerdere
+VOLATILE-classificatie van schrijvende RPC's is semantisch behouden.
+
+Remote Jan graph: exact 1 employee, 1 intended employment, 1 contract en 1 record
+per organization, administration assignment, schedule, income, income-link,
+labor-condition en cost allocation; 2 salary segments; TEST-BOUNDARY 0/0.
+Employment/contract: 2026-09-01–2026-11-30; schedule: 32/40, factor 0,80; salary
+readback: 2026-09-15 EUR 4.000/EUR 3.200 en 2026-10-15 EUR 4.250/EUR 3.400.
+Browser reload, Manager denial en Employee denial zijn groen. De gerichte
+wizard/auth-tests zijn groen. De finale brede gate is `358/359` testbestanden en
+`1385/1386` tests; de enige failure is de bekende, ongerelateerde DM-1
+migration-contracttest voor CASE-parenthesization. Strict TypeScript, ESLint,
+i18n (`35` namespaces), `git diff --check` en Webpack (`258/258` statische
+pagina's) zijn groen. Geen Production, Payroll of deployment is aangeraakt.
+
 ## AI Everywhere V1 candidate — 2026-09-08
 
 De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op `work/ai-everywhere-v1`, vanaf vers gefetchte `origin/main` `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root `C:\Users\Edwin\Documents\Apps\LiquidHR` en de bestaande dirty `apps/hr-suite/next-env.d.ts` zijn niet gewijzigd.

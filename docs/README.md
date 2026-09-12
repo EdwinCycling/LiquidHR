@@ -1,5 +1,66 @@
 # Liquid HR documentatie-index
 
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De bestaande Employee Wizard QA-track bevat naast Jan nu de blijvende synthetische
+DEV-fixtures Piet Test en Frank Test. Piet is indefinite vanaf 2026-01-01; Frank
+is definite vanaf 2026-01-01 en is via de normale contractdetail-flow gecorrigeerd
+van 2026-09-30 naar 2026-10-01. Remote readback bevestigt één actieve intended
+employment en één contract per fixture, de juiste uren/factoren, organisatie- en
+administratiekoppeling en salaris-/inkomensperioden. Jan blijft ongewijzigd GREEN,
+met salarisreadback op 2026-09-15 en 2026-10-15. De volledige stabiele ID-reference
+staat in [`delivery/EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](delivery/EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
+
+De eindgate is groen voor de gerichte contract/migratietests (`12/12`), lint,
+i18n, strict TypeScript, diff-check en Webpack (`258/258`). De volledige suite is
+`359/360` bestanden en `1390/1391` tests; alleen de bekende, ongerelateerde DM-1
+CASE-parenthesization-baselinefailure blijft over.
+
+De contractwijzigingsflow gebruikt de bestaande invoker/RLS-grens, vereist bij
+edit een change reason, maakt een transactionele change-set aan en koppelt
+contractmutaties aan de bestaande audittrigger. De afhankelijke einddatums volgen
+de terminale contractperiode. Er is geen Leave Engine geïmplementeerd; Production,
+Payroll en TEST-BOUNDARY zijn niet aangeraakt.
+
+## Employee Wizard Jan Test E2E — 2026-09-11
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; NOT RELEASED**
+
+De bestaande synthetische Jan Test is via de echte Employee Wizard en `Dienstverband
+aanmaken` succesvol gepubliceerd op uitsluitend Supabase DEV/TEST-project
+`wnpfloqpjvaacobppbpk`. De bewezen oorzaak van de oorspronkelijke
+`employment_contracts`-fout was dat `publish_complete_employment` als SECURITY
+INVOKER de contractrij vóór de organisatieplaatsing invoegde en via `RETURNING id`
+directe SELECT-zichtbaarheid verlangde; de bestaande `can_manage_employee`-tak was
+op dat moment terecht false. De permanente oplossing genereert het contract-ID
+vóór de INSERT en gebruikt een expliciete `id`, zonder RLS-verruiming,
+SECURITY-DEFINER-bypass of service-role.
+
+De doorlopende echte flow bevatte daarnaast alleen gerelateerde correcties: dezelfde
+ID-strategie voor change-set en income-relationship, administratie-/tenant-scope
+voor salarisinstellingen, handmatige fulltime-salarismapping, veilige correctie van
+het initiële salaris op dezelfde datum en begrenzing van afhankelijke contract-
+tijdlijnen. De tijdelijke diagnostics en speculative policy zijn verwijderd; remote
+marker-readback is nul en de publieke schrijf-RPC's blijven SECURITY INVOKER.
+
+Remote readback: exact één Jan, één bedoeld employment, één contract en één record
+voor organisatie, administratieplaatsing, rooster, income, income-link,
+arbeidsvoorwaarde en kostenallocatie. Het employment en contract lopen van
+2026-09-01 tot en met 2026-11-30; het rooster is 32/40 uur met factor 0,80. De
+salarishistorie bewaart 2026-09-15 EUR 4.000 / EUR 3.200 en 2026-10-15 EUR 4.250 /
+EUR 3.400. Browser reload is groen; Manager en Employee zijn geweigerd; de
+TEST-BOUNDARY bleef 0 employees / 0 employments. Production, Payroll en deploy
+zijn niet aangeraakt.
+
+De finale lokale gate is uitgevoerd: de gerichte wizard/auth-set is groen, de
+volledige suite is `358/359` testbestanden en `1385/1386` tests met uitsluitend
+de bekende, ongerelateerde DM-1 migration-contracttestfailure rond CASE-
+parenthesization. Strict TypeScript, ESLint, i18n (`35` namespaces),
+`git diff --check` en de Webpack-productiebuild (`258/258` statische pagina's)
+zijn groen. Deze DM-1-baseline is niet gewijzigd binnen de Employee Wizard-slice.
+
 ## Document Studio DG2 + DG3 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**

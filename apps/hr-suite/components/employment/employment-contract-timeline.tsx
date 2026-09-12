@@ -49,7 +49,7 @@ interface Props {
     flexPhase: string; laborConditions: string; fulltimeReference: string; duration: string
     startDate: string; endDate: string; probation: string; probationEnd: string
     indefinite: string; definite: string; temporaryWithoutEnd: string; yes: string; no: string
-    active: string; failed: string; addBlocked: string; probationCaoMaximum: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
+    active: string; failed: string; requiredFields: string; changeReason: string; addBlocked: string; probationCaoMaximum: string; firstContractStartDateHelp: string; contractStartDateMinimumHelp: string
   }
   employmentStartsOn: string
 }
@@ -61,6 +61,7 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
   const [draft, setDraft] = useState<Draft | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [reason, setReason] = useState('')
   const ordered = [...contracts].sort((a, b) => a.startsOn.localeCompare(b.startsOn))
   const latest = ordered.at(-1)
 
@@ -82,6 +83,7 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
     setDraft(draftFrom(contract))
     setMode('view')
     setError('')
+    setReason('')
   }
 
   function add(): void {
@@ -97,6 +99,7 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     if (!draft) return
+    if (mode !== 'add' && !reason.trim()) { setError(labels.requiredFields); return }
     setSaving(true)
     const input = {
       ...draft,
@@ -108,7 +111,7 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
     const response = await fetch(`/api/employments/${employmentId}/contracts`, {
       method: mode === 'add' ? 'POST' : 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(mode === 'add' ? input : { contractId: selected?.id, input }),
+      body: JSON.stringify(mode === 'add' ? input : { contractId: selected?.id, input: { ...input, reason: reason.trim(), warningCodes: [], acknowledgements: { confirmed: true } } }),
     })
     const result = await response.json() as { code?: string }
     if (!response.ok) {
@@ -152,10 +155,10 @@ export function EmploymentContractTimeline({ employeeId, employmentId, contracts
           { label: labels.endDate, value: draft.endsOn || labels.active },
           { label: labels.flexPhase, value: selected?.flexPhaseName ?? '—' },
           { label: labels.probationEnd, value: draft.probationEndsOn || '—' },
-        ]} /> : <ContractFields draft={draft} update={update} options={options} labels={labels} employmentStartsOn={employmentStartsOn} isFirstContract={selected?.sequenceNumber === 1} />}
+        ]} /> : <><ContractFields draft={draft} update={update} options={options} labels={labels} employmentStartsOn={employmentStartsOn} isFirstContract={selected?.sequenceNumber === 1} />{mode === 'edit' && <label className="mt-5 grid gap-1.5 text-sm font-medium"><span>{labels.changeReason}</span><textarea className="form-field min-h-24" maxLength={500} required value={reason} onChange={(event) => { setReason(event.target.value); setError('') }} /></label>}</>}
         {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
         <div className="mt-6 flex justify-end gap-3 border-t pt-4">
-          {mode === 'view' && canWrite && <button type="button" className={buttonClasses({ variant: 'primary' })} onClick={() => setMode('edit')}>{labels.edit}</button>}
+          {mode === 'view' && canWrite && <button type="button" className={buttonClasses({ variant: 'primary' })} onClick={() => { setReason(''); setMode('edit') }}>{labels.edit}</button>}
           {mode !== 'view' && <><button type="button" className={buttonClasses({ variant: 'secondary' })} onClick={() => setMode(selected ? 'view' : 'add')}>{labels.cancel}</button><button type="submit" className={buttonClasses({ variant: 'primary' })} disabled={saving}>{labels.save}</button></>}
         </div>
       </form>

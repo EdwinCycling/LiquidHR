@@ -1,5 +1,69 @@
 # Implementatiestatus Liquid HR
 
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De Employee Wizard QA-track bevat nu de blijvende synthetische DEV-fixtures Piet
+Test en Frank Test naast de bestaande Jan Test. De contractdetail-flow ondersteunt
+voor bestaande contracten een verplichte wijzigingsreden, echte kalenderdatum-
+validatie en transactionele change-set/auditkoppeling. De bestaande
+`manage_employment_contract`-RPC blijft SECURITY INVOKER en VOLATILE. De bewezen
+contracttijdlijnbug is minimaal hersteld: terminale afhankelijke regels mogen
+worden verlengd vanuit de vorige contracteinddatum; change sets worden na een
+geslaagde mutation APPLIED. Zie [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md)
+voor uitsluitend de geautoriseerde fixture-ID's en Leave Engine readiness.
+
+Remote migrations `20260912072624_contract_change_audit_and_timeline` en
+`20260912074130_repair_contract_terminal_selection_status` zijn alleen op
+`wnpfloqpjvaacobppbpk` toegepast en teruggelezen. Er zijn geen nieuwe RLS-policies,
+brede grants, SECURITY-DEFINER-bypasses, service-role writes, Production- of
+Payroll-wijzigingen gedaan. Jan blijft GREEN; Piet heeft één actieve intended
+employment; Frank eindigt definitief op 2026-10-01 met 20/40 uur, factor 0,50 en
+EUR 4.000/EUR 2.000. De gerichte contract/migratietests (`12/12`), lint, i18n,
+strict TypeScript, diff-check en Webpack (`258/258`) zijn groen. De volledige
+suite is `359/360` bestanden en `1390/1391` tests; alleen de bekende, ongerelateerde
+DM-1 CASE-parenthesization-baselinefailure blijft over. Branch commit en push
+volgen.
+
+## Employee Wizard Jan Test E2E — 2026-09-11
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; PUSH READY**
+
+De bestaande Jan Test is via de echte HR Admin-browserflow aangemaakt en remote
+teruggelezen op project `wnpfloqpjvaacobppbpk`. De oorspronkelijke
+`employment_contracts` RLS-fout is exact verklaard: de invoker-RPC plaatste de
+contractrij vóór `employee_organizations`; `INSERT ... RETURNING id` vereist daarna
+SELECT-zichtbaarheid, terwijl de bestaande `can_manage_employee`-predicate zonder
+organisatieplaatsing false is. De kleinste architectuurcorrectie is pre-generatie
+van het contract-ID en een expliciete `id` in de INSERT. Er zijn geen RLS-policies,
+brede grants, SECURITY-DEFINER-bypasses of service-role writes toegevoegd.
+
+Tijdens dezelfde flow zijn de volgende directe, bewezen vervolgproblemen opgelost:
+pre-generatie van change-set- en income-ID's, het stale `hr_group_id`-predicaat op
+administration-scoped salarisinstellingen, de handmatige fulltime-salarismapping,
+een beperkte same-date correctie van het initiële salaris en contractperiode-
+reconciliatie van afhankelijke timeline-records. De tijdelijke diagnose- en
+speculative-policy migrations zijn gevolgd door remove-migrations; remote markers
+zijn 0. `publish_complete_employment`, `publish_complete_salary_application_employment`,
+`apply_salary_application_change` en `manage_employment_contract` blijven
+SECURITY INVOKER; de bestaande helper `can_insert_complete_employment_contract`
+blijft de canonieke SECURITY DEFINER/STABLE helper.
+
+Remote bewijs: Jan `1`, intended employment `1`, contract `1`, salarissegmenten
+`2`, en elk bedoeld schedule/income/income-link/organization/administration-
+assignment/labor-condition/cost-allocation-record `1`; TEST-BOUNDARY `0/0`.
+Employment en contract zijn definitief 2026-09-01 t/m 2026-11-30, rooster 32/40
+met factor 0,80, en salary peildata zijn 2026-09-15 EUR 4.000 / EUR 3.200 en
+2026-10-15 EUR 4.250 / EUR 3.400. Reload, Manager-denial en Employee-denial zijn
+browsermatig gecontroleerd. Production, Payroll en deployment blijven buiten scope.
+
+De finale gate is uitgevoerd: de volledige suite is `358/359` testbestanden en
+`1385/1386` tests. De enige resterende failure is de bekende, ongerelateerde
+DM-1 migration-contracttest voor CASE-parenthesization; die is niet gewijzigd in
+deze slice. Strict TypeScript, ESLint, i18n (`35` namespaces), `git diff --check`
+en Webpack-productiebuild (`258/258` statische pagina's) zijn groen.
+
 ## AI Everywhere V1 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; MAIN INTEGRATION READY**
