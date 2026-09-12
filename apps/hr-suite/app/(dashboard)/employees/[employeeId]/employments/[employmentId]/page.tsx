@@ -793,7 +793,7 @@ export default async function EmploymentDetailPage({
                 probation: t("probation"), probationEnd: t("probationEnd"),
                 indefinite: t("indefinite"), definite: t("definite"), temporaryWithoutEnd: t("temporaryWithoutEnd"),
                 yes: t("yes"), no: t("no"), active: t("active"),
-                failed: t("changeFailed"), addBlocked: t("contractAddBlocked"), probationCaoMaximum: t("probationCaoMaximum"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
+                failed: t("changeFailed"), requiredFields: t("requiredFields"), changeReason: t("changeReason"), addBlocked: t("contractAddBlocked"), probationCaoMaximum: t("probationCaoMaximum"), firstContractStartDateHelp: t("firstContractStartDateHelp"), contractStartDateMinimumHelp: t("contractStartDateMinimumHelp"),
               }}
             />
           </div>

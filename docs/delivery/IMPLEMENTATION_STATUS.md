@@ -1,5 +1,31 @@
 # Implementatiestatus Liquid HR
 
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De Employee Wizard QA-track bevat nu de blijvende synthetische DEV-fixtures Piet
+Test en Frank Test naast de bestaande Jan Test. De contractdetail-flow ondersteunt
+voor bestaande contracten een verplichte wijzigingsreden, echte kalenderdatum-
+validatie en transactionele change-set/auditkoppeling. De bestaande
+`manage_employment_contract`-RPC blijft SECURITY INVOKER en VOLATILE. De bewezen
+contracttijdlijnbug is minimaal hersteld: terminale afhankelijke regels mogen
+worden verlengd vanuit de vorige contracteinddatum; change sets worden na een
+geslaagde mutation APPLIED. Zie [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md)
+voor uitsluitend de geautoriseerde fixture-ID's en Leave Engine readiness.
+
+Remote migrations `20260912072624_contract_change_audit_and_timeline` en
+`20260912074130_repair_contract_terminal_selection_status` zijn alleen op
+`wnpfloqpjvaacobppbpk` toegepast en teruggelezen. Er zijn geen nieuwe RLS-policies,
+brede grants, SECURITY-DEFINER-bypasses, service-role writes, Production- of
+Payroll-wijzigingen gedaan. Jan blijft GREEN; Piet heeft één actieve intended
+employment; Frank eindigt definitief op 2026-10-01 met 20/40 uur, factor 0,50 en
+EUR 4.000/EUR 2.000. De gerichte contract/migratietests (`12/12`), lint, i18n,
+strict TypeScript, diff-check en Webpack (`258/258`) zijn groen. De volledige
+suite is `359/360` bestanden en `1390/1391` tests; alleen de bekende, ongerelateerde
+DM-1 CASE-parenthesization-baselinefailure blijft over. Branch commit en push
+volgen.
+
 ## Employee Wizard Jan Test E2E — 2026-09-11
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; PUSH READY**

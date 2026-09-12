@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { permissionErrorResponse } from '@/lib/auth/permissions'
-import { employmentContractMutationSchema } from '@/lib/employment/contract-schemas'
+import { employmentContractEditSchema, employmentContractMutationSchema } from '@/lib/employment/contract-schemas'
 import { databaseUuid } from '@/lib/validation/database-uuid'
 import {
   EmploymentDetailError,
@@ -11,7 +11,7 @@ import {
 interface RouteContext { params: Promise<{ employmentId: string }> }
 const editSchema = z.object({
   contractId: databaseUuid,
-  input: employmentContractMutationSchema,
+  input: employmentContractEditSchema,
 }).strict()
 
 function fail(error: unknown): NextResponse | null {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { employmentContractMutationSchema, isEmploymentContractEffectiveDateValid, isEmploymentContractStartDateValid } from './contract-schemas'
+import { employmentContractEditSchema, employmentContractMutationSchema, isEmploymentContractEffectiveDateValid, isEmploymentContractStartDateValid } from './contract-schemas'
 
 const valid = {
   workerType: 'EMPLOYEE',
@@ -13,6 +13,17 @@ const valid = {
 describe('employmentContractMutationSchema', () => {
   it('accepteert een bepaald contract', () => {
     expect(employmentContractMutationSchema.parse(valid).startsOn).toBe('2026-08-01')
+  })
+
+  it('weigert ongeldige kalenderdatums', () => {
+    expect(employmentContractMutationSchema.safeParse({ ...valid, startsOn: '2026-02-29' }).success).toBe(false)
+    expect(employmentContractMutationSchema.safeParse({ ...valid, startsOn: '2026-04-31' }).success).toBe(false)
+    expect(employmentContractMutationSchema.safeParse({ ...valid, startsOn: '2024-02-29' }).success).toBe(true)
+  })
+
+  it('vereist reden en metadata bij een bestaand contract', () => {
+    expect(employmentContractEditSchema.safeParse(valid).success).toBe(false)
+    expect(employmentContractEditSchema.safeParse({ ...valid, reason: 'Einddatum gecorrigeerd' }).success).toBe(true)
   })
 
   it('vereist een flexfase voor uitzendkrachten', () => {

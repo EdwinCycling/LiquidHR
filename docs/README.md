@@ -1,5 +1,29 @@
 # Liquid HR documentatie-index
 
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De bestaande Employee Wizard QA-track bevat naast Jan nu de blijvende synthetische
+DEV-fixtures Piet Test en Frank Test. Piet is indefinite vanaf 2026-01-01; Frank
+is definite vanaf 2026-01-01 en is via de normale contractdetail-flow gecorrigeerd
+van 2026-09-30 naar 2026-10-01. Remote readback bevestigt één actieve intended
+employment en één contract per fixture, de juiste uren/factoren, organisatie- en
+administratiekoppeling en salaris-/inkomensperioden. Jan blijft ongewijzigd GREEN,
+met salarisreadback op 2026-09-15 en 2026-10-15. De volledige stabiele ID-reference
+staat in [`delivery/EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](delivery/EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
+
+De eindgate is groen voor de gerichte contract/migratietests (`12/12`), lint,
+i18n, strict TypeScript, diff-check en Webpack (`258/258`). De volledige suite is
+`359/360` bestanden en `1390/1391` tests; alleen de bekende, ongerelateerde DM-1
+CASE-parenthesization-baselinefailure blijft over.
+
+De contractwijzigingsflow gebruikt de bestaande invoker/RLS-grens, vereist bij
+edit een change reason, maakt een transactionele change-set aan en koppelt
+contractmutaties aan de bestaande audittrigger. De afhankelijke einddatums volgen
+de terminale contractperiode. Er is geen Leave Engine geïmplementeerd; Production,
+Payroll en TEST-BOUNDARY zijn niet aangeraakt.
+
 ## Employee Wizard Jan Test E2E — 2026-09-11
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; NOT RELEASED**
