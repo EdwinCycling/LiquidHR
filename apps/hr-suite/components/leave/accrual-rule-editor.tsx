@@ -92,6 +92,7 @@ function frequencyLabel(frequency: Frequency, labels: AccrualRuleEditorLabels): 
 export function AccrualRuleEditor({
   catalog,
   leaveTypeId,
+  initialProfileId,
   ruleId,
   copyFromRuleId,
   labels,
@@ -102,6 +103,7 @@ export function AccrualRuleEditor({
 }: {
   catalog: LeaveCatalog
   leaveTypeId?: string
+  initialProfileId?: string
   ruleId?: string
   copyFromRuleId?: string
   labels: AccrualRuleEditorLabels
@@ -127,7 +129,7 @@ export function AccrualRuleEditor({
     () => catalog.profiles.find((profile) => profile.is_group_default && profile.is_active),
     [catalog.profiles],
   )
-  const profileId = sourceRule?.leave_profile_id ?? defaultProfile?.id ?? ''
+  const profileId = sourceRule?.leave_profile_id ?? initialProfileId ?? defaultProfile?.id ?? ''
   const initialBasis: Basis = sourceRule?.accrual_basis === 'WORKED_HOURS' ? 'WORKED_HOURS' : 'CONTRACT_HOURS'
   const initialFrequency: Frequency = sourceRule?.accrual_frequency === 'FOUR_WEEKLY'
     || sourceRule?.accrual_frequency === 'MONTHLY'

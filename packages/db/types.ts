@@ -19985,6 +19985,18 @@ export type Database = {
         }
         Returns: string
       }
+      save_group_leave_profile: {
+        Args: {
+          requested_description: string
+          requested_hr_group_id: string
+          requested_is_active: boolean
+          requested_is_group_default: boolean
+          requested_leave_profile_id: string
+          requested_name: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       retire_document_studio_asset: {
         Args: { requested_asset_id: string }
         Returns: Json
