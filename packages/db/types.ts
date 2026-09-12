@@ -1629,6 +1629,80 @@ export type Database = {
           },
         ]
       }
+      ai_voice_sessions: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string
+          duration_seconds: number | null
+          employee_id: string
+          ended_at: string | null
+          hr_group_id: string
+          id: string
+          model_id: string
+          started_at: string
+          status: string
+          tenant_id: string
+          tool_call_count: number
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id: string
+          duration_seconds?: number | null
+          employee_id: string
+          ended_at?: string | null
+          hr_group_id: string
+          id: string
+          model_id: string
+          started_at?: string
+          status: string
+          tenant_id: string
+          tool_call_count?: number
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          duration_seconds?: number | null
+          employee_id?: string
+          ended_at?: string | null
+          hr_group_id?: string
+          id?: string
+          model_id?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          tool_call_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_voice_sessions_actor_employee_fkey"
+            columns: ["tenant_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_sessions_employee_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_sessions_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       ai_memory_items: {
         Row: {
           category: Database["public"]["Enums"]["ai_memory_category"]

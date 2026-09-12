@@ -145,6 +145,10 @@ De kandidaatimplementatie op geïsoleerde branch `work/ai-everywhere-v1` voegt e
 
 De server laadt en minimaliseert de geautoriseerde context, controleert feature- en business-permissions, rekent Liquid Credits af en gebruikt de bestaande audit/usage-lifecycle. Medische/verzuimcontext is uitgesloten van employee-context; vacatureteksten mogen geen feiten, salaris, voorwaarden, voordelen of skills verzinnen. Zie [`LIQUIDHR_AI_EVERYWHERE_V1.md`](requirements/ai/LIQUIDHR_AI_EVERYWHERE_V1.md) en de formele deliverystatus. De lokale credit-catalogusmigration is nog niet remote toegepast; main, productie, version bump en merge blijven buiten scope.
 
+## AI Roadmap 2.0 + GPT-Live V1 — 2026-09-11
+
+De roadmap en eerste employee-context voice-slice staan in [`LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md`](requirements/ai/LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md). GPT-Live gebruikt server-mediated WebRTC, deelt geen permanente OpenAI-key met de browser en roept uitsluitend de bestaande Employee Summary, Conversation Preparation en SMART Goal capabilities aan. De lokale candidate is getest op contractniveau, strict TypeScript en i18n; remote migration, live OpenAI/WebRTC en authenticated persona-acceptance zijn nog open.
+
 ## Liquid Analyse AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
 
 **Status: AN-4/5 TEST GREEN — READY FOR FINAL INTEGRATION**

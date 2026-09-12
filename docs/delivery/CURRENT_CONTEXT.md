@@ -1,5 +1,11 @@
 # Actuele overdracht Liquid HR
 
+## GPT-Live employee voice V1 — 2026-09-11
+
+De lokale candidate voegt [`LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md`](../requirements/ai/LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md), server-mediated WebRTC-sessionroutes, drie server-authorized voice-tools, i18n en `ai_voice_sessions` metadata toe. De bestaande AI Everywhere-capabilities blijven de businesslaag; SMART blijft proposal-only. Direct managers krijgen `ai:use` via de lokale forward migration. De browser ontvangt geen permanente OpenAI-key en model/tool-employee-ID's worden niet vertrouwd.
+
+Verificatie: realtime contracttests `3/3`, employee-AI tests `2/2`, strict TypeScript, i18n parity `35` namespaces en `git diff --check` zijn groen. Astra leverde alleen de bounded clientcomponent met GPT-6 Astra/low; Luna reviewde en corrigeerde Realtime JSON-string argument parsing. Remote migration/advisors, live OpenAI/WebRTC, authenticated persona-acceptance en volledige releasegates zijn nog niet uitgevoerd. De beschermde `apps/hr-suite/next-env.d.ts` blijft ongemoeid.
+
 ## AI Everywhere V1 candidate — 2026-09-08
 
 De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op `work/ai-everywhere-v1`, vanaf vers gefetchte `origin/main` `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root `C:\Users\Edwin\Documents\Apps\LiquidHR` en de bestaande dirty `apps/hr-suite/next-env.d.ts` zijn niet gewijzigd.
