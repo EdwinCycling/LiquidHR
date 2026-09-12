@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## Leave profile management UX refinement — 2026-09-12
+
+De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\leave-profile-management` op branch `work/leave-profile-management`, vanaf de bestaande GREEN-SHA `3e66dca86acde1ef857f129f290cdf7f7d1c2ee9`. De wijziging blijft UI-only: de bestaande relatie profiel → opbouwregel → verloftype, API, RLS, resolver en opbouwengine zijn niet aangepast.
+
+Afgerond: Verlofprofielen is de eerste workspace-tab en de default zonder section-parameter; expliciete deep links blijven werken. Profielen tonen actuele verloftypen met kleur en compacte regelwaarden, lege profielen hebben de HR-admin CTA `Verlofsoort toevoegen`, en toevoegen/wijzigen gebruikt één gedeelde modal-laag rond de bestaande `AccrualRuleEditor`. De Verlofsoorten-catalogus toont profielgebruik en biedt `Bewerken` en `Aan profiel koppelen`; dubbele actuele koppeling wordt in de selector geblokkeerd. Voor `CONTRACT_HOURS` gebruikt de editor `accrual_amount` als `Jaarrecht fulltime`, toont hij de afgeleide jaar/maand/4-wekenweergave en licht hij kalenderdagen naar rato toe; het verwachte engine-contract staat in `docs/requirements/leave/VERLOF_OPBOUW_ENGINE.md`, zonder enginewijziging. NL/EN-kopie is gelijkgetrokken.
+
+Lokale verificatie: gerichte presentatie-/workspace-tests `3/3`, strict TypeScript, ESLint, i18n-pariteit en Webpack production build `258/258` zijn groen. De volledige suite heeft `358` geslaagde tests en twee bestaande niet-gerelateerde failures in Document Studio/DG1-PDF. Authenticated browseracceptance is groen met de normale HR Admin-fixture in Planeten: default/profile-first tabstate, beide bestaande typen, CONTRACT_HOURS-preview, add/edit/link-dialogen (alleen openen en annuleren), employee-set/default UI, deep-link/reload, Manager/Employee-denial, nul Leave-catalogusPOSTs en nul console/page-errors. Er is geen schemawijziging, migration of Leave-configuratiemutatie uitgevoerd; commit, push en Preview-deployment zijn nog open.
+
+Open: authenticated browser acceptance van de verfijnde UX en eventuele vervolg-release/deployment. Protected `.env.local` is alleen op bestaan gecontroleerd en niet gelezen of gewijzigd.
+
 ## AI Everywhere V1 candidate — 2026-09-08
 
 De geïsoleerde candidate staat in `C:\Users\Edwin\Documents\Apps\LiquidHR-AI1` op `work/ai-everywhere-v1`, vanaf vers gefetchte `origin/main` `6484b12d4a01d9b1433496cb8cce4828ceab6c97`. De normale root `C:\Users\Edwin\Documents\Apps\LiquidHR` en de bestaande dirty `apps/hr-suite/next-env.d.ts` zijn niet gewijzigd.

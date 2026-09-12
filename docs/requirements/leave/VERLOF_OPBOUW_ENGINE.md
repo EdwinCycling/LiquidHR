@@ -55,7 +55,7 @@ Een `Employee` mag nul, één of meerdere gelijktijdige `Employment`s hebben. Ie
 | Enum | Waarden | Betekenis |
 | --- | --- | --- |
 | `accrual_basis` | `CONTRACT_HOURS`, `WORKED_HOURS` | Opbouw op rooster/FTE of geregistreerde gewerkte uren. Leeftijd en anciënniteit worden als afzonderlijke bonusregels met traptreden ingericht; zie `Verlof_Bonus_Regelingen_Addendum.md`. |
-| `accrual_frequency` | `PAYROLL_PERIOD`, `YEARLY` | Opbouw per loonperiode (maandelijks/vierwekelijks) of jaarlijks. |
+| `accrual_frequency` | `PAYROLL_PERIOD`, `FOUR_WEEKLY`, `MONTHLY`, `YEARLY` | Opbouw volgens de verloningsperiode, per vier weken, per maand of per jaar. |
 | `accrual_timing` | `UPFRONT`, `ARREARS` | Beschikbaar aan begin respectievelijk eind van de periode. |
 | `leave_type_scope` | `STATUTORY`, `NON_STATUTORY`, `ADV`, `OTHER` | Wettelijk, bovenwettelijk, ADV of overig verlof. |
 | `leave_type_entitlement_mode` | `ACCRUAL`, `UNLIMITED`, `ANNUAL_HOURS_CAP`, `WEEKLY_HOURS_FACTOR_CAP` | Opbouw, onbeperkt beschikbaar, vaste jaarlimiet of jaarlimiet op basis van gemiddelde weekuren maal factor. |
@@ -108,7 +108,7 @@ Voorbeeld van niet-opbouwsoorten zijn later ziekenhuisbezoek of tandartsbezoek. 
 | `valid_from`, `valid_until` | Effective-dated, exclusieve einddatum. |
 | `accrual_basis`, `accrual_frequency` | Verplicht. |
 | `accrual_timing` | Verplicht. Toekenning aan het begin (`UPFRONT`) of einde (`ARREARS`) van de gekozen frequentie. |
-| `accrual_amount` | `numeric(12,4)`, uren per periode bij 1,0 FTE voor contracturen. |
+| `accrual_amount` | `numeric(12,4)`, jaarrecht fulltime bij 1,0 FTE voor `CONTRACT_HOURS`; de engine verdeelt dit volgens de gekozen frequentie. |
 | `accrual_rate` | `numeric(12,6)`, uitsluitend voor `WORKED_HOURS`: door HR instelbare verlofuren per gewerkt uur voor deze opbouwregel. Er is geen vaste standaard; vijf minuten per uur (`0.083333`) is slechts een voorbeeld. |
 | `expiration_months` | Verplicht; vervaltermijn na het opbouwjaar. |
 
@@ -144,11 +144,20 @@ Een migratiestartsaldo is geen blijvend uitzonderingsveld. Een geautoriseerde HR
 
 ### 5.1 Opbouw en pro rata
 
-De engine bepaalt per dag het actieve dienstverband, profiel, opbouwregel of uitzondering, rooster-FTE en eventuele relevante onbetaalde afwezigheid. Zonder geldig dienstverband is de uitkomst nul. Wijzigingen halverwege een periode splitsen die in slices. Voor contracturen geldt:
+De engine bepaalt per dag het actieve dienstverband, profiel, opbouwregel of uitzondering, rooster-FTE en eventuele relevante onbetaalde afwezigheid. Zonder geldig dienstverband is de uitkomst nul. Wijzigingen halverwege een periode splitsen die in slices.
 
-`(werkdagen in slice / werkdagen in volledige periode) × basisopbouw × FTE`
+Voor `CONTRACT_HOURS` is `leave_accrual_rules.accrual_amount` het door HR ingestelde **jaarrecht fulltime**: het totale verlofrecht per kalenderjaar bij een fulltime dienstverband. De editor toont geen afzonderlijk te beheren periodebedrag. De toekomstige engine gebruikt bij volledige perioden de gekozen frequentie als volgt:
 
-De som van alle slices wordt één `ACCRUAL`-transactie per bucket en boekingsmoment. Voor iedere `leave_accrual_rule_pause_types`-koppeling trekt de engine alleen de werkelijk opgenomen uren van dat geselecteerde verloftype af van de opbouwgrondslag van deze regel. De vermindering is pro rata ten opzichte van de geplande uren in dezelfde slice; een halve opgenomen werkdag verlaagt dus alleen die halve dag. Een niet-gekoppelde verlofsoort pauzeert de opbouw nooit.
+- `YEARLY`: het jaarrecht per volledig kalenderjaar;
+- `MONTHLY`: het jaarrecht gedeeld door 12 per volledige kalendermaand;
+- `FOUR_WEEKLY`: het jaarrecht gedeeld door 13 per volledige periode van vier weken;
+- `PAYROLL_PERIOD`: het jaarrecht verdeeld volgens de effectieve verloningsfrequentie van het dienstverband.
+
+Bij indienst- of uitdiensttreding tijdens een opbouwperiode wordt voor `CONTRACT_HOURS` de gebroken periode naar rato van **kalenderdagen** bepaald. Voor een maand is dat dagen in dienst in de maand gedeeld door het aantal kalenderdagen in die maand; voor een periode van vier weken is dat dagen in dienst gedeeld door 28. De precieze engine-slicing, boeking en afronding blijven buiten deze configuratie-UX-slice en horen bij de afzonderlijke Leave Engine-implementatie.
+
+De bestaande FTE-basis blijft leidend: het volledige contracturenrecht wordt toegepast op de geldende `part_time_factor` van het dienstverband. De UI- en documentatiebetekenis wijzigt hiermee; deze branch wijzigt de engine niet.
+
+De som van alle slices wordt één `ACCRUAL`-transactie per bucket en boekingsmoment. Voor iedere `leave_accrual_rule_pause_types`-koppeling trekt de engine alleen de werkelijk opgenomen uren van dat geselecteerde verloftype af van de opbouwgrondslag van deze regel. De vermindering is pro rata ten opzichte van de geplande uren in dezelfde slice; een halve opgenomen dag verlaagt dus alleen die halve dag. Een niet-gekoppelde verlofsoort pauzeert de opbouw nooit.
 
 `UPFRONT` boekt aan het begin en `ARREARS` aan het einde van de gekozen opbouwfrequentie; dit geldt zowel voor `PAYROLL_PERIOD` als voor `YEARLY`. `PAYROLL_PERIOD` volgt de op de periode effectieve `employment_salaries.payment_frequency` (`MONTHLY` of `FOUR_WEEKLY`) en boekt nooit buiten een geldig dienstverband.
 

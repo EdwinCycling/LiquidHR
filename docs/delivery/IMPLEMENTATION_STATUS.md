@@ -1,5 +1,17 @@
 # Implementatiestatus Liquid HR
 
+## Leave profile management UX refinement — 2026-09-12
+
+**Status: LOCAL IMPLEMENTATION + AUTHENTICATED BROWSER GREEN — PUSH/PREVIEW GATES OPEN**
+
+De geïsoleerde candidate staat op branch `work/leave-profile-management` in worktree `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\leave-profile-management`, vanaf GREEN-SHA `3e66dca86acde1ef857f129f290cdf7f7d1c2ee9`. De wijziging is beperkt tot de Leave Settings UX. De bestaande profiel-, opbouwregel-, verloftype-, default-/employee-set-resolver en accrual-engine-contracten zijn niet gewijzigd; de bestaande `/api/leave/catalog`-flow en `AccrualRuleEditor` blijven de enige persistence-/regel-editorroute.
+
+De workspace opent standaard op **Verlofprofielen** en gebruikt de volgorde Verlofprofielen, Verlofsoorten, Medewerkersets, Jaarafsluiting & audit. De profielweergave toont actuele verloftypen per profiel met kleur, hoeveelheid/rate, frequentie, basis, timing, verval en geldigheid. Toevoegen selecteert eerst een bestaand actief verloftype en opent daarna de bestaande regel-editor; wijzigen en `Aan profiel koppelen` gebruiken dezelfde modal-wrapper. De typen-catalogus toont profielgebruik en voorkomt een tweede actuele koppeling. Voor `CONTRACT_HOURS` presenteert dezelfde editor `accrual_amount` als `Jaarrecht fulltime`, met read-only jaar/maand/4-wekenpreview en kalenderdagen-uitleg voor gebroken perioden; de toekomstige engineafspraak is gedocumenteerd, maar de engine is niet gewijzigd. De gevraagde NL/EN-uitleg en labels zijn toegevoegd.
+
+Lokale gates: gerichte tests `3/3`, strict TypeScript, ESLint, `check:i18n` en Webpack production build `258/258` groen. De volledige suite rapporteert `358` pass en twee bestaande, niet-gerelateerde failures: `document_studio_dm1_native_template_editor.contract.test.ts` (CASE-parenthesization) en `lib/document-generation/pdf.test.ts` (5s timeout). Standaard Turbopack blijft in deze worktree geblokkeerd door de bekende `next/package.json`-symlink-resolutie; Webpack is de geslaagde build-gate.
+
+Authenticated browser acceptance is groen via de normale DEV-fixture-login op localhost: Planeten toont de default-tab en beide bestaande contracturenregels; add/edit/link en profiel-/medewerkerset/default-dialogen zijn read-only geopend en geannuleerd; `?section=`-deep-links en reload behouden de tab; Manager en Employee worden naar `geen-toegang` geweigerd; er waren nul Leave-catalogusPOSTs en nul console/page-errors. De Engelse message-namespace heeft gelijke sleutels met NL (`35 namespaces`); de fixturevoorkeur bleef NL en is niet gewijzigd. Er is geen schema/migration, remote Supabase-write, Leave-configuratiemutatie, commit, push, merge, Production-mutatie of Vercel-deployment uitgevoerd.
+
 ## AI Everywhere V1 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; MAIN INTEGRATION READY**

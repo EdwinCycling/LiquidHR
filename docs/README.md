@@ -1,5 +1,9 @@
 # Liquid HR documentatie-index
 
+## Leave profile management UX refinement — 2026-09-12
+
+De geïsoleerde branch `work/leave-profile-management` bevat een UI-only verfijning van Leave Settings: Verlofprofielen is de default en eerste tab, profielen tonen hun actuele verloftypen en compacte opbouwsamenvattingen, en dezelfde bestaande opbouwregel-editor wordt gebruikt voor toevoegen, wijzigen en koppelen vanuit de verloftypencatalogus. Voor `CONTRACT_HOURS` heet `accrual_amount` in de UI `Jaarrecht fulltime`, met informatieve verdeling per jaar/maand/4-wekenperiode en kalenderdagen-uitleg voor gebroken perioden; het engine-contract is vastgelegd zonder enginewijziging. NL/EN, strict TypeScript, ESLint, i18n en de Webpack production build zijn lokaal groen; de volledige suite houdt twee bestaande niet-gerelateerde Document Studio/DG1-PDF failures. Authenticated localhost browser acceptance is groen voor HR Admin, met add/edit/link-dialogen read-only geopend/geannuleerd, reload/deep-link, Manager/Employee-denial, nul Leave-catalogusPOSTs en nul console/page-errors; alleen commit/push en de geautoriseerde Preview-deployment blijven open.
+
 ## Document Studio DG2 + DG3 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**

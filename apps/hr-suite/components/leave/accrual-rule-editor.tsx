@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import type { LeaveCatalog } from '@/lib/leave/leave-service'
+import { calculateContractHoursPeriodAmount, formatContractHours, type ContractHoursFrequency } from './contract-hours-presentation'
 
 type Basis = 'CONTRACT_HOURS' | 'WORKED_HOURS'
 type Frequency = 'PAYROLL_PERIOD' | 'FOUR_WEEKLY' | 'MONTHLY' | 'YEARLY'
@@ -30,8 +31,17 @@ export type AccrualRuleEditorLabels = {
   timing: string
   upfront: string
   arrears: string
-  amountPerYear: string
-  amountPerPeriod: string
+  annualFullTimeEntitlement: string
+  annualFullTimeEntitlementHelp: string
+  calculatedPreview: string
+  calculatedPreviewHelp: string
+  calculatedYearly: string
+  calculatedMonthly: string
+  calculatedFourWeekly: string
+  calculatedPayrollPeriod: string
+  partialPeriodHelp: string
+  partialPeriodMonthly: string
+  partialPeriodFourWeekly: string
   amountPerHour: string
   hours: string
   minutes: string
@@ -48,6 +58,8 @@ export type AccrualRuleEditorLabels = {
   noWorkHours: string
   noPauseTypes: string
   profileRequired: string
+  decimalSeparator: string
+  hoursUnit: string
   summary: string
   summaryBasis: string
   summaryAmount: string
@@ -158,6 +170,7 @@ export function AccrualRuleEditor({
     .map((item) => item.pause_leave_type_id))
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const frequency: Frequency = periodMode === 'PAYROLL_PERIOD' ? 'PAYROLL_PERIOD' : specificPeriod
+  const annualEntitlement = decimalFromParts(amount)
   const availableWorkHours = useMemo(
     () => catalog.workHourTypes.filter((item) => item.category !== 'INFORMATIONAL' && item.is_active),
     [catalog.workHourTypes],
@@ -215,8 +228,14 @@ export function AccrualRuleEditor({
   const basisLabel = basis === 'CONTRACT_HOURS' ? labels.contractHours : labels.workedHours
   const periodLabel = frequencyLabel(frequency, labels)
   const amountSummary = basis === 'CONTRACT_HOURS'
-    ? `${decimalFromParts(amount).toFixed(2)}u ${frequency === 'YEARLY' ? labels.amountPerYear : `${labels.amountPerPeriod} ${periodLabel.toLocaleLowerCase()}`}`
-    : `${decimalFromParts(rate).toFixed(4)}u/u ${labels.amountPerHour}`
+    ? `${labels.annualFullTimeEntitlement.toLocaleLowerCase()}: ${formatContractHours(annualEntitlement, labels.decimalSeparator)} ${labels.hoursUnit}`
+    : `${formatContractHours(decimalFromParts(rate), labels.decimalSeparator, 4)} ${labels.hoursUnit} ${labels.amountPerHour}`
+  const contractPeriodPreview = frequency === 'PAYROLL_PERIOD'
+    ? labels.calculatedPayrollPeriod
+    : (frequency === 'FOUR_WEEKLY' || frequency === 'MONTHLY' || frequency === 'YEARLY'
+      ? (frequency === 'FOUR_WEEKLY' ? labels.calculatedFourWeekly : frequency === 'MONTHLY' ? labels.calculatedMonthly : labels.calculatedYearly)
+        .replace('{amount}', formatContractHours(calculateContractHoursPeriodAmount(annualEntitlement, frequency as ContractHoursFrequency), labels.decimalSeparator))
+      : '')
   const readableSummary = [
     `${labels.summaryBasis} ${basisLabel.toLocaleLowerCase()}.`,
     `${labels.summaryAmount} ${amountSummary}.`,
@@ -283,6 +302,11 @@ export function AccrualRuleEditor({
             <option value="YEARLY">{labels.yearly}</option>
           </select>
         </label> : null}
+        {basis === 'CONTRACT_HOURS' ? <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:col-span-2" role="status">
+          <p className="text-sm font-semibold">{labels.calculatedPreview}</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{contractPeriodPreview}</p>
+          <p className="mt-1 text-xs font-normal text-muted-foreground">{labels.calculatedPreviewHelp}</p>
+        </div> : null}
         <label className="grid gap-1.5 text-sm font-medium">
           {labels.timing}
           <select className="form-field" onChange={(event) => setTiming(event.target.value as typeof timing)} value={timing}>
@@ -309,9 +333,17 @@ export function AccrualRuleEditor({
       </fieldset> : null}
 
       <div className="mt-6 rounded-xl border bg-muted/20 p-4">
-        <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' && frequency === 'YEARLY' ? labels.amountPerYear : basis === 'CONTRACT_HOURS' ? `${labels.amountPerPeriod} ${periodLabel.toLocaleLowerCase()}` : labels.amountPerHour}</h3>
+        <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' ? labels.annualFullTimeEntitlement : labels.amountPerHour}</h3>
+        {basis === 'CONTRACT_HOURS' ? <p className="mt-1 text-xs text-muted-foreground">{labels.annualFullTimeEntitlementHelp}</p> : null}
         <div className="mt-3">{partsField(basis === 'CONTRACT_HOURS' ? amount : rate, basis === 'CONTRACT_HOURS' ? setAmount : setRate, basis === 'WORKED_HOURS')}</div>
       </div>
+      {basis === 'CONTRACT_HOURS' ? <section className="mt-5 rounded-xl border bg-muted/20 p-4">
+        <p className="text-sm font-medium">{labels.partialPeriodHelp}</p>
+        <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+          <li>{labels.partialPeriodMonthly}</li>
+          <li>{labels.partialPeriodFourWeekly}</li>
+        </ul>
+      </section> : null}
       <div className="mt-5 flex items-end gap-2">
         <label className="grid max-w-32 gap-1.5 text-sm font-medium">
           {labels.expiry}
