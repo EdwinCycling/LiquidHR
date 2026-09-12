@@ -6,6 +6,17 @@ import { createClient } from '@/lib/supabase/server'
 export type EmployeeScope = 'all' | 'team'
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
+export function isEmployeeOutsideDirectManagerScope(
+  auth: Pick<AuthContext, 'employeeId' | 'activeRoles'>,
+  targetEmployeeId: string,
+  teamEmployeeIds: readonly string[],
+): boolean {
+  return auth.employeeId !== targetEmployeeId
+    && auth.activeRoles.includes('DIRECT_MANAGER')
+    && !auth.activeRoles.includes('TENANT_ADMIN')
+    && !teamEmployeeIds.includes(targetEmployeeId)
+}
+
 export async function listDirectTeamEmployeeIds(auth: AuthContext, existingClient?: SupabaseServerClient): Promise<string[]> {
   if (!auth.employeeId || !auth.administrationId || !auth.activeRoles.includes('DIRECT_MANAGER')) return []
   const groupId = requireHrGroupId(auth)
