@@ -2,32 +2,44 @@
 
 ## Employee Contract + synthetic fixtures — 2026-09-12
 
-**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+**Status: MANAGER + TEMPORAL FIXTURE E2E: GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
 
 De bestaande QA-track is voortgezet op branch `work/employee-wizard-jan-test-e2e`
-vanaf baseline `99de0b8`. Piet Test en Frank Test zijn via de echte HR Admin
-Employee Wizard aangemaakt op uitsluitend DEV-project `wnpfloqpjvaacobppbpk`; de
-stabiele graph-ID's staan in [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
-Jan is niet opnieuw aangemaakt en zijn GREEN-grafiek is intact.
+op commit `8311115`, zonder Jan opnieuw aan te maken. Lisa Test is via de echte
+HR Admin Employee Wizard aangemaakt op uitsluitend DEV-project
+`wnpfloqpjvaacobppbpk`; haar auth identity is via de bestaande invitation-fixture
+en normale login/acceptatie-flow aan precies één employee gebonden. De vier
+stabiele graphen staan in [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
 
-Frank is via de normale contractdetail-flow gecorrigeerd van 2026-09-30 naar
-2026-10-01. De afhankelijke timeline-records volgen nu de contractperiode; er is
-geen SQL gebruikt voor de datumcorrectie. Twee pre-fix DRAFT change-setmetadata-
-records zijn na bewijs van succesvolle UI-mutaties exact op Frank naar APPLIED
-hersteld. De permanente remote migraties zijn
-`20260912072624_contract_change_audit_and_timeline` en
-`20260912074130_repair_contract_terminal_selection_status`; de contract-RPC blijft
-SECURITY INVOKER en VOLATILE, de bestaande insert-helper blijft SECURITY
-DEFINER/STABLE, en er zijn geen grants of RLS-policies verruimd.
+Lisa is via de normale organization/manager-flow als directe manager gekoppeld
+aan Jan, Piet en Frank. Jan's roosterwijziging per 2026-10-01 is via de echte
+UI/domain-flow toegepast: 32/40 uur en factor 0,80 blijven gelijk, vrijdag
+wordt in september vervangen door woensdag als niet-werkdag in oktober; de
+salarishistorie bleef ongemoeid.
 
-Remote readback is groen voor contracten, roosters, salarissen, inkomenslinks,
-organisatie- en administratieassignment; TEST-BOUNDARY blijft 0/0. HR Admin
-reloads en Manager/Employee/cross-scope-negatieven zijn uitgevoerd. De eindgate
-is groen voor de gerichte contract/migratietests `12/12`, lint, i18n (`35`),
-strict TypeScript, diff-check en Webpack (`258/258`). De volledige suite is
-`359/360` bestanden en `1390/1391` tests; de ene failure is de bekende,
-ongerelateerde DM-1 CASE-parenthesization-baselinefailure. Alleen commit en één
-push van deze branch zijn nog open.
+Remote readback is groen: Lisa heeft exact één actieve employment en auth-link;
+Jan, Piet en Frank wijzen in hun bedoelde actieve employment naar Lisa; Piet's
+soft-deleted retry blijft genegeerd. Jan geeft op 2026-09-15 EUR 4.000/EUR
+3.200 en op 2026-10-15 EUR 4.250/EUR 3.400. De vier fixtures delen tenant,
+HR-groep en administratie; TEST-BOUNDARY blijft 0/0 en er is geen Payroll-
+write uitgevoerd.
+
+De directe manager kreeg vóór de fix onterecht een same-tenant employee-detail
+terug. De minimale architectuurconforme lokale fix herhaalt de bestaande
+direct-manager-scope in `getEmployeeEmploymentDetail` en geeft buiten-team
+details dezelfde `404 EMPLOYEE_NOT_FOUND`; er zijn geen RLS-, grant-, service-
+role- of SECURITY-DEFINER-bypasses toegevoegd en geen remote migration was nodig.
+De helpertest is `3/3` groen.
+
+Browseracceptance is groen via normale login voor HR Admin en Lisa: teamlijst,
+Lisa-self mapping, drie directe reports, HR Admin-only denial, same-tenant
+outside-team denial, foreign-tenant denial en reload zijn gecontroleerd met
+`0` console/page-errors. De finale repository-gate is groen voor lint, i18n
+(`35` namespaces), strict TypeScript, Webpack (`258/258`) en diff-check. De
+volledige suite is `360/361` testbestanden en `1393/1394` tests; de enige failure
+is de bekende, ongerelateerde DM-1 CASE-parenthesization-baselinefailure.
+Alleen commit en één push van deze branch zijn nog open. De bestaande dirty
+`apps/hr-suite/next-env.d.ts` is bewust buiten deze wijziging gehouden.
 
 ## Employee Wizard Jan Test E2E — 2026-09-11
 

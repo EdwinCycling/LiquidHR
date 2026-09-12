@@ -2,29 +2,40 @@
 
 ## Employee Contract + synthetic fixtures — 2026-09-12
 
-**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+**Status: MANAGER + TEMPORAL FIXTURE E2E: GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
 
-De Employee Wizard QA-track bevat nu de blijvende synthetische DEV-fixtures Piet
-Test en Frank Test naast de bestaande Jan Test. De contractdetail-flow ondersteunt
-voor bestaande contracten een verplichte wijzigingsreden, echte kalenderdatum-
-validatie en transactionele change-set/auditkoppeling. De bestaande
-`manage_employment_contract`-RPC blijft SECURITY INVOKER en VOLATILE. De bewezen
-contracttijdlijnbug is minimaal hersteld: terminale afhankelijke regels mogen
-worden verlengd vanuit de vorige contracteinddatum; change sets worden na een
-geslaagde mutation APPLIED. Zie [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md)
-voor uitsluitend de geautoriseerde fixture-ID's en Leave Engine readiness.
+De Employee Wizard QA-track bevat nu de blijvende synthetische DEV-fixtures Lisa,
+Jan, Piet en Frank op uitsluitend Supabase DEV-project
+`wnpfloqpjvaacobppbpk`. Lisa is via de echte HR Admin-wizard aangemaakt en via de
+bestaande invitation-fixture aan haar eigen test-auth identity gebonden. Jan is
+niet opnieuw aangemaakt. De volledige fixturegraph en uitsluitend geautoriseerde
+ID's staan in [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
 
-Remote migrations `20260912072624_contract_change_audit_and_timeline` en
-`20260912074130_repair_contract_terminal_selection_status` zijn alleen op
-`wnpfloqpjvaacobppbpk` toegepast en teruggelezen. Er zijn geen nieuwe RLS-policies,
-brede grants, SECURITY-DEFINER-bypasses, service-role writes, Production- of
-Payroll-wijzigingen gedaan. Jan blijft GREEN; Piet heeft één actieve intended
-employment; Frank eindigt definitief op 2026-10-01 met 20/40 uur, factor 0,50 en
-EUR 4.000/EUR 2.000. De gerichte contract/migratietests (`12/12`), lint, i18n,
-strict TypeScript, diff-check en Webpack (`258/258`) zijn groen. De volledige
-suite is `359/360` bestanden en `1390/1391` tests; alleen de bekende, ongerelateerde
-DM-1 CASE-parenthesization-baselinefailure blijft over. Branch commit en push
-volgen.
+De normale organization/manager-flow koppelt Lisa direct aan Jan, Piet en Frank.
+De echte Jan-roosterflow heeft per 2026-10-01 de effectieve werkdagen gewijzigd
+van maandag–donderdag naar maandag/dinsdag/donderdag/vrijdag, met woensdag als
+niet-werkdag; 32/40 uur en factor 0,80 bleven gelijk. Salaris bleef intact met
+peildata EUR 4.000/EUR 3.200 op 2026-09-15 en EUR 4.250/EUR 3.400 op 2026-10-15.
+
+De lokale server-side scopefix herhaalt de directe-manager-scope vóór
+`getEmployeeEmploymentDetail` en retourneert buiten-team dezelfde `404
+EMPLOYEE_NOT_FOUND`. De bijbehorende helpertest is `3/3` groen. De fix gebruikt
+geen RLS-policywijziging, bredere grant, service-role bypass of nieuwe
+SECURITY-DEFINER-functie; er was geen remote migration voor nodig. De bestaande
+`manage_employment_contract`-RPC blijft SECURITY INVOKER en VOLATILE en de
+bestaande `can_insert_complete_employment_contract`-helper blijft
+SECURITY DEFINER/STABLE.
+
+Remote readback bevestigt exact één actieve Lisa-employment/auth-link, één
+bedoelde actieve employment voor Jan/Piet/Frank, de Lisa-managergraph en de
+soft-deleted Piet-retry. TEST-BOUNDARY blijft 0/0; er zijn geen Payroll-tabellen
+gewijzigd. HR Admin- en Lisa-browseracceptance, inclusief reload en negatieve
+scope/HR Admin-controles, is groen met `0` console/page-errors.
+
+De finale repository-gate is groen voor lint, i18n (`35` namespaces), strict
+TypeScript, diff-check en Webpack (`258/258`). De volledige suite is `360/361`
+testbestanden en `1393/1394` tests; de enige failure is de bekende, ongerelateerde
+DM-1 CASE-parenthesization-baselinefailure. Branch commit en push volgen.
 
 ## Employee Wizard Jan Test E2E — 2026-09-11
 

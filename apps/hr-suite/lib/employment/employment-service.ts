@@ -8,7 +8,7 @@ import { employeeAvatarHref } from '@/lib/employees/employee-service'
 import { employeeDetailReadFailureCode } from './detail-errors'
 import { deriveEmploymentStatus, isRehire, type EmploymentStatus } from './employment-status'
 import { selectCurrentEmploymentSummary, type CurrentEmployeeSummary } from './employee-summary'
-import { listDirectTeamEmployeeIds, type EmployeeScope } from '@/lib/organization/team-scope'
+import { isEmployeeOutsideDirectManagerScope, listDirectTeamEmployeeIds, type EmployeeScope } from '@/lib/organization/team-scope'
 import { mapEmployeeOverviewRpcRow, type EmployeeOverview } from './employee-overview'
 import { nextAvailableEmploymentNumber } from './employment-number'
 import { isBlockingProbationValidation, validateProbation } from './probation-rules'
@@ -1136,6 +1136,9 @@ export async function getEmployeeEmploymentDetail(
 ): Promise<EmployeeEmploymentDetail> {
   const context = await requirePermission('employee:read', employeeId)
   const supabase = options.supabase ?? await createClient()
+  if (isEmployeeOutsideDirectManagerScope(context, employeeId, await listDirectTeamEmployeeIds(context, supabase))) {
+    throw new EmploymentServiceError('EMPLOYEE_NOT_FOUND', 404)
+  }
   const today = new Date().toISOString().slice(0, 10)
   const isAllScope = scope === 'all'
   const includePersonalData = isAllScope || scope === 'overview' || scope === 'personal'
