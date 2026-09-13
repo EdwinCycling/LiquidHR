@@ -1,5 +1,28 @@
 # Liquid HR documentatie-index
 
+## Leave V1 product completion — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — MAIN/VERCEL INTEGRATION GATE OPEN**
+
+De Leave V1-candidate bundelt de centrale workspace met exact zeven tabs,
+effectieve profielgebonden voorrangsregels, de auditeerbare startsaldo- en
+correctiesurfaces, de canonieke kalenderprojectie en het 12-maands
+medewerker-overzicht. De echte lokale HR Admin-flow heeft op uitsluitend de
+synthetische Planeten-configuratie `Standaard vakantievolgorde` vastgelegd en
+de drie beschreven Jan Test-aanvragen goedgekeurd. DEV-readback bevestigt de
+verwachte wettelijke/bovenwettelijke FIFO-allocatie, de eindstand
+`0`/`3,8904` uur en geen dubbele aanvraag; `TEST-BOUNDARY` is `0`.
+
+De bestaande `MIGRATION_START_BALANCE`-ingang en cohortsemantiek zijn
+behouden. Er is in deze completion-run geen nieuwe accrual-posting en geen
+nieuwe migration uitgevoerd, omdat de bestaande DEV-schemafundering de
+vereiste cutover- en onafhankelijke vervalcohorten al ondersteunt.
+Server-side read-scope beperkt medewerkers tot eigen data en managers tot
+directe reports. Gerichte Leave-tests zijn `63/63`; typecheck, lint, i18n,
+diff-check en Webpack (`261/261`) zijn groen. De volledige suite-resultaat-
+baseline is `361/364` bestanden en `1421/1424` tests met drie bekende,
+ongerelateerde failures; de main-, GitHub-, Vercel- en hosted-gates volgen.
+
 ## HR handmatige verlofsaldocorrecties — 2026-09-13
 
 **Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**
@@ -963,8 +986,8 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Domein | Document | Documentstatus | Implementatie |
 |---|---|---|---|
 | Bedrijf en locatie per dienstverband | [`requirements/employment/BEDRIJF_EN_LOCATIE_PER_DIENSTVERBAND.md`](requirements/employment/BEDRIJF_EN_LOCATIE_PER_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — lokale schema/RLS/RPC, API, eigen dienstverbandtab, read-only bedrijfskaart en locatie-opvolging zijn toegevoegd; remote migratie en authenticated browserbewijs volgen |
-| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | GEDEELTELIJK — schema/RLS, pure engine/report, catalogus/API, direct bewerkbare en intern effective-dated opbouwregels, kleurgebruik, overwerkbeperkingen en de eerste verloftype-/uitzonderingen-UI zijn aanwezig; age/seniority-regels en volledige opbouwprojectie volgen |
-| Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | GEDEELTELIJK — geautoriseerde HR-admin/managerflow, priority/FIFO, directe goedkeuring, saldo-overzicht en kalenderweergave zijn geïmplementeerd; ESS, notificaties en manager-UI volgen later |
+| Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | LEAVE V1 COMPLEET — bestaande schema/RLS, cutover/cohort-engine, catalogus/API, effectieve voorrangsregels, auditeerbare startsaldo/correcties, saldo-/jaaroverzicht en acceptance-readback zijn groen; latere productuitbreidingen blijven afzonderlijke scope |
+| Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | LEAVE V1 COMPLEET — geautoriseerde HR-adminflow, directe en priority/FIFO-allocatie, canonieke kalenderprojectie, 12-maands overzicht en eigen/direct-report read-scope zijn groen; ESS-notificaties blijven afzonderlijke scope |
 | Verzuim en herstel | [`requirements/absence/VERZUIM_EN_HERSTEL.md`](requirements/absence/VERZUIM_EN_HERSTEL.md) | LEIDEND | GEDEELTELIJK — schema/RLS/RPC, API, dashboardvenster, startpagina, kalenderactie, medewerker-tab, herstel, instellingen en verzuimrapportage zijn live; voorziening en verdere WvP blijven open |
 | WvP Poortwachter | [`requirements/absence/WVP_POORTWACHTER_ENGINE.md`](requirements/absence/WVP_POORTWACHTER_ENGINE.md) | LEIDEND | GEDEELTELIJK — HR Admin kan eigen niet-wettelijke taaktemplates beheren; wettelijke milestone-engine, casustaken, dossier en signaleringen blijven open totdat de set inhoudelijk is bevestigd |
 | Verzuiminstellingen | [`requirements/absence/VERZUIM_INSTELLINGEN.md`](requirements/absence/VERZUIM_INSTELLINGEN.md) | LEIDEND | GEDEELTELIJK — drempel, geldige standaardcasemanager en eigen taaktemplates zijn administratiegebonden beschikbaar; contacttypen en documentcategorieën blijven open |

@@ -9,6 +9,13 @@ export const balanceReportQuerySchema = z.object({
 
 export type BalanceReportQuery = z.infer<typeof balanceReportQuerySchema>
 
+export const leaveOverviewQuerySchema = z.object({
+  employmentId: z.string().trim().min(1).max(100),
+  year: z.coerce.number().int().min(2000).max(2200),
+}).strict()
+
+export type LeaveOverviewQuery = z.infer<typeof leaveOverviewQuerySchema>
+
 const requestTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 export const leaveRequestPreviewQuerySchema = z.object({
@@ -323,7 +330,16 @@ const openingBalanceInput = z.object({
   startDate: isoDate,
   reason: z.string().trim().min(1).max(500),
   sourceKey: z.string().trim().min(8).max(160),
-}).strict()
+  sourceAccrualYear: z.number().int().min(2000).max(2200).optional(),
+  expirationDate: isoDate.optional(),
+}).strict().superRefine((value, context) => {
+  if ((value.sourceAccrualYear === undefined) !== (value.expirationDate === undefined)) {
+    context.addIssue({ code: 'custom', path: ['sourceAccrualYear'], message: 'LEAVE_OPENING_COHORT_FIELDS_REQUIRED' })
+  }
+  if (value.expirationDate !== undefined && value.expirationDate <= value.startDate) {
+    context.addIssue({ code: 'custom', path: ['expirationDate'], message: 'LEAVE_OPENING_EXPIRATION_INVALID' })
+  }
+})
 
 const manualAdjustmentInput = z.object({
   action: z.literal('MANUAL_ADJUSTMENT'),

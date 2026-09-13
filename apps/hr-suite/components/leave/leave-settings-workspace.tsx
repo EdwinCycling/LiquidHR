@@ -5,9 +5,9 @@ import { Check } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ScrollableTabs, TabButton } from '@/components/patterns/scrollable-tabs'
 
-type Section = 'types' | 'profiles' | 'sets' | 'yearEnd'
+type Section = 'types' | 'profiles' | 'priority' | 'sets' | 'migration' | 'corrections' | 'yearEnd'
 
-export const LEAVE_SETTINGS_SECTION_ORDER: Section[] = ['profiles', 'types', 'sets', 'yearEnd']
+export const LEAVE_SETTINGS_SECTION_ORDER: Section[] = ['profiles', 'types', 'priority', 'sets', 'migration', 'corrections', 'yearEnd']
 
 type Labels = {
   tabs: Record<Section, string>
@@ -16,7 +16,7 @@ type Labels = {
 }
 
 export function resolveLeaveSettingsSection(value: string | null): Section {
-  return value === 'types' || value === 'sets' || value === 'yearEnd' || value === 'profiles' ? value : 'profiles'
+  return value === 'types' || value === 'priority' || value === 'sets' || value === 'migration' || value === 'corrections' || value === 'yearEnd' || value === 'profiles' ? value : 'profiles'
 }
 
 export function LeaveSettingsWorkspace({ sections, labels }: { sections: Record<Section, ReactNode>; labels: Labels }) {

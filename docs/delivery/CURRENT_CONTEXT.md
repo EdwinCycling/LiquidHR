@@ -1,5 +1,52 @@
 # Actuele overdracht Liquid HR
 
+## Leave V1 product completion — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — MAIN/VERCEL INTEGRATION GATE OPEN**
+
+De actuele candidate staat op branch `work/leave-v1-product-completion` in
+`\.codex-worktrees\leave-v1-product-completion`, gebaseerd op main-SHA
+`a167b81de0ed8d21a7452230e7ae9d10967e4c6f`. De Leave-workspace heeft exact
+zeven tabs in productvolgorde: Verlofprofielen, Verlofsoorten,
+Voorrangsregels, Medewerkersets, Startsaldi & migratie, Saldo & correcties en
+Jaarafsluiting & audit. De kalender en het jaaroverzicht gebruiken de
+canonieke `APPROVED` aanvraag/allocatie-projectie; de bestaande legacy
+`employment_schedules`-read blijft als compatibele leesfallback voor
+synthetische historische roosters beschikbaar.
+
+De effectieve Priority Rule wordt zowel in preview als server-side bij
+confirmatie gecontroleerd op tenant, HR-groep, employmentprofiel, actieve
+status, geldigheid over de volledige periode en aaneengesloten sortering.
+Voor Planeten is via de normale lokale HR Admin-flow het synthetische/default
+object `Standaard vakantievolgorde` onder `Standaard verlof profiel` geldig
+vanaf 2026-01-01 aangemaakt, met wettelijk vóór bovenwettelijk. Voor uitsluitend
+Jan Test zijn de drie beschreven boekingen via de echte kalenderflow
+goedgekeurd: 2026-09-16 ochtend 4 uur wettelijk, 2026-09-21 t/m 2026-09-23
+prioriteit en 2026-10-02 volledige dag 8 uur wettelijk. DEV-readback bevestigt
+de verwachte allocaties (19,9123/4,0877 op de prioriteitsdagen), eindstand
+0 wettelijk en 3,8904 bovenwettelijk, zonder dubbele requests. De
+`TEST-BOUNDARY`-requestcount is 0.
+
+De bestaande `MIGRATION_START_BALANCE`/`create_group_leave_opening_balance`
+semantiek en de al toegepaste backward-compatible cohortmigratie blijven
+intact. Cohorts bewaren bronjaar, sleutel en vervaldatum onafhankelijk; er
+was voor deze product-completion-run geen nieuwe schemawijziging nodig en er
+is geen nieuwe engine-posting uitgevoerd. De eerdere product-correctie om vóór
+echte accrual-posting te stoppen is hiermee gerespecteerd.
+
+Read-scope is server-side begrensd: de eigen Employee-flow leest alleen het
+eigen verlofoverzicht; een Manager buiten het directe team krijgt
+`/geen-toegang`; de widget bevat geen mutatiepad. De gerichte actuele
+Leave-testset is `63/63` (10 bestanden); strict TypeScript, ESLint, i18n
+(`35` namespaces), diff-check en Webpack (`261/261`) zijn groen. De eenmaal
+uitgevoerde volledige suite eindigde op `361/364` testbestanden en `1421/1424`
+tests; de drie bestaande, ongerelateerde failures zijn de DG1-PDF-timeout,
+de contract-change-audit-grantassertie en de DM-1 CASE-parenthesization-
+assertie. Production, Payroll en echte medewerkers zijn niet aangeraakt.
+De resterende gates zijn de geautoriseerde feature-push, fast-forward-
+integratie naar `main`, exacte GitHub-SHA-readback, Vercel-deployment vanaf
+die SHA, hosted acceptance en daarna beperkte cleanup.
+
 ## HR handmatige verlofsaldocorrecties — 2026-09-13
 
 **Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**

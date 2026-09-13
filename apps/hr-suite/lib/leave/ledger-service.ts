@@ -16,6 +16,23 @@ export async function mutateLeaveLedger(input: LeaveLedgerMutation) {
   const supabase = await createClient()
 
   if (input.action === 'OPENING_BALANCE') {
+    if (input.sourceAccrualYear !== undefined && input.expirationDate !== undefined) {
+      const result = await supabase.rpc('create_group_leave_opening_balance_cohort', {
+        requested_tenant_id: context.tenantId,
+        requested_hr_group_id: hrGroupId,
+        requested_employee_id: input.employeeId,
+        requested_employment_id: input.employmentId,
+        requested_leave_type_id: input.leaveTypeId,
+        requested_amount: input.amount,
+        requested_start_date: input.startDate,
+        requested_reason: input.reason,
+        requested_source_key: input.sourceKey,
+        requested_source_accrual_year: input.sourceAccrualYear,
+        requested_expiration_date: input.expirationDate,
+      })
+      if (result.error || !result.data) ledgerError(result.error)
+      return { operation: input.action, id: result.data }
+    }
     const result = await supabase.rpc('create_group_leave_opening_balance', {
       requested_tenant_id: context.tenantId,
       requested_hr_group_id: hrGroupId,

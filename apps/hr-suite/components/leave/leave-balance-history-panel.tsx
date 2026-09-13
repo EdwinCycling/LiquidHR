@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ComponentProps } from 'react'
+import Link from 'next/link'
 import { DataTableShell } from '@/components/patterns/data-table-shell'
 import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -17,6 +18,16 @@ export type LeaveBalanceHistoryPanelLabels = {
   employmentPlaceholder: string
   employmentSearch: string
   currentBalance: string
+  beginningBalance: string
+  taken: string
+  planned: string
+  projectedEnd: string
+  projectedContractEnd: string
+  openingBalance: string
+  accrual: string
+  year: string
+  yearSelect: string
+  viewOverview: string
   unlimited: string
   history: string
   leaveType: string
@@ -84,6 +95,7 @@ export function LeaveBalanceHistoryPanel({
   employmentOptions = [],
   labels,
   locale,
+  overviewHref,
   refreshToken = 0,
 }: {
   asOfDate?: string
@@ -91,9 +103,12 @@ export function LeaveBalanceHistoryPanel({
   employmentOptions?: readonly LeaveHistoryEmploymentOption[]
   labels: LeaveBalanceHistoryPanelLabels
   locale: string
+  overviewHref?: string
   refreshToken?: number
 }) {
   const [selectedEmploymentIdState, setSelectedEmploymentId] = useState(employmentId ?? employmentOptions[0]?.id ?? '')
+  const currentYear = new Date().getUTCFullYear()
+  const [selectedYear, setSelectedYear] = useState(Number((asOfDate ?? new Date().toISOString().slice(0, 10)).slice(0, 4)))
   const [report, setReport] = useState<LeaveBalanceReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -101,7 +116,8 @@ export function LeaveBalanceHistoryPanel({
   const selectedEmploymentId = employmentId ?? (employmentOptions.some((option) => option.id === selectedEmploymentIdState)
     ? selectedEmploymentIdState
     : employmentOptions[0]?.id ?? '')
-  const reportForSelection = report && report.employmentId === selectedEmploymentId && (!asOfDate || report.asOfDate === asOfDate) ? report : null
+  const reportAsOfDate = asOfDate ?? (selectedYear === currentYear ? new Date().toISOString().slice(0, 10) : `${selectedYear}-12-31`)
+  const reportForSelection = report && report.employmentId === selectedEmploymentId && report.asOfDate === reportAsOfDate ? report : null
   const loadingForSelection = Boolean(selectedEmploymentId && loading)
   const failedForSelection = Boolean(selectedEmploymentId && failed)
 
@@ -112,7 +128,7 @@ export function LeaveBalanceHistoryPanel({
       setLoading(true)
       setFailed(false)
       try {
-        const nextReport = await fetchLeaveBalanceReport(selectedEmploymentId, asOfDate)
+        const nextReport = await fetchLeaveBalanceReport(selectedEmploymentId, reportAsOfDate)
         if (active) setReport(nextReport)
       } catch {
         if (active) {
@@ -127,12 +143,15 @@ export function LeaveBalanceHistoryPanel({
     return () => {
       active = false
     }
-  }, [asOfDate, refreshToken, selectedEmploymentId])
+  }, [refreshToken, reportAsOfDate, selectedEmploymentId])
 
   const formatter = numberFormatter(locale)
   const dateOnlyFormatter = dateFormatter(locale)
   const dateTimeFormatter = dateFormatter(locale, true)
   const rows = reportForSelection ? historyRows(reportForSelection) : []
+
+  const formatMetric = (value: number | null): string => value === null ? labels.unlimited : formatter.format(value)
+  const yearOptions = [currentYear - 1, currentYear, currentYear + 1]
 
   return <div className="space-y-5">
     {employmentOptions.length > 1 ? <div className="max-w-xl">
@@ -146,13 +165,16 @@ export function LeaveBalanceHistoryPanel({
 
     {loadingForSelection ? <p className="text-sm text-muted-foreground" role="status">{labels.loading}</p> : failedForSelection ? <p className="rounded-[var(--radius-control)] bg-destructive-surface p-3 text-sm text-destructive" role="alert">{labels.failed}</p> : reportForSelection ? <>
       <div>
-        <h3 className="text-sm font-semibold">{labels.currentBalance}</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold">{labels.currentBalance}</h3><label className="flex items-center gap-2 text-sm font-medium" htmlFor="leave-report-year">{labels.year}<DropdownSelect aria-label={labels.yearSelect} id="leave-report-year" onChange={(event) => setSelectedYear(Number(event.target.value))} value={String(selectedYear)}><option value={String(yearOptions[0])}>{yearOptions[0]}</option><option value={String(yearOptions[1])}>{yearOptions[1]}</option><option value={String(yearOptions[2])}>{yearOptions[2]}</option></DropdownSelect></label></div>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {reportForSelection.leaveTypes.map((leaveType) => <div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-3" key={leaveType.leaveTypeId}>
             <dt className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{leaveType.name}</dt>
-            <dd className="mt-1 text-lg font-semibold tabular-nums">{leaveType.currentBalance === null ? labels.unlimited : formatter.format(leaveType.currentBalance)}</dd>
+            <dd className="mt-1 text-lg font-semibold tabular-nums">{formatMetric(leaveType.currentBalance)}</dd>
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs"><div><dt className="text-muted-foreground">{labels.beginningBalance}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.startOfYearBalance)}</dd></div><div><dt className="text-muted-foreground">{labels.openingBalance}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.openingBalance)}</dd></div><div><dt className="text-muted-foreground">{labels.accrual}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.accrual)}</dd></div><div><dt className="text-muted-foreground">{labels.taken}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.taken.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0))}</dd></div><div><dt className="text-muted-foreground">{labels.planned}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.planned)}</dd></div><div><dt className="text-muted-foreground">{labels.projectedEnd}</dt><dd className="font-semibold tabular-nums">{formatMetric(leaveType.projectedEndBalance)}</dd></div></dl>
           </div>)}
         </dl>
+        {reportForSelection.leaveTypes.some((leaveType) => leaveType.projectedContractEndBalance !== null) ? <p className="mt-3 text-xs text-muted-foreground">{labels.projectedContractEnd}: {reportForSelection.leaveTypes.map((leaveType) => `${leaveType.name}: ${formatMetric(leaveType.projectedContractEndBalance)}`).join(' · ')}</p> : null}
+        {overviewHref ? <Link className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline" href={`${overviewHref}${overviewHref.includes('?') ? '&' : '?'}year=${selectedYear}`}>{labels.viewOverview}</Link> : null}
       </div>
       <div>
         <h3 className="text-sm font-semibold">{labels.history}</h3>

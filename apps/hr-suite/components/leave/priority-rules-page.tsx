@@ -34,7 +34,7 @@ function overlapsYear(validFrom: string, validUntil: string | null, year: number
   return validFrom <= end && (validUntil === null || validUntil > start)
 }
 
-export function PriorityRulesPage({ initial, labels, initialYear }: { initial: LeaveCatalog; labels: PriorityLabels; initialYear: number }) {
+export function PriorityRulesPage({ initial, labels, initialYear, embedded = false }: { initial: LeaveCatalog; labels: PriorityLabels; initialYear: number; embedded?: boolean }) {
   const [showInactive, setShowInactive] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -55,7 +55,7 @@ export function PriorityRulesPage({ initial, labels, initialYear }: { initial: L
   }
 
   return <div className="space-y-6">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><Link aria-label={labels.back} className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'shrink-0 px-2' })} href="/settings/leave-accrual"><ArrowLeft aria-hidden="true" /></Link><FormFieldYear label={labels.year} selectedYear={selectedYear} onChange={changeYear} /></div><Link className={buttonClasses({ className: 'gap-2' })} href={`/settings/leave-accrual/priority-rules/new?year=${selectedYear}`}><Plus aria-hidden="true" />{labels.add}</Link></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3">{embedded ? null : <Link aria-label={labels.back} className={buttonClasses({ size: 'sm', variant: 'ghost', className: 'shrink-0 px-2' })} href="/settings/leave-accrual"><ArrowLeft aria-hidden="true" /></Link>}<FormFieldYear label={labels.year} selectedYear={selectedYear} onChange={changeYear} /></div><Link className={buttonClasses({ className: 'gap-2' })} href={`/settings/leave-accrual/priority-rules/new?year=${selectedYear}`}><Plus aria-hidden="true" />{labels.add}</Link></div>
     <Surface className="overflow-hidden p-0"><DataTableShell caption={labels.columns.name} className="rounded-none border-0" state={rows.length === 0 ? 'empty' : 'ready'} stateContent={<EmptyState description={labels.emptyDescription} title={labels.empty} />}><thead className="bg-muted/40 text-xs uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-5 py-3 font-semibold">{labels.columns.name}</th><th className="px-5 py-3 font-semibold">{labels.columns.types}</th><th className="px-5 py-3 font-semibold">{labels.columns.status}</th></tr></thead><tbody className="divide-y divide-border-subtle">{rows.map((rule) => { const count = itemsByRule.get(rule.id)?.length ?? 0; return <tr className={rule.is_active ? '' : 'opacity-60'} key={rule.id}><td className="px-5 py-4"><Link className="font-semibold text-primary hover:underline" href={`/settings/leave-accrual/priority-rules/${rule.id}?year=${selectedYear}`}>{rule.name}</Link><span className="mt-1 block text-xs text-muted-foreground">{labels.profile}: {profiles.get(rule.leave_profile_id) ?? rule.leave_profile_id}</span></td><td className="px-5 py-4 text-muted-foreground">{count} {labels.types}</td><td className="px-5 py-4"><Badge tone={rule.is_active ? 'success' : 'neutral'}>{rule.is_active ? labels.active : labels.inactive}</Badge></td></tr> })}</tbody></DataTableShell></Surface>
     <Checkbox checked={showInactive} label={labels.showInactive} onChange={(event) => setShowInactive(event.target.checked)} />
   </div>

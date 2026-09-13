@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { Database, Json, Tables } from '@scope/db'
-import { permissionErrorResponse, requireAnyPermission, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, permissionErrorResponse, requireAnyPermission, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
+import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import type { LeaveCatalogMutation, LeaveConfigurationMutation, OvertimeConfigurationMutation, WorkHourConfigurationMutation } from './schemas'
 import { calculateLeaveBalanceReport, type ReportAccrualMoment, type ReportBucket, type ReportCarryForward, type ReportLeaveType, type ReportTransaction } from './report'
 import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOption } from './employment-resolver'
@@ -10,6 +11,16 @@ import { resolveLeaveEmployment, type LeaveEmployment, type LeaveEmploymentOptio
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = LeaveEmployment
 type OvertimeLimitMode = Database['public']['Enums']['overtime_limit_mode']
+
+export async function assertLeaveReadScope(
+  context: Awaited<ReturnType<typeof requireAuthContext>>,
+  supabase: SupabaseServerClient,
+  targetEmployeeId: string,
+): Promise<void> {
+  if (context.employeeId === targetEmployeeId || !context.activeRoles.includes('DIRECT_MANAGER') || context.activeRoles.includes('TENANT_ADMIN')) return
+  const directTeamEmployeeIds = await listDirectTeamEmployeeIds(context, supabase)
+  if (!directTeamEmployeeIds.includes(targetEmployeeId)) throw new AuthorizationError('Je hebt geen toegang tot dit verlofdossier.')
+}
 
 export class LeaveServiceError extends Error {
   constructor(
@@ -94,6 +105,7 @@ async function loadEmployment(
     targetEmployeeId = context.employeeId
   }
   if (!targetEmployeeId) throw new LeaveServiceError('LEAVE_EMPLOYMENT_REQUIRED', 400)
+  await assertLeaveReadScope(context, supabase, targetEmployeeId)
   const selection = await resolveLeaveEmployment(supabase, context, targetEmployeeId, employmentId, asOfDate)
   if (!selection.employment) {
     if (selection.options.length > 1) {
@@ -114,7 +126,7 @@ async function queryReportRows(
 ) {
   const bucketQuery = supabase
     .from('leave_balance_buckets')
-    .select('id, leave_type_id, accrual_year, expiration_date')
+    .select('id, leave_type_id, accrual_year, expiration_date, cohort_key, source_accrual_year')
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', employment.hr_group_id)
     .eq('employee_id', employment.employee_id)
@@ -122,7 +134,7 @@ async function queryReportRows(
     .limit(1000)
   const transactionQuery = supabase
     .from('leave_accrual_transactions')
-    .select('id, bucket_id, leave_type_id, transaction_type, amount, transaction_date, reason, actor_user_id, actor_display_name, created_at')
+    .select('id, bucket_id, leave_type_id, transaction_type, amount, transaction_date, reason, actor_user_id, actor_display_name, created_at, source_type')
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', employment.hr_group_id)
     .eq('employee_id', employment.employee_id)
@@ -186,6 +198,8 @@ async function queryReportRows(
     leaveTypeId: row.leave_type_id,
     accrualYear: row.accrual_year,
     expirationDate: row.expiration_date,
+    cohortKey: row.cohort_key,
+    sourceAccrualYear: row.source_accrual_year,
   }))
   const transactionsRows: ReportTransaction[] = transactions.data.map((row) => ({
     id: row.id,
@@ -198,6 +212,7 @@ async function queryReportRows(
     actorUserId: row.actor_user_id,
     actorDisplayName: row.actor_display_name,
     createdAt: row.created_at,
+    sourceType: row.source_type,
   }))
   const leaveTypeRows: ReportLeaveType[] = leaveTypes.data.map((row) => {
     if (row.entitlement_mode === 'WEEKLY_HOURS_FACTOR_CAP') throw new LeaveServiceError('LEAVE_OPERATION_FAILED', 500)
@@ -228,7 +243,7 @@ async function queryReportRows(
     }))
   const projectedTaken = transactionsRows
     .filter((row) => row.transactionType === 'TAKEN' && row.transactionDate > asOfDate && row.transactionDate <= String(calendarYear) + '-12-31')
-    .map((row) => ({ leaveTypeId: row.leaveTypeId, amount: Math.abs(row.amount) }))
+    .map((row) => ({ leaveTypeId: row.leaveTypeId, amount: Math.abs(row.amount), transactionDate: row.transactionDate }))
 
   return { bucketRows, transactionsRows, leaveTypeRows, carryForwards, projectedTaken }
 }

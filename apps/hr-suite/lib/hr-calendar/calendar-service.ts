@@ -5,13 +5,29 @@ import { buildMonthDays } from './calendar-model'
 import { getPatternDay, type WorkPatternDay } from '@/lib/work-patterns/work-pattern-model'
 import { listCalendarHrEvents } from '@/lib/hr-events/service'
 import { employeeAvatarHref } from '@/lib/employees/employee-service'
+import { projectApprovedLeave, type LeaveProjectionAllocation, type LeaveProjectionRequest, type LeaveProjectionScheduleDay } from '@/lib/leave/calendar-projection'
 
 export type CalendarWorkDay = { isWorkingDay: boolean; startsAt: string | null; endsAt: string | null; scheduledMinutes: number }
 export type CalendarReminder = { id: string; employeeId: string | null; date: string; title: string }
 export type CalendarAbsencePeriod = { employeeId: string; caseId: string; startedOn: string; expectedRecoveryOn: string | null }
 export type CalendarCompanyActivity = { id: string; name: string; activity_date: string }
 export type CalendarTypeEventKind = 'LEAVE' | 'WORK_HOUR' | 'OVERTIME'
-export interface CalendarTypeEvent { id: string; employeeId: string; employmentId: string; date: string; kind: CalendarTypeEventKind; typeId: string; typeName: string; colorCode: string; hours: number }
+export interface CalendarTypeEvent {
+  id: string
+  employeeId: string
+  employmentId: string
+  date: string
+  kind: CalendarTypeEventKind
+  typeId: string
+  typeName: string
+  colorCode: string
+  hours: number
+  requestId?: string
+  requestMode?: 'DIRECT' | 'PRIORITY'
+  timeMode?: 'FULL_DAY' | 'MORNING' | 'AFTERNOON' | 'SPECIFIC_HOURS'
+  specificStart?: string | null
+  specificEnd?: string | null
+}
 export interface CalendarJobGroupOption { id: string; code: string; name: string }
 export interface CalendarJobOption { id: string; code: string; name: string; jobGroupId: string | null }
 
@@ -39,11 +55,12 @@ export async function loadUnifiedCalendar(month: string) {
     else throw error
   }
 
-  const [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, companyActivitiesResult, recipientsResult, generalResult, absenceCasesResult, hrData] = await Promise.all([
+  const [employeesResult, organizationsResult, departmentsResult, patternsResult, schedulesResult, holidaysResult, companyActivitiesResult, recipientsResult, generalResult, absenceCasesResult, hrData] = await Promise.all([
     supabase.from('employees').select('id,employee_number,first_name,birth_name,avatar_url,is_archived').in('id', employeeIds).eq('is_archived', false).order('birth_name').limit(2000),
     supabase.from('employee_organizations').select('employee_id,department_id,job_id,job_title,effective_from').in('employee_id', employeeIds).eq('administration_id', administrationId).lte('effective_from', to).or(`effective_to.is.null,effective_to.gte.${from}`).order('effective_from', { ascending: false }).limit(4000),
     supabase.from('departments').select('id,code,name').eq('tenant_id', auth.tenantId).eq('is_active', true).order('code').limit(500),
-    supabase.from('employment_work_patterns').select('id,employee_id,employment_id,name,cycle_weeks,anchor_date,average_minutes_per_week,valid_from,valid_until,employment_work_pattern_days(week_index,iso_weekday,is_working_day,starts_at,ends_at,break_minutes,scheduled_minutes,note)').in('employment_id', employmentIds).lt('valid_from', to).or(`valid_until.is.null,valid_until.gte.${from}`).order('valid_from', { ascending: false }).limit(2000),
+    supabase.from('employment_work_patterns').select('id,employee_id,employment_id,name,cycle_weeks,anchor_date,average_minutes_per_week,valid_from,valid_until,employment_work_pattern_days(week_index,iso_weekday,is_working_day,starts_at,ends_at,break_minutes,scheduled_minutes,note)').in('employment_id', employmentIds).order('valid_from', { ascending: false }).limit(10000),
+    supabase.from('employment_schedules').select('id,employee_id,employment_id,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours,sunday_hours,average_hours_per_week,fulltime_hours_per_week,valid_from,valid_until').eq('administration_id', administrationId).in('employment_id', employmentIds).lte('valid_from', to).or(`valid_until.is.null,valid_until.gte.${from}`).order('valid_from', { ascending: false }).limit(10000),
     supabase.from('holidays').select('id,holiday_date,display_name,provider_name,source').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).gte('holiday_date', from).lt('holiday_date', to).order('holiday_date').limit(400),
     supabase.from('company_activities').select('id,name,activity_date').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).gte('activity_date', from).lt('activity_date', to).order('activity_date').limit(400),
     supabase.from('reminder_recipients').select('id,employee_id,effective_remind_at,reminder_id').not('employee_id', 'is', null).gte('effective_remind_at', `${from}T00:00:00Z`).lt('effective_remind_at', `${to}T00:00:00Z`).limit(5000),
@@ -51,7 +68,7 @@ export async function loadUnifiedCalendar(month: string) {
     canReadAbsence ? supabase.from('absence_cases').select('id,employee_id').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('status', 'ACTIVE').is('archived_at', null).in('employee_id', employeeIds).lte('first_absence_on', to).limit(2000) : Promise.resolve({ data: [], error: null }),
     listCalendarHrEvents(month),
   ])
-  const failed = [employeesResult, organizationsResult, departmentsResult, patternsResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult].find((result) => result.error)
+  const failed = [employeesResult, organizationsResult, departmentsResult, patternsResult, schedulesResult, holidaysResult, recipientsResult, generalResult, absenceCasesResult].find((result) => result.error)
   if (failed?.error) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
   const companyActivitiesError = companyActivitiesResult.error?.message ?? ''
   if (companyActivitiesResult.error && !(companyActivitiesError.includes('company_activities') && (companyActivitiesError.includes('does not exist') || companyActivitiesError.includes('schema cache') || companyActivitiesError.includes('Could not find the table')))) throw new Error('HR_CALENDAR_CONTEXT_FAILED')
@@ -82,24 +99,104 @@ export async function loadUnifiedCalendar(month: string) {
   const reminderIds = [...new Set((recipientsResult.data ?? []).map((recipient) => recipient.reminder_id))]
   const remindersResult = reminderIds.length ? await supabase.from('reminders').select('id,title').in('id', reminderIds).limit(5000) : { data: [], error: null }
   if (remindersResult.error) throw new Error('HR_CALENDAR_REMINDERS_FAILED')
-  const [leaveTransactionsResult, workEntriesResult] = await Promise.all([
-    supabase.from('leave_accrual_transactions').select('id,employee_id,employment_id,leave_type_id,transaction_date,amount').eq('administration_id', administrationId).in('employment_id', employmentIds).eq('transaction_type', 'TAKEN').gte('transaction_date', from).lt('transaction_date', to).limit(5000),
+  const [leaveRequestsResult, workEntriesResult] = await Promise.all([
+    supabase.from('leave_requests').select('id,employee_id,employment_id,request_mode,time_mode,specific_start,specific_end,start_date,end_date,requested_minutes,status').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('employment_id', employmentIds).eq('status', 'APPROVED').lt('start_date', to).gte('end_date', from).limit(5000),
     supabase.from('employment_work_hour_entries').select('id,employee_id,employment_id,work_hour_type_id,work_date,hours').eq('administration_id', administrationId).in('employment_id', employmentIds).eq('status', 'APPROVED').gte('work_date', from).lt('work_date', to).limit(5000),
   ])
-  if (leaveTransactionsResult.error || workEntriesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
-  const leaveTypeIds = [...new Set((leaveTransactionsResult.data ?? []).map((row) => row.leave_type_id))]
+  if (leaveRequestsResult.error || workEntriesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
+  const requestIds = (leaveRequestsResult.data ?? []).map((row) => row.id)
+  const leaveAllocationsResult = requestIds.length
+    ? await supabase.from('leave_request_allocations').select('request_id,employment_id,leave_type_id,allocated_hours,sort_order').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('request_id', requestIds).limit(5000)
+    : { data: [], error: null }
+  if (leaveAllocationsResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
+  const leaveTypeIds = [...new Set((leaveAllocationsResult.data ?? []).map((row) => row.leave_type_id))]
   const workHourTypeIds = [...new Set((workEntriesResult.data ?? []).map((row) => row.work_hour_type_id))]
   const [leaveTypesResult, workHourTypesResult] = await Promise.all([
-    leaveTypeIds.length ? supabase.from('leave_types').select('id,name,color_code').eq('administration_id', administrationId).in('id', leaveTypeIds).limit(500) : Promise.resolve({ data: [], error: null }),
+    leaveTypeIds.length ? supabase.from('leave_types').select('id,name,color_code').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('id', leaveTypeIds).limit(500) : Promise.resolve({ data: [], error: null }),
     workHourTypeIds.length ? supabase.from('work_hour_types').select('id,name,color_code,category').eq('administration_id', administrationId).in('id', workHourTypeIds).limit(500) : Promise.resolve({ data: [], error: null }),
   ])
   if (leaveTypesResult.error || workHourTypesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
   const leaveTypeById = new Map((leaveTypesResult.data ?? []).map((row) => [row.id, row]))
   const workHourTypeById = new Map((workHourTypesResult.data ?? []).map((row) => [row.id, row]))
+  type PatternRow = NonNullable<typeof patternsResult.data>[number]
+  const patternsByEmployment = new Map<string, PatternRow[]>()
+  for (const pattern of patternsResult.data ?? []) patternsByEmployment.set(pattern.employment_id, [...(patternsByEmployment.get(pattern.employment_id) ?? []), pattern])
+  type ScheduleRow = NonNullable<typeof schedulesResult.data>[number]
+  const schedulesByEmployment = new Map<string, ScheduleRow[]>()
+  for (const schedule of schedulesResult.data ?? []) schedulesByEmployment.set(schedule.employment_id, [...(schedulesByEmployment.get(schedule.employment_id) ?? []), schedule])
+  const scheduleHoursForDate = (schedule: ScheduleRow, date: string): number => {
+    const day = new Date(`${date}T00:00:00Z`).getUTCDay()
+    return Number(day === 0 ? schedule.sunday_hours ?? 0 : day === 1 ? schedule.monday_hours ?? 0 : day === 2 ? schedule.tuesday_hours ?? 0 : day === 3 ? schedule.wednesday_hours ?? 0 : day === 4 ? schedule.thursday_hours ?? 0 : day === 5 ? schedule.friday_hours ?? 0 : schedule.saturday_hours ?? 0)
+  }
+  const scheduleDayForDate = (employmentId: string, date: string): LeaveProjectionScheduleDay | undefined => {
+    const pattern = patternsByEmployment.get(employmentId)?.find((candidate) => candidate.valid_from <= date && (!candidate.valid_until || candidate.valid_until > date))
+    if (pattern) {
+      const projected = getPatternDay({ anchorDate: pattern.anchor_date, cycleWeeks: pattern.cycle_weeks, days: pattern.employment_work_pattern_days.map((day): WorkPatternDay => ({ weekIndex: day.week_index, isoWeekday: day.iso_weekday, isWorkingDay: day.is_working_day, startsAt: day.starts_at, endsAt: day.ends_at, breakMinutes: day.break_minutes, scheduledMinutes: day.scheduled_minutes, note: day.note })) }, date)
+      if (projected) return { date, scheduledMinutes: projected.scheduledMinutes, isWorkingDay: projected.isWorkingDay }
+    }
+    const schedule = schedulesByEmployment.get(employmentId)?.find((candidate) => candidate.valid_from <= date && (!candidate.valid_until || candidate.valid_until >= date))
+    if (!schedule) return undefined
+    const scheduledMinutes = Math.round(scheduleHoursForDate(schedule, date) * 60)
+    return { date, scheduledMinutes, isWorkingDay: scheduledMinutes > 0 }
+  }
+  const scheduleDaysByEmployment = new Map<string, Map<string, LeaveProjectionScheduleDay>>()
+  const addDate = (value: string, amount: number): string => {
+    const date = new Date(`${value}T00:00:00Z`)
+    date.setUTCDate(date.getUTCDate() + amount)
+    return date.toISOString().slice(0, 10)
+  }
+  for (const request of leaveRequestsResult.data ?? []) {
+    const scheduleDays = scheduleDaysByEmployment.get(request.employment_id) ?? new Map<string, LeaveProjectionScheduleDay>()
+    for (let date = request.start_date; date <= request.end_date; date = addDate(date, 1)) {
+      const scheduleDay = scheduleDayForDate(request.employment_id, date)
+      if (scheduleDay) scheduleDays.set(date, scheduleDay)
+    }
+    scheduleDaysByEmployment.set(request.employment_id, scheduleDays)
+  }
+  const projectionRequests: LeaveProjectionRequest[] = (leaveRequestsResult.data ?? []).map((request) => ({
+    id: request.id,
+    employeeId: request.employee_id,
+    employmentId: request.employment_id,
+    startDate: request.start_date,
+    endDate: request.end_date,
+    requestMode: request.request_mode,
+    timeMode: request.time_mode,
+    specificStart: request.specific_start,
+    specificEnd: request.specific_end,
+    requestedMinutes: request.requested_minutes,
+    status: request.status,
+  }))
+  const projectionAllocations: LeaveProjectionAllocation[] = (leaveAllocationsResult.data ?? []).map((allocation) => ({
+    requestId: allocation.request_id,
+    leaveTypeId: allocation.leave_type_id,
+    allocatedHours: Number(allocation.allocated_hours),
+    sortOrder: allocation.sort_order,
+  }))
+  const projectedLeave = projectApprovedLeave({
+    requests: projectionRequests,
+    allocations: projectionAllocations,
+    scheduleDaysByEmployment,
+    holidayDates: new Set((holidaysResult.data ?? []).map((holiday) => holiday.holiday_date)),
+  })
   const calendarEvents: CalendarTypeEvent[] = [
-    ...(leaveTransactionsResult.data ?? []).flatMap((row) => {
-      const leaveType = leaveTypeById.get(row.leave_type_id)
-      return leaveType ? [{ id: `leave-${row.id}`, employeeId: row.employee_id, employmentId: row.employment_id, date: row.transaction_date, kind: 'LEAVE' as const, typeId: leaveType.id, typeName: leaveType.name, colorCode: leaveType.color_code, hours: Math.abs(Number(row.amount)) }] : []
+    ...projectedLeave.flatMap((row) => {
+      const leaveType = leaveTypeById.get(row.leaveTypeId)
+      return leaveType ? [{
+        id: `leave-${row.id}`,
+        employeeId: row.employeeId,
+        employmentId: row.employmentId,
+        date: row.date,
+        kind: 'LEAVE' as const,
+        typeId: leaveType.id,
+        typeName: leaveType.name,
+        colorCode: leaveType.color_code,
+        hours: row.hours,
+        requestId: row.requestId,
+        requestMode: row.requestMode,
+        timeMode: row.timeMode,
+        specificStart: row.specificStart,
+        specificEnd: row.specificEnd,
+      }] : []
     }),
     ...(workEntriesResult.data ?? []).flatMap((row) => {
       const workHourType = workHourTypeById.get(row.work_hour_type_id)
@@ -123,18 +220,27 @@ export async function loadUnifiedCalendar(month: string) {
     const job = organization?.job_id ? jobById.get(organization.job_id) : undefined
     const jobGroup = job?.job_group_id ? jobGroupById.get(job.job_group_id) : undefined
     const patterns = patternsByEmployee.get(employee.id) ?? []
+    const schedules = schedulesByEmployment.get(employments.find((employment) => employment.employee_id === employee.id)?.id ?? '') ?? []
     const workDays: Record<string, CalendarWorkDay> = {}
     for (const date of days) {
       const pattern = patterns.find((candidate) => candidate.valid_from <= date && (!candidate.valid_until || candidate.valid_until > date))
-      if (!pattern) continue
-      const projected = getPatternDay({ anchorDate: pattern.anchor_date, cycleWeeks: pattern.cycle_weeks, days: pattern.employment_work_pattern_days.map((day): WorkPatternDay => ({ weekIndex: day.week_index, isoWeekday: day.iso_weekday, isWorkingDay: day.is_working_day, startsAt: day.starts_at, endsAt: day.ends_at, breakMinutes: day.break_minutes, scheduledMinutes: day.scheduled_minutes, note: day.note })) }, date)
-      if (projected) workDays[date] = { isWorkingDay: projected.isWorkingDay, startsAt: projected.startsAt, endsAt: projected.endsAt, scheduledMinutes: projected.scheduledMinutes }
+      if (pattern) {
+        const projected = getPatternDay({ anchorDate: pattern.anchor_date, cycleWeeks: pattern.cycle_weeks, days: pattern.employment_work_pattern_days.map((day): WorkPatternDay => ({ weekIndex: day.week_index, isoWeekday: day.iso_weekday, isWorkingDay: day.is_working_day, startsAt: day.starts_at, endsAt: day.ends_at, breakMinutes: day.break_minutes, scheduledMinutes: day.scheduled_minutes, note: day.note })) }, date)
+        if (projected) {
+          workDays[date] = { isWorkingDay: projected.isWorkingDay, startsAt: projected.startsAt, endsAt: projected.endsAt, scheduledMinutes: projected.scheduledMinutes }
+          continue
+        }
+      }
+      const schedule = schedules.find((candidate) => candidate.valid_from <= date && (!candidate.valid_until || candidate.valid_until >= date))
+      if (!schedule) continue
+      const scheduledMinutes = Math.round(scheduleHoursForDate(schedule, date) * 60)
+      workDays[date] = { isWorkingDay: scheduledMinutes > 0, startsAt: null, endsAt: null, scheduledMinutes }
     }
     return {
       ...employee,
       avatar_url: employeeAvatarHref(employee.id, employee.avatar_url),
       departmentId: departmentByEmployee.get(employee.id) ?? null,
-      averageMinutesPerWeek: patterns[0]?.average_minutes_per_week ?? 0,
+      averageMinutesPerWeek: patterns[0]?.average_minutes_per_week ?? (schedules[0]?.average_hours_per_week ? Number(schedules[0].average_hours_per_week) * 60 : 0),
       jobId: organization?.job_id ?? null,
       jobName: organization?.job_id ? (latestJobRevisionByJobId.get(organization.job_id) ?? organization.job_title ?? job?.code ?? null) : (organization?.job_title ?? null),
       jobGroupId: job?.job_group_id ?? null,

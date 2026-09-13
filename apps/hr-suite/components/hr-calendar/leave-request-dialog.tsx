@@ -7,6 +7,7 @@ import { DropdownSelect } from '@/components/ui/dropdown-select'
 import { RadioGroup } from '@/components/ui/radio-group'
 import { TextInput } from '@/components/ui/text-input'
 import type { Locale } from '@/lib/i18n/config'
+import { createLeaveRequestIdempotencyKey } from '@/lib/leave/idempotency'
 import type { LeaveRequestPreview } from '@/lib/leave/request-service'
 
 type RequestMode = 'PRIORITY' | 'DIRECT'
@@ -134,7 +135,17 @@ export function LeaveRequestDialog({
     if (!preview || state !== 'ready') return
     setState('saving')
     const selectedOption = mode === 'DIRECT' ? leaveTypeId : priorityRuleId
-    const idempotencyKey = `${employeeId}:${preview.employmentId}:${startDate}:${endDate}:${mode}:${selectedOption}:${timeMode}:${specificStart}:${specificEnd}`
+    const idempotencyKey = await createLeaveRequestIdempotencyKey([
+      employeeId,
+      preview.employmentId,
+      startDate,
+      endDate,
+      mode,
+      selectedOption,
+      timeMode,
+      timeMode === 'SPECIFIC_HOURS' ? specificStart : '',
+      timeMode === 'SPECIFIC_HOURS' ? specificEnd : '',
+    ])
     try {
       const response = await fetch('/api/leave/request', {
         method: 'POST',

@@ -1,5 +1,35 @@
 # Implementatiestatus Liquid HR
 
+## Leave V1 product completion — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — MAIN/VERCEL INTEGRATION GATE OPEN**
+
+De completion-candidate op `work/leave-v1-product-completion` voegt de
+centrale zeven-tab Leave-workspace, effectieve profielgebonden Priority Rules,
+auditeerbare startsaldo-/correctiesurfaces, de canonieke kalenderprojectie en
+het 12-maands medewerker-overzicht samen. Via de normale lokale HR Admin-flow
+is voor Planeten het synthetische/default `Standaard vakantievolgorde`-object
+geldig vanaf 2026-01-01 aangemaakt. Alleen voor Jan Test zijn de drie
+goedgekeurde requests uit de acceptancebeschrijving aangemaakt; remote DEV
+readback bevestigt de 4 uur ochtend, 8 uur directe volledige dag en de
+prioriteitsallocatie 19,9123 uur wettelijk plus 4,0877 uur bovenwettelijk.
+
+De bestaande `MIGRATION_START_BALANCE`-cutover en backward-compatible
+cohortvelden (`source_accrual_year`, `cohort_key`, `expiration_date`) zijn
+niet vervangen. De bestaande toegepaste migrations volstaan; deze run heeft
+geen nieuwe migration toegepast en geen nieuwe engine-accrual gepost. De
+geautoriseerde eerdere stop vóór echte accrual-posting blijft leidend.
+
+De read-side is server-side gescopeerd: Employee alleen self, Manager alleen
+direct reports, en de widget bevat geen mutation controls. Gerichte actuele
+Leave-tests: `10` bestanden / `63` tests groen. Strict TypeScript, ESLint,
+i18n (`35` namespaces), diff-check en Webpack (`261/261`) zijn groen. De
+eenmalige volledige suite is `361/364` bestanden en `1421/1424` tests; de drie
+bekende, ongerelateerde failures zijn de DG1-PDF-timeout, contract-change-
+audit-grant en DM-1 CASE-parenthesization-baseline. Main-integratie, exacte
+GitHub-SHA, Vercel en hosted acceptance blijven de volgende geautoriseerde
+gates.
+
 ## HR handmatige verlofsaldocorrecties — 2026-09-13
 
 **Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**

@@ -19,6 +19,8 @@ export type ReportBucket = {
   leaveTypeId: string
   accrualYear: number
   expirationDate: string
+  cohortKey?: string | null
+  sourceAccrualYear?: number | null
 }
 
 export type ReportTransaction = {
@@ -32,6 +34,7 @@ export type ReportTransaction = {
   actorUserId?: string | null
   actorDisplayName?: string | null
   createdAt?: string | null
+  sourceType?: string | null
 }
 
 export type ReportCarryForward = {
@@ -66,6 +69,10 @@ export type LeaveTypeBalanceReport = ReportLeaveType & {
   startOfYearBalance: number | null
   currentBalance: number | null
   projectedEndBalance: number | null
+  projectedContractEndBalance: number | null
+  openingBalance: number | null
+  accrual: number | null
+  planned: number | null
   carryForwards: Array<ReportCarryForward & { currentHours: number }>
   monthlyAccrualMoments: ReportAccrualMoment[]
   expirationBuckets: Array<ReportBucket & { remainingHours: number; daysUntilExpiration: number }>
@@ -106,7 +113,7 @@ export function calculateLeaveBalanceReport(input: {
   transactions: readonly ReportTransaction[]
   carryForwards: readonly ReportCarryForward[]
   projectedAccruals?: readonly { leaveTypeId: string; amount: number }[]
-  projectedTaken?: readonly { leaveTypeId: string; amount: number }[]
+  projectedTaken?: readonly { leaveTypeId: string; amount: number; transactionDate?: string }[]
   monthlyAccrualMoments?: readonly ReportAccrualMoment[]
 }): LeaveBalanceReport {
   const yearStart = String(input.calendarYear) + '-01-01'
@@ -125,6 +132,7 @@ export function calculateLeaveBalanceReport(input: {
       const isAccrual = leaveType.entitlementMode === 'ACCRUAL'
       const annualLimit = annualLimitForType(leaveType)
       const taken = typeTransactions.filter((transaction) => transaction.transactionType === 'TAKEN' && transaction.transactionDate <= input.asOfDate)
+      const plannedTransactions = projectedTaken.filter((item) => item.leaveTypeId === leaveType.id && (!item.transactionDate || item.transactionDate <= (input.employmentEndDate && input.employmentEndDate < `${input.calendarYear}-12-31` ? input.employmentEndDate : `${input.calendarYear}-12-31`)))
       const manualAdjustments = typeTransactions.filter((transaction) => transaction.transactionType === 'MANUAL_ADJUSTMENT' && transaction.transactionDate <= input.asOfDate)
       const currentByBucket = new Map(typeBuckets.map((bucket) => [
         bucket.id,
@@ -133,8 +141,11 @@ export function calculateLeaveBalanceReport(input: {
       const currentBalance = isUnlimited ? null : sumTransactions(typeTransactions, (transaction) => transaction.transactionDate <= input.asOfDate)
       const startOfYearBalance = isUnlimited ? null : sumTransactions(typeTransactions, (transaction) => transaction.transactionDate < yearStart)
       const expectedAccrual = projectedAccruals.filter((item) => item.leaveTypeId === leaveType.id).reduce((sum, item) => sum + item.amount, 0)
-      const expectedTaken = projectedTaken.filter((item) => item.leaveTypeId === leaveType.id).reduce((sum, item) => sum + item.amount, 0)
+      const expectedTaken = plannedTransactions.reduce((sum, item) => sum + item.amount, 0)
       const projectedEndBalance = isUnlimited || currentBalance === null ? null : currentBalance + expectedAccrual - expectedTaken
+      const projectedContractEndBalance = isUnlimited || currentBalance === null || !input.employmentEndDate ? null : currentBalance + expectedAccrual - expectedTaken
+      const openingBalance = isUnlimited ? null : sumTransactions(typeTransactions, (transaction) => transaction.transactionType === 'OPENING_BALANCE' && transaction.transactionDate <= input.asOfDate)
+      const accrual = isUnlimited ? null : sumTransactions(typeTransactions, (transaction) => transaction.transactionType === 'ACCRUAL' && transaction.transactionDate <= input.asOfDate)
       const usedAnnualLimit = annualLimit === null ? null : Math.max(0, -sumTransactions(taken, (transaction) => transaction.amount < 0))
       const carryForwards = input.carryForwards
         .filter((carry) => typeBuckets.some((bucket) => bucket.id === carry.sourceBucketId) && carry.carriedHours > 0)
@@ -154,6 +165,10 @@ export function calculateLeaveBalanceReport(input: {
         startOfYearBalance,
         currentBalance,
         projectedEndBalance,
+        projectedContractEndBalance,
+        openingBalance,
+        accrual,
+        planned: isUnlimited ? null : plannedTransactions.reduce((sum, item) => sum + item.amount, 0),
         carryForwards,
         monthlyAccrualMoments: moments.filter((moment) => moment.leaveTypeId === leaveType.id),
         expirationBuckets,

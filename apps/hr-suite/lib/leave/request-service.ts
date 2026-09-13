@@ -94,6 +94,69 @@ async function effectiveSchedule(supabase: SupabaseServerClient, employment: Emp
   }
 }
 
+async function resolveEffectiveProfileId(
+  supabase: SupabaseServerClient,
+  context: Awaited<ReturnType<typeof requireAuthContext>>,
+  employment: EmploymentRow,
+  asOfDate: string,
+): Promise<string | null> {
+  const result = await supabase.rpc('resolve_leave_profile_for_employment', {
+    requested_tenant_id: context.tenantId,
+    requested_hr_group_id: employment.hr_group_id,
+    requested_employment_id: employment.id,
+    requested_as_of_date: asOfDate,
+  })
+  if (result.error) databaseError(result.error)
+  return result.data
+}
+
+type PriorityRuleCandidate = {
+  id: string
+  leave_profile_id: string
+  valid_from: string
+  valid_until: string | null
+  is_active: boolean
+}
+
+function priorityRuleIsValidForPeriod(rule: PriorityRuleCandidate, profileId: string | null, startDate: string, endDate: string): boolean {
+  return Boolean(profileId)
+    && rule.leave_profile_id === profileId
+    && rule.is_active
+    && rule.valid_from <= startDate
+    && (rule.valid_until === null || rule.valid_until >= endDate)
+}
+
+async function validateLeaveSelection(
+  supabase: SupabaseServerClient,
+  context: Awaited<ReturnType<typeof requireAuthContext>>,
+  employment: EmploymentRow,
+  input: LeaveRequestConfirmInput,
+): Promise<void> {
+  const profileId = await resolveEffectiveProfileId(supabase, context, employment, input.startDate)
+  if (input.mode === 'DIRECT') {
+    if (!input.leaveTypeId) throw new LeaveServiceError('LEAVE_TYPE_REQUIRED', 400)
+    const type = await supabase.from('leave_types').select('id').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('id', input.leaveTypeId).eq('is_active', true).maybeSingle()
+    if (type.error) databaseError(type.error)
+    if (!type.data) throw new LeaveServiceError('LEAVE_TYPE_NOT_FOUND', 404)
+    return
+  }
+
+  if (!input.priorityRuleId) throw new LeaveServiceError('LEAVE_PRIORITY_RULE_REQUIRED', 400)
+  const [rule, items] = await Promise.all([
+    supabase.from('leave_priority_rules').select('id,leave_profile_id,valid_from,valid_until,is_active').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('id', input.priorityRuleId).maybeSingle(),
+    supabase.from('leave_priority_rule_items').select('leave_type_id,sort_order').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('priority_rule_id', input.priorityRuleId).order('sort_order').limit(100),
+  ])
+  if (rule.error) databaseError(rule.error)
+  if (items.error) databaseError(items.error)
+  if (!rule.data || !priorityRuleIsValidForPeriod(rule.data, profileId, input.startDate, input.endDate)) throw new LeaveServiceError('LEAVE_PRIORITY_RULE_NOT_FOUND', 409)
+  const itemTypeIds = items.data.map((item) => item.leave_type_id)
+  const sortOrders = items.data.map((item) => item.sort_order)
+  if (itemTypeIds.length === 0 || new Set(itemTypeIds).size !== itemTypeIds.length || sortOrders.some((value, index) => value !== index + 1)) throw new LeaveServiceError('LEAVE_PRIORITY_RULE_INVALID', 409)
+  const types = await supabase.from('leave_types').select('id').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).in('id', itemTypeIds)
+  if (types.error) databaseError(types.error)
+  if (types.data.length !== itemTypeIds.length) throw new LeaveServiceError('LEAVE_PRIORITY_RULE_INVALID', 409)
+}
+
 export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): Promise<LeaveRequestPreview> {
   const supabase = await createClient()
   const context = await requirePermission('leave:request', input.employeeId)
@@ -101,6 +164,7 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
   const employment = selection.employment
   const endDate = input.endDate ?? input.startDate
   if (!isActiveOn(employment, endDate)) throw new LeaveServiceError('LEAVE_EMPLOYMENT_DATE_INVALID', 400)
+  const effectiveProfileId = await resolveEffectiveProfileId(supabase, context, employment, input.startDate)
   const dates = dateRange(input.startDate, endDate)
   const [scheduleRows, holidays] = await Promise.all([
     Promise.all(dates.map((date) => effectiveSchedule(supabase, employment, date))),
@@ -129,7 +193,7 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
     supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).order('name').limit(500),
     supabase.from('leave_balance_buckets').select('id, leave_type_id, total_accrued, total_taken, total_expired, expiration_date').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).limit(2000),
     supabase.from('leave_accrual_transactions').select('leave_type_id, amount, transaction_type, transaction_date').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('employee_id', employment.employee_id).eq('employment_id', employment.id).lte('transaction_date', '2100-12-31').limit(5000),
-    supabase.from('leave_priority_rules').select('id, name, valid_from, valid_until').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).lte('valid_from', input.startDate).or(`valid_until.is.null,valid_until.gte.${input.startDate}`).order('name').limit(100),
+    supabase.from('leave_priority_rules').select('id, name, leave_profile_id, valid_from, valid_until, is_active').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).eq('is_active', true).lte('valid_from', input.startDate).or(`valid_until.is.null,valid_until.gte.${endDate}`).order('name').limit(100),
     supabase.from('leave_priority_rule_items').select('priority_rule_id').eq('tenant_id', context.tenantId).eq('hr_group_id', employment.hr_group_id).limit(1000),
   ])
   if (types.error) databaseError(types.error)
@@ -162,7 +226,9 @@ export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): P
         status: unlimited ? 'UNLIMITED' : balance && balance > 0 ? 'AVAILABLE' : 'NO_BALANCE',
       }
     }),
-    priorityRules: priorityRules.data.map((rule) => ({ id: rule.id, name: rule.name, itemCount: priorityItems.data.filter((item) => item.priority_rule_id === rule.id).length })),
+    priorityRules: priorityRules.data
+      .filter((rule) => priorityRuleIsValidForPeriod(rule, effectiveProfileId, input.startDate, endDate))
+      .map((rule) => ({ id: rule.id, name: rule.name, itemCount: priorityItems.data.filter((item) => item.priority_rule_id === rule.id).length })),
     employmentSelection: {
       required: selection.options.length > 1,
       selectedEmploymentId: employment.id,
@@ -176,6 +242,8 @@ export async function confirmLeaveRequest(input: LeaveRequestConfirmInput): Prom
   const context = await requirePermission('leave:request', input.employeeId)
   const selection = await loadEmployment(supabase, context, input)
   const employment = selection.employment
+  if (!isActiveOn(employment, input.endDate)) throw new LeaveServiceError('LEAVE_EMPLOYMENT_DATE_INVALID', 400)
+  await validateLeaveSelection(supabase, context, employment, input)
   const args: ConfirmLeaveRequestArgs = {
     requested_tenant_id: context.tenantId,
     requested_hr_group_id: employment.hr_group_id,
