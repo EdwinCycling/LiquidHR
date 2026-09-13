@@ -9988,6 +9988,7 @@ export type Database = {
           accrual_reference_date: string
           accrual_year: number
           administration_id: string
+          cohort_key: string
           created_at: string
           employee_id: string
           employment_id: string
@@ -9995,6 +9996,7 @@ export type Database = {
           hr_group_id: string
           id: string
           leave_type_id: string
+          source_accrual_year: number
           tenant_id: string
           total_accrued: number
           total_expired: number
@@ -10005,6 +10007,7 @@ export type Database = {
           accrual_reference_date: string
           accrual_year: number
           administration_id: string
+          cohort_key: string
           created_at?: string
           employee_id: string
           employment_id: string
@@ -10012,6 +10015,7 @@ export type Database = {
           hr_group_id: string
           id?: string
           leave_type_id: string
+          source_accrual_year: number
           tenant_id: string
           total_accrued?: number
           total_expired?: number
@@ -10022,6 +10026,7 @@ export type Database = {
           accrual_reference_date?: string
           accrual_year?: number
           administration_id?: string
+          cohort_key?: string
           created_at?: string
           employee_id?: string
           employment_id?: string
@@ -10029,6 +10034,7 @@ export type Database = {
           hr_group_id?: string
           id?: string
           leave_type_id?: string
+          source_accrual_year?: number
           tenant_id?: string
           total_accrued?: number
           total_expired?: number
@@ -18974,6 +18980,22 @@ export type Database = {
         }
         Returns: string
       }
+      create_group_leave_opening_balance_cohort: {
+        Args: {
+          requested_amount: number
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expiration_date: string
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_reason: string
+          requested_source_accrual_year: number
+          requested_source_key: string
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       create_hr_reminder: {
         Args: {
           requested_administration_id: string
@@ -19952,6 +19974,24 @@ export type Database = {
           invocation_id: string
           lease_id: string
         }[]
+      }
+      post_group_leave_accrual: {
+        Args: {
+          requested_accrual_year: number
+          requested_amount: number
+          requested_booking_date: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expiration_date: string
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_period_end: string
+          requested_period_start: string
+          requested_reason: string
+          requested_source_key: string
+          requested_tenant_id: string
+        }
+        Returns: string
       }
       reserve_employee_number: {
         Args: { p_tenant_id: string }

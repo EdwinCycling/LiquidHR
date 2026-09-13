@@ -1,5 +1,49 @@
 # Liquid HR documentatie-index
 
+## Leave Accrual Engine V1 — 2026-09-12
+
+**Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**
+
+De geïsoleerde candidate staat in worktree `\.codex-worktrees\leave-engine-v1` op
+branch `work/leave-engine-v1`. De engine gebruikt voor `CONTRACT_HOURS` de
+jaarlijkse entitlement bij 100% FTE en verdeelt die volgens `YEARLY`, `MONTHLY`,
+`FOUR_WEEKLY` of de effectieve `PAYROLL_PERIOD`. Alleen kalenderdagen, materiële
+FTE/fulltime-norm-, profiel-, regel- en geldigheidswijzigingen maken slices;
+weekdagverdeling wijzigt de entitlement niet.
+
+De bestaande `create_group_leave_opening_balance(...)` blijft de canonieke
+opening-balance-ingang. `MIGRATION_START_BALANCE` met `OPENING_BALANCE` stelt
+alleen binnen hetzelfde tenant/HR-group/employment/verloftype de cutover vast;
+de engine rekent vanaf `max(normale start, requested_start_date)`. Handmatige
+correcties en gewone carry-forward kunnen geen cutover instellen. De
+backward-compatible cohortuitbreiding bewaart `source_accrual_year`,
+`cohort_key` en onafhankelijke `expiration_date`-waarden, zodat FIFO en verval
+verschillende migratiecohorten niet samenvoegen.
+
+Op uitsluitend DEV Supabase-project `wnpfloqpjvaacobppbpk` zijn de drie
+featuremigraties toegepast: de accrual-RPC, de migration-cohortuitbreiding en
+de compatibiliteitsfix voor de unieke ledger-index. De laatste vervangt alleen
+de bestaande partial index door de equivalente standaard unique index voor het
+RPC-conflict-doel; er zijn geen tabellen of data-rows verwijderd. De geautoriseerde
+synthetische fixtures Jan, Piet, Frank en Lisa hebben samen exact 8 automatische
+accrual-buckets en 8 `ACCRUAL`-transacties; migration-startbuckets zijn niet
+ingevoerd. De tweede identieke post-run gaf voor alle vier `posted: 0`, en de
+finale preview gaf voor alle acht regels `ALREADY_POSTED` met delta `0`.
+
+Remote scopebewijs: `TEST-BOUNDARY` blijft 0 employees / 0 employments; Piet's
+soft-deleted retry heeft 0 buckets / 0 transacties. Manager en Employee krijgen
+HTTP 403 op de postroute; anon heeft geen execute-recht op de accrual- en
+opening-balance-RPC's. De lokale browserflow op `/settings/leave-accrual` is na
+reload groen met 0 page-errors en 0 console-errors.
+
+Gerichte Leave Engine-tests zijn `34/34` groen; strict TypeScript, ESLint,
+i18n (`35` gelijke NL/EN-namespaces), `git diff --check` en de Webpack-build
+(`260/260` statische pagina's) zijn groen. De volledige suite is `359/361`
+testbestanden en `1410/1412` tests; de twee failures zijn bestaande,
+ongerelateerde Document Studio DM-1 CASE-parenthesization- en contract-change-
+audit-baselines en zijn niet gewijzigd in deze slice. Production, Payroll,
+deployment en de centrale `main`-integratie blijven buiten scope.
+
 ## Employee Contract + synthetic fixtures — 2026-09-12
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
@@ -21,7 +65,8 @@ CASE-parenthesization-baselinefailure blijft over.
 De contractwijzigingsflow gebruikt de bestaande invoker/RLS-grens, vereist bij
 edit een change reason, maakt een transactionele change-set aan en koppelt
 contractmutaties aan de bestaande audittrigger. De afhankelijke einddatums volgen
-de terminale contractperiode. Er is geen Leave Engine geïmplementeerd; Production,
+de terminale contractperiode. Deze Employee Contract-slice zelf wijzigde geen
+Leave Engine-code; de aparte V1-acceptatie staat bovenaan deze index. Production,
 Payroll en TEST-BOUNDARY zijn niet aangeraakt.
 
 ## Employee Wizard Jan Test E2E — 2026-09-11

@@ -1,5 +1,55 @@
 # Implementatiestatus Liquid HR
 
+## Leave Accrual Engine V1 — 2026-09-12
+
+**Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**
+
+De geïsoleerde candidate staat in `\.codex-worktrees\leave-engine-v1` op branch
+`work/leave-engine-v1`. `CONTRACT_HOURS` gebruikt nu de jaarlijkse volledige
+entitlement bij 100% FTE; de frequentie verdeelt die waarde volgens de
+canonieke perioden en alleen kalenderdagen prorateren een gedeeltelijke slice.
+Weekdagwijzigingen zonder materiële FTE/fulltime-normwijziging veranderen de
+entitlement niet.
+
+De bestaande `create_group_leave_opening_balance(...)` is behouden als
+canonieke ingang voor `OPENING_BALANCE` met `source_type =
+MIGRATION_START_BALANCE`. De service leest alleen deze transacties binnen exact
+de employee/employment/Leave Type-scope en knipt op
+`max(normale eligible start, migration cutover date)`. Manual adjustments,
+normale carry-forward en andere openingsboekingen stellen geen cutover in. De
+backward-compatible cohort-RPC voegt `source_accrual_year`, `cohort_key` en een
+expliciete vervaldatum toe, zodat verschillende migratiejaren onafhankelijk
+FIFO/expiration behouden.
+
+Op uitsluitend DEV `wnpfloqpjvaacobppbpk` zijn remote geregistreerd:
+`20260912150853 leave_accrual_engine_v1`,
+`20260912184117 leave_migration_opening_balance_cohorts` en
+`20260912193619 leave_accrual_source_key_conflict`. De laatste migration
+vervangt alleen de bestaande partial unique ledger-index door de equivalente
+non-partial conflict-index; er is geen tabel- of row-delete uitgevoerd. De
+vier geautoriseerde synthetic fixtures hebben exact 8 automatische buckets en
+8 `ACCRUAL`-transacties, 0 migration-transacties en 0 rows voor de
+soft-deleted Piet-retry. Een tweede identieke post-run was voor alle fixtures
+`posted: 0`; de finale gefilterde preview toont achtmaal `ALREADY_POSTED` en
+delta `0`.
+
+De remote security/readback-gates zijn groen: `TEST-BOUNDARY` bevat 0
+employees en 0 employments, Manager en Employee krijgen HTTP 403 op de
+postroute, anon heeft geen execute-recht op de nieuwe accrual/opening-balance-
+RPC's en de ledger-readback blijft beperkt tot de vier synthetic fixtures.
+De lokale browserflow op `/settings/leave-accrual` is na reload gecontroleerd
+met 0 page-errors en 0 console-errors.
+
+De zeven gevraagde migration-tests zijn onderdeel van `34/34` gerichte groene
+tests: cutover/proratie, idempotente replay, immutable opening balance,
+manual-adjustment-is-geen-cutover, onafhankelijke expiry-cohorten, employment
+start na cutover en employment end vóór cutover. Strict TypeScript, ESLint,
+i18n (`35` namespaces), diff-check en Webpack (`260/260`) zijn groen. De
+volledige suite is `359/361` testbestanden en `1410/1412` tests; de twee
+failures zijn bestaande, ongerelateerde Document Studio DM-1 CASE-
+parenthesization- en contract-change-audit-baselines en zijn niet gewijzigd.
+Production, Payroll, deployment en main-integratie zijn buiten scope.
+
 ## Employee Contract + synthetic fixtures — 2026-09-12
 
 **Status: MANAGER + TEMPORAL FIXTURE E2E: GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**

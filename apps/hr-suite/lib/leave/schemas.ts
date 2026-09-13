@@ -343,3 +343,16 @@ const closeYearInput = z.object({
 
 export const leaveLedgerMutationSchema = z.discriminatedUnion('action', [openingBalanceInput, manualAdjustmentInput, closeYearInput])
 export type LeaveLedgerMutation = z.infer<typeof leaveLedgerMutationSchema>
+
+export const leaveAccrualRunSchema = z.object({
+  year: z.number().int().min(2000).max(2200),
+  employeeId: z.string().trim().min(1).max(100).optional(),
+  employmentId: z.string().trim().min(1).max(100).optional(),
+  leaveTypeId: z.string().trim().min(1).max(100).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.employmentId && !value.employeeId) {
+    context.addIssue({ code: 'custom', path: ['employeeId'], message: 'LEAVE_EMPLOYEE_REQUIRED_FOR_EMPLOYMENT' })
+  }
+})
+
+export type LeaveAccrualRunInput = z.infer<typeof leaveAccrualRunSchema>

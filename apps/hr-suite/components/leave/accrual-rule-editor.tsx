@@ -215,7 +215,7 @@ export function AccrualRuleEditor({
   const basisLabel = basis === 'CONTRACT_HOURS' ? labels.contractHours : labels.workedHours
   const periodLabel = frequencyLabel(frequency, labels)
   const amountSummary = basis === 'CONTRACT_HOURS'
-    ? `${decimalFromParts(amount).toFixed(2)}u ${frequency === 'YEARLY' ? labels.amountPerYear : `${labels.amountPerPeriod} ${periodLabel.toLocaleLowerCase()}`}`
+    ? `${decimalFromParts(amount).toFixed(2)}u ${labels.amountPerYear}`
     : `${decimalFromParts(rate).toFixed(4)}u/u ${labels.amountPerHour}`
   const readableSummary = [
     `${labels.summaryBasis} ${basisLabel.toLocaleLowerCase()}.`,
@@ -309,7 +309,7 @@ export function AccrualRuleEditor({
       </fieldset> : null}
 
       <div className="mt-6 rounded-xl border bg-muted/20 p-4">
-        <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' && frequency === 'YEARLY' ? labels.amountPerYear : basis === 'CONTRACT_HOURS' ? `${labels.amountPerPeriod} ${periodLabel.toLocaleLowerCase()}` : labels.amountPerHour}</h3>
+        <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' ? labels.amountPerYear : labels.amountPerHour}</h3>
         <div className="mt-3">{partsField(basis === 'CONTRACT_HOURS' ? amount : rate, basis === 'CONTRACT_HOURS' ? setAmount : setRate, basis === 'WORKED_HOURS')}</div>
       </div>
       <div className="mt-5 flex items-end gap-2">

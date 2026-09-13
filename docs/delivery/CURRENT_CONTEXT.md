@@ -1,5 +1,40 @@
 # Actuele overdracht Liquid HR
 
+## Leave Accrual Engine V1 — 2026-09-12
+
+**Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**
+
+- Candidate: `\.codex-worktrees\leave-engine-v1`, branch `work/leave-engine-v1`.
+- `CONTRACT_HOURS` is annual full-time entitlement; frequency distributes it
+  over the canonical periods. Partial slices use calendar days; weekday-only
+  schedule changes do not alter entitlement.
+- The existing `create_group_leave_opening_balance(...)` remains the canonical
+  `OPENING_BALANCE` / `MIGRATION_START_BALANCE` mechanism. The service scopes
+  cutover to the same tenant, HR group, employment and Leave Type, and clips to
+  `max(normal eligible start, migration cutover date)`. Manual adjustments and
+  ordinary carry-forward do not establish a boundary.
+- Migration cohorts are backward-compatible: `source_accrual_year`,
+  `cohort_key` and explicit expiration preserve independently expiring FIFO
+  cohorts. Existing rows are retained; the only index replacement aligns the
+  RPC conflict target and deletes no table/data rows.
+- DEV project `wnpfloqpjvaacobppbpk` has the three Leave Engine migrations
+  applied. The four approved synthetic fixtures have exactly 8 automatic
+  buckets and 8 automatic transactions, no migration rows, and Piet's
+  soft-deleted retry has 0 buckets / 0 transactions. The identical second post
+  is a no-op (`posted: 0` for all four); final preview is 8× `ALREADY_POSTED`
+  with delta 0.
+- Security/readback: `TEST-BOUNDARY` is 0 employees / 0 employments; Manager
+  and Employee are denied with HTTP 403 on the post route; anon has no execute
+  grant for accrual/opening-balance RPCs. Readback is restricted to the four
+  approved synthetic fixtures. Browser reload on `/settings/leave-accrual`
+  has 0 page-errors and 0 console-errors.
+- Verification: targeted Leave tests `34/34`, strict TypeScript, ESLint,
+  i18n parity (`35` namespaces), diff-check and Webpack (`260/260`) are green.
+  Full Vitest is `359/361` files and `1410/1412` tests; the two failures are
+  pre-existing unrelated Document Studio DM-1 CASE-parenthesization and
+  contract-change-audit baselines. Production, Payroll, deployment and
+  `main`-integration remain out of scope.
+
 ## Employee Contract + synthetic fixtures — 2026-09-12
 
 **Status: MANAGER + TEMPORAL FIXTURE E2E: GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
