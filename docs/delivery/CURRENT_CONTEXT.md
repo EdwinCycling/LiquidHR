@@ -1,10 +1,10 @@
 # Actuele overdracht Liquid HR
 
-## GPT-Live employee voice V1 — 2026-09-11
+## GPT-Live employee voice V1 — 2026-09-13
 
 De lokale candidate voegt [`LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md`](../requirements/ai/LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md), server-mediated WebRTC-sessionroutes, drie server-authorized voice-tools, i18n en `ai_voice_sessions` metadata toe. De bestaande AI Everywhere-capabilities blijven de businesslaag; SMART blijft proposal-only. Direct managers krijgen `ai:use` via de lokale forward migration. De browser ontvangt geen permanente OpenAI-key en model/tool-employee-ID's worden niet vertrouwd.
 
-Verificatie: realtime contracttests `3/3`, employee-AI tests `2/2`, strict TypeScript, i18n parity `35` namespaces en `git diff --check` zijn groen. Astra leverde alleen de bounded clientcomponent met GPT-6 Astra/low; Luna reviewde en corrigeerde Realtime JSON-string argument parsing. Remote migration/advisors, live OpenAI/WebRTC, authenticated persona-acceptance en volledige releasegates zijn nog niet uitgevoerd. De beschermde `apps/hr-suite/next-env.d.ts` blijft ongemoeid.
+Verificatie: de huidige GPT-Live contracttests zijn `8/8` groen, strict TypeScript, ESLint en de authenticated Preview smoke zijn groen. De Preview op `work/ai-gpt-live` gebruikt `gpt-live-1` via `POST /v1/live/sessions` met WebRTC; de browser-SDP wordt ongewijzigd doorgestuurd. Een synthetische manager-sessie kreeg HTTP `200`, `session.started`, `session.closed`, outbound/inbound RTP-audio en geen hydration-, console- of page-errors. De DEV/TEST-migration is aanwezig; in deze run is geen remote migration toegepast. Handmatige spraak-, tool- en manageracceptatie blijven open. De beschermde `apps/hr-suite/next-env.d.ts` blijft ongemoeid.
 
 ## AI Everywhere V1 candidate — 2026-09-08
 
