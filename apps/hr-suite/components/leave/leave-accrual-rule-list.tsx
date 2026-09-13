@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
+import { formatContractHours } from './contract-hours-presentation'
 
 type Labels = {
   title: string
@@ -26,7 +27,11 @@ type Labels = {
   upfront: string
   arrears: string
   amount: string
+  annualFullTimeEntitlement: string
   rate: string
+  perHour: string
+  hoursUnit: string
+  decimalSeparator: string
   validFrom: string
   validUntil: string
   noValue: string
@@ -34,8 +39,8 @@ type Labels = {
 
 function quantity(rule: LeaveCatalog['accrualRules'][number], labels: Labels): string {
   if (rule.accrual_basis === 'AGE_SENIORITY') return labels.ageSeniority
-  if (rule.accrual_basis === 'CONTRACT_HOURS') return `${labels.amount}: ${rule.accrual_amount ?? 0}u`
-  return `${labels.rate}: ${rule.accrual_rate ?? 0}u/u`
+  if (rule.accrual_basis === 'CONTRACT_HOURS') return `${formatContractHours(rule.accrual_amount, labels.decimalSeparator)} ${labels.hoursUnit}`
+  return `${formatContractHours(rule.accrual_rate, labels.decimalSeparator, 4)} ${labels.hoursUnit} ${labels.perHour}`
 }
 
 function frequencyLabel(frequency: LeaveCatalog['accrualRules'][number]['accrual_frequency'], labels: Labels): string {
@@ -64,7 +69,7 @@ export function LeaveAccrualRuleList({ catalog, leaveTypeId, profileId, labels, 
             <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{labels.validFrom}</dt><dd className="mt-1 font-medium">{rule.valid_from}</dd></div>
             <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{labels.validUntil}</dt><dd className="mt-1 font-medium">{rule.valid_until ?? labels.noValue}</dd></div>
             <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{labels.title}</dt><dd className="mt-1 font-medium">{rule.accrual_basis === 'CONTRACT_HOURS' ? labels.contractHours : rule.accrual_basis === 'WORKED_HOURS' ? labels.workedHours : labels.ageSeniority}</dd></div>
-            <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{labels.amount}</dt><dd className="mt-1 font-medium">{quantity(rule, labels)} · {frequencyLabel(rule.accrual_frequency, labels)} · {rule.accrual_timing === 'UPFRONT' ? labels.upfront : labels.arrears}</dd></div>
+            <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{rule.accrual_basis === 'CONTRACT_HOURS' ? labels.annualFullTimeEntitlement : labels.amount}</dt><dd className="mt-1 font-medium">{quantity(rule, labels)} · {frequencyLabel(rule.accrual_frequency, labels)} · {rule.accrual_timing === 'UPFRONT' ? labels.upfront : labels.arrears}</dd></div>
           </dl>
           <span className="mt-4 inline-flex rounded-lg border px-3 py-2 text-sm font-medium text-muted-foreground transition group-hover:border-primary/40 group-hover:text-primary">{labels.edit}</span>
         </article>)}
