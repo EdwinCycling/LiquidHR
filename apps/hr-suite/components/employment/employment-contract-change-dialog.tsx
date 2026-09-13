@@ -689,6 +689,9 @@ export function EmploymentContractChangeDialog({ actionKey, actionTitle, employm
             endsOn: contract.durationType === 'DEFINITE' ? contract.endsOn || null : null,
             probationEndsOn: contract.probationApplies ? contract.probationEndsOn || null : null,
             caoAllowsTwoMonths: data.options.laborConditionSets.find((item) => item.id === contract.laborConditionSetId)?.probationMaximumMonths === 2,
+            reason: common.reason,
+            warningCodes: common.warningCodes,
+            acknowledgements: common.acknowledgements,
           },
         })
       }

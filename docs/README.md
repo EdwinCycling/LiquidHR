@@ -1,5 +1,153 @@
 # Liquid HR documentatie-index
 
+## HR handmatige verlofsaldocorrecties — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**
+
+HR Admin gebruikt de bestaande `apply_group_leave_manual_adjustment(...)`-ingang
+voor positieve en negatieve, ondertekende correcties. De effectieve datum bepaalt
+het verlofjaar; afgesloten jaren, ongeldige dienstverbanddatums, lege redenen,
+negatieve eindsaldi en dubbele bronkeys worden server-side geweigerd of
+idempotent afgehandeld. De correctie blijft een immutable
+`MANUAL_ADJUSTMENT` met `HR_MANUAL_ADJUSTMENT`, actor-snapshot, reden en
+bronkey; een negatieve correctie verandert het saldo maar wordt nooit als
+`TAKEN` gerapporteerd.
+
+De nieuwe read-only saldo-/mutatiehistorie gebruikt de bestaande
+employment-scoped balance-reportprojectie voor medewerker, geautoriseerde
+direct manager en HR Admin. De HR-correctiesurface verschijnt uitsluitend voor
+actors met `leave:adjust`. Via de normale HR Admin-browserflow is uitsluitend
+Piet Test gecontroleerd verhoogd met `+1,00` en daarna met een nieuwe
+`-1,00`-mutatie gecompenseerd. De UI en remote readback bevestigen
+`160,00 → 161,00 → 160,00`, twee immutable
+`MANUAL_ADJUSTMENT`/`HR_MANUAL_ADJUSTMENT`-rijen met datum, reden, actor-ID en
+source key, netto 0 en geen wijziging van `total_taken`.
+
+Remote is op uitsluitend DEV-project `wnpfloqpjvaacobppbpk` de volledige
+canonical set aanwezig: `20260912150853`, `20260912184117`, `20260912193619`,
+`20260913092334` en `20260913123613`. Readback bevestigt authenticated-only
+execute-grants, de gescopeerde read-policies, geen globale
+`DIRECT_MANAGER`-`leave:read` en `TEST-BOUNDARY` 0 employees / 0 employments.
+De Manager- en Employee-fixtures authenticeerden via de normale login maar
+werden op de lokale kandidaat voor de auditroute naar `/geen-toegang` gestuurd
+wegens ontbrekende tenant-koppeling; de server-side negative RPC-probe gaf
+`42501 LEAVE_ADJUST_PERMISSION_REQUIRED`.
+
+De actuele finale gate-uitkomst wordt na de laatste test-/build-run in de
+delivery-context vastgelegd. De HR Admin-browserconsole had 0 errors. De 2026-
+preview bevestigde voor de acht toegestane fixture-rijen `Al geboekt` en delta
+`0,00`: Frank `60,0548/15,0137`, Jan `31,9123/7,9781`, Lisa `160/40` en Piet
+`160/40` uur (wettelijk/bovenwettelijk). De groepsbrede Delta-knop is niet
+gebruikt, omdat die ook andere demo-medewerkers bevat.
+De wijziging staat op branch `work/leave-engine-v1` in
+`\.codex-worktrees\leave-engine-v1`.
+
+## Leave Accrual Engine V1 — 2026-09-12
+
+**Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**
+
+De geïsoleerde candidate staat in worktree `\.codex-worktrees\leave-engine-v1` op
+branch `work/leave-engine-v1`. De engine gebruikt voor `CONTRACT_HOURS` de
+jaarlijkse entitlement bij 100% FTE en verdeelt die volgens `YEARLY`, `MONTHLY`,
+`FOUR_WEEKLY` of de effectieve `PAYROLL_PERIOD`. Alleen kalenderdagen, materiële
+FTE/fulltime-norm-, profiel-, regel- en geldigheidswijzigingen maken slices;
+weekdagverdeling wijzigt de entitlement niet.
+
+De bestaande `create_group_leave_opening_balance(...)` blijft de canonieke
+opening-balance-ingang. `MIGRATION_START_BALANCE` met `OPENING_BALANCE` stelt
+alleen binnen hetzelfde tenant/HR-group/employment/verloftype de cutover vast;
+de engine rekent vanaf `max(normale start, requested_start_date)`. Handmatige
+correcties en gewone carry-forward kunnen geen cutover instellen. De
+backward-compatible cohortuitbreiding bewaart `source_accrual_year`,
+`cohort_key` en onafhankelijke `expiration_date`-waarden, zodat FIFO en verval
+verschillende migratiecohorten niet samenvoegen.
+
+Op uitsluitend DEV Supabase-project `wnpfloqpjvaacobppbpk` zijn de drie
+featuremigraties toegepast: de accrual-RPC, de migration-cohortuitbreiding en
+de compatibiliteitsfix voor de unieke ledger-index. De laatste vervangt alleen
+de bestaande partial index door de equivalente standaard unique index voor het
+RPC-conflict-doel; er zijn geen tabellen of data-rows verwijderd. De geautoriseerde
+synthetische fixtures Jan, Piet, Frank en Lisa hebben samen exact 8 automatische
+accrual-buckets en 8 `ACCRUAL`-transacties; migration-startbuckets zijn niet
+ingevoerd. De tweede identieke post-run gaf voor alle vier `posted: 0`, en de
+finale preview gaf voor alle acht regels `ALREADY_POSTED` met delta `0`.
+
+Remote scopebewijs: `TEST-BOUNDARY` blijft 0 employees / 0 employments; Piet's
+soft-deleted retry heeft 0 buckets / 0 transacties. Manager en Employee krijgen
+HTTP 403 op de postroute; anon heeft geen execute-recht op de accrual- en
+opening-balance-RPC's. De lokale browserflow op `/settings/leave-accrual` is na
+reload groen met 0 page-errors en 0 console-errors.
+
+Gerichte Leave Engine-tests zijn `34/34` groen; strict TypeScript, ESLint,
+i18n (`35` gelijke NL/EN-namespaces), `git diff --check` en de Webpack-build
+(`260/260` statische pagina's) zijn groen. De volledige suite is `359/361`
+testbestanden en `1410/1412` tests; de twee failures zijn bestaande,
+ongerelateerde Document Studio DM-1 CASE-parenthesization- en contract-change-
+audit-baselines en zijn niet gewijzigd in deze slice. Production, Payroll,
+deployment en de centrale `main`-integratie blijven buiten scope.
+
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De bestaande Employee Wizard QA-track bevat naast Jan nu de blijvende synthetische
+DEV-fixtures Piet Test en Frank Test. Piet is indefinite vanaf 2026-01-01; Frank
+is definite vanaf 2026-01-01 en is via de normale contractdetail-flow gecorrigeerd
+van 2026-09-30 naar 2026-10-01. Remote readback bevestigt één actieve intended
+employment en één contract per fixture, de juiste uren/factoren, organisatie- en
+administratiekoppeling en salaris-/inkomensperioden. Jan blijft ongewijzigd GREEN,
+met salarisreadback op 2026-09-15 en 2026-10-15. De volledige stabiele ID-reference
+staat in [`delivery/EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](delivery/EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
+
+De eindgate is groen voor de gerichte contract/migratietests (`12/12`), lint,
+i18n, strict TypeScript, diff-check en Webpack (`258/258`). De volledige suite is
+`359/360` bestanden en `1390/1391` tests; alleen de bekende, ongerelateerde DM-1
+CASE-parenthesization-baselinefailure blijft over.
+
+De contractwijzigingsflow gebruikt de bestaande invoker/RLS-grens, vereist bij
+edit een change reason, maakt een transactionele change-set aan en koppelt
+contractmutaties aan de bestaande audittrigger. De afhankelijke einddatums volgen
+de terminale contractperiode. Deze Employee Contract-slice zelf wijzigde geen
+Leave Engine-code; de aparte V1-acceptatie staat bovenaan deze index. Production,
+Payroll en TEST-BOUNDARY zijn niet aangeraakt.
+
+## Employee Wizard Jan Test E2E — 2026-09-11
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; NOT RELEASED**
+
+De bestaande synthetische Jan Test is via de echte Employee Wizard en `Dienstverband
+aanmaken` succesvol gepubliceerd op uitsluitend Supabase DEV/TEST-project
+`wnpfloqpjvaacobppbpk`. De bewezen oorzaak van de oorspronkelijke
+`employment_contracts`-fout was dat `publish_complete_employment` als SECURITY
+INVOKER de contractrij vóór de organisatieplaatsing invoegde en via `RETURNING id`
+directe SELECT-zichtbaarheid verlangde; de bestaande `can_manage_employee`-tak was
+op dat moment terecht false. De permanente oplossing genereert het contract-ID
+vóór de INSERT en gebruikt een expliciete `id`, zonder RLS-verruiming,
+SECURITY-DEFINER-bypass of service-role.
+
+De doorlopende echte flow bevatte daarnaast alleen gerelateerde correcties: dezelfde
+ID-strategie voor change-set en income-relationship, administratie-/tenant-scope
+voor salarisinstellingen, handmatige fulltime-salarismapping, veilige correctie van
+het initiële salaris op dezelfde datum en begrenzing van afhankelijke contract-
+tijdlijnen. De tijdelijke diagnostics en speculative policy zijn verwijderd; remote
+marker-readback is nul en de publieke schrijf-RPC's blijven SECURITY INVOKER.
+
+Remote readback: exact één Jan, één bedoeld employment, één contract en één record
+voor organisatie, administratieplaatsing, rooster, income, income-link,
+arbeidsvoorwaarde en kostenallocatie. Het employment en contract lopen van
+2026-09-01 tot en met 2026-11-30; het rooster is 32/40 uur met factor 0,80. De
+salarishistorie bewaart 2026-09-15 EUR 4.000 / EUR 3.200 en 2026-10-15 EUR 4.250 /
+EUR 3.400. Browser reload is groen; Manager en Employee zijn geweigerd; de
+TEST-BOUNDARY bleef 0 employees / 0 employments. Production, Payroll en deploy
+zijn niet aangeraakt.
+
+De finale lokale gate is uitgevoerd: de gerichte wizard/auth-set is groen, de
+volledige suite is `358/359` testbestanden en `1385/1386` tests met uitsluitend
+de bekende, ongerelateerde DM-1 migration-contracttestfailure rond CASE-
+parenthesization. Strict TypeScript, ESLint, i18n (`35` namespaces),
+`git diff --check` en de Webpack-productiebuild (`258/258` statische pagina's)
+zijn groen. Deze DM-1-baseline is niet gewijzigd binnen de Employee Wizard-slice.
+
 ## Document Studio DG2 + DG3 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**

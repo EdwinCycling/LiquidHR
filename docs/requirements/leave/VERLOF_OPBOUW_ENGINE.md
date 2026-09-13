@@ -108,7 +108,7 @@ Voorbeeld van niet-opbouwsoorten zijn later ziekenhuisbezoek of tandartsbezoek. 
 | `valid_from`, `valid_until` | Effective-dated, exclusieve einddatum. |
 | `accrual_basis`, `accrual_frequency` | Verplicht. |
 | `accrual_timing` | Verplicht. Toekenning aan het begin (`UPFRONT`) of einde (`ARREARS`) van de gekozen frequentie. |
-| `accrual_amount` | `numeric(12,4)`, uren per periode bij 1,0 FTE voor contracturen. |
+| `accrual_amount` | `numeric(12,4)`, jaarlijkse volledige entitlement bij 1,0 FTE voor `CONTRACT_HOURS`; de frequentie verdeelt dit bedrag over perioden. |
 | `accrual_rate` | `numeric(12,6)`, uitsluitend voor `WORKED_HOURS`: door HR instelbare verlofuren per gewerkt uur voor deze opbouwregel. Er is geen vaste standaard; vijf minuten per uur (`0.083333`) is slechts een voorbeeld. |
 | `expiration_months` | Verplicht; vervaltermijn na het opbouwjaar. |
 
@@ -134,19 +134,25 @@ Per profiel, type en datum mag slechts één actieve regel gelden. De engine bew
 
 ### 4.5 Buckets en grootboek
 
-`leave_balance_buckets` bevat `employment_id`, `leave_type_id`, `accrual_year`, `total_accrued`, `total_taken`, `total_expired` en `expiration_date`. De combinatie dienstverband/type/jaar is uniek. Het restsaldo is altijd `total_accrued - total_taken - total_expired` en mag niet negatief worden door een engineboeking.
+`leave_balance_buckets` bevat `employment_id`, `leave_type_id`, `accrual_year`, `source_accrual_year`, `cohort_key`, `total_accrued`, `total_taken`, `total_expired` en `expiration_date`. De combinatie dienstverband/type/jaar/cohort is uniek. De normale engine gebruikt één `LEAVE_ACCRUAL:<jaar>`-cohort; een migratiestartsaldo krijgt een eigen `MIGRATION:<source_key>`-cohort. Daardoor blijven verschillende bronjaren en vervaldatums afzonderlijk beschikbaar voor FIFO en verval. Het restsaldo is altijd `total_accrued - total_taken - total_expired` en mag niet negatief worden door een engineboeking.
 
 `leave_accrual_transactions` bevat `bucket_id`, `transaction_type`, ondertekende `amount`, optionele `reason`, optionele `actor_id` en `transaction_date`. `reason` is verplicht bij `MANUAL_ADJUSTMENT`; `actor_id` is alleen `null` voor systeemboekingen. Bij elke boeking legt de implementatie ook de herleidbare bron vast (opbouwregel, werkurenentry, bonusregel, correctie, cron-run of latere aanvraag), zodat regelwijzigingen historische transacties nooit anders verklaren.
 
-Een migratiestartsaldo is geen blijvend uitzonderingsveld. Een geautoriseerde HR-beheerder geeft per dienstverband, verloftype, aantal uren en startdatum een **startbucket**. De engine maakt daarvoor één bucket met de startdatum als opbouwreferentie en één immutable `OPENING_BALANCE`-boeking; verval volgt de op die datum geldige vervalconfiguratie. Zo is ook een overgenomen historisch saldo volledig traceerbaar en nooit dubbel in projecties opgenomen.
+Een migratiestartsaldo is geen blijvend uitzonderingsveld. Een geautoriseerde HR-beheerder geeft per dienstverband, verloftype, aantal uren en `requested_start_date` een **startbucket**. Die datum is de authoritative balans aan het begin van de datum: het geïmporteerde saldo vertegenwoordigt de oude administratie tot en met de vorige kalenderdag. De bestaande `create_group_leave_opening_balance(...)` blijft hiervoor de compatibele ingang en maakt één bucket met `source_type = MIGRATION_START_BALANCE` en één immutable `OPENING_BALANCE`-boeking. Voor een conversie met meerdere broncohorten gebruikt de backward-compatible cohortuitbreiding ook `source_accrual_year` en een expliciete `expiration_date`; cohorten worden nooit samengevoegd. De opbouwengine leest uitsluitend deze canonieke transacties en knipt de normale entitlement af op `max(normale start, migratieknipdatum)`. Een `HR_MANUAL_ADJUSTMENT`, normaal carry-forward of andere openingboeking kan geen knipdatum instellen. Zo is een overgenomen historisch saldo volledig traceerbaar en wordt het niet opnieuw als LiquidHR-opbouw berekend.
+
+Een HR-saldocorrectie gebruikt de bestaande `apply_group_leave_manual_adjustment(...)`-ingang en maakt geen tweede correctieboek aan. Het bedrag is ondertekend: positief verhoogt `total_accrued`, negatief verlaagt het beschikbare saldo, maar geen van beide is een `TAKEN`-boeking en `total_taken` blijft onaangeroerd. De expliciete effectieve datum bepaalt het opbouwjaar en moet binnen het geselecteerde dienstverband vallen; een afgesloten jaar, lege reden, conflictende bronkey of negatief eindsaldo blokkeert de mutatie. De transactie is append-only met `actor_user_id`, actor/display-snapshot, reden, datum en `source_key`; een fout wordt alleen met een compenserende nieuwe correctie hersteld.
 
 ## 5. Rekenregels
 
 ### 5.1 Opbouw en pro rata
 
-De engine bepaalt per dag het actieve dienstverband, profiel, opbouwregel of uitzondering, rooster-FTE en eventuele relevante onbetaalde afwezigheid. Zonder geldig dienstverband is de uitkomst nul. Wijzigingen halverwege een periode splitsen die in slices. Voor contracturen geldt:
+De engine bepaalt per dag het actieve dienstverband, profiel, opbouwregel of uitzondering, rooster-FTE en eventuele relevante onbetaalde afwezigheid. Zonder geldig dienstverband is de uitkomst nul. Wijzigingen halverwege een periode splitsen die in slices. Een toepasselijke canonieke `MIGRATION_START_BALANCE`-transactie voegt de migratieknipdatum als slicegrens toe en sluit alle dagen ervoor buiten LiquidHR-eigendom; de openingboeking zelf komt nooit in de berekende of reeds-geboekte engineopbouw terecht. Voor `CONTRACT_HOURS` betekent `accrual_amount` de jaarlijkse volledige entitlement bij 1,0 FTE. De frequentie verdeelt die jaarwaarde met de canonieke aantallen: `YEARLY = 1`, `MONTHLY = 12`, `FOUR_WEEKLY = 13` en `PAYROLL_PERIOD = 12` of `13` op basis van de effectieve salarisfrequentie. De entitlement van een volledige periode is dus `jaarlijkse entitlement / perioden per jaar`.
 
-`(werkdagen in slice / werkdagen in volledige periode) × basisopbouw × FTE`
+Voor een slice met de interne halfopen intervalnotatie `[slice_start, slice_end)` geldt daarna:
+
+`(jaarlijkse entitlement / perioden per jaar) × (kalenderdagen in slice / kalenderdagen in volledige periode) × FTE`
+
+De kalenderdagdeler is het werkelijke aantal dagen van een maand of jaar (`365`/`366`). Voor een vierwekelijkse periode is de deler altijd `28`; hetzelfde geldt voor een vierwekelijkse `PAYROLL_PERIOD`. Een volledige februari krijgt daardoor dezelfde opbouw als een volledige juli. De zichtbare einddatum van een dienstverband is inclusief; de engine vertaalt die intern naar de exclusieve dag erna. Een wijziging van de verdeling over weekdagen verandert de `CONTRACT_HOURS`-entitlement niet: alleen een materiële wijziging van FTE, fulltime-norm, profiel, regel of geldigheid maakt een nieuwe slice. De weekdagverdeling blijft relevant voor opname op afzonderlijke data, niet voor deze entitlement.
 
 De som van alle slices wordt één `ACCRUAL`-transactie per bucket en boekingsmoment. Voor iedere `leave_accrual_rule_pause_types`-koppeling trekt de engine alleen de werkelijk opgenomen uren van dat geselecteerde verloftype af van de opbouwgrondslag van deze regel. De vermindering is pro rata ten opzichte van de geplande uren in dezelfde slice; een halve opgenomen werkdag verlaagt dus alleen die halve dag. Een niet-gekoppelde verlofsoort pauzeert de opbouw nooit.
 
@@ -178,20 +184,20 @@ Per verloftype bevat het rapport minimaal:
 
 | Veld | Betekenis |
 | --- | --- |
-| `startOfYearBalance` | Saldo aan het begin van het huidige kalenderjaar, inclusief alle geldige overhevelingen uit eerdere opbouwjaren. |
+| `startOfYearBalance` | Saldo aan het begin van het huidige kalenderjaar, inclusief alle geldige overhevelingen uit eerdere opbouwjaren en canonieke migratiestartcohorten. |
 | `carryForwards` | Per overgedragen bucket: oorspronkelijk opbouwjaar, carry-forward-snapshot, actuele restwaarde en onveranderde vervaldatum. |
 | `currentBalance` | Saldo nu: beginsaldo plus feitelijke opbouw en positieve correcties min opname, verval en negatieve correcties tot `asOfDate`. |
 | `projectedEndBalance` | Verwacht saldo op 31 december of, wanneer eerder, de einddatum van het dienstverband: huidig saldo plus nog te verwachten opbouw min toekomstige goedgekeurde opnames. |
 | `monthlyAccrualMoments` | Per kalendermaand de relevante periode, geplande boekingsdatum, opbouwmoment (`UPFRONT`/`ARREARS`), effectieve regelversie, verwachte uren en reeds werkelijk geboekte uren/transacties. Bij jaaropbouw is dit het relevante moment in januari. |
 | `expirationBuckets` | Per bucket met positief saldo: verloftype, opbouwjaar, actuele restwaarde, `expiration_date` en aantal dagen tot verval. |
-| `manualAdjustments` | Alle `MANUAL_ADJUSTMENT`-mutaties met plus/min-bedrag, reden, datum en HR-adminactor. |
+| `manualAdjustments` | Alle `MANUAL_ADJUSTMENT`-mutaties met plus/min-bedrag, reden, effectieve datum, actor/display-snapshot en aanmaaktijd. Deze mutaties tellen nooit mee als `TAKEN`. |
 | `taken` | Geaccordeerde opnames en afboekingen; in deze fase leeg wanneer nog geen aanvraagflow bestaat, maar het contract is nu al verplicht. |
 
 Voor `UNLIMITED` toont het rapport de status onbeperkt en geen financieel bucketsaldo of vervaldatum. Voor `ANNUAL_HOURS_CAP` en `WEEKLY_HOURS_FACTOR_CAP` toont het rapport de geldende jaarlimiet en, zodra aanvragen bestaan, gebruikte en resterende jaarruimte. De vier kernsaldi blijven voor opbouwsoorten de financiële waarheid.
 
-Projecties zijn leesberekeningen en schrijven nooit transacties. Handmatige bij- en afboekingen lopen uitsluitend via de centrale engine als `MANUAL_ADJUSTMENT`: een reden is verplicht, het bedrag is ondertekend en actor, tijdstip en reden zijn altijd zichtbaar in het rapport.
+Projecties zijn leesberekeningen en schrijven nooit transacties. Handmatige bij- en afboekingen lopen uitsluitend via de centrale engine als `MANUAL_ADJUSTMENT`: een reden is verplicht, het bedrag is ondertekend en actor, effectieve datum, aanmaaktijd en reden zijn altijd zichtbaar in het rapport. `Opgenomen dit jaar` telt uitsluitend feitelijke `TAKEN`-transacties; opening, accrual, carry-forward, verval en manual adjustments blijven daarvan gescheiden.
 
-De medewerker krijgt uitsluitend het rapport van het eigen dienstverband via de toekomstige selfpermission `self:leave:read`. Een manager krijgt uitsluitend rapporten binnen de bestaande effectieve managementscope via `leave:read`; een gemanipuleerd `employmentId` levert geen data buiten die scope op. De route valideert dit server-side en RLS dwingt dezelfde grens database-side af.
+De medewerker krijgt uitsluitend het rapport van het eigen dienstverband via de toekomstige selfpermission `self:leave:read`. Een manager krijgt uitsluitend rapporten binnen de bestaande effectieve managementscope via `employee:read`; een gemanipuleerd `employmentId` levert geen data buiten die scope op. De route valideert dit server-side en RLS dwingt dezelfde grens database-side af.
 
 ### 5.4 Verval
 
@@ -216,7 +222,7 @@ Deze fase levert geen aanvraagroute, maar de afboekregel ligt nu vast:
 
 1. een actieve bundel, bijvoorbeeld `Vakantie`, levert `leave_priority_rule_items` op in `sort_order`;
 2. per verloftype zoekt de engine positieve buckets van het gekozen dienstverband;
-3. binnen één type sorteert zij buckets op `expiration_date` oplopend (first-expire-first-out);
+3. binnen één type sorteert zij alle buckets, inclusief afzonderlijke migratiecohorten, op `expiration_date` oplopend (first-expire-first-out);
 4. zij boekt later `TAKEN`-transacties tot de uren zijn gedekt of het type leeg is;
 5. resterende uren schuiven door naar het volgende type; onvoldoende totaal saldo wijst de hele aanvraag af zonder gedeeltelijke boeking.
 
@@ -233,7 +239,8 @@ De nieuwe tegel onder HR-admininstellingen opent `/settings/leave-accrual`. De p
 - dienstverbandafwijkingen die altijd het specifieke dienstverband tonen, niet alleen de medewerker;
 - saldo-audit per dienstverband, type en opbouwjaar met buckettotalen en immutable grootboek;
 - de voorbereide leesprojectie voor medewerker en manager: beginjaarsaldo, carry-forwards, saldo nu, saldo einde jaar/dienstverband, maandelijkse opbouwmomenten, verval en handmatige mutaties; opnames verschijnen automatisch zodra de aanvraagflow bestaat;
-- verplichte reden bij een handmatige correctie.
+- een HR Admin-surface voor positieve en negatieve saldo-correcties met medewerker, dienstverband, verloftype, saldo-preview, effectieve datum, verplichte reden en immutable mutatiehistorie; medewerker en direct manager krijgen alleen de read-only saldo-/mutatiehistorie binnen hun bestaande scope;
+- verplichte reden en expliciete effectieve datum bij een handmatige correctie; locked years en negatieve eindsaldi worden geweigerd en dubbele source keys zijn idempotent.
 
 De actuele beheerflow toont in het verloftype de algemene instellingen zonder afwezigheid-specifieke opties: het verwijderen van afwezigheden uit het verleden en het vragen om een afwezigheidsattest horen niet bij een verloftype. De tabbladen Basisinformatie, Beperkingen en Geavanceerd blijven visueel actief gemarkeerd; Geavanceerd is voorlopig een expliciete placeholder.
 

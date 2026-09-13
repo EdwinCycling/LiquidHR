@@ -1,5 +1,171 @@
 # Implementatiestatus Liquid HR
 
+## HR handmatige verlofsaldocorrecties — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**
+
+De bestaande canonical `apply_group_leave_manual_adjustment(...)` is uitgebreid
+met een backward-compatible expliciete correctiedatum. HR Admin kan daarmee
+positieve en negatieve `MANUAL_ADJUSTMENT`-mutaties vastleggen met verplichte
+reden, actor/display-snapshot, bronkey en effectieve datum. De bucket blijft
+veilig boven nul; `total_taken` en de rapportage van `TAKEN` worden niet gebruikt
+voor correcties. Locked years, employment-scope en idempotency worden in de
+database afgedwongen.
+
+De read-only medewerker-/direct-managerhistorie en de HR Admin-surface zijn
+toegevoegd. De normale HR Admin-browserflow heeft uitsluitend op synthetische
+Piet Test een gecontroleerde `+1,00`-mutatie en een `-1,00`-compensatie gepost.
+De UI bevestigde `160,00 → 161,00 → 160,00`; de immutable historie toont beide
+rijen met datum, reden en actor-ID. Remote readback bevestigt exact twee
+`MANUAL_ADJUSTMENT`-transacties met `HR_MANUAL_ADJUSTMENT`, netto 0, geen wijziging
+van `total_taken` en geen correcties op Jan, Frank of Lisa.
+
+Op uitsluitend DEV-project `wnpfloqpjvaacobppbpk` zijn de canonical Leave-
+migraties aanwezig als `20260912150853`, `20260912184117`, `20260912193619`,
+`20260913092334` en `20260913123613`; typegeneratie en advisors zijn opnieuw
+uitgevoerd. De readback bevestigt de twee date/year-overloads, authenticated-
+only execute-grants, scoped read-policies en geen globale
+`DIRECT_MANAGER`-`leave:read`. Manager en Employee authenticeerden via de
+normale flow, maar de lokale kandidaat gaf op de auditroute `/geen-toegang`
+wegens ontbrekende tenant-koppeling; de veilige server-side negative RPC-probe
+blijft `42501 LEAVE_ADJUST_PERMISSION_REQUIRED`.
+
+De finale actuele gate-uitkomst is gericht `56/56`; strict typecheck, lint,
+i18n (`35` namespaces), diff-check en Webpack (`260/260`) zijn groen. De
+volledige suite eindigde op `361/364` testbestanden en `1421/1424` tests. De
+drie bestaande, ongerelateerde failures zijn de DG1 PDF-timeout, de
+contract-change audit-grantassertie en de DM-1 CASE-parenthesization-assertie;
+geen van deze baseline-tests is door deze slice gewijzigd. De HR Admin-browserconsole had 0 errors. De
+preview bevatte voor de acht toegestane fixture-rijen `Al geboekt` en delta
+`0,00`: Frank `60,0548/15,0137`, Jan `31,9123/7,9781`, Lisa `160/40` en Piet
+`160/40` uur (wettelijk/bovenwettelijk). De groepsbrede Delta-knop is niet
+gebruikt, omdat die ook andere demo-medewerkers toont.
+
+## Leave Accrual Engine V1 — 2026-09-12
+
+**Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**
+
+De geïsoleerde candidate staat in `\.codex-worktrees\leave-engine-v1` op branch
+`work/leave-engine-v1`. `CONTRACT_HOURS` gebruikt nu de jaarlijkse volledige
+entitlement bij 100% FTE; de frequentie verdeelt die waarde volgens de
+canonieke perioden en alleen kalenderdagen prorateren een gedeeltelijke slice.
+Weekdagwijzigingen zonder materiële FTE/fulltime-normwijziging veranderen de
+entitlement niet.
+
+De bestaande `create_group_leave_opening_balance(...)` is behouden als
+canonieke ingang voor `OPENING_BALANCE` met `source_type =
+MIGRATION_START_BALANCE`. De service leest alleen deze transacties binnen exact
+de employee/employment/Leave Type-scope en knipt op
+`max(normale eligible start, migration cutover date)`. Manual adjustments,
+normale carry-forward en andere openingsboekingen stellen geen cutover in. De
+backward-compatible cohort-RPC voegt `source_accrual_year`, `cohort_key` en een
+expliciete vervaldatum toe, zodat verschillende migratiejaren onafhankelijk
+FIFO/expiration behouden.
+
+Op uitsluitend DEV `wnpfloqpjvaacobppbpk` zijn remote geregistreerd:
+`20260912150853 leave_accrual_engine_v1`,
+`20260912184117 leave_migration_opening_balance_cohorts` en
+`20260912193619 leave_accrual_source_key_conflict`. De laatste migration
+vervangt alleen de bestaande partial unique ledger-index door de equivalente
+non-partial conflict-index; er is geen tabel- of row-delete uitgevoerd. De
+vier geautoriseerde synthetic fixtures hebben exact 8 automatische buckets en
+8 `ACCRUAL`-transacties, 0 migration-transacties en 0 rows voor de
+soft-deleted Piet-retry. Een tweede identieke post-run was voor alle fixtures
+`posted: 0`; de finale gefilterde preview toont achtmaal `ALREADY_POSTED` en
+delta `0`.
+
+De remote security/readback-gates zijn groen: `TEST-BOUNDARY` bevat 0
+employees en 0 employments, Manager en Employee krijgen HTTP 403 op de
+postroute, anon heeft geen execute-recht op de nieuwe accrual/opening-balance-
+RPC's en de ledger-readback blijft beperkt tot de vier synthetic fixtures.
+De lokale browserflow op `/settings/leave-accrual` is na reload gecontroleerd
+met 0 page-errors en 0 console-errors.
+
+De zeven gevraagde migration-tests zijn onderdeel van `34/34` gerichte groene
+tests: cutover/proratie, idempotente replay, immutable opening balance,
+manual-adjustment-is-geen-cutover, onafhankelijke expiry-cohorten, employment
+start na cutover en employment end vóór cutover. Strict TypeScript, ESLint,
+i18n (`35` namespaces), diff-check en Webpack (`260/260`) zijn groen. De
+volledige suite is `359/361` testbestanden en `1410/1412` tests; de twee
+failures zijn bestaande, ongerelateerde Document Studio DM-1 CASE-
+parenthesization- en contract-change-audit-baselines en zijn niet gewijzigd.
+Production, Payroll, deployment en main-integratie zijn buiten scope.
+
+## Employee Contract + synthetic fixtures — 2026-09-12
+
+**Status: MANAGER + TEMPORAL FIXTURE E2E: GREEN — DEV/TEST APPLIED; READY FOR COMMIT/PUSH**
+
+De Employee Wizard QA-track bevat nu de blijvende synthetische DEV-fixtures Lisa,
+Jan, Piet en Frank op uitsluitend Supabase DEV-project
+`wnpfloqpjvaacobppbpk`. Lisa is via de echte HR Admin-wizard aangemaakt en via de
+bestaande invitation-fixture aan haar eigen test-auth identity gebonden. Jan is
+niet opnieuw aangemaakt. De volledige fixturegraph en uitsluitend geautoriseerde
+ID's staan in [`EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md`](EMPLOYEE_WIZARD_CONTRACT_FIXTURES.md).
+
+De normale organization/manager-flow koppelt Lisa direct aan Jan, Piet en Frank.
+De echte Jan-roosterflow heeft per 2026-10-01 de effectieve werkdagen gewijzigd
+van maandag–donderdag naar maandag/dinsdag/donderdag/vrijdag, met woensdag als
+niet-werkdag; 32/40 uur en factor 0,80 bleven gelijk. Salaris bleef intact met
+peildata EUR 4.000/EUR 3.200 op 2026-09-15 en EUR 4.250/EUR 3.400 op 2026-10-15.
+
+De lokale server-side scopefix herhaalt de directe-manager-scope vóór
+`getEmployeeEmploymentDetail` en retourneert buiten-team dezelfde `404
+EMPLOYEE_NOT_FOUND`. De bijbehorende helpertest is `3/3` groen. De fix gebruikt
+geen RLS-policywijziging, bredere grant, service-role bypass of nieuwe
+SECURITY-DEFINER-functie; er was geen remote migration voor nodig. De bestaande
+`manage_employment_contract`-RPC blijft SECURITY INVOKER en VOLATILE en de
+bestaande `can_insert_complete_employment_contract`-helper blijft
+SECURITY DEFINER/STABLE.
+
+Remote readback bevestigt exact één actieve Lisa-employment/auth-link, één
+bedoelde actieve employment voor Jan/Piet/Frank, de Lisa-managergraph en de
+soft-deleted Piet-retry. TEST-BOUNDARY blijft 0/0; er zijn geen Payroll-tabellen
+gewijzigd. HR Admin- en Lisa-browseracceptance, inclusief reload en negatieve
+scope/HR Admin-controles, is groen met `0` console/page-errors.
+
+De finale repository-gate is groen voor lint, i18n (`35` namespaces), strict
+TypeScript, diff-check en Webpack (`258/258`). De volledige suite is `360/361`
+testbestanden en `1393/1394` tests; de enige failure is de bekende, ongerelateerde
+DM-1 CASE-parenthesization-baselinefailure. Branch commit en push volgen.
+
+## Employee Wizard Jan Test E2E — 2026-09-11
+
+**Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; PUSH READY**
+
+De bestaande Jan Test is via de echte HR Admin-browserflow aangemaakt en remote
+teruggelezen op project `wnpfloqpjvaacobppbpk`. De oorspronkelijke
+`employment_contracts` RLS-fout is exact verklaard: de invoker-RPC plaatste de
+contractrij vóór `employee_organizations`; `INSERT ... RETURNING id` vereist daarna
+SELECT-zichtbaarheid, terwijl de bestaande `can_manage_employee`-predicate zonder
+organisatieplaatsing false is. De kleinste architectuurcorrectie is pre-generatie
+van het contract-ID en een expliciete `id` in de INSERT. Er zijn geen RLS-policies,
+brede grants, SECURITY-DEFINER-bypasses of service-role writes toegevoegd.
+
+Tijdens dezelfde flow zijn de volgende directe, bewezen vervolgproblemen opgelost:
+pre-generatie van change-set- en income-ID's, het stale `hr_group_id`-predicaat op
+administration-scoped salarisinstellingen, de handmatige fulltime-salarismapping,
+een beperkte same-date correctie van het initiële salaris en contractperiode-
+reconciliatie van afhankelijke timeline-records. De tijdelijke diagnose- en
+speculative-policy migrations zijn gevolgd door remove-migrations; remote markers
+zijn 0. `publish_complete_employment`, `publish_complete_salary_application_employment`,
+`apply_salary_application_change` en `manage_employment_contract` blijven
+SECURITY INVOKER; de bestaande helper `can_insert_complete_employment_contract`
+blijft de canonieke SECURITY DEFINER/STABLE helper.
+
+Remote bewijs: Jan `1`, intended employment `1`, contract `1`, salarissegmenten
+`2`, en elk bedoeld schedule/income/income-link/organization/administration-
+assignment/labor-condition/cost-allocation-record `1`; TEST-BOUNDARY `0/0`.
+Employment en contract zijn definitief 2026-09-01 t/m 2026-11-30, rooster 32/40
+met factor 0,80, en salary peildata zijn 2026-09-15 EUR 4.000 / EUR 3.200 en
+2026-10-15 EUR 4.250 / EUR 3.400. Reload, Manager-denial en Employee-denial zijn
+browsermatig gecontroleerd. Production, Payroll en deployment blijven buiten scope.
+
+De finale gate is uitgevoerd: de volledige suite is `358/359` testbestanden en
+`1385/1386` tests. De enige resterende failure is de bekende, ongerelateerde
+DM-1 migration-contracttest voor CASE-parenthesization; die is niet gewijzigd in
+deze slice. Strict TypeScript, ESLint, i18n (`35` namespaces), `git diff --check`
+en Webpack-productiebuild (`258/258` statische pagina's) zijn groen.
+
 ## AI Everywhere V1 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; MAIN INTEGRATION READY**
@@ -1843,3 +2009,11 @@ Gerichte reminder-tests (20/20), typecheck, lint en productiebuild zijn groen. D
 De Uren/Rooster-wizard is aangescherpt: de urenafspraakvelden zijn verticaal uitgelijnd en de deeltijdfactor heeft weer een zichtbaar label. Een toegankelijke switch biedt decimale uren of uren:minuten; omschakelen converteert bestaande waarden en de save-payload gebruikt in beide gevallen de juiste uren en minuten. De gedeelde secundaire knopstijl gebruikt nu een duidelijkere accent-surface, inclusief de LinkedHR-theme.
 
 Gerichte verificatie is groen: roster-parser 3/3, strict TypeScript, ESLint, i18n (35 namespaces), diff-check en localhost-browsercontrole. Geen schema/API/databasewijziging en geen push, deploy of versiebump.
+
+## Leave profile management — 2026-09-12
+
+De verlofconfiguratie heeft nu een vierdelige workspace met profielbeheer, medewerkersetbeheer en jaarafsluiting als afzonderlijke tabs. Profielen tonen gekoppelde regels, actieve sets en directe toewijzingen; de UI legt de precedence uit en linkt door naar profielgebonden opbouwregels. De migration `20260912120000_leave_profile_default_management.sql` bewaakt atomic default switching, case-insensitive profielnamen, archiveringsguards en actieve-profielresolutie.
+
+De migration is na expliciete gebruikersautorisatie op DEV `wnpfloqpjvaacobppbpk` toegepast en geregistreerd als `20260912123318`. HR Admin heeft via de normale UI in Planeten twee profielen en één actieve medewerkerset aangemaakt. De configuratieroute vereist nu `leave:write`; Test Manager en Test Medewerker worden server-side naar `/geen-toegang` gestuurd. De beperkte remote readback bevestigt 2 Planeten-profielen, 1 default, 1 set met prioriteit 10, en behoud van `TEST-BOUNDARY` 0/0 en Test BV 0.
+
+Lokale verificatie: 17/17 targeted leave/schema/migration tests, strict TypeScript, ESLint, i18n-pariteit, diff-check en Webpack-productiebuild geslaagd. Volledige suite: 1381/1382; de enige failure is de bestaande, niet-gerelateerde Document Studio migration-contracttest. Supabase typegen en advisors zijn uitgevoerd; advisors tonen alleen bestaande projectbrede waarschuwingen/INFO’s. Een frisse HR Admin-browserrun heeft 0 console errors; Manager/Medewerker negative acceptance is groen. Turbopack blijft in deze worktree geblokkeerd door de bekende invalid `node_modules`-symlink; de Webpack-fallback is groen. Geen synthetic employee is gekoppeld, en er is niet gepusht of gedeployed.

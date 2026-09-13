@@ -7,7 +7,7 @@ import { getTranslator } from '@/lib/i18n/server'
 
 export default async function LeavePriorityRulesPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
   try {
-    await requirePermission('leave:read')
+    await requirePermission('leave:write')
   } catch (error) {
     if (error instanceof AuthorizationError) redirect('/geen-toegang')
     throw error

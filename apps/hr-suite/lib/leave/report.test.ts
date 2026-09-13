@@ -8,7 +8,7 @@ describe('leave balance report', () => {
       calendarYear: 2026,
       asOfDate: '2026-06-30',
       leaveTypes: [
-        { id: 'vacation', name: 'Vakantie', entitlementMode: 'ACCRUAL', colorCode: '#1e90ff' },
+        { id: 'vacation', name: 'Vakantie', entitlementMode: 'ANNUAL_HOURS_CAP', annualHoursCap: 20, colorCode: '#1e90ff' },
         { id: 'doctor', name: 'Zorgverlof', entitlementMode: 'UNLIMITED', colorCode: '#13b981' },
       ],
       buckets: [
@@ -20,6 +20,7 @@ describe('leave balance report', () => {
         { bucketId: 'old', leaveTypeId: 'vacation', transactionType: 'TAKEN', amount: -2, transactionDate: '2026-02-01' },
         { bucketId: 'current', leaveTypeId: 'vacation', transactionType: 'ACCRUAL', amount: 8, transactionDate: '2026-01-01' },
         { bucketId: 'current', leaveTypeId: 'vacation', transactionType: 'MANUAL_ADJUSTMENT', amount: 1, transactionDate: '2026-03-01', reason: 'Correctie HR' },
+        { bucketId: 'current', leaveTypeId: 'vacation', transactionType: 'MANUAL_ADJUSTMENT', amount: -3, transactionDate: '2026-04-01', reason: 'Tweede correctie HR' },
       ],
       carryForwards: [{ sourceBucketId: 'old', sourceAccrualYear: 2025, carriedHours: 8, expirationDate: '2026-07-01' }],
       projectedAccruals: [{ leaveTypeId: 'vacation', amount: 4 }],
@@ -30,14 +31,15 @@ describe('leave balance report', () => {
     expect(report.leaveTypes[0]).toMatchObject({
       leaveTypeId: 'vacation',
       startOfYearBalance: 10,
-      currentBalance: 17,
-      projectedEndBalance: 21,
+      currentBalance: 14,
+      projectedEndBalance: 18,
     })
     expect(report.leaveTypes[0].carryForwards).toEqual([
       expect.objectContaining({ sourceAccrualYear: 2025, currentHours: 8 }),
     ])
-    expect(report.leaveTypes[0].manualAdjustments).toHaveLength(1)
+    expect(report.leaveTypes[0].manualAdjustments).toHaveLength(2)
     expect(report.leaveTypes[0].taken).toHaveLength(1)
+    expect(report.leaveTypes[0].usedAnnualLimit).toBe(2)
     expect(report.leaveTypes[1]).toMatchObject({
       leaveTypeId: 'doctor',
       status: 'UNLIMITED',

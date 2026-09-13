@@ -92,6 +92,7 @@ function frequencyLabel(frequency: Frequency, labels: AccrualRuleEditorLabels): 
 export function AccrualRuleEditor({
   catalog,
   leaveTypeId,
+  initialProfileId,
   ruleId,
   copyFromRuleId,
   labels,
@@ -102,6 +103,7 @@ export function AccrualRuleEditor({
 }: {
   catalog: LeaveCatalog
   leaveTypeId?: string
+  initialProfileId?: string
   ruleId?: string
   copyFromRuleId?: string
   labels: AccrualRuleEditorLabels
@@ -127,7 +129,7 @@ export function AccrualRuleEditor({
     () => catalog.profiles.find((profile) => profile.is_group_default && profile.is_active),
     [catalog.profiles],
   )
-  const profileId = sourceRule?.leave_profile_id ?? defaultProfile?.id ?? ''
+  const profileId = sourceRule?.leave_profile_id ?? initialProfileId ?? defaultProfile?.id ?? ''
   const initialBasis: Basis = sourceRule?.accrual_basis === 'WORKED_HOURS' ? 'WORKED_HOURS' : 'CONTRACT_HOURS'
   const initialFrequency: Frequency = sourceRule?.accrual_frequency === 'FOUR_WEEKLY'
     || sourceRule?.accrual_frequency === 'MONTHLY'
@@ -213,7 +215,7 @@ export function AccrualRuleEditor({
   const basisLabel = basis === 'CONTRACT_HOURS' ? labels.contractHours : labels.workedHours
   const periodLabel = frequencyLabel(frequency, labels)
   const amountSummary = basis === 'CONTRACT_HOURS'
-    ? `${decimalFromParts(amount).toFixed(2)}u ${frequency === 'YEARLY' ? labels.amountPerYear : `${labels.amountPerPeriod} ${periodLabel.toLocaleLowerCase()}`}`
+    ? `${decimalFromParts(amount).toFixed(2)}u ${labels.amountPerYear}`
     : `${decimalFromParts(rate).toFixed(4)}u/u ${labels.amountPerHour}`
   const readableSummary = [
     `${labels.summaryBasis} ${basisLabel.toLocaleLowerCase()}.`,
@@ -307,7 +309,7 @@ export function AccrualRuleEditor({
       </fieldset> : null}
 
       <div className="mt-6 rounded-xl border bg-muted/20 p-4">
-        <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' && frequency === 'YEARLY' ? labels.amountPerYear : basis === 'CONTRACT_HOURS' ? `${labels.amountPerPeriod} ${periodLabel.toLocaleLowerCase()}` : labels.amountPerHour}</h3>
+        <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' ? labels.amountPerYear : labels.amountPerHour}</h3>
         <div className="mt-3">{partsField(basis === 'CONTRACT_HOURS' ? amount : rate, basis === 'CONTRACT_HOURS' ? setAmount : setRate, basis === 'WORKED_HOURS')}</div>
       </div>
       <div className="mt-5 flex items-end gap-2">

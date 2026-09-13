@@ -90,10 +90,14 @@ const workHourTypeInput = z.object({
 
 const leaveProfileInput = z.object({
   action: z.literal('PROFILE'),
+  id: z.string().trim().min(1).max(100).optional(),
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(500).nullable().optional(),
   isActive: z.boolean().default(true),
-}).strict()
+  isGroupDefault: z.boolean().default(false),
+}).strict().superRefine((value, context) => {
+  if (value.isGroupDefault && !value.isActive) context.addIssue({ code: 'custom', path: ['isGroupDefault'], message: 'LEAVE_PROFILE_DEFAULT_MUST_BE_ACTIVE' })
+})
 
 export const leaveCatalogMutationSchema = z.discriminatedUnion('action', [leaveTypeInput, workHourTypeInput, leaveProfileInput])
 export type LeaveCatalogMutation = z.infer<typeof leaveCatalogMutationSchema>
@@ -204,6 +208,21 @@ const employeeSetInput = z.object({
   isActive: z.boolean().default(true),
 }).strict()
 
+const employeeSetUpdateInput = z.object({
+  action: z.literal('UPDATE_EMPLOYEE_SET'),
+  id: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(500).nullable().optional(),
+  leaveProfileId: z.string().trim().min(1).max(100),
+  priority: z.number().int().min(1).max(32767),
+  isActive: z.boolean(),
+}).strict()
+
+const employeeSetArchiveInput = z.object({
+  action: z.literal('ARCHIVE_EMPLOYEE_SET'),
+  id: z.string().trim().min(1).max(100),
+}).strict()
+
 const employeeSetMemberInput = z.object({
   action: z.literal('EMPLOYEE_SET_MEMBER'),
   employeeSetId: z.string().trim().min(1).max(100),
@@ -221,6 +240,12 @@ const catalogUpdateInput = z.object({
   description: z.string().trim().max(500).nullable().optional(),
   isSelfService: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  isGroupDefault: z.boolean().optional(),
+}).strict()
+
+const setGroupDefaultInput = z.object({
+  action: z.literal('SET_GROUP_DEFAULT'),
+  id: z.string().trim().min(1).max(100),
 }).strict()
 
 const archiveInput = z.object({
@@ -228,7 +253,7 @@ const archiveInput = z.object({
   id: z.string().trim().min(1).max(100),
 }).strict()
 
-export const leaveConfigurationMutationSchema = z.discriminatedUnion('action', [accrualRuleInput, exceptionInput, bonusRuleInput, priorityRuleInput, priorityRuleUpdateInput, profileAssignmentInput, employeeSetInput, employeeSetMemberInput, catalogUpdateInput, archiveInput])
+export const leaveConfigurationMutationSchema = z.discriminatedUnion('action', [accrualRuleInput, exceptionInput, bonusRuleInput, priorityRuleInput, priorityRuleUpdateInput, profileAssignmentInput, employeeSetInput, employeeSetUpdateInput, employeeSetArchiveInput, employeeSetMemberInput, catalogUpdateInput, setGroupDefaultInput, archiveInput])
 export type LeaveConfigurationMutation = z.infer<typeof leaveConfigurationMutationSchema>
 
 const overtimeLimitFields = {
@@ -305,11 +330,19 @@ const manualAdjustmentInput = z.object({
   employeeId: z.string().trim().min(1).max(100),
   employmentId: z.string().trim().min(1).max(100),
   leaveTypeId: z.string().trim().min(1).max(100),
-  accrualYear: z.number().int().min(2000).max(2200),
+  accrualYear: z.number().int().min(2000).max(2200).optional(),
+  effectiveDate: isoDate.optional(),
   amount: z.number().finite().refine((value) => value !== 0, 'LEAVE_MANUAL_ADJUSTMENT_AMOUNT_REQUIRED'),
   reason: z.string().trim().min(1).max(500),
   sourceKey: z.string().trim().min(8).max(160),
-}).strict()
+}).strict().superRefine((value, context) => {
+  if (value.effectiveDate === undefined && value.accrualYear === undefined) {
+    context.addIssue({ code: 'custom', path: ['effectiveDate'], message: 'LEAVE_CORRECTION_DATE_REQUIRED' })
+  }
+  if (value.effectiveDate !== undefined && value.accrualYear !== undefined && Number(value.effectiveDate.slice(0, 4)) !== value.accrualYear) {
+    context.addIssue({ code: 'custom', path: ['accrualYear'], message: 'LEAVE_CORRECTION_YEAR_MISMATCH' })
+  }
+})
 
 const closeYearInput = z.object({
   action: z.literal('CLOSE_YEAR'),
@@ -318,3 +351,16 @@ const closeYearInput = z.object({
 
 export const leaveLedgerMutationSchema = z.discriminatedUnion('action', [openingBalanceInput, manualAdjustmentInput, closeYearInput])
 export type LeaveLedgerMutation = z.infer<typeof leaveLedgerMutationSchema>
+
+export const leaveAccrualRunSchema = z.object({
+  year: z.number().int().min(2000).max(2200),
+  employeeId: z.string().trim().min(1).max(100).optional(),
+  employmentId: z.string().trim().min(1).max(100).optional(),
+  leaveTypeId: z.string().trim().min(1).max(100).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.employmentId && !value.employeeId) {
+    context.addIssue({ code: 'custom', path: ['employeeId'], message: 'LEAVE_EMPLOYEE_REQUIRED_FOR_EMPLOYMENT' })
+  }
+})
+
+export type LeaveAccrualRunInput = z.infer<typeof leaveAccrualRunSchema>

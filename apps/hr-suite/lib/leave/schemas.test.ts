@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { balanceReportQuerySchema, leaveCatalogMutationSchema, leaveConfigurationMutationSchema, overtimeConfigurationMutationSchema, workHourConfigurationMutationSchema } from './schemas'
+import { balanceReportQuerySchema, leaveCatalogMutationSchema, leaveConfigurationMutationSchema, leaveLedgerMutationSchema, overtimeConfigurationMutationSchema, workHourConfigurationMutationSchema } from './schemas'
 
 describe('leave api schemas', () => {
   it('accepteert een rapportdatum en optioneel dienstverband', () => {
@@ -11,6 +11,23 @@ describe('leave api schemas', () => {
 
   it('weigert onbekende queryvelden', () => {
     expect(balanceReportQuerySchema.safeParse({ year: '2026' }).success).toBe(false)
+  })
+
+  it('valideert correctiedatum, reden en legacy jaarinvoer', () => {
+    const base = {
+      action: 'MANUAL_ADJUSTMENT' as const,
+      employeeId: 'employee-1',
+      employmentId: 'employment-1',
+      leaveTypeId: 'leave-1',
+      amount: -8,
+      reason: 'Correctie na controle',
+      sourceKey: 'hr-correction-1',
+    }
+    expect(leaveLedgerMutationSchema.safeParse({ ...base, effectiveDate: '2026-09-13' }).success).toBe(true)
+    expect(leaveLedgerMutationSchema.safeParse({ ...base, effectiveDate: '2026-09-13', accrualYear: 2025 }).success).toBe(false)
+    expect(leaveLedgerMutationSchema.safeParse({ ...base, effectiveDate: '2026-09-13', reason: '   ' }).success).toBe(false)
+    expect(leaveLedgerMutationSchema.safeParse({ ...base }).success).toBe(false)
+    expect(leaveLedgerMutationSchema.safeParse({ ...base, accrualYear: 2026 }).success).toBe(true)
   })
 
   it('dwingt de juiste limietconfiguratie per verlofrechtvorm af', () => {
@@ -41,6 +58,13 @@ describe('leave api schemas', () => {
       entitlementMode: 'OVERTIME_HOURS',
       overtimeWorkHourTypeIds: ['overtime-1'],
     }).success).toBe(true)
+  })
+
+  it('valideert profieldefaults en profiel/set-acties', () => {
+    expect(leaveCatalogMutationSchema.safeParse({ action: 'PROFILE', name: 'Standaard', isActive: false, isGroupDefault: true }).success).toBe(false)
+    expect(leaveConfigurationMutationSchema.safeParse({ action: 'SET_GROUP_DEFAULT', id: 'profile-1' }).success).toBe(true)
+    expect(leaveConfigurationMutationSchema.safeParse({ action: 'UPDATE_EMPLOYEE_SET', id: 'set-1', name: 'Parttimers', leaveProfileId: 'profile-1', priority: 10, isActive: true }).success).toBe(true)
+    expect(leaveConfigurationMutationSchema.safeParse({ action: 'ARCHIVE_EMPLOYEE_SET', id: 'set-1' }).success).toBe(true)
   })
 
   it('vereist gekoppelde werkurentypen voor opbouw per gewerkt uur', () => {
