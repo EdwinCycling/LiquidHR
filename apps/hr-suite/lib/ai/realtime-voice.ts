@@ -3,6 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { AiExecutionError } from './contracts'
+import { OPENAI_EFFICIENT_MODEL } from './openai-config'
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -27,8 +28,10 @@ export type RealtimeVoiceToolName = z.infer<typeof realtimeVoiceToolRequestSchem
 
 const managerVoiceRoles = new Set(['DIRECT_MANAGER', 'HR_ADVISOR', 'HR_ADMIN', 'TENANT_ADMIN'])
 
-export const REALTIME_VOICE_MODEL = 'gpt-realtime-2.1-mini'
-export const REALTIME_VOICE_CONFIG_VERSION = 'gpt-live-employee-v1.20260911.1'
+export const GPT_LIVE_MODEL = 'gpt-live-1'
+export const REALTIME_VOICE_MODEL = GPT_LIVE_MODEL
+export const REALTIME_VOICE_CONFIG_VERSION = 'gpt-live-employee-v1.20260913.1'
+const GPT_LIVE_SESSION_ENDPOINT = 'https://api.openai.com/v1/live/sessions'
 
 function requiredApiKey(): string {
   const key = process.env.OPENAI_API_KEY?.trim()
@@ -40,6 +43,12 @@ export function isRealtimeVoiceEnabled(environment: Record<string, string | unde
   const configured = environment.AI_REALTIME_VOICE_ENABLED
   if (configured === 'true') return true
   return configured === undefined && (environment.NODE_ENV === 'development' || environment.NODE_ENV === 'test')
+}
+
+export function resolveRealtimeVoiceModel(environment: Record<string, string | undefined> = process.env): string {
+  const configured = environment.OPENAI_REALTIME_MODEL?.trim()
+  if (configured && configured !== GPT_LIVE_MODEL) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+  return configured || GPT_LIVE_MODEL
 }
 
 export async function requireEmployeeVoiceContext(employeeId: string): Promise<AuthContext> {
@@ -70,44 +79,104 @@ const smartGoalParameters = {
 export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLocale): Record<string, unknown> {
   const language = locale === 'nl' ? 'Dutch' : 'English'
   return {
-    type: 'realtime',
-    model: process.env.OPENAI_REALTIME_MODEL?.trim() || REALTIME_VOICE_MODEL,
-    output_modalities: ['audio'],
+    model: resolveRealtimeVoiceModel(),
     instructions: [
       `You are the LiquidHR voice interface. Speak in ${language}.`,
-      'This session is bound to one employee by the LiquidHR application. Never ask for or accept an employee ID.',
-      'Use only the supplied LiquidHR tools for employee information or proposals. Do not invent HR facts.',
-      'Employee Summary and Conversation Preparation are read proposals. SMART Goal returns a proposal only.',
+      'This session is bound to one employee by the LiquidHR application. Never ask for or accept an employee ID. Delegate employee questions to the backend.',
+      'Keep the spoken conversation concise and handle interruptions naturally.',
       'Never claim that HR data was saved, changed, published, or approved. A human must review and confirm proposals in the application.',
-      'Keep spoken answers concise and say when a capability is unavailable or a proposal needs review.',
     ].join(' '),
-    tools: [
-      {
-        type: 'function',
-        name: 'employee_summary',
-        description: 'Request the authorized employee summary for the employee bound to this session.',
-        parameters: emptyParameters,
+    client: {
+      data_channel: {
+        allowed_client_events: ['response.item.create', 'response.create', 'session.close'],
       },
-      {
-        type: 'function',
-        name: 'conversation_preparation',
-        description: 'Request authorized preparation for a manager conversation about the employee bound to this session.',
-        parameters: emptyParameters,
+    },
+    delegation: {
+      type: 'responses',
+      responses: {
+        model: OPENAI_EFFICIENT_MODEL,
+        instructions: [
+          'You are the LiquidHR employee-context backend. Use only the supplied LiquidHR tools for authorized employee information or proposals. Do not invent HR facts.',
+          'Employee Summary and Conversation Preparation are read-only proposals. SMART Goal returns a proposal only and never saves the goal.',
+          'The application reauthorizes every tool call and binds it to the employee route. Never request or infer an employee ID from the user.',
+          'Return verified facts or proposal text, clearly state when a capability is unavailable, and never claim that anything was saved, changed, published, or approved.',
+        ].join(' '),
+        tools: [
+          {
+            type: 'function',
+            name: 'employee_summary',
+            description: 'Request the authorized employee summary for the employee bound to this session.',
+            parameters: emptyParameters,
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'conversation_preparation',
+            description: 'Request authorized preparation for a manager conversation about the employee bound to this session.',
+            parameters: emptyParameters,
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'development_goal_smart',
+            description: 'Create a proposal to formulate supplied development-goal text as SMART. This never saves the goal.',
+            parameters: smartGoalParameters,
+            strict: true,
+          },
+        ],
+        tool_choice: 'auto',
+        parallel_tool_calls: false,
       },
-      {
-        type: 'function',
-        name: 'development_goal_smart',
-        description: 'Create a proposal to formulate supplied development-goal text as SMART. This never saves the goal.',
-        parameters: smartGoalParameters,
-      },
-    ],
-    tool_choice: 'auto',
+    },
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function providerErrorMetadata(body: string): { openAiErrorType?: string; openAiErrorCode?: string } {
+  try {
+    const parsed: unknown = JSON.parse(body)
+    if (!isRecord(parsed) || !isRecord(parsed.error)) return {}
+    const metadata: { openAiErrorType?: string; openAiErrorCode?: string } = {}
+    if (typeof parsed.error.type === 'string') metadata.openAiErrorType = parsed.error.type
+    if (typeof parsed.error.code === 'string') metadata.openAiErrorCode = parsed.error.code
+    return metadata
+  } catch {
+    return {}
+  }
+}
+
+function logProviderFailure(input: { response?: Response; body: string; model: string; status: number | string }): void {
+  const metadata: {
+    apiFamily: 'live'
+    endpoint: string
+    model: string
+    status: number | string
+    requestId?: string
+    openAiErrorType?: string
+    openAiErrorCode?: string
+  } = {
+    apiFamily: 'live',
+    endpoint: GPT_LIVE_SESSION_ENDPOINT,
+    model: input.model,
+    status: input.status,
+  }
+  const requestId = input.response?.headers.get('x-request-id') ?? input.response?.headers.get('request-id')
+  if (requestId) metadata.requestId = requestId
+  Object.assign(metadata, providerErrorMetadata(input.body))
+  console.error('[AI_PROVIDER] GPT-Live session failed', metadata)
+}
+
+function parseLiveSessionAnswer(value: unknown): string | null {
+  if (!isRecord(value) || !isRecord(value.transport) || typeof value.transport.sdp !== 'string' || !value.transport.sdp.trim()) return null
+  if (value.transport.type !== 'webrtc') return null
+  return value.transport.sdp
+}
 function safeRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new AiExecutionError('INVALID_RESULT')
-  return Object.fromEntries(Object.entries(value))
+  if (!isRecord(value)) throw new AiExecutionError('INVALID_RESULT')
+  return value
 }
 
 export function parseRealtimeVoiceToolArguments(name: RealtimeVoiceToolName, value: unknown): { sourceText?: string } {
@@ -170,16 +239,38 @@ export async function finishRealtimeVoiceSession(input: {
 }
 
 export async function createOpenAiRealtimeCall(input: { sdpOffer: string; session: Record<string, unknown> }): Promise<string> {
-  const form = new FormData()
-  form.append('sdp', input.sdpOffer)
-  form.append('session', new Blob([JSON.stringify(input.session)], { type: 'application/json' }))
-  const response = await fetch('https://api.openai.com/v1/realtime/calls', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${requiredApiKey()}` },
-    body: form,
-    cache: 'no-store',
-  })
-  const answer = await response.text()
-  if (!response.ok || !answer.trim()) throw new AiExecutionError('PROVIDER_FAILED')
+  const model = typeof input.session.model === 'string' && input.session.model.trim() ? input.session.model : GPT_LIVE_MODEL
+  let response: Response
+  try {
+    response = await fetch(GPT_LIVE_SESSION_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${requiredApiKey()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ session: input.session, transport: { type: 'webrtc', sdp: input.sdpOffer } }),
+      cache: 'no-store',
+    })
+  } catch {
+    logProviderFailure({ body: '', model, status: 'network_error' })
+    throw new AiExecutionError('PROVIDER_FAILED')
+  }
+
+  const body = await response.text()
+  if (!response.ok) {
+    logProviderFailure({ response, body, model, status: response.status })
+    throw new AiExecutionError('PROVIDER_FAILED')
+  }
+
+  let parsed: unknown
+  try { parsed = JSON.parse(body) as unknown } catch {
+    logProviderFailure({ response, body: '', model, status: 'invalid_response' })
+    throw new AiExecutionError('PROVIDER_FAILED')
+  }
+  const answer = parseLiveSessionAnswer(parsed)
+  if (!answer) {
+    logProviderFailure({ response, body: '', model, status: 'invalid_response' })
+    throw new AiExecutionError('PROVIDER_FAILED')
+  }
   return answer
 }

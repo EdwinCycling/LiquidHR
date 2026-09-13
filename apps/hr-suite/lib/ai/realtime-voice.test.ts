@@ -1,12 +1,37 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createRealtimeVoiceSessionConfiguration, isRealtimeVoiceEnabled, parseRealtimeVoiceToolArguments } from './realtime-voice'
+import {
+  createOpenAiRealtimeCall,
+  createRealtimeVoiceSessionConfiguration,
+  isRealtimeVoiceEnabled,
+  parseRealtimeVoiceToolArguments,
+  resolveRealtimeVoiceModel,
+} from './realtime-voice'
+import { parseRealtimeVoiceFunctionCall } from './realtime-voice-events'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  delete process.env.OPENAI_API_KEY
+  delete process.env.OPENAI_REALTIME_MODEL
+})
 
 describe('GPT-Live employee voice contract', () => {
   it('configures only the three employee-context tools without an employee identifier', () => {
     const configuration = createRealtimeVoiceSessionConfiguration('nl')
-    expect(configuration).toMatchObject({ type: 'realtime', output_modalities: ['audio'], tool_choice: 'auto' })
-    expect((configuration.tools as Array<{ name: string }>).map((tool) => tool.name)).toEqual([
+    expect(configuration).toMatchObject({
+      model: 'gpt-live-1',
+      delegation: {
+        type: 'responses',
+        responses: {
+          tool_choice: 'auto',
+          parallel_tool_calls: false,
+        },
+      },
+    })
+    expect(configuration).not.toHaveProperty('output_modalities')
+    expect(configuration).not.toHaveProperty('tools')
+    const delegation = configuration.delegation as { responses: { tools: Array<{ name: string }> } }
+    expect(delegation.responses.tools.map((tool) => tool.name)).toEqual([
       'employee_summary',
       'conversation_preparation',
       'development_goal_smart',
@@ -20,10 +45,76 @@ describe('GPT-Live employee voice contract', () => {
     expect(isRealtimeVoiceEnabled({ NODE_ENV: 'development' })).toBe(true)
   })
 
+  it('rejects a Realtime model override instead of silently falling back', () => {
+    expect(() => resolveRealtimeVoiceModel({ OPENAI_REALTIME_MODEL: 'gpt-realtime-2.1-mini' })).toThrowError(expect.objectContaining({ code: 'INTERNAL_CONFIGURATION_ERROR' }))
+    expect(resolveRealtimeVoiceModel({ OPENAI_REALTIME_MODEL: 'gpt-live-1' })).toBe('gpt-live-1')
+    expect(resolveRealtimeVoiceModel({})).toBe('gpt-live-1')
+  })
+
+  it('parses only completed nested Responses function calls', () => {
+    expect(parseRealtimeVoiceFunctionCall({
+      type: 'response.event',
+      event: {
+        type: 'response.output_item.done',
+        item: { type: 'function_call', call_id: 'call_1', name: 'employee_summary', arguments: '{}' },
+      },
+    })).toEqual({ callId: 'call_1', name: 'employee_summary', arguments: {} })
+    expect(parseRealtimeVoiceFunctionCall({ type: 'response.output_item.done', item: { type: 'function_call', call_id: 'call_1', name: 'employee_summary', arguments: '{}' } })).toBeNull()
+    expect(parseRealtimeVoiceFunctionCall({
+      type: 'response.event',
+      event: {
+        type: 'response.output_item.done',
+        item: { type: 'function_call', call_id: 'call_2', name: 'development_goal_smart', arguments: '{"sourceText":"Beter presenteren."}' },
+      },
+    })).toEqual({ callId: 'call_2', name: 'development_goal_smart', arguments: { sourceText: 'Beter presenteren.' } })
+  })
+
   it('accepts only SMART source text for the SMART tool and rejects model-supplied ids', () => {
     expect(parseRealtimeVoiceToolArguments('employee_summary', {})).toEqual({})
     expect(parseRealtimeVoiceToolArguments('development_goal_smart', { sourceText: 'Beter presenteren.' })).toEqual({ sourceText: 'Beter presenteren.' })
     expect(() => parseRealtimeVoiceToolArguments('employee_summary', { employeeId: 'other-employee' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
     expect(() => parseRealtimeVoiceToolArguments('development_goal_smart', { sourceText: '', employeeId: 'other-employee' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
+  })
+
+  it('creates a JSON Live WebRTC request and returns only the SDP answer', async () => {
+    process.env.OPENAI_API_KEY = 'unit-test-only'
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      session: { id: 'live_test' },
+      transport: { type: 'webrtc', sdp: 'v=0\\r\\nanswer' },
+    }), { status: 201, headers: { 'content-type': 'application/json', 'x-request-id': 'req_test' } }))
+
+    await expect(createOpenAiRealtimeCall({ sdpOffer: 'v=0\\r\\noffer', session: createRealtimeVoiceSessionConfiguration('nl') })).resolves.toBe('v=0\\r\\nanswer')
+
+    const [url, init] = fetchMock.mock.calls[0] ?? []
+    expect(url).toBe('https://api.openai.com/v1/live/sessions')
+    expect(init?.method).toBe('POST')
+    expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' })
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      session: { model: 'gpt-live-1' },
+      transport: { type: 'webrtc', sdp: 'v=0\\r\\noffer' },
+    })
+  })
+
+  it('logs safe provider metadata without forwarding provider details to the caller', async () => {
+    process.env.OPENAI_API_KEY = 'unit-test-only'
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ error: { type: 'invalid_request_error', code: 'invalid_session' } }), {
+      status: 422,
+      headers: { 'content-type': 'application/json', 'x-request-id': 'req_safe' },
+    }))
+
+    await expect(createOpenAiRealtimeCall({ sdpOffer: 'v=0\\r\\nprivate-offer', session: createRealtimeVoiceSessionConfiguration('nl') })).rejects.toThrowError(expect.objectContaining({ code: 'PROVIDER_FAILED' }))
+
+    expect(errorSpy).toHaveBeenCalledWith('[AI_PROVIDER] GPT-Live session failed', {
+      apiFamily: 'live',
+      endpoint: 'https://api.openai.com/v1/live/sessions',
+      model: 'gpt-live-1',
+      status: 422,
+      openAiErrorType: 'invalid_request_error',
+      openAiErrorCode: 'invalid_session',
+      requestId: 'req_safe',
+    })
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain('private-offer')
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain('unit-test-only')
   })
 })

@@ -9,7 +9,7 @@ import {
   markRealtimeVoiceSessionFailed,
   realtimeVoiceSessionRequestSchema,
   requireEmployeeVoiceContext,
-  REALTIME_VOICE_MODEL,
+  resolveRealtimeVoiceModel,
 } from '@/lib/ai/realtime-voice'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
@@ -23,7 +23,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   let sessionId: string | null = null
   try {
     const authContext = await requireEmployeeVoiceContext(employeeId)
-    const model = process.env.OPENAI_REALTIME_MODEL?.trim() || REALTIME_VOICE_MODEL
+    const model = resolveRealtimeVoiceModel()
     sessionId = await createRealtimeVoiceSession({ context: authContext, employeeId, model })
     try {
       const sdpAnswer = await createOpenAiRealtimeCall({

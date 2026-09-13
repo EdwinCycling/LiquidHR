@@ -13,6 +13,7 @@ import type { DateFormat } from '@/lib/preferences/user-preferences'
 
 interface AbsenceCaseDetailProps {
   employeeId: string
+  today: string
   employmentId?: string
   compact: boolean
   absenceCase: AbsenceCaseSummary
@@ -77,7 +78,7 @@ interface AbsenceCaseDetailProps {
   }
 }
 
-export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCase, locale, dateFormat, labels }: AbsenceCaseDetailProps) {
+export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, absenceCase, locale, dateFormat, labels }: AbsenceCaseDetailProps) {
   const statusLabel = absenceCase.status === 'ACTIVE'
     ? labels.nowSick
     : absenceCase.status === 'RECOVERY_WINDOW' && absenceCase.recoveryWindowEndsOn
@@ -138,7 +139,7 @@ export function AbsenceCaseDetail({ employeeId, employmentId, compact, absenceCa
   const actionPanel = hasActions ? <Surface className="p-5 lg:sticky lg:top-5">
     <SectionHeader title={labels.better} />
     <div className="mt-4">
-      <AbsenceQuickForm employeeId={employeeId} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} canRecover={canRecover} canChangeCapacity={canChangeCapacity} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, capacitySave: labels.capacitySave, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, nextReview: labels.nextReview, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, capacityInputMode: labels.capacityInputMode, percentageMode: labels.percentageMode, hoursMode: labels.hoursMode, capacityHours: labels.absenceHours, scheduleUnavailable: labels.scheduleUnavailable, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
+      <AbsenceQuickForm employeeId={employeeId} today={today} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} canRecover={canRecover} canChangeCapacity={canChangeCapacity} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, capacitySave: labels.capacitySave, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, nextReview: labels.nextReview, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, capacityInputMode: labels.capacityInputMode, percentageMode: labels.percentageMode, hoursMode: labels.hoursMode, capacityHours: labels.absenceHours, scheduleUnavailable: labels.scheduleUnavailable, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
     </div>
   </Surface> : null
 

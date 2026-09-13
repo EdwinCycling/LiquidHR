@@ -15,6 +15,7 @@ import { buildAbsenceCapacityPayload, buildAbsenceRecoveryPayload, buildAbsenceR
 
 interface AbsenceQuickFormProps {
   employeeId: string
+  today: string
   employeeName?: string
   employeeFunction?: string | null
   employeeDepartment?: string | null
@@ -39,16 +40,16 @@ interface AbsenceQuickFormProps {
   }
 }
 
-export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, employeeName, employeeFunction, employeeDepartment, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, allowReportWithOpenCase = false, openOnMount = false, selfService = false, labels }: AbsenceQuickFormProps) {
+export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, canReport = true, employeeId, today, employeeName, employeeFunction, employeeDepartment, employmentId, employmentOptions = [], currentCase, recoveryMode = 'form', showReportAction = true, allowReportWithOpenCase = false, openOnMount = false, selfService = false, labels }: AbsenceQuickFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(openOnMount)
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
+  const [startDate, setStartDate] = useState(today)
   const [percentage, setPercentage] = useState('100')
   const [expectedRecovery, setExpectedRecovery] = useState('')
   const [hasSafetyNet, setHasSafetyNet] = useState<IndicatorValue>('UNKNOWN')
   const [workAccident, setWorkAccident] = useState<IndicatorValue>('UNKNOWN')
   const [thirdPartyAccident, setThirdPartyAccident] = useState<IndicatorValue>('UNKNOWN')
-  const [recoveredOn, setRecoveredOn] = useState(new Date().toISOString().slice(0, 10))
+  const [recoveredOn, setRecoveredOn] = useState(today)
   const [capacityEffectiveOn, setCapacityEffectiveOn] = useState(() => getDefaultAbsenceCapacityEffectiveOn(currentCase))
   const [capacityNextReviewOn, setCapacityNextReviewOn] = useState('')
   const [capacityPercentage, setCapacityPercentage] = useState('50')
@@ -124,8 +125,6 @@ export function AbsenceQuickForm({ canChangeCapacity = true, canRecover = true, 
   const departmentName = employmentIsUnselected ? null : selectedEmployment?.departmentName ?? employeeDepartment
   const isOpen = currentCase?.status === 'ACTIVE' || currentCase?.status === 'RECOVERY_WINDOW'
   const isActive = currentCase?.status === 'ACTIVE'
-  const today = new Date().toISOString().slice(0, 10)
-
   const showRecoveryAction = canRecover && !selfService
   const showCapacityAction = canChangeCapacity && !selfService
 

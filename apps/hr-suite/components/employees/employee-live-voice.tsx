@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactElement } from 'react'
 import { Button } from '@/components/ui/button'
+import { parseRealtimeVoiceFunctionCall } from '@/lib/ai/realtime-voice-events'
 
 export type EmployeeLiveVoiceLabels = {
   start: string
@@ -30,6 +31,10 @@ type VoiceRun = {
   channel?: RTCDataChannel
   audio?: HTMLAudioElement
   timer?: ReturnType<typeof setTimeout>
+  closeTimer?: ReturnType<typeof setTimeout>
+  eventSequence: number
+  closing: boolean
+  finalized: boolean
   tools: AbortController
 }
 
@@ -51,6 +56,7 @@ function endUsage(run: VoiceRun): void {
 function close(run: VoiceRun): void {
   run.closed = true
   clearTimeout(run.timer)
+  clearTimeout(run.closeTimer)
   run.tools.abort()
   if (run.channel) {
     run.channel.onopen = null
@@ -72,6 +78,45 @@ function close(run: VoiceRun): void {
     run.audio.remove()
   }
   endUsage(run)
+}
+
+function nextEventId(run: VoiceRun): string {
+  run.eventSequence += 1
+  return `liquidhr-live-${run.eventSequence}`
+}
+
+function sendEvent(run: VoiceRun, event: Record<string, unknown>): void {
+  if (run.channel?.readyState !== 'open') throw new Error('channel_not_open')
+  run.channel.send(JSON.stringify({ event_id: nextEventId(run), ...event }))
+}
+
+function requestSessionClose(run: VoiceRun): boolean {
+  if (run.closed || run.closing || run.channel?.readyState !== 'open') return false
+  try {
+    run.closing = true
+    sendEvent(run, { type: 'session.close' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function waitForIceGathering(peer: RTCPeerConnection): Promise<void> {
+  if (peer.iceGatheringState === 'complete') return
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      peer.removeEventListener('icegatheringstatechange', onState)
+      reject(new Error('ice_timeout'))
+    }, 10_000)
+    function onState(): void {
+      if (peer.iceGatheringState !== 'complete') return
+      clearTimeout(timeout)
+      peer.removeEventListener('icegatheringstatechange', onState)
+      resolve()
+    }
+    peer.addEventListener('icegatheringstatechange', onState)
+    onState()
+  })
 }
 
 export function EmployeeLiveVoice({
@@ -98,7 +143,20 @@ export function EmployeeLiveVoice({
   }, [employeeId, locale, enabled])
 
   function stop(): void {
-    if (current.current) close(current.current)
+    const run = current.current
+    if (run && requestSessionClose(run)) {
+      clearTimeout(run.timer)
+      run.closeTimer = setTimeout(() => {
+        if (current.current !== run) return
+        close(run)
+        current.current = null
+        setActive(false)
+        setStatus(null)
+      }, 15_000)
+      setStatus('processing')
+      return
+    }
+    if (run) close(run)
     current.current = null
     setActive(false)
     setStatus(null)
@@ -116,6 +174,9 @@ export function EmployeeLiveVoice({
       usageSent: false,
       toolCallCount: 0,
       calls: new Set(),
+      eventSequence: 0,
+      closing: false,
+      finalized: false,
       tools: new AbortController(),
     }
     current.current = run
@@ -136,29 +197,59 @@ export function EmployeeLiveVoice({
       let event: unknown
       try { event = JSON.parse(raw) as unknown } catch { return }
       if (!record(event)) return
+      const functionCall = parseRealtimeVoiceFunctionCall(event)
       switch (event.type) {
-        case 'input_audio_buffer.speech_started': setStatus('listening'); return
-        case 'input_audio_buffer.speech_stopped': setStatus('processing'); return
-        case 'response.created': setStatus('speaking'); return
-        case 'response.done': setStatus('listening'); return
-        case 'error': fail('connectionFailed'); return
-        case 'response.function_call_arguments.done': break
-        default: return
+        case 'session.started':
+          clearTimeout(run.timer)
+          setStatus('listening')
+          return
+        case 'session.closed':
+          run.finalized = true
+          close(run)
+          current.current = null
+          setActive(false)
+          setStatus(null)
+          return
+        case 'session.input_transcript.delta':
+          run.audio?.pause()
+          setStatus('listening')
+          return
+        case 'session.output_transcript.delta':
+          setStatus('speaking')
+          return
+        case 'error': {
+          const providerError = record(event.error) ? event.error : {}
+          const errorText = [providerError.type, providerError.code, providerError.message]
+            .filter((value): value is string => typeof value === 'string')
+            .join(' ')
+            .toLowerCase()
+          if (errorText.includes('moderation') || errorText.includes('safety') || errorText.includes('content')) {
+            run.audio?.pause()
+            setStatus('listening')
+            return
+          }
+          fail('connectionFailed')
+          return
+        }
+        case 'response.event': {
+          const nested = record(event.event) ? event.event : null
+          if (nested?.type === 'response.created') setStatus('processing')
+          if (nested?.type === 'response.completed') setStatus('listening')
+          break
+        }
+        default:
+          break
       }
-      const callId = event.call_id
-      if (typeof callId !== 'string' || typeof event.name !== 'string' || run.calls.has(callId)) return
-      run.calls.add(callId)
+      if (!functionCall || run.calls.has(functionCall.callId)) return
+      run.calls.add(functionCall.callId)
       run.toolCallCount += 1
       setStatus('processing')
       let output: string
       try {
-        const toolArguments = typeof event.arguments === 'string'
-          ? JSON.parse(event.arguments) as unknown
-          : event.arguments
         const response = await fetch(`${run.base}/tool`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ locale, name: event.name, arguments: toolArguments }),
+          body: JSON.stringify({ locale, name: functionCall.name, arguments: functionCall.arguments }),
           signal: run.tools.signal,
         })
         const result: unknown = await response.json()
@@ -173,11 +264,11 @@ export function EmployeeLiveVoice({
       }
       if (!live() || run.channel?.readyState !== 'open') return
       try {
-        run.channel.send(JSON.stringify({
-          type: 'conversation.item.create',
-          item: { type: 'function_call_output', call_id: callId, output },
-        }))
-        run.channel.send(JSON.stringify({ type: 'response.create' }))
+        sendEvent(run, {
+          type: 'response.item.create',
+          item: { type: 'function_call_output', call_id: functionCall.callId, output },
+        })
+        sendEvent(run, { type: 'response.create' })
       } catch { fail('connectionFailed') }
     }
 
@@ -199,20 +290,17 @@ export function EmployeeLiveVoice({
         void audio.play().catch(() => fail('connectionFailed'))
       }
       peer.onconnectionstatechange = () => {
-        if (['failed', 'disconnected', 'closed'].includes(peer.connectionState)) fail('connectionFailed')
+        if (['failed', 'closed'].includes(peer.connectionState)) fail('connectionFailed')
       }
       stream.getTracks().forEach((track) => peer.addTrack(track, stream))
       const channel = peer.createDataChannel('oai-events')
       run.channel = channel
-      channel.onopen = () => {
-        if (!live()) return
-        clearTimeout(run.timer)
-        setStatus('listening')
-      }
+      channel.onopen = () => undefined
       channel.onmessage = (event: MessageEvent<unknown>) => { void handleEvent(event.data) }
       channel.onerror = () => fail('connectionFailed')
-      channel.onclose = () => fail('connectionFailed')
+      channel.onclose = () => { if (!run.finalized) fail('connectionFailed') }
       await peer.setLocalDescription(await peer.createOffer())
+      await waitForIceGathering(peer)
       if (!live()) return
       const sdpOffer = peer.localDescription?.sdp
       if (!sdpOffer) throw new Error('missing_offer')
