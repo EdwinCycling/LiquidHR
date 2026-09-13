@@ -140,6 +140,8 @@ Per profiel, type en datum mag slechts één actieve regel gelden. De engine bew
 
 Een migratiestartsaldo is geen blijvend uitzonderingsveld. Een geautoriseerde HR-beheerder geeft per dienstverband, verloftype, aantal uren en `requested_start_date` een **startbucket**. Die datum is de authoritative balans aan het begin van de datum: het geïmporteerde saldo vertegenwoordigt de oude administratie tot en met de vorige kalenderdag. De bestaande `create_group_leave_opening_balance(...)` blijft hiervoor de compatibele ingang en maakt één bucket met `source_type = MIGRATION_START_BALANCE` en één immutable `OPENING_BALANCE`-boeking. Voor een conversie met meerdere broncohorten gebruikt de backward-compatible cohortuitbreiding ook `source_accrual_year` en een expliciete `expiration_date`; cohorten worden nooit samengevoegd. De opbouwengine leest uitsluitend deze canonieke transacties en knipt de normale entitlement af op `max(normale start, migratieknipdatum)`. Een `HR_MANUAL_ADJUSTMENT`, normaal carry-forward of andere openingboeking kan geen knipdatum instellen. Zo is een overgenomen historisch saldo volledig traceerbaar en wordt het niet opnieuw als LiquidHR-opbouw berekend.
 
+Een HR-saldocorrectie gebruikt de bestaande `apply_group_leave_manual_adjustment(...)`-ingang en maakt geen tweede correctieboek aan. Het bedrag is ondertekend: positief verhoogt `total_accrued`, negatief verlaagt het beschikbare saldo, maar geen van beide is een `TAKEN`-boeking en `total_taken` blijft onaangeroerd. De expliciete effectieve datum bepaalt het opbouwjaar en moet binnen het geselecteerde dienstverband vallen; een afgesloten jaar, lege reden, conflictende bronkey of negatief eindsaldo blokkeert de mutatie. De transactie is append-only met `actor_user_id`, actor/display-snapshot, reden, datum en `source_key`; een fout wordt alleen met een compenserende nieuwe correctie hersteld.
+
 ## 5. Rekenregels
 
 ### 5.1 Opbouw en pro rata
@@ -188,14 +190,14 @@ Per verloftype bevat het rapport minimaal:
 | `projectedEndBalance` | Verwacht saldo op 31 december of, wanneer eerder, de einddatum van het dienstverband: huidig saldo plus nog te verwachten opbouw min toekomstige goedgekeurde opnames. |
 | `monthlyAccrualMoments` | Per kalendermaand de relevante periode, geplande boekingsdatum, opbouwmoment (`UPFRONT`/`ARREARS`), effectieve regelversie, verwachte uren en reeds werkelijk geboekte uren/transacties. Bij jaaropbouw is dit het relevante moment in januari. |
 | `expirationBuckets` | Per bucket met positief saldo: verloftype, opbouwjaar, actuele restwaarde, `expiration_date` en aantal dagen tot verval. |
-| `manualAdjustments` | Alle `MANUAL_ADJUSTMENT`-mutaties met plus/min-bedrag, reden, datum en HR-adminactor. |
+| `manualAdjustments` | Alle `MANUAL_ADJUSTMENT`-mutaties met plus/min-bedrag, reden, effectieve datum, actor/display-snapshot en aanmaaktijd. Deze mutaties tellen nooit mee als `TAKEN`. |
 | `taken` | Geaccordeerde opnames en afboekingen; in deze fase leeg wanneer nog geen aanvraagflow bestaat, maar het contract is nu al verplicht. |
 
 Voor `UNLIMITED` toont het rapport de status onbeperkt en geen financieel bucketsaldo of vervaldatum. Voor `ANNUAL_HOURS_CAP` en `WEEKLY_HOURS_FACTOR_CAP` toont het rapport de geldende jaarlimiet en, zodra aanvragen bestaan, gebruikte en resterende jaarruimte. De vier kernsaldi blijven voor opbouwsoorten de financiële waarheid.
 
-Projecties zijn leesberekeningen en schrijven nooit transacties. Handmatige bij- en afboekingen lopen uitsluitend via de centrale engine als `MANUAL_ADJUSTMENT`: een reden is verplicht, het bedrag is ondertekend en actor, tijdstip en reden zijn altijd zichtbaar in het rapport.
+Projecties zijn leesberekeningen en schrijven nooit transacties. Handmatige bij- en afboekingen lopen uitsluitend via de centrale engine als `MANUAL_ADJUSTMENT`: een reden is verplicht, het bedrag is ondertekend en actor, effectieve datum, aanmaaktijd en reden zijn altijd zichtbaar in het rapport. `Opgenomen dit jaar` telt uitsluitend feitelijke `TAKEN`-transacties; opening, accrual, carry-forward, verval en manual adjustments blijven daarvan gescheiden.
 
-De medewerker krijgt uitsluitend het rapport van het eigen dienstverband via de toekomstige selfpermission `self:leave:read`. Een manager krijgt uitsluitend rapporten binnen de bestaande effectieve managementscope via `leave:read`; een gemanipuleerd `employmentId` levert geen data buiten die scope op. De route valideert dit server-side en RLS dwingt dezelfde grens database-side af.
+De medewerker krijgt uitsluitend het rapport van het eigen dienstverband via de toekomstige selfpermission `self:leave:read`. Een manager krijgt uitsluitend rapporten binnen de bestaande effectieve managementscope via `employee:read`; een gemanipuleerd `employmentId` levert geen data buiten die scope op. De route valideert dit server-side en RLS dwingt dezelfde grens database-side af.
 
 ### 5.4 Verval
 
@@ -237,7 +239,8 @@ De nieuwe tegel onder HR-admininstellingen opent `/settings/leave-accrual`. De p
 - dienstverbandafwijkingen die altijd het specifieke dienstverband tonen, niet alleen de medewerker;
 - saldo-audit per dienstverband, type en opbouwjaar met buckettotalen en immutable grootboek;
 - de voorbereide leesprojectie voor medewerker en manager: beginjaarsaldo, carry-forwards, saldo nu, saldo einde jaar/dienstverband, maandelijkse opbouwmomenten, verval en handmatige mutaties; opnames verschijnen automatisch zodra de aanvraagflow bestaat;
-- verplichte reden bij een handmatige correctie.
+- een HR Admin-surface voor positieve en negatieve saldo-correcties met medewerker, dienstverband, verloftype, saldo-preview, effectieve datum, verplichte reden en immutable mutatiehistorie; medewerker en direct manager krijgen alleen de read-only saldo-/mutatiehistorie binnen hun bestaande scope;
+- verplichte reden en expliciete effectieve datum bij een handmatige correctie; locked years en negatieve eindsaldi worden geweigerd en dubbele source keys zijn idempotent.
 
 De actuele beheerflow toont in het verloftype de algemene instellingen zonder afwezigheid-specifieke opties: het verwijderen van afwezigheden uit het verleden en het vragen om een afwezigheidsattest horen niet bij een verloftype. De tabbladen Basisinformatie, Beperkingen en Geavanceerd blijven visueel actief gemarkeerd; Geavanceerd is voorlopig een expliciete placeholder.
 

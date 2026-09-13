@@ -40,6 +40,60 @@ export function addDays(value: string, days: number): string {
 
 export type LeaveAccrualPeriod = { start: string; end: string }
 
+export type LeaveAccrualSchedule = {
+  validFrom: string
+  validUntil: string | null
+  mondayHours: number | null
+  tuesdayHours: number | null
+  wednesdayHours: number | null
+  thursdayHours: number | null
+  fridayHours: number | null
+  saturdayHours: number | null
+  sundayHours: number | null
+}
+
+export type LeavePauseAllocation = {
+  employmentId: string
+  leaveTypeId: string
+  startDate: string
+  endDate: string
+  allocatedHours: number
+  status: string
+}
+
+export type LeaveAccrualRuleOverlayBase = {
+  accrualBasis: string
+  accrualFrequency: LeaveAccrualFrequency
+  accrualTiming: LeaveAccrualTiming
+  accrualAmount: number | null
+  accrualRate: number | null
+  expirationMonths: number | null
+}
+
+export type LeaveAccrualRuleOverlay = {
+  noAccrual: boolean
+  accrualAmount: number | null
+  accrualRate: number | null
+  expirationMonths: number | null
+}
+
+export type EffectiveLeaveAccrualRule = LeaveAccrualRuleOverlayBase & {
+  noAccrual: boolean
+}
+
+export function applyLeaveAccrualRuleOverlay(
+  base: LeaveAccrualRuleOverlayBase,
+  overlay: LeaveAccrualRuleOverlay | null,
+): EffectiveLeaveAccrualRule {
+  return {
+    ...base,
+    noAccrual: overlay?.noAccrual ?? false,
+    accrualAmount: overlay?.accrualAmount ?? base.accrualAmount,
+    accrualRate: overlay?.accrualRate ?? base.accrualRate,
+    expirationMonths: overlay?.expirationMonths ?? base.expirationMonths,
+  }
+}
+
 export type MigrationStartBalanceTransaction = {
   employmentId: string
   leaveTypeId: string
@@ -203,9 +257,87 @@ export function applyAccrualPause(input: {
   plannedHours: number
   pausedHours: number
 }): number {
-  if (input.baseAccrual <= 0 || input.plannedHours <= 0) return 0
+  if (input.baseAccrual <= 0) return 0
+  if (input.plannedHours <= 0) return input.baseAccrual
   const pauseRatio = Math.min(1, Math.max(0, input.pausedHours / input.plannedHours))
   return input.baseAccrual * (1 - pauseRatio)
+}
+
+function hoursForScheduleDay(schedule: LeaveAccrualSchedule | null, date: string): number {
+  if (!schedule) return 0
+  const day = utcDate(date).getUTCDay()
+  const value = day === 0 ? schedule.sundayHours
+    : day === 1 ? schedule.mondayHours
+      : day === 2 ? schedule.tuesdayHours
+        : day === 3 ? schedule.wednesdayHours
+          : day === 4 ? schedule.thursdayHours
+            : day === 5 ? schedule.fridayHours
+              : schedule.saturdayHours
+  const hours = Number(value ?? 0)
+  return Number.isFinite(hours) && hours > 0 ? hours : 0
+}
+
+function scheduleForAccrualDate(schedules: readonly LeaveAccrualSchedule[], date: string): LeaveAccrualSchedule | null {
+  return [...schedules]
+    .sort((left, right) => right.validFrom.localeCompare(left.validFrom))
+    .find((schedule) => schedule.validFrom <= date && (schedule.validUntil === null || schedule.validUntil > date)) ?? null
+}
+
+export function getPlannedHoursForDate(
+  schedules: readonly LeaveAccrualSchedule[],
+  date: string,
+): number {
+  return hoursForScheduleDay(scheduleForAccrualDate(schedules, date), date)
+}
+
+function dateRange(start: string, endExclusive: string): string[] {
+  const dates: string[] = []
+  for (let date = start; date < endExclusive; date = addDays(date, 1)) dates.push(date)
+  return dates
+}
+
+function overlapStart(left: string, right: string): string {
+  return left > right ? left : right
+}
+
+function overlapEnd(left: string, right: string): string {
+  return left < right ? left : right
+}
+
+export function calculateAccrualPause(input: {
+  sliceStart: string
+  sliceEnd: string
+  schedules: readonly LeaveAccrualSchedule[]
+  pauseLeaveTypeIds: readonly string[]
+  allocations: readonly LeavePauseAllocation[]
+}): { plannedHours: number; pausedHours: number } {
+  const sliceDates = dateRange(input.sliceStart, input.sliceEnd)
+  const plannedByDate = new Map(sliceDates.map((date) => [date, getPlannedHoursForDate(input.schedules, date)]))
+  const plannedHours = [...plannedByDate.values()].reduce((total, hours) => total + hours, 0)
+  const pauseLeaveTypeIds = new Set(input.pauseLeaveTypeIds)
+  if (pauseLeaveTypeIds.size === 0 || plannedHours <= 0) return { plannedHours, pausedHours: 0 }
+
+  let pausedHours = 0
+  for (const allocation of input.allocations) {
+    if (allocation.status !== 'APPROVED' || !pauseLeaveTypeIds.has(allocation.leaveTypeId)) continue
+    const allocatedHours = Number(allocation.allocatedHours)
+    if (!Number.isFinite(allocatedHours) || allocatedHours <= 0) continue
+    const requestEndExclusive = addDays(allocation.endDate, 1)
+    const requestPlannedHours = dateRange(allocation.startDate, requestEndExclusive)
+      .reduce((total, date) => total + getPlannedHoursForDate(input.schedules, date), 0)
+    if (requestPlannedHours <= 0) continue
+    const overlap = {
+      start: overlapStart(input.sliceStart, allocation.startDate),
+      end: overlapEnd(input.sliceEnd, requestEndExclusive),
+    }
+    if (overlap.start >= overlap.end) continue
+    for (const date of dateRange(overlap.start, overlap.end)) {
+      const plannedForDate = plannedByDate.get(date) ?? getPlannedHoursForDate(input.schedules, date)
+      pausedHours += allocatedHours * (plannedForDate / requestPlannedHours)
+    }
+  }
+
+  return { plannedHours: roundAccrualHours(plannedHours), pausedHours: roundAccrualHours(Math.min(plannedHours, Math.max(0, pausedHours))) }
 }
 
 export function getPeriodBookingDate(input: {

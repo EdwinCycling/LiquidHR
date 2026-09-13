@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { Database, Json, Tables } from '@scope/db'
-import { permissionErrorResponse, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { permissionErrorResponse, requireAnyPermission, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { calculateCappedPartTimeFactor } from '@/lib/employment/fulltime-reference'
 import type { LeaveCatalogMutation, LeaveConfigurationMutation, OvertimeConfigurationMutation, WorkHourConfigurationMutation } from './schemas'
@@ -85,11 +85,13 @@ async function loadEmployment(
   employmentId: string | undefined,
   asOfDate: string,
 ): Promise<{ employment: EmploymentRow; options: LeaveEmploymentOption[] }> {
-  let targetEmployeeId = context.employeeId
-  if (!targetEmployeeId && employmentId && context.hrGroupId) {
+  let targetEmployeeId: string | null = null
+  if (employmentId && context.hrGroupId) {
     const target = await supabase.from('employments').select('employee_id').eq('tenant_id', context.tenantId).eq('hr_group_id', context.hrGroupId).eq('id', employmentId).maybeSingle()
     if (target.error) databaseError(target.error)
     targetEmployeeId = target.data?.employee_id ?? null
+  } else {
+    targetEmployeeId = context.employeeId
   }
   if (!targetEmployeeId) throw new LeaveServiceError('LEAVE_EMPLOYMENT_REQUIRED', 400)
   const selection = await resolveLeaveEmployment(supabase, context, targetEmployeeId, employmentId, asOfDate)
@@ -99,7 +101,7 @@ async function loadEmployment(
     }
     throw new LeaveServiceError(employmentId ? 'LEAVE_EMPLOYMENT_NOT_FOUND' : 'LEAVE_EMPLOYMENT_REQUIRED', employmentId ? 404 : 400)
   }
-  await requirePermission('leave:read', selection.employment.employee_id)
+  await requireAnyPermission(['leave:read', 'employee:read'], selection.employment.employee_id)
   return { employment: selection.employment, options: selection.options }
 }
 
@@ -120,7 +122,7 @@ async function queryReportRows(
     .limit(1000)
   const transactionQuery = supabase
     .from('leave_accrual_transactions')
-    .select('bucket_id, leave_type_id, transaction_type, amount, transaction_date, reason, actor_user_id')
+    .select('id, bucket_id, leave_type_id, transaction_type, amount, transaction_date, reason, actor_user_id, actor_display_name, created_at')
     .eq('tenant_id', context.tenantId)
     .eq('hr_group_id', employment.hr_group_id)
     .eq('employee_id', employment.employee_id)
@@ -186,6 +188,7 @@ async function queryReportRows(
     expirationDate: row.expiration_date,
   }))
   const transactionsRows: ReportTransaction[] = transactions.data.map((row) => ({
+    id: row.id,
     bucketId: row.bucket_id,
     leaveTypeId: row.leave_type_id,
     transactionType: row.transaction_type,
@@ -193,6 +196,8 @@ async function queryReportRows(
     transactionDate: row.transaction_date,
     reason: row.reason,
     actorUserId: row.actor_user_id,
+    actorDisplayName: row.actor_display_name,
+    createdAt: row.created_at,
   }))
   const leaveTypeRows: ReportLeaveType[] = leaveTypes.data.map((row) => {
     if (row.entitlement_mode === 'WEEKLY_HOURS_FACTOR_CAP') throw new LeaveServiceError('LEAVE_OPERATION_FAILED', 500)
@@ -302,6 +307,8 @@ export async function listLeaveCatalog() {
   if (employmentLeaveProfiles.error) databaseError(employmentLeaveProfiles.error)
   const employeeNames = new Map(exceptionEmployees.data.map((employee) => [employee.id, [employee.first_name, employee.birth_name_prefix, employee.birth_name].filter(Boolean).join(' ')]))
   return {
+    employees: exceptionEmployees.data,
+    employments: exceptionEmployments.data,
     leaveTypes: leaveTypes.data,
     workHourTypes: workHourTypes.data,
     overtimeSettings: overtimeSettings.data,

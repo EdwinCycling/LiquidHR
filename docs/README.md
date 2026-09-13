@@ -1,5 +1,47 @@
 # Liquid HR documentatie-index
 
+## HR handmatige verlofsaldocorrecties — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**
+
+HR Admin gebruikt de bestaande `apply_group_leave_manual_adjustment(...)`-ingang
+voor positieve en negatieve, ondertekende correcties. De effectieve datum bepaalt
+het verlofjaar; afgesloten jaren, ongeldige dienstverbanddatums, lege redenen,
+negatieve eindsaldi en dubbele bronkeys worden server-side geweigerd of
+idempotent afgehandeld. De correctie blijft een immutable
+`MANUAL_ADJUSTMENT` met `HR_MANUAL_ADJUSTMENT`, actor-snapshot, reden en
+bronkey; een negatieve correctie verandert het saldo maar wordt nooit als
+`TAKEN` gerapporteerd.
+
+De nieuwe read-only saldo-/mutatiehistorie gebruikt de bestaande
+employment-scoped balance-reportprojectie voor medewerker, geautoriseerde
+direct manager en HR Admin. De HR-correctiesurface verschijnt uitsluitend voor
+actors met `leave:adjust`. Via de normale HR Admin-browserflow is uitsluitend
+Piet Test gecontroleerd verhoogd met `+1,00` en daarna met een nieuwe
+`-1,00`-mutatie gecompenseerd. De UI en remote readback bevestigen
+`160,00 → 161,00 → 160,00`, twee immutable
+`MANUAL_ADJUSTMENT`/`HR_MANUAL_ADJUSTMENT`-rijen met datum, reden, actor-ID en
+source key, netto 0 en geen wijziging van `total_taken`.
+
+Remote is op uitsluitend DEV-project `wnpfloqpjvaacobppbpk` de volledige
+canonical set aanwezig: `20260912150853`, `20260912184117`, `20260912193619`,
+`20260913092334` en `20260913123613`. Readback bevestigt authenticated-only
+execute-grants, de gescopeerde read-policies, geen globale
+`DIRECT_MANAGER`-`leave:read` en `TEST-BOUNDARY` 0 employees / 0 employments.
+De Manager- en Employee-fixtures authenticeerden via de normale login maar
+werden op de lokale kandidaat voor de auditroute naar `/geen-toegang` gestuurd
+wegens ontbrekende tenant-koppeling; de server-side negative RPC-probe gaf
+`42501 LEAVE_ADJUST_PERMISSION_REQUIRED`.
+
+De actuele finale gate-uitkomst wordt na de laatste test-/build-run in de
+delivery-context vastgelegd. De HR Admin-browserconsole had 0 errors. De 2026-
+preview bevestigde voor de acht toegestane fixture-rijen `Al geboekt` en delta
+`0,00`: Frank `60,0548/15,0137`, Jan `31,9123/7,9781`, Lisa `160/40` en Piet
+`160/40` uur (wettelijk/bovenwettelijk). De groepsbrede Delta-knop is niet
+gebruikt, omdat die ook andere demo-medewerkers bevat.
+De wijziging staat op branch `work/leave-engine-v1` in
+`\.codex-worktrees\leave-engine-v1`.
+
 ## Leave Accrual Engine V1 — 2026-09-12
 
 **Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**

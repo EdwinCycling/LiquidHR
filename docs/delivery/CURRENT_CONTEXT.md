@@ -1,5 +1,48 @@
 # Actuele overdracht Liquid HR
 
+## HR handmatige verlofsaldocorrecties — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**
+
+- Nieuwe lokale migration: `20260913090000_leave_manual_balance_corrections.sql`.
+  De bestaande manual-adjustment RPC blijft de canonieke ingang; de nieuwe
+  overload accepteert een expliciete effectieve datum en de legacy signature
+  blijft beschikbaar.
+- Positief en negatief bedrag wijzigen `total_accrued`; een correctie schrijft
+  nooit `total_taken` en verschijnt niet in `taken`. Reason, actor user/display,
+  effective date en source key blijven immutable in het bestaande ledger.
+- HR Admin heeft via de normale lokale loginflow uitsluitend op Piet Test de
+  gecontroleerde `+1,00`-correctie gepost en via dezelfde UI een `-1,00`
+  compensatie geboekt. De browser toonde vóór de eerste post `160,00`, preview
+  `161,00`, en na de compensatie weer `160,00`; de immutable historie toont beide
+  rijen met datum, reden en actor-ID. De remote readback bevestigt exact twee
+  `MANUAL_ADJUSTMENT`/`HR_MANUAL_ADJUSTMENT`-rijen, netto `0`, ongewijzigde
+  `total_taken` en geen correcties op Jan, Frank of Lisa.
+- Remote DEV-migraties zijn aanwezig als canonical versions
+  `20260912150853` (engine), `20260912184117` (migration cohorts),
+  `20260912193619` (source-key conflict), `20260913092334` (manual corrections)
+  en `20260913123613` (exception rule overlay). Types zijn opnieuw gegenereerd;
+  security/performance-advisors leverden geen nieuwe Leave-specifieke fout.
+  Readback bevestigt authenticated-only execute-grants, scoped policies en
+  `TEST-BOUNDARY` op 0 employees / 0 employments.
+- De HR Admin-browserpreview voor 2026 bevestigde de acht toegestane fixture-
+  rijen met `Al geboekt` en delta `0,00`: Frank `60,0548/15,0137`, Jan
+  `31,9123/7,9781`, Lisa `160/40` en Piet `160/40` uur
+  (wettelijk/bovenwettelijk). De groepsbrede Delta-knop is bewust niet gebruikt,
+  omdat de preview ook andere demo-medewerkers bevat. De Manager- en
+  Employee-fixtures authenticeerden via de normale login, maar de lokale
+  kandidaat redirecteerde op de auditroute naar `/geen-toegang` wegens ontbrekende
+  tenant-koppeling; de server-side negatieve probes blijven
+  `42501 LEAVE_ADJUST_PERMISSION_REQUIRED`.
+- De gerichte actuele Leave/HR-tests zijn `56/56`; strict typecheck, lint, i18n
+  (`35` namespaces), diff-check en Webpack (`260/260`) zijn groen. De volledige
+  suite eindigde op `361/364` testbestanden en `1421/1424` tests; de drie
+  bestaande, ongerelateerde failures zijn de DG1 PDF-timeout, de contract-change
+  audit-grantassertie en de DM-1 CASE-parenthesization-assertie. Browserconsole:
+  0 errors na de HR Admin-correctieflow.
+- Scope: alleen DEV project `wnpfloqpjvaacobppbpk`; Production, Payroll
+  TEST-BOUNDARY en unrelated employee data blijven buiten scope.
+
 ## Leave Accrual Engine V1 — 2026-09-12
 
 **Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyLeaveAccrualRuleOverlay,
   applyAccrualPause,
+  calculateAccrualPause,
   calculateBonusAward,
   calculateBonusAccrualForYear,
   calculateContractAccrual,
@@ -16,6 +18,7 @@ import {
   resolveAnnualTriggerDate,
   selectBonusTier,
   sortBucketsForFifo,
+  getPlannedHoursForDate,
 } from './leave-engine'
 
 describe('leave engine', () => {
@@ -275,6 +278,98 @@ describe('leave engine', () => {
 
   it('pauzeert alleen het deel dat door gekoppeld verlof is opgenomen', () => {
     expect(applyAccrualPause({ baseAccrual: 8, plannedHours: 160, pausedHours: 40 })).toBe(6)
+  })
+
+  it('past een dienstverbanduitzondering als overlay toe en behoudt de basisfrequentie', () => {
+    expect(applyLeaveAccrualRuleOverlay({
+      accrualBasis: 'CONTRACT_HOURS',
+      accrualFrequency: 'MONTHLY',
+      accrualTiming: 'UPFRONT',
+      accrualAmount: 160,
+      accrualRate: null,
+      expirationMonths: 6,
+    }, {
+      noAccrual: false,
+      accrualAmount: 120,
+      accrualRate: null,
+      expirationMonths: 12,
+    })).toEqual({
+      accrualBasis: 'CONTRACT_HOURS',
+      accrualFrequency: 'MONTHLY',
+      accrualTiming: 'UPFRONT',
+      accrualAmount: 120,
+      accrualRate: null,
+      expirationMonths: 12,
+      noAccrual: false,
+    })
+    expect(applyLeaveAccrualRuleOverlay({
+      accrualBasis: 'CONTRACT_HOURS',
+      accrualFrequency: 'YEARLY',
+      accrualTiming: 'ARREARS',
+      accrualAmount: 160,
+      accrualRate: null,
+      expirationMonths: 6,
+    }, {
+      noAccrual: true,
+      accrualAmount: null,
+      accrualRate: null,
+      expirationMonths: null,
+    })).toMatchObject({ noAccrual: true, accrualAmount: 160, expirationMonths: 6, accrualFrequency: 'YEARLY', accrualTiming: 'ARREARS' })
+  })
+
+  it('berekent pauze-uren alleen voor goedgekeurde gekoppelde opnames met het effectieve rooster', () => {
+    const schedules = [
+      {
+        validFrom: '2026-03-01',
+        validUntil: '2026-03-04',
+        mondayHours: 8,
+        tuesdayHours: 8,
+        wednesdayHours: 8,
+        thursdayHours: 8,
+        fridayHours: 8,
+        saturdayHours: 0,
+        sundayHours: 0,
+      },
+      {
+        validFrom: '2026-03-04',
+        validUntil: null,
+        mondayHours: 4,
+        tuesdayHours: 4,
+        wednesdayHours: 4,
+        thursdayHours: 4,
+        fridayHours: 4,
+        saturdayHours: 0,
+        sundayHours: 0,
+      },
+    ]
+    expect(getPlannedHoursForDate(schedules, '2026-03-02')).toBe(8)
+    expect(getPlannedHoursForDate(schedules, '2026-03-04')).toBe(4)
+    expect(getPlannedHoursForDate(schedules, '2026-03-07')).toBe(0)
+    const result = calculateAccrualPause({
+      sliceStart: '2026-03-02',
+      sliceEnd: '2026-03-09',
+      schedules,
+      pauseLeaveTypeIds: ['unpaid-leave'],
+      allocations: [
+        { employmentId: 'employment-1', leaveTypeId: 'unpaid-leave', startDate: '2026-03-02', endDate: '2026-03-06', allocatedHours: 12, status: 'APPROVED' },
+        { employmentId: 'employment-1', leaveTypeId: 'unpaid-leave', startDate: '2026-03-03', endDate: '2026-03-03', allocatedHours: 4, status: 'PENDING' },
+        { employmentId: 'employment-1', leaveTypeId: 'other-leave', startDate: '2026-03-04', endDate: '2026-03-04', allocatedHours: 4, status: 'APPROVED' },
+        { employmentId: 'employment-1', leaveTypeId: 'unpaid-leave', startDate: '2026-03-05', endDate: '2026-03-05', allocatedHours: 4, status: 'REJECTED' },
+        { employmentId: 'employment-1', leaveTypeId: 'unpaid-leave', startDate: '2026-03-06', endDate: '2026-03-06', allocatedHours: 4, status: 'CANCELLED' },
+      ],
+    })
+    expect(result.plannedHours).toBe(28)
+    expect(result.pausedHours).toBe(12)
+    expect(applyAccrualPause({ baseAccrual: 8, ...result })).toBeCloseTo(8 * (16 / 28), 8)
+  })
+
+  it('laat een volledige niet-werkdag de contracturenopbouw ongemoeid en ondersteunt een latere negatieve delta', () => {
+    expect(applyAccrualPause({ baseAccrual: 2, plannedHours: 0, pausedHours: 0 })).toBe(2)
+    const posted = getPostedAutomaticAccrualAmounts([
+      { transactionType: 'ACCRUAL', sourceType: 'LEAVE_ACCRUAL', sourceKey: 'LEAVE_ACCRUAL:v1:e:t:2026:2026-01-01:2027-01-01:before', amount: 8 },
+      { transactionType: 'ACCRUAL', sourceType: 'LEAVE_ACCRUAL', sourceKey: 'LEAVE_ACCRUAL:v1:e:t:2026:2026-01-01:2027-01-01:after', amount: -2 },
+    ])
+    expect(posted.get('LEAVE_ACCRUAL:v1:e:t:2026:2026-01-01:2027-01-01')).toBe(6)
   })
 
   it('berekent verval als kalendermaanden na het einde van het opbouwjaar', () => {

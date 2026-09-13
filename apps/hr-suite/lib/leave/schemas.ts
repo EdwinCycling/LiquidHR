@@ -330,11 +330,19 @@ const manualAdjustmentInput = z.object({
   employeeId: z.string().trim().min(1).max(100),
   employmentId: z.string().trim().min(1).max(100),
   leaveTypeId: z.string().trim().min(1).max(100),
-  accrualYear: z.number().int().min(2000).max(2200),
+  accrualYear: z.number().int().min(2000).max(2200).optional(),
+  effectiveDate: isoDate.optional(),
   amount: z.number().finite().refine((value) => value !== 0, 'LEAVE_MANUAL_ADJUSTMENT_AMOUNT_REQUIRED'),
   reason: z.string().trim().min(1).max(500),
   sourceKey: z.string().trim().min(8).max(160),
-}).strict()
+}).strict().superRefine((value, context) => {
+  if (value.effectiveDate === undefined && value.accrualYear === undefined) {
+    context.addIssue({ code: 'custom', path: ['effectiveDate'], message: 'LEAVE_CORRECTION_DATE_REQUIRED' })
+  }
+  if (value.effectiveDate !== undefined && value.accrualYear !== undefined && Number(value.effectiveDate.slice(0, 4)) !== value.accrualYear) {
+    context.addIssue({ code: 'custom', path: ['accrualYear'], message: 'LEAVE_CORRECTION_YEAR_MISMATCH' })
+  }
+})
 
 const closeYearInput = z.object({
   action: z.literal('CLOSE_YEAR'),

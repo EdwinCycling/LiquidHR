@@ -9890,6 +9890,7 @@ export type Database = {
       leave_accrual_transactions: {
         Row: {
           actor_user_id: string | null
+          actor_display_name: string | null
           administration_id: string
           amount: number
           bucket_id: string
@@ -9909,6 +9910,7 @@ export type Database = {
         }
         Insert: {
           actor_user_id?: string | null
+          actor_display_name?: string | null
           administration_id: string
           amount: number
           bucket_id: string
@@ -9928,6 +9930,7 @@ export type Database = {
         }
         Update: {
           actor_user_id?: string | null
+          actor_display_name?: string | null
           administration_id?: string
           amount?: number
           bucket_id?: string
@@ -18606,20 +18609,35 @@ export type Database = {
         }
         Returns: string
       }
-      apply_group_leave_manual_adjustment: {
-        Args: {
-          requested_accrual_year: number
-          requested_amount: number
-          requested_employee_id: string
-          requested_employment_id: string
-          requested_hr_group_id: string
-          requested_leave_type_id: string
-          requested_reason: string
-          requested_source_key: string
-          requested_tenant_id: string
-        }
-        Returns: string
-      }
+      apply_group_leave_manual_adjustment:
+        | {
+            Args: {
+              requested_accrual_year: number
+              requested_amount: number
+              requested_employee_id: string
+              requested_employment_id: string
+              requested_hr_group_id: string
+              requested_leave_type_id: string
+              requested_reason: string
+              requested_source_key: string
+              requested_tenant_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              requested_amount: number
+              requested_effective_date: string
+              requested_employee_id: string
+              requested_employment_id: string
+              requested_hr_group_id: string
+              requested_leave_type_id: string
+              requested_reason: string
+              requested_source_key: string
+              requested_tenant_id: string
+            }
+            Returns: string
+          }
       apply_leave_manual_adjustment: {
         Args: {
           requested_accrual_year: number

@@ -22,6 +22,7 @@ export type ReportBucket = {
 }
 
 export type ReportTransaction = {
+  id?: string
   bucketId: string
   leaveTypeId: string
   transactionType: LeaveTransactionType
@@ -29,6 +30,8 @@ export type ReportTransaction = {
   transactionDate: string
   reason?: string | null
   actorUserId?: string | null
+  actorDisplayName?: string | null
+  createdAt?: string | null
 }
 
 export type ReportCarryForward = {

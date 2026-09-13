@@ -1,5 +1,46 @@
 # Implementatiestatus Liquid HR
 
+## HR handmatige verlofsaldocorrecties — 2026-09-13
+
+**Status: DEV ACCEPTANCE GREEN — SINGLE COMMIT/PUSH GATE READY**
+
+De bestaande canonical `apply_group_leave_manual_adjustment(...)` is uitgebreid
+met een backward-compatible expliciete correctiedatum. HR Admin kan daarmee
+positieve en negatieve `MANUAL_ADJUSTMENT`-mutaties vastleggen met verplichte
+reden, actor/display-snapshot, bronkey en effectieve datum. De bucket blijft
+veilig boven nul; `total_taken` en de rapportage van `TAKEN` worden niet gebruikt
+voor correcties. Locked years, employment-scope en idempotency worden in de
+database afgedwongen.
+
+De read-only medewerker-/direct-managerhistorie en de HR Admin-surface zijn
+toegevoegd. De normale HR Admin-browserflow heeft uitsluitend op synthetische
+Piet Test een gecontroleerde `+1,00`-mutatie en een `-1,00`-compensatie gepost.
+De UI bevestigde `160,00 → 161,00 → 160,00`; de immutable historie toont beide
+rijen met datum, reden en actor-ID. Remote readback bevestigt exact twee
+`MANUAL_ADJUSTMENT`-transacties met `HR_MANUAL_ADJUSTMENT`, netto 0, geen wijziging
+van `total_taken` en geen correcties op Jan, Frank of Lisa.
+
+Op uitsluitend DEV-project `wnpfloqpjvaacobppbpk` zijn de canonical Leave-
+migraties aanwezig als `20260912150853`, `20260912184117`, `20260912193619`,
+`20260913092334` en `20260913123613`; typegeneratie en advisors zijn opnieuw
+uitgevoerd. De readback bevestigt de twee date/year-overloads, authenticated-
+only execute-grants, scoped read-policies en geen globale
+`DIRECT_MANAGER`-`leave:read`. Manager en Employee authenticeerden via de
+normale flow, maar de lokale kandidaat gaf op de auditroute `/geen-toegang`
+wegens ontbrekende tenant-koppeling; de veilige server-side negative RPC-probe
+blijft `42501 LEAVE_ADJUST_PERMISSION_REQUIRED`.
+
+De finale actuele gate-uitkomst is gericht `56/56`; strict typecheck, lint,
+i18n (`35` namespaces), diff-check en Webpack (`260/260`) zijn groen. De
+volledige suite eindigde op `361/364` testbestanden en `1421/1424` tests. De
+drie bestaande, ongerelateerde failures zijn de DG1 PDF-timeout, de
+contract-change audit-grantassertie en de DM-1 CASE-parenthesization-assertie;
+geen van deze baseline-tests is door deze slice gewijzigd. De HR Admin-browserconsole had 0 errors. De
+preview bevatte voor de acht toegestane fixture-rijen `Al geboekt` en delta
+`0,00`: Frank `60,0548/15,0137`, Jan `31,9123/7,9781`, Lisa `160/40` en Piet
+`160/40` uur (wettelijk/bovenwettelijk). De groepsbrede Delta-knop is niet
+gebruikt, omdat die ook andere demo-medewerkers toont.
+
 ## Leave Accrual Engine V1 — 2026-09-12
 
 **Status: LEAVE ACCRUAL ENGINE V1: GREEN — DEV/TEST APPLIED; READY FOR DELIVERY**

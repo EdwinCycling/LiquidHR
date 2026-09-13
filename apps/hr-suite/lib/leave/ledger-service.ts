@@ -1,4 +1,5 @@
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import type { Database } from '@scope/db'
 import { createClient } from '@/lib/supabase/server'
 import type { LeaveLedgerMutation } from './schemas'
 import { LeaveServiceError } from './leave-service'
@@ -31,17 +32,35 @@ export async function mutateLeaveLedger(input: LeaveLedgerMutation) {
   }
 
   if (input.action === 'MANUAL_ADJUSTMENT') {
-    const result = await supabase.rpc('apply_group_leave_manual_adjustment', {
-      requested_tenant_id: context.tenantId,
-      requested_hr_group_id: hrGroupId,
-      requested_employee_id: input.employeeId,
-      requested_employment_id: input.employmentId,
-      requested_leave_type_id: input.leaveTypeId,
-      requested_accrual_year: input.accrualYear,
-      requested_amount: input.amount,
-      requested_reason: input.reason,
-      requested_source_key: input.sourceKey,
-    })
+    type ManualAdjustmentRpcArgs = Database['public']['Functions']['apply_group_leave_manual_adjustment']['Args']
+    let args: ManualAdjustmentRpcArgs
+    if (input.effectiveDate) {
+      args = {
+        requested_tenant_id: context.tenantId,
+        requested_hr_group_id: hrGroupId,
+        requested_employee_id: input.employeeId,
+        requested_employment_id: input.employmentId,
+        requested_leave_type_id: input.leaveTypeId,
+        requested_effective_date: input.effectiveDate,
+        requested_amount: input.amount,
+        requested_reason: input.reason,
+        requested_source_key: input.sourceKey,
+      }
+    } else {
+      if (input.accrualYear === undefined) throw new LeaveServiceError('LEAVE_CORRECTION_DATE_REQUIRED', 400)
+      args = {
+        requested_tenant_id: context.tenantId,
+        requested_hr_group_id: hrGroupId,
+        requested_employee_id: input.employeeId,
+        requested_employment_id: input.employmentId,
+        requested_leave_type_id: input.leaveTypeId,
+        requested_accrual_year: input.accrualYear,
+        requested_amount: input.amount,
+        requested_reason: input.reason,
+        requested_source_key: input.sourceKey,
+      }
+    }
+    const result = await supabase.rpc('apply_group_leave_manual_adjustment', args)
     if (result.error || !result.data) ledgerError(result.error)
     return { operation: input.action, id: result.data }
   }
