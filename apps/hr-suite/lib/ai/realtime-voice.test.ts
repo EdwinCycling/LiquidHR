@@ -5,6 +5,7 @@ import {
   createRealtimeVoiceSessionConfiguration,
   isRealtimeVoiceEnabled,
   parseRealtimeVoiceToolArguments,
+  realtimeVoiceSessionRequestSchema,
   resolveRealtimeVoiceModel,
 } from './realtime-voice'
 import { parseRealtimeVoiceFunctionCall } from './realtime-voice-events'
@@ -74,6 +75,12 @@ describe('GPT-Live employee voice contract', () => {
     expect(parseRealtimeVoiceToolArguments('development_goal_smart', { sourceText: 'Beter presenteren.' })).toEqual({ sourceText: 'Beter presenteren.' })
     expect(() => parseRealtimeVoiceToolArguments('employee_summary', { employeeId: 'other-employee' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
     expect(() => parseRealtimeVoiceToolArguments('development_goal_smart', { sourceText: '', employeeId: 'other-employee' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
+  })
+
+  it('preserves the complete browser SDP offer during request validation', () => {
+    const sdpOffer = 'v=0\\r\\noffer\\r\\n\\r\\n'
+    const parsed = realtimeVoiceSessionRequestSchema.parse({ locale: 'nl', sdpOffer })
+    expect(parsed.sdpOffer).toBe(sdpOffer)
   })
 
   it('creates a JSON Live WebRTC request and returns only the SDP answer', async () => {

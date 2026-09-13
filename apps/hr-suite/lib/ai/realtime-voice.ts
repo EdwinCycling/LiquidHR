@@ -9,7 +9,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export const realtimeVoiceSessionRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
-  sdpOffer: z.string().trim().min(1).max(250_000),
+  // Behoud de door de browser gegenereerde SDP ongewijzigd, inclusief CRLF.
+  sdpOffer: z.string().min(1).max(250_000).refine((value) => value.trim().length > 0),
 }).strict()
 
 export const realtimeVoiceToolRequestSchema = z.object({
