@@ -2,13 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createOpenAiRealtimeCall,
+  createTeamRealtimeVoiceSessionConfiguration,
   createRealtimeVoiceSessionConfiguration,
   isRealtimeVoiceEnabled,
   parseRealtimeVoiceToolArguments,
+  parseTeamRealtimeVoiceToolArguments,
   realtimeVoiceSessionRequestSchema,
   resolveRealtimeVoiceModel,
 } from './realtime-voice'
-import { parseRealtimeVoiceFunctionCall } from './realtime-voice-events'
+import { parseRealtimeVoiceFunctionCall, parseTeamRealtimeVoiceFunctionCall } from './realtime-voice-events'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -20,6 +22,7 @@ describe('GPT-Live employee voice contract', () => {
   it('configures only the three employee-context tools without an employee identifier', () => {
     const configuration = createRealtimeVoiceSessionConfiguration('nl')
     expect(configuration).toMatchObject({
+      type: 'live',
       model: 'gpt-live-1',
       delegation: {
         type: 'responses',
@@ -71,11 +74,29 @@ describe('GPT-Live employee voice contract', () => {
     })).toEqual({ callId: 'call_2', name: 'development_goal_smart', arguments: { sourceText: 'Beter presenteren.' } })
   })
 
+  it('parses only completed Team AI function calls', () => {
+    expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_1', name: 'team_overview', arguments: '{}' } } })).toEqual({ callId: 'team_1', name: 'team_overview', arguments: {} })
+    expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_2', name: 'team_employee_summary', arguments: '{"employeeName":"Maya Bos"}' } } })).toEqual({ callId: 'team_2', name: 'team_employee_summary', arguments: { employeeName: 'Maya Bos' } })
+    expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_3', name: 'development_goal_smart', arguments: '{}' } } })).toBeNull()
+  })
+
   it('accepts only SMART source text for the SMART tool and rejects model-supplied ids', () => {
     expect(parseRealtimeVoiceToolArguments('employee_summary', {})).toEqual({})
     expect(parseRealtimeVoiceToolArguments('development_goal_smart', { sourceText: 'Beter presenteren.' })).toEqual({ sourceText: 'Beter presenteren.' })
     expect(() => parseRealtimeVoiceToolArguments('employee_summary', { employeeId: 'other-employee' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
     expect(() => parseRealtimeVoiceToolArguments('development_goal_smart', { sourceText: '', employeeId: 'other-employee' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
+  })
+
+  it('configures Team AI tools without accepting employee or department ids', () => {
+    const configuration = createTeamRealtimeVoiceSessionConfiguration('nl')
+    expect(configuration).toMatchObject({ type: 'live', model: 'gpt-live-1', delegation: { type: 'responses' } })
+    const delegation = configuration.delegation as { responses: { tools: Array<{ name: string; parameters: { properties?: Record<string, unknown> } }> } }
+    expect(delegation.responses.tools.map((tool) => tool.name)).toEqual(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal'])
+    expect(delegation.responses.tools[1]?.parameters.properties).toEqual({ employeeName: { type: 'string', minLength: 1, maxLength: 200 } })
+    expect(JSON.stringify(configuration)).not.toContain('employeeId')
+    expect(JSON.stringify(configuration)).not.toContain('departmentId')
+    expect(parseTeamRealtimeVoiceToolArguments('team_employee_summary', { employeeName: 'Maya Bos' })).toEqual({ employeeName: 'Maya Bos' })
+    expect(() => parseTeamRealtimeVoiceToolArguments('team_employee_summary', { employeeId: 'other' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
   })
 
   it('preserves the complete browser SDP offer during request validation', () => {
@@ -98,7 +119,7 @@ describe('GPT-Live employee voice contract', () => {
     expect(init?.method).toBe('POST')
     expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' })
     expect(JSON.parse(String(init?.body))).toMatchObject({
-      session: { model: 'gpt-live-1' },
+      session: { type: 'live', model: 'gpt-live-1' },
       transport: { type: 'webrtc', sdp: 'v=0\\r\\noffer' },
     })
   })

@@ -17,6 +17,7 @@ const CHARGE_UNITS_BY_FEATURE: Readonly<Record<string, Readonly<Record<AiQuality
   CONVERSATION_PREPARATION: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
   DEVELOPMENT_GOAL_SMART: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
   VACANCY_DRAFT: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
+  TEAM_SUMMARY: { EFFICIENT: 1, BALANCED: 2, IN_DEPTH: 3 },
 }
 
 const CHARGE_REFERENCES_BY_FEATURE: Readonly<Record<string, Readonly<Record<AiQualityProfile, string>>>> = {
@@ -45,6 +46,11 @@ const CHARGE_REFERENCES_BY_FEATURE: Readonly<Record<string, Readonly<Record<AiQu
     BALANCED: 'ai.vacancy-draft.balanced',
     IN_DEPTH: 'ai.vacancy-draft.in-depth',
   },
+  TEAM_SUMMARY: {
+    EFFICIENT: 'ai.team-summary.efficient',
+    BALANCED: 'ai.team-summary.balanced',
+    IN_DEPTH: 'ai.team-summary.in-depth',
+  },
 }
 
 const CHARGE_UNITS_BY_REFERENCE: Readonly<Record<string, number>> = {
@@ -63,6 +69,9 @@ const CHARGE_UNITS_BY_REFERENCE: Readonly<Record<string, number>> = {
   'ai.vacancy-draft.efficient': 1,
   'ai.vacancy-draft.balanced': 2,
   'ai.vacancy-draft.in-depth': 3,
+  'ai.team-summary.efficient': 1,
+  'ai.team-summary.balanced': 2,
+  'ai.team-summary.in-depth': 3,
 }
 
 export const AI_LIQUID_CREDIT_CHARGE_UNITS = CHARGE_UNITS_BY_REFERENCE

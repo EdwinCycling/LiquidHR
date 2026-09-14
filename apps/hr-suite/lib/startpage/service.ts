@@ -15,6 +15,8 @@ import { getUpcomingCalendarItems, type CalendarHeaderItem } from '@/lib/company
 import { listJourneyProjectionsForContext } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { resolveStoredImageUrl } from '@/lib/storage/image-url'
+import { getTeamAiStartPageData, type StartPageTeamAiData } from '@/lib/ai/team-scope'
+import { listPersonalLogbookEntries, type PersonalLogbookEntry } from '@/lib/logbook/service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -58,6 +60,8 @@ export interface StartPageData {
   scope: StartPageScope
   canReportAbsence: boolean
   journeys: JourneyProjectionList
+  teamAi: StartPageTeamAiData | null
+  logbook: PersonalLogbookEntry[]
   journeyOnly: boolean
 }
 
@@ -499,6 +503,8 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       scope: 'company',
       canReportAbsence: false,
       journeys: dependencies.journeys ?? [],
+      teamAi: null,
+      logbook: [],
       journeyOnly: true,
     }
   }
@@ -524,7 +530,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     ? Promise.resolve(supabase.from('employees').select('first_name').eq('id', auth.employeeId).eq('tenant_id', auth.tenantId).maybeSingle())
     : Promise.resolve(null)
 
-  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys] = await measure('data.parallel', () => Promise.all([
+  const [employee, leaveAbsences, absenceResult, companyDocuments, pendingSigningCount, reminders, upcomingEvents, employeeCount, recurringAbsenceCount, countdowns, continuousAppraisal, processWork, teamAvailability, journeys, teamAi, logbook] = await measure('data.parallel', () => Promise.all([
     measure('employee', () => employeePromise),
     employeeScopePromise.then((employeeScope) => measure('leave', () => listLeaveAbsences(auth, employeeScope, supabase))),
     employeeScopePromise.then((employeeScope) => measure('absence', () => listActiveAbsences(auth, employeeScope, supabase))),
@@ -543,6 +549,8 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     measure('journeys', () => auth.hrGroupId
       ? listJourneyProjectionsForContext(supabase, auth).catch((): JourneyProjectionList => [])
       : Promise.resolve<JourneyProjectionList>([])),
+    measure('teamAi', () => getTeamAiStartPageData(auth, supabase)),
+    measure('logbook', () => listPersonalLogbookEntries(3, { context: auth, supabase }).catch(() => [])),
   ]))
 
   return {
@@ -575,6 +583,8 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
     scope,
     canReportAbsence: auth.permissions.includes('absence:write'),
     journeys,
+    teamAi,
+    logbook,
     journeyOnly: false,
   }
 }

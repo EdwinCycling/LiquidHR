@@ -1,4 +1,5 @@
 export type RealtimeVoiceToolName = 'employee_summary' | 'conversation_preparation' | 'development_goal_smart'
+export type TeamRealtimeVoiceToolName = 'team_overview' | 'team_employee_summary' | 'team_conversation_preparation' | 'team_summary_proposal'
 
 export interface RealtimeVoiceFunctionCall {
   callId: string
@@ -7,6 +8,7 @@ export interface RealtimeVoiceFunctionCall {
 }
 
 const realtimeVoiceToolNames = new Set<RealtimeVoiceToolName>(['employee_summary', 'conversation_preparation', 'development_goal_smart'])
+const teamRealtimeVoiceToolNames = new Set<TeamRealtimeVoiceToolName>(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -23,4 +25,17 @@ export function parseRealtimeVoiceFunctionCall(value: unknown): RealtimeVoiceFun
     parsedArguments = item.arguments
   }
   return { callId: item.call_id, name: item.name as RealtimeVoiceToolName, arguments: parsedArguments }
+}
+
+export function parseTeamRealtimeVoiceFunctionCall(value: unknown): { callId: string; name: TeamRealtimeVoiceToolName; arguments: unknown } | null {
+  if (!isRecord(value) || value.type !== 'response.event' || !isRecord(value.event) || value.event.type !== 'response.output_item.done') return null
+  const item = value.event.item
+  if (!isRecord(item) || item.type !== 'function_call' || typeof item.call_id !== 'string' || !item.call_id.trim() || typeof item.name !== 'string' || !teamRealtimeVoiceToolNames.has(item.name as TeamRealtimeVoiceToolName)) return null
+  let parsedArguments: unknown = {}
+  if (typeof item.arguments === 'string') {
+    try { parsedArguments = JSON.parse(item.arguments) as unknown } catch { return null }
+  } else if (item.arguments !== undefined) {
+    parsedArguments = item.arguments
+  }
+  return { callId: item.call_id, name: item.name as TeamRealtimeVoiceToolName, arguments: parsedArguments }
 }

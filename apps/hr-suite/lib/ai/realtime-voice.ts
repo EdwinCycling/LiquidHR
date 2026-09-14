@@ -24,14 +24,30 @@ export const realtimeVoiceUsageRequestSchema = z.object({
   toolCallCount: z.number().int().min(0).max(1000),
 }).strict()
 
+export const teamRealtimeVoiceSessionRequestSchema = z.object({
+  locale: z.enum(['nl', 'en']),
+  departmentId: z.string().uuid().optional(),
+  sdpOffer: z.string().min(1).max(250_000).refine((value) => value.trim().length > 0),
+}).strict()
+
+export const teamRealtimeVoiceToolRequestSchema = z.object({
+  locale: z.enum(['nl', 'en']),
+  sessionId: z.string().uuid(),
+  name: z.enum(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal']),
+  arguments: z.unknown(),
+}).strict()
+
 export type RealtimeVoiceLocale = z.infer<typeof realtimeVoiceSessionRequestSchema>['locale']
 export type RealtimeVoiceToolName = z.infer<typeof realtimeVoiceToolRequestSchema>['name']
+export type TeamRealtimeVoiceLocale = z.infer<typeof teamRealtimeVoiceSessionRequestSchema>['locale']
+export type TeamRealtimeVoiceToolName = z.infer<typeof teamRealtimeVoiceToolRequestSchema>['name']
 
 const managerVoiceRoles = new Set(['DIRECT_MANAGER', 'HR_ADVISOR', 'HR_ADMIN', 'TENANT_ADMIN'])
 
 export const GPT_LIVE_MODEL = 'gpt-live-1'
 export const REALTIME_VOICE_MODEL = GPT_LIVE_MODEL
 export const REALTIME_VOICE_CONFIG_VERSION = 'gpt-live-employee-v1.20260913.1'
+export const TEAM_REALTIME_VOICE_CONFIG_VERSION = 'gpt-live-team-v2.20260914.1'
 const GPT_LIVE_SESSION_ENDPOINT = 'https://api.openai.com/v1/live/sessions'
 
 function requiredApiKey(): string {
@@ -77,9 +93,28 @@ const smartGoalParameters = {
   additionalProperties: false,
 } as const
 
+const teamEmployeeParameters = {
+  type: 'object',
+  properties: {
+    employeeName: { type: 'string', minLength: 1, maxLength: 200 },
+  },
+  required: ['employeeName'],
+  additionalProperties: false,
+} as const
+
+const teamSummaryParameters = {
+  type: 'object',
+  properties: {
+    summaryText: { type: 'string', minLength: 1, maxLength: 4_000 },
+  },
+  required: ['summaryText'],
+  additionalProperties: false,
+} as const
+
 export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLocale): Record<string, unknown> {
   const language = locale === 'nl' ? 'Dutch' : 'English'
   return {
+    type: 'live',
     model: resolveRealtimeVoiceModel(),
     instructions: [
       `You are the LiquidHR voice interface. Speak in ${language}.`,
@@ -122,6 +157,71 @@ export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLoc
             name: 'development_goal_smart',
             description: 'Create a proposal to formulate supplied development-goal text as SMART. This never saves the goal.',
             parameters: smartGoalParameters,
+            strict: true,
+          },
+        ],
+        tool_choice: 'auto',
+        parallel_tool_calls: false,
+      },
+    },
+  }
+}
+
+export function createTeamRealtimeVoiceSessionConfiguration(locale: TeamRealtimeVoiceLocale): Record<string, unknown> {
+  const language = locale === 'nl' ? 'Dutch' : 'English'
+  return {
+    type: 'live',
+    model: resolveRealtimeVoiceModel(),
+    instructions: [
+      `You are the LiquidHR Team AI voice interface. Speak in ${language}.`,
+      'This session is bound to the fixed team scope selected by the LiquidHR application. Never ask for or accept employee IDs or department IDs.',
+      'Use the LiquidHR team tools for overview, an individual team member by exact name, conversation preparation, and a reviewed team-summary proposal.',
+      'Do not rank people, infer sensitive attributes, expose full employee records, or expand beyond the fixed team scope.',
+      'Never claim that HR data was saved, changed, published, or approved. A human must review and explicitly save a proposal in Mijn logboek.',
+      'Keep the spoken conversation concise and handle interruptions naturally.',
+    ].join(' '),
+    client: {
+      data_channel: {
+        allowed_client_events: ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'],
+      },
+    },
+    delegation: {
+      type: 'responses',
+      responses: {
+        model: OPENAI_EFFICIENT_MODEL,
+        instructions: [
+          'You are the LiquidHR Team AI backend. Use only the supplied LiquidHR team tools and the immutable server scope.',
+          'The server resolves employee names to scoped employees and reauthorizes every tool call. Never request or infer an employee ID.',
+          'Team Summary is a proposal only. It must be reviewed and explicitly saved by the manager or HR user in Mijn logboek. Never write Employee Notes.',
+          'Do not rank employees, produce sensitive inference, or claim that anything was saved, changed, published, or approved.',
+        ].join(' '),
+        tools: [
+          {
+            type: 'function',
+            name: 'team_overview',
+            description: 'Return a concise authorized overview of the fixed team scope.',
+            parameters: emptyParameters,
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'team_employee_summary',
+            description: 'Request an authorized summary for one fixed-scope team member by exact displayed name.',
+            parameters: teamEmployeeParameters,
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'team_conversation_preparation',
+            description: 'Request authorized conversation preparation for one fixed-scope team member by exact displayed name.',
+            parameters: teamEmployeeParameters,
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'team_summary_proposal',
+            description: 'Turn reviewed spoken team observations into a proposal for Mijn logboek. This never saves automatically.',
+            parameters: teamSummaryParameters,
             strict: true,
           },
         ],
@@ -189,6 +289,22 @@ export function parseRealtimeVoiceToolArguments(name: RealtimeVoiceToolName, val
   }
   if (Object.keys(record).length !== 0) throw new AiExecutionError('INVALID_RESULT')
   return {}
+}
+
+export function parseTeamRealtimeVoiceToolArguments(name: TeamRealtimeVoiceToolName, value: unknown): { employeeName?: string; summaryText?: string } {
+  const record = safeRecord(value)
+  if (name === 'team_overview') {
+    if (Object.keys(record).length !== 0) throw new AiExecutionError('INVALID_RESULT')
+    return {}
+  }
+  if (name === 'team_employee_summary' || name === 'team_conversation_preparation') {
+    const parsed = z.object({ employeeName: z.string().trim().min(1).max(200) }).strict().safeParse(record)
+    if (!parsed.success) throw new AiExecutionError('INVALID_RESULT')
+    return parsed.data
+  }
+  const parsed = z.object({ summaryText: z.string().trim().min(1).max(4_000) }).strict().safeParse(record)
+  if (!parsed.success) throw new AiExecutionError('INVALID_RESULT')
+  return parsed.data
 }
 
 export async function createRealtimeVoiceSession(input: {

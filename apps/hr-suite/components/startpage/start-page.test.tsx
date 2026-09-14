@@ -52,15 +52,17 @@ const data: StartPageData = {
   recurringAbsenceCount: 0,
   reminders: [],
   scope: 'company',
+  teamAi: null,
   teamAvailability: null,
   tenantName: 'Tenant',
   upcomingEvents: [],
   workforceLinks: [],
+  logbook: [],
 }
 
-function render(viewMode: 'compact' | 'full'): string {
+function render(viewMode: 'compact' | 'full', viewData: StartPageData = data): string {
   return renderToStaticMarkup(createElement(StartPage, {
-    data,
+    data: viewData,
     dateFormat: 'DMY',
     greeting: 'Goedemiddag',
     initialPreferences: { layout: DEFAULT_START_PAGE_WINDOW_LAYOUT, viewMode },
@@ -113,5 +115,29 @@ describe('StartPage view modes', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('renders the Team AI and personal logbook surfaces without expanding employee scope', () => {
+    const markup = render('full', {
+      ...data,
+      teamAi: {
+        mode: 'DIRECT_TEAM',
+        scopeType: 'DIRECT_TEAM',
+        contextName: 'Mijn team',
+        departmentId: null,
+        members: [{ employeeId: 'employee-2', employeeName: 'Maya Bos', jobTitle: 'Consultant', departmentName: 'People' }],
+        totalMemberCount: 1,
+        departments: [],
+        aiEnabled: true,
+        voiceEnabled: true,
+      },
+      logbook: [{ id: 'entry-1', title: 'Teamgesprek', description: 'Vervolgactie.', source: 'AI_TEAM_SUMMARY', sourceSessionId: 'session-1', contextName: 'Mijn team', contextDepartmentId: null, createdAt: '2026-08-29T10:00:00.000Z', updatedAt: '2026-08-29T10:00:00.000Z' }],
+    })
+
+    expect(markup).toContain('data-testid="startpage-team-ai"')
+    expect(markup).toContain('GPT-Live')
+    expect(markup).toContain('Maya Bos')
+    expect(markup).toContain('data-testid="startpage-logbook"')
+    expect(markup).toContain('Teamgesprek')
   })
 })

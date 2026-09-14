@@ -1,5 +1,37 @@
 # Actuele overdracht Liquid HR
 
+## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
+
+De kandidaatimplementatie staat in de actuele AI-worktree op branch
+`work/ai-gpt-live` en bouwt voort op de geaccepteerde GPT-Live employee-slice.
+Team AI gebruikt een vaste server-side Direct Manager- of HR-afdelingsscope,
+GPT-Live `gpt-live-1` via `session.type = live` en de bestaande
+server-mediated WebRTC-transportlaag, plus de bestaande proposal-only AI
+Foundation. Nieuwe routes zijn
+`/api/team-ai/voice/session`, `/tool`, `/usage` en `/api/logbook`; de UI staat
+op `/dashboard/start` en `/logbook`.
+
+De lokale forward migration
+`apps/hr-suite/supabase/migrations/20260914100000_conversational_ai_v2_team_logbook.sql`
+maakt `ai_team_sessions`, vaste session-members, owner-only
+`personal_logbook_entries`, permissions, Team Summary credit-catalogus en
+gesanitiseerde audit mogelijk. De migration is **niet remote toegepast**;
+Supabase advisors, remote RLS/readback en authenticated Team AI acceptance zijn
+daarom open en er is geen remote database-write uitgevoerd.
+
+Verificatie tot nu toe: i18n `36` namespaces, gerichte nieuwe/voice/schema/
+startpage-tests `20/20`, strict TypeScript, ESLint en de Turbopack-
+productiebuild (`263/263` routes) groen. De volledige suite is `1405/1407`:
+de twee bestaande, ongewijzigde failures zijn de DM-1 asset-storage-key
+CASE-contracttest en de PDF-renderer-timeout. Read-only controle van DEV/TEST
+Supabase-project `wnpfloqpjvaacobppbpk` bevestigt dat de eerdere GPT-Live
+employee-migration remote aanwezig is, maar deze V2-migration nog niet; remote
+typegen bevat daarom geen V2-tabellen en advisors zijn alleen op de bestaande
+schema-state uitgevoerd. Open gates zijn remote DEV/TEST migration
+approval/apply, typegen/advisors/readback na apply, authenticated Manager/HR
+scope and owner-RLS readback, real GPT-Live Team AI microphone/tool acceptance,
+and later separate release integration.
+
 ## GPT-Live Preview acceptance remediation — 2026-09-14
 
 De echte GPT-Live Preview-proef is technisch hersteld op branch `work/ai-gpt-live`, commit `9087bfd66ab2d978d097982338bd2803fd993e8e`. De oorspronkelijke `422` kwam doordat GPT-Live-1 via het oude Realtime-contract (`/v1/realtime/calls`, `type: realtime`) werd aangeroepen; de code gebruikt nu server-mediated `POST /v1/live/sessions` met `session.model=gpt-live-1`, `transport.type=webrtc` en de browser-SDP als offer. Providerfouten loggen alleen status, API-familie, model, request-id en OpenAI error type/code.

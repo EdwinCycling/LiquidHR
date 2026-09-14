@@ -1,5 +1,25 @@
 # Implementatiestatus Liquid HR
 
+## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
+
+**Status: LOCAL IMPLEMENTATION CANDIDATE — MIGRATION NOT REMOTE APPLIED**
+
+De slice voegt de server-side Team AI-scope en GPT-Live voice-tools toe op de
+Start-pagina, plus de owner-only route `/logbook` voor handmatige notities en
+reviewed AI-team-samenvattingen. Directe managers blijven binnen hun directe
+team; HR-rollen gebruiken server-gevalideerde afdelingsscope. Team Summary
+gebruikt de bestaande AI Foundation en Liquid Credits en blijft proposal-only.
+
+De migration `20260914100000_conversational_ai_v2_team_logbook.sql` en de
+bijgewerkte lokale `packages/db/types.ts` zijn aanwezig. Remote DEV/TEST
+apply, advisors, typegen/readback, authenticated scope/RLS acceptance en echte
+Team AI microphone acceptance zijn nog niet uitgevoerd. Geen Production,
+`main` of `work/leave-profile-management` wijziging is gedaan.
+
+Lokale gates: targeted contract/UI/schema tests `19/19`, i18n `36` namespaces,
+strict TypeScript en ESLint groen. Full suite `1405/1407`; de twee failures
+zijn bestaande, buiten-scope DM-1 CASE-format en PDF-timeout failures.
+
 ## AI Everywhere V1 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED; MAIN INTEGRATION READY**

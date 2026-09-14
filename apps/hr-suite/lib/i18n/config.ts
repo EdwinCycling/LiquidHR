@@ -38,6 +38,7 @@ export const MESSAGE_NAMESPACES = [
   'recruitment',
   'setupAssistant',
   'documentStudio',
+  'logbook',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

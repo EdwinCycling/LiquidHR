@@ -14,7 +14,7 @@ LiquidHR bouwt voort op één gecontroleerde capability-laag:
 
 ## GPT-Live V1
 
-De eerste slice start vanuit een medewerkerprofiel voor een manager, HR-adviseur, HR Admin of tenant-admin. De browser maakt een WebRTC-offer en stuurt dat naar de serverroute. De server valideert de medewerkercontext en `ai:use`, voegt een beperkte Live toolconfiguratie toe en gebruikt de permanente OpenAI-key uitsluitend server-side voor `POST /v1/live/sessions` met JSON `session`- en WebRTC-transportvelden. De legacy Realtime-callvorm (`/v1/realtime/calls` met `type: realtime`) wordt niet gebruikt. De browser ontvangt alleen het SDP-answer.
+De eerste slice start vanuit een medewerkerprofiel voor een manager, HR-adviseur, HR Admin of tenant-admin. De browser maakt een WebRTC-offer en stuurt dat naar de serverroute. De server valideert de medewerkercontext en `ai:use`, voegt een beperkte Live toolconfiguratie toe en gebruikt de permanente OpenAI-key uitsluitend server-side voor `POST /v1/live/sessions` met JSON `session.type = live`, `session.model = gpt-live-1` en WebRTC-transportvelden. De legacy Realtime-callvorm (`/v1/realtime/calls` met `type: realtime`) wordt niet gebruikt. De browser ontvangt alleen het SDP-answer.
 
 De drie voice-tools hebben geen employee-ID-argument:
 
