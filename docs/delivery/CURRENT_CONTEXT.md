@@ -15,22 +15,26 @@ De lokale forward migration
 `apps/hr-suite/supabase/migrations/20260914100000_conversational_ai_v2_team_logbook.sql`
 maakt `ai_team_sessions`, vaste session-members, owner-only
 `personal_logbook_entries`, permissions, Team Summary credit-catalogus en
-gesanitiseerde audit mogelijk. De migration is **niet remote toegepast**;
-Supabase advisors, remote RLS/readback en authenticated Team AI acceptance zijn
-daarom open en er is geen remote database-write uitgevoerd.
+gesanitiseerde audit mogelijk. De migration is op het geautoriseerde DEV/TEST-
+project toegepast als remote versie `20260914154120`; de follow-up
+`20260914110000_conversational_ai_v2_logbook_privilege_hardening.sql` is als
+`20260914154659` toegepast om default `anon`-table privileges expliciet te
+verwijderen.
 
 Verificatie tot nu toe: i18n `36` namespaces, gerichte nieuwe/voice/schema/
 startpage-tests `20/20`, strict TypeScript, ESLint en de Turbopack-
 productiebuild (`263/263` routes) groen. De volledige suite is `1405/1407`:
 de twee bestaande, ongewijzigde failures zijn de DM-1 asset-storage-key
-CASE-contracttest en de PDF-renderer-timeout. Read-only controle van DEV/TEST
-Supabase-project `wnpfloqpjvaacobppbpk` bevestigt dat de eerdere GPT-Live
-employee-migration remote aanwezig is, maar deze V2-migration nog niet; remote
-typegen bevat daarom geen V2-tabellen en advisors zijn alleen op de bestaande
-schema-state uitgevoerd. Open gates zijn remote DEV/TEST migration
-approval/apply, typegen/advisors/readback na apply, authenticated Manager/HR
-scope and owner-RLS readback, real GPT-Live Team AI microphone/tool acceptance,
-and later separate release integration.
+CASE-contracttest en de PDF-renderer-timeout. Remote readback van DEV/TEST
+`wnpfloqpjvaacobppbpk` bevestigt de drie V2-tabellen, RLS, owner policies,
+service-role-only Team-tabellen, de composite scope-FK's en remote typegen met
+V2-tabellen. De expliciete transactionele RLS-proef is groen voor owner-read,
+cross-user read/update/delete en cross-tenant read; `anon` heeft geen table
+privileges. Advisors tonen alleen de bestaande baseline plus de verwachte
+intentional `rls_enabled_no_policy`-melding voor de service-role-only Team-
+tabellen. Open gates zijn authenticated Manager/HR Team AI scope, real GPT-Live
+Team AI microphone/tool acceptance, logbook CRUD/AI-save browser evidence, and
+later separate release integration.
 
 ## GPT-Live Preview acceptance remediation — 2026-09-14
 
