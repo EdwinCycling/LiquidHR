@@ -8,6 +8,10 @@ import { parsePersonalReminderToolArguments, personalReminderToolParameters, typ
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+// PostgreSQL accepteert alle 128-bit UUID-waarden; deterministic TEST-fixtures
+// hoeven daarom niet per se de RFC 4122 version/variant-bits te bevatten.
+const postgresUuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+
 export const realtimeVoiceSessionRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
   // Behoud de door de browser gegenereerde SDP ongewijzigd, inclusief CRLF.
@@ -27,7 +31,7 @@ export const realtimeVoiceUsageRequestSchema = z.object({
 
 export const teamRealtimeVoiceSessionRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
-  departmentId: z.string().uuid().optional(),
+  departmentId: postgresUuidSchema.optional(),
   sdpOffer: z.string().min(1).max(250_000).refine((value) => value.trim().length > 0),
 }).strict()
 

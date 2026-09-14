@@ -8,6 +8,7 @@ import {
   parseRealtimeVoiceToolArguments,
   parseTeamRealtimeVoiceToolArguments,
   realtimeVoiceSessionRequestSchema,
+  teamRealtimeVoiceSessionRequestSchema,
   resolveRealtimeVoiceModel,
 } from './realtime-voice'
 import { parseRealtimeVoiceFunctionCall, parseTeamRealtimeVoiceFunctionCall } from './realtime-voice-events'
@@ -100,6 +101,12 @@ describe('GPT-Live employee voice contract', () => {
     expect(parseTeamRealtimeVoiceToolArguments('team_employee_summary', { employeeName: 'Maya Bos' })).toEqual({ employeeName: 'Maya Bos' })
     expect(() => parseTeamRealtimeVoiceToolArguments('team_employee_summary', { employeeId: 'other' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
     expect(() => parseTeamRealtimeVoiceToolArguments('create_personal_reminder', { title: 'Herinnering', remindAt: '2030-01-01T10:00:00+01:00', confirmation: 'EXPLICIT_REQUEST', employeeId: 'other' })).toThrowError(expect.objectContaining({ code: 'INVALID_RESULT' }))
+  })
+
+  it('accepts PostgreSQL UUID-shaped department fixture values without weakening the shape check', () => {
+    const departmentId = '66c647bd-da37-2097-6c17-78ca6cbec389'
+    const parsed = teamRealtimeVoiceSessionRequestSchema.parse({ locale: 'nl', departmentId, sdpOffer: 'v=0\\r\\noffer' })
+    expect(parsed.departmentId).toBe(departmentId)
   })
 
   it('preserves the complete browser SDP offer during request validation', () => {
