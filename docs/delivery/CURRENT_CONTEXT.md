@@ -36,6 +36,29 @@ tabellen. Open gates zijn authenticated Manager/HR Team AI scope, real GPT-Live
 Team AI microphone/tool acceptance, logbook CRUD/AI-save browser evidence, and
 later separate release integration.
 
+### V2 Preview authenticated acceptance — 2026-09-14
+
+De tijdelijke V2-Preview `https://liquidhr-das8slkg7-edwinitsolutions.vercel.app`
+(`READY`, deployment `dpl_uAX6DDLmLwUGhVSTUq6JB7EX75HU`) gebruikt de lokale
+candidate op `work/ai-gpt-live`, commit
+`6f404b0f0537fdfb08f23a1a23e1af58e7e9dc96`, en het geautoriseerde DEV/TEST-
+project `wnpfloqpjvaacobppbpk`. De exacte Employee Detail-proefroute is
+`/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13`.
+
+Authenticated browser-readback na hydration is groen: Manager ziet Team AI,
+`AI-ondersteuning` en `Praat met LiquidHR`; HR Admin ziet afdeling-scope,
+dezelfde Employee Detail-AI en voice controls; Employee ziet geen AI/voice
+controls buiten de toegestane `ai:use`-scope en houdt wel een eigen logboek.
+De drie productpagina-controles hadden `0` console-errors, `0` warnings en geen
+page-errors. De latere Vercel-toolbarprobe gaf alleen externe toolbar-CORS-
+ruis, niet van de LiquidHR-app.
+
+Een echte Team GPT-Live-sessie met employee-context en een logboek-save zijn in
+deze run bewust niet gestart: dit blijven expliciete menselijke acceptance gates
+wegens externe audio/HR-context en een remote DEV/TEST-write. Daarom is de UI- en
+authenticatieacceptatie groen, maar zijn echte microfoon/audio, gesproken
+toolcalls en logboek-persistentie nog niet als runtime-evidence geclaimd.
+
 ## GPT-Live Preview acceptance remediation — 2026-09-14
 
 De echte GPT-Live Preview-proef is technisch hersteld op branch `work/ai-gpt-live`, commit `9087bfd66ab2d978d097982338bd2803fd993e8e`. De oorspronkelijke `422` kwam doordat GPT-Live-1 via het oude Realtime-contract (`/v1/realtime/calls`, `type: realtime`) werd aangeroepen; de code gebruikt nu server-mediated `POST /v1/live/sessions` met `session.model=gpt-live-1`, `transport.type=webrtc` en de browser-SDP als offer. Providerfouten loggen alleen status, API-familie, model, request-id en OpenAI error type/code.
