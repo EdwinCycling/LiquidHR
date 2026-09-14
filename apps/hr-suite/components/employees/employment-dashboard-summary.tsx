@@ -25,7 +25,7 @@ export type EmploymentDashboardSummaryLabels = Pick<EmployeeDashboardLabels,
   | 'notRecorded'
 >
 
-export function EmploymentDashboardSummary({ employeeId, employments, cards, currentSummary, canReadSalary, labels, locale }: {
+export function EmploymentDashboardSummary({ employeeId, employments, cards, currentSummary, canReadSalary, labels, locale, today }: {
   employeeId: string
   employments: EmployeeDetailViewModel['employments']
   cards: EmployeeDetailViewModel['employmentCards']
@@ -33,8 +33,8 @@ export function EmploymentDashboardSummary({ employeeId, employments, cards, cur
   canReadSalary: boolean
   labels: EmploymentDashboardSummaryLabels
   locale: string
+  today: string
 }) {
-  const today = new Date().toISOString().slice(0, 10)
   const activeEmployments = employments.filter((employment) => getEmploymentCardStatus({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status }, today) === 'ACTIVE')
   const initialId = activeEmployments.some((employment) => employment.id === currentSummary.employmentId)
     ? currentSummary.employmentId

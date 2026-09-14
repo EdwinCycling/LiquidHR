@@ -1,6 +1,6 @@
 # LiquidHR AI Roadmap 2.0 en GPT-Live V1
 
-Status: LOCAL IMPLEMENTATION CANDIDATE — remote database en live OpenAI-validatie nog open
+Status: AI PREVIEW IMPLEMENTATION CANDIDATE — Live WebRTC handshake and authenticated Preview start verified; human microphone/audio acceptance remains open
 
 ## Roadmap
 
@@ -14,7 +14,7 @@ LiquidHR bouwt voort op één gecontroleerde capability-laag:
 
 ## GPT-Live V1
 
-De eerste slice start vanuit een medewerkerprofiel voor een manager, HR-adviseur, HR Admin of tenant-admin. De browser maakt een WebRTC-offer en stuurt dat naar de serverroute. De server valideert de medewerkercontext en `ai:use`, voegt een beperkte realtime toolconfiguratie toe en gebruikt de permanente OpenAI-key uitsluitend server-side voor `POST /v1/realtime/calls`. De browser ontvangt alleen het SDP-answer.
+De eerste slice start vanuit een medewerkerprofiel voor een manager, HR-adviseur, HR Admin of tenant-admin. De browser maakt een WebRTC-offer en stuurt dat naar de serverroute. De server valideert de medewerkercontext en `ai:use`, voegt een beperkte Live toolconfiguratie toe en gebruikt de permanente OpenAI-key uitsluitend server-side voor `POST /v1/live/sessions` met JSON `session`- en WebRTC-transportvelden. De legacy Realtime-callvorm (`/v1/realtime/calls` met `type: realtime`) wordt niet gebruikt. De browser ontvangt alleen het SDP-answer.
 
 De drie voice-tools hebben geen employee-ID-argument:
 
@@ -37,13 +37,13 @@ Luna blijft eigenaar van discovery, architectuur, security, integratie, tests, v
 ## Gates
 
 - **IMPLEMENTED:** lokale serverroutes, WebRTC session-config, drie tool-routes, metadata-migration, i18n en employee-profile control.
-- **TESTED:** realtime contracttests, bestaande employee-AI tests, strict TypeScript, i18n parity en diff-check.
-- **NOT TESTED:** live WebRTC, microphone permission, OpenAI Realtime call, authenticated persona flows en remote migration/advisors.
+- **TESTED:** Live contracttests, provider-diagnostic redaction, authenticated Preview WebRTC session start, browser DOM-audio handshake instrumentation, existing employee-AI tests, strict TypeScript, i18n parity and diff-check.
+- **NOT TESTED:** human microphone speech, spoken-response audibility, complete live tool conversation and remote migration/advisors.
 - **BLOCKED:** remote migration/apply en live OpenAI-validatie vereisen expliciete remote scope, een geldige server-side `OPENAI_API_KEY` en een geautoriseerde DEV/TEST database-run.
 
 ## Vervolg
 
-- V1: remote DEV/TEST migration, authenticated Manager/HR negative checks en live WebRTC lifecycle.
+- V1: remote DEV/TEST migration, authenticated Manager/HR negative checks and human Live WebRTC lifecycle acceptance.
 - V2: gedeelde conversational core voor HeRa/text en voice, met een typed adapter in plaats van voice-specifieke businesslogica.
 - V3: meer read/proposal-tools met dezelfde authorization- en creditgrenzen.
 - V4: gecontroleerde agentic HR-workflows met expliciete review/publish boundaries.

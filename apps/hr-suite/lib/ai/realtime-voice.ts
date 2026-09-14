@@ -89,7 +89,7 @@ export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLoc
     ].join(' '),
     client: {
       data_channel: {
-        allowed_client_events: ['response.item.create', 'response.create', 'session.close'],
+        allowed_client_events: ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'],
       },
     },
     delegation: {

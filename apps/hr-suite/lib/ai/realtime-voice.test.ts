@@ -31,6 +31,7 @@ describe('GPT-Live employee voice contract', () => {
     })
     expect(configuration).not.toHaveProperty('output_modalities')
     expect(configuration).not.toHaveProperty('tools')
+    expect(configuration).toMatchObject({ client: { data_channel: { allowed_client_events: ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'] } } })
     const delegation = configuration.delegation as { responses: { tools: Array<{ name: string }> } }
     expect(delegation.responses.tools.map((tool) => tool.name)).toEqual([
       'employee_summary',

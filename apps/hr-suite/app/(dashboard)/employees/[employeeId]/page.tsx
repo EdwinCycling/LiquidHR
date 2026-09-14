@@ -276,7 +276,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           title: tEmployees('aiEverywhereTitle'), description: tEmployees('aiEverywhereDescription'), summary: tEmployees('aiEmployeeSummary'), conversation: tEmployees('aiConversationPreparation'),
           working: tEmployees('aiWorking'), reviewTitle: tEmployees('aiReviewTitle'), cancel: tEmployees('aiCancel'), copy: tEmployees('aiCopy'), copied: tEmployees('aiCopied'), retry: tEmployees('aiRetry'), failed: tEmployees('aiFailed'),
         }} /> : null}
-        {tab === 'overview' && canUseAi && isAiImproveAvailable() && isRealtimeVoiceEnabled() ? <EmployeeLiveVoice employeeId={employeeId} locale={locale} labels={{
+        {tab === 'overview' && canUseAi && isAiImproveAvailable() && isRealtimeVoiceEnabled() ? <EmployeeLiveVoice employeeId={employeeId} employeeName={`${detail.employee.firstName} ${detail.employee.birthName}`} locale={locale} labels={{
+          mute: tEmployees('aiVoiceMute'), unmute: tEmployees('aiVoiceUnmute'), muted: tEmployees('aiVoiceMuted'), closing: tEmployees('aiVoiceClosing'), privacy: tEmployees('aiVoicePrivacy'), employeeContext: tEmployees('aiVoiceEmployeeContext'),
           title: tEmployees('aiVoiceTitle'), description: tEmployees('aiVoiceDescription'), start: tEmployees('aiVoiceStart'), stop: tEmployees('aiVoiceStop'), connecting: tEmployees('aiVoiceConnecting'), listening: tEmployees('aiVoiceListening'), speaking: tEmployees('aiVoiceSpeaking'), processing: tEmployees('aiVoiceProcessing'), microphoneDenied: tEmployees('aiVoiceMicrophoneDenied'), connectionFailed: tEmployees('aiVoiceConnectionFailed'), disabled: tEmployees('aiVoiceDisabled'), toolFailed: tEmployees('aiVoiceToolFailed'),
         }} /> : null}
 
