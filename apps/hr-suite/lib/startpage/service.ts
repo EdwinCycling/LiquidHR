@@ -16,7 +16,7 @@ import { listJourneyProjectionsForContext } from '@/lib/journeys/projection-serv
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { resolveStoredImageUrl } from '@/lib/storage/image-url'
 import { getTeamAiStartPageData, type StartPageTeamAiData } from '@/lib/ai/team-scope'
-import { listPersonalLogbookEntries, type PersonalLogbookEntry } from '@/lib/logbook/service'
+import { getPersonalLogbookSummary, type PersonalLogbookSummary } from '@/lib/logbook/service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -61,7 +61,7 @@ export interface StartPageData {
   canReportAbsence: boolean
   journeys: JourneyProjectionList
   teamAi: StartPageTeamAiData | null
-  logbook: PersonalLogbookEntry[]
+  logbook: PersonalLogbookSummary
   journeyOnly: boolean
 }
 
@@ -504,7 +504,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       canReportAbsence: false,
       journeys: dependencies.journeys ?? [],
       teamAi: null,
-      logbook: [],
+      logbook: { totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 },
       journeyOnly: true,
     }
   }
@@ -550,7 +550,7 @@ export async function getStartPageData(requestedScope?: StartPageScope, dependen
       ? listJourneyProjectionsForContext(supabase, auth).catch((): JourneyProjectionList => [])
       : Promise.resolve<JourneyProjectionList>([])),
     measure('teamAi', () => getTeamAiStartPageData(auth, supabase)),
-    measure('logbook', () => listPersonalLogbookEntries(3, { context: auth, supabase }).catch(() => [])),
+    measure('logbook', () => getPersonalLogbookSummary({ context: auth, supabase }).catch(() => ({ totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 }))),
   ]))
 
   return {

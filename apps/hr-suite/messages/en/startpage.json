@@ -198,5 +198,13 @@
   "logbookNew": "New note",
   "logbookEmpty": "No personal notes yet.",
   "logbookSourceManual": "Added manually",
-  "logbookSourceAi": "Added by AI"
+  "logbookSourceAi": "Added by AI",
+  "logbookShowRecent": "Show recent notes",
+  "logbookHideRecent": "Hide content",
+  "logbookRecentCount": "{count} notes",
+  "logbookLatest": "Latest note",
+  "logbookNoRecent": "No notes to show yet.",
+  "logbookPrivatePlaceholder": "Private note hidden",
+  "logbookPrivatePlaceholderDescription": "Content is shown only after you choose to reveal it.",
+  "logbookRevealFailed": "Recent notes could not be loaded."
 }

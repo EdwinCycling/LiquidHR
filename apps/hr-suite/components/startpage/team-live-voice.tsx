@@ -296,11 +296,17 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
       try {
         const response = await fetch(`${run.base}/tool`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: run.sessionId, locale, name: functionCall.name, arguments: functionCall.arguments }), signal: run.tools.signal })
         const result: unknown = await response.json()
-        if (!response.ok || !isRecord(result) || !isRecord(result.data) || typeof result.data.resultText !== 'string') throw new Error('tool_failed')
-        output = result.data.resultText
-        if (typeof result.data.proposedText === 'string') {
-          setProposal({ sessionId: run.sessionId, text: result.data.proposedText })
-          setSummaryBody(result.data.proposedText)
+        const data = isRecord(result) && isRecord(result.data) ? result.data : null
+        const resultText = data && typeof data.resultText === 'string' ? data.resultText : null
+        if (!response.ok || !resultText) throw new Error('tool_failed')
+        if (data && data.created === true && typeof data.reminderId === 'string' && typeof data.title === 'string' && typeof data.remindAt === 'string') {
+          output = JSON.stringify({ reminderId: data.reminderId, title: data.title, remindAt: data.remindAt, created: true })
+        } else {
+          output = resultText
+        }
+        if (data && typeof data.proposedText === 'string') {
+          setProposal({ sessionId: run.sessionId, text: data.proposedText })
+          setSummaryBody(data.proposedText)
           setSummaryTitle(labels.summaryDefaultTitle)
           setSummaryStatus('idle')
         }

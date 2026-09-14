@@ -22,6 +22,13 @@ const labels = new Proxy({} as StartPageLabels, {
     drag: 'Venster slepen om de volgorde te wijzigen',
     moveDown: 'Venster omlaag verplaatsen',
     moveUp: 'Venster omhoog verplaatsen',
+    logbookShowRecent: 'Toon recente notities',
+    logbookHideRecent: 'Verberg inhoud',
+    logbookPrivatePlaceholder: 'Privénotitie verborgen',
+    logbookPrivatePlaceholderDescription: 'Inhoud wordt pas getoond nadat je dit kiest.',
+    logbookRecentCount: '{count} notities',
+    logbookLatest: 'Laatste notitie',
+    logbookNoRecent: 'Nog geen notities om te tonen.',
   }[String(property)] ?? String(property)),
 })
 
@@ -57,7 +64,7 @@ const data: StartPageData = {
   tenantName: 'Tenant',
   upcomingEvents: [],
   workforceLinks: [],
-  logbook: [],
+  logbook: { totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 },
 }
 
 function render(viewMode: 'compact' | 'full', viewData: StartPageData = data): string {
@@ -131,13 +138,16 @@ describe('StartPage view modes', () => {
         aiEnabled: true,
         voiceEnabled: true,
       },
-      logbook: [{ id: 'entry-1', title: 'Teamgesprek', description: 'Vervolgactie.', source: 'AI_TEAM_SUMMARY', sourceSessionId: 'session-1', contextName: 'Mijn team', contextDepartmentId: null, createdAt: '2026-08-29T10:00:00.000Z', updatedAt: '2026-08-29T10:00:00.000Z' }],
+      logbook: { totalCount: 1, latestCreatedAt: '2026-08-29T10:00:00.000Z', manualCount: 0, aiCount: 1 },
     })
 
     expect(markup).toContain('data-testid="startpage-team-ai"')
     expect(markup).toContain('GPT-Live')
     expect(markup).toContain('Maya Bos')
     expect(markup).toContain('data-testid="startpage-logbook"')
-    expect(markup).toContain('Teamgesprek')
+    expect(markup).toContain('Toon recente notities')
+    expect(markup).toContain('Privénotitie verborgen')
+    expect(markup).not.toContain('Teamgesprek')
+    expect(markup).not.toContain('Vervolgactie.')
   })
 })

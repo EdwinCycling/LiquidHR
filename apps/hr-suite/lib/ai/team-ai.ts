@@ -7,6 +7,7 @@ import { TEAM_SUMMARY_FEATURE } from './feature-registry'
 import { createServerAiRuntimeDependencies, runAuthorizedAiInvocation } from './runtime'
 import { getAuthorizedTeamAiSession, type AuthorizedTeamAiSession, type TeamAiMember } from './team-scope'
 import { parseTeamRealtimeVoiceToolArguments, type TeamRealtimeVoiceLocale, type TeamRealtimeVoiceToolName } from './realtime-voice'
+import { executePersonalReminderTool, type PersonalReminderToolResult } from './personal-reminders'
 import type { AuthContext } from '@/lib/auth/permissions'
 import { runEmployeeAi } from '@/lib/employees/employee-ai'
 
@@ -19,6 +20,10 @@ export class TeamAiToolError extends Error {
 export interface TeamAiToolResult {
   resultText: string
   proposedText?: string
+  reminderId?: PersonalReminderToolResult['reminderId']
+  title?: PersonalReminderToolResult['title']
+  remindAt?: PersonalReminderToolResult['remindAt']
+  created?: true
 }
 
 function normalizeName(value: string): string {
@@ -101,7 +106,7 @@ async function runTeamSummaryProposal(session: AuthorizedTeamAiSession, summaryT
 }
 
 export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: string; name: TeamRealtimeVoiceToolName; arguments: unknown; locale: TeamRealtimeVoiceLocale }): Promise<TeamAiToolResult> {
-  let args: { employeeName?: string; summaryText?: string }
+  let args: ReturnType<typeof parseTeamRealtimeVoiceToolArguments>
   try {
     args = parseTeamRealtimeVoiceToolArguments(input.name, input.arguments)
   } catch {
@@ -109,6 +114,15 @@ export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: s
   }
   const session = await getAuthorizedTeamAiSession(input.auth, input.sessionId, { activeOnly: true })
   if (input.name === 'team_overview') return { resultText: overviewText(session, input.locale) }
+
+  if (input.name === 'create_personal_reminder') {
+    return executePersonalReminderTool({
+      auth: input.auth,
+      source: 'TEAM_AI',
+      locale: input.locale,
+      arguments: args,
+    })
+  }
 
   if (input.name === 'team_employee_summary' || input.name === 'team_conversation_preparation') {
     if (!args.employeeName) throw new TeamAiToolError('TEAM_TOOL_INPUT_INVALID', 400)

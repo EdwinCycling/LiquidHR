@@ -1,5 +1,5 @@
-export type RealtimeVoiceToolName = 'employee_summary' | 'conversation_preparation' | 'development_goal_smart'
-export type TeamRealtimeVoiceToolName = 'team_overview' | 'team_employee_summary' | 'team_conversation_preparation' | 'team_summary_proposal'
+export type RealtimeVoiceToolName = 'employee_summary' | 'conversation_preparation' | 'development_goal_smart' | 'create_personal_reminder'
+export type TeamRealtimeVoiceToolName = 'team_overview' | 'team_employee_summary' | 'team_conversation_preparation' | 'team_summary_proposal' | 'create_personal_reminder'
 
 export interface RealtimeVoiceFunctionCall {
   callId: string
@@ -7,8 +7,8 @@ export interface RealtimeVoiceFunctionCall {
   arguments: unknown
 }
 
-const realtimeVoiceToolNames = new Set<RealtimeVoiceToolName>(['employee_summary', 'conversation_preparation', 'development_goal_smart'])
-const teamRealtimeVoiceToolNames = new Set<TeamRealtimeVoiceToolName>(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal'])
+const realtimeVoiceToolNames = new Set<RealtimeVoiceToolName>(['employee_summary', 'conversation_preparation', 'development_goal_smart', 'create_personal_reminder'])
+const teamRealtimeVoiceToolNames = new Set<TeamRealtimeVoiceToolName>(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal', 'create_personal_reminder'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

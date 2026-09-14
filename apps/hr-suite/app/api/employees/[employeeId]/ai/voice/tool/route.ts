@@ -9,6 +9,7 @@ import {
   requireEmployeeVoiceContext,
 } from '@/lib/ai/realtime-voice'
 import { runDevelopmentGoalSmart } from '@/lib/talent/goal-ai'
+import { executePersonalReminderTool } from '@/lib/ai/personal-reminders'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
 
@@ -17,7 +18,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   const parsed = realtimeVoiceToolRequestSchema.safeParse(await request.json().catch(() => null) as unknown)
   if (!parsed.success) return NextResponse.json({ error: 'AI_VOICE_TOOL_INPUT_INVALID' }, { status: 400 })
   try {
-    await requireEmployeeVoiceContext(employeeId)
+    const authContext = await requireEmployeeVoiceContext(employeeId)
     const args = parseRealtimeVoiceToolArguments(parsed.data.name, parsed.data.arguments)
     const idempotencyKey = randomUUID()
     if (parsed.data.name === 'employee_summary') {
@@ -27,6 +28,15 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
     if (parsed.data.name === 'conversation_preparation') {
       const proposal = await runEmployeeAi({ employeeId, feature: 'CONVERSATION_PREPARATION', request: { locale: parsed.data.locale }, idempotencyKey })
       return NextResponse.json({ data: { proposedText: proposal.proposedText } })
+    }
+    if (parsed.data.name === 'create_personal_reminder') {
+      const result = await executePersonalReminderTool({
+        auth: authContext,
+        source: 'EMPLOYEE_AI',
+        locale: parsed.data.locale,
+        arguments: args,
+      })
+      return NextResponse.json({ data: result })
     }
     if (!args.sourceText) return NextResponse.json({ error: 'AI_VOICE_TOOL_INPUT_INVALID' }, { status: 400 })
     const proposal = await runDevelopmentGoalSmart({

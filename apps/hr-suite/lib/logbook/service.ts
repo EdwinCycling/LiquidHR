@@ -19,6 +19,13 @@ export interface PersonalLogbookEntry {
   updatedAt: string
 }
 
+export interface PersonalLogbookSummary {
+  totalCount: number
+  latestCreatedAt: string | null
+  manualCount: number
+  aiCount: number
+}
+
 interface LogbookRow {
   id: string
   title: string
@@ -29,6 +36,11 @@ interface LogbookRow {
   context_department_id: string | null
   created_at: string
   updated_at: string
+}
+
+interface LogbookSummaryRow {
+  source: string
+  created_at: string
 }
 
 export class LogbookServiceError extends Error {
@@ -74,6 +86,26 @@ export async function listPersonalLogbookEntries(limit = 200, dependencies?: Con
   const { data, error } = await resolved.supabase.from('personal_logbook_entries').select(entryColumns).eq('tenant_id', resolved.context.tenantId).eq('hr_group_id', groupId).eq('owner_user_id', resolved.context.userId).order('created_at', { ascending: false }).limit(Math.max(1, Math.min(limit, 200)))
   if (error) throw new LogbookServiceError('LOGBOOK_READ_FAILED', 500)
   return (data as LogbookRow[]).map(mapEntry)
+}
+
+export async function getPersonalLogbookSummary(dependencies?: ContextDependencies): Promise<PersonalLogbookSummary> {
+  const resolved = await dependenciesFor('logbook:read', dependencies)
+  const groupId = requireHrGroupId(resolved.context)
+  const { data, count, error } = await resolved.supabase.from('personal_logbook_entries')
+    .select('source,created_at', { count: 'exact' })
+    .eq('tenant_id', resolved.context.tenantId)
+    .eq('hr_group_id', groupId)
+    .eq('owner_user_id', resolved.context.userId)
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (error) throw new LogbookServiceError('LOGBOOK_READ_FAILED', 500)
+  const rows = (data as LogbookSummaryRow[])
+  return {
+    totalCount: count ?? rows.length,
+    latestCreatedAt: rows[0]?.created_at ?? null,
+    manualCount: rows.filter((row) => row.source === 'MANUAL').length,
+    aiCount: rows.filter((row) => row.source === 'AI_TEAM_SUMMARY').length,
+  }
 }
 
 export async function createManualPersonalLogbookEntry(input: PersonalLogbookEntryCreateInput, dependencies?: ContextDependencies): Promise<PersonalLogbookEntry> {

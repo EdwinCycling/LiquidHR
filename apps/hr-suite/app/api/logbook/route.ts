@@ -3,9 +3,12 @@ import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { createAiTeamSummaryLogbookEntry, createManualPersonalLogbookEntry, listPersonalLogbookEntries, LogbookServiceError } from '@/lib/logbook/service'
 import { aiTeamSummaryLogbookEntryCreateSchema, personalLogbookEntryCreateSchema } from '@/lib/logbook/schemas'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
   try {
-    return NextResponse.json({ data: await listPersonalLogbookEntries() })
+    const requestedLimit = new URL(request.url).searchParams.get('limit')
+    const parsedLimit = requestedLimit && /^\d+$/.test(requestedLimit) ? Number(requestedLimit) : 200
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 200
+    return NextResponse.json({ data: await listPersonalLogbookEntries(limit) })
   } catch (error) {
     return logbookError(error)
   }

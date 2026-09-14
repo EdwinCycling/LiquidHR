@@ -342,10 +342,17 @@ export function EmployeeLiveVoice({
           signal: run.tools.signal,
         })
         const result: unknown = await response.json()
-        if (!response.ok || !record(result) || !record(result.data) || typeof result.data.proposedText !== 'string') {
+        const data = record(result) && record(result.data) ? result.data : null
+        const proposedText = data && typeof data.proposedText === 'string' ? data.proposedText : null
+        const resultText = data && typeof data.resultText === 'string' ? data.resultText : null
+        if (!response.ok || (!proposedText && !resultText)) {
           throw new Error('tool_failed')
         }
-        output = result.data.proposedText
+        if (data && data.created === true && typeof data.reminderId === 'string' && typeof data.title === 'string' && typeof data.remindAt === 'string') {
+          output = JSON.stringify({ reminderId: data.reminderId, title: data.title, remindAt: data.remindAt, created: true })
+        } else {
+          output = proposedText ?? resultText ?? JSON.stringify({ error: 'tool_failed' })
+        }
       } catch {
         if (!live()) return
         output = JSON.stringify({ error: 'tool_failed' })

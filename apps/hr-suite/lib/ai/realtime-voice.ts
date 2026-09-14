@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { AiExecutionError } from './contracts'
 import { OPENAI_EFFICIENT_MODEL } from './openai-config'
+import { parsePersonalReminderToolArguments, personalReminderToolParameters, type PersonalReminderToolArguments } from './personal-reminders'
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -15,7 +16,7 @@ export const realtimeVoiceSessionRequestSchema = z.object({
 
 export const realtimeVoiceToolRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
-  name: z.enum(['employee_summary', 'conversation_preparation', 'development_goal_smart']),
+  name: z.enum(['employee_summary', 'conversation_preparation', 'development_goal_smart', 'create_personal_reminder']),
   arguments: z.unknown(),
 }).strict()
 
@@ -33,7 +34,7 @@ export const teamRealtimeVoiceSessionRequestSchema = z.object({
 export const teamRealtimeVoiceToolRequestSchema = z.object({
   locale: z.enum(['nl', 'en']),
   sessionId: z.string().uuid(),
-  name: z.enum(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal']),
+  name: z.enum(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal', 'create_personal_reminder']),
   arguments: z.unknown(),
 }).strict()
 
@@ -111,22 +112,38 @@ const teamSummaryParameters = {
   additionalProperties: false,
 } as const
 
+type ParsedRealtimeVoiceToolArguments = {
+  sourceText?: string
+  title?: string
+  description?: string
+  remindAt?: string
+  confirmation?: PersonalReminderToolArguments['confirmation']
+}
+
+const liveClientEvents = ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'] as const
+
+function createLiveSessionConfiguration(input: { instructions: string; delegation: Record<string, unknown> }): Record<string, unknown> {
+  return {
+    model: resolveRealtimeVoiceModel(),
+    instructions: input.instructions,
+    client: {
+      data_channel: {
+        allowed_client_events: liveClientEvents,
+      },
+    },
+    delegation: input.delegation,
+  }
+}
+
 export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLocale): Record<string, unknown> {
   const language = locale === 'nl' ? 'Dutch' : 'English'
-  return {
-    type: 'live',
-    model: resolveRealtimeVoiceModel(),
+  return createLiveSessionConfiguration({
     instructions: [
       `You are the LiquidHR voice interface. Speak in ${language}.`,
       'This session is bound to one employee by the LiquidHR application. Never ask for or accept an employee ID. Delegate employee questions to the backend.',
       'Keep the spoken conversation concise and handle interruptions naturally.',
       'Never claim that HR data was saved, changed, published, or approved. A human must review and confirm proposals in the application.',
     ].join(' '),
-    client: {
-      data_channel: {
-        allowed_client_events: ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'],
-      },
-    },
     delegation: {
       type: 'responses',
       responses: {
@@ -159,32 +176,33 @@ export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLoc
             parameters: smartGoalParameters,
             strict: true,
           },
+          {
+            type: 'function',
+            name: 'create_personal_reminder',
+            description: 'Create a reminder only for the authenticated manager or HR actor. Call this only after an explicit request or accepted proposal and a resolved absolute date and time. Never create reminders for another person, employee, team, department, or HR group.',
+            parameters: personalReminderToolParameters,
+            strict: true,
+          },
         ],
         tool_choice: 'auto',
         parallel_tool_calls: false,
       },
     },
-  }
+  })
 }
 
 export function createTeamRealtimeVoiceSessionConfiguration(locale: TeamRealtimeVoiceLocale): Record<string, unknown> {
   const language = locale === 'nl' ? 'Dutch' : 'English'
-  return {
-    type: 'live',
-    model: resolveRealtimeVoiceModel(),
+  return createLiveSessionConfiguration({
     instructions: [
       `You are the LiquidHR Team AI voice interface. Speak in ${language}.`,
       'This session is bound to the fixed team scope selected by the LiquidHR application. Never ask for or accept employee IDs or department IDs.',
       'Use the LiquidHR team tools for overview, an individual team member by exact name, conversation preparation, and a reviewed team-summary proposal.',
       'Do not rank people, infer sensitive attributes, expose full employee records, or expand beyond the fixed team scope.',
+      'Personal reminders are only for the authenticated manager or HR actor. Never create a reminder for another person, team member, team, department, or HR group. Ask a follow-up when the date or time is ambiguous, and do not call the reminder tool until the user explicitly requests it or accepts a proposal.',
       'Never claim that HR data was saved, changed, published, or approved. A human must review and explicitly save a proposal in Mijn logboek.',
       'Keep the spoken conversation concise and handle interruptions naturally.',
     ].join(' '),
-    client: {
-      data_channel: {
-        allowed_client_events: ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'],
-      },
-    },
     delegation: {
       type: 'responses',
       responses: {
@@ -193,6 +211,7 @@ export function createTeamRealtimeVoiceSessionConfiguration(locale: TeamRealtime
           'You are the LiquidHR Team AI backend. Use only the supplied LiquidHR team tools and the immutable server scope.',
           'The server resolves employee names to scoped employees and reauthorizes every tool call. Never request or infer an employee ID.',
           'Team Summary is a proposal only. It must be reviewed and explicitly saved by the manager or HR user in Mijn logboek. Never write Employee Notes.',
+          'create_personal_reminder is the only reminder capability. It creates a personal reminder for the authenticated actor only, after explicit confirmation and an absolute timestamp. Never target employees, team members, teams, departments, or HR groups, and never use HR reminder or publish capabilities.',
           'Do not rank employees, produce sensitive inference, or claim that anything was saved, changed, published, or approved.',
         ].join(' '),
         tools: [
@@ -224,25 +243,33 @@ export function createTeamRealtimeVoiceSessionConfiguration(locale: TeamRealtime
             parameters: teamSummaryParameters,
             strict: true,
           },
+          {
+            type: 'function',
+            name: 'create_personal_reminder',
+            description: 'Create a personal reminder only for the authenticated actor after explicit confirmation and a resolved absolute date and time. Never target another person, employee, team, department, or HR group.',
+            parameters: personalReminderToolParameters,
+            strict: true,
+          },
         ],
         tool_choice: 'auto',
         parallel_tool_calls: false,
       },
     },
-  }
+  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function providerErrorMetadata(body: string): { openAiErrorType?: string; openAiErrorCode?: string } {
+function providerErrorMetadata(body: string): { openAiErrorType?: string; openAiErrorCode?: string; openAiErrorParam?: string } {
   try {
     const parsed: unknown = JSON.parse(body)
     if (!isRecord(parsed) || !isRecord(parsed.error)) return {}
-    const metadata: { openAiErrorType?: string; openAiErrorCode?: string } = {}
+    const metadata: { openAiErrorType?: string; openAiErrorCode?: string; openAiErrorParam?: string } = {}
     if (typeof parsed.error.type === 'string') metadata.openAiErrorType = parsed.error.type
     if (typeof parsed.error.code === 'string') metadata.openAiErrorCode = parsed.error.code
+    if (typeof parsed.error.param === 'string') metadata.openAiErrorParam = parsed.error.param
     return metadata
   } catch {
     return {}
@@ -258,6 +285,7 @@ function logProviderFailure(input: { response?: Response; body: string; model: s
     requestId?: string
     openAiErrorType?: string
     openAiErrorCode?: string
+    openAiErrorParam?: string
   } = {
     apiFamily: 'live',
     endpoint: GPT_LIVE_SESSION_ENDPOINT,
@@ -280,18 +308,19 @@ function safeRecord(value: unknown): Record<string, unknown> {
   return value
 }
 
-export function parseRealtimeVoiceToolArguments(name: RealtimeVoiceToolName, value: unknown): { sourceText?: string } {
+export function parseRealtimeVoiceToolArguments(name: RealtimeVoiceToolName, value: unknown): ParsedRealtimeVoiceToolArguments {
   const record = safeRecord(value)
   if (name === 'development_goal_smart') {
     const parsed = z.object({ sourceText: z.string().trim().min(1).max(4_000) }).strict().safeParse(record)
     if (!parsed.success) throw new AiExecutionError('INVALID_RESULT')
     return parsed.data
   }
+  if (name === 'create_personal_reminder') return parsePersonalReminderToolArguments(record)
   if (Object.keys(record).length !== 0) throw new AiExecutionError('INVALID_RESULT')
   return {}
 }
 
-export function parseTeamRealtimeVoiceToolArguments(name: TeamRealtimeVoiceToolName, value: unknown): { employeeName?: string; summaryText?: string } {
+export function parseTeamRealtimeVoiceToolArguments(name: TeamRealtimeVoiceToolName, value: unknown): ParsedRealtimeVoiceToolArguments & { employeeName?: string; summaryText?: string } {
   const record = safeRecord(value)
   if (name === 'team_overview') {
     if (Object.keys(record).length !== 0) throw new AiExecutionError('INVALID_RESULT')
@@ -302,6 +331,7 @@ export function parseTeamRealtimeVoiceToolArguments(name: TeamRealtimeVoiceToolN
     if (!parsed.success) throw new AiExecutionError('INVALID_RESULT')
     return parsed.data
   }
+  if (name === 'create_personal_reminder') return parsePersonalReminderToolArguments(record)
   const parsed = z.object({ summaryText: z.string().trim().min(1).max(4_000) }).strict().safeParse(record)
   if (!parsed.success) throw new AiExecutionError('INVALID_RESULT')
   return parsed.data

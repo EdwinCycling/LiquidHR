@@ -198,5 +198,13 @@
   "logbookNew": "Nieuwe notitie",
   "logbookEmpty": "Nog geen persoonlijke notities.",
   "logbookSourceManual": "Handmatig toegevoegd",
-  "logbookSourceAi": "Door AI toegevoegd"
+  "logbookSourceAi": "Door AI toegevoegd",
+  "logbookShowRecent": "Toon recente notities",
+  "logbookHideRecent": "Verberg inhoud",
+  "logbookRecentCount": "{count} notities",
+  "logbookLatest": "Laatste notitie",
+  "logbookNoRecent": "Nog geen notities om te tonen.",
+  "logbookPrivatePlaceholder": "Privénotitie verborgen",
+  "logbookPrivatePlaceholderDescription": "Inhoud wordt pas getoond nadat je dit kiest.",
+  "logbookRevealFailed": "Recente notities konden niet worden geladen."
 }
