@@ -17,7 +17,7 @@ export const INSIGHT_REPORTS: readonly InsightReportDefinition[] = [
   { id: 'employee-age', category: 'employees', permission: 'report-employee-age:read', available: true },
   { id: 'terminations', category: 'employees', permission: 'report-terminations:read', available: true },
   { id: 'upcoming-events', category: 'employees', permission: 'report-upcoming-events:read', available: true },
-  { id: 'leave', category: 'leave', permission: 'report-leave:read', available: false },
+  { id: 'leave', category: 'leave', permission: 'report-leave:read', available: true },
   { id: 'absence', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-bradford', category: 'absence', permission: 'report-absence:read', available: true },
   { id: 'absence-frequent', category: 'absence', permission: 'report-absence:read', available: true },
@@ -35,7 +35,7 @@ export function isSalaryInsightReportId(report: InsightReportId): report is Sala
   return (SALARY_INSIGHT_REPORT_IDS as readonly string[]).includes(report)
 }
 
-export function insightReportPermission(report: EmployeeInsightReportId): string {
+export function insightReportPermission(report: InsightReportId): string {
   const definition = INSIGHT_REPORTS.find((item) => item.id === report)
   if (!definition) throw new Error('INSIGHTS_REPORT_UNKNOWN')
   return definition.permission

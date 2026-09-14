@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { INSIGHT_REPORTS, type InsightReportId } from './report-catalog'
+import { leaveInsightsOwnedQueryKeys } from './leave-insights-query'
 
 export type InsightAudience = 'HR_ADMIN' | 'DIRECT_MANAGER' | 'EMPLOYEE'
 export type InsightFilterKind = 'single' | 'multi' | 'date' | 'period' | 'search' | 'boolean'
@@ -65,7 +66,7 @@ const reportQueryKeys: Readonly<Record<InsightReportId, readonly string[]>> = {
   'employee-age': ['groupBy', 'group', 'sortBy', 'sort', 'year', 'month', 'fullYear', 'years', 'teams', 'segments', 'reasons', 'employeeStatus'],
   terminations: ['groupBy', 'group', 'sortBy', 'sort', 'year', 'month', 'fullYear', 'years', 'teams', 'segments', 'reasons', 'employeeStatus'],
   'upcoming-events': ['types', 'period', 'departmentIds', 'departmentId', 'departments'],
-  leave: [],
+  leave: leaveInsightsOwnedQueryKeys(),
   absence: ['period', 'year', 'month', 'departmentId', 'department'],
   'absence-bradford': ['period', 'year', 'month', 'departmentId', 'department', 'groupBy', 'group', 'risk', 'search'],
   'absence-frequent': ['period', 'year', 'month', 'departmentId', 'department', 'search', 'frequentOnly'],
@@ -84,7 +85,10 @@ function salaryQueryKeys(): readonly string[] {
   return ['asOfDate', 'groupBy', 'sortBy', 'departmentId', 'departmentIds', 'departments', 'administrations', 'teams', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes']
 }
 
-const allReportQueryKeys = [...new Set(Object.values(reportQueryKeys).flat())]
+// `view` is a presentation-state key for the existing Insights reports, while
+// Leave uses the same key for its first-class subview. Keep it out of the
+// cross-report cleanup set and handle the Leave boundary explicitly below.
+const allReportQueryKeys = [...new Set(Object.values(reportQueryKeys).flat())].filter((key) => key !== 'view')
 const arrayQueryKeys = new Set(['teams', 'segments', 'reasons', 'types', 'departmentIds', 'departments', 'administrations', 'managers', 'functions', 'functionGroups', 'locations', 'laborConditions', 'structures', 'bands', 'scales', 'steps', 'fteBuckets', 'employmentTypes', 'salaryRoutes', 'statuses', 'severities', 'exceptionTypes'])
 
 export function canonicalInsightReportId(value: string | null | undefined): InsightReportId | null {
@@ -156,22 +160,27 @@ export function canonicalInsightHref(input: URLSearchParams): string {
   return insightHref(canonicalizeInsightParams(input))
 }
 
-function clearReportQueryState(params: URLSearchParams): void {
+function clearReportQueryState(params: URLSearchParams, currentReport: InsightReportId | null): void {
   params.delete('report')
   for (const key of allReportQueryKeys) params.delete(key)
+  if (currentReport === 'leave') params.delete('view')
 }
 
 export function buildInsightReportNavigationHref(current: URLSearchParams, nextReport: InsightReportId | null): string {
   const params = canonicalizeInsightParams(current)
-  clearReportQueryState(params)
+  const currentReport = canonicalInsightReportId(current.get('report'))
+  clearReportQueryState(params, currentReport)
+  if (nextReport === 'leave') params.delete('view')
   if (nextReport) params.set('report', nextReport)
   return insightHref(params)
 }
 
 export function buildInsightApplyHref(current: URLSearchParams, serializedQuery: URLSearchParams): string {
   const params = canonicalizeInsightParams(current)
-  clearReportQueryState(params)
+  const currentReport = canonicalInsightReportId(current.get('report'))
+  clearReportQueryState(params, currentReport)
   const next = canonicalizeInsightParams(serializedQuery)
+  if (canonicalInsightReportId(next.get('report')) === 'leave') params.delete('view')
   for (const [key, value] of next.entries()) params.append(key, value)
   return insightHref(params)
 }

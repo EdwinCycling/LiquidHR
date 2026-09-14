@@ -1,5 +1,42 @@
 # Liquid HR documentatie-index
 
+## Leave Insights V1 — 2026-09-14
+
+**Status: DEVELOPMENT CANDIDATE — DEV READ-ONLY ACCEPTANCE / MAIN GATES OPEN**
+
+De Leave Insights V1-candidate voegt één eerste-klas `/insights?report=leave`
+workspace toe met elf URL-gestuurde subviews: cockpit, saldo, verval,
+gebruik, capaciteit, accrual, mutaties, finance, contracteinde, jaarafsluiting
+en exceptions. De server leest uitsluitend de bestaande canonieke Leave-ledger,
+bucket/cohort-, profiel-, aanvraag-, allocatie-, rooster- en configuratiefacts;
+er is geen shadow reporting ledger en geen nieuwe businessdata aangemaakt.
+Approved toekomstige planning gebruikt uitsluitend de bestaande
+`projectApprovedLeave`-projectie.
+
+De bestaande `MIGRATION_START_BALANCE`-cutover en onafhankelijke
+vervalcohorten blijven leidend. De analytische reservoirdrempel start op `0,75`
+en is als indicatieve rapportinstelling aanpasbaar; zij wijzigt geen Leave-
+configuratie. Direct Manager scope is server-side begrensd. Finance toont altijd
+hours liability en gate geldwaardering op afzonderlijke provision/salary-
+permissions. NL/EN-sleutels, CSV-export en employee/employment/audit-drilldown
+zijn toegevoegd.
+
+Voor de Manager-readscope is uitsluitend op DEV `wnpfloqpjvaacobppbpk` de
+additieve migration `leave_insights_manager_permission` toegepast en op naam
+geregistreerd als remote versie `20260914142023`. De migration bevat uitsluitend
+gescopeerde SELECT-policies en de afzonderlijke `report-leave:read`-toekenning;
+Production, Payroll, TEST-BOUNDARY en echte medewerkers zijn niet aangeraakt.
+DEV-readback bevestigt `TEST-BOUNDARY` 0/0 en geen dubbele Leave source keys.
+
+De candidate staat op branch `work/leave-insights-v1` in
+`\.codex-worktrees\leave-insights-v1`. Leave-gerichte tests zijn `21/21`
+groen; strict TypeScript, ESLint, i18n (`35` gelijke namespaces), diff-check
+en Webpack-productiebuild zijn groen. De volledige suite is `371/374`
+testbestanden en `1452/1455` tests; de drie failures zijn bestaande,
+onaangeraakte Document Studio/contract-audit/PDF-baselines. Feature-push,
+integratie naar `main`, exacte GitHub-SHA-readback, Vercel en hosted acceptance
+blijven open.
+
 ## Leave V1 product completion — 2026-09-13
 
 **Status: DEV ACCEPTANCE GREEN — MAIN/VERCEL INTEGRATION GATE OPEN**

@@ -155,6 +155,125 @@
   "closeReport": "Close report",
   "leaveTitle": "Leave at a glance",
   "leaveDescription": "Usage, balance and distribution of leave types for the selected period.",
+  "leaveInsightsEyebrow": "Leave insights",
+  "leaveInsightsTitle": "Leave insights",
+  "leaveInsightsDescription": "A canonical view of leave balances, usage, capacity, accrual and exceptions for the selected scope.",
+  "leaveViewLabel": "Leave insight view",
+  "leaveViewOverview": "Overview",
+  "leaveViewBalances": "Balances",
+  "leaveViewExpiry": "Expiry",
+  "leaveViewUsage": "Usage",
+  "leaveViewCapacity": "Capacity",
+  "leaveViewAccrual": "Accrual",
+  "leaveViewMutations": "Mutations",
+  "leaveViewFinance": "Provision",
+  "leaveViewContractEnd": "Contract end",
+  "leaveViewYearClose": "Year close",
+  "leaveViewExceptions": "Exceptions",
+  "leaveYear": "Year",
+  "leaveAsOfDate": "As-of date",
+  "leavePeriodStart": "Period start",
+  "leavePeriodEnd": "Period end",
+  "leaveDepartment": "Department",
+  "leaveManager": "Manager",
+  "leaveAllDepartments": "All departments",
+  "leaveAllManagers": "All managers",
+  "leaveType": "Leave type",
+  "leaveAllTypes": "All leave types",
+  "leaveProfile": "Leave profile",
+  "leaveAllProfiles": "All profiles",
+  "leaveSeverity": "Severity",
+  "leaveAllSeverities": "All severities",
+  "leaveReservoirThreshold": "Reservoir threshold",
+  "leaveReservoir": "Reservoir",
+  "leaveReservoirUNLIMITED": "Unlimited",
+  "leaveReservoirUNAVAILABLE": "Unavailable",
+  "leaveReservoirLOW": "Low",
+  "leaveReservoirHEALTHY": "Healthy",
+  "leaveReservoirHIGH": "High",
+  "leaveReservoirCRITICAL": "Critical",
+  "leaveOverviewTitle": "Leave overview",
+  "leaveOverviewExplanation": "Balances are reconstructed from the canonical per-employment ledger. Approved future leave is projected from the existing schedule and allocation facts.",
+  "leaveAsOfLabel": "As of",
+  "leaveAsOfExplanation": "The balance and mutation views are calculated through {date}.",
+  "leavePeriodLabel": "Period",
+  "leaveNoRows": "No canonical leave facts match this selection.",
+  "leaveBalancesTitle": "Leave balances",
+  "leaveAsOfBalance": "Balance as of date",
+  "leaveTakenToDate": "Taken to date",
+  "leaveFuturePlanned": "Future planned",
+  "leaveExpiryTitle": "Expiry cohorts",
+  "leaveSourceYear": "Source year",
+  "leaveExpiryDate": "Expiry date",
+  "leaveRemainingHours": "Remaining hours",
+  "leaveStatus": "Status",
+  "leaveCohortEXPIRED_REMAINS": "Expired balance remains",
+  "leaveCohortEXPIRING_SOON": "Expiring soon",
+  "leaveCohortACTIVE": "Active",
+  "leaveCohortEMPTY": "Empty",
+  "leaveUsageTitle": "Leave usage",
+  "leaveApprovedRequests": "Approved requests",
+  "leaveTakenHours": "Taken hours",
+  "leavePlannedHours": "Planned hours",
+  "leaveTakenDays": "Taken days",
+  "leavePlannedDays": "Planned days",
+  "leaveCapacityTitle": "Leave capacity",
+  "leaveScheduledHours": "Scheduled hours",
+  "leaveLeaveHours": "Leave hours",
+  "leaveAvailableHours": "Available hours",
+  "leaveLeaveRate": "Leave rate",
+  "leaveAnomalies": "Anomalies",
+  "leaveAccrualTitle": "Accrual explanation",
+  "leaveRule": "Rule",
+  "leaveAccruedToDate": "Accrued to date",
+  "leaveMigrationCutover": "Migration cutover",
+  "leaveMissingProfile": "No effective profile",
+  "leaveMissingRule": "No effective rule",
+  "leaveMutationsTitle": "Ledger mutations",
+  "leaveDate": "Date",
+  "leaveMutationClass": "Mutation class",
+  "leaveAmount": "Amount",
+  "leaveActor": "Actor",
+  "leaveReason": "Reason",
+  "leaveSystemActor": "System",
+  "leaveNoReason": "No reason recorded",
+  "leaveMutationOPENING_BALANCE": "Opening balance",
+  "leaveMutationACCRUAL": "Accrual",
+  "leaveMutationTAKEN": "Taken",
+  "leaveMutationMANUAL_ADJUSTMENT": "Manual adjustment",
+  "leaveMutationEXPIRED_DEDUCTION": "Expiry deduction",
+  "leaveFinanceTitle": "Leave provision",
+  "leaveFinanceUnavailable": "Provision details require the separate leave-provision and salary permissions.",
+  "leaveValuationHours": "Valuation hours",
+  "leaveHourlyRate": "Hourly rate",
+  "leaveLiability": "Liability",
+  "leaveValuationStatus": "Valuation status",
+  "leaveValuationVALUED": "Valued",
+  "leaveValuationUNAVAILABLE": "Unavailable",
+  "leaveContractEndTitle": "Contract-end balances",
+  "leaveContractEndDate": "Contract end",
+  "leaveBalanceAtAsOf": "Balance at as-of date",
+  "leavePlannedThroughEnd": "Planned through end",
+  "leaveBalanceAtEnd": "Balance at end",
+  "leaveYearCloseTitle": "Year-close reconciliation",
+  "leaveLedgerBalance": "Ledger balance",
+  "leaveBucketBalance": "Bucket balance",
+  "leaveDifference": "Difference",
+  "leaveYearCloseRECONCILED": "Reconciled",
+  "leaveYearCloseMISMATCH": "Mismatch",
+  "leaveYearCloseNOT_LOCKED": "Year not locked",
+  "leaveExceptionsTitle": "Leave exceptions",
+  "leaveExceptionCode": "Exception code",
+  "leaveDetails": "Details",
+  "leaveSeverityINFO": "Information",
+  "leaveSeverityATTENTION": "Attention",
+  "leaveSeverityACTION_REQUIRED": "Action required",
+  "leaveKpiEmployees": "Employees",
+  "leaveKpiBalance": "Balance",
+  "leaveKpiTaken": "Taken",
+  "leaveKpiExceptions": "Exceptions",
+  "leaveHoursUnit": "hours",
+  "leaveNotAvailable": "Not available",
   "employeeTitle": "Workforce profile",
   "employeeDescription": "Composition and development of the workforce.",
   "employeesDepartmentTitle": "Workforce by department",
@@ -537,4 +656,64 @@
   ,"aiUsageNoUsageTitle": "No AI usage yet"
   ,"aiUsageNoUsageDescription": "Usage will appear here when AI features are used."
   ,"aiUsageCreditsAccountingNote": "Used credits are only credits actually settled; released reservations are excluded."
+  ,"leaveAnalyticalThreshold": "Analytical threshold; not a legal or collective-agreement limit."
+  ,"leaveKpiFuturePlanned": "Future planned"
+  ,"leaveKpiExpiring90": "Expiring within 90 days"
+  ,"leaveKpiReservoirSignals": "Reservoir signals"
+  ,"leaveKpiNoTaken": "No leave taken"
+  ,"leaveKpiNoFuture": "No future leave"
+  ,"leaveKpiContractEnds": "Contracts ending with balance"
+  ,"leaveKpiCarryForward": "Carry-forward"
+  ,"leaveFreeToPlan": "Free to plan"
+  ,"leaveDaysUntilExpiry": "Days until expiry"
+  ,"leaveHalfDays": "Half-day periods"
+  ,"leaveMultiDayPeriods": "Multi-day periods"
+  ,"leaveAveragePeriod": "Average period"
+  ,"leaveYes": "Yes"
+  ,"leaveNo": "No"
+  ,"leaveCreatedAt": "Created"
+  ,"leaveSourceType": "Source type"
+  ,"leaveSourceKey": "Source key"
+  ,"leaveCohort": "Cohort"
+  ,"leaveAccrualYear": "Accrual year"
+  ,"leaveValuationDate": "Valuation date"
+  ,"leaveBasis": "Basis"
+  ,"leaveDaysUntilContractEnd": "Days until contract end"
+  ,"leaveCapacityByDay": "Daily capacity"
+  ,"leaveCapacityEmployees": "Scheduled employees"
+  ,"leaveCapacityLeaveEmployees": "Employees on leave"
+  ,"leaveAnnualFullTime": "Annual full-time entitlement"
+  ,"leaveEffectiveEntitlement": "Effective entitlement"
+  ,"leavePartTimeFactor": "FTE factor"
+  ,"leaveAccrualBasis": "Accrual basis"
+  ,"leaveFrequency": "Frequency"
+  ,"leaveTiming": "Timing"
+  ,"leaveNoAccrual": "No accrual"
+  ,"leavePauseTypes": "Pause leave types"
+  ,"leaveSourceLEAVE_ACCRUAL": "Leave accrual engine"
+  ,"leaveSourceHR_ADMIN_CALENDAR": "HR leave calendar"
+  ,"leaveSourceHR_MANUAL_ADJUSTMENT": "HR manual adjustment"
+  ,"leaveSourceMIGRATION_START_BALANCE": "Migration start balance"
+  ,"leaveExceptionNEGATIVE_BALANCE": "Negative balance"
+  ,"leaveExceptionHIGH_RESERVOIR": "High reservoir signal"
+  ,"leaveExceptionCRITICAL_RESERVOIR": "Critical reservoir signal"
+  ,"leaveExceptionCOHORT_EXPIRING": "Cohort expiring soon"
+  ,"leaveExceptionEXPIRED_COHORT_REMAINS": "Expired cohort still has balance"
+  ,"leaveExceptionNO_LEAVE_TAKEN": "No leave taken in the selected period"
+  ,"leaveExceptionNO_FUTURE_LEAVE_PLANNED": "No future leave planned"
+  ,"leaveExceptionCONTRACT_END_WITH_BALANCE": "Balance remains at contract end"
+  ,"leaveExceptionLARGE_MANUAL_ADJUSTMENT": "Large manual adjustment"
+  ,"leaveExceptionREPEATED_MANUAL_ADJUSTMENTS": "Repeated manual adjustments"
+  ,"leaveExceptionBALANCE_RECONCILIATION_MISMATCH": "Balance reconciliation mismatch"
+  ,"leaveExceptionREQUEST_ALLOCATION_MISMATCH": "Request allocation mismatch"
+  ,"leaveExceptionTAKEN_ALLOCATION_MISMATCH": "Taken allocation mismatch"
+  ,"leaveExceptionNON_WORKDAY_CONSUMPTION": "Leave on a non-working day"
+  ,"leaveExceptionHOLIDAY_CONSUMPTION": "Leave on a holiday"
+  ,"leaveExceptionDELETED_EMPLOYMENT_HAS_ACTIVE_LEAVE_FACTS": "Deleted employment has active leave facts"
+  ,"leaveExceptionNO_EFFECTIVE_LEAVE_PROFILE": "No effective leave profile"
+  ,"leaveExceptionNO_EFFECTIVE_ACCRUAL_RULE": "No effective accrual rule"
+  ,"leaveExceptionINVALID_PRIORITY_CONFIGURATION": "Invalid priority configuration"
+  ,"leaveExceptionYEAR_LOCK_INCONSISTENCY": "Year lock inconsistency"
+  ,"leaveExceptionLONG_TERM_ABSENCE_WITH_EXPIRY_REVIEW": "Long-term absence with expiry review"
+  ,"leaveExceptionMISSING_FINANCIAL_VALUATION_BASIS": "Financial valuation basis unavailable"
 }

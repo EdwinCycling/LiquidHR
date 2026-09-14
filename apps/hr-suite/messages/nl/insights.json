@@ -155,6 +155,125 @@
   "closeReport": "Sluit rapport",
   "leaveTitle": "Verlof in beeld",
   "leaveDescription": "Opname, saldo en verdeling van verloftypen in de gekozen periode.",
+  "leaveInsightsEyebrow": "Verlofinzichten",
+  "leaveInsightsTitle": "Verlofinzichten",
+  "leaveInsightsDescription": "Een canoniek overzicht van verlofsaldi, opname, capaciteit, opbouw en uitzonderingen voor de gekozen scope.",
+  "leaveViewLabel": "Weergave van verlofinzichten",
+  "leaveViewOverview": "Overzicht",
+  "leaveViewBalances": "Saldo's",
+  "leaveViewExpiry": "Verval",
+  "leaveViewUsage": "Opname",
+  "leaveViewCapacity": "Capaciteit",
+  "leaveViewAccrual": "Opbouw",
+  "leaveViewMutations": "Mutaties",
+  "leaveViewFinance": "Voorziening",
+  "leaveViewContractEnd": "Contracteinde",
+  "leaveViewYearClose": "Jaarafsluiting",
+  "leaveViewExceptions": "Uitzonderingen",
+  "leaveYear": "Jaar",
+  "leaveAsOfDate": "Peildatum",
+  "leavePeriodStart": "Periode vanaf",
+  "leavePeriodEnd": "Periode tot en met",
+  "leaveDepartment": "Afdeling",
+  "leaveManager": "Manager",
+  "leaveAllDepartments": "Alle afdelingen",
+  "leaveAllManagers": "Alle managers",
+  "leaveType": "Verloftype",
+  "leaveAllTypes": "Alle verloftypen",
+  "leaveProfile": "Verlofprofiel",
+  "leaveAllProfiles": "Alle profielen",
+  "leaveSeverity": "Urgentie",
+  "leaveAllSeverities": "Alle urgenties",
+  "leaveReservoirThreshold": "Reservoirdrempel",
+  "leaveReservoir": "Reservoir",
+  "leaveReservoirUNLIMITED": "Onbeperkt",
+  "leaveReservoirUNAVAILABLE": "Niet beschikbaar",
+  "leaveReservoirLOW": "Laag",
+  "leaveReservoirHEALTHY": "Gezond",
+  "leaveReservoirHIGH": "Hoog",
+  "leaveReservoirCRITICAL": "Kritiek",
+  "leaveOverviewTitle": "Verlofoverzicht",
+  "leaveOverviewExplanation": "Saldo's worden gereconstrueerd uit het canonieke grootboek per dienstverband. Goedgekeurd toekomstig verlof wordt geprojecteerd vanuit de bestaande rooster- en allocatiegegevens.",
+  "leaveAsOfLabel": "Per",
+  "leaveAsOfExplanation": "Het saldo- en mutatieoverzicht wordt berekend tot en met {date}.",
+  "leavePeriodLabel": "Periode",
+  "leaveNoRows": "Geen canonieke verlofgegevens voor deze selectie.",
+  "leaveBalancesTitle": "Verlofsaldi",
+  "leaveAsOfBalance": "Saldo op peildatum",
+  "leaveTakenToDate": "Opgenomen tot peildatum",
+  "leaveFuturePlanned": "Toekomstig gepland",
+  "leaveExpiryTitle": "Vervalcohorten",
+  "leaveSourceYear": "Bronjaar",
+  "leaveExpiryDate": "Vervaldatum",
+  "leaveRemainingHours": "Resterende uren",
+  "leaveStatus": "Status",
+  "leaveCohortEXPIRED_REMAINS": "Vervallen saldo resteert",
+  "leaveCohortEXPIRING_SOON": "Vervalt binnenkort",
+  "leaveCohortACTIVE": "Actief",
+  "leaveCohortEMPTY": "Leeg",
+  "leaveUsageTitle": "Verlofopname",
+  "leaveApprovedRequests": "Goedgekeurde aanvragen",
+  "leaveTakenHours": "Opgenomen uren",
+  "leavePlannedHours": "Geplande uren",
+  "leaveTakenDays": "Opnamedagen",
+  "leavePlannedDays": "Geplande dagen",
+  "leaveCapacityTitle": "Verlofcapaciteit",
+  "leaveScheduledHours": "Roosteruren",
+  "leaveLeaveHours": "Verlofuren",
+  "leaveAvailableHours": "Beschikbare uren",
+  "leaveLeaveRate": "Verlofpercentage",
+  "leaveAnomalies": "Afwijkingen",
+  "leaveAccrualTitle": "Toelichting verlofopbouw",
+  "leaveRule": "Regel",
+  "leaveAccruedToDate": "Opgebouwd tot peildatum",
+  "leaveMigrationCutover": "Migratieknip",
+  "leaveMissingProfile": "Geen effectief profiel",
+  "leaveMissingRule": "Geen effectieve regel",
+  "leaveMutationsTitle": "Grootboekmutaties",
+  "leaveDate": "Datum",
+  "leaveMutationClass": "Mutatieklasse",
+  "leaveAmount": "Bedrag",
+  "leaveActor": "Actor",
+  "leaveReason": "Reden",
+  "leaveSystemActor": "Systeem",
+  "leaveNoReason": "Geen reden vastgelegd",
+  "leaveMutationOPENING_BALANCE": "Openingssaldo",
+  "leaveMutationACCRUAL": "Opbouw",
+  "leaveMutationTAKEN": "Opname",
+  "leaveMutationMANUAL_ADJUSTMENT": "Handmatige correctie",
+  "leaveMutationEXPIRED_DEDUCTION": "Vervaldeductie",
+  "leaveFinanceTitle": "Verlofoverzicht voorziening",
+  "leaveFinanceUnavailable": "Voorzieningsdetails vereisen de afzonderlijke rechten voor verlofvoorziening en salaris.",
+  "leaveValuationHours": "Waarderingsuren",
+  "leaveHourlyRate": "Uurtarief",
+  "leaveLiability": "Verplichting",
+  "leaveValuationStatus": "Waarderingsstatus",
+  "leaveValuationVALUED": "Gewaardeerd",
+  "leaveValuationUNAVAILABLE": "Niet beschikbaar",
+  "leaveContractEndTitle": "Saldo bij contracteinde",
+  "leaveContractEndDate": "Contracteinde",
+  "leaveBalanceAtAsOf": "Saldo op peildatum",
+  "leavePlannedThroughEnd": "Gepland tot einde",
+  "leaveBalanceAtEnd": "Saldo bij einde",
+  "leaveYearCloseTitle": "Aansluiting jaarafsluiting",
+  "leaveLedgerBalance": "Grootboeksaldo",
+  "leaveBucketBalance": "Bucketsaldo",
+  "leaveDifference": "Verschil",
+  "leaveYearCloseRECONCILED": "Aangesloten",
+  "leaveYearCloseMISMATCH": "Verschil",
+  "leaveYearCloseNOT_LOCKED": "Jaar niet gesloten",
+  "leaveExceptionsTitle": "Verlofuitzonderingen",
+  "leaveExceptionCode": "Uitzonderingscode",
+  "leaveDetails": "Details",
+  "leaveSeverityINFO": "Informatie",
+  "leaveSeverityATTENTION": "Let op",
+  "leaveSeverityACTION_REQUIRED": "Actie vereist",
+  "leaveKpiEmployees": "Medewerkers",
+  "leaveKpiBalance": "Saldo",
+  "leaveKpiTaken": "Opgenomen",
+  "leaveKpiExceptions": "Uitzonderingen",
+  "leaveHoursUnit": "uren",
+  "leaveNotAvailable": "Niet beschikbaar",
   "employeeTitle": "Medewerkerbestand",
   "employeeDescription": "Samenstelling en ontwikkeling van het medewerkersbestand.",
   "employeesDepartmentTitle": "Personeel per afdeling",
@@ -537,4 +656,64 @@
   ,"aiUsageNoUsageTitle": "Nog geen AI-gebruik"
   ,"aiUsageNoUsageDescription": "Zodra AI-functies worden gebruikt, verschijnt het gebruik hier."
   ,"aiUsageCreditsAccountingNote": "Gebruikte credits zijn alleen daadwerkelijk afgerekende credits; vrijgegeven reserveringen tellen niet mee."
+  ,"leaveAnalyticalThreshold": "Analytische drempel; geen wettelijke of cao-grens."
+  ,"leaveKpiFuturePlanned": "Toekomstig gepland"
+  ,"leaveKpiExpiring90": "Vervalt binnen 90 dagen"
+  ,"leaveKpiReservoirSignals": "Stuwmeer-signalen"
+  ,"leaveKpiNoTaken": "Geen verlof opgenomen"
+  ,"leaveKpiNoFuture": "Geen toekomstig verlof"
+  ,"leaveKpiContractEnds": "Contracten met saldo bij einde"
+  ,"leaveKpiCarryForward": "Meegenomen saldo"
+  ,"leaveFreeToPlan": "Vrij planbaar"
+  ,"leaveDaysUntilExpiry": "Dagen tot verval"
+  ,"leaveHalfDays": "Halve-dagperiodes"
+  ,"leaveMultiDayPeriods": "Meerdaagse periodes"
+  ,"leaveAveragePeriod": "Gemiddelde periode"
+  ,"leaveYes": "Ja"
+  ,"leaveNo": "Nee"
+  ,"leaveCreatedAt": "Aangemaakt"
+  ,"leaveSourceType": "Brontype"
+  ,"leaveSourceKey": "Broncode"
+  ,"leaveCohort": "Cohort"
+  ,"leaveAccrualYear": "Opbouwjaar"
+  ,"leaveValuationDate": "Waarderingsdatum"
+  ,"leaveBasis": "Grondslag"
+  ,"leaveDaysUntilContractEnd": "Dagen tot einde contract"
+  ,"leaveCapacityByDay": "Dagcapaciteit"
+  ,"leaveCapacityEmployees": "Ingeplande medewerkers"
+  ,"leaveCapacityLeaveEmployees": "Medewerkers met verlof"
+  ,"leaveAnnualFullTime": "Jaarrecht fulltime"
+  ,"leaveEffectiveEntitlement": "Effectief jaarrecht"
+  ,"leavePartTimeFactor": "FTE-factor"
+  ,"leaveAccrualBasis": "Opbouwgrondslag"
+  ,"leaveFrequency": "Frequentie"
+  ,"leaveTiming": "Timing"
+  ,"leaveNoAccrual": "Geen opbouw"
+  ,"leavePauseTypes": "Pauze-verloftypen"
+  ,"leaveSourceLEAVE_ACCRUAL": "Verlofopbouw-engine"
+  ,"leaveSourceHR_ADMIN_CALENDAR": "HR-verlofkalender"
+  ,"leaveSourceHR_MANUAL_ADJUSTMENT": "Handmatige HR-correctie"
+  ,"leaveSourceMIGRATION_START_BALANCE": "Migratiestartsaldo"
+  ,"leaveExceptionNEGATIVE_BALANCE": "Negatief saldo"
+  ,"leaveExceptionHIGH_RESERVOIR": "Hoog stuwmeer-signaal"
+  ,"leaveExceptionCRITICAL_RESERVOIR": "Kritiek stuwmeer-signaal"
+  ,"leaveExceptionCOHORT_EXPIRING": "Cohort vervalt binnenkort"
+  ,"leaveExceptionEXPIRED_COHORT_REMAINS": "Verlopen cohort bevat nog saldo"
+  ,"leaveExceptionNO_LEAVE_TAKEN": "Geen verlof opgenomen in de geselecteerde periode"
+  ,"leaveExceptionNO_FUTURE_LEAVE_PLANNED": "Geen toekomstig verlof gepland"
+  ,"leaveExceptionCONTRACT_END_WITH_BALANCE": "Saldo resteert bij einde contract"
+  ,"leaveExceptionLARGE_MANUAL_ADJUSTMENT": "Grote handmatige correctie"
+  ,"leaveExceptionREPEATED_MANUAL_ADJUSTMENTS": "Herhaalde handmatige correcties"
+  ,"leaveExceptionBALANCE_RECONCILIATION_MISMATCH": "Verschil in saldoreconciliatie"
+  ,"leaveExceptionREQUEST_ALLOCATION_MISMATCH": "Verschil in aanvraagtoewijzing"
+  ,"leaveExceptionTAKEN_ALLOCATION_MISMATCH": "Verschil in opgenomen toewijzing"
+  ,"leaveExceptionNON_WORKDAY_CONSUMPTION": "Verlof op een niet-werkdag"
+  ,"leaveExceptionHOLIDAY_CONSUMPTION": "Verlof op een feestdag"
+  ,"leaveExceptionDELETED_EMPLOYMENT_HAS_ACTIVE_LEAVE_FACTS": "Verwijderd dienstverband heeft actieve verloffeiten"
+  ,"leaveExceptionNO_EFFECTIVE_LEAVE_PROFILE": "Geen effectief verlofprofiel"
+  ,"leaveExceptionNO_EFFECTIVE_ACCRUAL_RULE": "Geen effectieve opbouwregel"
+  ,"leaveExceptionINVALID_PRIORITY_CONFIGURATION": "Ongeldige voorrangsconfiguratie"
+  ,"leaveExceptionYEAR_LOCK_INCONSISTENCY": "Inconsistentie in jaarafsluiting"
+  ,"leaveExceptionLONG_TERM_ABSENCE_WITH_EXPIRY_REVIEW": "Langdurige afwezigheid met vervalcontrole"
+  ,"leaveExceptionMISSING_FINANCIAL_VALUATION_BASIS": "Financiële waarderingsgrondslag ontbreekt"
 }

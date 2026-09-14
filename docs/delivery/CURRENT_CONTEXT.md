@@ -1,5 +1,31 @@
 # Actuele overdracht Liquid HR
 
+## Leave Insights V1 — 2026-09-14
+
+**Status: DEVELOPMENT CANDIDATE — DEV READ-ONLY ACCEPTANCE / MAIN GATES OPEN**
+
+- Candidate: branch `work/leave-insights-v1`, worktree
+  `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\leave-insights-v1`,
+  vanaf main/origin-SHA `100e8a32341d53bbca24025430af27a022dc4d51`.
+- `/insights?report=leave` heeft elf subviews, een typed canonical read model,
+  server-side tenant/HR-group/personascope, NL/EN, CSV, audit-drilldown en
+  read-only finance hours/money-gating. Geen Leave-posting of nieuwe
+  businessdata in deze run.
+- Bestaande `MIGRATION_START_BALANCE`/cutover- en cohortsemantiek is hergebruikt;
+  geen nieuwe accrual- of migratiedata. Direct Manager read permission is via
+  de additieve migration `leave_insights_manager_permission` op DEV-project
+  `wnpfloqpjvaacobppbpk` toegepast en remote op naam geregistreerd als
+  `20260914142023`. Readback: TEST-BOUNDARY 0 employees / 0 employments en
+  geen dubbele Leave source keys.
+- Verificatie: Leave-gerichte tests `21/21`, typecheck, lint, i18n (`35`),
+  `git diff --check` en Webpack-build groen. Volledige suite `371/374`
+  bestanden, `1452/1455` tests; drie bestaande failures in onaangeraakte
+  Document Studio/contract-audit/PDF-tests blijven afzonderlijk gemeld.
+- Nog open: normale authenticated browseracceptatie van de candidate, feature-
+  push, main-integratie/non-force push, exacte GitHub-SHA-readback, Vercel vanaf
+  die SHA, hosted acceptance en cleanup. Protected `apps/hr-suite/.env.local`
+  blijft buiten scope.
+
 ## Leave V1 product completion — 2026-09-13
 
 **Status: DEV ACCEPTANCE GREEN — MAIN/VERCEL INTEGRATION GATE OPEN**
