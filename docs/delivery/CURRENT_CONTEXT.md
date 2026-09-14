@@ -1,5 +1,15 @@
 # Actuele overdracht Liquid HR
 
+## GPT-Live Preview acceptance remediation — 2026-09-14
+
+De echte GPT-Live Preview-proef is technisch hersteld op branch `work/ai-gpt-live`, commit `9087bfd66ab2d978d097982338bd2803fd993e8e`. De oorspronkelijke `422` kwam doordat GPT-Live-1 via het oude Realtime-contract (`/v1/realtime/calls`, `type: realtime`) werd aangeroepen; de code gebruikt nu server-mediated `POST /v1/live/sessions` met `session.model=gpt-live-1`, `transport.type=webrtc` en de browser-SDP als offer. Providerfouten loggen alleen status, API-familie, model, request-id en OpenAI error type/code.
+
+De React `#418`-hydration mismatch was datumafhankelijke client-rendering in het employment-overzicht rond een datumgrens. `today` komt nu uit de serverrender en de regressietest fixeert de server/client-datumgrens; de lokale authenticated dev-browsercontrole gaf geen errors, warnings of page-errors.
+
+De definitieve diagnostics-vrije Vercel Preview is deployment `dpl_4PmvgQSF5rR4CystYdcrGs3iWGcU`, `READY`, op `https://liquidhr-lq6igyvk9-edwinitsolutions.vercel.app`. Exacte testroute: `https://liquidhr-lq6igyvk9-edwinitsolutions.vercel.app/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13`. De tijdelijke branch-Preview diagnostics-variabele en disposable gate-endpoint zijn verwijderd. De geautoriseerde Manager-proefpersoon had `canUseAi=true`, Manager/HR-scope `true`, `isAiImproveAvailable=true`, `isRealtimeVoiceEnabled=true`, `OPENAI_API_KEY` aanwezig, provider-safety geldig/aan en effectief model `gpt-live-1`; Vercel runtime was Preview met `NODE_ENV=production`.
+
+Finale technische smoke op de exacte Preview: UI `AI-ondersteuning` en `Praat met LiquidHR`/`Start spraakgesprek` zichtbaar; authenticated session POST `200`; WebRTC ICE/peer connected; `session.started`; remote audio-track; DOM-audio gekoppeld en `play()` resolved; inbound RTP ontvangen; geen browser console errors/warnings of page-errors. De browserprobe gebruikte een synthetisch media-device; echte microfoon-, gesproken tool-call- en manageracceptatie blijven de handmatige vervolgstap. Geen Production/main/leave-branch wijziging en geen productie-migratie uitgevoerd.
+
 ## GPT-Live employee voice V1 — 2026-09-13
 
 De lokale candidate voegt [`LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md`](../requirements/ai/LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md), server-mediated WebRTC-sessionroutes, drie server-authorized voice-tools, i18n en `ai_voice_sessions` metadata toe. De bestaande AI Everywhere-capabilities blijven de businesslaag; SMART blijft proposal-only. Direct managers krijgen `ai:use` via de lokale forward migration. De browser ontvangt geen permanente OpenAI-key en model/tool-employee-ID's worden niet vertrouwd.
