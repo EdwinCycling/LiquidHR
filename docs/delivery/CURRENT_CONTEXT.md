@@ -1,5 +1,28 @@
 # Actuele overdracht Liquid HR
 
+## AI admin settings / voice accounting — 2026-09-15
+
+De forward migration `20260915140000_ai_admin_settings_voice_accounting.sql` is
+toegepast op uitsluitend het geautoriseerde DEV/TEST-project
+`wnpfloqpjvaacobppbpk`; Supabase registreerde de remote versie
+`20260915163650`. Readback bevestigt `ai_group_settings`,
+`ai_voice_credit_charges` en `ai_voice_credit_charge_allocations`. De
+veiligheids-advisor geeft geen nieuwe security findings; de performance-advisor
+rapporteert drie nieuwe unindexed-FK-waarschuwingen die apart moeten worden
+beoordeeld.
+
+De Preview `https://liquidhr-4ruj48y16-edwinitsolutions.vercel.app` toont na een
+refresh op Lisa’s Employee Detail-route de AI-surface als eerste
+dashboardwidget, met `Vat medewerker samen`, `Bereid gesprek voor` en
+`Start spraakgesprek`. De oorspronkelijke afwezigheid kwam doordat de nieuwe
+settingslaag tegen een nog niet gemigreerd DEV/TEST-schema las, waardoor de
+server-side settings-gate `aiSettings === null` werd.
+
+Open: React hydration `#418` verschijnt nog in de nieuwste authenticated
+Preview na reload; echte voice-, tool-call- en credits/Insights-acceptatie en
+de volledige gate blijven daarom open. Geen Production-, `main`- of
+`work/leave-profile-management`-wijziging.
+
 ## Employee Detail AI-surface — 2026-09-15
 
 De bestaande, server-geautoriseerde `AI-ondersteuning` en GPT-Live voice staan

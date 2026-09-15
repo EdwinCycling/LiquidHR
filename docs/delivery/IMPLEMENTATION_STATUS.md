@@ -1,5 +1,25 @@
 # Implementatiestatus Liquid HR
 
+## AI admin settings / voice accounting — 2026-09-15
+
+**Status: DEV/TEST APPLIED — PREVIEW UI RESTORED; FULL ACCEPTANCE OPEN**
+
+De migration `20260915140000_ai_admin_settings_voice_accounting.sql` is alleen
+toegepast op DEV/TEST-project `wnpfloqpjvaacobppbpk` (remote versie
+`20260915163650`). De drie nieuwe settings-/voice-accountingtabellen zijn
+aanwezig en de Preview toont de geautoriseerde AI-surface bovenaan Lisa’s
+Employee Detail-dashboard. De oorzaak van de ontbrekende kaart was een
+ontbrekende DEV/TEST-migratie: de settings-read faalde, waardoor de bestaande
+server-side settings-gate de AI-surface correct verborgen hield.
+
+De lokale targeted AI-tests, strict TypeScript en ESLint zijn groen. Supabase
+security-advisors tonen geen nieuwe security finding; performance-advisors
+melden drie unindexed-FK-waarschuwingen voor de nieuwe accountingrelaties.
+React hydration `#418` blijft op de nieuwste Preview na reload open, evenals
+echte authenticated voice/tool-call/credits-Insights acceptance. Er is niet
+gemerged naar `main` en Production en `work/leave-profile-management` zijn
+niet aangeraakt.
+
 ## Employee Detail AI-surface — 2026-09-15
 
 **Status: LOCAL UI CORRECTION — NOT PUSHED OR DEPLOYED**
