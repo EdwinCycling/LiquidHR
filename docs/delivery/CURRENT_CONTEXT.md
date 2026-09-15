@@ -2,11 +2,12 @@
 
 ## Test role switch DEV-guard — 2026-09-15
 
-**Status: LOCAL RELEASE CANDIDATE — HOSTED VERIFICATION OPEN**
+**Status: DEPLOYED — HOSTED SWITCHER VERIFIED / PGRST303 DIAGNOSED**
 
-- Candidate: branch `work/test-role-switch-dev-guard`, worktree
-  `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\test-role-switch-dev-guard`,
-  vanaf exact `origin/main` `9bd30d8c2eecdfa52e5a50c0d0a8c1e57bb62444`.
+- Exact main: `645512e6c299760890fe6010b5cfbba8dfac02e6` is pushed to
+  `origin/main` and deployed as Vercel `dpl_BA6TXX1UxZ4cUmrfEQ45bi6MQSZc`.
+  Het Vercel-target heet `production`, maar is de bestaande LiquidHR DEV/test-
+  productlijn; Supabase Production is niet aangeraakt.
 - De bestaande source- en target-allowlists zijn ongewijzigd. De capability
   vereist nu expliciet `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true` én de veilig
   uit `NEXT_PUBLIC_SUPABASE_URL` afgeleide exact canonical DEV-ref
@@ -18,8 +19,15 @@
   Work-architectuur gewijzigd en Supabase Production is niet aangeraakt.
 - Gerichte regressies: `5` testbestanden / `25` tests, strict TypeScript, ESLint,
   `git diff --check` en Webpack production build (`270` pagina's) groen.
-- Nog open: commit/push naar `main`, exacte Vercel deployment-SHA en
-  authenticated hosted verification op de bestaande DEV/test productlijn.
+- Hosted: verse fixture-login toont de compacte switcher met de vier labels;
+  fixture → manager → Edwin werkt via twee `303` handoffs en eindigt op
+  `/dashboard/start`. De cookieprefix bevestigt ref `wnpfloqpjvaacobppbpk`.
+- Runtime: twee eerste/cold `/dashboard/start`-pogingen gaven deployment-scoped
+  `PGRST303 JWT issued at future`; tokenclaims waren bij meting slechts
+  `1` seconde voor op de clientklok. Drie daaropvolgende nieuwe flows hadden
+  `iat` `2–3` seconden achter de clientklok en geen nieuwe PGRST303. Dit is
+  vastgesteld als transient Auth/PostgREST-klokmarge/session settling; geen
+  productie-auth-, RLS-, tenant- of fixture-passwordwijziging is gerechtvaardigd.
 
 ## Actual Work V1 — 2026-09-15
 

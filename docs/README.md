@@ -2,7 +2,7 @@
 
 ## Test role switch DEV-guard — 2026-09-15
 
-**Status: LOCAL RELEASE CANDIDATE — HOSTED VERIFICATION OPEN**
+**Status: DEPLOYED — HOSTED SWITCHER VERIFIED / SESSION-CLOCK NOTE RECORDED**
 
 De bestaande test role switcher blijft beperkt tot de vier allowlisted bron- en
 doelaccounts. De server-side capability vereist nu zowel
@@ -13,7 +13,22 @@ trusted-origin-, HttpOnly/Secure/SameSite-handoff- en fail-closed targetchecks
 blijven behouden. De gerichte regressies zijn `25/25` tests, strict TypeScript,
 ESLint, diff-check en Webpack production build (`270` pagina's). Er is geen
 fixture-wachtwoord toegevoegd, geen migration of Actual Work-architectuur
-gewijzigd en Supabase Production is niet aangeraakt.
+gewijzigd en Supabase Production is niet aangeraakt. Exact `origin/main` staat
+op `645512e6c299760890fe6010b5cfbba8dfac02e6` en is als Vercel-deployment
+`dpl_BA6TXX1UxZ4cUmrfEQ45bi6MQSZc` naar de bestaande LiquidHR DEV/test-lijn
+gepromoveerd; Vercel noemt dit target `production`.
+
+Hosted acceptatie is groen: verse fixture-authentisatie toont de compacte
+switcher met Edwin, Test HR Admin, Test Manager en Test Medewerker; twee
+server-side handoffs geven `303` en eindigen als Edwin op `/dashboard/start`.
+De sessiecookie gebruikt de canonical ref `wnpfloqpjvaacobppbpk` en de korte
+handoff-cookie is na bevestiging verdwenen. Een deployment-scoped runtime-scan
+zag op twee eerste/cold pogingen een transient `PGRST303` op
+`/dashboard/start`; verse tokens waren daarna `1` tot `3` seconden achter de
+clientklok en drie opeenvolgende nieuwe flows waren groen. Dit wijst op een
+Auth/PostgREST-klokmarge tijdens session settling, niet op een fixture-specifiek
+auth-pad of een defect in de role-switch guard; er is daarom geen auth- of
+sessieworkaround toegevoegd.
 
 ## Actual Work V1 — 2026-09-14
 

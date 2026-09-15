@@ -2,7 +2,7 @@
 
 ## Test role switch DEV-guard — 2026-09-15
 
-**Status: LOCAL RELEASE CANDIDATE — HOSTED VERIFICATION OPEN**
+**Status: DEPLOYED — HOSTED SWITCHER VERIFIED / PGRST303 DIAGNOSED**
 
 De bestaande compact sidebar role switcher blijft server-side beschikbaar voor
 de vier afgesproken source- en targetaccounts, maar alleen wanneer
@@ -17,8 +17,18 @@ gemaakt en Supabase Production/Actual Work zijn niet aangeraakt.
 
 De gerichte suite telt `5` bestanden / `25` tests; strict TypeScript, ESLint,
 `git diff --check` en de Webpack production build (`270` pagina's) zijn groen.
-Commit, main/push, Vercel-SHA-readback en authenticated hosted verification
-blijven als releasegates open.
+Exact `origin/main` `645512e6c299760890fe6010b5cfbba8dfac02e6` is gedeployed als
+Vercel `dpl_BA6TXX1UxZ4cUmrfEQ45bi6MQSZc` naar de bestaande DEV/test-lijn.
+Authenticated hosted verification is groen: de vier switcherlabels zijn
+zichtbaar, fixture → manager → Edwin gebruikt twee `303` handoffs en eindigt
+op `/dashboard/start`; de sessiecookie bevestigt ref `wnpfloqpjvaacobppbpk`.
+
+De deployment-scoped runtime-scan zag bij twee eerste/cold pogingen een
+transient `PGRST303 JWT issued at future`. Verse tokens hadden bij de clientmeting
+`iat` `1` seconde voor op de klok; drie volgende verse flows hadden `iat`
+`2–3` seconden achter de klok en geen nieuwe fout. Dit is een Auth/PostgREST-
+klokmarge tijdens session settling, geen bewezen defect in de role-switch-
+implementatie; er is geen workaround toegevoegd die auth zou verzwakken.
 
 ## Actual Work V1 — 2026-09-15
 
