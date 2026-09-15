@@ -1,5 +1,50 @@
 # Actuele overdracht Liquid HR
 
+## Actual Work V1 — 2026-09-15
+
+**Status: DEVELOPMENT CANDIDATE — DEV ACCEPTANCE GREEN / COMMIT GATE READY**
+
+- Candidate: branch `work/actual-work-v1`, worktree
+  `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\actual-work-v1`,
+  vanaf exact `origin/main` `3c7a3c73e9d1aba928f44c3350f5d84d2ea65923`.
+- Exact DEV/test migration alignment on Supabase project
+  `wnpfloqpjvaacobppbpk`:
+  `20260914192320_actual_work_v1.sql` ↔ remote `20260914192320
+  actual_work_v1`; `20260914205718_actual_work_v1_schedule_scope_fix.sql` ↔
+  remote `20260914205718 actual_work_v1_schedule_scope_fix`; and
+  `20260915061629_actual_work_v1_fk_indexes.sql` ↔ remote `20260915061629
+  actual_work_v1_fk_indexes`. The earlier name
+  `20260914191328_actual_work_v1.sql` does not exist locally or in remote
+  history. Supabase history stores version/name, so applied-body evidence is
+  the exact local SQL input used for each apply plus remote schema/function/
+  index/readback; no Production database was used.
+- Final DEV readback: Planeten/Jupiter has 5 types, 9 limits, 4 periods, 5
+  entries and 7 append-only revisions. Exact entry hours are
+  `8.0000`, `2.0000`, `8.0000`, `8.0000`, `2.0000`; August is CLOSED and
+  September--November are OPEN. `TEST-BOUNDARY` remains 0 types, limits,
+  periods, entries and revisions. Typegen was rerun; the tracked DB types
+  retain the existing compatibility `company_activities` type omitted by the
+  generator.
+- Authenticated HR Admin acceptance is green for employee hours (Lisa
+  exact `7.5000` correction round-trip and fixture restore), settings, team,
+  dedicated/integrated Insights, Jan's September/October schedule boundary,
+  filtered calendar, Leave mapping and read-only accrual preview. The preview
+  showed the Actual Work leave source and Jan's `0,6667`/`0,8333` monthly
+  accrual basis; no Leave posting or year close was used.
+- Verification is green: Actual Work tests `3` files/`10` tests, strict
+  TypeScript, ESLint, i18n (`35` namespaces), `git diff --check`, and
+  Webpack production build (`270` generated pages). Supabase advisors show no
+  new Actual Work security or unindexed-FK finding; remaining notices are
+  project-wide baseline findings and low-volume unused-index INFOs.
+- The one earlier full-suite run remains `374/377` files and `1461/1464`
+  tests; the three unrelated pre-existing failures are DG1 PDF timeout,
+  contract-change-audit grant formatting and DM-1 CASE parenthesization.
+- Open gates: commit and push the feature branch, fast-forward `main`, push
+  the exact accepted SHA, deploy that SHA to the existing Vercel test line,
+  hosted acceptance and safe temporary-worktree cleanup. Protected
+  `apps/hr-suite/.env.local`, Production Supabase and unrelated worktrees
+  remain outside scope.
+
 ## Leave Insights V1 — 2026-09-14
 
 **Status: DEVELOPMENT CANDIDATE — DEV READ-ONLY ACCEPTANCE / MAIN GATES OPEN**

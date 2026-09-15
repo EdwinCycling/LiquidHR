@@ -29,6 +29,8 @@ type Salary = Pick<Tables<'employment_salaries'>, 'employment_id' | 'valid_from'
 type PauseRuleType = Pick<Tables<'leave_accrual_rule_pause_types'>, 'accrual_rule_id' | 'pause_leave_type_id'>
 type PauseRequest = Pick<Tables<'leave_requests'>, 'id' | 'employment_id' | 'start_date' | 'end_date' | 'status'>
 type PauseAllocationRow = Pick<Tables<'leave_request_allocations'>, 'request_id' | 'employment_id' | 'leave_type_id' | 'allocated_hours'>
+type ActualWorkEntry = Pick<Tables<'employment_work_hour_entries'>, 'employment_id' | 'work_hour_type_id' | 'subject_period_start' | 'subject_period_end' | 'hours' | 'status'>
+type WorkHourTypeMapping = Pick<Tables<'leave_accrual_rule_work_hour_types'>, 'accrual_rule_id' | 'work_hour_type_id'>
 type LeaveAccrualItemStatus = 'READY' | 'ALREADY_POSTED' | 'DELTA_REQUIRED' | 'NO_RULE' | 'NO_PROFILE' | 'SOURCE_NOT_READY' | 'LOCKED_YEAR'
 
 export type LeaveAccrualSlice = {
@@ -41,6 +43,7 @@ export type LeaveAccrualSlice = {
   expirationMonths: number | null
   plannedHours: number
   pausedHours: number
+  sourceHours?: number | null
   amount: number
 }
 
@@ -177,9 +180,17 @@ function itemSourceKey(item: Pick<LeaveAccrualPreviewItem, 'employmentId' | 'lea
     slice.expirationMonths,
     slice.plannedHours,
     slice.pausedHours,
+    slice.sourceHours ?? null,
     slice.amount,
   ])
   return `${itemBaseKey(item, year)}:${fingerprint(JSON.stringify({ amount: item.calculatedAmount, signature }))}`
+}
+
+function workedHoursForSlice(entries: ActualWorkEntry[], mappings: WorkHourTypeMapping[], employmentId: string, ruleId: string, sliceStart: string, sliceEnd: string): number {
+  const mappedTypeIds = new Set(mappings.filter((mapping) => mapping.accrual_rule_id === ruleId).map((mapping) => mapping.work_hour_type_id))
+  return entries
+    .filter((entry) => entry.employment_id === employmentId && entry.status === 'APPROVED' && mappedTypeIds.has(entry.work_hour_type_id) && entry.subject_period_start < sliceEnd && entry.subject_period_end > sliceStart)
+    .reduce((total, entry) => total + Number(entry.hours), 0)
 }
 
 async function resolveRule(
@@ -215,7 +226,7 @@ async function loadPreviewData(supabase: SupabaseServerClient, tenantId: string,
 
   const yearStart = `${input.year}-01-01`
   const yearEnd = `${input.year + 1}-01-01`
-  const [employeesResult, employmentsResult, schedulesResult, salariesResult, leaveTypesResult, profilesResult, rulesResult, assignmentsResult, setsResult, membersResult, exceptionsResult, pauseRuleTypesResult, pauseRequestsResult, pauseAllocationsResult, bucketsResult, migrationTransactionsResult] = await Promise.all([
+  const [employeesResult, employmentsResult, schedulesResult, salariesResult, leaveTypesResult, profilesResult, rulesResult, workEntriesResult, workTypeMappingsResult, assignmentsResult, setsResult, membersResult, exceptionsResult, pauseRuleTypesResult, pauseRequestsResult, pauseAllocationsResult, bucketsResult, migrationTransactionsResult] = await Promise.all([
     supabase.from('employees').select('id, first_name, birth_name_prefix, birth_name').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).eq('is_archived', false).is('deleted_at', null).order('birth_name').order('first_name').limit(5000),
     supabase.from('employments').select('id, employee_id, administration_id, starts_on, ends_on, record_status, deleted_at').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('record_status', 'CONFIRMED').is('deleted_at', null).limit(5000),
     supabase.from('employment_schedules').select('employment_id, valid_from, valid_until, part_time_factor, fulltime_hours_per_week, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours').eq('tenant_id', tenantId).limit(10000),
@@ -223,6 +234,8 @@ async function loadPreviewData(supabase: SupabaseServerClient, tenantId: string,
     supabase.from('leave_types').select('id, name, entitlement_mode, is_active').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).eq('entitlement_mode', 'ACCRUAL').order('name').limit(500),
     supabase.from('leave_profiles').select('id, name, is_active').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).limit(500),
     supabase.from('leave_accrual_rules').select('id, leave_profile_id, leave_type_id, valid_from, valid_until, accrual_basis, accrual_frequency, accrual_timing, accrual_amount, accrual_rate, expiration_months').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).limit(5000),
+    supabase.from('employment_work_hour_entries').select('employment_id, work_hour_type_id, subject_period_start, subject_period_end, hours, status').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('status', 'APPROVED').lt('subject_period_start', yearEnd).gt('subject_period_end', yearStart).limit(50000),
+    supabase.from('leave_accrual_rule_work_hour_types').select('accrual_rule_id, work_hour_type_id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).limit(20000),
     supabase.from('employment_leave_profiles').select('employment_id, valid_from, valid_until').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).limit(5000),
     supabase.from('employee_sets').select('id').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).limit(500),
     supabase.from('employee_set_members').select('employee_set_id, employee_id, valid_from, valid_until').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).limit(10000),
@@ -233,7 +246,7 @@ async function loadPreviewData(supabase: SupabaseServerClient, tenantId: string,
     supabase.from('leave_balance_buckets').select('id, employee_id, employment_id, leave_type_id, accrual_year').eq('tenant_id', tenantId).eq('hr_group_id', hrGroupId).eq('accrual_year', input.year).limit(10000),
     migrationTransactionsQuery,
   ])
-  for (const result of [employeesResult, employmentsResult, schedulesResult, salariesResult, leaveTypesResult, profilesResult, rulesResult, assignmentsResult, setsResult, membersResult, exceptionsResult, pauseRuleTypesResult, pauseRequestsResult, pauseAllocationsResult, bucketsResult, migrationTransactionsResult]) {
+  for (const result of [employeesResult, employmentsResult, schedulesResult, salariesResult, leaveTypesResult, profilesResult, rulesResult, workEntriesResult, workTypeMappingsResult, assignmentsResult, setsResult, membersResult, exceptionsResult, pauseRuleTypesResult, pauseRequestsResult, pauseAllocationsResult, bucketsResult, migrationTransactionsResult]) {
     if (result.error) databaseError(result.error)
   }
   const employees = employeesResult.data ?? []
@@ -271,6 +284,8 @@ async function loadPreviewData(supabase: SupabaseServerClient, tenantId: string,
     leaveTypes,
     profiles: profilesResult.data ?? [],
     rules: rulesResult.data as Rule[],
+    actualWorkEntries: workEntriesResult.data as ActualWorkEntry[],
+    workHourTypeMappings: workTypeMappingsResult.data as WorkHourTypeMapping[],
     assignments: assignmentsResult.data ?? [],
     employeeSetIds: new Set((setsResult.data ?? []).map((set) => set.id)),
     members: membersResult.data ?? [],
@@ -375,7 +390,7 @@ export async function getLeaveAccrualPreview(input: LeaveAccrualRunInput): Promi
               expirationMonths: optionalNumber(resolved.expiration_months),
             } : null)
             : null
-          if (effectiveRule?.accrualBasis !== 'CONTRACT_HOURS') reasons.add('SOURCE_NOT_READY')
+          if (effectiveRule?.accrualBasis !== 'CONTRACT_HOURS' && effectiveRule?.accrualBasis !== 'WORKED_HOURS') reasons.add('SOURCE_NOT_READY')
           const pauseLeaveTypeIds = rule
             ? data.pauseRuleTypes.filter((pauseRuleType) => pauseRuleType.accrual_rule_id === rule.id).map((pauseRuleType) => pauseRuleType.pause_leave_type_id)
             : []
@@ -397,6 +412,7 @@ export async function getLeaveAccrualPreview(input: LeaveAccrualRunInput): Promi
             allocations: employmentPauseAllocations,
           })
           let amount = 0
+          let sourceHours: number | null = null
           if (effectiveRule && !effectiveRule.noAccrual && effectiveRule.accrualBasis === 'CONTRACT_HOURS' && schedule && effectiveRule.accrualAmount !== null) {
             try {
               const baseAmount = calculateContractAccrual({
@@ -415,6 +431,11 @@ export async function getLeaveAccrualPreview(input: LeaveAccrualRunInput): Promi
               else throw error
             }
           }
+          if (effectiveRule && !effectiveRule.noAccrual && effectiveRule.accrualBasis === 'WORKED_HOURS') {
+            sourceHours = workedHoursForSlice(data.actualWorkEntries, data.workHourTypeMappings, employment.id, resolved?.rule_id ?? '', eligibleStart, eligibleEnd)
+            if (effectiveRule.accrualRate === null || !resolved?.rule_id) reasons.add('SOURCE_NOT_READY')
+            else amount = applyAccrualPause({ ...pause, baseAccrual: sourceHours * effectiveRule.accrualRate })
+          }
           slices.push({
             start: eligibleStart,
             end: eligibleEnd,
@@ -425,6 +446,7 @@ export async function getLeaveAccrualPreview(input: LeaveAccrualRunInput): Promi
             expirationMonths: effectiveRule?.expirationMonths ?? null,
             plannedHours: pause.plannedHours,
             pausedHours: pause.pausedHours,
+            sourceHours,
             amount,
           })
         }

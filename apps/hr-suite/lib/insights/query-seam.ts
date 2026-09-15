@@ -79,6 +79,7 @@ const reportQueryKeys: Readonly<Record<InsightReportId, readonly string[]>> = {
   provision: [],
   wvp: [],
   'ai-usage': ['period'],
+  'actual-work': ['month'],
 }
 
 function salaryQueryKeys(): readonly string[] {

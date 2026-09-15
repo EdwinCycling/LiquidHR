@@ -11,7 +11,7 @@ export type CalendarWorkDay = { isWorkingDay: boolean; startsAt: string | null; 
 export type CalendarReminder = { id: string; employeeId: string | null; date: string; title: string }
 export type CalendarAbsencePeriod = { employeeId: string; caseId: string; startedOn: string; expectedRecoveryOn: string | null }
 export type CalendarCompanyActivity = { id: string; name: string; activity_date: string }
-export type CalendarTypeEventKind = 'LEAVE' | 'WORK_HOUR' | 'OVERTIME'
+export type CalendarTypeEventKind = 'LEAVE' | 'WORK_HOUR' | 'OVERTIME' | 'TRANSPARENT'
 export interface CalendarTypeEvent {
   id: string
   employeeId: string
@@ -101,7 +101,7 @@ export async function loadUnifiedCalendar(month: string) {
   if (remindersResult.error) throw new Error('HR_CALENDAR_REMINDERS_FAILED')
   const [leaveRequestsResult, workEntriesResult] = await Promise.all([
     supabase.from('leave_requests').select('id,employee_id,employment_id,request_mode,time_mode,specific_start,specific_end,start_date,end_date,requested_minutes,status').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('employment_id', employmentIds).eq('status', 'APPROVED').lt('start_date', to).gte('end_date', from).limit(5000),
-    supabase.from('employment_work_hour_entries').select('id,employee_id,employment_id,work_hour_type_id,work_date,hours').eq('administration_id', administrationId).in('employment_id', employmentIds).eq('status', 'APPROVED').gte('work_date', from).lt('work_date', to).limit(5000),
+    supabase.from('employment_work_hour_entries').select('id,employee_id,employment_id,work_hour_type_id,work_date,hours,entry_granularity').eq('administration_id', administrationId).in('employment_id', employmentIds).eq('entry_granularity', 'DAY').eq('status', 'APPROVED').gte('work_date', from).lt('work_date', to).limit(5000),
   ])
   if (leaveRequestsResult.error || workEntriesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
   const requestIds = (leaveRequestsResult.data ?? []).map((row) => row.id)
@@ -113,7 +113,7 @@ export async function loadUnifiedCalendar(month: string) {
   const workHourTypeIds = [...new Set((workEntriesResult.data ?? []).map((row) => row.work_hour_type_id))]
   const [leaveTypesResult, workHourTypesResult] = await Promise.all([
     leaveTypeIds.length ? supabase.from('leave_types').select('id,name,color_code').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).in('id', leaveTypeIds).limit(500) : Promise.resolve({ data: [], error: null }),
-    workHourTypeIds.length ? supabase.from('work_hour_types').select('id,name,color_code,category').eq('administration_id', administrationId).in('id', workHourTypeIds).limit(500) : Promise.resolve({ data: [], error: null }),
+    workHourTypeIds.length ? supabase.from('work_hour_types').select('id,name,color_code,category,family,pin_in_calendar,show_in_calendar').eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).or('administration_id.is.null,administration_id.eq.' + administrationId).in('id', workHourTypeIds).limit(500) : Promise.resolve({ data: [], error: null }),
   ])
   if (leaveTypesResult.error || workHourTypesResult.error) throw new Error('HR_CALENDAR_LEAVE_EVENTS_FAILED')
   const leaveTypeById = new Map((leaveTypesResult.data ?? []).map((row) => [row.id, row]))
@@ -200,8 +200,8 @@ export async function loadUnifiedCalendar(month: string) {
     }),
     ...(workEntriesResult.data ?? []).flatMap((row) => {
       const workHourType = workHourTypeById.get(row.work_hour_type_id)
-      if (!workHourType) return []
-      return [{ id: `work-${row.id}`, employeeId: row.employee_id, employmentId: row.employment_id, date: row.work_date, kind: workHourType.category === 'OVERTIME' ? 'OVERTIME' as const : 'WORK_HOUR' as const, typeId: workHourType.id, typeName: workHourType.name, colorCode: workHourType.color_code, hours: Number(row.hours) }]
+      if (!workHourType || (!workHourType.show_in_calendar && !(workHourType.family !== 'TRANSPARENT' && workHourType.pin_in_calendar))) return []
+      return [{ id: 'work-' + row.id, employeeId: row.employee_id, employmentId: row.employment_id, date: row.work_date, kind: workHourType.family === 'OVERTIME' ? 'OVERTIME' as const : workHourType.family === 'TRANSPARENT' ? 'TRANSPARENT' as const : 'WORK_HOUR' as const, typeId: workHourType.id, typeName: workHourType.name, colorCode: workHourType.color_code, hours: Number(row.hours) }]
     }),
   ].sort((left, right) => left.date.localeCompare(right.date) || left.employeeId.localeCompare(right.employeeId) || left.id.localeCompare(right.id))
   const reminderTitle = new Map((remindersResult.data ?? []).map((reminder) => [reminder.id, reminder.title]))

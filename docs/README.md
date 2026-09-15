@@ -1,5 +1,25 @@
 # Liquid HR documentatie-index
 
+## Actual Work V1 — 2026-09-14
+
+**Status: DEVELOPMENT CANDIDATE — LOCAL TECHNICAL GATES GREEN / AUTHENTICATED ACCEPTANCE OPEN**
+
+Actual Work V1 gebruikt de bestaande `work_hour_types` en
+`employment_work_hour_entries` als één canonieke urenledger. De vier expliciet
+gekozen families zijn WORK, ADDITIONAL, OVERTIME en TRANSPARENT; er is geen
+automatische classificatie en TRANSPARENT beïnvloedt nooit payroll, Leave of
+accrual. De slice bevat HR Admin-medewerkeruren, type- en periodebeheer,
+teamoverzicht, Insights, exacte `numeric(12,4)`-uren, limieten, gesloten
+perioden en append-only correctiehistorie. Zie
+[`ACTUAL_WORK_V1.md`](requirements/actual-work/ACTUAL_WORK_V1.md) voor het
+leidende contract.
+
+Migration `20260914192320_actual_work_v1` is uitsluitend toegepast op
+DEV/test-project `wnpfloqpjvaacobppbpk`; TEST-BOUNDARY en Production zijn niet
+aangeraakt. Remote readback, generated types, advisors, gerichte tests,
+strict TypeScript en i18n zijn groen. Browseracceptatie, branch/main-gates,
+exacte GitHub-SHA en Vercel blijven open.
+
 ## Leave Insights V1 — 2026-09-14
 
 **Status: DEVELOPMENT CANDIDATE — DEV READ-ONLY ACCEPTANCE / MAIN GATES OPEN**

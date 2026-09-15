@@ -1,5 +1,54 @@
 # Implementatiestatus Liquid HR
 
+## Actual Work V1 — 2026-09-15
+
+**Status: DEVELOPMENT CANDIDATE — DEV ACCEPTANCE GREEN; COMMIT GATE READY**
+
+De candidate staat op `work/actual-work-v1` in
+`\.codex-worktrees\actual-work-v1`, gebaseerd op origin/main
+`3c7a3c73e9d1aba928f44c3350f5d84d2ea65923`. De slice breidt de bestaande
+canonieke `work_hour_types`/`employment_work_hour_entries` uit met de vier
+Actual Work-families, exacte uren, datumgeldigheid, granulariteit, limieten,
+perioden en append-only correcties. De API gebruikt invoker-bound RPC's en
+server-side scope/eligibility-validatie; alle nieuwe tabellen hebben RLS.
+
+De drie DEV-migraties zijn exact uitgelijnd met Supabase-project
+`wnpfloqpjvaacobppbpk`: `20260914192320_actual_work_v1.sql` ↔
+`20260914192320 actual_work_v1`,
+`20260914205718_actual_work_v1_schedule_scope_fix.sql` ↔
+`20260914205718 actual_work_v1_schedule_scope_fix`, en
+`20260915061629_actual_work_v1_fk_indexes.sql` ↔
+`20260915061629 actual_work_v1_fk_indexes`. De eerder genoemde lokale naam
+`20260914191328_actual_work_v1.sql` bestaat niet en staat niet in remote
+history. Omdat Supabase migration history alleen version/name bewaart, is de
+body gecontroleerd via de exacte lokale SQL die aan apply is aangeboden plus
+remote function-, index- en fixture-readback; Production is niet aangeraakt.
+
+Remote Planeten/Jupiter-readback: 5 types, 9 limits, 4 periods, 5 entries en
+7 revisions; exact `8.0000`, `2.0000`, `8.0000`, `8.0000`, `2.0000` uur; één
+gesloten en drie open perioden. `TEST-BOUNDARY` blijft volledig leeg. Typegen
+is opnieuw uitgevoerd; `packages/db/types.ts` behoudt de bestaande
+compatibiliteitsdefinitie `company_activities` die de generator niet teruggeeft.
+De instellingen, medewerkeruren, team- en Insights-routes, Leave
+`WORKED_HOURS`, kalender en read-only Leave-accrual-preview zijn lokaal met
+een authenticated HR Admin gecontroleerd. Lisa's `7.5000`-correctie is via de
+UI round-tripped en naar de oorspronkelijke `8.0000` fixturewaarde hersteld;
+Jan's 2026-10-01 roostergrens toont september/oktober correct.
+
+Verificatie: Actual Work `3` bestanden/`10` tests, strict TypeScript, ESLint,
+i18n (`35` gelijke NL/EN-namespaces), `git diff --check` en Webpack-build
+(`270` pagina's) zijn groen. Advisors tonen geen nieuwe Actual Work-security-
+of unindexed-FK-finding; resterende INFO/WARN-meldingen zijn projectbrede
+baselines en low-volume unused-index INFO's. De eerder eenmaal uitgevoerde
+volledige suite eindigde op `374/377` bestanden en `1461/1464` tests met drie
+bekende, ongerelateerde failures: DG1 PDF-timeout, contract-change-audit
+grantformaat en DM-1 CASE-parenthesization.
+
+Nog open zijn uitsluitend de geautoriseerde delivery-gates: feature-commit/
+push, fast-forward-integratie naar `main`, exacte GitHub-SHA-readback, Vercel
+deployment vanaf die SHA, hosted acceptance en veilige cleanup. Zie
+[`ACTUAL_WORK_V1.md`](../requirements/actual-work/ACTUAL_WORK_V1.md).
+
 ## Leave V1 product completion — 2026-09-13
 
 **Status: DEV ACCEPTANCE GREEN — MAIN/VERCEL INTEGRATION GATE OPEN**

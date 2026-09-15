@@ -152,6 +152,7 @@ function reportLabelPrefix(id: InsightReportId): string {
   if (id === 'salary-internal-position') return 'salaryInternalPosition'
   if (id === 'upcoming-events') return 'upcomingEvents'
   if (id === 'ai-usage') return 'aiUsage'
+  if (id === 'actual-work') return 'actualWork'
   return id
 }
 

@@ -398,6 +398,7 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
       name: input.name,
       color_code: input.colorCode,
       category: input.category,
+      family: input.category === 'OVERTIME' ? 'OVERTIME' : input.category === 'INFORMATIONAL' ? 'TRANSPARENT' : 'WORK',
       is_active: input.isActive,
       is_self_service: input.isSelfService,
       pin_in_calendar: input.pinInCalendar,
