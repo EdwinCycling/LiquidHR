@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useReducer, useRef, useState, type ReactElement } from 'react'
-import { AudioLines, Mic, MicOff, PhoneOff } from 'lucide-react'
+import { AudioLines, BrainCircuit, Clock3, Mic, MicOff, PhoneOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { TextInput } from '@/components/ui/text-input'
@@ -25,6 +25,8 @@ export type TeamLiveVoiceLabels = {
   mute: string
   unmute: string
   muted: string
+  elapsed: string
+  paused: string
   inputLevel: string
   inputMuted: string
   closing: string
@@ -137,6 +139,11 @@ export function calculateAudioInputLevel(samples: Uint8Array): number {
   return Math.min(1, Math.sqrt(total / samples.length) * 3)
 }
 
+export function formatElapsed(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds))
+  return `${String(Math.floor(safeSeconds / 60)).padStart(2, '0')}:${String(safeSeconds % 60).padStart(2, '0')}`
+}
+
 function InputLevelMeter({ muted, stream, label, mutedLabel }: { muted: boolean; stream: MediaStream | null; label: string; mutedLabel: string }): ReactElement | null {
   const [level, setLevel] = useState(0)
 
@@ -179,9 +186,18 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
   const [summaryBody, setSummaryBody] = useState('')
   const [summaryStatus, setSummaryStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const [inputStream, setInputStream] = useState<MediaStream | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const open = state.phase !== 'idle'
   const status = state.phase === 'error' ? labels[state.message] : state.phase === 'idle' ? null : labels[state.phase]
   const canMute = ['listening', 'processing', 'speaking', 'muted'].includes(state.phase)
+  const timerRunning = ['connecting', 'listening', 'processing', 'speaking'].includes(state.phase)
+
+  useEffect(() => {
+    if (!timerRunning) return
+    const startedAt = Date.now() - (elapsedSeconds * 1_000)
+    const timer = window.setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1_000)), 250)
+    return () => window.clearInterval(timer)
+  }, [elapsedSeconds, timerRunning])
 
   useEffect(() => {
     return () => {
@@ -211,6 +227,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
     }
     current.current = null
     setInputStream(null)
+    setElapsedSeconds(0)
     dispatch({ type: 'closed' })
   }
 
@@ -235,6 +252,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
 
   async function start(): Promise<void> {
     if (!enabled || current.current) return
+    setElapsedSeconds(0)
     dispatch({ type: 'start' })
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') {
       dispatch({ type: 'error', message: 'connectionFailed' })
@@ -421,7 +439,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
     </div>
     <audio aria-hidden="true" autoPlay playsInline ref={audioRef} className="sr-only" />
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) stop() }} title={labels.title} description={`${labels.scope}: ${contextName}`} closeLabel={labels.close} footer={<div className="flex flex-wrap justify-center gap-3"><Button type="button" variant="secondary" disabled={!canMute} aria-pressed={state.phase === 'muted'} onClick={toggleMute}>{state.phase === 'muted' ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}{state.phase === 'muted' ? labels.unmute : labels.mute}</Button><Button type="button" variant="danger" onClick={stop}><PhoneOff aria-hidden="true" />{labels.stop}</Button></div>}>
-      <div className="flex flex-col items-center gap-6 py-4 text-center"><div aria-hidden="true" className={`flex size-32 items-center justify-center rounded-full border border-primary/35 bg-accent text-accent-foreground motion-reduce:animate-none ${['connecting', 'processing', 'speaking'].includes(state.phase) ? 'motion-safe:animate-pulse' : ''}`}>{state.phase === 'muted' ? <MicOff className="size-12" /> : <AudioLines className="size-12" />}</div><InputLevelMeter label={labels.inputLevel} muted={state.phase === 'muted'} mutedLabel={labels.inputMuted} stream={inputStream} /><p aria-atomic="true" aria-live="polite" className={`text-sm font-medium ${state.phase === 'error' ? 'text-destructive' : 'text-foreground'}`}>{status}</p><p className="text-sm text-muted-foreground">{labels.privacy}</p></div>
+      <div className="flex flex-col items-center gap-6 py-4 text-center"><div aria-hidden="true" className={`flex size-32 items-center justify-center rounded-full border border-primary/35 bg-accent text-accent-foreground motion-reduce:animate-none ${['connecting', 'processing', 'speaking'].includes(state.phase) ? 'motion-safe:animate-pulse' : ''}`}>{state.phase === 'muted' ? <MicOff className="size-12" /> : state.phase === 'processing' ? <BrainCircuit className="size-12" /> : <AudioLines className="size-12" />}</div><div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 aria-hidden="true" className="size-4" /><span className="font-medium tabular-nums text-foreground">{formatElapsed(elapsedSeconds)}</span><span aria-hidden="true">·</span><span>{state.phase === 'muted' ? labels.paused : labels.elapsed}</span></div><InputLevelMeter label={labels.inputLevel} muted={state.phase === 'muted'} mutedLabel={labels.inputMuted} stream={inputStream} /><p aria-atomic="true" aria-live="polite" className={`flex items-center gap-2 text-sm font-medium ${state.phase === 'error' ? 'text-destructive' : 'text-foreground'}`}>{state.phase === 'processing' ? <BrainCircuit aria-hidden="true" className="size-4" /> : null}{status}</p><p className="text-sm text-muted-foreground">{labels.privacy}</p></div>
     </Dialog>
     {proposal ? <section aria-label={labels.summaryTitle} className="mt-3 rounded-[var(--radius-control)] border bg-surface-subtle p-4"><h4 className="font-semibold">{labels.summaryTitle}</h4><p className="mt-1 text-sm text-muted-foreground">{labels.summaryDescription}</p><div className="mt-4 grid gap-3"><label className="grid gap-1 text-sm font-medium">{labels.summaryTitleLabel}<TextInput value={summaryTitle} onChange={(event) => setSummaryTitle(event.target.value)} /></label><label className="grid gap-1 text-sm font-medium">{labels.summaryBodyLabel}<Textarea value={summaryBody} onChange={(event) => setSummaryBody(event.target.value)} /></label><div className="flex flex-wrap items-center gap-3"><Button type="button" disabled={summaryStatus === 'saving' || summaryStatus === 'saved' || !summaryTitle.trim() || !summaryBody.trim()} onClick={() => { void saveSummary() }}>{summaryStatus === 'saving' ? labels.summarySaving : summaryStatus === 'saved' ? labels.summarySaved : labels.summarySave}</Button>{summaryStatus === 'failed' ? <span className="text-sm text-destructive" role="alert">{labels.summaryFailed}</span> : null}</div></div></section> : null}
   </section>
