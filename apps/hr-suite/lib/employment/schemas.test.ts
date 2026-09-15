@@ -162,7 +162,7 @@ describe('completeEmploymentCreateSchema', () => {
   it('vereist dat het rooster exact aansluit op de weekuren', () => {
     expect(completeEmploymentCreateSchema.safeParse({
       ...valid,
-      schedule: { ...valid.schedule, fridayHours: 7 },
+      schedule: { ...valid.schedule, scheduleType: 'HOURS_AND_SPECIFIC_DAYS', fridayHours: 7 },
     }).success).toBe(false)
   })
 
@@ -204,6 +204,30 @@ describe('completeEmploymentCreateSchema', () => {
       salary: { paymentType: 'PERIODIC_FIXED', paymentFrequency: 'FOUR_WEEKLY', salaryFrequencyId: '9cea4610-0b69-e90a-20f3-1d77e04248f4', salaryBasis: 'MANUAL', fulltimeAmount: 3500, parttimeAmount: 1, hourlyRate: null, currencyCode: 'EUR', salaryScaleStepId: null, validFrom: '2026-09-01' },
       organization: { departmentId: 'b551dc4c-0482-3911-5e7a-5b40cf8fe113', jobId: '1ddf85af-721d-4887-a5e4-74dd2c037ee4', jobTitle: 'Monteur', managerEmployeeId: '6f2e2302-748f-8684-0ce6-1b29702d5d92', effectiveFrom: '2026-09-01' },
       costAllocation: { validFrom: '2026-09-01', allocations: [{ costCenterId: 'f6401e40-e815-a9c0-2d5f-072dc201bb99', costCarrierId: '74bb945b-aca7-5707-8548-a7d2ea5739c2', percentage: 100 }] },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepteert een flexibele on-call deeltijdplanning met factor en gemiddelde dagen', () => {
+    const result = completeEmploymentCreateSchema.safeParse({
+      ...valid,
+      schedule: {
+        ...valid.schedule,
+        scheduleType: 'HOURS_AND_AVG_DAYS',
+        averageDaysPerWeek: 3,
+        averageHoursPerWeek: 20,
+        partTimeFactor: 0.5,
+        isOnCall: true,
+        onCallObligation: true,
+        workScope: 'PART_TIME',
+        mondayHours: null,
+        tuesdayHours: null,
+        wednesdayHours: null,
+        thursdayHours: null,
+        fridayHours: null,
+        saturdayHours: null,
+        sundayHours: null,
+      },
     })
     expect(result.success).toBe(true)
   })

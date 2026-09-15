@@ -27,6 +27,8 @@ export interface EmploymentWizardValidationInput {
   probationEndsOn: string
   caoAllowsTwoMonths?: boolean
   weeklyHours: string
+  scheduleType: 'HOURS_AND_AVG_DAYS' | 'HOURS_AND_SPECIFIC_DAYS'
+  averageDaysPerWeek: string
   days: Readonly<Record<string, string>>
   secondWeekDays: Readonly<Record<string, string>>
   twoWeekRoster: boolean
@@ -76,13 +78,24 @@ export function isEmploymentWizardStepValid(
         && !isBlockingProbationValidation(probationError))))
   }
   if (step === 'schedule') {
-    const weeklyHours = parseDecimalInput(input.weeklyHours)
+    const weeklyHoursInput = input.weeklyHours ?? ''
+    const averageDaysInput = input.averageDaysPerWeek ?? ''
+    const weeklyHours = parseDecimalInput(weeklyHoursInput)
+    const averageDaysPerWeek = parseDecimalInput(averageDaysInput)
+    const weeklyHoursValid = weeklyHoursInput.trim() !== '' && Number.isFinite(weeklyHours) && weeklyHours >= 0 && weeklyHours <= 50
+    if (input.scheduleType === 'HOURS_AND_AVG_DAYS') {
+      const averageDaysValid = Number.isFinite(averageDaysPerWeek)
+        && averageDaysPerWeek >= 0
+        && averageDaysPerWeek <= 7
+        && (weeklyHours === 0 || averageDaysPerWeek > 0)
+      return weeklyHoursValid && averageDaysValid
+    }
     const dayValues = Object.values(input.days)
     const secondWeekValues = Object.values(input.secondWeekDays)
     const allDayValues = input.twoWeekRoster ? [...dayValues, ...secondWeekValues] : dayValues
     const validDayValues = allDayValues.length > 0 && allDayValues.every((value) => value.trim() !== '' && Number.isFinite(parseRosterHoursInput(value)) && parseRosterHoursInput(value) >= 0 && parseRosterHoursInput(value) <= 24)
     const rosterMatches = Math.abs(allDayValues.reduce((sum, value) => sum + (parseRosterHoursInput(value) || 0), 0) - weeklyHours * (input.twoWeekRoster ? 2 : 1)) < 0.0001
-    return options.rosterMatches && rosterMatches && input.weeklyHours.trim() !== '' && Number.isFinite(weeklyHours) && weeklyHours >= 0 && weeklyHours <= 50 && validDayValues
+    return options.rosterMatches && rosterMatches && weeklyHoursValid && validDayValues
   }
   if (step === 'salary') {
     if (!options.canWriteSalary) return true

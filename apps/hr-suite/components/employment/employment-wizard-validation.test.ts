@@ -4,7 +4,7 @@ import { canSubmitEmploymentWizard, hasMissingEmploymentPrerequisites, isEmploym
 const validInput: EmploymentWizardValidationInput = {
   administrationId: 'administration', nationality: 'NL', birthDate: '1990-01-01', gender: 'MALE', employmentNumber: 'EMP-001', startsOn: '2026-08-08', seniorityDate: '2026-08-08', countryCode: 'NL', ikvNumber: '1',
   employmentType: 'EMPLOYEE', flexPhaseId: 'flex', laborConditionSetId: 'labor', durationType: 'INDEFINITE', endsOn: '', probationApplies: false, probationEndsOn: '',
-  weeklyHours: '40', days: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' }, secondWeekDays: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' }, twoWeekRoster: false, salaryBasis: 'MANUAL', salaryFrequencyId: 'monthly', fulltimeAmount: '3000', salaryScaleStepId: '', jobGroupId: 'group', jobId: 'job', departmentId: 'department',
+  weeklyHours: '40', scheduleType: 'HOURS_AND_AVG_DAYS', averageDaysPerWeek: '5', days: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' }, secondWeekDays: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' }, twoWeekRoster: false, salaryBasis: 'MANUAL', salaryFrequencyId: 'monthly', fulltimeAmount: '3000', salaryScaleStepId: '', jobGroupId: 'group', jobId: 'job', departmentId: 'department',
   allocations: [{ costCenterId: 'center', costCarrierId: 'carrier' }],
 }
 
@@ -56,21 +56,34 @@ describe('employment wizard validation', () => {
   it('keeps a two-week roster on the agreed weekly average', () => {
     const twoWeekInput = {
       ...validInput,
+      scheduleType: 'HOURS_AND_SPECIFIC_DAYS' as const,
       twoWeekRoster: true,
       secondWeekDays: { monday: '8', tuesday: '8', wednesday: '8', thursday: '8', friday: '8', saturday: '0', sunday: '0' },
     }
     expect(isEmploymentWizardStepValid('schedule', twoWeekInput, validOptions)).toBe(true)
     expect(isEmploymentWizardStepValid('schedule', { ...twoWeekInput, secondWeekDays: { ...twoWeekInput.secondWeekDays, monday: '9' } }, validOptions)).toBe(false)
-    expect(isEmploymentWizardStepValid('schedule', { ...validInput, days: { ...validInput.days, monday: '-1' } }, validOptions)).toBe(false)
+    expect(isEmploymentWizardStepValid('schedule', { ...validInput, scheduleType: 'HOURS_AND_SPECIFIC_DAYS', days: { ...validInput.days, monday: '-1' } }, validOptions)).toBe(false)
   })
 
   it('treats roster fractions as minutes instead of decimal hours', () => {
     const minuteRoster = {
       ...validInput,
+      scheduleType: 'HOURS_AND_SPECIFIC_DAYS' as const,
       weeklyHours: '37.5',
       days: { monday: '7,30', tuesday: '7,30', wednesday: '7,30', thursday: '7,30', friday: '7,30', saturday: '0', sunday: '0' },
     }
     expect(isEmploymentWizardStepValid('schedule', minuteRoster, validOptions)).toBe(true)
+  })
+
+  it('accepts weekly hours with average days without weekday distribution', () => {
+    expect(isEmploymentWizardStepValid('schedule', {
+      ...validInput,
+      scheduleType: 'HOURS_AND_AVG_DAYS',
+      weeklyHours: '20',
+      averageDaysPerWeek: '3',
+      days: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' },
+    }, { ...validOptions, rosterMatches: false })).toBe(true)
+    expect(isEmploymentWizardStepValid('schedule', { ...validInput, weeklyHours: '20', averageDaysPerWeek: '0' }, validOptions)).toBe(false)
   })
 
   it('keeps probation outside the contract as a warning', () => {

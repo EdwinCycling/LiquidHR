@@ -1,5 +1,46 @@
 # Actuele overdracht Liquid HR
 
+## Synthetic Eric Oproeper — 2026-09-15
+
+**Status: DEV ACCEPTANCE GREEN — HOSTED LEAVE ACCEPTANCE OPEN**
+
+- Eric Oproeper is uitsluitend via de bestaande Employee + Employment-wizard
+  aangemaakt in canonical DEV `wnpfloqpjvaacobppbpk`: employee-id
+  `088e7ee3-e08e-4372-adaa-560338c397ef`, employment-id
+  `c1c70315-446f-4975-85bd-f6026457af61`, wizard-generated employee number
+  `100021`. Er is geen auth/login-account voor Eric aangemaakt en Production is
+  niet gebruikt.
+- Wizard readback is groen: Jupiter BV, Employee, primary, 2026-07-01 t/m
+  2027-06-30, definite contract via de bestaande +12-maandenactie, on-call en
+  on-call obligation `Ja`, 20/40 uur en factor `50%`, job `Monteur`, afdeling
+  `Directie`, manager `Lisa Test`. De schedule is `HOURS_AND_AVG_DAYS` met
+  gemiddeld 3 dagen per week; er is geen vaste maandag-vrijdagverdeling
+  opgeslagen en salaris is overgeslagen.
+- Tijdens de wizardflow zijn drie in-scope defecten minimaal hersteld: on-call
+  mocht uren/factor niet resetten, payroll overslaan mocht contract/schedule/
+  organization niet weggooien en de gekozen manager mocht niet door een
+  department-default worden overschreven. Gerichte wizard/state/schema-tests
+  dekken deze paden af (`29/29`).
+- Via de echte Eric Actual Work-UI zijn `AW_WORK` 8, `AW_ADDITIONAL` 2 en
+  `AW_OVERTIME` 2 uur opgeslagen in september 2026; persisted readback toont
+  de drie regels en totaal `12,0000` uur. De transparante types zijn niet
+  gebruikt.
+- De read-only Leave-accrual preview voor 2026 toont voor Eric op
+  `2026-09-01 – 2026-10-01` `WORKED_HOURS · MONTHLY`, status `Gereed` en
+  `1,00` uur. Met de bestaande rate `0,08333333` is dit
+  `12,0000 × 0,08333333 ≈ 1,0000`; een tweede toepassing van FTE `0,5000`
+  zou circa `0,5000` geven en is dus niet toegepast. Er is niet geboekt en geen
+  jaar afgesloten.
+- Gate-readback vóór integratie: strict TypeScript, volledige lint,
+  i18n-pariteit (`35` namespaces), `git diff --check`, gerichte
+  wizard/schema-tests (`29/29`) en hr-suite Webpack-productiebuild (`270/270`)
+  zijn groen. De volledige hr-suite heeft `1480` geslaagde tests met dezelfde
+  drie onaangeraakte baseline failures (contract-change-audit migration
+  contract, Document Studio DM-1 migration contract en PDF-render-timeout);
+  control is `7/7` groen. De root Turbopack-build blijft geblokkeerd door de
+  bekende externe `apps/hr-suite/node_modules`-symlink; de gevalideerde
+  Webpack-fallback is gebruikt.
+
 ## Leave-opbouw per Actual Work — 2026-09-15
 
 **Status: CANDIDATE — LOKALE/DEV-GATES GREEN; COMMIT, MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**

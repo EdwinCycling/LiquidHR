@@ -823,6 +823,7 @@ export default async function EmploymentDetailPage({
                     { label: t("fulltimeReference"), value: String(row.fulltime_hours_per_week) },
                     { label: t("partTimeFactor"), value: `${Math.round(Number(row.part_time_factor) * 100)}%` },
                     { label: t("onCallEmployee"), value: row.is_on_call ? t("yes") : t("no") },
+                    { label: t("onCallObligation"), value: row.on_call_obligation === null ? t("notRecorded") : row.on_call_obligation ? t("yes") : t("no") },
                   ],
                 }))}
               />

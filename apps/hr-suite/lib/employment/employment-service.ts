@@ -590,34 +590,22 @@ export async function publishCompleteEmployment(
   }
   await ensureEmployeeAdministrationAssignment(employeeId, input.employment.startsOn, administrationId)
 
-  let requestedInput = input
-  if (input.organization) {
-    const [assignmentsResult, rolesResult] = await Promise.all([
-      supabase.from('department_management').select('employee_id, management_role_id, effective_from, effective_to')
-        .eq('tenant_id', context.tenantId)
-        .eq('hr_group_id', requireHrGroupId(context))
-        .eq('department_id', input.organization.departmentId)
-        .lte('effective_from', input.employment.startsOn)
-        .or(`effective_to.is.null,effective_to.gte.${input.employment.startsOn}`)
-        .order('effective_from', { ascending: false }).limit(100),
-      supabase.from('management_roles').select('id, code')
-        .or(`tenant_id.is.null,tenant_id.eq.${context.tenantId}`)
-        .eq('code', 'DIRECT_MANAGER').eq('is_active', true).is('deleted_at', null).limit(20),
-    ])
-    if (!assignmentsResult.error && !rolesResult.error) {
-      const directManagerRoleIds = new Set((rolesResult.data ?? []).map((role) => role.id))
-      const managerEmployeeId = assignmentsResult.data?.find((assignment) => directManagerRoleIds.has(assignment.management_role_id) && assignment.employee_id !== employeeId)?.employee_id ?? null
-      requestedInput = {
-        ...input,
-        organization: { ...input.organization, managerEmployeeId },
-      }
-    }
+  if (input.organization?.managerEmployeeId) {
+    const { data: manager, error: managerError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('id', input.organization.managerEmployeeId)
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', requireHrGroupId(context))
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (managerError || !manager || manager.id === employeeId) throw new EmploymentServiceError('MANAGER_NOT_FOUND', 400)
   }
 
   const rpcArgs = {
     requested_employee_id: employeeId,
     requested_administration_id: administrationId,
-    requested_payload: requestedInput as Json,
+    requested_payload: input as Json,
   }
   const { data, error } = input.salary?.salaryRoute
     ? await supabase.rpc('publish_complete_salary_application_employment', rpcArgs)

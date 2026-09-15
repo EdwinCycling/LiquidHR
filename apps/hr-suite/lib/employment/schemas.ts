@@ -140,7 +140,10 @@ const completeScheduleSchema = z.object({
     value.mondayHours, value.tuesdayHours, value.wednesdayHours, value.thursdayHours,
     value.fridayHours, value.saturdayHours, value.sundayHours,
   ].reduce<number>((sum, hours) => sum + (hours ?? 0), 0)
-  if (Math.abs(rosterHours - value.averageHoursPerWeek) > 0.0001) {
+  if (value.scheduleType === 'HOURS_AND_AVG_DAYS' && value.averageHoursPerWeek > 0 && value.averageDaysPerWeek <= 0) {
+    context.addIssue({ code: 'custom', path: ['averageDaysPerWeek'], message: 'AVERAGE_DAYS_REQUIRED' })
+  }
+  if (value.scheduleType !== 'HOURS_AND_AVG_DAYS' && Math.abs(rosterHours - value.averageHoursPerWeek) > 0.0001) {
     context.addIssue({ code: 'custom', path: ['averageHoursPerWeek'], message: 'ROSTER_HOURS_MISMATCH' })
   }
 })
