@@ -58,7 +58,7 @@ describe('GPT-Live employee voice contract', () => {
     expect(resolveRealtimeVoiceModel({})).toBe('gpt-live-1')
   })
 
-  it('parses only completed nested Responses function calls', () => {
+  it('parses completed function calls in both direct Live and delegated Responses envelopes', () => {
     expect(parseRealtimeVoiceFunctionCall({
       type: 'response.event',
       event: {
@@ -66,7 +66,7 @@ describe('GPT-Live employee voice contract', () => {
         item: { type: 'function_call', call_id: 'call_1', name: 'employee_summary', arguments: '{}' },
       },
     })).toEqual({ callId: 'call_1', name: 'employee_summary', arguments: {} })
-    expect(parseRealtimeVoiceFunctionCall({ type: 'response.output_item.done', item: { type: 'function_call', call_id: 'call_1', name: 'employee_summary', arguments: '{}' } })).toBeNull()
+    expect(parseRealtimeVoiceFunctionCall({ type: 'response.output_item.done', item: { type: 'function_call', call_id: 'call_direct_1', name: 'employee_summary', arguments: '{}' } })).toEqual({ callId: 'call_direct_1', name: 'employee_summary', arguments: {} })
     expect(parseRealtimeVoiceFunctionCall({
       type: 'response.event',
       event: {
@@ -79,6 +79,7 @@ describe('GPT-Live employee voice contract', () => {
   it('parses only completed Team AI function calls', () => {
     expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_1', name: 'team_overview', arguments: '{}' } } })).toEqual({ callId: 'team_1', name: 'team_overview', arguments: {} })
     expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_2', name: 'team_employee_summary', arguments: '{"employeeName":"Maya Bos"}' } } })).toEqual({ callId: 'team_2', name: 'team_employee_summary', arguments: { employeeName: 'Maya Bos' } })
+    expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_direct_1', name: 'team_overview', arguments: '{}' } })).toEqual({ callId: 'team_direct_1', name: 'team_overview', arguments: {} })
     expect(parseTeamRealtimeVoiceFunctionCall({ type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'team_3', name: 'development_goal_smart', arguments: '{}' } } })).toBeNull()
   })
 

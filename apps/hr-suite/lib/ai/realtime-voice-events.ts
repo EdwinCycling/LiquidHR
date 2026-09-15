@@ -14,9 +14,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function completedFunctionCallItem(value: unknown): Record<string, unknown> | null {
+  if (!isRecord(value)) return null
+  const event = value.type === 'response.event' && isRecord(value.event) ? value.event : value
+  if (event.type !== 'response.output_item.done' || !isRecord(event.item)) return null
+  return event.item
+}
+
 export function parseRealtimeVoiceFunctionCall(value: unknown): RealtimeVoiceFunctionCall | null {
-  if (!isRecord(value) || value.type !== 'response.event' || !isRecord(value.event) || value.event.type !== 'response.output_item.done') return null
-  const item = value.event.item
+  const item = completedFunctionCallItem(value)
   if (!isRecord(item) || item.type !== 'function_call' || typeof item.call_id !== 'string' || !item.call_id.trim() || typeof item.name !== 'string' || !realtimeVoiceToolNames.has(item.name as RealtimeVoiceToolName)) return null
   let parsedArguments: unknown = {}
   if (typeof item.arguments === 'string') {
@@ -28,8 +34,7 @@ export function parseRealtimeVoiceFunctionCall(value: unknown): RealtimeVoiceFun
 }
 
 export function parseTeamRealtimeVoiceFunctionCall(value: unknown): { callId: string; name: TeamRealtimeVoiceToolName; arguments: unknown } | null {
-  if (!isRecord(value) || value.type !== 'response.event' || !isRecord(value.event) || value.event.type !== 'response.output_item.done') return null
-  const item = value.event.item
+  const item = completedFunctionCallItem(value)
   if (!isRecord(item) || item.type !== 'function_call' || typeof item.call_id !== 'string' || !item.call_id.trim() || typeof item.name !== 'string' || !teamRealtimeVoiceToolNames.has(item.name as TeamRealtimeVoiceToolName)) return null
   let parsedArguments: unknown = {}
   if (typeof item.arguments === 'string') {
