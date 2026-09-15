@@ -46,9 +46,12 @@ tekst. Er is geen schemawijziging of remote migration uitgevoerd.
 Gerichte GPT-Live- en Employee-AI-tests zijn `14/14` groen; strict TypeScript,
 ESLint, i18n en diff-check zijn groen. De volledige suite blijft rood door de
 bestaande V2-migration-contractverwachting, de bestaande DM-1 CASE-contracttest
-en de bestaande PDF-renderer-timeout. Preview-redeploy, authenticated
-microfoon/audio-acceptatie en de afzonderlijke React hydration `#418`-diagnose
-blijven open.
+en de bestaande PDF-renderer-timeout. Preview deployment
+`dpl_8YPDBh9g37nFxoHdDH2TLUHPKvu1` staat `READY` op de codecommit
+`01e99b32fd3d7432fe2bff6b01203fbfa5282d1e` via
+`https://liquidhr-jzxvvgaa1-edwinitsolutions.vercel.app`. De nieuwe host vereist
+een eigen authenticated login; microfoon/audio-acceptatie en de afzonderlijke
+React hydration `#418`-diagnose blijven open.
 
 ## Employee Detail AI-surface — 2026-09-15
 

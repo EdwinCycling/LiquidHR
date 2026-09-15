@@ -22,7 +22,7 @@ niet aangeraakt.
 
 ## GPT-Live transport + Employee AI interaction — 2026-09-15
 
-**Status: LOCAL FIX GREEN — PREVIEW REDEPLOY AND MANUAL VOICE ACCEPTANCE OPEN**
+**Status: PREVIEW READY — MANUAL VOICE ACCEPTANCE OPEN**
 
 De gemelde Employee Detail `422` was geen request-validatiefout in LiquidHR.
 OpenAI gaf op de oude create-payload `400 invalid_request_error` met
@@ -44,8 +44,13 @@ proposal-only grenzen en migrations zijn niet gewijzigd.
 Gerichte tests: `14/14` groen; strict TypeScript, ESLint, i18n en diff-check
 groen. De volledige suite heeft drie bestaande failures: de V2-migration-
 contractverwachting, de DM-1 CASE-contracttest en de PDF-renderer-timeout. De
-nieuwe code is nog niet naar Preview gedeployed. React hydration `#418` en
-authenticated microfoon/audio/tool-call acceptance blijven aparte open gates.
+Preview `https://liquidhr-jzxvvgaa1-edwinitsolutions.vercel.app` staat `READY`
+als deployment `dpl_8YPDBh9g37nFxoHdDH2TLUHPKvu1` op commit
+`01e99b32fd3d7432fe2bff6b01203fbfa5282d1e`; de route is
+`/employees/64ad3a23-f59a-4ed0-af41-26dda20ff067?tab=overview&view=expanded`.
+De nieuwe deployment-host vereist een eigen authenticated login. React
+hydration `#418` en authenticated microfoon/audio/tool-call acceptance blijven
+aparte open gates.
 
 ## Employee Detail AI-surface — 2026-09-15
 

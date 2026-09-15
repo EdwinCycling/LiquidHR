@@ -13,8 +13,10 @@ De gedeelde `AiProgress`-surface wordt gebruikt door de bestaande AI-resultaten.
 Employee Summary en Conversation Preparation bieden na review een expliciete
 `Opslaan in Mijn logboek`-actie naast `Kopiëren`, via het bestaande owner-only
 logbook-endpoint. DEV/TEST Supabase en de database-migrations zijn niet gewijzigd.
-Gerichte tests, strict TypeScript, ESLint, i18n en diff-check zijn groen; echte
-Preview/microfoonacceptatie en React hydration `#418` blijven open.
+Gerichte tests, strict TypeScript, ESLint, i18n en diff-check zijn groen. De
+Preview-deployment `dpl_8YPDBh9g37nFxoHdDH2TLUHPKvu1` is `READY` op de
+AI-codecommit; de nieuwe deployment-host vereist een eigen authenticated login.
+Microfoonacceptatie en React hydration `#418` blijven open.
 
 ## Document Studio DG2 + DG3 — 2026-09-07
 
