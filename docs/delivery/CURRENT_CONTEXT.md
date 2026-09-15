@@ -4,10 +4,9 @@
 
 **Status: DEPLOYED — HOSTED SWITCHER VERIFIED / PGRST303 DIAGNOSED**
 
-- Exact main: `645512e6c299760890fe6010b5cfbba8dfac02e6` is pushed to
-  `origin/main` and deployed as Vercel `dpl_BA6TXX1UxZ4cUmrfEQ45bi6MQSZc`.
-  Het Vercel-target heet `production`, maar is de bestaande LiquidHR DEV/test-
-  productlijn; Supabase Production is niet aangeraakt.
+- De release state is naar `origin/main` gepusht en naar de bestaande
+  LiquidHR DEV/test-productlijn gedeployed. Het Vercel-target heet
+  `production`, maar Supabase Production is niet aangeraakt.
 - De bestaande source- en target-allowlists zijn ongewijzigd. De capability
   vereist nu expliciet `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true` én de veilig
   uit `NEXT_PUBLIC_SUPABASE_URL` afgeleide exact canonical DEV-ref

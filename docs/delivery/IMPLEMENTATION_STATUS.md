@@ -17,8 +17,8 @@ gemaakt en Supabase Production/Actual Work zijn niet aangeraakt.
 
 De gerichte suite telt `5` bestanden / `25` tests; strict TypeScript, ESLint,
 `git diff --check` en de Webpack production build (`270` pagina's) zijn groen.
-Exact `origin/main` `645512e6c299760890fe6010b5cfbba8dfac02e6` is gedeployed als
-Vercel `dpl_BA6TXX1UxZ4cUmrfEQ45bi6MQSZc` naar de bestaande DEV/test-lijn.
+De release state is gedeployed naar de bestaande DEV/test-lijn; Vercel noemt
+het gebruikte target `production`.
 Authenticated hosted verification is groen: de vier switcherlabels zijn
 zichtbaar, fixture → manager → Edwin gebruikt twee `303` handoffs en eindigt
 op `/dashboard/start`; de sessiecookie bevestigt ref `wnpfloqpjvaacobppbpk`.

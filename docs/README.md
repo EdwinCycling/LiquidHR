@@ -13,10 +13,9 @@ trusted-origin-, HttpOnly/Secure/SameSite-handoff- en fail-closed targetchecks
 blijven behouden. De gerichte regressies zijn `25/25` tests, strict TypeScript,
 ESLint, diff-check en Webpack production build (`270` pagina's). Er is geen
 fixture-wachtwoord toegevoegd, geen migration of Actual Work-architectuur
-gewijzigd en Supabase Production is niet aangeraakt. Exact `origin/main` staat
-op `645512e6c299760890fe6010b5cfbba8dfac02e6` en is als Vercel-deployment
-`dpl_BA6TXX1UxZ4cUmrfEQ45bi6MQSZc` naar de bestaande LiquidHR DEV/test-lijn
-gepromoveerd; Vercel noemt dit target `production`.
+gewijzigd en Supabase Production is niet aangeraakt. De release state staat op
+`main` en is naar de bestaande LiquidHR DEV/test-lijn gepromoveerd; Vercel
+noemt dit target `production`.
 
 Hosted acceptatie is groen: verse fixture-authentisatie toont de compacte
 switcher met Edwin, Test HR Admin, Test Manager en Test Medewerker; twee
