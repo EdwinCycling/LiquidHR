@@ -20,6 +20,25 @@ export interface FinalizedAiVoiceSession {
 
 type RpcError = { message?: string; code?: string }
 
+type FinalizeErrorCategory =
+  | 'session-not-found'
+  | 'invalid-input'
+  | 'quota-reached'
+  | 'credits-exhausted'
+  | 'configuration'
+  | 'unknown'
+
+export function classifyFinalizeError(error: RpcError): { databaseCode: string | null; category: FinalizeErrorCategory } {
+  const message = error.message ?? ''
+  let category: FinalizeErrorCategory = 'unknown'
+  if (message.includes('AI_VOICE_SESSION_NOT_FOUND')) category = 'session-not-found'
+  else if (message.includes('AI_VOICE_FINALIZE_INPUT_INVALID') || message.includes('AI_CREDIT_MONTH_INVALID')) category = 'invalid-input'
+  else if (message.includes('AI_CREDIT_QUOTA_EXHAUSTED')) category = 'quota-reached'
+  else if (message.includes('AI_CREDITS_EXHAUSTED')) category = 'credits-exhausted'
+  else if (message.includes('AI_CREDIT_CHARGE_NOT_CONFIGURED') || message.includes('AI_CREDIT_QUOTA_UNAVAILABLE')) category = 'configuration'
+  return { databaseCode: error.code ?? null, category }
+}
+
 function mapFinalizeError(error: RpcError): AiExecutionError {
   const message = error.message ?? ''
   if (message.includes('AI_VOICE_SESSION_NOT_FOUND')) return new AiExecutionError('UNAUTHORIZED')
@@ -66,7 +85,10 @@ export async function finalizeAiVoiceSession(input: {
     requested_month: month,
     requested_termination_reason: input.terminationReason,
   })
-  if (error) throw mapFinalizeError(error)
+  if (error) {
+    console.error('[AI_VOICE_FINALIZE]', classifyFinalizeError(error))
+    throw mapFinalizeError(error)
+  }
   const row = data?.[0]
   if (!row) throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
   return {
