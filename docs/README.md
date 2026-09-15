@@ -1,5 +1,42 @@
 # Liquid HR documentatie-index
 
+## Leave-opbouw per Actual Work — 2026-09-15
+
+**Status: RELEASE CANDIDATE — LOKALE EN DEV-ACCEPTATIE GREEN / HOSTED GATE OPEN**
+
+Deze follow-up maakt `WORKED_HOURS` begrijpelijk en veilig configureerbaar in
+het bestaande Leave-enginepad. De bronselector gebruikt uitsluitend de
+canonieke Actual Work-families `WORK`, `ADDITIONAL` en `OVERTIME`; `TRANSPARENT`
+verschijnt niet en kan database-side niet bijdragen. Meerdere brontypen kunnen
+worden gekozen. De rate blijft als decimaal tot acht cijfers behouden,
+`WORKED_HOURS` krijgt geen extra FTE-factor en `CONTRACT_HOURS` blijft op het
+bestaande pad.
+
+De editor gebruikt een zoekbare gegroepeerde multiselect met telling en
+familielabels. De rate wordt direct als decimaal ingevoerd met hulptekst en
+validatie; nieuwe worked-hours-regels gebruiken standaard `ARREARS`, zonder
+bestaande timingregels te herschrijven. NL/EN blijven paritair.
+
+DEV-migration `20260915122119_actual_work_leave_accrual_integration.sql` is
+uitsluitend toegepast op `wnpfloqpjvaacobppbpk` en staat daar in history met
+naam `20260915122119_actual_work_leave_accrual_integration` (serverversie
+`20260915122914`). SHA-256 van het lokale bestand is
+`369658A9F003E7548D870FDC2D5D2736EAF42548402B6B17F7C0920488294DFB`.
+De canonical Actual Work-migration blijft
+`20260914192320_actual_work_v1.sql` / remote naam
+`20260914192320 actual_work_v1`; de lokale en remote SHA- en inhoudscontrole
+bevestigt dat `20260914191328_actual_work_v1.sql` nergens de toegepaste naam
+is. Supabase Production is niet aangeraakt.
+
+Lokale HR Admin-browseracceptatie op poort 3000 is uitgevoerd met Jan Test:
+de selector toont WORK/ADDITIONAL/OVERTIME en sluit TRANSPARENT uit; de
+DEV-regel met rate `0,08333333` en mappings voor WORK, ADDITIONAL en OVERTIME
+is persistent teruggelezen. In de preview werd september `15,5 ×
+0,08333333 = 1,3333` uur na een echte Actual Work-correctie naar `8` uur
+teruggelezen; oktober met `8 + 2` uur toont `0,8333`. Contract Hours bleef
+zichtbaar en ongewijzigd. De candidate is klaar voor commit, main-integratie,
+deploy en authenticated hosted acceptance.
+
 ## Test role switch DEV-guard — 2026-09-15
 
 **Status: DEPLOYED — HOSTED SWITCHER VERIFIED / SESSION-CLOCK NOTE RECORDED**

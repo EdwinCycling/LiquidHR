@@ -38,7 +38,7 @@ function frequencyLabel(rule: LeaveAccrualRule, labels: LeaveRuleSummaryLabels):
 }
 
 function ruleValue(rule: LeaveAccrualRule, labels: LeaveRuleSummaryLabels): string {
-  if (rule.accrual_basis === 'WORKED_HOURS') return `${formatContractHours(rule.accrual_rate, labels.decimalSeparator, 4)} ${labels.hoursUnit} ${labels.perHour}`
+  if (rule.accrual_basis === 'WORKED_HOURS') return `${formatContractHours(rule.accrual_rate, labels.decimalSeparator, 8)} ${labels.hoursUnit} ${labels.perHour}`
   return `${formatContractHours(rule.accrual_amount, labels.decimalSeparator)} ${labels.hoursUnit}`
 }
 

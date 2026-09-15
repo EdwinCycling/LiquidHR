@@ -2,7 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { MultiSelect } from '@/components/ui/multi-select'
 import type { LeaveCatalog } from '@/lib/leave/leave-service'
+import { parseAccrualRate } from '@/lib/leave/accrual-rate'
+import { selectActualWorkLeaveTypes } from '@/lib/leave/worked-hours-source'
 import { calculateContractHoursPeriodAmount, formatContractHours, type ContractHoursFrequency } from './contract-hours-presentation'
 
 type Basis = 'CONTRACT_HOURS' | 'WORKED_HOURS'
@@ -43,6 +46,8 @@ export type AccrualRuleEditorLabels = {
   partialPeriodMonthly: string
   partialPeriodFourWeekly: string
   amountPerHour: string
+  rateHelp: string
+  ratePlaceholder: string
   hours: string
   minutes: string
   seconds: string
@@ -55,6 +60,13 @@ export type AccrualRuleEditorLabels = {
   workHoursHelp: string
   search: string
   selectedCount: string
+  selectWorkHours: string
+  workHourListLabel: string
+  selectAllWorkHours: string
+  loadingWorkHours: string
+  workFamily: string
+  additionalFamily: string
+  overtimeFamily: string
   noWorkHours: string
   noPauseTypes: string
   profileRequired: string
@@ -99,6 +111,12 @@ function frequencyLabel(frequency: Frequency, labels: AccrualRuleEditorLabels): 
   if (frequency === 'FOUR_WEEKLY') return labels.fourWeekly
   if (frequency === 'MONTHLY') return labels.monthly
   return labels.yearly
+}
+
+function workHourFamilyLabel(family: string, labels: Pick<AccrualRuleEditorLabels, 'workFamily' | 'additionalFamily' | 'overtimeFamily'>): string {
+  if (family === 'WORK') return labels.workFamily
+  if (family === 'ADDITIONAL') return labels.additionalFamily
+  return labels.overtimeFamily
 }
 
 export function AccrualRuleEditor({
@@ -159,30 +177,41 @@ export function AccrualRuleEditor({
   const [specificPeriod, setSpecificPeriod] = useState<SpecificPeriod>(initialFrequency === 'PAYROLL_PERIOD' ? 'YEARLY' : initialFrequency)
   const [timing, setTiming] = useState<'UPFRONT' | 'ARREARS'>(sourceRule?.accrual_timing ?? 'ARREARS')
   const [amount, setAmount] = useState<Parts>(() => partsFromDecimal(sourceRule?.accrual_amount))
-  const [rate, setRate] = useState<Parts>(() => partsFromDecimal(sourceRule?.accrual_rate))
+  const [rate, setRate] = useState(() => sourceRule?.accrual_rate === null || sourceRule?.accrual_rate === undefined ? '' : String(sourceRule.accrual_rate))
   const [expiryMonths, setExpiryMonths] = useState(String(sourceRule?.expiration_months ?? 6))
-  const [workHourTypeIds, setWorkHourTypeIds] = useState<string[]>(() => catalog.accrualRuleWorkHourTypes
-    .filter((item) => item.accrual_rule_id === sourceRule?.id)
-    .map((item) => item.work_hour_type_id))
-  const [workHourSearch, setWorkHourSearch] = useState('')
+  const availableWorkHours = useMemo(
+    () => selectActualWorkLeaveTypes(catalog.workHourTypes),
+    [catalog.workHourTypes],
+  )
+  const [workHourTypeIds, setWorkHourTypeIds] = useState<string[]>(() => {
+    const eligibleIds = new Set(availableWorkHours.map((item) => item.id))
+    return catalog.accrualRuleWorkHourTypes
+      .filter((item) => item.accrual_rule_id === sourceRule?.id && eligibleIds.has(item.work_hour_type_id))
+      .map((item) => item.work_hour_type_id)
+  })
   const [pauseLeaveTypeIds, setPauseLeaveTypeIds] = useState<string[]>(() => catalog.accrualRulePauseTypes
     .filter((item) => item.accrual_rule_id === sourceRule?.id)
     .map((item) => item.pause_leave_type_id))
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const frequency: Frequency = periodMode === 'PAYROLL_PERIOD' ? 'PAYROLL_PERIOD' : specificPeriod
   const annualEntitlement = decimalFromParts(amount)
-  const availableWorkHours = useMemo(
-    () => catalog.workHourTypes.filter((item) => item.category !== 'INFORMATIONAL' && item.is_active),
-    [catalog.workHourTypes],
+  const rateValue = parseAccrualRate(rate, labels.decimalSeparator)
+
+  const workHourOptions = useMemo(
+    () => availableWorkHours.map((item) => ({
+      value: item.id,
+      label: <span className="flex min-w-0 items-center justify-between gap-3"><span className="truncate">{item.name}</span><span className="shrink-0 text-xs font-normal text-muted-foreground">{workHourFamilyLabel(item.family, labels)}</span></span>,
+      searchLabel: `${item.name} ${workHourFamilyLabel(item.family, labels)}`,
+    })),
+    [availableWorkHours, labels],
   )
-  const visibleWorkHours = availableWorkHours.filter((item) => item.name.toLocaleLowerCase().includes(workHourSearch.toLocaleLowerCase()))
 
   const toggle = (values: string[], value: string, setter: (next: string[]) => void) => {
     setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value])
   }
 
   const save = async () => {
-    if (!profileId || (basis === 'WORKED_HOURS' && workHourTypeIds.length === 0)) {
+    if (!profileId || (basis === 'WORKED_HOURS' && (workHourTypeIds.length === 0 || rateValue === null))) {
       setStatus('failed')
       return
     }
@@ -205,7 +234,7 @@ export function AccrualRuleEditor({
           accrualFrequency: frequency,
           accrualTiming: timing,
           accrualAmount: basis === 'CONTRACT_HOURS' ? decimalFromParts(amount) : null,
-          accrualRate: basis === 'WORKED_HOURS' ? decimalFromParts(rate) : null,
+          accrualRate: basis === 'WORKED_HOURS' ? rateValue : null,
           expirationMonths: Number(expiryMonths),
           workHourTypeIds: basis === 'WORKED_HOURS' ? workHourTypeIds : [],
           pauseLeaveTypeIds,
@@ -229,7 +258,7 @@ export function AccrualRuleEditor({
   const periodLabel = frequencyLabel(frequency, labels)
   const amountSummary = basis === 'CONTRACT_HOURS'
     ? `${labels.annualFullTimeEntitlement.toLocaleLowerCase()}: ${formatContractHours(annualEntitlement, labels.decimalSeparator)} ${labels.hoursUnit}`
-    : `${formatContractHours(decimalFromParts(rate), labels.decimalSeparator, 4)} ${labels.hoursUnit} ${labels.amountPerHour}`
+    : `${formatContractHours(rateValue ?? 0, labels.decimalSeparator, 8)} ${labels.hoursUnit} ${labels.amountPerHour}`
   const contractPeriodPreview = frequency === 'PAYROLL_PERIOD'
     ? labels.calculatedPayrollPeriod
     : (frequency === 'FOUR_WEEKLY' || frequency === 'MONTHLY' || frequency === 'YEARLY'
@@ -319,23 +348,21 @@ export function AccrualRuleEditor({
       {basis === 'WORKED_HOURS' ? <fieldset className="mt-6 rounded-xl border bg-muted/20 p-4">
         <legend className="px-1 text-sm font-semibold">{labels.workHours}</legend>
         <p className="mt-1 text-xs text-muted-foreground">{labels.workHoursHelp}</p>
-        <label className="mt-3 block">
-          <input className="form-field" onChange={(event) => setWorkHourSearch(event.target.value)} placeholder={labels.search} type="search" value={workHourSearch} />
-        </label>
-        <div className="mt-3 max-h-56 space-y-1 overflow-y-auto">
-          {visibleWorkHours.map((item) => <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted" key={item.id}>
-            <input checked={workHourTypeIds.includes(item.id)} className="size-4 accent-primary" onChange={() => toggle(workHourTypeIds, item.id, setWorkHourTypeIds)} type="checkbox" />
-            {item.name}
-          </label>)}
-          {visibleWorkHours.length === 0 ? <p className="text-sm text-muted-foreground">{labels.noWorkHours}</p> : null}
+        <div className="mt-3">
+          <MultiSelect aria-label={labels.selectWorkHours} emptySelectionLabel={labels.selectWorkHours} listLabel={labels.workHourListLabel} loadingLabel={labels.loadingWorkHours} noOptionsLabel={labels.noWorkHours} onChange={setWorkHourTypeIds} options={workHourOptions} searchPlaceholder={labels.search} selectAllLabel={labels.selectAllWorkHours} selectedCountLabel={labels.selectedCount} showSelectAll value={workHourTypeIds} />
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{labels.selectedCount.replace('{count}', String(workHourTypeIds.length))}</p>
       </fieldset> : null}
 
       <div className="mt-6 rounded-xl border bg-muted/20 p-4">
         <h3 className="font-semibold">{basis === 'CONTRACT_HOURS' ? labels.annualFullTimeEntitlement : labels.amountPerHour}</h3>
         {basis === 'CONTRACT_HOURS' ? <p className="mt-1 text-xs text-muted-foreground">{labels.annualFullTimeEntitlementHelp}</p> : null}
-        <div className="mt-3">{partsField(basis === 'CONTRACT_HOURS' ? amount : rate, basis === 'CONTRACT_HOURS' ? setAmount : setRate, basis === 'WORKED_HOURS')}</div>
+        <div className="mt-3">{basis === 'CONTRACT_HOURS' ? partsField(amount, setAmount, false) : <>
+          <label className="grid max-w-sm gap-1.5 text-sm font-medium">
+            <span>{labels.amountPerHour}</span>
+            <input aria-describedby="worked-hours-rate-help" aria-invalid={rate.length > 0 && rateValue === null} className="form-field" inputMode="decimal" onChange={(event) => setRate(event.target.value)} placeholder={labels.ratePlaceholder} type="text" value={rate} />
+          </label>
+          <p className="mt-1 text-xs font-normal text-muted-foreground" id="worked-hours-rate-help">{labels.rateHelp}</p>
+        </>}</div>
       </div>
       {basis === 'CONTRACT_HOURS' ? <section className="mt-5 rounded-xl border bg-muted/20 p-4">
         <p className="text-sm font-medium">{labels.partialPeriodHelp}</p>
@@ -375,7 +402,7 @@ export function AccrualRuleEditor({
 
     <div className="flex items-center gap-3">
       {onCancel || cancelHref ? <button className="button-secondary" onClick={cancel} type="button">{labels.cancel}</button> : null}
-      <button className="button-primary" disabled={status === 'saving' || !profileId || (basis === 'WORKED_HOURS' && workHourTypeIds.length === 0)} onClick={() => void save()} type="button">{status === 'saving' ? labels.saving : labels.save}</button>
+      <button className="button-primary" disabled={status === 'saving' || !profileId || (basis === 'WORKED_HOURS' && (workHourTypeIds.length === 0 || rateValue === null))} onClick={() => void save()} type="button">{status === 'saving' ? labels.saving : labels.save}</button>
       {status === 'failed' ? <p className="text-sm text-destructive">{labels.failed}</p> : null}
       {status === 'saved' ? <p className="text-sm text-success">{labels.saved}</p> : null}
     </div>

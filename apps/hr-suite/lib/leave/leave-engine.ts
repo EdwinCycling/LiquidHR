@@ -1,9 +1,11 @@
 import { capPartTimeFactor } from '@/lib/employment/fulltime-reference'
+import { calculateWorkedHoursAccrual as calculateActualWorkAccrual } from './worked-hours-source'
 
 export type LeaveAccrualTiming = 'UPFRONT' | 'ARREARS'
 export type LeaveAccrualFrequency = 'PAYROLL_PERIOD' | 'FOUR_WEEKLY' | 'MONTHLY' | 'YEARLY'
 export type LeavePayrollFrequency = 'MONTHLY' | 'FOUR_WEEKLY'
 export type LeaveWorkHourCategory = 'REGULAR_WORK' | 'OVERTIME' | 'INFORMATIONAL'
+export type LeaveWorkHourFamily = 'WORK' | 'ADDITIONAL' | 'OVERTIME' | 'TRANSPARENT'
 export type LeaveWorkHourStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED'
 export type BonusAwardTiming = 'START_OF_YEAR' | 'ON_TRIGGER_DATE'
 export type BonusTriggerType = 'AGE' | 'SENIORITY'
@@ -243,13 +245,13 @@ export function calculateWorkedHoursAccrual(input: {
   hours: number
   accrualRate: number
   status: LeaveWorkHourStatus
-  category: LeaveWorkHourCategory
+  category?: LeaveWorkHourCategory
+  family?: LeaveWorkHourFamily | string
   employmentValid?: boolean
 }): number {
-  if (input.employmentValid === false) return 0
-  if (input.status !== 'APPROVED') return 0
-  if (input.category !== 'REGULAR_WORK' && input.category !== 'OVERTIME') return 0
-  return input.hours * input.accrualRate
+  const family = input.family
+    ?? (input.category === 'OVERTIME' ? 'OVERTIME' : input.category === 'INFORMATIONAL' ? 'TRANSPARENT' : 'WORK')
+  return calculateActualWorkAccrual({ ...input, family })
 }
 
 export function applyAccrualPause(input: {

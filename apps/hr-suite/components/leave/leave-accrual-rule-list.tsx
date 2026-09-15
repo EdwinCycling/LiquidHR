@@ -40,7 +40,7 @@ type Labels = {
 function quantity(rule: LeaveCatalog['accrualRules'][number], labels: Labels): string {
   if (rule.accrual_basis === 'AGE_SENIORITY') return labels.ageSeniority
   if (rule.accrual_basis === 'CONTRACT_HOURS') return `${formatContractHours(rule.accrual_amount, labels.decimalSeparator)} ${labels.hoursUnit}`
-  return `${formatContractHours(rule.accrual_rate, labels.decimalSeparator, 4)} ${labels.hoursUnit} ${labels.perHour}`
+  return `${formatContractHours(rule.accrual_rate, labels.decimalSeparator, 8)} ${labels.hoursUnit} ${labels.perHour}`
 }
 
 function frequencyLabel(frequency: LeaveCatalog['accrualRules'][number]['accrual_frequency'], labels: Labels): string {

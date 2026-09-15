@@ -1,5 +1,43 @@
 # Actuele overdracht Liquid HR
 
+## Leave-opbouw per Actual Work — 2026-09-15
+
+**Status: CANDIDATE — LOKALE/DEV-GATES GREEN; COMMIT, MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**
+
+- Temp clone/branch: `C:\Users\Edwin\Documents\Apps\LiquidHR\_codex_leave_actual_work_followup` /
+  `work/leave-accrual-actual-work-followup`; baseline
+  `f9906b6b419a657727d3ca3efe09492647087205`. Root worktree en bestaande
+  employment-wijzigingen zijn niet aangeraakt. `apps/hr-suite\.env.local` en
+  `next-env.d.ts` blijven beschermd/buiten scope.
+- Implementatie: Leave `WORKED_HOURS` gebruikt `work_hour_types.family` en
+  rule mappings met allowlist WORK/ADDITIONAL/OVERTIME. TRANSPARENT wordt niet
+  aangeboden en database-side geweerd. Rate-input ondersteunt acht decimalen;
+  berekening gebruikt hours × rate zonder FTE. Contract Hours blijft apart.
+- DEV-only migration: lokale
+  `apps/hr-suite/supabase/migrations/20260915122119_actual_work_leave_accrual_integration.sql`;
+  Supabase history-name is exact dezelfde naam, serverversie
+  `20260915122914`, lokale SHA-256
+  `369658A9F003E7548D870FDC2D5D2736EAF42548402B6B17F7C0920488294DFB`.
+  Canonical Actual Work blijft `20260914192320_actual_work_v1.sql` ↔
+  `20260914192320 actual_work_v1`; `20260914191328_actual_work_v1.sql` is
+  afwezig. Geen Production-mutatie.
+- DEV readback/UI: Jan Test (`66ef22a5-5777-44dc-9bde-44a65d0a6d60`) gebruikt
+  het standaardprofiel; mappings zijn exact AW_WORK/AW_ADDITIONAL/AW_OVERTIME.
+  Lokale browsercontrole bevestigt gegroepeerde selector, afwezigheid van
+  transparent, rateprecisie, persisted rule en Contract Hours. Werkuren in
+  september/oktober zijn via de echte UI gelezen; een verlopen registratie is
+  via de UI gecorrigeerd van 7,5 naar 8 uur en de Leave-preview wijzigde van
+  1,2917 naar 1,3333 uur. De correctiehistorie toont de QA-reden.
+- Gates groen: `4` testbestanden / `41` gerichte tests, typecheck, lint,
+  i18n-35, diff-check en Webpack `270/270`. Full suite is eenmalig
+  `377` bestanden / `1476` passed met dezelfde drie bekende failures in
+  onaangeraakte Document Studio/contract-audit/PDF-baselines.
+- Open: intended files selecteren zonder employment/`next-env.d.ts`, commit en
+  push temp branch, non-force integrate naar main, exact main-SHA deployen op
+  `https://liquid-hr-hr-suite.vercel.app`, daarna authenticated hosted
+  acceptance en veilige cleanup. Gebruik geen `db push`/migration repair;
+  remote migration is al named toegepast en readback gecontroleerd.
+
 ## Test role switch DEV-guard — 2026-09-15
 
 **Status: DEPLOYED — HOSTED SWITCHER VERIFIED / PGRST303 DIAGNOSED**

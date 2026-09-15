@@ -1,5 +1,49 @@
 # Implementatiestatus Liquid HR
 
+## Leave-opbouw per Actual Work — 2026-09-15
+
+**Status: RELEASE CANDIDATE — DEV ACCEPTANCE GREEN / HOSTED GATE OPEN**
+
+De candidate staat op branch `work/leave-accrual-actual-work-followup` in
+`C:\Users\Edwin\Documents\Apps\LiquidHR\_codex_leave_actual_work_followup`,
+vanaf baseline `f9906b6b419a657727d3ca3efe09492647087205`. Het bestaande Leave-
+enginepad leest nu de canonieke Actual Work-types en mappings via de expliciete
+allowlist `WORK`, `ADDITIONAL` en `OVERTIME`; `TRANSPARENT` wordt zowel in de
+UI als in de database geweerd. `WORKED_HOURS` is uitsluitend
+`kwalificerende uren × rate`, zonder FTE-factor. `CONTRACT_HOURS` is niet
+gewijzigd.
+
+De UX heeft een zoekbare gegroepeerde multiselect, geselecteerd-telling,
+familielabels, ratehulp en ratevalidatie tot acht decimalen. Nieuwe worked-
+hours-regels starten standaard met `ARREARS`; bestaande timing wordt niet
+overschreven. De bestaande `numeric(18,8)`-opslag is behouden.
+
+De benodigde DEV-only migration is
+`20260915122119_actual_work_leave_accrual_integration.sql`. Remote readback op
+Supabase-project `wnpfloqpjvaacobppbpk` toont history-naam
+`20260915122119_actual_work_leave_accrual_integration` met serverversie
+`20260915122914`; de lokale SQL-SHA-256 is
+`369658A9F003E7548D870FDC2D5D2736EAF42548402B6B17F7C0920488294DFB`.
+De eerder betwiste canonical Actual Work-file is exact uitgelijnd als
+`20260914192320_actual_work_v1.sql` ↔ `20260914192320 actual_work_v1`; de
+onjuiste naam `20260914191328_actual_work_v1.sql` ontbreekt lokaal en remote.
+Production is niet gebruikt.
+
+DEV-fixture readback bevestigt voor Jan Test drie actieve mappings
+(`AW_WORK`, `AW_ADDITIONAL`, `AW_OVERTIME`) zonder transparent mapping. De
+authenticated lokale browserflow bevestigt typefiltering, zoeken, rate
+`0,07692308`, persisted save/reopen, kalender/uren en Contract Hours. De
+gecorrigeerde Jan-registratie toont in de Leave-preview september `1,3333`
+uur bij 16 kwalificerende uren en oktober `0,8333` bij 10 uur.
+
+Verificatie: gerichte Leave/Actual Work/migration-tests `4` bestanden / `41`
+tests groen; strict TypeScript, ESLint, i18n-pariteit (`35` namespaces),
+`git diff --check` en Webpack-productiebuild (`270/270`) groen. De eenmalige
+volledige suite blijft `377` bestanden met `1476` geslaagde tests en drie
+ongewijzigde, niet-gerelateerde baseline failures: Document Studio DM1,
+contract-change-audit en PDF-render-timeout. Commit, main-integratie, exact
+SHA-deploy en authenticated hosted acceptance volgen.
+
 ## Test role switch DEV-guard — 2026-09-15
 
 **Status: DEPLOYED — HOSTED SWITCHER VERIFIED / PGRST303 DIAGNOSED**
