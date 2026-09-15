@@ -22,9 +22,11 @@ afterEach(() => {
 describe('GPT-Live employee voice contract', () => {
   it('configures only the three employee-context tools without an employee identifier', () => {
     const configuration = createRealtimeVoiceSessionConfiguration('nl')
-    expect(Object.keys(configuration).sort()).toEqual(['client', 'delegation', 'instructions', 'model'])
+    expect(Object.keys(configuration).sort()).toEqual(['audio', 'client', 'delegation', 'instructions', 'model', 'type'])
     expect(configuration).toMatchObject({
+      type: 'live',
       model: 'gpt-live-1',
+      audio: { output: { voice: 'alloy' } },
       delegation: {
         type: 'responses',
         responses: {
@@ -92,8 +94,8 @@ describe('GPT-Live employee voice contract', () => {
 
   it('configures Team AI tools without accepting employee or department ids', () => {
     const configuration = createTeamRealtimeVoiceSessionConfiguration('nl')
-    expect(Object.keys(configuration).sort()).toEqual(['client', 'delegation', 'instructions', 'model'])
-    expect(configuration).toMatchObject({ model: 'gpt-live-1', delegation: { type: 'responses' } })
+    expect(Object.keys(configuration).sort()).toEqual(['audio', 'client', 'delegation', 'instructions', 'model', 'type'])
+    expect(configuration).toMatchObject({ type: 'live', model: 'gpt-live-1', audio: { output: { voice: 'alloy' } }, delegation: { type: 'responses' } })
     const delegation = configuration.delegation as { responses: { tools: Array<{ name: string; parameters: { properties?: Record<string, unknown> } }> } }
     expect(delegation.responses.tools.map((tool) => tool.name)).toEqual(['team_overview', 'team_employee_summary', 'team_conversation_preparation', 'team_summary_proposal', 'create_personal_reminder'])
     expect(delegation.responses.tools[1]?.parameters.properties).toEqual({ employeeName: { type: 'string', minLength: 1, maxLength: 200 } })
@@ -130,10 +132,9 @@ describe('GPT-Live employee voice contract', () => {
     expect(init?.method).toBe('POST')
     expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' })
     expect(JSON.parse(String(init?.body))).toMatchObject({
-      session: { model: 'gpt-live-1' },
+      session: { type: 'live', model: 'gpt-live-1' },
       transport: { type: 'webrtc', sdp: 'v=0\\r\\noffer' },
     })
-    expect(JSON.parse(String(init?.body)).session).not.toHaveProperty('type')
   })
 
   it('logs safe provider metadata without forwarding provider details to the caller', async () => {

@@ -46,7 +46,7 @@ const activeEmploymentTwo = {
 describe('Employee 360 dashboard Foundation contract', () => {
   it('keeps the dashboard header contextual and the personal edit action local', () => {
     const header = renderToStaticMarkup(createElement(EmployeeDashboardHeader, { subtitle: 'Een helder overzicht van vandaag', title: 'Medewerkerdashboard' }))
-    const personal = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels }))
+    const personal = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels, today: '2026-08-21' }))
 
     expect(header).toContain('Een helder overzicht van vandaag')
     expect(header).not.toContain('Medewerkerdetails openen')
@@ -56,7 +56,7 @@ describe('Employee 360 dashboard Foundation contract', () => {
   })
 
   it('uses Surface and preserves long personal values without truncation', () => {
-    const markup = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels }))
+    const markup = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels, today: '2026-08-21' }))
 
     expect(markup).toContain('bg-surface')
     expect(markup).toContain('break-words')

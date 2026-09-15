@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useId, useReducer, useRef, type ReactElement } from 'react'
-import { Mic, MicOff, PhoneOff, AudioLines } from 'lucide-react'
+import { useEffect, useId, useReducer, useRef, useState, type ReactElement } from 'react'
+import { AudioLines, BrainCircuit, Clock3, Mic, MicOff, PhoneOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { parseRealtimeVoiceFunctionCall } from '@/lib/ai/realtime-voice-events'
@@ -27,7 +27,13 @@ export type EmployeeLiveVoiceLabels = {
   closing: string
   privacy: string
   employeeContext: string
+  elapsed: string
+  paused: string
+  inputLevel: string
+  inputMuted: string
 }
+
+type VoiceTerminationReason = 'NORMAL' | 'EXPLICIT' | 'TIMEOUT' | 'DISCONNECT' | 'FAILURE' | 'CANCELLED'
 
 type VoiceRun = {
   base: string
@@ -46,6 +52,7 @@ type VoiceRun = {
   eventSequence: number
   closing: boolean
   finalized: boolean
+  terminationReason?: VoiceTerminationReason
   tools: AbortController
 }
 
@@ -59,12 +66,13 @@ function endUsage(run: VoiceRun): void {
   void fetch(`${run.base}/usage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId: run.sessionId, toolCallCount: run.toolCallCount }),
+    body: JSON.stringify({ sessionId: run.sessionId, toolCallCount: run.toolCallCount, terminationReason: run.terminationReason ?? 'DISCONNECT' }),
     keepalive: true,
   }).catch(() => undefined)
 }
 
-function close(run: VoiceRun): void {
+function close(run: VoiceRun, terminationReason: VoiceTerminationReason = 'DISCONNECT'): void {
+  run.terminationReason ??= terminationReason
   run.closed = true
   clearTimeout(run.timer)
   clearTimeout(run.closeTimer)
@@ -140,34 +148,97 @@ async function waitForIceGathering(peer: RTCPeerConnection): Promise<void> {
   })
 }
 
+export function calculateAudioInputLevel(samples: Uint8Array): number {
+  if (samples.length === 0) return 0
+  let total = 0
+  for (const sample of samples) {
+    const normalized = (sample - 128) / 128
+    total += normalized * normalized
+  }
+  return Math.min(1, Math.sqrt(total / samples.length) * 3)
+}
+
+export function formatElapsed(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds))
+  return `${String(Math.floor(safeSeconds / 60)).padStart(2, '0')}:${String(safeSeconds % 60).padStart(2, '0')}`
+}
+
+function InputLevelMeter({ muted, stream, label, mutedLabel }: { muted: boolean; stream: MediaStream | null; label: string; mutedLabel: string }): ReactElement | null {
+  const [level, setLevel] = useState(0)
+
+  useEffect(() => {
+    if (!stream || muted || typeof window.AudioContext === 'undefined') {
+      return
+    }
+    const context = new window.AudioContext()
+    const analyser = context.createAnalyser()
+    const source = context.createMediaStreamSource(stream)
+    const samples = new Uint8Array(analyser.fftSize)
+    let frame = 0
+    source.connect(analyser)
+    const update = (): void => {
+      analyser.getByteTimeDomainData(samples)
+      setLevel(calculateAudioInputLevel(samples))
+      frame = window.requestAnimationFrame(update)
+    }
+    update()
+    return () => {
+      window.cancelAnimationFrame(frame)
+      source.disconnect()
+      analyser.disconnect()
+      void context.close()
+    }
+  }, [muted, stream])
+
+  if (!stream) return null
+  const displayLevel = muted ? 0 : level
+  return <div aria-label={muted ? mutedLabel : label} className="flex flex-col items-center gap-2"><div aria-hidden="true" className="flex h-7 items-center gap-1">{[0.42, 0.68, 1, 0.68, 0.42].map((weight, index) => <span className="w-1 rounded-full bg-primary transition-transform duration-75 motion-reduce:transition-none" key={index} style={{ height: `${12 + (weight * 16)}px`, transform: `scaleY(${muted ? 0.12 : Math.max(0.12, displayLevel * weight)})` }} />)}</div><p className="text-xs text-muted-foreground">{muted ? mutedLabel : label}</p></div>
+}
+
 export function EmployeeLiveVoice({
   employeeId,
   employeeName,
   locale,
   labels,
   enabled = true,
+  embedded = false,
 }: {
   employeeId: string
   employeeName: string
   locale: string
   labels: EmployeeLiveVoiceLabels
   enabled?: boolean
+  embedded?: boolean
 }): ReactElement {
   const headingId = useId()
   const current = useRef<VoiceRun | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [state, dispatch] = useReducer(employeeLiveVoiceReducer, initialEmployeeLiveVoiceState)
+  const [inputStream, setInputStream] = useState<MediaStream | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const timerStartedAtRef = useRef<number | null>(null)
   const open = state.phase !== 'idle'
   const status = state.phase === 'error' ? labels[state.message] : state.phase === 'idle' ? null : labels[state.phase]
   const canMute = ['listening', 'processing', 'speaking', 'muted'].includes(state.phase)
+  const timerRunning = ['connecting', 'listening', 'processing', 'speaking'].includes(state.phase)
+
+  useEffect(() => {
+    if (!timerRunning || timerStartedAtRef.current === null) return
+    const update = (): void => setElapsedSeconds(Math.floor((Date.now() - (timerStartedAtRef.current ?? Date.now())) / 1_000))
+    update()
+    const timer = window.setInterval(update, 250)
+    return () => window.clearInterval(timer)
+  }, [timerRunning])
 
   useEffect(() => {
     return () => {
       if (current.current) {
         requestSessionClose(current.current)
-        close(current.current)
+        close(current.current, 'DISCONNECT')
       }
       current.current = null
+      setInputStream(null)
+      timerStartedAtRef.current = null
       dispatch({ type: 'reset' })
     }
   }, [employeeId, locale, enabled])
@@ -177,9 +248,12 @@ export function EmployeeLiveVoice({
     const run = current.current
     if (run) {
       requestSessionClose(run)
-      close(run)
+      close(run, 'EXPLICIT')
     }
     current.current = null
+    setInputStream(null)
+    timerStartedAtRef.current = null
+    setElapsedSeconds(0)
     dispatch({ type: 'closed' })
   }
 
@@ -193,6 +267,8 @@ export function EmployeeLiveVoice({
   async function start(): Promise<void> {
     if (!enabled || current.current) return
     recordEmployeeLiveVoiceDiagnostic({ event: 'start.click' })
+    setElapsedSeconds(0)
+    timerStartedAtRef.current = Date.now()
     dispatch({ type: 'start' })
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') {
       recordEmployeeLiveVoiceDiagnostic({ event: 'runtime.unavailable', getUserMedia: Boolean(navigator.mediaDevices?.getUserMedia), peerConnection: typeof RTCPeerConnection !== 'undefined' })
@@ -216,8 +292,9 @@ export function EmployeeLiveVoice({
       if (!live()) return
       recordEmployeeLiveVoiceDiagnostic({ event: 'session.failed', message })
       requestSessionClose(run)
-      close(run)
+      close(run, 'FAILURE')
       current.current = null
+      setInputStream(null)
       dispatch({ type: 'error', message })
     }
     run.timer = setTimeout(() => fail('connectionFailed'), 30_000)
@@ -267,8 +344,9 @@ export function EmployeeLiveVoice({
         case 'session.closed':
           recordEmployeeLiveVoiceDiagnostic({ event: 'session.closed' })
           run.finalized = true
-          close(run)
+          close(run, 'NORMAL')
           current.current = null
+          setInputStream(null)
           dispatch({ type: 'closed' })
           return
         case 'session.input_transcript.delta':
@@ -382,6 +460,7 @@ export function EmployeeLiveVoice({
         return
       }
       run.stream = stream
+      setInputStream(stream)
       const audioTracks = stream.getAudioTracks()
       recordEmployeeLiveVoiceDiagnostic({ event: 'getUserMedia.resolved', trackCount: stream.getTracks().length, audioTrackCount: audioTracks.length, audioTracksLive: audioTracks.every((track) => track.readyState === 'live') })
       const peer = new RTCPeerConnection()
@@ -449,9 +528,8 @@ export function EmployeeLiveVoice({
   }
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h3 id={headingId} className="text-sm font-medium">{labels.title}</h3>
-      <p className="text-sm text-muted-foreground">{labels.description}</p>
+    <section aria-label={embedded ? labels.title : undefined} aria-labelledby={embedded ? undefined : headingId} className="flex flex-col gap-3">
+      {!embedded ? <><h3 id={headingId} className="text-sm font-medium">{labels.title}</h3><p className="text-sm text-muted-foreground">{labels.description}</p></> : null}
       <div className="flex items-center gap-3">
         <Button type="button" variant="secondary" disabled={!enabled && !open} onClick={open ? stop : () => { void start() }}>
           {open ? labels.stop : labels.start}
@@ -481,9 +559,12 @@ export function EmployeeLiveVoice({
       >
         <div className="flex flex-col items-center gap-6 py-4 text-center">
           <div aria-hidden="true" className={`flex size-32 items-center justify-center rounded-full border border-primary/35 bg-accent text-accent-foreground motion-reduce:animate-none ${['connecting', 'processing', 'speaking'].includes(state.phase) ? 'motion-safe:animate-pulse' : ''}`}>
-            {state.phase === 'muted' ? <MicOff className="size-12" /> : <AudioLines className="size-12" />}
+            {state.phase === 'muted' ? <MicOff className="size-12" /> : state.phase === 'processing' ? <BrainCircuit className="size-12" /> : <AudioLines className="size-12" />}
           </div>
-          <p role="status" aria-live="polite" aria-atomic="true" className={`text-sm font-medium ${state.phase === 'error' ? 'text-destructive' : 'text-foreground'}`}>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 aria-hidden="true" className="size-4" /><span className="font-medium tabular-nums text-foreground">{formatElapsed(elapsedSeconds)}</span><span aria-hidden="true">·</span><span>{state.phase === 'muted' ? labels.paused : labels.elapsed}</span></div>
+          <InputLevelMeter label={labels.inputLevel} muted={state.phase === 'muted'} mutedLabel={labels.inputMuted} stream={inputStream} />
+          <p role="status" aria-live="polite" aria-atomic="true" className={`flex items-center gap-2 text-sm font-medium ${state.phase === 'error' ? 'text-destructive' : 'text-foreground'}`}>
+            {state.phase === 'processing' ? <BrainCircuit aria-hidden="true" className="size-4" /> : null}
             {status}
           </p>
           <p className="text-sm text-muted-foreground">{labels.privacy}</p>

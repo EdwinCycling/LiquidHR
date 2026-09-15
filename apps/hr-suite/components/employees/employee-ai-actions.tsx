@@ -22,7 +22,7 @@ export interface EmployeeAiActionLabels {
   readonly failed: string
 }
 
-export function EmployeeAiActions({ employeeId, labels, locale }: { readonly employeeId: string; readonly labels: EmployeeAiActionLabels; readonly locale: string }): ReactElement {
+export function EmployeeAiActions({ employeeId, labels, locale, embedded = false }: { readonly employeeId: string; readonly labels: EmployeeAiActionLabels; readonly locale: string; readonly embedded?: boolean }): ReactElement {
   const [active, setActive] = useState<EmployeeAiAction | null>(null)
   const [pending, setPending] = useState(false)
   const [proposal, setProposal] = useState<string | null>(null)
@@ -67,8 +67,8 @@ export function EmployeeAiActions({ employeeId, labels, locale }: { readonly emp
   }
 
   const state = pending ? 'loading' : error ? 'error' : proposal ? 'success' : null
-  return <section className="mt-8 space-y-4" aria-labelledby="employee-ai-title">
-    <SectionHeader description={labels.description} title={<span className="flex items-center gap-2" id="employee-ai-title"><Sparkles aria-hidden="true" className="size-4 text-primary" />{labels.title}</span>} />
+  return <section className={embedded ? 'space-y-4' : 'mt-8 space-y-4'} aria-label={embedded ? labels.title : undefined} aria-labelledby={embedded ? undefined : 'employee-ai-title'}>
+    {!embedded ? <SectionHeader description={labels.description} title={<span className="flex items-center gap-2" id="employee-ai-title"><Sparkles aria-hidden="true" className="size-4 text-primary" />{labels.title}</span>} /> : null}
     <div className="flex flex-wrap gap-2">
       <Button disabled={pending} onClick={() => void run('summary')} size="sm" type="button" variant="secondary"><UserRoundSearch aria-hidden="true" />{labels.summary}</Button>
       <Button disabled={pending} onClick={() => void run('conversation')} size="sm" type="button" variant="secondary"><MessageSquareText aria-hidden="true" />{labels.conversation}</Button>

@@ -9,7 +9,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const authContext = await requirePermission('start-page:read')
     await requirePermission('ai:use')
-    await finishTeamAiSession({ auth: authContext, ...parsed.data })
+    await finishTeamAiSession({ auth: authContext, ...parsed.data, terminationReason: parsed.data.terminationReason ?? 'EXPLICIT' })
     return NextResponse.json({ data: { recorded: true } })
   } catch (error) {
     const permission = permissionErrorResponse(error)

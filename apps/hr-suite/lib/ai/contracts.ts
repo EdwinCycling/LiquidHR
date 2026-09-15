@@ -1,4 +1,5 @@
 import type { AuthContext } from '@/lib/auth/permissions'
+import type { AiGroupSettings } from './settings-contracts'
 
 export type AiJsonValue =
   | string
@@ -13,6 +14,8 @@ export type AiEdition = 'FOUNDATION' | 'PROFESSIONAL' | 'ENTERPRISE'
 export type AiProductStatus = 'PLANNED' | 'INTERNAL_TEST' | 'AVAILABLE' | 'RETIRED'
 export type AiAllowedResultType = 'PROPOSAL'
 export type AiWritingStyle = 'FORMAL' | 'PLAIN' | 'WARM' | 'DIRECT'
+export type AiInvocationOrigin = 'UI' | 'VOICE'
+export type AiInvocationContextType = 'GLOBAL' | 'EMPLOYEE' | 'TEAM'
 
 export type AiExecutionStatus =
   | 'RECEIVED'
@@ -119,6 +122,9 @@ export interface AiInvocationInput {
   businessPermissionVerified?: boolean
   qualityProfile?: AiQualityProfile
   writingStyle?: AiWritingStyle | null
+  origin?: AiInvocationOrigin
+  /** The HR context in which a capability is being used; voice/team calls must not fall back to employee defaults. */
+  contextType?: AiInvocationContextType
   correlationId?: string
   /** Optionele caller-cancellation; de provider voegt daarnaast zijn eigen timeout toe. */
   signal?: AbortSignal
@@ -139,6 +145,7 @@ export interface AiInvocation {
   promptTemplateVersion: string
   qualityProfile: AiQualityProfile | null
   writingStyle: AiWritingStyle | null
+  origin: AiInvocationOrigin
   executionStatus: AiExecutionStatus
   resultStatus: AiResultStatus
   feedbackOutcome: string | null
@@ -167,6 +174,7 @@ export interface NewAiInvocation {
   configVersion: string
   promptTemplateVersion: string
   writingStyle: AiWritingStyle | null
+  origin: AiInvocationOrigin
   feedbackOutcome: string | null
   createdAt: string
 }
@@ -341,6 +349,12 @@ export interface InvocationRepository {
   transition(input: AiStateTransition): Promise<AiInvocation>
 }
 
+export interface AiSettingsPort {
+  resolve(scope: AiScope): Promise<AiGroupSettings>
+  assertInvocationAllowed(input: { scope: AiScope; authContext: AuthContext; featureCode: string; contextType?: AiInvocationContextType; origin?: AiInvocationOrigin }): Promise<AiGroupSettings>
+  assertVoiceAllowed(input: { scope: AiScope; authContext: AuthContext; contextType: 'EMPLOYEE' | 'TEAM' }): Promise<AiGroupSettings>
+}
+
 export type TechnicalUsageOutcome = 'SUCCEEDED' | 'PROVIDER_UNAVAILABLE' | 'PROVIDER_FAILED' | 'INVALID_RESULT'
 
 export interface TechnicalUsageEvent {
@@ -408,6 +422,7 @@ export interface AiRuntimeDependencies<T> {
   timeZoneResolver: HrGroupTimeZoneResolver
   clock: AiClock
   createId: () => string
+  settings?: AiSettingsPort
 }
 
 export class AiExecutionError extends Error {

@@ -1,5 +1,20 @@
 # Actuele overdracht Liquid HR
 
+## Employee Detail AI-surface — 2026-09-15
+
+De bestaande, server-geautoriseerde `AI-ondersteuning` en GPT-Live voice staan
+nu samen in de `aiSupport`-widget van het Employee Detail-overzicht. De widget
+wordt alleen opgebouwd wanneer de bestaande employee-AI- of voice-gates waar
+zijn en wordt voor bestaande layouts standaard vóór de andere dashboardwidgets
+geplaatst. Een expliciet door de gebruiker opgeslagen widgetvolgorde blijft
+leidend. De bestaande AI-acties, voice-modal, serverroutes, permissions,
+providerconfiguratie en proposal-only grenzen zijn niet gewijzigd.
+
+Gerichte layout-, Foundation- en voice-componenttests (`21/21`), strict
+TypeScript en ESLint zijn groen. Deze UI-correctie staat nog lokaal in de
+AI-worktree; er is in deze stap geen push, Preview-deployment, main-integratie
+of leave-branchwijziging uitgevoerd.
+
 ## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
 
 De kandidaatimplementatie staat in de actuele AI-worktree op branch

@@ -11,6 +11,7 @@ import {
   requireEmployeeVoiceContext,
   resolveRealtimeVoiceModel,
 } from '@/lib/ai/realtime-voice'
+import { getAiGroupSettingsForContext } from '@/lib/ai/settings-service'
 
 interface RouteContext { params: Promise<{ employeeId: string }> }
 
@@ -24,15 +25,16 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   try {
     const authContext = await requireEmployeeVoiceContext(employeeId)
     const model = resolveRealtimeVoiceModel()
+    const settings = await getAiGroupSettingsForContext(authContext)
     sessionId = await createRealtimeVoiceSession({ context: authContext, employeeId, model })
     try {
       const sdpAnswer = await createOpenAiRealtimeCall({
         sdpOffer: parsed.data.sdpOffer,
-        session: createRealtimeVoiceSessionConfiguration(parsed.data.locale),
+        session: createRealtimeVoiceSessionConfiguration(parsed.data.locale, settings),
       })
       return NextResponse.json({ data: { sessionId, sdpAnswer } })
     } catch (error) {
-      await markRealtimeVoiceSessionFailed(sessionId, authContext)
+      await markRealtimeVoiceSessionFailed(sessionId, authContext).catch(() => undefined)
       throw error
     }
   } catch (error) {

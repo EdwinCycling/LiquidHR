@@ -16,6 +16,7 @@ const labels: EmployeeLiveVoiceLabels = {
   disabled: nl.aiVoiceDisabled, toolFailed: nl.aiVoiceToolFailed,
   mute: nl.aiVoiceMute, unmute: nl.aiVoiceUnmute, muted: nl.aiVoiceMuted,
   closing: nl.aiVoiceClosing, privacy: nl.aiVoicePrivacy, employeeContext: nl.aiVoiceEmployeeContext,
+  elapsed: nl.aiVoiceElapsed, paused: nl.aiVoicePaused, inputLevel: nl.aiVoiceInputLevel, inputMuted: nl.aiVoiceInputMuted,
 }
 
 describe('EmployeeLiveVoice dialog', () => {

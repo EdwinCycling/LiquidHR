@@ -21,6 +21,9 @@ export interface AiUsageLabels {
   periodNote: string
   creditsRemaining: string
   creditsUsed: string
+  capabilityCredits: string
+  voiceCredits: string
+  combinedCredits: string
   requests: string
   successRate: string
   notAvailable: string
@@ -46,6 +49,18 @@ export interface AiUsageLabels {
   noUsageTitle: string
   noUsageDescription: string
   creditsAccountingNote: string
+  voice: string
+  voiceSessions: string
+  voiceDuration: string
+  voiceAverageDuration: string
+  voiceSuccessful: string
+  voiceFailed: string
+  voiceCancelled: string
+  voiceByContext: string
+  voiceEmployeeContext: string
+  voiceTeamContext: string
+  voiceOtherContext: string
+  seconds: string
 }
 
 const periodLabelKeys: Record<AiUsagePeriod, keyof Pick<AiUsageLabels, 'periodThisMonth' | 'periodLast7Days' | 'periodLast30Days' | 'periodLast90Days'>> = {
@@ -57,6 +72,10 @@ const periodLabelKeys: Record<AiUsagePeriod, keyof Pick<AiUsageLabels, 'periodTh
 
 function numberFormat(locale: string): Intl.NumberFormat {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })
+}
+
+function durationFormat(seconds: number | null, labels: AiUsageLabels, locale: string): string {
+  return seconds === null ? labels.notAvailable : `${numberFormat(locale).format(seconds)} ${labels.seconds}`
 }
 
 function percentFormat(value: number | null, labels: AiUsageLabels, locale: string): string {
@@ -94,6 +113,10 @@ function Kpi({ icon, label, value, description }: { icon: React.ReactNode; label
   return <Surface className="min-w-0 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p><p className="mt-2 truncate text-2xl font-semibold tabular-nums text-foreground">{value}</p>{description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}</div><span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-muted text-primary">{icon}</span></div></Surface>
 }
 
+function VoiceMetric({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p><p className="mt-2 text-xl font-semibold tabular-nums text-foreground">{value}</p></div>
+}
+
 function TrendChart({ report, labels, locale }: { report: AiUsageReport; labels: AiUsageLabels; locale: string }) {
   const maxCredits = Math.max(...report.trend.map((point) => point.creditsUsed), 1)
   const maxRequests = Math.max(...report.trend.map((point) => point.requests), 1)
@@ -118,7 +141,7 @@ export function AiUsageReportView({ query, report, labels, locale }: { query: Ai
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const format = numberFormat(locale)
-  const hasUsage = report.requests > 0 || report.byFeature.length > 0 || report.byQuality.length > 0
+  const hasUsage = report.requests > 0 || report.byFeature.length > 0 || report.byQuality.length > 0 || report.voice.sessions > 0
 
   function changePeriod(period: AiUsagePeriod): void {
     const params = new URLSearchParams(searchParams.toString())
@@ -127,5 +150,5 @@ export function AiUsageReportView({ query, report, labels, locale }: { query: Ai
     router.push(`${pathname}?${params.toString()}`, { scroll: false })
   }
 
-  return <div className="min-w-0 space-y-6"><SectionHeader description={labels.description} title={labels.title} /><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><label className="flex min-w-48 max-w-xs flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} onChange={(event) => { const next = AI_USAGE_PERIODS.find((value) => value === event.target.value); if (next) changePeriod(next) }} value={query.period}>{AI_USAGE_PERIODS.map((period) => <option key={period} value={period}>{labels[periodLabelKeys[period]]}</option>)}</DropdownSelect></label><p className="max-w-xl text-sm text-muted-foreground">{labels.periodNote}</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Kpi description={labels.credits} icon={<Coins aria-hidden="true" size={18} />} label={labels.creditsRemaining} value={format.format(report.creditsRemaining)} /><Kpi description={labels.creditsAccountingNote} icon={<Activity aria-hidden="true" size={18} />} label={labels.creditsUsed} value={format.format(report.creditsUsed)} /><Kpi description={report.requests === 1 ? labels.requestUnit : labels.requestsUnit} icon={<ListChecks aria-hidden="true" size={18} />} label={labels.requests} value={format.format(report.requests)} /><Kpi description={labels.completedRequests} icon={<CheckCircle2 aria-hidden="true" size={18} />} label={labels.successRate} value={percentFormat(report.successRate, labels, locale)} /></div>{hasUsage ? <><Surface className="p-4 sm:p-5"><SectionHeader description={labels.creditsAccountingNote} title={labels.usageTrend} /><TrendChart labels={labels} locale={locale} report={report} /></Surface><div className="grid gap-4 lg:grid-cols-2"><Surface className="min-w-0 overflow-hidden"><div className="border-b border-subtle p-4"><SectionHeader title={labels.capabilities} /></div><BreakdownTable labelFor={(value) => labelForCapability(value, labels)} labels={labels} locale={locale} rows={report.byFeature} /></Surface><Surface className="min-w-0 overflow-hidden"><div className="border-b border-subtle p-4"><SectionHeader title={labels.quality} /></div><BreakdownTable labelFor={(value) => labelForQuality(value, labels)} labels={labels} locale={locale} rows={report.byQuality} /></Surface><Surface className="min-w-0 overflow-hidden lg:col-span-2"><div className="border-b border-subtle p-4"><SectionHeader title={labels.status} /></div><StatusTable labels={labels} locale={locale} rows={report.byStatus} /></Surface></div></> : <EmptyState description={labels.noUsageDescription} icon={<CircleDashed />} title={labels.noUsageTitle} />}</div>
+  return <div className="min-w-0 space-y-6"><SectionHeader description={labels.description} title={labels.title} /><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><label className="flex min-w-48 max-w-xs flex-col gap-1.5 text-sm font-medium"><span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.period}</span><DropdownSelect aria-label={labels.period} onChange={(event) => { const next = AI_USAGE_PERIODS.find((value) => value === event.target.value); if (next) changePeriod(next) }} value={query.period}>{AI_USAGE_PERIODS.map((period) => <option key={period} value={period}>{labels[periodLabelKeys[period]]}</option>)}</DropdownSelect></label><p className="max-w-xl text-sm text-muted-foreground">{labels.periodNote}</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"><Kpi description={labels.credits} icon={<Coins aria-hidden="true" size={18} />} label={labels.creditsRemaining} value={format.format(report.creditsRemaining)} /><Kpi description={labels.creditsAccountingNote} icon={<Activity aria-hidden="true" size={18} />} label={labels.combinedCredits} value={format.format(report.combinedCredits)} /><Kpi description={labels.creditsAccountingNote} icon={<Activity aria-hidden="true" size={18} />} label={labels.capabilityCredits} value={format.format(report.capabilityCredits)} /><Kpi description={labels.creditsAccountingNote} icon={<Activity aria-hidden="true" size={18} />} label={labels.voiceCredits} value={format.format(report.voiceCredits)} /><Kpi description={report.requests === 1 ? labels.requestUnit : labels.requestsUnit} icon={<ListChecks aria-hidden="true" size={18} />} label={labels.requests} value={format.format(report.requests)} /><Kpi description={labels.completedRequests} icon={<CheckCircle2 aria-hidden="true" size={18} />} label={labels.successRate} value={percentFormat(report.successRate, labels, locale)} /></div>{hasUsage ? <><Surface className="p-4 sm:p-5"><SectionHeader description={labels.creditsAccountingNote} title={labels.usageTrend} /><TrendChart labels={labels} locale={locale} report={report} /></Surface><Surface className="p-4 sm:p-5"><SectionHeader description={labels.creditsAccountingNote} title={labels.voice} /><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><VoiceMetric label={labels.voiceSessions} value={format.format(report.voice.sessions)} /><VoiceMetric label={labels.voiceDuration} value={durationFormat(report.voice.totalDurationSeconds, labels, locale)} /><VoiceMetric label={labels.voiceAverageDuration} value={durationFormat(report.voice.averageDurationSeconds, labels, locale)} /><VoiceMetric label={labels.voiceCredits} value={format.format(report.voice.voiceCredits)} /><VoiceMetric label={labels.voiceSuccessful} value={format.format(report.voice.successful)} /><VoiceMetric label={labels.voiceFailed} value={format.format(report.voice.failed)} /><VoiceMetric label={labels.voiceCancelled} value={format.format(report.voice.cancelled)} /><div className="rounded-[var(--radius-control)] border border-subtle bg-surface-subtle p-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{labels.voiceByContext}</p><dl className="mt-2 space-y-1 text-sm"><div className="flex justify-between gap-3"><dt>{labels.voiceEmployeeContext}</dt><dd className="tabular-nums">{format.format(report.voice.byContext.employee)}</dd></div><div className="flex justify-between gap-3"><dt>{labels.voiceTeamContext}</dt><dd className="tabular-nums">{format.format(report.voice.byContext.team)}</dd></div>{report.voice.byContext.other > 0 ? <div className="flex justify-between gap-3"><dt>{labels.voiceOtherContext}</dt><dd className="tabular-nums">{format.format(report.voice.byContext.other)}</dd></div> : null}</dl></div></div></Surface><div className="grid gap-4 lg:grid-cols-2"><Surface className="min-w-0 overflow-hidden"><div className="border-b border-subtle p-4"><SectionHeader title={labels.capabilities} /></div><BreakdownTable labelFor={(value) => labelForCapability(value, labels)} labels={labels} locale={locale} rows={report.byFeature} /></Surface><Surface className="min-w-0 overflow-hidden"><div className="border-b border-subtle p-4"><SectionHeader title={labels.quality} /></div><BreakdownTable labelFor={(value) => labelForQuality(value, labels)} labels={labels} locale={locale} rows={report.byQuality} /></Surface><Surface className="min-w-0 overflow-hidden lg:col-span-2"><div className="border-b border-subtle p-4"><SectionHeader title={labels.status} /></div><StatusTable labels={labels} locale={locale} rows={report.byStatus} /></Surface></div></> : <EmptyState description={labels.noUsageDescription} icon={<CircleDashed />} title={labels.noUsageTitle} />}</div>
 }

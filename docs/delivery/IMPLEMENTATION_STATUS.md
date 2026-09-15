@@ -1,5 +1,21 @@
 # Implementatiestatus Liquid HR
 
+## Employee Detail AI-surface — 2026-09-15
+
+**Status: LOCAL UI CORRECTION — NOT PUSHED OR DEPLOYED**
+
+De bestaande geautoriseerde employee-AI-acties en GPT-Live voice zijn samengebracht
+in één Foundation-surface bovenaan het Employee Detail-dashboard. De surface
+wordt uitsluitend gevoed door de bestaande server-side gates en verschijnt dus
+niet voor een gebruiker of tenant waarvoor AI niet beschikbaar is. Nieuwe of
+oude layouts krijgen `aiSupport` standaard vooraan; een expliciet opgeslagen
+gebruikersvolgorde blijft behouden. Er zijn geen auth-, API-, database-,
+model-, Production-, main- of leave-branchwijzigingen uitgevoerd.
+
+Gerichte layout-, Foundation- en voice-tests `21/21`, strict TypeScript en
+ESLint zijn groen. Push, Vercel Preview en remote migration zijn geen onderdeel
+van deze UI-stap.
+
 ## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
 
 **Status: LOCAL IMPLEMENTATION CANDIDATE — MIGRATION NOT REMOTE APPLIED**

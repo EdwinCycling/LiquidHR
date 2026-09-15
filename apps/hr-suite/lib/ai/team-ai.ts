@@ -85,7 +85,8 @@ function createTeamSummaryInvocationInput(sessionId: string, summaryText: string
     businessObject: { type: 'team-summary', id: businessObjectId },
     idempotencyKey,
     businessPermissionCode: 'ai:use',
-    qualityProfile: 'EFFICIENT',
+    contextType: 'TEAM',
+    origin: 'VOICE',
     writingStyle: null,
   }
 }
@@ -132,6 +133,8 @@ export async function executeTeamAiTool(input: { auth: AuthContext; sessionId: s
       feature: input.name === 'team_employee_summary' ? 'EMPLOYEE_SUMMARY' : 'CONVERSATION_PREPARATION',
       request: { locale: input.locale },
       idempotencyKey: randomUUID(),
+      origin: 'VOICE',
+      contextType: 'TEAM',
     })
     return { resultText: proposal.proposedText, proposedText: proposal.proposedText }
   }

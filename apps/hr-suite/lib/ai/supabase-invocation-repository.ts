@@ -20,6 +20,7 @@ type SupabaseInvocationRow = {
   correlation_id: string
   config_version: string
   prompt_template_version: string
+  invocation_origin: string
   quality_profile: string | null
   writing_style: string | null
   execution_status: string
@@ -57,6 +58,7 @@ type InvocationWrite = {
   correlation_id: string
   config_version: string
   prompt_template_version: string
+  invocation_origin: string
   writing_style: string | null
   feedback_outcome: string | null
   created_at: string
@@ -91,6 +93,11 @@ function writingStyle(value: string | null): AiInvocation['writingStyle'] {
   throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
 }
 
+function invocationOrigin(value: string): AiInvocation['origin'] {
+  if (value === 'UI' || value === 'VOICE') return value
+  throw new AiExecutionError('INTERNAL_CONFIGURATION_ERROR')
+}
+
 function failureCode(value: string | null): AiInvocation['failureCode'] {
   if (value === null) return null
   const codes: readonly AiInvocation['failureCode'][] = [
@@ -106,6 +113,14 @@ function failureCode(value: string | null): AiInvocation['failureCode'] {
     'IDEMPOTENCY_KEY_REUSED',
     'PROVIDER_UNAVAILABLE',
     'PROVIDER_FAILED',
+    'AI_PROVIDER_DISABLED',
+    'AI_PROVIDER_HOURLY_LIMIT',
+    'AI_PROVIDER_DAILY_LIMIT',
+    'AI_PROVIDER_CONCURRENCY_LIMIT',
+    'AI_PROVIDER_INVOCATION_LIMIT',
+    'AI_PROVIDER_INPUT_TOO_LARGE',
+    'AI_PROVIDER_OUTPUT_TOO_LARGE',
+    'AI_PROVIDER_SAFETY_UNAVAILABLE',
     'INVALID_RESULT',
     'INTERNAL_CONFIGURATION_ERROR',
   ]
@@ -150,6 +165,7 @@ function mapRow(row: SupabaseInvocationRow): AiInvocation {
     promptTemplateVersion: requiredString(row.prompt_template_version),
     qualityProfile: qualityProfile(row.quality_profile),
     writingStyle: writingStyle(row.writing_style),
+    origin: invocationOrigin(row.invocation_origin),
     executionStatus: executionStatus(requiredString(row.execution_status)),
     resultStatus: resultStatus(requiredString(row.result_status)),
     feedbackOutcome: row.feedback_outcome,
@@ -182,6 +198,7 @@ function rowFromInvocation(input: NewAiInvocation): InvocationWrite {
     correlation_id: input.correlationId,
     config_version: input.configVersion,
     prompt_template_version: input.promptTemplateVersion,
+    invocation_origin: input.origin,
     writing_style: input.writingStyle,
     feedback_outcome: input.feedbackOutcome,
     created_at: input.createdAt,

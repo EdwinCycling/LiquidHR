@@ -165,6 +165,9 @@ function aiUsageLabels(labels: InsightsLabels): AiUsageLabels {
     periodNote: labels.aiUsagePeriodNote,
     creditsRemaining: labels.aiUsageCreditsRemaining,
     creditsUsed: labels.aiUsageCreditsUsed,
+    capabilityCredits: labels.aiUsageCapabilityCredits,
+    voiceCredits: labels.aiUsageVoiceCredits,
+    combinedCredits: labels.aiUsageCombinedCredits,
     requests: labels.aiUsageRequests,
     successRate: labels.aiUsageSuccessRate,
     notAvailable: labels.aiUsageNotAvailable,
@@ -190,6 +193,18 @@ function aiUsageLabels(labels: InsightsLabels): AiUsageLabels {
     noUsageTitle: labels.aiUsageNoUsageTitle,
     noUsageDescription: labels.aiUsageNoUsageDescription,
     creditsAccountingNote: labels.aiUsageCreditsAccountingNote,
+    voice: labels.aiUsageVoice,
+    voiceSessions: labels.aiUsageVoiceSessions,
+    voiceDuration: labels.aiUsageVoiceDuration,
+    voiceAverageDuration: labels.aiUsageVoiceAverageDuration,
+    voiceSuccessful: labels.aiUsageVoiceSuccessful,
+    voiceFailed: labels.aiUsageVoiceFailed,
+    voiceCancelled: labels.aiUsageVoiceCancelled,
+    voiceByContext: labels.aiUsageVoiceByContext,
+    voiceEmployeeContext: labels.aiUsageVoiceEmployeeContext,
+    voiceTeamContext: labels.aiUsageVoiceTeamContext,
+    voiceOtherContext: labels.aiUsageVoiceOtherContext,
+    seconds: labels.aiUsageSeconds,
   }
 }
 

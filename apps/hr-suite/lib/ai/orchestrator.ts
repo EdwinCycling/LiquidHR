@@ -292,6 +292,7 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
     configVersion: feature.configVersion,
     promptTemplateVersion: feature.promptTemplateVersion,
     writingStyle: input.writingStyle ?? null,
+    origin: input.origin ?? 'UI',
     feedbackOutcome: null,
     createdAt,
   } as const
@@ -305,13 +306,29 @@ export async function runAiInvocation<T>(input: AiInvocationInput, dependencies:
   let invocation = created.invocation
   const services: RuntimeServices = dependencies
 
+  let configuredQualityProfile = input.qualityProfile
+  if (dependencies.settings) {
+    try {
+      const settings = await dependencies.settings.assertInvocationAllowed({
+        scope,
+        authContext: input.authContext,
+        featureCode: feature.featureCode,
+        contextType: input.contextType,
+        origin: input.origin ?? 'UI',
+      })
+      configuredQualityProfile = settings.qualityProfile
+    } catch (error) {
+      return reject(invocation, gateFailure(error), services)
+    }
+  }
+
   let gates
   try {
     gates = await dependencies.governance.resolve({
       scope,
       actorUserId: input.authContext.userId,
       feature,
-      requestedQualityProfile: input.qualityProfile,
+      requestedQualityProfile: configuredQualityProfile,
     })
   } catch (error) {
     return reject(invocation, gateFailure(error), services)

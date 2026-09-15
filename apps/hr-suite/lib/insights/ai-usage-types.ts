@@ -12,10 +12,27 @@ export interface AiUsageInvocationSourceRow {
   chargedCredits: number
   createdAt: string
   finishedAt: string | null
+  invocationOrigin?: string
+}
+
+export interface AiUsageVoiceSourceRow {
+  tenantId: string
+  hrGroupId: string
+  id: string
+  contextType: string
+  sessionStatus: string
+  terminationReason: string
+  durationSeconds: number
+  billableVoiceUnits: number
+  voiceCredits: number
+  startedAt: string
+  endedAt: string
 }
 
 export interface AiUsageTrendPoint {
   date: string
+  capabilityCredits: number
+  voiceCredits: number
   creditsUsed: number
   requests: number
 }
@@ -32,10 +49,28 @@ export interface AiUsagePeriodSummary {
   endDate: string
 }
 
+export interface AiUsageVoiceSummary {
+  sessions: number
+  totalDurationSeconds: number
+  averageDurationSeconds: number | null
+  voiceCredits: number
+  successful: number
+  failed: number
+  cancelled: number
+  byContext: {
+    employee: number
+    team: number
+    other: number
+  }
+}
+
 export interface AiUsageReport {
   report: 'ai-usage'
   period: AiUsagePeriodSummary
   creditsRemaining: number
+  capabilityCredits: number
+  voiceCredits: number
+  combinedCredits: number
   creditsUsed: number
   requests: number
   successRate: number | null
@@ -43,4 +78,5 @@ export interface AiUsageReport {
   byFeature: readonly AiUsageBreakdownRow<AiUsageCapability>[]
   byQuality: readonly AiUsageBreakdownRow<AiUsageQuality>[]
   byStatus: readonly AiUsageBreakdownRow<AiUsageStatus>[]
+  voice: AiUsageVoiceSummary
 }

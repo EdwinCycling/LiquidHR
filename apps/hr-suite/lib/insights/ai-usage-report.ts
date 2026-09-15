@@ -6,9 +6,10 @@ import { resolveHrGroupTimeZone } from '@/lib/ai/timezone'
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveAiUsagePeriod, localDateForInstant, type AiUsagePeriodWindow, type AiUsageQuery } from './ai-usage-query'
-import type { AiUsageBreakdownRow, AiUsageCapability, AiUsageInvocationSourceRow, AiUsageQuality, AiUsageReport, AiUsageStatus, AiUsageTrendPoint } from './ai-usage-types'
+import type { AiUsageBreakdownRow, AiUsageCapability, AiUsageInvocationSourceRow, AiUsageQuality, AiUsageReport, AiUsageStatus, AiUsageTrendPoint, AiUsageVoiceSourceRow, AiUsageVoiceSummary } from './ai-usage-types'
 
-type AiUsageInvocationRow = Pick<Tables<'ai_invocations'>, 'tenant_id' | 'hr_group_id' | 'id' | 'feature_code' | 'quality_profile' | 'execution_status' | 'charged_credits' | 'created_at' | 'finished_at'>
+type AiUsageInvocationRow = Pick<Tables<'ai_invocations'>, 'tenant_id' | 'hr_group_id' | 'id' | 'feature_code' | 'quality_profile' | 'execution_status' | 'charged_credits' | 'created_at' | 'finished_at' | 'invocation_origin'>
+type AiUsageVoiceChargeRow = Pick<Tables<'ai_voice_credit_charges'>, 'tenant_id' | 'hr_group_id' | 'id' | 'context_type' | 'session_status' | 'termination_reason' | 'duration_seconds' | 'billable_voice_units' | 'credit_amount' | 'started_at' | 'ended_at'>
 type AiUsageTimestampColumn = 'created_at' | 'finished_at'
 
 const PAGE_SIZE = 500
@@ -25,6 +26,7 @@ export interface AiUsageReportDependencies {
   clock?: { now: () => Date }
   timeZoneResolver?: HrGroupTimeZoneResolver
   readInvocations?: (scope: AiScope, period: AiUsagePeriodWindow) => Promise<readonly AiUsageInvocationSourceRow[]>
+  readVoiceCharges?: (scope: AiScope, period: AiUsagePeriodWindow) => Promise<readonly AiUsageVoiceSourceRow[]>
   readBalance?: (scope: AiScope) => Promise<number>
 }
 
@@ -39,6 +41,23 @@ function toSourceRow(row: AiUsageInvocationRow): AiUsageInvocationSourceRow {
     chargedCredits: row.charged_credits,
     createdAt: row.created_at,
     finishedAt: row.finished_at,
+    invocationOrigin: row.invocation_origin,
+  }
+}
+
+function toVoiceSourceRow(row: AiUsageVoiceChargeRow): AiUsageVoiceSourceRow {
+  return {
+    tenantId: row.tenant_id,
+    hrGroupId: row.hr_group_id,
+    id: row.id,
+    contextType: row.context_type,
+    sessionStatus: row.session_status,
+    terminationReason: row.termination_reason,
+    durationSeconds: row.duration_seconds,
+    billableVoiceUnits: row.billable_voice_units,
+    voiceCredits: row.credit_amount,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
   }
 }
 
@@ -54,7 +73,7 @@ async function readInvocationsByTimestamp(
   while (true) {
     const result = await client
       .from('ai_invocations')
-      .select('tenant_id,hr_group_id,id,feature_code,quality_profile,execution_status,charged_credits,created_at,finished_at')
+      .select('tenant_id,hr_group_id,id,feature_code,quality_profile,execution_status,charged_credits,created_at,finished_at,invocation_origin')
       .eq('tenant_id', scope.tenantId)
       .eq('hr_group_id', scope.hrGroupId)
       .gte(timestampColumn, period.startAt)
@@ -66,6 +85,33 @@ async function readInvocationsByTimestamp(
     if (result.error) throw new AiUsageInsightsServiceError('INSIGHTS_AI_USAGE_REPORT_FAILED')
     const page = (result.data ?? []) as AiUsageInvocationRow[]
     rows.push(...page.map(toSourceRow))
+    if (page.length < PAGE_SIZE) break
+    offset += page.length
+  }
+
+  return rows
+}
+
+async function readVoiceCharges(scope: AiScope, period: AiUsagePeriodWindow): Promise<readonly AiUsageVoiceSourceRow[]> {
+  const client = createAdminClient()
+  const rows: AiUsageVoiceSourceRow[] = []
+  let offset = 0
+
+  while (true) {
+    const result = await client
+      .from('ai_voice_credit_charges')
+      .select('tenant_id,hr_group_id,id,context_type,session_status,termination_reason,duration_seconds,billable_voice_units,credit_amount,started_at,ended_at')
+      .eq('tenant_id', scope.tenantId)
+      .eq('hr_group_id', scope.hrGroupId)
+      .gte('ended_at', period.startAt)
+      .lt('ended_at', period.endAt)
+      .order('ended_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1)
+
+    if (result.error) throw new AiUsageInsightsServiceError('INSIGHTS_AI_USAGE_REPORT_FAILED')
+    const page = (result.data ?? []) as AiUsageVoiceChargeRow[]
+    rows.push(...page.map(toVoiceSourceRow))
     if (page.length < PAGE_SIZE) break
     offset += page.length
   }
@@ -118,6 +164,26 @@ function creditValue(row: AiUsageInvocationSourceRow): number {
   return Number.isInteger(row.chargedCredits) && row.chargedCredits > 0 ? row.chargedCredits : 0
 }
 
+function voiceCreditValue(row: AiUsageVoiceSourceRow): number {
+  return Number.isInteger(row.voiceCredits) && row.voiceCredits > 0 ? row.voiceCredits : 0
+}
+
+function voiceDurationValue(row: AiUsageVoiceSourceRow): number {
+  return Number.isInteger(row.durationSeconds) && row.durationSeconds > 0 ? row.durationSeconds : 0
+}
+
+function voiceOutcome(row: AiUsageVoiceSourceRow): 'SUCCESSFUL' | 'FAILED' | 'CANCELLED' {
+  if (row.sessionStatus === 'FAILED' || row.terminationReason === 'FAILURE') return 'FAILED'
+  if (row.terminationReason === 'CANCELLED' || row.terminationReason === 'DISCONNECT') return 'CANCELLED'
+  return 'SUCCESSFUL'
+}
+
+function voiceContext(row: AiUsageVoiceSourceRow): 'employee' | 'team' | 'other' {
+  if (row.contextType === 'EMPLOYEE') return 'employee'
+  if (row.contextType === 'TEAM') return 'team'
+  return 'other'
+}
+
 function sortBreakdown<T extends string>(rows: readonly AiUsageBreakdownRow<T>[], order: readonly T[]): AiUsageBreakdownRow<T>[] {
   const rank = new Map(order.map((key, index) => [key, index]))
   return [...rows].sort((left, right) => right.creditsUsed - left.creditsUsed || right.requests - left.requests || (rank.get(left.key) ?? order.length) - (rank.get(right.key) ?? order.length))
@@ -135,23 +201,26 @@ function buildBreakdown<T extends string>(rows: readonly AiUsageInvocationSource
   return [...grouped.values()]
 }
 
-function buildTrend(rows: readonly AiUsageInvocationSourceRow[], completedRows: readonly AiUsageInvocationSourceRow[], period: AiUsagePeriodWindow): readonly AiUsageTrendPoint[] {
+function buildTrend(rows: readonly AiUsageInvocationSourceRow[], completedRows: readonly AiUsageInvocationSourceRow[], voiceRows: readonly AiUsageVoiceSourceRow[], period: AiUsagePeriodWindow): readonly AiUsageTrendPoint[] {
   const trend: AiUsageTrendPoint[] = []
   const cursor = new Date(`${period.startDate}T00:00:00Z`)
   const end = new Date(`${period.endDate}T00:00:00Z`)
   while (cursor <= end) {
     const date = cursor.toISOString().slice(0, 10)
     const requests = rows.filter((row) => timestampInPeriod(row.createdAt, period) && localDateForInstant(row.createdAt, period.timeZone) === date).length
-    const creditsUsed = completedRows
+    const capabilityCredits = completedRows
       .filter((row) => localDateForInstant(row.finishedAt as string, period.timeZone) === date)
       .reduce((sum, row) => sum + creditValue(row), 0)
-    trend.push({ date, creditsUsed, requests })
+    const voiceCredits = voiceRows
+      .filter((row) => localDateForInstant(row.endedAt, period.timeZone) === date)
+      .reduce((sum, row) => sum + voiceCreditValue(row), 0)
+    trend.push({ date, capabilityCredits, voiceCredits, creditsUsed: capabilityCredits + voiceCredits, requests })
     cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
   return trend
 }
 
-function assertSourceScope(rows: readonly AiUsageInvocationSourceRow[], scope: Pick<AiScope, 'tenantId' | 'hrGroupId'>): void {
+function assertSourceScope(rows: readonly { tenantId: string; hrGroupId: string }[], scope: Pick<AiScope, 'tenantId' | 'hrGroupId'>): void {
   if (rows.some((row) => row.tenantId !== scope.tenantId || row.hrGroupId !== scope.hrGroupId)) {
     throw new AiUsageInsightsServiceError('INSIGHTS_AI_USAGE_SCOPE_VIOLATION', 403)
   }
@@ -162,9 +231,11 @@ export function buildAiUsageReport(
   rows: readonly AiUsageInvocationSourceRow[],
   creditsRemaining: number,
   scope: Pick<AiScope, 'tenantId' | 'hrGroupId'>,
+  voiceRows: readonly AiUsageVoiceSourceRow[] = [],
 ): AiUsageReport {
   if (!Number.isInteger(creditsRemaining) || creditsRemaining < 0) throw new AiUsageInsightsServiceError('INSIGHTS_AI_USAGE_REPORT_FAILED')
   assertSourceScope(rows, scope)
+  assertSourceScope(voiceRows, scope)
 
   const requestRows = rows.filter((row) => timestampInPeriod(row.createdAt, period))
   const completedRows = rows.filter((row) => timestampInPeriod(row.finishedAt, period))
@@ -172,18 +243,35 @@ export function buildAiUsageReport(
   const completedFailures = completedRows.filter((row) => row.executionStatus === 'FAILED')
   const denominator = completedSuccesses.length + completedFailures.length
   const byStatus = buildBreakdown([...completedRows, ...requestRows.filter((row) => !row.finishedAt)], statusFor)
+  const voiceInPeriod = voiceRows.filter((row) => timestampInPeriod(row.endedAt, period))
+  const voice = voiceInPeriod.reduce<AiUsageVoiceSummary>((summary, row) => {
+    summary.sessions += 1
+    summary.totalDurationSeconds += voiceDurationValue(row)
+    summary.voiceCredits += voiceCreditValue(row)
+    summary[voiceOutcome(row) === 'SUCCESSFUL' ? 'successful' : voiceOutcome(row) === 'FAILED' ? 'failed' : 'cancelled'] += 1
+    summary.byContext[voiceContext(row)] += 1
+    return summary
+  }, { sessions: 0, totalDurationSeconds: 0, averageDurationSeconds: null, voiceCredits: 0, successful: 0, failed: 0, cancelled: 0, byContext: { employee: 0, team: 0, other: 0 } })
+  voice.averageDurationSeconds = voice.sessions ? Math.round(voice.totalDurationSeconds / voice.sessions) : null
+  const capabilityCredits = completedRows.reduce((sum, row) => sum + creditValue(row), 0)
+  const voiceCredits = voice.voiceCredits
+  const combinedCredits = capabilityCredits + voiceCredits
 
   return {
     report: 'ai-usage',
     period: { key: period.period, startDate: period.startDate, endDate: period.endDate },
     creditsRemaining,
-    creditsUsed: completedRows.reduce((sum, row) => sum + creditValue(row), 0),
+    capabilityCredits,
+    voiceCredits,
+    combinedCredits,
+    creditsUsed: combinedCredits,
     requests: requestRows.length,
     successRate: denominator ? Math.round((completedSuccesses.length / denominator) * 1000) / 10 : null,
-    trend: buildTrend(requestRows, completedRows, period),
+    trend: buildTrend(requestRows, completedRows, voiceInPeriod, period),
     byFeature: sortBreakdown(buildBreakdown(completedRows, (row) => capabilityFor(row.featureCode)), ['IMPROVE_TEXT', 'OTHER']),
     byQuality: sortBreakdown(buildBreakdown(completedRows, (row) => qualityFor(row.qualityProfile)), ['EFFICIENT', 'BALANCED', 'IN_DEPTH', 'UNKNOWN']),
     byStatus: sortBreakdown(byStatus, ['SUCCEEDED', 'FAILED', 'REJECTED', 'IN_PROGRESS', 'OTHER']),
+    voice,
   }
 }
 
@@ -193,9 +281,10 @@ export async function getAiUsageReport(query: AiUsageQuery, dependencies: AiUsag
   const scope: AiScope = { tenantId: context.tenantId, hrGroupId, administrationId: context.administrationId }
   const timeZone = await resolveHrGroupTimeZone(scope, dependencies.timeZoneResolver)
   const period = resolveAiUsagePeriod(query.period, dependencies.clock?.now() ?? new Date(), timeZone)
-  const [rows, creditsRemaining] = await Promise.all([
+  const [rows, voiceRows, creditsRemaining] = await Promise.all([
     dependencies.readInvocations?.(scope, period) ?? readInvocations(scope, period),
+    dependencies.readVoiceCharges?.(scope, period) ?? readVoiceCharges(scope, period),
     dependencies.readBalance?.(scope) ?? readBalance(scope),
   ])
-  return buildAiUsageReport(period, rows, creditsRemaining, scope)
+  return buildAiUsageReport(period, rows, creditsRemaining, scope, voiceRows)
 }

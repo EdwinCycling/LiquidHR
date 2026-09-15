@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isRealtimeVoiceEnabled, resolveRealtimeVoiceModel } from './realtime-voice'
 import { isAiImproveAvailable } from './supabase-governance'
+import { evaluateAiSettingsAccess, getAiGroupSettingsForContext } from './settings-service'
+import { finalizeAiVoiceSession, type AiVoiceTerminationReason } from './voice-credits'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -76,6 +78,10 @@ function isDepartmentSelector(auth: AuthContext): boolean {
 
 function canUseTeamAi(auth: AuthContext): boolean {
   return auth.permissions.includes('start-page:read') && auth.permissions.includes('ai:use') && auth.activeRoles.some((role) => teamAiRoles.has(role))
+}
+
+function teamSettingsAllow(settings: Awaited<ReturnType<typeof getAiGroupSettingsForContext>>, auth: AuthContext, origin: 'UI' | 'VOICE'): boolean {
+  return evaluateAiSettingsAccess({ settings, activeRoles: auth.activeRoles, featureCode: origin === 'VOICE' ? 'VOICE' : 'TEAM_SUMMARY', contextType: 'TEAM', origin }) === 'ALLOWED'
 }
 
 function employeeName(employee: { id: string; first_name: string; birth_name: string }): string {
@@ -217,6 +223,9 @@ export async function getTeamAiStartPageData(auth: AuthContext, existingClient?:
   if (!canUseTeamAi(auth)) return null
   const supabase = existingClient ?? await createClient()
   try {
+    const settings = await getAiGroupSettingsForContext(auth)
+    const aiEnabled = teamSettingsAllow(settings, auth, 'UI') && isAiImproveAvailable()
+    const voiceEnabled = teamSettingsAllow(settings, auth, 'VOICE') && isRealtimeVoiceEnabled() && isAiImproveAvailable()
     const departmentSelection = isDepartmentSelector(auth)
     const departments = departmentSelection ? await listTeamAiDepartments(auth, supabase) : []
     if (departmentSelection) {
@@ -228,8 +237,8 @@ export async function getTeamAiStartPageData(auth: AuthContext, existingClient?:
         members: [],
         totalMemberCount: 0,
         departments,
-        aiEnabled: isAiImproveAvailable(),
-        voiceEnabled: isRealtimeVoiceEnabled() && isAiImproveAvailable(),
+        aiEnabled,
+        voiceEnabled,
       }
     }
     const scope = await resolveTeamAiScope(auth, null, supabase)
@@ -241,8 +250,8 @@ export async function getTeamAiStartPageData(auth: AuthContext, existingClient?:
       members: scope.members,
       totalMemberCount: scope.memberIds.length,
       departments: [],
-      aiEnabled: isAiImproveAvailable(),
-      voiceEnabled: isRealtimeVoiceEnabled() && isAiImproveAvailable(),
+      aiEnabled,
+      voiceEnabled,
     }
   } catch (error) {
     if (error instanceof TeamAiScopeError && error.status < 500) return null
@@ -292,19 +301,10 @@ export async function getAuthorizedTeamAiSession(auth: AuthContext, sessionId: s
   return { id: session.id, scopeType: session.scope_type as TeamAiScopeType, departmentId: session.context_department_id, contextName: session.context_name_snapshot, memberIds: scope.memberIds, members: scope.members, modelId: session.model_id, status: session.status as AuthorizedTeamAiSession['status'], startedAt: session.started_at }
 }
 
-export async function finishTeamAiSession(input: { auth: AuthContext; sessionId: string; toolCallCount: number }): Promise<void> {
-  const groupId = requireHrGroupId(input.auth)
-  const admin = createAdminClient()
-  const { data: existing, error } = await admin.from('ai_team_sessions').select('started_at').eq('id', input.sessionId).eq('tenant_id', input.auth.tenantId).eq('hr_group_id', groupId).eq('actor_user_id', input.auth.userId).eq('status', 'ACTIVE').maybeSingle()
-  if (error || !existing) return
-  const endedAt = new Date()
-  const startedAt = new Date(existing.started_at)
-  const durationSeconds = Number.isFinite(startedAt.valueOf()) ? Math.max(0, Math.ceil((endedAt.valueOf() - startedAt.valueOf()) / 1000)) : 0
-  const { error: updateError } = await admin.from('ai_team_sessions').update({ status: 'ENDED', ended_at: endedAt.toISOString(), duration_seconds: durationSeconds, tool_call_count: input.toolCallCount }).eq('id', input.sessionId).eq('tenant_id', input.auth.tenantId).eq('hr_group_id', groupId).eq('actor_user_id', input.auth.userId).eq('status', 'ACTIVE')
-  if (updateError) throw new TeamAiScopeError('TEAM_SESSION_UPDATE_FAILED', 500)
+export async function finishTeamAiSession(input: { auth: AuthContext; sessionId: string; toolCallCount: number; terminationReason?: AiVoiceTerminationReason }): Promise<void> {
+  await finalizeAiVoiceSession({ context: input.auth, contextType: 'TEAM', sessionId: input.sessionId, status: 'ENDED', toolCallCount: input.toolCallCount, terminationReason: input.terminationReason ?? 'EXPLICIT' })
 }
 
 export async function failTeamAiSession(input: { auth: AuthContext; sessionId: string }): Promise<void> {
-  const groupId = requireHrGroupId(input.auth)
-  await createAdminClient().from('ai_team_sessions').update({ status: 'FAILED', ended_at: new Date().toISOString() }).eq('id', input.sessionId).eq('tenant_id', input.auth.tenantId).eq('hr_group_id', groupId).eq('actor_user_id', input.auth.userId).eq('status', 'ACTIVE')
+  await finalizeAiVoiceSession({ context: input.auth, contextType: 'TEAM', sessionId: input.sessionId, status: 'FAILED', toolCallCount: 0, terminationReason: 'FAILURE' })
 }

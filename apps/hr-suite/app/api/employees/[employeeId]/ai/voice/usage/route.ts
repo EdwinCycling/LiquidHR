@@ -14,7 +14,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   if (!parsed.success) return NextResponse.json({ error: 'AI_VOICE_USAGE_INPUT_INVALID' }, { status: 400 })
   try {
     const authContext = await requireEmployeeVoiceContext(employeeId)
-    await finishRealtimeVoiceSession({ ...parsed.data, context: authContext })
+    await finishRealtimeVoiceSession({ ...parsed.data, context: authContext, terminationReason: parsed.data.terminationReason ?? 'EXPLICIT' })
     return NextResponse.json({ data: { recorded: true } })
   } catch (error) {
     const permission = permissionErrorResponse(error)

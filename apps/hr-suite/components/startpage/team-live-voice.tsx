@@ -61,6 +61,7 @@ type TeamVoiceRun = {
   eventSequence: number
   closing: boolean
   finalized: boolean
+  terminationReason?: 'NORMAL' | 'EXPLICIT' | 'TIMEOUT' | 'DISCONNECT' | 'FAILURE' | 'CANCELLED'
   tools: AbortController
 }
 
@@ -74,12 +75,13 @@ function endUsage(run: TeamVoiceRun): void {
   void fetch(`${run.base}/usage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId: run.sessionId, toolCallCount: run.toolCallCount }),
+    body: JSON.stringify({ sessionId: run.sessionId, toolCallCount: run.toolCallCount, terminationReason: run.terminationReason ?? 'DISCONNECT' }),
     keepalive: true,
   }).catch(() => undefined)
 }
 
-function close(run: TeamVoiceRun): void {
+function close(run: TeamVoiceRun, terminationReason: TeamVoiceRun['terminationReason'] = 'DISCONNECT'): void {
+  run.terminationReason ??= terminationReason
   run.closed = true
   clearTimeout(run.timer)
   clearInterval(run.rtpTimer)
@@ -149,7 +151,6 @@ function InputLevelMeter({ muted, stream, label, mutedLabel }: { muted: boolean;
 
   useEffect(() => {
     if (!stream || muted || typeof window.AudioContext === 'undefined') {
-      setLevel(0)
       return
     }
     const context = new window.AudioContext()
@@ -173,7 +174,8 @@ function InputLevelMeter({ muted, stream, label, mutedLabel }: { muted: boolean;
   }, [muted, stream])
 
   if (!stream) return null
-  return <div aria-label={muted ? mutedLabel : label} className="flex flex-col items-center gap-2"><div aria-hidden="true" className="flex h-7 items-center gap-1">{[0.42, 0.68, 1, 0.68, 0.42].map((weight, index) => <span className="w-1 rounded-full bg-primary transition-transform duration-75 motion-reduce:transition-none" key={index} style={{ height: `${12 + (weight * 16)}px`, transform: `scaleY(${muted ? 0.12 : Math.max(0.12, level * weight)})` }} />)}</div><p className="text-xs text-muted-foreground">{muted ? mutedLabel : label}</p></div>
+  const displayLevel = muted ? 0 : level
+  return <div aria-label={muted ? mutedLabel : label} className="flex flex-col items-center gap-2"><div aria-hidden="true" className="flex h-7 items-center gap-1">{[0.42, 0.68, 1, 0.68, 0.42].map((weight, index) => <span className="w-1 rounded-full bg-primary transition-transform duration-75 motion-reduce:transition-none" key={index} style={{ height: `${12 + (weight * 16)}px`, transform: `scaleY(${muted ? 0.12 : Math.max(0.12, displayLevel * weight)})` }} />)}</div><p className="text-xs text-muted-foreground">{muted ? mutedLabel : label}</p></div>
 }
 
 export function TeamLiveVoice({ departmentId, contextName, enabled = true, labels, locale }: { departmentId?: string; contextName: string; enabled?: boolean; labels: TeamLiveVoiceLabels; locale: string }): ReactElement {
@@ -187,17 +189,19 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
   const [summaryStatus, setSummaryStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const [inputStream, setInputStream] = useState<MediaStream | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const timerStartedAtRef = useRef<number | null>(null)
   const open = state.phase !== 'idle'
   const status = state.phase === 'error' ? labels[state.message] : state.phase === 'idle' ? null : labels[state.phase]
   const canMute = ['listening', 'processing', 'speaking', 'muted'].includes(state.phase)
   const timerRunning = ['connecting', 'listening', 'processing', 'speaking'].includes(state.phase)
 
   useEffect(() => {
-    if (!timerRunning) return
-    const startedAt = Date.now() - (elapsedSeconds * 1_000)
-    const timer = window.setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1_000)), 250)
+    if (!timerRunning || timerStartedAtRef.current === null) return
+    const update = (): void => setElapsedSeconds(Math.floor((Date.now() - (timerStartedAtRef.current ?? Date.now())) / 1_000))
+    update()
+    const timer = window.setInterval(update, 250)
     return () => window.clearInterval(timer)
-  }, [elapsedSeconds, timerRunning])
+  }, [timerRunning])
 
   useEffect(() => {
     return () => {
@@ -207,9 +211,11 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
         } catch {
           // Closing the browser transport is best effort during unmount.
         }
-        close(current.current)
+        close(current.current, 'DISCONNECT')
       }
       current.current = null
+      setInputStream(null)
+      timerStartedAtRef.current = null
       dispatch({ type: 'reset' })
     }
   }, [departmentId, locale, enabled])
@@ -223,10 +229,11 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
       } catch {
         // The normal close path still records usage and releases media.
       }
-      close(run)
+      close(run, 'EXPLICIT')
     }
     current.current = null
     setInputStream(null)
+    timerStartedAtRef.current = null
     setElapsedSeconds(0)
     dispatch({ type: 'closed' })
   }
@@ -253,6 +260,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
   async function start(): Promise<void> {
     if (!enabled || current.current) return
     setElapsedSeconds(0)
+    timerStartedAtRef.current = Date.now()
     dispatch({ type: 'start' })
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') {
       dispatch({ type: 'error', message: 'connectionFailed' })
@@ -264,7 +272,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
     const fail = (message: EmployeeLiveVoiceError): void => {
       if (!live()) return
       requestSessionClose()
-      close(run)
+      close(run, 'FAILURE')
       current.current = null
       setInputStream(null)
       dispatch({ type: 'error', message })
@@ -312,9 +320,9 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
           return
         case 'session.closed':
           run.finalized = true
-        close(run)
-        current.current = null
-        setInputStream(null)
+          close(run, 'NORMAL')
+          current.current = null
+          setInputStream(null)
           dispatch({ type: 'closed' })
           return
         case 'input_audio_buffer.speech_started':

@@ -22,11 +22,11 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
     const args = parseRealtimeVoiceToolArguments(parsed.data.name, parsed.data.arguments)
     const idempotencyKey = randomUUID()
     if (parsed.data.name === 'employee_summary') {
-      const proposal = await runEmployeeAi({ employeeId, feature: 'EMPLOYEE_SUMMARY', request: { locale: parsed.data.locale }, idempotencyKey })
+      const proposal = await runEmployeeAi({ employeeId, feature: 'EMPLOYEE_SUMMARY', request: { locale: parsed.data.locale }, idempotencyKey, origin: 'VOICE' })
       return NextResponse.json({ data: { proposedText: proposal.proposedText } })
     }
     if (parsed.data.name === 'conversation_preparation') {
-      const proposal = await runEmployeeAi({ employeeId, feature: 'CONVERSATION_PREPARATION', request: { locale: parsed.data.locale }, idempotencyKey })
+      const proposal = await runEmployeeAi({ employeeId, feature: 'CONVERSATION_PREPARATION', request: { locale: parsed.data.locale }, idempotencyKey, origin: 'VOICE' })
       return NextResponse.json({ data: { proposedText: proposal.proposedText } })
     }
     if (parsed.data.name === 'create_personal_reminder') {
@@ -42,6 +42,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
     const proposal = await runDevelopmentGoalSmart({
       request: { employeeId, sourceText: args.sourceText, locale: parsed.data.locale },
       idempotencyKey,
+      origin: 'VOICE',
     })
     return NextResponse.json({ data: { proposedText: proposal.proposedText } })
   } catch (error) {

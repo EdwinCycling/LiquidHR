@@ -3,6 +3,9 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { AiExecutionError } from './contracts'
+import { defaultAiGroupSettings, type AiGroupSettings } from './settings-contracts'
+import { SupabaseAiSettingsPort } from './settings-service'
+import { finalizeAiVoiceSession, type AiVoiceTerminationReason } from './voice-credits'
 import { OPENAI_EFFICIENT_MODEL } from './openai-config'
 import { parsePersonalReminderToolArguments, personalReminderToolParameters, type PersonalReminderToolArguments } from './personal-reminders'
 import { requireHrGroupId, requirePermission, type AuthContext } from '@/lib/auth/permissions'
@@ -27,6 +30,7 @@ export const realtimeVoiceToolRequestSchema = z.object({
 export const realtimeVoiceUsageRequestSchema = z.object({
   sessionId: z.string().uuid(),
   toolCallCount: z.number().int().min(0).max(1000),
+  terminationReason: z.enum(['NORMAL', 'EXPLICIT', 'TIMEOUT', 'DISCONNECT', 'FAILURE', 'CANCELLED']).optional(),
 }).strict()
 
 export const teamRealtimeVoiceSessionRequestSchema = z.object({
@@ -46,6 +50,9 @@ export type RealtimeVoiceLocale = z.infer<typeof realtimeVoiceSessionRequestSche
 export type RealtimeVoiceToolName = z.infer<typeof realtimeVoiceToolRequestSchema>['name']
 export type TeamRealtimeVoiceLocale = z.infer<typeof teamRealtimeVoiceSessionRequestSchema>['locale']
 export type TeamRealtimeVoiceToolName = z.infer<typeof teamRealtimeVoiceToolRequestSchema>['name']
+export type RealtimeVoiceTerminationReason = z.infer<typeof realtimeVoiceUsageRequestSchema>['terminationReason'] extends infer T
+  ? Exclude<T, undefined>
+  : never
 
 const managerVoiceRoles = new Set(['DIRECT_MANAGER', 'HR_ADVISOR', 'HR_ADMIN', 'TENANT_ADMIN'])
 
@@ -80,6 +87,11 @@ export async function requireEmployeeVoiceContext(employeeId: string): Promise<A
   }
   await requirePermission('ai:use')
   if (!isRealtimeVoiceEnabled()) throw new AiExecutionError('FEATURE_UNAVAILABLE')
+  await new SupabaseAiSettingsPort().assertVoiceAllowed({
+    scope: { tenantId: context.tenantId, hrGroupId: requireHrGroupId(context), administrationId: context.administrationId },
+    authContext: context,
+    contextType: 'EMPLOYEE',
+  })
   return context
 }
 
@@ -126,10 +138,27 @@ type ParsedRealtimeVoiceToolArguments = {
 
 const liveClientEvents = ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'] as const
 
-function createLiveSessionConfiguration(input: { instructions: string; delegation: Record<string, unknown> }): Record<string, unknown> {
+function voiceInstructions(settings: AiGroupSettings): string {
+  const style = settings.conversationStyle === 'BUSINESS'
+    ? 'Use a businesslike tone.'
+    : settings.conversationStyle === 'COACHING'
+      ? 'Use a supportive coaching tone without making judgements.'
+      : 'Use a neutral professional tone.'
+  const length = settings.answerLength === 'SHORT'
+    ? 'Keep answers short.'
+    : settings.answerLength === 'DETAILED'
+      ? 'Give detailed answers when the user asks for detail.'
+      : 'Keep answers concise but complete.'
+  return `${style} ${length}`
+}
+
+function createLiveSessionConfiguration(input: { instructions: string; delegation: Record<string, unknown>; settings?: AiGroupSettings }): Record<string, unknown> {
+  const settings = input.settings ?? defaultAiGroupSettings({ tenantId: '', hrGroupId: '' })
   return {
+    type: 'live',
     model: resolveRealtimeVoiceModel(),
     instructions: input.instructions,
+    audio: { output: { voice: settings.voiceId } },
     client: {
       data_channel: {
         allowed_client_events: liveClientEvents,
@@ -139,11 +168,12 @@ function createLiveSessionConfiguration(input: { instructions: string; delegatio
   }
 }
 
-export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLocale): Record<string, unknown> {
+export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLocale, settings?: AiGroupSettings): Record<string, unknown> {
   const language = locale === 'nl' ? 'Dutch' : 'English'
   return createLiveSessionConfiguration({
     instructions: [
       `You are the LiquidHR voice interface. Speak in ${language}.`,
+      voiceInstructions(settings ?? defaultAiGroupSettings({ tenantId: '', hrGroupId: '' })),
       'This session is bound to one employee by the LiquidHR application. Never ask for or accept an employee ID. Delegate employee questions to the backend.',
       'Keep the spoken conversation concise and handle interruptions naturally.',
       'Never claim that HR data was saved, changed, published, or approved. A human must review and confirm proposals in the application.',
@@ -195,11 +225,12 @@ export function createRealtimeVoiceSessionConfiguration(locale: RealtimeVoiceLoc
   })
 }
 
-export function createTeamRealtimeVoiceSessionConfiguration(locale: TeamRealtimeVoiceLocale): Record<string, unknown> {
+export function createTeamRealtimeVoiceSessionConfiguration(locale: TeamRealtimeVoiceLocale, settings?: AiGroupSettings): Record<string, unknown> {
   const language = locale === 'nl' ? 'Dutch' : 'English'
   return createLiveSessionConfiguration({
     instructions: [
       `You are the LiquidHR Team AI voice interface. Speak in ${language}.`,
+      voiceInstructions(settings ?? defaultAiGroupSettings({ tenantId: '', hrGroupId: '' })),
       'This session is bound to the fixed team scope selected by the LiquidHR application. Never ask for or accept employee IDs or department IDs.',
       'Use the LiquidHR team tools for overview, an individual team member by exact name, conversation preparation, and a reviewed team-summary proposal.',
       'Do not rank people, infer sensitive attributes, expose full employee records, or expand beyond the fixed team scope.',
@@ -363,30 +394,23 @@ export async function createRealtimeVoiceSession(input: {
 }
 
 export async function markRealtimeVoiceSessionFailed(sessionId: string, context: AuthContext): Promise<void> {
-  const hrGroupId = requireHrGroupId(context)
-  await createAdminClient().from('ai_voice_sessions').update({ status: 'FAILED', ended_at: new Date().toISOString() })
-    .eq('id', sessionId).eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('actor_user_id', context.userId)
+  await finalizeAiVoiceSession({ context, contextType: 'EMPLOYEE', sessionId, status: 'FAILED', toolCallCount: 0, terminationReason: 'FAILURE' })
 }
 
 export async function finishRealtimeVoiceSession(input: {
   sessionId: string
   context: AuthContext
   toolCallCount: number
+  terminationReason?: AiVoiceTerminationReason
 }): Promise<void> {
-  const admin = createAdminClient()
-  const hrGroupId = requireHrGroupId(input.context)
-  const endedAt = new Date()
-  const existing = await admin.from('ai_voice_sessions').select('started_at').eq('id', input.sessionId)
-    .eq('tenant_id', input.context.tenantId).eq('hr_group_id', hrGroupId).eq('actor_user_id', input.context.userId).is('ended_at', null).maybeSingle()
-  if (existing.error || !existing.data) return
-  const startedAt = new Date(existing.data.started_at)
-  const durationSeconds = Number.isFinite(startedAt.valueOf()) ? Math.max(0, Math.ceil((endedAt.valueOf() - startedAt.valueOf()) / 1000)) : 0
-  await admin.from('ai_voice_sessions').update({
+  await finalizeAiVoiceSession({
+    context: input.context,
+    contextType: 'EMPLOYEE',
+    sessionId: input.sessionId,
     status: 'ENDED',
-    ended_at: endedAt.toISOString(),
-    duration_seconds: durationSeconds,
-    tool_call_count: input.toolCallCount,
-  }).eq('id', input.sessionId).eq('tenant_id', input.context.tenantId).eq('hr_group_id', hrGroupId).eq('actor_user_id', input.context.userId).is('ended_at', null)
+    toolCallCount: input.toolCallCount,
+    terminationReason: input.terminationReason ?? 'EXPLICIT',
+  })
 }
 
 export async function createOpenAiRealtimeCall(input: { sdpOffer: string; session: Record<string, unknown> }): Promise<string> {
