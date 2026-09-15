@@ -23,6 +23,33 @@ Preview na reload; echte voice-, tool-call- en credits/Insights-acceptatie en
 de volledige gate blijven daarom open. Geen Production-, `main`- of
 `work/leave-profile-management`-wijziging.
 
+## GPT-Live transport + Employee AI interaction — 2026-09-15
+
+De 422 op de Employee Detail voice-route is teruggevoerd naar een provider-400:
+OpenAI retourneerde voor `POST /v1/live/sessions` een veilige foutmetadata-set
+met `invalid_request_error`, code `unknown_parameter` en parameter
+`session.type`. De LiquidHR-route vertaalde `PROVIDER_FAILED` bewust naar 422.
+De GPT-Live create-configuratie stuurt nu geen `session.type` meer. De actuele
+request blijft `POST https://api.openai.com/v1/live/sessions` met een
+`session`-object waarin `model: gpt-live-1` staat en een
+`transport: { type: webrtc, sdp }`-object. Server-mediated authentication,
+employee binding, delegatie, bestaande tools, proposal-only writes,
+usage/audit en DEV/TEST Supabase zijn ongewijzigd.
+
+De gedeelde `AiProgress`-surface toont tijdens iedere bestaande
+`AiResultSurface`-loadingfase een statuslabel, pulserende denkpunten en een
+voortgangsbalk. Employee Summary en Conversation Preparation bieden na review
+naast `Kopiëren` expliciet `Opslaan in Mijn logboek`; de bestaande owner-only
+`POST /api/logbook` ontvangt alleen de door de gebruiker beoordeelde titel en
+tekst. Er is geen schemawijziging of remote migration uitgevoerd.
+
+Gerichte GPT-Live- en Employee-AI-tests zijn `14/14` groen; strict TypeScript,
+ESLint, i18n en diff-check zijn groen. De volledige suite blijft rood door de
+bestaande V2-migration-contractverwachting, de bestaande DM-1 CASE-contracttest
+en de bestaande PDF-renderer-timeout. Preview-redeploy, authenticated
+microfoon/audio-acceptatie en de afzonderlijke React hydration `#418`-diagnose
+blijven open.
+
 ## Employee Detail AI-surface — 2026-09-15
 
 De bestaande, server-geautoriseerde `AI-ondersteuning` en GPT-Live voice staan
@@ -43,8 +70,8 @@ of leave-branchwijziging uitgevoerd.
 De kandidaatimplementatie staat in de actuele AI-worktree op branch
 `work/ai-gpt-live` en bouwt voort op de geaccepteerde GPT-Live employee-slice.
 Team AI gebruikt een vaste server-side Direct Manager- of HR-afdelingsscope,
-GPT-Live `gpt-live-1` via `session.type = live` en de bestaande
-server-mediated WebRTC-transportlaag, plus de bestaande proposal-only AI
+GPT-Live `gpt-live-1` via het huidige `/v1/live/sessions`-contract zonder
+`session.type` en de bestaande server-mediated WebRTC-transportlaag, plus de bestaande proposal-only AI
 Foundation. Nieuwe routes zijn
 `/api/team-ai/voice/session`, `/tool`, `/usage` en `/api/logbook`; de UI staat
 op `/dashboard/start` en `/logbook`.

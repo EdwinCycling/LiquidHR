@@ -20,6 +20,33 @@ echte authenticated voice/tool-call/credits-Insights acceptance. Er is niet
 gemerged naar `main` en Production en `work/leave-profile-management` zijn
 niet aangeraakt.
 
+## GPT-Live transport + Employee AI interaction — 2026-09-15
+
+**Status: LOCAL FIX GREEN — PREVIEW REDEPLOY AND MANUAL VOICE ACCEPTANCE OPEN**
+
+De gemelde Employee Detail `422` was geen request-validatiefout in LiquidHR.
+OpenAI gaf op de oude create-payload `400 invalid_request_error` met
+`unknown_parameter` voor `session.type`; de route mapte dit providerresultaat
+naar de generieke applicatie-422. De configuratie gebruikt nu de actuele
+`POST /v1/live/sessions` WebRTC-contractvorm met `session.model = gpt-live-1`
+en zonder `session.type`. De veilige providerlog blijft beperkt tot status,
+request-id, foutmetadata, endpoint/API-family en model; key, SDP, audio,
+employee-data en prompts worden niet gelogd.
+
+`AiProgress` is als herbruikbare Foundation-pattern toegevoegd aan de bestaande
+AI-resultaatweergave. Employee Summary en Conversation Preparation tonen na
+review naast `Kopiëren` de expliciete actie `Opslaan in Mijn logboek`, via het
+bestaande owner-only logbook-endpoint. De opslag bevat alleen de door de
+gebruiker beoordeelde titel en tekst; geen employee-id, audio of transcript en
+geen autonome write. DEV/TEST Supabase, bestaande tools, authorization,
+proposal-only grenzen en migrations zijn niet gewijzigd.
+
+Gerichte tests: `14/14` groen; strict TypeScript, ESLint, i18n en diff-check
+groen. De volledige suite heeft drie bestaande failures: de V2-migration-
+contractverwachting, de DM-1 CASE-contracttest en de PDF-renderer-timeout. De
+nieuwe code is nog niet naar Preview gedeployed. React hydration `#418` en
+authenticated microfoon/audio/tool-call acceptance blijven aparte open gates.
+
 ## Employee Detail AI-surface — 2026-09-15
 
 **Status: LOCAL UI CORRECTION — NOT PUSHED OR DEPLOYED**
@@ -38,7 +65,7 @@ van deze UI-stap.
 
 ## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
 
-**Status: LOCAL IMPLEMENTATION CANDIDATE — MIGRATION NOT REMOTE APPLIED**
+**Status: DEV/TEST APPLIED — PREVIEW ACCEPTANCE PARTIAL**
 
 De slice voegt de server-side Team AI-scope en GPT-Live voice-tools toe op de
 Start-pagina, plus de owner-only route `/logbook` voor handmatige notities en
@@ -48,8 +75,8 @@ gebruikt de bestaande AI Foundation en Liquid Credits en blijft proposal-only.
 
 De migration `20260914100000_conversational_ai_v2_team_logbook.sql` en de
 bijgewerkte lokale `packages/db/types.ts` zijn aanwezig. Remote DEV/TEST
-apply, advisors, typegen/readback, authenticated scope/RLS acceptance en echte
-Team AI microphone acceptance zijn nog niet uitgevoerd. Geen Production,
+apply, advisors, typegen/readback en de authenticated scope/RLS-proef zijn
+uitgevoerd; echte Team AI microphone acceptance blijft open. Geen Production,
 `main` of `work/leave-profile-management` wijziging is gedaan.
 
 Lokale gates: targeted contract/UI/schema tests `19/19`, i18n `36` namespaces,

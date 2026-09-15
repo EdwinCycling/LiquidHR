@@ -1,5 +1,21 @@
 # Liquid HR documentatie-index
 
+## GPT-Live transport + Employee AI interaction — 2026-09-15
+
+De Employee Detail voice-422 is teruggevoerd naar een provider-400: de actuele
+OpenAI Live create-route accepteert geen `session.type` in de `session`-config.
+LiquidHR gebruikt nu `POST /v1/live/sessions` met `gpt-live-1`, server-mediated
+WebRTC en hetzelfde server-side authorization-, tool- en proposal-only model.
+Providerdiagnostiek blijft veilig beperkt tot metadata; secrets, SDP, audio,
+employee-data en volledige prompts worden niet gelogd.
+
+De gedeelde `AiProgress`-surface wordt gebruikt door de bestaande AI-resultaten.
+Employee Summary en Conversation Preparation bieden na review een expliciete
+`Opslaan in Mijn logboek`-actie naast `Kopiëren`, via het bestaande owner-only
+logbook-endpoint. DEV/TEST Supabase en de database-migrations zijn niet gewijzigd.
+Gerichte tests, strict TypeScript, ESLint, i18n en diff-check zijn groen; echte
+Preview/microfoonacceptatie en React hydration `#418` blijven open.
+
 ## Document Studio DG2 + DG3 — 2026-09-07
 
 **Status: DEVELOPMENT ACCEPTANCE GREEN — DEV/TEST APPLIED, NOT RELEASED**

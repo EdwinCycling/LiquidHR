@@ -2,7 +2,7 @@
 
 import { MessageSquareText, Sparkles, UserRoundSearch } from 'lucide-react'
 import { useRef, useState, type ReactElement } from 'react'
-import { AiResultSurface } from '@/components/patterns/ai-result-surface'
+import { AiResultSurface, type AiLogbookStatus } from '@/components/patterns/ai-result-surface'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Button } from '@/components/ui/button'
 
@@ -20,6 +20,10 @@ export interface EmployeeAiActionLabels {
   readonly copied: string
   readonly retry: string
   readonly failed: string
+  readonly saveToLogbook: string
+  readonly savingToLogbook: string
+  readonly savedToLogbook: string
+  readonly saveToLogbookFailed: string
 }
 
 export function EmployeeAiActions({ employeeId, labels, locale, embedded = false }: { readonly employeeId: string; readonly labels: EmployeeAiActionLabels; readonly locale: string; readonly embedded?: boolean }): ReactElement {
@@ -27,6 +31,7 @@ export function EmployeeAiActions({ employeeId, labels, locale, embedded = false
   const [pending, setPending] = useState(false)
   const [proposal, setProposal] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [logbookStatus, setLogbookStatus] = useState<AiLogbookStatus>('idle')
   const generation = useRef(0)
 
   function requestKey(): string {
@@ -40,6 +45,7 @@ export function EmployeeAiActions({ employeeId, labels, locale, embedded = false
     setPending(true)
     setProposal(null)
     setError(null)
+    setLogbookStatus('idle')
     try {
       const response = await fetch(`/api/employees/${employeeId}/ai/${action}`, {
         method: 'POST',
@@ -58,12 +64,33 @@ export function EmployeeAiActions({ employeeId, labels, locale, embedded = false
     }
   }
 
+  async function saveToLogbook(): Promise<void> {
+    if (!active || !proposal || logbookStatus === 'saving' || logbookStatus === 'saved') return
+    const currentGeneration = generation.current
+    setLogbookStatus('saving')
+    try {
+      const response = await fetch('/api/logbook', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: active === 'summary' ? labels.summary : labels.conversation,
+          description: proposal,
+        }),
+      })
+      if (!response.ok) throw new Error('PERSONAL_LOGBOOK_SAVE_FAILED')
+      if (generation.current === currentGeneration) setLogbookStatus('saved')
+    } catch {
+      if (generation.current === currentGeneration) setLogbookStatus('failed')
+    }
+  }
+
   function close(): void {
     generation.current += 1
     setPending(false)
     setProposal(null)
     setError(null)
     setActive(null)
+    setLogbookStatus('idle')
   }
 
   const state = pending ? 'loading' : error ? 'error' : proposal ? 'success' : null
@@ -73,6 +100,6 @@ export function EmployeeAiActions({ employeeId, labels, locale, embedded = false
       <Button disabled={pending} onClick={() => void run('summary')} size="sm" type="button" variant="secondary"><UserRoundSearch aria-hidden="true" />{labels.summary}</Button>
       <Button disabled={pending} onClick={() => void run('conversation')} size="sm" type="button" variant="secondary"><MessageSquareText aria-hidden="true" />{labels.conversation}</Button>
     </div>
-    {state ? <AiResultSurface error={error} labels={{ reviewTitle: labels.reviewTitle, working: labels.working, cancel: labels.cancel, copy: labels.copy, copied: labels.copied, retry: labels.retry }} onCancel={close} onRetry={active ? () => void run(active) : undefined} state={state} text={proposal ?? undefined} /> : null}
+    {state ? <AiResultSurface error={error} labels={{ reviewTitle: labels.reviewTitle, working: labels.working, cancel: labels.cancel, copy: labels.copy, copied: labels.copied, retry: labels.retry, saveToLogbook: labels.saveToLogbook, savingToLogbook: labels.savingToLogbook, savedToLogbook: labels.savedToLogbook, saveToLogbookFailed: labels.saveToLogbookFailed }} logbookStatus={logbookStatus} onCancel={close} onRetry={active ? () => void run(active) : undefined} onSaveToLogbook={proposal ? saveToLogbook : undefined} state={state} text={proposal ?? undefined} /> : null}
   </section>
 }

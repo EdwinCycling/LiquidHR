@@ -155,7 +155,6 @@ function voiceInstructions(settings: AiGroupSettings): string {
 function createLiveSessionConfiguration(input: { instructions: string; delegation: Record<string, unknown>; settings?: AiGroupSettings }): Record<string, unknown> {
   const settings = input.settings ?? defaultAiGroupSettings({ tenantId: '', hrGroupId: '' })
   return {
-    type: 'live',
     model: resolveRealtimeVoiceModel(),
     instructions: input.instructions,
     audio: { output: { voice: settings.voiceId } },
