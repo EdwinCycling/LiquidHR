@@ -1,5 +1,29 @@
 # Implementatiestatus Liquid HR
 
+## Main-consolidatie — 2026-09-15
+
+**Status: CURRENT MAIN RECONCILED — NO CODE PORT REQUIRED**
+
+De authoritative baseline is de na fetch bevestigde `origin/main`
+`55c29c15c946d3b5dbc7d8480b6428b22c3ff243`. De stale lokale `main`-worktree
+`f9906b6` is niet gebruikt. De branchdelta's zijn één keer geclassificeerd:
+
+- **Al in main:** AI Everywhere (`4adceda`), DG1 (`41f6e0c`), DM-1
+  (`850e06`/`6b65b59`), DG2/DG3 (`ca1191c`), AN-6 (`5719bb6`), V2A-1
+  (`5837460`/`618f84c`), Actual Work/Leave (`bc2acfd`/`3c7a3c7`/`100e8a3`/
+  `ebec48c`) en de role-switchguard (`645512e`).
+- **Superseded:** de oude Employee-Wizard-QA-tip door de wizardrework in
+  `55c29c1`; DM0-, native-editor-design- en PDF-spikebranches door de huidige
+  Document Studio-lijn.
+- **Worth porting:** geen. De actuele main-architectuur is leidend; er wordt
+  geen stale branchimplementatie opnieuw bovenop gezet.
+
+`work/ai-gpt-live` blijft de actieve vuile root en is niet aangeraakt.
+Payroll, security en Jan-test blijven expliciet buiten deze run. Deze
+consolidatie wijzigt geen applicatiecode, schema, RLS, permissions of remote
+Supabase-state; de oudere kandidaatstatussen hieronder zijn behouden als
+historische snapshots.
+
 ## Synthetic Eric Oproeper — 2026-09-15
 
 **Status: DEV ACCEPTANCE GREEN — HOSTED LEAVE ACCEPTANCE OPEN**

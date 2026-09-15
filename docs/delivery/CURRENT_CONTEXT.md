@@ -1,5 +1,22 @@
 # Actuele overdracht Liquid HR
 
+## Main-consolidatie — 2026-09-15
+
+**Status: CURRENT MAIN RECONCILED — DOCUMENTATION-ONLY CONSOLIDATION**
+
+Werk uitsluitend vanaf de live `origin/main`
+`55c29c15c946d3b5dbc7d8480b6428b22c3ff243`; de lokale stale `main`-worktree
+`f9906b6` is geen basis. De eenmalige inventory vond geen waardevolle ontbrekende
+code: AN-6, DM-1, DG1, DG2/DG3, AI Everywhere, V2A-1, Actual Work/Leave en de
+DEV-role-switchguard zijn al via actuele main-integraties aanwezig. De oude
+Employee-Wizard-QA-tip is superseded door `55c29c1`; DM0/design/spike-werk is
+historisch. **Worth porting: none.**
+
+`work/ai-gpt-live` is de actieve vuile root en blijft volledig onaangeraakt.
+Payroll, security en Jan-test zijn buiten scope. Deze pass heeft geen code-,
+schema-, RLS-, permission- of remote Supabase-wijziging nodig; alleen deze
+canonieke statusdocumenten worden op de reconciled main-state afgestemd.
+
 ## Synthetic Eric Oproeper — 2026-09-15
 
 **Status: DEV ACCEPTANCE GREEN — HOSTED LEAVE ACCEPTANCE OPEN**

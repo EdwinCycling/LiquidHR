@@ -1,5 +1,30 @@
 # Liquid HR documentatie-index
 
+## Main-consolidatie — 2026-09-15
+
+**Status: CURRENT MAIN RECONCILED — NO CODE PORT REQUIRED**
+
+De enige geldige basis voor deze consolidatie is de live `origin/main`
+`55c29c15c946d3b5dbc7d8480b6428b22c3ff243`. De lokale `main`-worktree op
+`f9906b6` was alleen een stale checkout en is niet als werkbasis gebruikt.
+
+De eenmalige branchinventaris bevestigde dat alle waardevolle, niet-uitgesloten
+gedragingen al semantisch in de actuele main staan: AN-6 via `5719bb6`,
+Document Studio DM-1 via `850e06`/`6b65b59`, DG1 via `41f6e0c`, DG2/DG3 via
+`ca1191c`, AI Everywhere via `4adceda`, V2A-1 via `5837460`/`618f84c`,
+Actual Work en Leave via `bc2acfd`/`3c7a3c7`/`100e8a3`/`ebec48c`, en de
+DEV-role-switchguard via `645512e`. De oude Employee-Wizard-QA-tip is
+superseded door de latere wizardarchitectuur in `55c29c1`; DM0-, design- en
+spike-artefacts zijn historische voorloopdocumenten. Er is dus geen ontbrekende
+code die veilig of zinvol opnieuw geport moet worden.
+
+De vuile `work/ai-gpt-live`-root blijft volledig buiten scope. Payroll,
+security en de Jan-test-branches zijn niet heropend. Deze notitie is de actuele
+consolidatiepointer; oudere kandidaatlabels hieronder blijven behouden als
+historische delivery-evidence en overschrijven deze pointer niet. In deze
+consolidatie is geen Supabase-migratie of andere remote databasewijziging
+uitgevoerd.
+
 ## Leave-opbouw per Actual Work — 2026-09-15
 
 **Status: RELEASE CANDIDATE — LOKALE EN DEV-ACCEPTATIE GREEN / HOSTED GATE OPEN**
