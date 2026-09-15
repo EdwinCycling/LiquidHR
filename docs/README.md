@@ -2,7 +2,7 @@
 
 ## Main-consolidatie — 2026-09-15
 
-**Status: CURRENT MAIN RECONCILED — NO CODE PORT REQUIRED**
+**Status: CONSOLIDATION COMPLETE — GITHUB MAIN INTEGRATED / HOSTED ACCEPTANCE PENDING**
 
 De enige geldige basis voor deze consolidatie is de live `origin/main`
 `55c29c15c946d3b5dbc7d8480b6428b22c3ff243`. De lokale `main`-worktree op
@@ -24,6 +24,14 @@ consolidatiepointer; oudere kandidaatlabels hieronder blijven behouden als
 historische delivery-evidence en overschrijven deze pointer niet. In deze
 consolidatie is geen Supabase-migratie of andere remote databasewijziging
 uitgevoerd.
+
+De consolidatie is inmiddels geïntegreerd in GitHub `main` via commit
+`1724d15a2303d72e4fbc73da0b67deae0dd98d98`. De eerste Vercel-deployment van
+deze consolidatie (`dpl_Cmmkr1spyM2WFqAHaHnxkocVD4F9`) werd vóór hosted
+acceptatie geblokkeerd door author-attributie: de commit gebruikte
+`edwin@exact.com` in plaats van de geverifieerde repository-identiteit.
+Hosted acceptatie staat daarom open; deze ene statusretry wordt uitgevoerd met
+`user.name=Edwin` en `user.email=edwin@editsolutions.nl`.
 
 ## Leave-opbouw per Actual Work — 2026-09-15
 

@@ -2,7 +2,7 @@
 
 ## Main-consolidatie — 2026-09-15
 
-**Status: CURRENT MAIN RECONCILED — DOCUMENTATION-ONLY CONSOLIDATION**
+**Status: CONSOLIDATION COMPLETE — GITHUB MAIN INTEGRATED / HOSTED ACCEPTANCE PENDING**
 
 Werk uitsluitend vanaf de live `origin/main`
 `55c29c15c946d3b5dbc7d8480b6428b22c3ff243`; de lokale stale `main`-worktree
@@ -16,6 +16,14 @@ historisch. **Worth porting: none.**
 Payroll, security en Jan-test zijn buiten scope. Deze pass heeft geen code-,
 schema-, RLS-, permission- of remote Supabase-wijziging nodig; alleen deze
 canonieke statusdocumenten worden op de reconciled main-state afgestemd.
+
+De consolidatie is geïntegreerd in GitHub `main` via commit
+`1724d15a2303d72e4fbc73da0b67deae0dd98d98`. De eerste Vercel-deployment
+(`dpl_Cmmkr1spyM2WFqAHaHnxkocVD4F9`) werd vóór hosted acceptatie geblokkeerd
+door author-attributie: de commit gebruikte `edwin@exact.com` in plaats van
+de geverifieerde repository-identiteit. Hosted acceptatie staat pending; deze
+retry wordt uitgevoerd met repository-local `user.name=Edwin` en
+`user.email=edwin@editsolutions.nl`.
 
 ## Synthetic Eric Oproeper — 2026-09-15
 
