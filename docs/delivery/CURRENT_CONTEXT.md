@@ -17,6 +17,13 @@ handmatige utterance is gecontroleerd. De server-mediated GPT-Live-1
 transport, employee binding, autorisatie, tools, proposal-only writes,
 usage/audit en DEV/TEST Supabase blijven ongewijzigd.
 
+De code is lokaal vastgelegd in commit `f26af94` op `work/ai-gpt-live`. De
+nieuwe expliciete Vercel Preview is `READY` op
+`https://liquidhr-gtkba68js-edwinitsolutions.vercel.app`; de exacte
+Employee Detail-testroute is
+`/employees/64ad3a23-f59a-4ed0-af41-26dda20ff067?tab=overview&view=expanded`.
+De vorige `n9s2...`-URL bevat deze schemafix niet.
+
 ## GPT-Live interruption + finalization follow-up — 2026-09-15
 
 De laatste handmatige fout na inspreken is teruggevoerd naar twee afzonderlijke
