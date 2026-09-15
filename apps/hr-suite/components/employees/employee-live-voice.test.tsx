@@ -4,6 +4,16 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import nl from '@/messages/nl/employees.json'
+
+const { recordEmployeeLiveVoiceDiagnostic } = vi.hoisted(() => ({
+  recordEmployeeLiveVoiceDiagnostic: vi.fn(),
+}))
+
+vi.mock('./employee-live-voice-diagnostics', () => ({
+  recordEmployeeLiveVoiceDiagnostic,
+  safeVoiceErrorMetadata: () => ({ errorName: 'Error' }),
+}))
+
 import { EmployeeLiveVoice, type EmployeeLiveVoiceLabels } from './employee-live-voice'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -36,6 +46,7 @@ describe('EmployeeLiveVoice dialog', () => {
   }
 
   beforeEach(async () => {
+    recordEmployeeLiveVoiceDiagnostic.mockReset()
     track.enabled = true
     vi.stubGlobal('RTCPeerConnection', class { constructor() { return peer } })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { sessionId: 'test-session', sdpAnswer: 'answer' } }) }))
@@ -164,5 +175,19 @@ describe('EmployeeLiveVoice dialog', () => {
     vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
     await start()
     expect(document.querySelector('[role="dialog"]')!.textContent).toContain(labels.microphoneDenied)
+  })
+
+  it('records only safe provider error metadata before closing a failed session', async () => {
+    await start()
+    await act(async () => channel.onmessage?.({ data: JSON.stringify({
+      type: 'error',
+      error: { type: 'invalid_request_error', code: 'invalid_event', message: 'must not be logged' },
+    }) }))
+
+    expect(recordEmployeeLiveVoiceDiagnostic).toHaveBeenCalledWith({
+      event: 'provider.error',
+      providerErrorCode: 'invalid_event',
+      providerErrorType: 'invalid_request_error',
+    })
   })
 })

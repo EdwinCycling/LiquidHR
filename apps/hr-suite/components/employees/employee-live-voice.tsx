@@ -383,8 +383,12 @@ export function EmployeeLiveVoice({
           dispatch({ type: 'response.created' })
           return
         case 'error': {
-          recordEmployeeLiveVoiceDiagnostic({ event: 'provider.error' })
           const providerError = record(event.error) ? event.error : {}
+          recordEmployeeLiveVoiceDiagnostic({
+            event: 'provider.error',
+            providerErrorType: typeof providerError.type === 'string' ? providerError.type : null,
+            providerErrorCode: typeof providerError.code === 'string' ? providerError.code : null,
+          })
           const errorText = [providerError.type, providerError.code, providerError.message]
             .filter((value): value is string => typeof value === 'string')
             .join(' ')
