@@ -1,5 +1,39 @@
 # Actuele overdracht Liquid HR
 
+## GPT-Live interruption + finalization follow-up — 2026-09-15
+
+De laatste handmatige fout na inspreken is teruggevoerd naar twee afzonderlijke
+problemen. De Employee Live Voice-client stuurde bij een interruptie de
+Realtime-only events `response.cancel` en `output_audio_buffer.clear`; deze
+events horen niet bij het actuele GPT-Live-1 client-eventcontract. De client
+pauzeert nu uitsluitend het lokale audio-element; GPT-Live-1 verwerkt
+barge-in/full-duplex via de WebRTC-mediatransportlaag. De server blijft
+server-mediated, employee-bound, geautoriseerd en proposal-only.
+
+Daarnaast logt de veilige browserdiagnostiek nu scalar JSON zodat een eventuele
+providerfout zonder secrets, SDP, audio, employee-data of volledige prompt in
+de console leesbaar is. De gedeelde `TimeHub` initialiseert datumafhankelijke
+state pas na mount; daarmee is de concrete server/client-datum-mismatch achter
+React #418 verwijderd zonder `suppressHydrationWarning`.
+
+De gerichte voice-tests zijn `22/22` groen; strict TypeScript, gerichte ESLint
+en `git diff --check` zijn groen. Lokale commit: `eef1b88`. De expliciete
+Preview is `READY` op
+`https://liquidhr-n9s2wx5n1-edwinitsolutions.vercel.app` en gebruikt de
+DEV/TEST Supabase-omgeving `wnpfloqpjvaacobppbpk`.
+
+De gevraagde lokale migration
+`20260915193000_fix_voice_finalization_execute.sql` is inhoudelijk al op dit
+DEV/TEST-project toegepast; Supabase registreerde de apply onder remote versie
+`20260915182841`. Readback bevestigt `SECURITY DEFINER`, de veilige
+`search_path`, uitsluitend `service_role` execute en geen execute voor
+`authenticated`, `anon` of `public`. Er is geen Production-migratie uitgevoerd.
+
+Open gate: de nieuwe Preview vereist een nieuwe authenticated browserlogin.
+De echte microfoon-/gesproken-response-acceptatie op deze nieuwe deployment is
+nog niet als groen bewijs geclaimd; de gebruiker moet de nieuwe test-URL
+opnieuw starten en spreken.
+
 ## AI admin settings / voice accounting — 2026-09-15
 
 De forward migration `20260915140000_ai_admin_settings_voice_accounting.sql` is
