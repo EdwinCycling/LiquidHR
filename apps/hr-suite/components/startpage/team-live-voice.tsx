@@ -25,6 +25,8 @@ export type TeamLiveVoiceLabels = {
   mute: string
   unmute: string
   muted: string
+  inputLevel: string
+  inputMuted: string
   closing: string
   privacy: string
   scope: string
@@ -125,6 +127,48 @@ function waitForIceGathering(peer: RTCPeerConnection): Promise<void> {
   })
 }
 
+export function calculateAudioInputLevel(samples: Uint8Array): number {
+  if (samples.length === 0) return 0
+  let total = 0
+  for (const sample of samples) {
+    const normalized = (sample - 128) / 128
+    total += normalized * normalized
+  }
+  return Math.min(1, Math.sqrt(total / samples.length) * 3)
+}
+
+function InputLevelMeter({ muted, stream, label, mutedLabel }: { muted: boolean; stream: MediaStream | null; label: string; mutedLabel: string }): ReactElement | null {
+  const [level, setLevel] = useState(0)
+
+  useEffect(() => {
+    if (!stream || muted || typeof window.AudioContext === 'undefined') {
+      setLevel(0)
+      return
+    }
+    const context = new window.AudioContext()
+    const analyser = context.createAnalyser()
+    const source = context.createMediaStreamSource(stream)
+    const samples = new Uint8Array(analyser.fftSize)
+    let frame = 0
+    source.connect(analyser)
+    const update = (): void => {
+      analyser.getByteTimeDomainData(samples)
+      setLevel(calculateAudioInputLevel(samples))
+      frame = window.requestAnimationFrame(update)
+    }
+    update()
+    return () => {
+      window.cancelAnimationFrame(frame)
+      source.disconnect()
+      analyser.disconnect()
+      void context.close()
+    }
+  }, [muted, stream])
+
+  if (!stream) return null
+  return <div aria-label={muted ? mutedLabel : label} className="flex flex-col items-center gap-2"><div aria-hidden="true" className="flex h-7 items-center gap-1">{[0.42, 0.68, 1, 0.68, 0.42].map((weight, index) => <span className="w-1 rounded-full bg-primary transition-transform duration-75 motion-reduce:transition-none" key={index} style={{ height: `${12 + (weight * 16)}px`, transform: `scaleY(${muted ? 0.12 : Math.max(0.12, level * weight)})` }} />)}</div><p className="text-xs text-muted-foreground">{muted ? mutedLabel : label}</p></div>
+}
+
 export function TeamLiveVoice({ departmentId, contextName, enabled = true, labels, locale }: { departmentId?: string; contextName: string; enabled?: boolean; labels: TeamLiveVoiceLabels; locale: string }): ReactElement {
   const headingId = useId()
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -134,6 +178,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
   const [summaryTitle, setSummaryTitle] = useState(labels.summaryDefaultTitle)
   const [summaryBody, setSummaryBody] = useState('')
   const [summaryStatus, setSummaryStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [inputStream, setInputStream] = useState<MediaStream | null>(null)
   const open = state.phase !== 'idle'
   const status = state.phase === 'error' ? labels[state.message] : state.phase === 'idle' ? null : labels[state.phase]
   const canMute = ['listening', 'processing', 'speaking', 'muted'].includes(state.phase)
@@ -165,6 +210,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
       close(run)
     }
     current.current = null
+    setInputStream(null)
     dispatch({ type: 'closed' })
   }
 
@@ -202,6 +248,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
       requestSessionClose()
       close(run)
       current.current = null
+      setInputStream(null)
       dispatch({ type: 'error', message })
     }
     run.timer = setTimeout(() => fail('connectionFailed'), 30_000)
@@ -247,8 +294,9 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
           return
         case 'session.closed':
           run.finalized = true
-          close(run)
-          current.current = null
+        close(run)
+        current.current = null
+        setInputStream(null)
           dispatch({ type: 'closed' })
           return
         case 'input_audio_buffer.speech_started':
@@ -329,6 +377,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
         return
       }
       run.stream = stream
+      setInputStream(stream)
       const peer = new RTCPeerConnection()
       run.peer = peer
       const audio = audioRef.current
@@ -372,7 +421,7 @@ export function TeamLiveVoice({ departmentId, contextName, enabled = true, label
     </div>
     <audio aria-hidden="true" autoPlay playsInline ref={audioRef} className="sr-only" />
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) stop() }} title={labels.title} description={`${labels.scope}: ${contextName}`} closeLabel={labels.close} footer={<div className="flex flex-wrap justify-center gap-3"><Button type="button" variant="secondary" disabled={!canMute} aria-pressed={state.phase === 'muted'} onClick={toggleMute}>{state.phase === 'muted' ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}{state.phase === 'muted' ? labels.unmute : labels.mute}</Button><Button type="button" variant="danger" onClick={stop}><PhoneOff aria-hidden="true" />{labels.stop}</Button></div>}>
-      <div className="flex flex-col items-center gap-6 py-4 text-center"><div aria-hidden="true" className={`flex size-32 items-center justify-center rounded-full border border-primary/35 bg-accent text-accent-foreground motion-reduce:animate-none ${['connecting', 'processing', 'speaking'].includes(state.phase) ? 'motion-safe:animate-pulse' : ''}`}>{state.phase === 'muted' ? <MicOff className="size-12" /> : <AudioLines className="size-12" />}</div><p aria-atomic="true" aria-live="polite" className={`text-sm font-medium ${state.phase === 'error' ? 'text-destructive' : 'text-foreground'}`}>{status}</p><p className="text-sm text-muted-foreground">{labels.privacy}</p></div>
+      <div className="flex flex-col items-center gap-6 py-4 text-center"><div aria-hidden="true" className={`flex size-32 items-center justify-center rounded-full border border-primary/35 bg-accent text-accent-foreground motion-reduce:animate-none ${['connecting', 'processing', 'speaking'].includes(state.phase) ? 'motion-safe:animate-pulse' : ''}`}>{state.phase === 'muted' ? <MicOff className="size-12" /> : <AudioLines className="size-12" />}</div><InputLevelMeter label={labels.inputLevel} muted={state.phase === 'muted'} mutedLabel={labels.inputMuted} stream={inputStream} /><p aria-atomic="true" aria-live="polite" className={`text-sm font-medium ${state.phase === 'error' ? 'text-destructive' : 'text-foreground'}`}>{status}</p><p className="text-sm text-muted-foreground">{labels.privacy}</p></div>
     </Dialog>
     {proposal ? <section aria-label={labels.summaryTitle} className="mt-3 rounded-[var(--radius-control)] border bg-surface-subtle p-4"><h4 className="font-semibold">{labels.summaryTitle}</h4><p className="mt-1 text-sm text-muted-foreground">{labels.summaryDescription}</p><div className="mt-4 grid gap-3"><label className="grid gap-1 text-sm font-medium">{labels.summaryTitleLabel}<TextInput value={summaryTitle} onChange={(event) => setSummaryTitle(event.target.value)} /></label><label className="grid gap-1 text-sm font-medium">{labels.summaryBodyLabel}<Textarea value={summaryBody} onChange={(event) => setSummaryBody(event.target.value)} /></label><div className="flex flex-wrap items-center gap-3"><Button type="button" disabled={summaryStatus === 'saving' || summaryStatus === 'saved' || !summaryTitle.trim() || !summaryBody.trim()} onClick={() => { void saveSummary() }}>{summaryStatus === 'saving' ? labels.summarySaving : summaryStatus === 'saved' ? labels.summarySaved : labels.summarySave}</Button>{summaryStatus === 'failed' ? <span className="text-sm text-destructive" role="alert">{labels.summaryFailed}</span> : null}</div></div></section> : null}
   </section>

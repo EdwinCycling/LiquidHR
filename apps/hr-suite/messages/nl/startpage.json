@@ -180,6 +180,8 @@
   "teamAiMembers": "{count} medewerkers",
   "teamAiMemberPreview": "Teamleden binnen scope",
   "teamAiStart": "Start GPT-Live",
+  "teamAiInputLevel": "Microfoon ontvangt audio",
+  "teamAiInputMuted": "Microfoon is gedempt",
   "teamAiDisabled": "Team AI is tijdelijk niet beschikbaar.",
   "teamAiPrivacy": "Audio en ruwe transcripties worden niet opgeslagen. Opslaan in Mijn logboek gebeurt alleen na jouw review.",
   "teamAiScope": "Scope",

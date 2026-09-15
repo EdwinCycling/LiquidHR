@@ -180,6 +180,8 @@
   "teamAiMembers": "{count} employees",
   "teamAiMemberPreview": "Team members in scope",
   "teamAiStart": "Start GPT-Live",
+  "teamAiInputLevel": "Microphone is receiving audio",
+  "teamAiInputMuted": "Microphone is muted",
   "teamAiDisabled": "Team AI is temporarily unavailable.",
   "teamAiPrivacy": "Audio and raw transcripts are not stored. Saving to My logbook only happens after your review.",
   "teamAiScope": "Scope",
