@@ -1,5 +1,20 @@
 # Liquid HR documentatie-index
 
+## Test role switch DEV-guard — 2026-09-15
+
+**Status: LOCAL RELEASE CANDIDATE — HOSTED VERIFICATION OPEN**
+
+De bestaande test role switcher blijft beperkt tot de vier allowlisted bron- en
+doelaccounts. De server-side capability vereist nu zowel
+`LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true` als de exact afgeleide Supabase-ref
+`wnpfloqpjvaacobppbpk`; daardoor blijft ook een Vercel `production`-target
+gesloten zodra de configuratie naar een ander project wijst. De bestaande
+trusted-origin-, HttpOnly/Secure/SameSite-handoff- en fail-closed targetchecks
+blijven behouden. De gerichte regressies zijn `25/25` tests, strict TypeScript,
+ESLint, diff-check en Webpack production build (`270` pagina's). Er is geen
+fixture-wachtwoord toegevoegd, geen migration of Actual Work-architectuur
+gewijzigd en Supabase Production is niet aangeraakt.
+
 ## Actual Work V1 — 2026-09-14
 
 **Status: DEVELOPMENT CANDIDATE — LOCAL TECHNICAL GATES GREEN / AUTHENTICATED ACCEPTANCE OPEN**

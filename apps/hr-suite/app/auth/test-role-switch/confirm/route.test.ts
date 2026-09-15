@@ -18,6 +18,7 @@ describe('GET /auth/test-role-switch/confirm', () => {
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('VERCEL_ENV', 'production')
     vi.stubEnv('LIQUIDHR_TEST_ROLE_SWITCH_ENABLED', 'true')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://real-production.supabase.co')
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://liquid-hr-hr-suite.vercel.app')
     vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'liquid-hr-hr-suite.vercel.app')
   })

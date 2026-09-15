@@ -1,5 +1,26 @@
 # Actuele overdracht Liquid HR
 
+## Test role switch DEV-guard — 2026-09-15
+
+**Status: LOCAL RELEASE CANDIDATE — HOSTED VERIFICATION OPEN**
+
+- Candidate: branch `work/test-role-switch-dev-guard`, worktree
+  `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\test-role-switch-dev-guard`,
+  vanaf exact `origin/main` `9bd30d8c2eecdfa52e5a50c0d0a8c1e57bb62444`.
+- De bestaande source- en target-allowlists zijn ongewijzigd. De capability
+  vereist nu expliciet `LIQUIDHR_TEST_ROLE_SWITCH_ENABLED=true` én de veilig
+  uit `NEXT_PUBLIC_SUPABASE_URL` afgeleide exact canonical DEV-ref
+  `wnpfloqpjvaacobppbpk`; bij elke andere of onleesbare ref verdwijnen UI en
+  API-capability, ook onder Vercel `production`.
+- Trusted origins, server-side identity/targetchecks, fail-closed crafted
+  targets en de bestaande korte HttpOnly/Secure/SameSite handoff-cookie zijn
+  behouden. Er is geen fixture-wachtwoord toegevoegd, geen migration of Actual
+  Work-architectuur gewijzigd en Supabase Production is niet aangeraakt.
+- Gerichte regressies: `5` testbestanden / `25` tests, strict TypeScript, ESLint,
+  `git diff --check` en Webpack production build (`270` pagina's) groen.
+- Nog open: commit/push naar `main`, exacte Vercel deployment-SHA en
+  authenticated hosted verification op de bestaande DEV/test productlijn.
+
 ## Actual Work V1 — 2026-09-15
 
 **Status: RELEASE CANDIDATE — DEV ACCEPTANCE GREEN / VERCEL TEST LINE READY**
