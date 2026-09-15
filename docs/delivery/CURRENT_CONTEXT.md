@@ -39,12 +39,11 @@
 - The one earlier full-suite run remains `374/377` files and `1461/1464`
   tests; the three unrelated pre-existing failures are DG1 PDF timeout,
   contract-change-audit grant formatting and DM-1 CASE parenthesization.
-- Feature commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` is pushed to
-  `origin/main` and `origin/work/actual-work-v1`. Vercel deployment
-  `dpl_qMcoYH9zefWmB9wvHhqUY9URQSGR` is `READY` in the existing `liquidhr`
-  production/test line and its Git metadata reads exact `main` SHA
-  `bc2acfd45d1a026c83c70e1407bb4594d1b772ae`; all three existing product
-  aliases point to it.
+- Implementation commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` is
+  included in the current `origin/main`; the delivery-context follow-up is
+  also part of that main line. The latest GitHub-main deployment in the
+  existing `liquidhr` production/test line is `READY` and all three existing
+  product aliases point to that latest deployment.
 - Hosted anonymous smoke is green: `/login` returned HTTP 200 and a direct
   protected Actual Work route redirected to `/login?next=%2Fsettings%2Factual-work`.
   The current Codex browser session was authenticated on localhost only, so

@@ -44,12 +44,11 @@ volledige suite eindigde op `374/377` bestanden en `1461/1464` tests met drie
 bekende, ongerelateerde failures: DG1 PDF-timeout, contract-change-audit
 grantformaat en DM-1 CASE-parenthesization.
 
-Feature commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` staat op
-`origin/main` en `origin/work/actual-work-v1`. Vercel deployment
-`dpl_qMcoYH9zefWmB9wvHhqUY9URQSGR` is `READY` in het bestaande `liquidhr`
-product/test-line en leest exact GitHub `main` SHA
-`bc2acfd45d1a026c83c70e1407bb4594d1b772ae`; de drie bestaande productaliases
-wijzen naar deze deployment. Hosted anonieme smoke is groen: `/login` gaf
+Implementatiecommit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` is opgenomen
+in de huidige `origin/main`; de delivery-context-follow-up staat eveneens op
+die main-lijn. De nieuwste GitHub-main deployment in de bestaande
+`liquidhr` product/test-line is `READY`; de drie bestaande productaliases
+wijzen naar die nieuwste deployment. Hosted anonieme smoke is groen: `/login` gaf
 HTTP 200 en een directe beschermde Actual Work-route redirectte naar
 `/login?next=%2Fsettings%2Factual-work`. De Codex-browser had wel een lokale,
 maar geen hosted sessie; daarom blijft authenticated hosted acceptance een
