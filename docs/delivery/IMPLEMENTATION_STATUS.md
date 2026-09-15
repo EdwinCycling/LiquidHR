@@ -2,7 +2,7 @@
 
 ## Actual Work V1 — 2026-09-15
 
-**Status: DEVELOPMENT CANDIDATE — DEV ACCEPTANCE GREEN; COMMIT GATE READY**
+**Status: RELEASE CANDIDATE — DEV ACCEPTANCE GREEN; VERCEL TEST LINE READY**
 
 De candidate staat op `work/actual-work-v1` in
 `\.codex-worktrees\actual-work-v1`, gebaseerd op origin/main
@@ -44,9 +44,16 @@ volledige suite eindigde op `374/377` bestanden en `1461/1464` tests met drie
 bekende, ongerelateerde failures: DG1 PDF-timeout, contract-change-audit
 grantformaat en DM-1 CASE-parenthesization.
 
-Nog open zijn uitsluitend de geautoriseerde delivery-gates: feature-commit/
-push, fast-forward-integratie naar `main`, exacte GitHub-SHA-readback, Vercel
-deployment vanaf die SHA, hosted acceptance en veilige cleanup. Zie
+Feature commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` staat op
+`origin/main` en `origin/work/actual-work-v1`. Vercel deployment
+`dpl_qMcoYH9zefWmB9wvHhqUY9URQSGR` is `READY` in het bestaande `liquidhr`
+product/test-line en leest exact GitHub `main` SHA
+`bc2acfd45d1a026c83c70e1407bb4594d1b772ae`; de drie bestaande productaliases
+wijzen naar deze deployment. Hosted anonieme smoke is groen: `/login` gaf
+HTTP 200 en een directe beschermde Actual Work-route redirectte naar
+`/login?next=%2Fsettings%2Factual-work`. De Codex-browser had wel een lokale,
+maar geen hosted sessie; daarom blijft authenticated hosted acceptance een
+expliciete resterende gate. Er zijn geen credentials of MFA ingevoerd. Zie
 [`ACTUAL_WORK_V1.md`](../requirements/actual-work/ACTUAL_WORK_V1.md).
 
 ## Leave V1 product completion — 2026-09-13

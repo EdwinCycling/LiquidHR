@@ -2,7 +2,7 @@
 
 ## Actual Work V1 — 2026-09-15
 
-**Status: DEVELOPMENT CANDIDATE — DEV ACCEPTANCE GREEN / COMMIT GATE READY**
+**Status: RELEASE CANDIDATE — DEV ACCEPTANCE GREEN / VERCEL TEST LINE READY**
 
 - Candidate: branch `work/actual-work-v1`, worktree
   `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\actual-work-v1`,
@@ -39,11 +39,18 @@
 - The one earlier full-suite run remains `374/377` files and `1461/1464`
   tests; the three unrelated pre-existing failures are DG1 PDF timeout,
   contract-change-audit grant formatting and DM-1 CASE parenthesization.
-- Open gates: commit and push the feature branch, fast-forward `main`, push
-  the exact accepted SHA, deploy that SHA to the existing Vercel test line,
-  hosted acceptance and safe temporary-worktree cleanup. Protected
-  `apps/hr-suite/.env.local`, Production Supabase and unrelated worktrees
-  remain outside scope.
+- Feature commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` is pushed to
+  `origin/main` and `origin/work/actual-work-v1`. Vercel deployment
+  `dpl_qMcoYH9zefWmB9wvHhqUY9URQSGR` is `READY` in the existing `liquidhr`
+  production/test line and its Git metadata reads exact `main` SHA
+  `bc2acfd45d1a026c83c70e1407bb4594d1b772ae`; all three existing product
+  aliases point to it.
+- Hosted anonymous smoke is green: `/login` returned HTTP 200 and a direct
+  protected Actual Work route redirected to `/login?next=%2Fsettings%2Factual-work`.
+  The current Codex browser session was authenticated on localhost only, so
+  authenticated hosted Actual Work acceptance remains an explicit follow-up;
+  no credentials or MFA were entered. Protected `apps/hr-suite/.env.local`,
+  Production Supabase and unrelated worktrees remain outside scope.
 
 ## Leave Insights V1 — 2026-09-14
 
