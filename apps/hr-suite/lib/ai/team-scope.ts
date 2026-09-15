@@ -22,6 +22,7 @@ export interface TeamAiMember {
 export interface TeamAiDepartmentOption {
   id: string
   name: string
+  memberCount: number
 }
 
 export interface TeamAiScope {
@@ -114,7 +115,44 @@ export async function listTeamAiDepartments(auth: AuthContext, existingClient?: 
   if (isDepartmentSelector(auth) && !auth.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN') && assignedIds.length === 0) return []
   const { data, error } = await query
   if (error) throw new TeamAiScopeError('TEAM_SCOPE_NOT_FOUND', 500)
-  return data.map((department) => ({ id: department.id, name: department.name }))
+  const departmentIds = data.map((department) => department.id)
+  if (departmentIds.length === 0) return []
+
+  const { data: placements, error: placementsError } = await supabase
+    .from('employee_organizations')
+    .select('department_id,employee_id')
+    .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', groupId)
+    .in('department_id', departmentIds)
+    .lte('effective_from', today())
+    .or(`effective_to.is.null,effective_to.gte.${today()}`)
+    .limit(2_000)
+  if (placementsError) throw new TeamAiScopeError('TEAM_SCOPE_NOT_FOUND', 500)
+
+  const candidateEmployeeIds = [...new Set(placements.map((placement) => placement.employee_id).filter((employeeId) => employeeId !== auth.employeeId))]
+  if (candidateEmployeeIds.length === 0) return data.map((department) => ({ id: department.id, name: department.name, memberCount: 0 }))
+
+  const { data: employees, error: employeesError } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('tenant_id', auth.tenantId)
+    .eq('hr_group_id', groupId)
+    .in('id', candidateEmployeeIds)
+    .eq('is_archived', false)
+    .is('deleted_at', null)
+    .limit(1_000)
+  if (employeesError) throw new TeamAiScopeError('TEAM_SCOPE_NOT_FOUND', 500)
+
+  const activeEmployeeIds = new Set(employees.map((employee) => employee.id))
+  const memberIdsByDepartment = new Map<string, Set<string>>()
+  for (const placement of placements) {
+    if (!activeEmployeeIds.has(placement.employee_id)) continue
+    const memberIds = memberIdsByDepartment.get(placement.department_id) ?? new Set<string>()
+    memberIds.add(placement.employee_id)
+    memberIdsByDepartment.set(placement.department_id, memberIds)
+  }
+
+  return data.map((department) => ({ id: department.id, name: department.name, memberCount: memberIdsByDepartment.get(department.id)?.size ?? 0 }))
 }
 
 async function loadScopeMembers(auth: AuthContext, employeeIds: string[], departmentId: string | null, scopeType: TeamAiScopeType, contextName: string, supabase: SupabaseServerClient): Promise<TeamAiScope> {

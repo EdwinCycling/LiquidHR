@@ -176,6 +176,7 @@
   "teamAiDepartmentLabel": "Department",
   "teamAiSelectPlaceholder": "Select a department",
   "teamAiNoDepartments": "No accessible departments found.",
+  "teamAiNoActiveMembers": "This department has no current team members. Choose a department with team members.",
   "teamAiMembers": "{count} employees",
   "teamAiMemberPreview": "Team members in scope",
   "teamAiStart": "Start GPT-Live",

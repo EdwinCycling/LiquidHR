@@ -176,6 +176,7 @@
   "teamAiDepartmentLabel": "Afdeling",
   "teamAiSelectPlaceholder": "Selecteer een afdeling",
   "teamAiNoDepartments": "Geen toegankelijke afdelingen gevonden.",
+  "teamAiNoActiveMembers": "Deze afdeling heeft geen actuele teamleden. Kies een afdeling met teamleden.",
   "teamAiMembers": "{count} medewerkers",
   "teamAiMemberPreview": "Teamleden binnen scope",
   "teamAiStart": "Start GPT-Live",

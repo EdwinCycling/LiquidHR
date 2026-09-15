@@ -150,4 +150,24 @@ describe('StartPage view modes', () => {
     expect(markup).not.toContain('Teamgesprek')
     expect(markup).not.toContain('Vervolgactie.')
   })
+
+  it('does not offer GPT-Live for a selected department without current team members', () => {
+    const markup = render('full', {
+      ...data,
+      teamAi: {
+        mode: 'DEPARTMENT_SELECTION',
+        scopeType: 'DEPARTMENT',
+        contextName: null,
+        departmentId: 'department-empty',
+        members: [],
+        totalMemberCount: 0,
+        departments: [{ id: 'department-empty', name: 'Lege afdeling', memberCount: 0 }],
+        aiEnabled: true,
+        voiceEnabled: true,
+      },
+    })
+
+    expect(markup).not.toContain('teamAiStart')
+    expect(markup).toContain('teamAiNoActiveMembers')
+  })
 })

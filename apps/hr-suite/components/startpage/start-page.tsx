@@ -90,6 +90,7 @@ function TeamAiWindow({ data, labels, locale }: { data: StartPageData['teamAi'];
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(data?.departmentId ?? '')
   if (!data) return null
   const selectedDepartment = data.departments.find((department) => department.id === selectedDepartmentId)
+  const selectedMemberCount = selectedDepartment?.memberCount ?? 0
   const contextName = data.mode === 'DIRECT_TEAM' ? data.contextName ?? labels.teamAiDirectScope : selectedDepartment?.name ?? labels.teamAiDepartmentScope
   const teamVoiceLabels: TeamLiveVoiceLabels = {
     title: labels.teamAiTitle,
@@ -121,13 +122,14 @@ function TeamAiWindow({ data, labels, locale }: { data: StartPageData['teamAi'];
     summaryFailed: labels.teamAiSummaryFailed,
     close: labels.teamAiClose,
   }
-  const canStart = data.mode === 'DIRECT_TEAM' || Boolean(selectedDepartmentId)
+  const canStart = data.mode === 'DIRECT_TEAM' ? data.totalMemberCount > 0 : selectedMemberCount > 0
+  const selectedDepartmentIsEmpty = data.mode === 'DEPARTMENT_SELECTION' && Boolean(selectedDepartmentId) && selectedMemberCount === 0
   return <section aria-labelledby="startpage-team-ai-title" className="mt-6 overflow-hidden rounded-[var(--radius-surface)] border bg-surface" data-testid="startpage-team-ai">
     <header className="border-b bg-accent/45 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.teamAiTitle}</p><h2 className="mt-1 text-lg font-semibold" id="startpage-team-ai-title">{contextName}</h2></div><Badge tone="info">GPT-Live</Badge></div><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.teamAiDescription}</p></header>
     <div className="grid gap-5 p-5 sm:p-6">
-      {data.mode === 'DEPARTMENT_SELECTION' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="startpage-team-ai-department">{labels.teamAiDepartmentLabel}<DropdownSelect aria-label={labels.teamAiDepartmentLabel} id="startpage-team-ai-department" onChange={(event) => setSelectedDepartmentId(event.target.value)} placeholder={labels.teamAiSelectPlaceholder} searchable searchPlaceholder={labels.teamAiSelectPlaceholder} value={selectedDepartmentId}><option disabled value="">{labels.teamAiSelectPlaceholder}</option>{data.departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label> : null}
+      {data.mode === 'DEPARTMENT_SELECTION' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="startpage-team-ai-department">{labels.teamAiDepartmentLabel}<DropdownSelect aria-label={labels.teamAiDepartmentLabel} id="startpage-team-ai-department" onChange={(event) => setSelectedDepartmentId(event.target.value)} placeholder={labels.teamAiSelectPlaceholder} searchable searchPlaceholder={labels.teamAiSelectPlaceholder} value={selectedDepartmentId}><option disabled value="">{labels.teamAiSelectPlaceholder}</option>{data.departments.map((department) => <option disabled={department.memberCount === 0} key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label> : null}
       {data.mode === 'DIRECT_TEAM' ? <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{labels.teamAiMemberPreview}</p><p className="mt-1 text-sm font-semibold">{labels.teamAiMembers.replace('{count}', String(data.totalMemberCount))}</p><ul className="mt-3 flex flex-wrap gap-2">{data.members.slice(0, 8).map((member) => <li className="rounded-full border bg-surface-subtle px-3 py-1 text-xs text-muted-foreground" key={member.employeeId}>{member.employeeName}</li>)}</ul></div> : null}
-      {data.voiceEnabled && data.aiEnabled && canStart ? <TeamLiveVoice contextName={contextName} departmentId={data.mode === 'DEPARTMENT_SELECTION' ? selectedDepartmentId : undefined} enabled={data.mode === 'DIRECT_TEAM' || canStart} labels={teamVoiceLabels} locale={locale} /> : <p className="text-sm text-muted-foreground">{data.mode === 'DEPARTMENT_SELECTION' && !canStart ? labels.teamAiDepartmentScope : labels.teamAiDisabled}</p>}
+      {data.voiceEnabled && data.aiEnabled && canStart ? <TeamLiveVoice contextName={contextName} departmentId={data.mode === 'DEPARTMENT_SELECTION' ? selectedDepartmentId : undefined} enabled={canStart} labels={teamVoiceLabels} locale={locale} /> : <p className="text-sm text-muted-foreground">{selectedDepartmentIsEmpty ? labels.teamAiNoActiveMembers : data.mode === 'DEPARTMENT_SELECTION' && !canStart ? labels.teamAiDepartmentScope : labels.teamAiDisabled}</p>}
       {data.mode === 'DEPARTMENT_SELECTION' && data.departments.length === 0 ? <p className="text-sm text-muted-foreground">{labels.teamAiNoDepartments}</p> : null}
     </div>
   </section>
