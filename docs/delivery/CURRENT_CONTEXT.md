@@ -47,9 +47,9 @@ Gerichte GPT-Live- en Employee-AI-tests zijn `14/14` groen; strict TypeScript,
 ESLint, i18n en diff-check zijn groen. De volledige suite blijft rood door de
 bestaande V2-migration-contractverwachting, de bestaande DM-1 CASE-contracttest
 en de bestaande PDF-renderer-timeout. Preview deployment
-`dpl_8YPDBh9g37nFxoHdDH2TLUHPKvu1` staat `READY` op de codecommit
-`01e99b32fd3d7432fe2bff6b01203fbfa5282d1e` via
-`https://liquidhr-jzxvvgaa1-edwinitsolutions.vercel.app`. De nieuwe host vereist
+`dpl_C2FJPNEFUXCBYaRP1h2gXbcwiHB6` staat `READY` op de codecommit
+`7856d9456e9ef418270f8bfdd9063c12502cfd09` via
+`https://liquidhr-mxlzg2sfk-edwinitsolutions.vercel.app`. De nieuwe host vereist
 een eigen authenticated login; microfoon/audio-acceptatie en de afzonderlijke
 React hydration `#418`-diagnose blijven open.
 

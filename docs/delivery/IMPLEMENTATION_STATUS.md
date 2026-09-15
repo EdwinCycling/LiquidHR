@@ -44,9 +44,9 @@ proposal-only grenzen en migrations zijn niet gewijzigd.
 Gerichte tests: `14/14` groen; strict TypeScript, ESLint, i18n en diff-check
 groen. De volledige suite heeft drie bestaande failures: de V2-migration-
 contractverwachting, de DM-1 CASE-contracttest en de PDF-renderer-timeout. De
-Preview `https://liquidhr-jzxvvgaa1-edwinitsolutions.vercel.app` staat `READY`
-als deployment `dpl_8YPDBh9g37nFxoHdDH2TLUHPKvu1` op commit
-`01e99b32fd3d7432fe2bff6b01203fbfa5282d1e`; de route is
+Preview `https://liquidhr-mxlzg2sfk-edwinitsolutions.vercel.app` staat `READY`
+als deployment `dpl_C2FJPNEFUXCBYaRP1h2gXbcwiHB6` op commit
+`7856d9456e9ef418270f8bfdd9063c12502cfd09`; de route is
 `/employees/64ad3a23-f59a-4ed0-af41-26dda20ff067?tab=overview&view=expanded`.
 De nieuwe deployment-host vereist een eigen authenticated login. React
 hydration `#418` en authenticated microfoon/audio/tool-call acceptance blijven
