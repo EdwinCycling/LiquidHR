@@ -121,13 +121,12 @@ function requestSessionClose(run: VoiceRun): boolean {
 }
 
 function interruptResponse(run: VoiceRun): void {
-  if (run.closed || run.channel?.readyState !== 'open') return
-  try {
-    sendEvent(run, { type: 'response.cancel' })
-    sendEvent(run, { type: 'output_audio_buffer.clear' })
-  } catch {
-    // The peer error handler presents the generic connection error and performs cleanup.
-  }
+  if (run.closed) return
+  // GPT-Live is full-duplex and handles barge-in on the media transport. The
+  // Realtime-only response.cancel/output_audio_buffer.clear commands are not
+  // part of the current Live client-event contract and would terminate the
+  // session with an invalid-event error.
+  run.audio?.pause()
 }
 
 async function waitForIceGathering(peer: RTCPeerConnection): Promise<void> {
@@ -357,7 +356,6 @@ export function EmployeeLiveVoice({
         case 'input_audio_buffer.speech_started':
           recordEmployeeLiveVoiceDiagnostic({ event: 'input_audio_buffer.speech_started' })
           interruptResponse(run)
-          run.audio?.pause()
           dispatch({ type: 'input_audio.speech_started' })
           return
         case 'session.output_transcript.delta':

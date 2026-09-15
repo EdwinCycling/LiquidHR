@@ -136,7 +136,7 @@ type ParsedRealtimeVoiceToolArguments = {
   confirmation?: PersonalReminderToolArguments['confirmation']
 }
 
-const liveClientEvents = ['response.item.create', 'response.create', 'response.cancel', 'output_audio_buffer.clear', 'session.close'] as const
+const liveClientEvents = ['response.item.create', 'response.create', 'session.close'] as const
 
 function voiceInstructions(settings: AiGroupSettings): string {
   const style = settings.conversationStyle === 'BUSINESS'

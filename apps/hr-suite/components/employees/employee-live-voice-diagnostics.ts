@@ -9,7 +9,7 @@ const diagnosticsEnabled = process.env.NEXT_PUBLIC_AI_LIVE_DIAGNOSTICS === 'true
 
 export function recordEmployeeLiveVoiceDiagnostic(diagnostic: EmployeeLiveVoiceDiagnostic): void {
   if (!diagnosticsEnabled) return
-  console.info('[AI_LIVE_DIAGNOSTIC]', diagnostic)
+  console.info(`[AI_LIVE_DIAGNOSTIC] ${JSON.stringify(diagnostic)}`)
 }
 
 export function safeVoiceErrorMetadata(error: unknown): { errorName: string; errorMessage?: string } {

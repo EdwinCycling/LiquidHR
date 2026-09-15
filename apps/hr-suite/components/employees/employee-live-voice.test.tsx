@@ -132,14 +132,15 @@ describe('EmployeeLiveVoice dialog', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('cancels and clears provider audio when the user interrupts spoken output', async () => {
+  it('pauses local output when the user interrupts spoken output without sending Realtime-only commands', async () => {
     await start()
     await event('session.started')
     await event('output_audio_buffer.started')
     await event('input_audio_buffer.speech_started')
 
-    expect(channel.send).toHaveBeenCalledWith(expect.stringContaining('"type":"response.cancel"'))
-    expect(channel.send).toHaveBeenCalledWith(expect.stringContaining('"type":"output_audio_buffer.clear"'))
+    expect(document.querySelector('audio')?.pause).toHaveBeenCalled()
+    expect(channel.send).not.toHaveBeenCalledWith(expect.stringContaining('"type":"response.cancel"'))
+    expect(channel.send).not.toHaveBeenCalledWith(expect.stringContaining('"type":"output_audio_buffer.clear"'))
     expect(container.textContent).toContain(labels.listening)
   })
 
