@@ -1,5 +1,22 @@
 # Liquid HR documentatie-index
 
+## Actual Work Bulk Hours V1 — 2026-09-15
+
+**Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / HOSTED ACCEPTANCE OPEN**
+
+De bulkworkspace `/actual-work/bulk` en API `/api/actual-work/bulk` bouwen
+voort op de bestaande Actual Work-ledger en canonical `save_actual_work_entry`-
+RPC. De matrix ondersteunt WORK, ADDITIONAL, OVERTIME en TRANSPARENT, dag- en
+periodefeiten, exacte decimale/tijdinvoer, server-side scope/rooster/limieten en
+gesloten-periodcorrecties. Er is geen aparte bulk-ledger of nieuwe migration.
+
+De candidate staat op `work/actual-work-bulk-v1` vanaf
+`origin/main` `345be0383c1c3727b507e996262f66928c4c998c`; lokale gates en de
+Webpack-build zijn groen, de volledige suite heeft `1482/1485` tests groen met
+drie bestaande baseline-failures. Main-integratie, deploy en authenticated
+hosted acceptance zijn nog open. Zie de actuele details in
+[`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+
 ## Main-consolidatie — 2026-09-15
 
 **Status: CONSOLIDATION COMPLETE — GITHUB MAIN INTEGRATED / HOSTED ACCEPTANCE PENDING**

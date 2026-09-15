@@ -1,5 +1,31 @@
 # Implementatiestatus Liquid HR
 
+## Actual Work Bulk Hours V1 — 2026-09-15
+
+**Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**
+
+De kandidaat staat op `work/actual-work-bulk-v1` in
+`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\actual-work-bulk-v1`,
+vanaf exact `origin/main` `345be0383c1c3727b507e996262f66928c4c998c`. De nieuwe
+`/actual-work/bulk`-workspace en API hergebruiken de bestaande canonical
+Actual Work-ledger en `save_actual_work_entry`-RPC voor WORK, ADDITIONAL,
+OVERTIME en TRANSPARENT. Er is geen nieuwe migration, ledger, RLS-policy of
+service-role-bypass toegevoegd; de bulk-read is server-side begrensd en vermijdt
+employee × day N+1.
+
+De matrix ondersteunt maand/type/dag-of-periode/afdeling/medewerkerfilters,
+decimale en exacte tijdnotatie, effectieve Additional-eligibility, limieten,
+open edits en gesloten correcties met reden. De testrol/worktree
+`work/ai-gpt-live` en het beschermde `.env.local` zijn niet aangeraakt.
+
+Gates: i18n-35, strict TypeScript, ESLint, `9/9` Actual Work schema/exact-
+hours-tests, diff-check en Webpack (`272` pagina's) zijn groen. De volledige
+hr-suite rapporteert `1482/1485` geslaagde tests met dezelfde drie bestaande
+baseline-failures in DG1 PDF, contract-change-audit en DM-1 CASE; deze run heeft
+geen van die bestanden gewijzigd. Anonieme lokale smoke op `3010` geeft login-
+redirect en bulk-API `401`; authenticated DEV/hosted acceptance, main-integratie,
+push, exact-SHA-deploy en cleanup zijn nog open.
+
 ## Main-consolidatie — 2026-09-15
 
 **Status: CONSOLIDATION COMPLETE — GITHUB MAIN INTEGRATED / HOSTED ACCEPTANCE PENDING**

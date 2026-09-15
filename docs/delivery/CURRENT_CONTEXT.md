@@ -1,5 +1,37 @@
 # Actuele overdracht Liquid HR
 
+## Actual Work Bulk Hours V1 — 2026-09-15
+
+**Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**
+
+- Candidate branch/worktree: `work/actual-work-bulk-v1` in
+  `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\actual-work-bulk-v1`,
+  gestart vanaf exact `origin/main` `345be0383c1c3727b507e996262f66928c4c998c`.
+  De vuile `work/ai-gpt-live`-root is niet aangeraakt; het beschermde
+  `apps/hr-suite/.env.local` blijft buiten scope.
+- Implementatie: `/actual-work/bulk` en `/api/actual-work/bulk` gebruiken de
+  bestaande Actual Work-ledger, types, effectieve dienstverband-/roosterdata,
+  periode- en limietcontrole en de bestaande security-invoker
+  `save_actual_work_entry`. Er is geen aparte bulk-ledger, migration, RLS- of
+  service-role-pad toegevoegd. De serverread gebruikt een begrensd model zonder
+  employee × day N+1-querypatroon.
+- UX: HR Admin kan maand, type, dag/periode, afdeling en medewerker zoeken en
+  in een compacte matrix WORK, ADDITIONAL, OVERTIME en TRANSPARENT invoeren in
+  decimale of exacte tijdnotatie. PERIOD blijft één periodefeit; gesloten
+  perioden laten alleen bestaande cellen met verplichte correctiereden toe.
+- Verificatie: i18n (`35` namespaces), strict TypeScript, ESLint,
+  Actual Work schema/exact-hours-tests (`9/9`), diff-check en Webpack-build
+  (`272` gegenereerde pagina's) zijn groen. De volledige hr-suite is
+  `1482/1485` tests groen; de drie bekende, onaangeraakte baseline-failures
+  blijven DG1 PDF-timeout, contract-change-audit grant-formattering en DM-1
+  CASE-parenthesering. Lokale anonieme smoke op poort `3010` bevestigt login-
+  redirect en `401` op de bulk-API; poort `3000` is door een bestaand Node-
+  proces bezet en is niet aangeraakt.
+- Open: commit met geverifieerde Edwin-identiteit, reconcile/integratie naar
+  `main`, push, exacte SHA-deploy naar de bestaande DEV/test-lijn,
+  authenticated hosted acceptance en daarna veilige cleanup van alleen deze
+  tijdelijke kandidaat-worktree/branch.
+
 ## Main-consolidatie — 2026-09-15
 
 **Status: CONSOLIDATION COMPLETE — GITHUB MAIN INTEGRATED / HOSTED ACCEPTANCE PENDING**

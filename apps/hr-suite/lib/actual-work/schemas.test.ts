@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actualWorkEntrySchema, actualWorkTypeSchema } from './schemas'
+import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema } from './schemas'
 
 const ids = {
   employeeId: '11111111-1111-4111-8111-111111111111',
@@ -55,5 +55,40 @@ describe('actual work input contracts', () => {
       ],
     })
     expect(result.success).toBe(true)
+  })
+
+  it('keeps an open-period edit eligible for the canonical EDIT operation', () => {
+    const result = actualWorkBulkSaveSchema.safeParse({
+      month: '2026-10',
+      workHourTypeId: ids.typeId,
+      entryGranularity: 'DAY',
+      changes: [{
+        employeeId: ids.employeeId,
+        employmentId: ids.employmentId,
+        entryId: ids.typeId,
+        subjectPeriodStart: '2026-10-05',
+        hours: '8.1250',
+        note: null,
+        correctionReason: null,
+      }],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('bounds a bulk request to a bounded set of changed cells', () => {
+    const change = {
+      employeeId: ids.employeeId,
+      employmentId: ids.employmentId,
+      entryId: null,
+      subjectPeriodStart: '2026-10-05',
+      hours: '1',
+    }
+    const result = actualWorkBulkSaveSchema.safeParse({
+      month: '2026-10',
+      workHourTypeId: ids.typeId,
+      entryGranularity: 'DAY',
+      changes: Array.from({ length: 251 }, () => change),
+    })
+    expect(result.success).toBe(false)
   })
 })

@@ -2,7 +2,7 @@ import type { Database, Tables } from '@scope/db'
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { exactHoursToDatabase, isPositiveExactHours, parseExactHours } from './exact-hours'
-import { actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
+import { actualWorkBulkSaveSchema, actualWorkEntrySchema, actualWorkTypeSchema, actualWorkTypeUpdateSchema, type ActualWorkBulkSaveInput, type ActualWorkEntryInput, type ActualWorkTypeInput } from './schemas'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type ActualWorkType = Tables<'work_hour_types'>
@@ -11,6 +11,32 @@ type ActualWorkPeriod = Tables<'actual_work_periods'>
 type ActualWorkRevision = Tables<'actual_work_revisions'>
 type ActualWorkFamily = Database['public']['Enums']['actual_work_type_family']
 type ActualWorkEntryGranularity = Database['public']['Enums']['actual_work_entry_granularity']
+type ActualWorkBulkEmployee = Pick<Tables<'employees'>, 'id' | 'employee_number' | 'first_name' | 'birth_name_prefix' | 'birth_name'>
+type ActualWorkBulkEmployment = Pick<Tables<'employments'>, 'id' | 'employee_id' | 'administration_id' | 'starts_on' | 'ends_on' | 'record_status' | 'deleted_at' | 'is_primary'>
+type ActualWorkBulkDepartment = Pick<Tables<'departments'>, 'id' | 'code' | 'name'>
+type ActualWorkBulkEntry = Pick<Tables<'employment_work_hour_entries'>, 'id' | 'employee_id' | 'employment_id' | 'work_hour_type_id' | 'work_date' | 'entry_granularity' | 'subject_period_start' | 'subject_period_end' | 'posting_period_start' | 'hours' | 'status' | 'note' | 'correction_reason' | 'updated_at'>
+type ActualWorkBulkLimit = Pick<Tables<'actual_work_type_limits'>, 'limit_scope' | 'max_hours'>
+type ActualWorkBulkSchedule = Pick<Tables<'employment_schedules'>, 'employment_id' | 'valid_from' | 'valid_until' | 'part_time_factor' | 'fulltime_hours_per_week' | 'average_hours_per_week'>
+type ActualWorkAuth = Awaited<ReturnType<typeof authForGroup>>
+
+export type ActualWorkBulkProjection = {
+  month: string
+  days: string[]
+  types: ActualWorkType[]
+  selectedTypeId: string | null
+  entryGranularity: 'DAY' | 'PERIOD'
+  period: ActualWorkPeriod | null
+  limits: ActualWorkBulkLimit[]
+  departments: ActualWorkBulkDepartment[]
+  employees: Array<{
+    employee: ActualWorkBulkEmployee
+    employment: ActualWorkBulkEmployment
+    department: ActualWorkBulkDepartment | null
+    entries: ActualWorkBulkEntry[]
+    additionalEligibleDates: string[]
+    additionalEligibleForPeriod: boolean
+  }>
+}
 
 export class ActualWorkServiceError extends Error {
   readonly status: number
@@ -171,12 +197,9 @@ async function loadEmployment(input: Pick<ActualWorkEntryInput, 'employeeId' | '
   return result.data
 }
 
-export async function saveActualWorkEntry(input: unknown): Promise<ActualWorkEntry> {
-  const parsed = actualWorkEntrySchema.safeParse(input)
-  if (!parsed.success) throw new ActualWorkServiceError(parsed.error.issues[0]?.message ?? 'ACTUAL_WORK_INPUT_INVALID')
-  const value = parsed.data
-  const { context, hrGroupId, supabase } = await authForGroup('leave:write', value.employeeId)
-  const employment = await loadEmployment(value, { tenantId: context.tenantId, hrGroupId }, supabase)
+async function saveActualWorkEntryValue(value: ActualWorkEntryInput, auth: ActualWorkAuth, existingEmployment?: Awaited<ReturnType<typeof loadEmployment>>): Promise<ActualWorkEntry> {
+  const { context, hrGroupId, supabase } = auth
+  const employment = existingEmployment ?? await loadEmployment(value, { tenantId: context.tenantId, hrGroupId }, supabase)
   const exactHours = parseExactHours(value.hours)
   if (!isPositiveExactHours(exactHours)) throw new ActualWorkServiceError('ACTUAL_WORK_HOURS_REQUIRED')
   const subjectEnd = value.entryGranularity === 'DAY' ? addDays(value.subjectPeriodStart, 1) : value.subjectPeriodEnd ?? addMonth(value.subjectPeriodStart)
@@ -205,6 +228,14 @@ export async function saveActualWorkEntry(input: unknown): Promise<ActualWorkEnt
   })
   if (result.error || !result.data) databaseError(result.error)
   return result.data
+}
+
+export async function saveActualWorkEntry(input: unknown): Promise<ActualWorkEntry> {
+  const parsed = actualWorkEntrySchema.safeParse(input)
+  if (!parsed.success) throw new ActualWorkServiceError(parsed.error.issues[0]?.message ?? 'ACTUAL_WORK_INPUT_INVALID')
+  const value = parsed.data
+  const auth = await authForGroup('leave:write', value.employeeId)
+  return saveActualWorkEntryValue(value, auth)
 }
 
 export type ActualWorkEmployeeProjection = {
@@ -244,6 +275,195 @@ export async function getActualWorkEmployeeProjection(input: { employeeId: strin
   return { employee: employeeResult.data, employment, types: typesResult.data ?? [], entries: entriesResult.data ?? [], revisions: revisionResult.data ?? [], period: periodResult.data ?? null, schedule: scheduleResult.data ?? [] }
 }
 
+export type ActualWorkBulkQuery = {
+  month: string
+  typeId?: string
+  entryGranularity?: 'DAY' | 'PERIOD'
+  employeeQuery?: string
+  departmentId?: string
+}
+
+function validBulkMonth(value: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
+}
+
+function safeEmployeeSearch(value: string | undefined): string {
+  return (value ?? '').replace(/[^\p{L}\p{N} _-]/gu, ' ').trim().slice(0, 80)
+}
+
+function effectiveScheduleForDate(schedules: ActualWorkBulkSchedule[], date: string): ActualWorkBulkSchedule | null {
+  return schedules
+    .filter((schedule) => schedule.valid_from <= date && (schedule.valid_until === null || schedule.valid_until > date))
+    .sort((left, right) => right.valid_from.localeCompare(left.valid_from))[0] ?? null
+}
+
+function additionalEligible(schedules: ActualWorkBulkSchedule[], date: string): boolean {
+  const schedule = effectiveScheduleForDate(schedules, date)
+  return schedule !== null && schedule.part_time_factor < 1
+}
+
+async function getActualWorkBulkProjectionForAuth(input: ActualWorkBulkQuery, auth: ActualWorkAuth): Promise<ActualWorkBulkProjection> {
+  if (!validBulkMonth(input.month)) throw new ActualWorkServiceError('ACTUAL_WORK_MONTH_INVALID')
+  const { context, hrGroupId, supabase } = auth
+  const from = monthStart(input.month)
+  const to = addMonth(from)
+  const lastDay = addDays(to, -1)
+  const days = daysBetween(from, to)
+  const [typesResult, periodResult, departmentsResult, employeesResult] = await Promise.all([
+    supabase.from('work_hour_types').select('*').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('display_order').order('name').limit(500),
+    supabase.from('actual_work_periods').select('*').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('period_start', from).maybeSingle(),
+    supabase.from('departments').select('id,code,name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('name').limit(500),
+    (() => {
+      let query = supabase.from('employees').select('id,employee_number,first_name,birth_name_prefix,birth_name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_archived', false).is('deleted_at', null).order('birth_name').order('first_name').limit(1000)
+      const search = safeEmployeeSearch(input.employeeQuery)
+      if (search) query = query.or(`first_name.ilike.%${search}%,birth_name.ilike.%${search}%,employee_number.ilike.%${search}%`)
+      return query
+    })(),
+  ])
+  const failed = [typesResult, periodResult, departmentsResult, employeesResult].find((result) => result.error)
+  if (failed?.error) databaseError(failed.error)
+
+  const types = typesResult.data ?? []
+  const selectedType = (input.typeId ? types.find((type) => type.id === input.typeId) : undefined) ?? types.find((type) => type.family !== 'TRANSPARENT') ?? types[0] ?? null
+  const entryGranularity: 'DAY' | 'PERIOD' = selectedType?.entry_granularity === 'PERIOD'
+    ? 'PERIOD'
+    : selectedType?.entry_granularity === 'DAY'
+      ? 'DAY'
+      : input.entryGranularity === 'PERIOD' ? 'PERIOD' : 'DAY'
+  const departments = (departmentsResult.data ?? []) as ActualWorkBulkDepartment[]
+  const baseProjection = {
+    month: input.month,
+    days,
+    types,
+    selectedTypeId: selectedType?.id ?? null,
+    entryGranularity,
+    period: periodResult.data ?? null,
+    limits: [] as ActualWorkBulkLimit[],
+    departments,
+    employees: [],
+  }
+  if (!selectedType || !employeesResult.data?.length) return baseProjection
+
+  const limitsResult = await supabase.from('actual_work_type_limits').select('limit_scope,max_hours').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('work_hour_type_id', selectedType.id).order('limit_scope')
+  if (limitsResult.error) databaseError(limitsResult.error)
+
+  const employeeRows = employeesResult.data
+  const employeeById = new Map(employeeRows.map((employee) => [employee.id, employee]))
+  let employmentsQuery = supabase.from('employments').select('id,employee_id,administration_id,starts_on,ends_on,record_status,deleted_at,is_primary').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('employee_id', employeeRows.map((employee) => employee.id)).eq('record_status', 'CONFIRMED').is('deleted_at', null).lt('starts_on', to).or(`ends_on.is.null,ends_on.gte.${from}`).order('employee_id').order('is_primary', { ascending: false }).order('starts_on', { ascending: false }).limit(2000)
+  if (context.administrationId) employmentsQuery = employmentsQuery.eq('administration_id', context.administrationId)
+  const employmentsResult = await employmentsQuery
+  if (employmentsResult.error) databaseError(employmentsResult.error)
+
+  const employmentByEmployee = new Map<string, ActualWorkBulkEmployment>()
+  for (const employment of employmentsResult.data ?? []) {
+    if (!employmentByEmployee.has(employment.employee_id)) employmentByEmployee.set(employment.employee_id, employment)
+  }
+  const initialEmployments = [...employmentByEmployee.values()]
+  if (!initialEmployments.length) return { ...baseProjection, limits: (limitsResult.data ?? []) as ActualWorkBulkLimit[] }
+  const employmentIds = initialEmployments.map((employment) => employment.id)
+  let placementsQuery = supabase.from('employee_organizations').select('employment_id,employee_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('employment_id', employmentIds).lte('effective_from', lastDay).or(`effective_to.is.null,effective_to.gte.${from}`).order('effective_from', { ascending: false }).limit(5000)
+  if (context.administrationId) placementsQuery = placementsQuery.eq('administration_id', context.administrationId)
+  const placementsResult = await placementsQuery
+  if (placementsResult.error) databaseError(placementsResult.error)
+  const placementByEmployment = new Map<string, { employee_id: string; department_id: string }>()
+  for (const placement of placementsResult.data ?? []) {
+    if (placement.employment_id && !placementByEmployment.has(placement.employment_id)) placementByEmployment.set(placement.employment_id, placement)
+  }
+  const filteredEmployments = initialEmployments.filter((employment) => !input.departmentId || placementByEmployment.get(employment.id)?.department_id === input.departmentId)
+  if (!filteredEmployments.length) return { ...baseProjection, limits: (limitsResult.data ?? []) as ActualWorkBulkLimit[] }
+  const filteredEmploymentIds = filteredEmployments.map((employment) => employment.id)
+  const [entriesResult, schedulesResult] = await Promise.all([
+    supabase.from('employment_work_hour_entries').select('id,employee_id,employment_id,work_hour_type_id,work_date,entry_granularity,subject_period_start,subject_period_end,posting_period_start,hours,status,note,correction_reason,updated_at').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).in('employment_id', filteredEmploymentIds).eq('work_hour_type_id', selectedType.id).eq('entry_granularity', entryGranularity).eq(entryGranularity === 'PERIOD' ? 'subject_period_start' : 'posting_period_start', from).order('subject_period_start').order('updated_at', { ascending: false }).limit(10000),
+    supabase.from('employment_schedules').select('employment_id,valid_from,valid_until,part_time_factor,fulltime_hours_per_week,average_hours_per_week').eq('tenant_id', context.tenantId).in('employment_id', filteredEmploymentIds).lt('valid_from', to).or(`valid_until.is.null,valid_until.gt.${from}`).order('valid_from').limit(5000),
+  ])
+  if (entriesResult.error || schedulesResult.error) databaseError(entriesResult.error ?? schedulesResult.error)
+  const entriesByEmployment = new Map<string, ActualWorkBulkEntry[]>()
+  for (const entry of entriesResult.data ?? []) {
+    const entries = entriesByEmployment.get(entry.employment_id) ?? []
+    entries.push(entry)
+    entriesByEmployment.set(entry.employment_id, entries)
+  }
+  const schedulesByEmployment = new Map<string, ActualWorkBulkSchedule[]>()
+  for (const schedule of schedulesResult.data ?? []) {
+    const schedules = schedulesByEmployment.get(schedule.employment_id) ?? []
+    schedules.push(schedule)
+    schedulesByEmployment.set(schedule.employment_id, schedules)
+  }
+  const departmentById = new Map(departments.map((department) => [department.id, department]))
+  const bulkEmployees = filteredEmployments.flatMap((employment) => {
+    const employee = employeeById.get(employment.employee_id)
+    if (!employee) return []
+    const placement = placementByEmployment.get(employment.id)
+    const schedules = schedulesByEmployment.get(employment.id) ?? []
+    return [{
+      employee,
+      employment,
+      department: placement ? departmentById.get(placement.department_id) ?? null : null,
+      entries: entriesByEmployment.get(employment.id) ?? [],
+      additionalEligibleDates: days.filter((day) => additionalEligible(schedules, day)),
+      additionalEligibleForPeriod: additionalEligible(schedules, from),
+    }]
+  })
+  return { ...baseProjection, limits: (limitsResult.data ?? []) as ActualWorkBulkLimit[], employees: bulkEmployees }
+}
+
+export async function getActualWorkBulkProjection(input: ActualWorkBulkQuery): Promise<ActualWorkBulkProjection> {
+  const auth = await authForGroup('leave:write')
+  return getActualWorkBulkProjectionForAuth(input, auth)
+}
+
+function bulkCellKey(employmentId: string, subjectPeriodStart: string): string {
+  return `${employmentId}:${subjectPeriodStart}`
+}
+
+export async function saveActualWorkBulkEntries(input: unknown): Promise<{ saved: ActualWorkEntry[] }> {
+  const parsed = actualWorkBulkSaveSchema.safeParse(input)
+  if (!parsed.success) throw new ActualWorkServiceError(parsed.error.issues[0]?.message ?? 'ACTUAL_WORK_INPUT_INVALID')
+  const value: ActualWorkBulkSaveInput = parsed.data
+  const auth = await authForGroup('leave:write')
+  const projection = await getActualWorkBulkProjectionForAuth({ month: value.month, typeId: value.workHourTypeId, entryGranularity: value.entryGranularity }, auth)
+  if (projection.selectedTypeId !== value.workHourTypeId) throw new ActualWorkServiceError('ACTUAL_WORK_TYPE_NOT_ACTIVE')
+  const rowsByEmployee = new Map(projection.employees.map((row) => [row.employee.id, row]))
+  const entriesByCell = new Map<string, ActualWorkBulkEntry>()
+  for (const row of projection.employees) {
+    for (const entry of row.entries) {
+      const key = bulkCellKey(row.employment.id, entry.subject_period_start)
+      if (!entriesByCell.has(key)) entriesByCell.set(key, entry)
+    }
+  }
+  const seenCells = new Set<string>()
+  const closed = projection.period?.status === 'CLOSED'
+  const saved: ActualWorkEntry[] = []
+  for (const change of value.changes) {
+    const row = rowsByEmployee.get(change.employeeId)
+    if (!row || row.employment.id !== change.employmentId) throw new ActualWorkServiceError('ACTUAL_WORK_BULK_SCOPE_INVALID', 403)
+    const isPeriodCell = value.entryGranularity === 'PERIOD'
+    const validSubject = isPeriodCell ? change.subjectPeriodStart === monthStart(value.month) : change.subjectPeriodStart >= monthStart(value.month) && change.subjectPeriodStart < addMonth(monthStart(value.month))
+    if (!validSubject) throw new ActualWorkServiceError('ACTUAL_WORK_BULK_DATE_INVALID')
+    const key = bulkCellKey(row.employment.id, change.subjectPeriodStart)
+    if (seenCells.has(key)) throw new ActualWorkServiceError('ACTUAL_WORK_BULK_DUPLICATE_CELL')
+    seenCells.add(key)
+    const existing = entriesByCell.get(key)
+    if (change.entryId && (!existing || existing.id !== change.entryId)) throw new ActualWorkServiceError('ACTUAL_WORK_ENTRY_NOT_FOUND', 404)
+    const entryId = existing?.id ?? null
+    if (closed && (!entryId || !change.correctionReason)) throw new ActualWorkServiceError(entryId ? 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED' : 'ACTUAL_WORK_PERIOD_CLOSED')
+    saved.push(await saveActualWorkEntryValue({
+      employeeId: row.employee.id,
+      employmentId: row.employment.id,
+      entryId,
+      workHourTypeId: value.workHourTypeId,
+      entryGranularity: value.entryGranularity,
+      subjectPeriodStart: change.subjectPeriodStart,
+      subjectPeriodEnd: isPeriodCell ? addMonth(change.subjectPeriodStart) : null,
+      postingPeriodStart: monthStart(change.subjectPeriodStart),
+      hours: change.hours,
+      note: change.note ?? null,
+      correctionReason: change.correctionReason ?? null,
+    }, auth, row.employment))
+  }
+  return { saved }
+}
+
 export async function getActualWorkTeamProjection(month: string) {
   const { context, hrGroupId, supabase } = await authForGroup('leave:write')
   const from = monthStart(month)
@@ -277,4 +497,14 @@ function addDays(date: string, count: number): string {
   const value = new Date(`${date}T00:00:00Z`)
   value.setUTCDate(value.getUTCDate() + count)
   return value.toISOString().slice(0, 10)
+}
+
+function daysBetween(from: string, to: string): string[] {
+  const days: string[] = []
+  let cursor = from
+  while (cursor < to) {
+    days.push(cursor)
+    cursor = addDays(cursor, 1)
+  }
+  return days
 }

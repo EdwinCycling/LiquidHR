@@ -6,7 +6,7 @@ const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'ACTUAL_WORK_DATE_INVALID')
 const hours = z.string().trim().min(1).max(20)
 
-export const actualWorkEntrySchema = z.object({
+const actualWorkEntryFields = z.object({
   employeeId: uuid,
   employmentId: uuid,
   entryId: uuid.nullable().optional(),
@@ -18,10 +18,24 @@ export const actualWorkEntrySchema = z.object({
   hours,
   note: z.string().trim().max(500).nullable().optional(),
   correctionReason: z.string().trim().max(500).nullable().optional(),
-}).superRefine((value, context) => {
+})
+
+export const actualWorkEntrySchema = actualWorkEntryFields.superRefine((value, context) => {
   if (value.entryId && (!value.correctionReason || value.correctionReason.length === 0)) {
     context.addIssue({ code: 'custom', path: ['correctionReason'], message: 'ACTUAL_WORK_CORRECTION_REASON_REQUIRED' })
   }
+})
+
+// Bulk invoeren moet een directe EDIT in een open periode kunnen onderscheiden
+// van een CORRECTION in een gesloten periode. De canonical RPC blijft voor
+// beide operaties leidend; de service bepaalt de operatie pas na scopecontrole.
+export const actualWorkBulkChangeSchema = actualWorkEntryFields.omit({ workHourTypeId: true, entryGranularity: true })
+
+export const actualWorkBulkSaveSchema = z.object({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'ACTUAL_WORK_MONTH_INVALID'),
+  workHourTypeId: uuid,
+  entryGranularity: z.enum(['DAY', 'PERIOD']),
+  changes: z.array(actualWorkBulkChangeSchema).min(1).max(250),
 })
 
 const actualWorkTypeObject = z.object({
@@ -62,4 +76,5 @@ export const actualWorkPeriodCloseSchema = z.object({
 })
 
 export type ActualWorkEntryInput = z.infer<typeof actualWorkEntrySchema>
+export type ActualWorkBulkSaveInput = z.infer<typeof actualWorkBulkSaveSchema>
 export type ActualWorkTypeInput = z.infer<typeof actualWorkTypeSchema>
