@@ -1,5 +1,22 @@
 # Actuele overdracht Liquid HR
 
+## GPT-Live Responses tool-schema hotfix — 2026-09-15
+
+De resterende providerfout na gesproken input is geïsoleerd tot de strikte
+Responses-delegatieconfiguratie. `create_personal_reminder` declareerde
+`description` als optioneel terwijl iedere parameter bij `strict: true` in
+`required` moet staan. Het veld is nu als verplichte nullable string
+gedeclareerd; de server normaliseert `null` terug naar de bestaande optionele
+servicevorm. De lege read-only toolparameters declareren expliciet
+`required: []`.
+
+De gerichte employee voice-, GPT-Live- en reminder-tests zijn `35/35` groen;
+strict TypeScript, gerichte ESLint en diff-check zijn groen. Dit is nog niet
+als echte microfoonacceptatie bewezen totdat de nieuwe Preview met één korte
+handmatige utterance is gecontroleerd. De server-mediated GPT-Live-1
+transport, employee binding, autorisatie, tools, proposal-only writes,
+usage/audit en DEV/TEST Supabase blijven ongewijzigd.
+
 ## GPT-Live interruption + finalization follow-up — 2026-09-15
 
 De laatste handmatige fout na inspreken is teruggevoerd naar twee afzonderlijke

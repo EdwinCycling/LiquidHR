@@ -12,22 +12,23 @@ const personalReminderConfirmation = z.enum(['EXPLICIT_REQUEST', 'PROPOSAL_ACCEP
 
 export const personalReminderToolArgumentsSchema = z.object({
   title: personalReminderCreateSchema.shape.title,
-  description: z.string().trim().max(500).optional(),
+  description: z.string().trim().max(500).nullable().optional(),
   remindAt: personalReminderCreateSchema.shape.remindAt,
   confirmation: personalReminderConfirmation,
 }).strict()
 
-export type PersonalReminderToolArguments = z.infer<typeof personalReminderToolArgumentsSchema>
+type ParsedPersonalReminderToolArguments = z.infer<typeof personalReminderToolArgumentsSchema>
+export type PersonalReminderToolArguments = Omit<ParsedPersonalReminderToolArguments, 'description'> & { description?: string }
 
 export const personalReminderToolParameters = {
   type: 'object',
   properties: {
     title: { type: 'string', minLength: 1, maxLength: 160 },
-    description: { type: 'string', maxLength: 500 },
+    description: { type: ['string', 'null'], maxLength: 500 },
     remindAt: { type: 'string', description: 'Absolute ISO-8601 timestamp including timezone offset.' },
     confirmation: { type: 'string', enum: ['EXPLICIT_REQUEST', 'PROPOSAL_ACCEPTED'] },
   },
-  required: ['title', 'remindAt', 'confirmation'],
+  required: ['title', 'description', 'remindAt', 'confirmation'],
   additionalProperties: false,
 } as const
 
@@ -65,7 +66,7 @@ export class PersonalReminderToolError extends Error {
 export function parsePersonalReminderToolArguments(value: unknown): PersonalReminderToolArguments {
   const parsed = personalReminderToolArgumentsSchema.safeParse(value)
   if (!parsed.success) throw new AiExecutionError('INVALID_RESULT')
-  return parsed.data
+  return { ...parsed.data, description: parsed.data.description ?? undefined }
 }
 
 async function recordPersonalReminderAiAudit(input: PersonalReminderAiAuditInput): Promise<void> {

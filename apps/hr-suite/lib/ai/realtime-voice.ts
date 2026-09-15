@@ -98,6 +98,7 @@ export async function requireEmployeeVoiceContext(employeeId: string): Promise<A
 const emptyParameters = {
   type: 'object',
   properties: {},
+  required: [],
   additionalProperties: false,
 } as const
 

@@ -48,6 +48,23 @@ describe('GPT-Live employee voice contract', () => {
     expect(JSON.stringify(configuration)).not.toContain('employeeId')
   })
 
+  it('makes the empty strict tool schema explicit for Responses delegation', () => {
+    const configuration = createRealtimeVoiceSessionConfiguration('nl')
+    const delegation = configuration.delegation as { responses: { tools: Array<{ name: string; parameters: { required?: unknown } }> } }
+    const employeeSummary = delegation.responses.tools.find((tool) => tool.name === 'employee_summary')
+
+    expect(employeeSummary?.parameters.required).toEqual([])
+  })
+
+  it('keeps the optional reminder description strict-schema compatible', () => {
+    const configuration = createRealtimeVoiceSessionConfiguration('nl')
+    const delegation = configuration.delegation as { responses: { tools: Array<{ name: string; parameters: { properties?: Record<string, { type?: unknown }>; required?: unknown } }> } }
+    const reminder = delegation.responses.tools.find((tool) => tool.name === 'create_personal_reminder')
+
+    expect(reminder?.parameters.required).toEqual(['title', 'description', 'remindAt', 'confirmation'])
+    expect(reminder?.parameters.properties?.description?.type).toEqual(['string', 'null'])
+  })
+
   it('keeps voice disabled in production unless explicitly enabled', () => {
     expect(isRealtimeVoiceEnabled({ NODE_ENV: 'production' })).toBe(false)
     expect(isRealtimeVoiceEnabled({ NODE_ENV: 'production', AI_REALTIME_VOICE_ENABLED: 'true' })).toBe(true)

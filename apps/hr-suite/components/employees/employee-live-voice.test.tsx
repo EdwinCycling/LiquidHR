@@ -182,13 +182,16 @@ describe('EmployeeLiveVoice dialog', () => {
     await start()
     await act(async () => channel.onmessage?.({ data: JSON.stringify({
       type: 'error',
-      error: { type: 'invalid_request_error', code: 'invalid_event', message: 'must not be logged' },
+      client_event_id: 'liquidhr-live-7',
+      error: { type: 'invalid_request_error', code: 'invalid_event', param: 'response', message: 'must not be logged' },
     }) }))
 
     expect(recordEmployeeLiveVoiceDiagnostic).toHaveBeenCalledWith({
       event: 'provider.error',
       providerErrorCode: 'invalid_event',
       providerErrorType: 'invalid_request_error',
+      providerErrorParam: 'response',
+      providerClientEventId: 'liquidhr-live-7',
     })
   })
 })

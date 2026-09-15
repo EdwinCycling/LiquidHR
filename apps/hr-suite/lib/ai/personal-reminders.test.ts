@@ -37,6 +37,15 @@ describe('personal reminder AI capability', () => {
     })).toMatchObject({ title: 'Bel HR terug', confirmation: 'EXPLICIT_REQUEST' })
   })
 
+  it('normalizes the strict-schema null description to the optional service shape', () => {
+    expect(parsePersonalReminderToolArguments({
+      title: 'Bel HR terug',
+      description: null,
+      remindAt: futureReminderTime(),
+      confirmation: 'EXPLICIT_REQUEST',
+    })).toMatchObject({ title: 'Bel HR terug', description: undefined })
+  })
+
   it.each([
     {},
     { title: 'Onvolledig', confirmation: 'EXPLICIT_REQUEST' },

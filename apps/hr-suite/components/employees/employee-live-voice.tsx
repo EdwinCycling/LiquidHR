@@ -106,7 +106,9 @@ function nextEventId(run: VoiceRun): string {
 
 function sendEvent(run: VoiceRun, event: Record<string, unknown>): void {
   if (run.channel?.readyState !== 'open') throw new Error('channel_not_open')
-  run.channel.send(JSON.stringify({ event_id: nextEventId(run), ...event }))
+  const eventId = nextEventId(run)
+  recordEmployeeLiveVoiceDiagnostic({ event: 'dataChannel.send', type: typeof event.type === 'string' ? event.type : 'unknown', clientEventId: eventId })
+  run.channel.send(JSON.stringify({ event_id: eventId, ...event }))
 }
 
 function requestSessionClose(run: VoiceRun): boolean {
@@ -386,6 +388,10 @@ export function EmployeeLiveVoice({
             event: 'provider.error',
             providerErrorType: typeof providerError.type === 'string' ? providerError.type : null,
             providerErrorCode: typeof providerError.code === 'string' ? providerError.code : null,
+            providerErrorParam: typeof providerError.param === 'string' ? providerError.param : null,
+            providerClientEventId: typeof event.client_event_id === 'string'
+              ? event.client_event_id
+              : typeof providerError.client_event_id === 'string' ? providerError.client_event_id : null,
           })
           const errorText = [providerError.type, providerError.code, providerError.message]
             .filter((value): value is string => typeof value === 'string')
