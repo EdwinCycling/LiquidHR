@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@scope/db'],
   serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
   outputFileTracingIncludes: {
-    '/*': [
+    '/api/document-studio/generation/**': [
       '../../node_modules/playwright-core/browsers.json',
       '../../node_modules/@sparticuz/chromium/bin/**/*',
       '../../node_modules/@sparticuz/chromium/build/**/*',
