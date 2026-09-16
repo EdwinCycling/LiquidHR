@@ -4,10 +4,9 @@
 
 **Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD**
 
-- Canonieke main-state: `bb5efa64426ec3b2153650e2401791da1fe2e594`, lokaal
-  gelijk aan `origin/main`. De laatste codewijziging is de hydration-safe
-  Reminders-fix; de geaccepteerde AI-implementatie is op deze main-state
-  aanwezig.
+- Authoritative start-main-state: `98536aaaca083a2d8816c1994be44addda5f19c7`,
+  lokaal gelijk aan `origin/main`. De geaccepteerde AI-implementatie is op
+  deze state aanwezig en blijft in de Bulk-reconciliatie onaangeraakt.
 - Deployment: gebruik de laatste in de afsluitende run vastgelegde canonical
   Vercel Preview-URL; uitsluitend Preview, nooit Production. De deployment
   moet `READY` zijn en het exacte id hoort naast de URL in de afsluitende
@@ -33,14 +32,16 @@
   `.env.local` en onduidelijke refs; rapporteer ze met reden. Raak
   `work/leave-profile-management`, Production en de dirty AI-root niet aan.
 
-## Actual Work Bulk Hours V1 — 2026-09-15
+## Actual Work Bulk Hours V1 — 2026-09-16
 
-**Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**
+**Status: RECONCILED INTO MAIN — TECHNICAL GATES GREEN / HOSTED RELEASE GATE OPEN**
 
-- Candidate branch/worktree: `work/actual-work-bulk-v1` in
-  `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\actual-work-bulk-v1`,
-  gestart vanaf exact `origin/main` `345be0383c1c3727b507e996262f66928c4c998c`.
-  De vuile `work/ai-gpt-live`-root is niet aangeraakt; het beschermde
+- Bulk source: `f090d86ab60e5b7c2a4fd36d9a8d357016b8a427` vanaf
+  `345be0383c1c3727b507e996262f66928c4c998c`; `bc2acfd45d1a026c83c70e1407bb4594d1b772ae`
+  was de al aanwezige Actual Work V1-basis. `f090d86…` is al voorouder van
+  authoritative `origin/main` `98536aaaca083a2d8816c1994be44addda5f19c7`,
+  dus er was geen replay, merge of conflictresolutie nodig. De vuile
+  `work/ai-gpt-live`-root is niet aangeraakt; het beschermde
   `apps/hr-suite/.env.local` blijft buiten scope.
 - Implementatie: `/actual-work/bulk` en `/api/actual-work/bulk` gebruiken de
   bestaande Actual Work-ledger, types, effectieve dienstverband-/roosterdata,
@@ -52,18 +53,13 @@
   in een compacte matrix WORK, ADDITIONAL, OVERTIME en TRANSPARENT invoeren in
   decimale of exacte tijdnotatie. PERIOD blijft één periodefeit; gesloten
   perioden laten alleen bestaande cellen met verplichte correctiereden toe.
-- Verificatie: i18n (`35` namespaces), strict TypeScript, ESLint,
-  Actual Work schema/exact-hours-tests (`9/9`), diff-check en Webpack-build
-  (`272` gegenereerde pagina's) zijn groen. De volledige hr-suite is
-  `1482/1485` tests groen; de drie bekende, onaangeraakte baseline-failures
-  blijven DG1 PDF-timeout, contract-change-audit grant-formattering en DM-1
-  CASE-parenthesering. Lokale anonieme smoke op poort `3010` bevestigt login-
-  redirect en `401` op de bulk-API; poort `3000` is door een bestaand Node-
-  proces bezet en is niet aangeraakt.
-- Open: commit met geverifieerde Edwin-identiteit, reconcile/integratie naar
-  `main`, push, exacte SHA-deploy naar de bestaande DEV/test-lijn,
-  authenticated hosted acceptance en daarna veilige cleanup van alleen deze
-  tijdelijke kandidaat-worktree/branch.
+- Verificatie: `5` Actual Work/Leave-testbestanden (`20/20`), strict
+  TypeScript, ESLint, i18n (`36` gelijke namespaces), diff-check en Webpack
+  production build (`279/279` pagina's) zijn groen. De volledige suite is
+  bewust niet opnieuw uitgevoerd. Push, exacte SHA-deploy naar de bestaande
+  DEV/test-lijn, authenticated hosted acceptance en daarna veilige cleanup van
+  alleen deze tijdelijke Bulk-worktree/branch zijn de resterende stappen van
+  deze releasepass.
 
 ## Main-consolidatie — 2026-09-15
 

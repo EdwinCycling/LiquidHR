@@ -4,10 +4,9 @@
 
 **Status: TECHNISCH GREEN — MAIN EN CANONICAL PREVIEW GEVERIFIEERD / MICROFOONACCEPTATIE OPEN**
 
-- **Git:** `main` en `origin/main` staan op
-  `bb5efa64426ec3b2153650e2401791da1fe2e594`. De commit bevat de
-  hydration-safe Reminders-fix; de AI-code en AI-migrations waren al in de
-  geaccepteerde main-state geïntegreerd.
+- **Git:** de authoritative start-baseline `main`/`origin/main` staat op
+  `98536aaaca083a2d8816c1994be44addda5f19c7`; de AI-code en AI-migrations
+  blijven in deze Bulk-reconciliatie ongewijzigd.
 - **Vercel:** de canonical deployment is een Preview-target en READY. De
   exacte URL en deployment-id worden bij iedere nieuwe canonical deployment
   in de overdracht vastgelegd; er is geen `--prod`-deployment uitgevoerd.
@@ -30,14 +29,17 @@
   Employee Summary, Conversation Preparation, SMART Goal proposal-only,
   interrupts en logboekreview zijn niet namens de gebruiker uitgevoerd.
 
-## Actual Work Bulk Hours V1 — 2026-09-15
+## Actual Work Bulk Hours V1 — 2026-09-16
 
-**Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**
+**Status: RECONCILED INTO MAIN — TECHNICAL GATES GREEN / HOSTED RELEASE GATE OPEN**
 
-De kandidaat staat op `work/actual-work-bulk-v1` in
-`C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\actual-work-bulk-v1`,
-vanaf exact `origin/main` `345be0383c1c3727b507e996262f66928c4c998c`. De nieuwe
-`/actual-work/bulk`-workspace en API hergebruiken de bestaande canonical
+De Bulk-delta is exact commit `f090d86ab60e5b7c2a4fd36d9a8d357016b8a427`
+vanaf `345be0383c1c3727b507e996262f66928c4c998c`; de eerdere Actual Work V1-
+commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` was al aanwezig. Omdat
+`f090d86…` al voorouder is van authoritative `origin/main`
+`98536aaaca083a2d8816c1994be44addda5f19c7`, was er geen replay, merge of
+conflictresolutie nodig. De nieuwe `/actual-work/bulk`-workspace en API
+hergebruiken de bestaande canonical
 Actual Work-ledger en `save_actual_work_entry`-RPC voor WORK, ADDITIONAL,
 OVERTIME en TRANSPARENT. Er is geen nieuwe migration, ledger, RLS-policy of
 service-role-bypass toegevoegd; de bulk-read is server-side begrensd en vermijdt
@@ -48,13 +50,13 @@ decimale en exacte tijdnotatie, effectieve Additional-eligibility, limieten,
 open edits en gesloten correcties met reden. De testrol/worktree
 `work/ai-gpt-live` en het beschermde `.env.local` zijn niet aangeraakt.
 
-Gates: i18n-35, strict TypeScript, ESLint, `9/9` Actual Work schema/exact-
-hours-tests, diff-check en Webpack (`272` pagina's) zijn groen. De volledige
-hr-suite rapporteert `1482/1485` geslaagde tests met dezelfde drie bestaande
-baseline-failures in DG1 PDF, contract-change-audit en DM-1 CASE; deze run heeft
-geen van die bestanden gewijzigd. Anonieme lokale smoke op `3010` geeft login-
-redirect en bulk-API `401`; authenticated DEV/hosted acceptance, main-integratie,
-push, exact-SHA-deploy en cleanup zijn nog open.
+Gates: `5` Actual Work/Leave-testbestanden met `20/20` tests, strict TypeScript,
+ESLint, i18n (`36` gelijke NL/EN-namespaces), diff-check en Webpack
+production build (`279/279` pagina's) zijn groen. De volledige hr-suite is
+voor deze reconciliatie niet opnieuw uitgevoerd; de drie eerder vastgelegde,
+onaangeraakte baseline-failures blijven buiten scope. Push, exact-SHA-deploy,
+authenticated hosted acceptance en daarna beperkte Bulk-cleanup volgen in deze
+releasepass.
 
 ## Main-consolidatie — 2026-09-15
 

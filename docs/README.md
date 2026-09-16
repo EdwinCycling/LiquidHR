@@ -4,8 +4,9 @@
 
 **Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD / MENSELIJKE MICROFOONACCEPTATIE OPEN**
 
-De actuele AI-bron staat op `main` en is lokaal en op GitHub geverifieerd op
-commit `bb5efa64426ec3b2153650e2401791da1fe2e594`. De canonical Vercel
+De geaccepteerde AI-functionaliteit staat op de authoritative main-baseline
+`98536aaaca083a2d8816c1994be44addda5f19c7` en is in deze Bulk-reconciliatie
+onaangeraakt gebleven. De canonical Vercel
 Preview is vanaf deze main-state gebouwd met alleen een Preview-target; er is
 geen Production-deployment of Production-configuratie gewijzigd. De eerder
 toegepaste AI-migrations staan uitsluitend op DEV/TEST Supabase-project
@@ -28,9 +29,9 @@ UTC-formattering; de hosted controle zag geen React `#418`, page errors,
 console errors of warnings op de gecontroleerde routes. Oude AI-secties verder
 op deze pagina zijn historische snapshots en overschrijven deze status niet.
 
-## Actual Work Bulk Hours V1 — 2026-09-15
+## Actual Work Bulk Hours V1 — 2026-09-16
 
-**Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / HOSTED ACCEPTANCE OPEN**
+**Status: RECONCILED INTO MAIN — TECHNICAL GATES GREEN / HOSTED RELEASE GATE OPEN**
 
 De bulkworkspace `/actual-work/bulk` en API `/api/actual-work/bulk` bouwen
 voort op de bestaande Actual Work-ledger en canonical `save_actual_work_entry`-
@@ -38,11 +39,21 @@ RPC. De matrix ondersteunt WORK, ADDITIONAL, OVERTIME en TRANSPARENT, dag- en
 periodefeiten, exacte decimale/tijdinvoer, server-side scope/rooster/limieten en
 gesloten-periodcorrecties. Er is geen aparte bulk-ledger of nieuwe migration.
 
-De candidate staat op `work/actual-work-bulk-v1` vanaf
-`origin/main` `345be0383c1c3727b507e996262f66928c4c998c`; lokale gates en de
-Webpack-build zijn groen, de volledige suite heeft `1482/1485` tests groen met
-drie bestaande baseline-failures. Main-integratie, deploy en authenticated
-hosted acceptance zijn nog open. Zie de actuele details in
+De exacte Bulk-delta is commit `f090d86ab60e5b7c2a4fd36d9a8d357016b8a427`
+vanaf `345be0383c1c3727b507e996262f66928c4c998c`; de eerdere Actual Work V1-
+commit `bc2acfd45d1a026c83c70e1407bb4594d1b772ae` was al gemeenschappelijk
+aanwezig. De Bulk-commit was al een voorouder van authoritative
+`origin/main` `98536aaaca083a2d8816c1994be44addda5f19c7`, waardoor geen dubbele
+replay of conflictresolutie nodig was. De huidige main behoudt de bulkworkspace,
+API en gedeelde Actual Work-contracten; de Bulk-sleutels zijn ook in de door AI
+uitgebreide NL/EN-berichten behouden.
+
+De gerichte Actual Work/Leave-gate is `5` bestanden / `20/20` tests, met strict
+TypeScript, ESLint, i18n (`36` gelijke namespaces), diff-check en Webpack
+production build (`279/279` pagina's) groen. De volledige suite is voor deze
+reconciliatie niet opnieuw uitgevoerd; de eerder vastgelegde drie baseline-
+failures blijven buiten scope. Push, exact-SHA-deploy en authenticated hosted
+acceptance worden in deze releasepass uitgevoerd. Zie de actuele details in
 [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
 
 ## Main-consolidatie — 2026-09-15
