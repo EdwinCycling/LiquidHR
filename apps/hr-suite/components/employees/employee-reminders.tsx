@@ -194,7 +194,7 @@ export function EmployeeReminders({ employeeId, reminders, locale, dateFormat, t
       badges: <Badge tone={item.type === 'HR' ? 'info' : 'neutral'}>{typeLabel}</Badge>,
       id: item.recipientId,
       primary: item.title,
-      secondary: <div className="grid gap-1">{item.description ? <p className="whitespace-pre-wrap break-words">{item.description}</p> : null}<time className="flex flex-wrap items-center gap-1.5 text-xs" dateTime={item.remindAt}><CalendarDays aria-hidden="true" size={14} />{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</time></div>,
+      secondary: <div className="grid gap-1">{item.description ? <p className="whitespace-pre-wrap break-words">{item.description}</p> : null}<time className="flex flex-wrap items-center gap-1.5 text-xs" dateTime={item.remindAt}><CalendarDays aria-hidden="true" size={14} />{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat, timeZone: 'UTC' })}</time></div>,
     }
   })
 

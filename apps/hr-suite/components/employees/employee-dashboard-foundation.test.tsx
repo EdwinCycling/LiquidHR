@@ -134,6 +134,25 @@ describe('Employee 360 dashboard Foundation contract', () => {
     host.remove()
   })
 
+  it('renders activity timestamps with the server-stable display timezone', () => {
+    vi.stubEnv('TZ', 'Europe/Amsterdam')
+    try {
+      const markup = renderToStaticMarkup(createElement(EmployeeActivityFeed, {
+        canWrite: false,
+        dateFormat: 'DMY',
+        employeeId: 'employee-1',
+        items: [{ createdAt: '2026-08-21T13:42:44.690001+00:00', createdByUserId: 'user-1', id: 'activity-1', message: 'Gesprek gepland' }],
+        labels: { add: 'Bericht toevoegen', empty: 'Geen berichten', failed: 'Mislukt', placeholder: 'Bericht', save: 'Opslaan', saving: 'Opslaan…' },
+        locale: 'nl-NL',
+        timeFormat: '24H',
+      }))
+
+      expect(markup).toContain('21-08-2026 13:42')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('uses TextInput and FormField in the profile link add flow', () => {
     const host = document.createElement('div')
     document.body.append(host)

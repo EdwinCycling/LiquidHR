@@ -64,7 +64,7 @@ function numberFormatter(locale: string): Intl.NumberFormat {
 
 function dateFormatter(locale: string, withTime = false): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'nl-NL', withTime
-    ? { dateStyle: 'medium', timeStyle: 'short' }
+    ? { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }
     : { dateStyle: 'medium', timeZone: 'UTC' })
 }
 

@@ -231,7 +231,7 @@ export function EmployeeNotes({ employeeId, notes, canWrite, canDelete, canImpro
     actions: canWrite ? <RowActions menuLabel={labels.moreActions} menuItems={canDelete ? [{ destructive: true, id: 'delete', label: labels.remove, onSelect: () => setDeleteCandidate(note) }] : []} primaryAction={<Button onClick={() => startEdit(note)} size="sm" type="button" variant="secondary"><Pencil aria-hidden="true" />{labels.edit}</Button>} /> : undefined,
     id: note.id,
     primary: note.title,
-    secondary: <div className="grid gap-1"><p className="whitespace-pre-wrap break-words">{note.description}</p><div className="flex flex-wrap gap-x-5 gap-y-1 text-xs"><span className="inline-flex items-center gap-1.5"><UserRound aria-hidden="true" size={13} />{labels.author}: {note.authorName}</span><time dateTime={note.createdAt}>{labels.createdAt}: {formatDateTime(note.createdAt, { locale, dateFormat, timeFormat })}</time></div></div>,
+    secondary: <div className="grid gap-1"><p className="whitespace-pre-wrap break-words">{note.description}</p><div className="flex flex-wrap gap-x-5 gap-y-1 text-xs"><span className="inline-flex items-center gap-1.5"><UserRound aria-hidden="true" size={13} />{labels.author}: {note.authorName}</span><time dateTime={note.createdAt}>{labels.createdAt}: {formatDateTime(note.createdAt, { locale, dateFormat, timeFormat, timeZone: 'UTC' })}</time></div></div>,
   })), [canDelete, canWrite, dateFormat, labels, locale, notes, startEdit, timeFormat])
 
   return (
