@@ -113,7 +113,7 @@ export function createVacancyDraftInvocationInput(request: VacancyDraftRequest, 
     idempotencyKey,
     businessPermissionCode: 'recruitment-vacancy:write',
     businessPermissionTargetId: request.vacancyId,
-    qualityProfile: 'EFFICIENT',
+    contextType: 'GLOBAL',
     writingStyle: null,
   }
 }

@@ -46,7 +46,7 @@ const activeEmploymentTwo = {
 describe('Employee 360 dashboard Foundation contract', () => {
   it('keeps the dashboard header contextual and the personal edit action local', () => {
     const header = renderToStaticMarkup(createElement(EmployeeDashboardHeader, { subtitle: 'Een helder overzicht van vandaag', title: 'Medewerkerdashboard' }))
-    const personal = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels }))
+    const personal = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels, today: '2026-08-21' }))
 
     expect(header).toContain('Een helder overzicht van vandaag')
     expect(header).not.toContain('Medewerkerdetails openen')
@@ -56,7 +56,7 @@ describe('Employee 360 dashboard Foundation contract', () => {
   })
 
   it('uses Surface and preserves long personal values without truncation', () => {
-    const markup = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels }))
+    const markup = renderToStaticMarkup(createElement(EmployeeDashboardSummary, { detail, labels: summaryLabels, today: '2026-08-21' }))
 
     expect(markup).toContain('bg-surface')
     expect(markup).toContain('break-words')
@@ -72,9 +72,9 @@ describe('Employee 360 dashboard Foundation contract', () => {
         { employmentId: activeEmployment.id, administrationName: 'Liquid HR', departmentName: 'People Operations', jobTitle: 'HR Manager', hoursPerWeek: 36, laborConditionName: 'CAO', employmentType: 'EMPLOYEE' },
         { employmentId: activeEmploymentTwo.id, administrationName: 'Liquid HR', departmentName: 'Finance', jobTitle: 'Controller', hoursPerWeek: 32, laborConditionName: 'CAO', employmentType: 'EMPLOYEE' },
       ],
-      canReadSalary: false,
+    canReadSalary: false,
       currentSummary: { asOf: '2026-08-21', employmentId: activeEmployment.id, laborCondition: null, hoursPerWeek: 36, salary: null, departmentName: 'People Operations', jobTitle: 'HR Manager', managerName: 'Manager' },
-      employeeId: 'employee-1', employments: [activeEmployment, activeEmploymentTwo], labels: employmentLabels, locale: 'nl-NL',
+      employeeId: 'employee-1', employments: [activeEmployment, activeEmploymentTwo], labels: employmentLabels, locale: 'nl-NL', today: '2026-08-21',
     }))
 
     expect(markup).toContain('role="tablist"')
@@ -82,6 +82,26 @@ describe('Employee 360 dashboard Foundation contract', () => {
     expect(markup).toContain('aria-selected="true"')
     expect(markup).toContain('EMPLOYMENT-NUMBER-WITH-A-LONG-VALUE')
     expect(markup).toContain('border-primary')
+  })
+
+  it('keeps employment status markup deterministic across the server/client date boundary', () => {
+    const boundaryEmployment = {
+      id: 'employment-boundary', employment_number: 'BOUNDARY-EMPLOYMENT', starts_on: '2026-09-02', ends_on: null, record_status: 'ACTIVE',
+    } as unknown as EmployeeDetailViewModel['employments'][number]
+    const props = {
+      cards: [{ employmentId: boundaryEmployment.id, administrationName: 'Liquid HR', departmentName: 'People Operations', jobTitle: 'HR Manager', hoursPerWeek: 36, laborConditionName: 'CAO', employmentType: 'EMPLOYEE' as const }],
+      canReadSalary: false,
+      currentSummary: { asOf: '2026-09-01', employmentId: boundaryEmployment.id, laborCondition: null, hoursPerWeek: 36, salary: null, departmentName: 'People Operations', jobTitle: 'HR Manager', managerName: 'Manager' },
+      employeeId: 'employee-1', employments: [boundaryEmployment], labels: employmentLabels, locale: 'nl-NL', today: '2026-09-01',
+    }
+
+    vi.setSystemTime(new Date('2026-09-01T23:59:59Z'))
+    const serverMarkup = renderToStaticMarkup(createElement(EmploymentDashboardSummary, props))
+    vi.setSystemTime(new Date('2026-09-02T00:00:01Z'))
+    const clientMarkup = renderToStaticMarkup(createElement(EmploymentDashboardSummary, props))
+
+    expect(serverMarkup).toBe(clientMarkup)
+    expect(serverMarkup).toContain('Geen actief dienstverband')
   })
 
   it('uses Foundation IconButtons while retaining reorder controls and layout shape', () => {
@@ -131,7 +151,7 @@ describe('Employee 360 dashboard Foundation contract', () => {
 
   it('renders the employment empty state through the Foundation component', () => {
     const markup = renderToStaticMarkup(createElement(EmploymentDashboardSummary, {
-      cards: [], canReadSalary: false, currentSummary: detail.currentEmploymentSummary, employeeId: 'employee-1', employments: [], labels: employmentLabels, locale: 'nl-NL',
+      cards: [], canReadSalary: false, currentSummary: detail.currentEmploymentSummary, employeeId: 'employee-1', employments: [], labels: employmentLabels, locale: 'nl-NL', today: '2026-08-21',
     }))
 
     expect(markup).toContain('Geen actief dienstverband')

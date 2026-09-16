@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 
 const migrationPath = 'supabase/migrations/20260902132228_document_studio_dm1_native_template_editor.sql'
+const readMigration = async () => (await readFile(migrationPath, 'utf8')).replace(/\r\n/g, '\n')
 
 describe('Document Studio DM-1 migration candidate', () => {
   it('keeps the exact category enum, lifecycle constraints and guarded operations', async () => {
-    const sql = await readFile(migrationPath, 'utf8')
+    const sql = await readMigration()
     expect(sql).toContain("create type public.document_studio_category as enum (")
     for (const code of ['EMPLOYMENT', 'COMPENSATION', 'ABSENCE_LEAVE', 'PERFORMANCE_DEVELOPMENT', 'ONBOARDING', 'OFFBOARDING', 'POLICY_COMPLIANCE', 'GENERAL']) expect(sql).toContain(`  '${code}'`)
     expect(sql).toContain("create unique index document_studio_versions_one_draft_idx")
@@ -33,7 +34,7 @@ describe('Document Studio DM-1 migration candidate', () => {
   })
 
   it('keeps lifecycle pointers RPC-owned and the asset finalization seam server-only', async () => {
-    const sql = await readFile(migrationPath, 'utf8')
+    const sql = await readMigration()
     expect(sql).toContain('create trigger document_studio_guard_template_trigger')
     expect(sql).toContain('create trigger document_studio_guard_document_type_trigger')
     expect(sql).toContain("grant update (name, description, updated_by_user_id) on public.document_studio_templates to authenticated;")
@@ -49,7 +50,7 @@ describe('Document Studio DM-1 migration candidate', () => {
   })
 
   it('does not allow the validation RPC to trust caller diagnostics or hash', async () => {
-    const sql = await readFile(migrationPath, 'utf8')
+    const sql = await readMigration()
     const validationBlock = sql.slice(sql.indexOf('create or replace function internal_security.mark_document_studio_draft_valid'))
     expect(validationBlock).toContain('document_studio_assert_canonical_document')
     expect(validationBlock).toContain("validation_state = 'VALID'")
@@ -59,7 +60,7 @@ describe('Document Studio DM-1 migration candidate', () => {
   })
 
   it('uses one recursive reference per JSON walker while traversing arrays and objects', async () => {
-    const sql = await readFile(migrationPath, 'utf8')
+    const sql = await readMigration()
     const walkers = [...sql.matchAll(/with recursive nodes\(value\) as \(([\s\S]*?)\n  \)/g)].map((match) => match[1])
 
     expect(walkers).toHaveLength(2)
@@ -73,7 +74,7 @@ describe('Document Studio DM-1 migration candidate', () => {
   })
 
   it('parenthesizes the asset storage-key CASE expression at the IF boundary', async () => {
-    const sql = await readFile(migrationPath, 'utf8')
+    const sql = await readMigration()
     const assetServerBlock = sql.slice(sql.indexOf('create or replace function internal_security.create_document_studio_asset_server'))
 
     expect(assetServerBlock).toContain(`|| (
@@ -86,7 +87,7 @@ describe('Document Studio DM-1 migration candidate', () => {
   })
 
   it('seeds Document Studio permissions only for the existing TENANT_ADMIN role code', async () => {
-    const sql = await readFile(migrationPath, 'utf8')
+    const sql = await readMigration()
     expect(sql).toContain("where role.code = 'TENANT_ADMIN'")
     expect(sql).not.toContain("role.code = 'MANAGER'")
     expect(sql).not.toContain("role.code = 'EMPLOYEE'")

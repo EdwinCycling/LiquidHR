@@ -159,6 +159,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
       allowed('team-compass:manage'),
       allowed('journey-template:read'),
       allowed('recruitment-settings:manage'),
+      allowed('ai:manage'),
     ]),
     getEnabledTenantModules(),
   ])
@@ -183,6 +184,7 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
     teamCompassManage,
     journeyTemplateRead,
     recruitmentSettings,
+    aiManage,
   ] = capabilities
   const canUseSetupAssistant = canReadSetupAssistant(settingsAuth)
 
@@ -415,6 +417,14 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           title: messages('admin.tiles.companyBranding'),
           description: messages('admin.tiles.companyBrandingDescription'),
           visible: true,
+        },
+        {
+          kind: 'link',
+          href: '/settings/ai',
+          icon: Sparkles,
+          title: messages('admin.tiles.ai'),
+          description: messages('admin.tiles.aiDescription'),
+          visible: aiManage,
         },
       ],
     },

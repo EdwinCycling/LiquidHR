@@ -5,6 +5,7 @@ export const EMPLOYEE_SUMMARY_FEATURE = 'EMPLOYEE_SUMMARY'
 export const CONVERSATION_PREPARATION_FEATURE = 'CONVERSATION_PREPARATION'
 export const DEVELOPMENT_GOAL_SMART_FEATURE = 'DEVELOPMENT_GOAL_SMART'
 export const VACANCY_DRAFT_FEATURE = 'VACANCY_DRAFT'
+export const TEAM_SUMMARY_FEATURE = 'TEAM_SUMMARY'
 
 const profiles: readonly AiQualityProfile[] = ['EFFICIENT', 'BALANCED', 'IN_DEPTH']
 
@@ -77,6 +78,7 @@ const employeeSummary = aiEverywhereFeature(EMPLOYEE_SUMMARY_FEATURE, 'employee-
 const conversationPreparation = aiEverywhereFeature(CONVERSATION_PREPARATION_FEATURE, 'conversation-preparation.v1', 'conversation-preparation')
 const developmentGoalSmart = aiEverywhereFeature(DEVELOPMENT_GOAL_SMART_FEATURE, 'development-goal-smart.v1', 'development-goal-smart')
 const vacancyDraft = aiEverywhereFeature(VACANCY_DRAFT_FEATURE, 'vacancy-draft.v1', 'vacancy-draft')
+const teamSummary = aiEverywhereFeature(TEAM_SUMMARY_FEATURE, 'team-summary.v1', 'team-summary')
 
 const definitions: Readonly<Record<string, AiFeatureDefinition>> = {
   [IMPROVE_EXISTING_HR_TEXT_FEATURE]: improveExistingHrText,
@@ -84,6 +86,7 @@ const definitions: Readonly<Record<string, AiFeatureDefinition>> = {
   [CONVERSATION_PREPARATION_FEATURE]: conversationPreparation,
   [DEVELOPMENT_GOAL_SMART_FEATURE]: developmentGoalSmart,
   [VACANCY_DRAFT_FEATURE]: vacancyDraft,
+  [TEAM_SUMMARY_FEATURE]: teamSummary,
 }
 
 export class StaticAiFeatureRegistry implements AiFeatureRegistry {

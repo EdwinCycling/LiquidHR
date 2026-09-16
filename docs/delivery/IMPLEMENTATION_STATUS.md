@@ -424,6 +424,93 @@ De finale gate is uitgevoerd: de volledige suite is `358/359` testbestanden en
 DM-1 migration-contracttest voor CASE-parenthesization; die is niet gewijzigd in
 deze slice. Strict TypeScript, ESLint, i18n (`35` namespaces), `git diff --check`
 en Webpack-productiebuild (`258/258` statische pagina's) zijn groen.
+## AI admin settings / voice accounting — 2026-09-15
+
+**Status: DEV/TEST APPLIED — PREVIEW UI RESTORED; FULL ACCEPTANCE OPEN**
+
+De migration `20260915140000_ai_admin_settings_voice_accounting.sql` is alleen
+toegepast op DEV/TEST-project `wnpfloqpjvaacobppbpk` (remote versie
+`20260915163650`). De drie nieuwe settings-/voice-accountingtabellen zijn
+aanwezig en de Preview toont de geautoriseerde AI-surface bovenaan Lisa’s
+Employee Detail-dashboard. De oorzaak van de ontbrekende kaart was een
+ontbrekende DEV/TEST-migratie: de settings-read faalde, waardoor de bestaande
+server-side settings-gate de AI-surface correct verborgen hield.
+
+De lokale targeted AI-tests, strict TypeScript en ESLint zijn groen. Supabase
+security-advisors tonen geen nieuwe security finding; performance-advisors
+melden drie unindexed-FK-waarschuwingen voor de nieuwe accountingrelaties.
+React hydration `#418` blijft op de nieuwste Preview na reload open, evenals
+echte authenticated voice/tool-call/credits-Insights acceptance. Er is niet
+gemerged naar `main` en Production en `work/leave-profile-management` zijn
+niet aangeraakt.
+
+## GPT-Live transport + Employee AI interaction — 2026-09-15
+
+**Status: PREVIEW READY — MANUAL VOICE ACCEPTANCE OPEN**
+
+De gemelde Employee Detail `422` was geen request-validatiefout in LiquidHR.
+OpenAI gaf op de oude create-payload `400 invalid_request_error` met
+`unknown_parameter` voor `session.type`; de route mapte dit providerresultaat
+naar de generieke applicatie-422. De configuratie gebruikt nu de actuele
+`POST /v1/live/sessions` WebRTC-contractvorm met `session.model = gpt-live-1`
+en zonder `session.type`. De veilige providerlog blijft beperkt tot status,
+request-id, foutmetadata, endpoint/API-family en model; key, SDP, audio,
+employee-data en prompts worden niet gelogd.
+
+`AiProgress` is als herbruikbare Foundation-pattern toegevoegd aan de bestaande
+AI-resultaatweergave. Employee Summary en Conversation Preparation tonen na
+review naast `Kopiëren` de expliciete actie `Opslaan in Mijn logboek`, via het
+bestaande owner-only logbook-endpoint. De opslag bevat alleen de door de
+gebruiker beoordeelde titel en tekst; geen employee-id, audio of transcript en
+geen autonome write. DEV/TEST Supabase, bestaande tools, authorization,
+proposal-only grenzen en migrations zijn niet gewijzigd.
+
+Gerichte tests: `14/14` groen; strict TypeScript, ESLint, i18n en diff-check
+groen. De volledige suite heeft drie bestaande failures: de V2-migration-
+contractverwachting, de DM-1 CASE-contracttest en de PDF-renderer-timeout. De
+Preview `https://liquidhr-mxlzg2sfk-edwinitsolutions.vercel.app` staat `READY`
+als deployment `dpl_C2FJPNEFUXCBYaRP1h2gXbcwiHB6` op commit
+`7856d9456e9ef418270f8bfdd9063c12502cfd09`; de route is
+`/employees/64ad3a23-f59a-4ed0-af41-26dda20ff067?tab=overview&view=expanded`.
+De nieuwe deployment-host vereist een eigen authenticated login. React
+hydration `#418` en authenticated microfoon/audio/tool-call acceptance blijven
+aparte open gates.
+
+## Employee Detail AI-surface — 2026-09-15
+
+**Status: LOCAL UI CORRECTION — NOT PUSHED OR DEPLOYED**
+
+De bestaande geautoriseerde employee-AI-acties en GPT-Live voice zijn samengebracht
+in één Foundation-surface bovenaan het Employee Detail-dashboard. De surface
+wordt uitsluitend gevoed door de bestaande server-side gates en verschijnt dus
+niet voor een gebruiker of tenant waarvoor AI niet beschikbaar is. Nieuwe of
+oude layouts krijgen `aiSupport` standaard vooraan; een expliciet opgeslagen
+gebruikersvolgorde blijft behouden. Er zijn geen auth-, API-, database-,
+model-, Production-, main- of leave-branchwijzigingen uitgevoerd.
+
+Gerichte layout-, Foundation- en voice-tests `21/21`, strict TypeScript en
+ESLint zijn groen. Push, Vercel Preview en remote migration zijn geen onderdeel
+van deze UI-stap.
+
+## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
+
+**Status: DEV/TEST APPLIED — PREVIEW ACCEPTANCE PARTIAL**
+
+De slice voegt de server-side Team AI-scope en GPT-Live voice-tools toe op de
+Start-pagina, plus de owner-only route `/logbook` voor handmatige notities en
+reviewed AI-team-samenvattingen. Directe managers blijven binnen hun directe
+team; HR-rollen gebruiken server-gevalideerde afdelingsscope. Team Summary
+gebruikt de bestaande AI Foundation en Liquid Credits en blijft proposal-only.
+
+De migration `20260914100000_conversational_ai_v2_team_logbook.sql` en de
+bijgewerkte lokale `packages/db/types.ts` zijn aanwezig. Remote DEV/TEST
+apply, advisors, typegen/readback en de authenticated scope/RLS-proef zijn
+uitgevoerd; echte Team AI microphone acceptance blijft open. Geen Production,
+`main` of `work/leave-profile-management` wijziging is gedaan.
+
+Lokale gates: targeted contract/UI/schema tests `19/19`, i18n `36` namespaces,
+strict TypeScript en ESLint groen. Full suite `1405/1407`; de twee failures
+zijn bestaande, buiten-scope DM-1 CASE-format en PDF-timeout failures.
 
 ## AI Everywhere V1 — 2026-09-07
 

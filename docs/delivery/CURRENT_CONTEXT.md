@@ -441,6 +441,206 @@ wizard/auth-tests zijn groen. De finale brede gate is `358/359` testbestanden en
 migration-contracttest voor CASE-parenthesization. Strict TypeScript, ESLint,
 i18n (`35` namespaces), `git diff --check` en Webpack (`258/258` statische
 pagina's) zijn groen. Geen Production, Payroll of deployment is aangeraakt.
+## GPT-Live Responses tool-schema hotfix — 2026-09-15
+
+De resterende providerfout na gesproken input is geïsoleerd tot de strikte
+Responses-delegatieconfiguratie. `create_personal_reminder` declareerde
+`description` als optioneel terwijl iedere parameter bij `strict: true` in
+`required` moet staan. Het veld is nu als verplichte nullable string
+gedeclareerd; de server normaliseert `null` terug naar de bestaande optionele
+servicevorm. De lege read-only toolparameters declareren expliciet
+`required: []`.
+
+De gerichte employee voice-, GPT-Live- en reminder-tests zijn `35/35` groen;
+strict TypeScript, gerichte ESLint en diff-check zijn groen. Dit is nog niet
+als echte microfoonacceptatie bewezen totdat de nieuwe Preview met één korte
+handmatige utterance is gecontroleerd. De server-mediated GPT-Live-1
+transport, employee binding, autorisatie, tools, proposal-only writes,
+usage/audit en DEV/TEST Supabase blijven ongewijzigd.
+
+De code is lokaal vastgelegd in commit `f26af94` op `work/ai-gpt-live`. De
+nieuwe expliciete Vercel Preview is `READY` op
+`https://liquidhr-gtkba68js-edwinitsolutions.vercel.app`; de exacte
+Employee Detail-testroute is
+`/employees/64ad3a23-f59a-4ed0-af41-26dda20ff067?tab=overview&view=expanded`.
+De vorige `n9s2...`-URL bevat deze schemafix niet.
+
+## GPT-Live interruption + finalization follow-up — 2026-09-15
+
+De laatste handmatige fout na inspreken is teruggevoerd naar twee afzonderlijke
+problemen. De Employee- en Team-Live-Voice-clients stuurden bij een interruptie de
+Realtime-only events `response.cancel` en `output_audio_buffer.clear`; deze
+events horen niet bij het actuele GPT-Live-1 client-eventcontract. De client
+pauzeert nu uitsluitend het lokale audio-element; GPT-Live-1 verwerkt
+barge-in/full-duplex via de WebRTC-mediatransportlaag. De server blijft
+server-mediated, employee-bound, geautoriseerd en proposal-only.
+
+Daarnaast logt de veilige browserdiagnostiek nu scalar JSON zodat een eventuele
+providerfout zonder secrets, SDP, audio, employee-data of volledige prompt in
+de console leesbaar is. De gedeelde `TimeHub` initialiseert datumafhankelijke
+state pas na mount; daarmee is de concrete server/client-datum-mismatch achter
+React #418 verwijderd zonder `suppressHydrationWarning`.
+
+De gerichte voice-tests zijn `22/22` groen; strict TypeScript, gerichte ESLint
+en `git diff --check` zijn groen. Lokale commit: `eef1b88`. De expliciete
+Preview is `READY` op
+`https://liquidhr-n9s2wx5n1-edwinitsolutions.vercel.app` en gebruikt de
+DEV/TEST Supabase-omgeving `wnpfloqpjvaacobppbpk`.
+
+De gevraagde lokale migration
+`20260915193000_fix_voice_finalization_execute.sql` is inhoudelijk al op dit
+DEV/TEST-project toegepast; Supabase registreerde de apply onder remote versie
+`20260915182841`. Readback bevestigt `SECURITY DEFINER`, de veilige
+`search_path`, uitsluitend `service_role` execute en geen execute voor
+`authenticated`, `anon` of `public`. Er is geen Production-migratie uitgevoerd.
+
+Open gate: de nieuwe Preview vereist een nieuwe authenticated browserlogin.
+De echte microfoon-/gesproken-response-acceptatie op deze nieuwe deployment is
+nog niet als groen bewijs geclaimd; de gebruiker moet de nieuwe test-URL
+opnieuw starten en spreken.
+
+## AI admin settings / voice accounting — 2026-09-15
+
+De forward migration `20260915140000_ai_admin_settings_voice_accounting.sql` is
+toegepast op uitsluitend het geautoriseerde DEV/TEST-project
+`wnpfloqpjvaacobppbpk`; Supabase registreerde de remote versie
+`20260915163650`. Readback bevestigt `ai_group_settings`,
+`ai_voice_credit_charges` en `ai_voice_credit_charge_allocations`. De
+veiligheids-advisor geeft geen nieuwe security findings; de performance-advisor
+rapporteert drie nieuwe unindexed-FK-waarschuwingen die apart moeten worden
+beoordeeld.
+
+De Preview `https://liquidhr-4ruj48y16-edwinitsolutions.vercel.app` toont na een
+refresh op Lisa’s Employee Detail-route de AI-surface als eerste
+dashboardwidget, met `Vat medewerker samen`, `Bereid gesprek voor` en
+`Start spraakgesprek`. De oorspronkelijke afwezigheid kwam doordat de nieuwe
+settingslaag tegen een nog niet gemigreerd DEV/TEST-schema las, waardoor de
+server-side settings-gate `aiSettings === null` werd.
+
+Open: React hydration `#418` verschijnt nog in de nieuwste authenticated
+Preview na reload; echte voice-, tool-call- en credits/Insights-acceptatie en
+de volledige gate blijven daarom open. Geen Production-, `main`- of
+`work/leave-profile-management`-wijziging.
+
+## GPT-Live transport + Employee AI interaction — 2026-09-15
+
+De 422 op de Employee Detail voice-route is teruggevoerd naar een provider-400:
+OpenAI retourneerde voor `POST /v1/live/sessions` een veilige foutmetadata-set
+met `invalid_request_error`, code `unknown_parameter` en parameter
+`session.type`. De LiquidHR-route vertaalde `PROVIDER_FAILED` bewust naar 422.
+De GPT-Live create-configuratie stuurt nu geen `session.type` meer. De actuele
+request blijft `POST https://api.openai.com/v1/live/sessions` met een
+`session`-object waarin `model: gpt-live-1` staat en een
+`transport: { type: webrtc, sdp }`-object. Server-mediated authentication,
+employee binding, delegatie, bestaande tools, proposal-only writes,
+usage/audit en DEV/TEST Supabase zijn ongewijzigd.
+
+De gedeelde `AiProgress`-surface toont tijdens iedere bestaande
+`AiResultSurface`-loadingfase een statuslabel, pulserende denkpunten en een
+voortgangsbalk. Employee Summary en Conversation Preparation bieden na review
+naast `Kopiëren` expliciet `Opslaan in Mijn logboek`; de bestaande owner-only
+`POST /api/logbook` ontvangt alleen de door de gebruiker beoordeelde titel en
+tekst. Er is geen schemawijziging of remote migration uitgevoerd.
+
+Gerichte GPT-Live- en Employee-AI-tests zijn `14/14` groen; strict TypeScript,
+ESLint, i18n en diff-check zijn groen. De volledige suite blijft rood door de
+bestaande V2-migration-contractverwachting, de bestaande DM-1 CASE-contracttest
+en de bestaande PDF-renderer-timeout. Preview deployment
+`dpl_C2FJPNEFUXCBYaRP1h2gXbcwiHB6` staat `READY` op de codecommit
+`7856d9456e9ef418270f8bfdd9063c12502cfd09` via
+`https://liquidhr-mxlzg2sfk-edwinitsolutions.vercel.app`. De nieuwe host vereist
+een eigen authenticated login; microfoon/audio-acceptatie en de afzonderlijke
+React hydration `#418`-diagnose blijven open.
+
+## Employee Detail AI-surface — 2026-09-15
+
+De bestaande, server-geautoriseerde `AI-ondersteuning` en GPT-Live voice staan
+nu samen in de `aiSupport`-widget van het Employee Detail-overzicht. De widget
+wordt alleen opgebouwd wanneer de bestaande employee-AI- of voice-gates waar
+zijn en wordt voor bestaande layouts standaard vóór de andere dashboardwidgets
+geplaatst. Een expliciet door de gebruiker opgeslagen widgetvolgorde blijft
+leidend. De bestaande AI-acties, voice-modal, serverroutes, permissions,
+providerconfiguratie en proposal-only grenzen zijn niet gewijzigd.
+
+Gerichte layout-, Foundation- en voice-componenttests (`21/21`), strict
+TypeScript en ESLint zijn groen. Deze UI-correctie staat nog lokaal in de
+AI-worktree; er is in deze stap geen push, Preview-deployment, main-integratie
+of leave-branchwijziging uitgevoerd.
+
+## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
+
+De kandidaatimplementatie staat in de actuele AI-worktree op branch
+`work/ai-gpt-live` en bouwt voort op de geaccepteerde GPT-Live employee-slice.
+Team AI gebruikt een vaste server-side Direct Manager- of HR-afdelingsscope,
+GPT-Live `gpt-live-1` via het huidige `/v1/live/sessions`-contract zonder
+`session.type` en de bestaande server-mediated WebRTC-transportlaag, plus de bestaande proposal-only AI
+Foundation. Nieuwe routes zijn
+`/api/team-ai/voice/session`, `/tool`, `/usage` en `/api/logbook`; de UI staat
+op `/dashboard/start` en `/logbook`.
+
+De lokale forward migration
+`apps/hr-suite/supabase/migrations/20260914100000_conversational_ai_v2_team_logbook.sql`
+maakt `ai_team_sessions`, vaste session-members, owner-only
+`personal_logbook_entries`, permissions, Team Summary credit-catalogus en
+gesanitiseerde audit mogelijk. De migration is op het geautoriseerde DEV/TEST-
+project toegepast als remote versie `20260914154120`; de follow-up
+`20260914110000_conversational_ai_v2_logbook_privilege_hardening.sql` is als
+`20260914154659` toegepast om default `anon`-table privileges expliciet te
+verwijderen.
+
+Verificatie tot nu toe: i18n `36` namespaces, gerichte nieuwe/voice/schema/
+startpage-tests `20/20`, strict TypeScript, ESLint en de Turbopack-
+productiebuild (`263/263` routes) groen. De volledige suite is `1405/1407`:
+de twee bestaande, ongewijzigde failures zijn de DM-1 asset-storage-key
+CASE-contracttest en de PDF-renderer-timeout. Remote readback van DEV/TEST
+`wnpfloqpjvaacobppbpk` bevestigt de drie V2-tabellen, RLS, owner policies,
+service-role-only Team-tabellen, de composite scope-FK's en remote typegen met
+V2-tabellen. De expliciete transactionele RLS-proef is groen voor owner-read,
+cross-user read/update/delete en cross-tenant read; `anon` heeft geen table
+privileges. Advisors tonen alleen de bestaande baseline plus de verwachte
+intentional `rls_enabled_no_policy`-melding voor de service-role-only Team-
+tabellen. Open gates zijn authenticated Manager/HR Team AI scope, real GPT-Live
+Team AI microphone/tool acceptance, logbook CRUD/AI-save browser evidence, and
+later separate release integration.
+
+### V2 Preview authenticated acceptance — 2026-09-14
+
+De tijdelijke V2-Preview `https://liquidhr-das8slkg7-edwinitsolutions.vercel.app`
+(`READY`, deployment `dpl_uAX6DDLmLwUGhVSTUq6JB7EX75HU`) gebruikt de lokale
+candidate op `work/ai-gpt-live`, commit
+`6f404b0f0537fdfb08f23a1a23e1af58e7e9dc96`, en het geautoriseerde DEV/TEST-
+project `wnpfloqpjvaacobppbpk`. De exacte Employee Detail-proefroute is
+`/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13`.
+
+Authenticated browser-readback na hydration is groen: Manager ziet Team AI,
+`AI-ondersteuning` en `Praat met LiquidHR`; HR Admin ziet afdeling-scope,
+dezelfde Employee Detail-AI en voice controls; Employee ziet geen AI/voice
+controls buiten de toegestane `ai:use`-scope en houdt wel een eigen logboek.
+De drie productpagina-controles hadden `0` console-errors, `0` warnings en geen
+page-errors. De latere Vercel-toolbarprobe gaf alleen externe toolbar-CORS-
+ruis, niet van de LiquidHR-app.
+
+Een echte Team GPT-Live-sessie met employee-context en een logboek-save zijn in
+deze run bewust niet gestart: dit blijven expliciete menselijke acceptance gates
+wegens externe audio/HR-context en een remote DEV/TEST-write. Daarom is de UI- en
+authenticatieacceptatie groen, maar zijn echte microfoon/audio, gesproken
+toolcalls en logboek-persistentie nog niet als runtime-evidence geclaimd.
+
+## GPT-Live Preview acceptance remediation — 2026-09-14
+
+De echte GPT-Live Preview-proef is technisch hersteld op branch `work/ai-gpt-live`, commit `9087bfd66ab2d978d097982338bd2803fd993e8e`. De oorspronkelijke `422` kwam doordat GPT-Live-1 via het oude Realtime-contract (`/v1/realtime/calls`, `type: realtime`) werd aangeroepen; de code gebruikt nu server-mediated `POST /v1/live/sessions` met `session.model=gpt-live-1`, `transport.type=webrtc` en de browser-SDP als offer. Providerfouten loggen alleen status, API-familie, model, request-id en OpenAI error type/code.
+
+De React `#418`-hydration mismatch was datumafhankelijke client-rendering in het employment-overzicht rond een datumgrens. `today` komt nu uit de serverrender en de regressietest fixeert de server/client-datumgrens; de lokale authenticated dev-browsercontrole gaf geen errors, warnings of page-errors.
+
+De definitieve diagnostics-vrije Vercel Preview is deployment `dpl_4PmvgQSF5rR4CystYdcrGs3iWGcU`, `READY`, op `https://liquidhr-lq6igyvk9-edwinitsolutions.vercel.app`. Exacte testroute: `https://liquidhr-lq6igyvk9-edwinitsolutions.vercel.app/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13`. De tijdelijke branch-Preview diagnostics-variabele en disposable gate-endpoint zijn verwijderd. De geautoriseerde Manager-proefpersoon had `canUseAi=true`, Manager/HR-scope `true`, `isAiImproveAvailable=true`, `isRealtimeVoiceEnabled=true`, `OPENAI_API_KEY` aanwezig, provider-safety geldig/aan en effectief model `gpt-live-1`; Vercel runtime was Preview met `NODE_ENV=production`.
+
+Finale technische smoke op de exacte Preview: UI `AI-ondersteuning` en `Praat met LiquidHR`/`Start spraakgesprek` zichtbaar; authenticated session POST `200`; WebRTC ICE/peer connected; `session.started`; remote audio-track; DOM-audio gekoppeld en `play()` resolved; inbound RTP ontvangen; geen browser console errors/warnings of page-errors. De browserprobe gebruikte een synthetisch media-device; echte microfoon-, gesproken tool-call- en manageracceptatie blijven de handmatige vervolgstap. Geen Production/main/leave-branch wijziging en geen productie-migratie uitgevoerd.
+
+## GPT-Live employee voice V1 — 2026-09-13
+
+De lokale candidate voegt [`LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md`](../requirements/ai/LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md), server-mediated WebRTC-sessionroutes, drie server-authorized voice-tools, i18n en `ai_voice_sessions` metadata toe. De bestaande AI Everywhere-capabilities blijven de businesslaag; SMART blijft proposal-only. Direct managers krijgen `ai:use` via de lokale forward migration. De browser ontvangt geen permanente OpenAI-key en model/tool-employee-ID's worden niet vertrouwd.
+
+Verificatie: de huidige GPT-Live contracttests zijn `8/8` groen, strict TypeScript, ESLint en de authenticated Preview smoke zijn groen. De Preview op `work/ai-gpt-live` gebruikt `gpt-live-1` via `POST /v1/live/sessions` met WebRTC; de browser-SDP wordt ongewijzigd doorgestuurd. Een synthetische manager-sessie kreeg HTTP `200`, `session.started`, `session.closed`, outbound/inbound RTP-audio en geen hydration-, console- of page-errors. De DEV/TEST-migration is aanwezig; in deze run is geen remote migration toegepast. Handmatige spraak-, tool- en manageracceptatie blijven open. De beschermde `apps/hr-suite/next-env.d.ts` blijft ongemoeid.
 
 ## AI Everywhere V1 candidate — 2026-09-08
 
@@ -3139,3 +3339,9 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 - DEV acceptance via HR Admin UI is geslaagd voor Planeten: `Standaard verlof Planeten` is actief en standaard; `Test afwijkend verlofprofiel` is actief en niet-standaard; `Test afwijkende regeling` is actief met prioriteit 10 en gekoppeld aan het afwijkende profiel. De type-detailpagina toont geen no-default-warning meer.
 - Beperkte remote readback bevestigt migration aanwezig, index en trigger aanwezig, save-RPC `SECURITY INVOKER` met alleen authenticated execute, Planeten 2 profielen/1 default/1 set, `TEST-BOUNDARY` 0 employees/0 employments en Test BV 0 tenants. Supabase typegen is uitgevoerd en het nieuwe RPC-type matcht `packages/db/types.ts`; advisors tonen alleen bestaande projectbrede waarschuwingen/INFO’s.
 - Verificatie: targeted leave/schema/migration tests 17/17, volledige Vitest 1381/1382 met één bestaande Document Studio contracttestfailure, strict TypeScript, ESLint, i18n, diff-check en Webpack-productiebuild groen. Een frisse HR Admin-browserrun heeft geen console errors; Manager/Medewerker negative acceptance is groen. Turbopack faalt alleen door de bekende ongeldige worktree `node_modules/next`-symlink. Push/deploy en membership van een synthetic employee zijn niet uitgevoerd.
+## Conversational AI V2 human-acceptance fix round — 2026-09-14
+
+- Branch blijft `work/ai-gpt-live`; `main` en `work/leave-profile-management` zijn niet aangeraakt. De GPT-Live WebRTC-create payload gebruikt nu uitsluitend de actuele Live-vorm `POST /v1/live/sessions` met `session.model = gpt-live-1` en `transport.type = webrtc`; het verouderde `session.type` is verwijderd. Providerfouten bewaren alleen status, API-family/endpoint, model, request-ID en veilige OpenAI-foutmetadata.
+- De bestaande Team- en Employee-voice-delegatie bevat nu daarnaast de smalle `create_personal_reminder`-capability. Deze roept uitsluitend de bestaande actor-gebonden `createPersonalReminder`-service aan, vereist een expliciete/aanvaarde bevestiging en absolute toekomstige timestamp, accepteert geen tenant-, actor-, employee-, team- of department-targets en gebruikt geen HR-reminder/publish-pad. De capability schrijft geen Liquid Credits; een veilige auditregel bevat alleen bron/capability/actor/reminder/statusmetadata.
+- De Start-page logbook-preview laadt server-side alleen tellingen en laatste timestamp. Notitie-inhoud komt pas na expliciete `Toon recente notities`-actie in de client; `Verberg inhoud` wist de clientstaat. De bestaande Logbook CRUD-flow is in een schone Manager-browserflow opnieuw gecontroleerd met POST/PATCH/DELETE 201/200/200 en zonder applicatie-consolefouten. Het eerder gemelde `startTime`/VM32-signaal kwam niet uit LiquidHR-appscripts en is niet als productbug gereproduceerd.
+- Verificatie kandidaat: gerichte voice/reminder/start-page tests 41/41, strict TypeScript, lint, i18n (36 namespaces) en Next production build groen. Volledige suite: 1.416/1.418 tests groen; de twee bekende niet-gerelateerde failures blijven de Document Studio CASE-contracttest en de 5s PDF-render-timeout. Open vóór eindacceptatie: één replacement Preview, authenticated Team/Employee smoke, en menselijke Manager/HR-microfoon/audio-acceptatie inclusief tool flows, interruption en console/network review.

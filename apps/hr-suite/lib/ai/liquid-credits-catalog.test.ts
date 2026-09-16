@@ -28,7 +28,7 @@ describe('Liquid Credits charge catalog', () => {
   })
 
   it('resolvet alle vier AI Everywhere features op dezelfde vaste charge ladder', () => {
-    for (const featureCode of ['EMPLOYEE_SUMMARY', 'CONVERSATION_PREPARATION', 'DEVELOPMENT_GOAL_SMART', 'VACANCY_DRAFT']) {
+    for (const featureCode of ['EMPLOYEE_SUMMARY', 'CONVERSATION_PREPARATION', 'DEVELOPMENT_GOAL_SMART', 'VACANCY_DRAFT', 'TEAM_SUMMARY']) {
       const feature = aiFeatureRegistry.get(featureCode)
       expect(feature).not.toBeNull()
       if (!feature) throw new Error('Expected AI Everywhere feature')

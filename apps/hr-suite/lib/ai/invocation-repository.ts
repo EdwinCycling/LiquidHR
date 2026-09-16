@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { AiExecutionError, type AiInvocation, type AiInvocationInput, type AiStateTransition, type InvocationRepository, type NewAiInvocation } from './contracts'
 import { canTransition } from './state-machine'
 
-export function buildAiRequestFingerprint(input: Pick<AiInvocationInput, 'authContext' | 'featureCode' | 'businessObject' | 'businessPermissionCode' | 'idempotencyKey' | 'qualityProfile' | 'writingStyle'>): string {
+export function buildAiRequestFingerprint(input: Pick<AiInvocationInput, 'authContext' | 'featureCode' | 'businessObject' | 'businessPermissionCode' | 'idempotencyKey' | 'qualityProfile' | 'writingStyle' | 'origin'>): string {
   const canonicalInput = {
     tenantId: input.authContext.tenantId,
     hrGroupId: input.authContext.hrGroupId ?? null,
@@ -16,6 +16,7 @@ export function buildAiRequestFingerprint(input: Pick<AiInvocationInput, 'authCo
     idempotencyKey: input.idempotencyKey,
     qualityProfile: input.qualityProfile ?? null,
     writingStyle: input.writingStyle ?? null,
+    origin: input.origin ?? 'UI',
   }
 
   return createHash('sha256').update(JSON.stringify(canonicalInput)).digest('hex')

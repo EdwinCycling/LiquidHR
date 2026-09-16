@@ -22,7 +22,7 @@ export interface EmployeeDashboardSummaryLabels {
   edit: string
 }
 
-export function EmployeeDashboardSummary({ detail, labels }: { detail: EmployeeDetailViewModel; labels: EmployeeDashboardSummaryLabels }) {
+export function EmployeeDashboardSummary({ detail, labels, today }: { detail: EmployeeDetailViewModel; labels: EmployeeDashboardSummaryLabels; today: string }) {
   const employee = detail.employee
   const currentAddress = (detail.addresses ?? []).find((address) => !address.validUntil) ?? detail.addresses?.[0]
   const primaryBank = (detail.bankAccounts ?? []).find((account) => account.isPrimary) ?? detail.bankAccounts?.[0]
@@ -36,8 +36,8 @@ export function EmployeeDashboardSummary({ detail, labels }: { detail: EmployeeD
     <div className="p-4 sm:p-5">
       <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
         <SummaryDataPoint label={labels.name} value={`${employee.firstName} ${employee.birthName}`} />
-        <SummaryDataPoint label={labels.age} value={getAgeLabel(employee.birthDate, labels.notRecorded)} />
-        <SummaryDataPoint label={labels.daysUntilBirthday} value={getDaysUntilBirthdayLabel(employee.birthDate, labels.notRecorded)} />
+        <SummaryDataPoint label={labels.age} value={getAgeLabel(employee.birthDate, today, labels.notRecorded)} />
+        <SummaryDataPoint label={labels.daysUntilBirthday} value={getDaysUntilBirthdayLabel(employee.birthDate, today, labels.notRecorded)} />
         <SummaryDataPoint label={labels.workEmail} value={employee.workEmail ?? labels.noContact} isEmail={Boolean(employee.workEmail)} />
         <SummaryDataPoint label={labels.privateEmail} value={employee.privateEmail ?? labels.noContact} isEmail={Boolean(employee.privateEmail)} />
         <SummaryDataPoint label={labels.workPhone} value={employee.workPhone ?? employee.workMobile ?? labels.noContact} />
@@ -60,26 +60,43 @@ function SummaryFact({ icon, label, value }: { icon: React.ReactNode; label: str
   return <div className="flex min-w-0 items-start gap-2.5"><span className="mt-0.5 shrink-0 text-primary">{icon}</span><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.11em] text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{value}</p></div></div>
 }
 
-function getAgeLabel(birthDate: string | null | undefined, fallback: string): string {
+function getAgeLabel(birthDate: string | null | undefined, todayValue: string, fallback: string): string {
   if (!birthDate) return fallback
-  const birth = new Date(`${birthDate}T00:00:00`)
-  const today = new Date()
-  let age = today.getFullYear() - birth.getFullYear()
-  const birthdayThisYear = new Date(today.getFullYear(), birth.getMonth(), Math.min(birth.getDate(), new Date(today.getFullYear(), birth.getMonth() + 1, 0).getDate()))
-  if (today < birthdayThisYear) age -= 1
+  const birth = parseIsoDate(birthDate)
+  const today = parseIsoDate(todayValue)
+  if (!birth || !today) return fallback
+  let age = today.year - birth.year
+  const birthdayThisYear = { year: today.year, month: birth.month, day: Math.min(birth.day, daysInMonth(today.year, birth.month)) }
+  if (compareDateParts(today, birthdayThisYear) < 0) age -= 1
   return `${age}`
 }
 
-function getDaysUntilBirthdayLabel(birthDate: string | null | undefined, fallback: string): string {
+function getDaysUntilBirthdayLabel(birthDate: string | null | undefined, todayValue: string, fallback: string): string {
   if (!birthDate) return fallback
-  const birth = new Date(`${birthDate}T00:00:00`)
-  const today = new Date()
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const daysInMonth = new Date(today.getFullYear(), birth.getMonth() + 1, 0).getDate()
-  let birthday = new Date(today.getFullYear(), birth.getMonth(), Math.min(birth.getDate(), daysInMonth))
-  if (birthday < startOfToday) {
-    const nextYearDays = new Date(today.getFullYear() + 1, birth.getMonth() + 1, 0).getDate()
-    birthday = new Date(today.getFullYear() + 1, birth.getMonth(), Math.min(birth.getDate(), nextYearDays))
-  }
-  return `${Math.ceil((birthday.getTime() - startOfToday.getTime()) / 86400000)}`
+  const birth = parseIsoDate(birthDate)
+  const today = parseIsoDate(todayValue)
+  if (!birth || !today) return fallback
+  let birthday = { year: today.year, month: birth.month, day: Math.min(birth.day, daysInMonth(today.year, birth.month)) }
+  if (compareDateParts(birthday, today) < 0) birthday = { year: today.year + 1, month: birth.month, day: Math.min(birth.day, daysInMonth(today.year + 1, birth.month)) }
+  const birthdayTime = Date.UTC(birthday.year, birthday.month - 1, birthday.day)
+  const todayTime = Date.UTC(today.year, today.month - 1, today.day)
+  return `${Math.max(0, Math.ceil((birthdayTime - todayTime) / 86400000))}`
+}
+
+type IsoDateParts = { year: number; month: number; day: number }
+
+function parseIsoDate(value: string): IsoDateParts | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.slice(0, 10))
+  if (!match) return null
+  const year = Number(match[1]); const month = Number(match[2]); const day = Number(match[3])
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day) || month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null
+  return { year, month, day }
+}
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+function compareDateParts(left: IsoDateParts, right: IsoDateParts): number {
+  return Date.UTC(left.year, left.month - 1, left.day) - Date.UTC(right.year, right.month - 1, right.day)
 }

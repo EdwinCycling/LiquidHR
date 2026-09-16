@@ -56,7 +56,7 @@ interface TimeHubProps {
 
 export function TimeHub({ collapsed, compact = false, initialReminders, labels, locale, dateFormat, timeFormat }: TimeHubProps) {
   const router = useRouter()
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState<Date | null>(null)
   const [removedRecipientIds, setRemovedRecipientIds] = useState<ReadonlySet<string>>(() => new Set())
   const [snoozedTimes, setSnoozedTimes] = useState<Readonly<Record<string, string>>>({})
   const [busy, setBusy] = useState<string | null>(null)
@@ -67,20 +67,26 @@ export function TimeHub({ collapsed, compact = false, initialReminders, labels, 
   const [panelPosition, setPanelPosition] = useState({ left: 12, top: 12 })
   const isMounted = useSyncExternalStore(() => () => undefined, () => true, () => false)
   const pendingRef = useRef<ReminderItem[]>([])
-  const lastObservedTimeRef = useRef(new Date())
+  const lastObservedTimeRef = useRef<Date | null>(null)
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    const update = (): void => {
       const currentTime = new Date()
+      const previousTime = lastObservedTimeRef.current ?? currentTime
       const crossedReminder = pendingRef.current.find((item) => {
         const remindAt = new Date(item.remindAt).getTime()
-        return remindAt > lastObservedTimeRef.current.getTime() && remindAt <= currentTime.getTime()
+        return remindAt > previousTime.getTime() && remindAt <= currentTime.getTime()
       })
       if (crossedReminder) setAutomaticPopupId(crossedReminder.recipientId)
       lastObservedTimeRef.current = currentTime
       setNow(currentTime)
-    }, 1_000)
-    return () => window.clearInterval(timer)
+    }
+    const initialTimer = window.setTimeout(update, 0)
+    const timer = window.setInterval(update, 1_000)
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(timer)
+    }
   }, [])
 
   const pending = useMemo(() => initialReminders
@@ -93,10 +99,11 @@ export function TimeHub({ collapsed, compact = false, initialReminders, labels, 
     pendingRef.current = pending
   }, [pending])
 
-  const upcoming = pending.filter((item) => new Date(item.remindAt).getTime() > now.getTime()).sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime())
+  const upcoming = now ? pending.filter((item) => new Date(item.remindAt).getTime() > now.getTime()).sort((left, right) => new Date(left.remindAt).getTime() - new Date(right.remindAt).getTime()) : []
   const nextUpcoming = upcoming[0] ?? null
-  const upcomingSevenDays = upcoming.filter((item) => new Date(item.remindAt).getTime() <= now.getTime() + 7 * 24 * 60 * 60 * 1000)
-  const overdue = pending.filter((item) => new Date(item.remindAt).getTime() <= now.getTime()).sort((left, right) => new Date(right.remindAt).getTime() - new Date(left.remindAt).getTime())
+  const upcomingSevenDays = now ? upcoming.filter((item) => new Date(item.remindAt).getTime() <= now.getTime() + 7 * 24 * 60 * 60 * 1000) : []
+  const overdue = now ? pending.filter((item) => new Date(item.remindAt).getTime() <= now.getTime()).sort((left, right) => new Date(right.remindAt).getTime() - new Date(left.remindAt).getTime()) : []
+  const displayNow = now ?? new Date(0)
   const selected = selectedRecipientId ? pending.find((item) => item.recipientId === selectedRecipientId) ?? null : null
   const automaticDue = automaticPopupId ? pending.find((item) => item.recipientId === automaticPopupId) ?? null : null
   const popup = selected ?? automaticDue ?? null
@@ -149,14 +156,14 @@ export function TimeHub({ collapsed, compact = false, initialReminders, labels, 
 
   return (
     <div className={`relative flex min-w-0 items-center gap-1.5 ${collapsed ? '' : 'flex-1 justify-end'}`}>
-      {!collapsed && !compact && nextUpcoming ? <Button aria-label={`${labels.nextReminder}: ${nextUpcoming.title}, ${formatReminderDaysUntil(now, new Date(nextUpcoming.remindAt), locale)}`} className="relative max-w-52 -rotate-1 whitespace-normal border border-warning/40 bg-warning-surface px-3 py-2 text-left text-warning shadow-[0_.35rem_1rem_color-mix(in_srgb,var(--warning)_22%,transparent)] transition hover:rotate-0 hover:shadow-[0_.5rem_1.15rem_color-mix(in_srgb,var(--warning)_28%,transparent)] focus-visible:rotate-0" onClick={() => selectReminder(nextUpcoming.recipientId)} size="sm" type="button" variant="ghost"><span className="pointer-events-none absolute -top-1 left-1/2 h-3 w-10 -translate-x-1/2 -rotate-2 rounded-sm bg-warning/20" /><span className="block break-words text-xs font-semibold leading-4">{nextUpcoming.title}</span><span className="mt-1 block text-[10px] font-medium text-warning/75">{formatReminderDaysUntil(now, new Date(nextUpcoming.remindAt), locale)}</span></Button> : null}
+      {!collapsed && !compact && nextUpcoming ? <Button aria-label={`${labels.nextReminder}: ${nextUpcoming.title}, ${formatReminderDaysUntil(displayNow, new Date(nextUpcoming.remindAt), locale)}`} className="relative max-w-52 -rotate-1 whitespace-normal border border-warning/40 bg-warning-surface px-3 py-2 text-left text-warning shadow-[0_.35rem_1rem_color-mix(in_srgb,var(--warning)_22%,transparent)] transition hover:rotate-0 hover:shadow-[0_.5rem_1.15rem_color-mix(in_srgb,var(--warning)_28%,transparent)] focus-visible:rotate-0" onClick={() => selectReminder(nextUpcoming.recipientId)} size="sm" type="button" variant="ghost"><span className="pointer-events-none absolute -top-1 left-1/2 h-3 w-10 -translate-x-1/2 -rotate-2 rounded-sm bg-warning/20" /><span className="block break-words text-xs font-semibold leading-4">{nextUpcoming.title}</span><span className="mt-1 block text-[10px] font-medium text-warning/75">{formatReminderDaysUntil(displayNow, new Date(nextUpcoming.remindAt), locale)}</span></Button> : null}
       <div className="flex shrink-0 flex-col items-end gap-1">
         <IconButton aria-controls={isOpen && panelSection === 'upcoming' ? 'time-hub-panel' : undefined} aria-expanded={isOpen && panelSection === 'upcoming'} className={`${collapsed ? 'size-11' : 'size-9'} text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground`} label={`${labels.upcomingTitle}: ${upcomingSevenDays.length}`} onClick={(event) => togglePanel('upcoming', event)} size="sm" type="button" variant="ghost"><Clock3 aria-hidden="true" /></IconButton>
         {upcomingSevenDays.length > 0 ? <Badge className="pointer-events-none absolute right-0 top-0 min-w-4 justify-center border-0 bg-primary px-1 text-[10px] font-bold text-primary-foreground" tone="info">{Math.min(upcomingSevenDays.length, 99)}</Badge> : null}
         {overdue.length > 0 ? <><IconButton aria-controls={isOpen && panelSection === 'overdue' ? 'time-hub-panel' : undefined} aria-expanded={isOpen && panelSection === 'overdue'} className={`${collapsed ? 'size-11' : 'size-9'} text-red-200 hover:bg-red-400/15 hover:text-red-100`} label={`${labels.overdueTitle}: ${overdue.length}`} onClick={(event) => togglePanel('overdue', event)} size="sm" type="button" variant="ghost"><Clock3 aria-hidden="true" /></IconButton><Badge className="pointer-events-none absolute right-0 top-9 min-w-4 justify-center border-0 bg-destructive px-1 text-[10px] font-bold text-primary-foreground" tone="danger">{Math.min(overdue.length, 99)}</Badge></> : null}
       </div>
 
-      {isMounted && isOpen ? createPortal(<section aria-label={labels.timeHub} className="fixed z-[9990] w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border border-sidebar-border bg-sidebar p-3 text-sidebar-foreground shadow-[0_1.5rem_4rem_color-mix(in_srgb,var(--sidebar)_55%,transparent)]" id="time-hub-panel" style={panelPosition}>
+      {isMounted && isOpen && now ? createPortal(<section aria-label={labels.timeHub} className="fixed z-[9990] w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border border-sidebar-border bg-sidebar p-3 text-sidebar-foreground shadow-[0_1.5rem_4rem_color-mix(in_srgb,var(--sidebar)_55%,transparent)]" id="time-hub-panel" style={panelPosition}>
         <header className="flex items-center justify-between gap-3 border-b border-sidebar-border pb-3">
           <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-sidebar-muted">{labels.timeHub}</p><p className="mt-1 text-sm font-semibold">{labels.pendingCount.replace('{count}', String(pending.length))}</p></div>
           <div className="flex items-center gap-2">

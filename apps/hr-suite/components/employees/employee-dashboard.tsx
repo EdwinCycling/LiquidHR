@@ -20,7 +20,9 @@ import {
 } from 'lucide-react'
 import type { Json } from '@scope/db'
 import { EmployeeActivityFeed } from '@/components/employees/employee-activity-feed'
+import { EmployeeAiActions, type EmployeeAiActionLabels } from '@/components/employees/employee-ai-actions'
 import { EmployeeDashboardSummary, type EmployeeDashboardSummaryLabels } from '@/components/employees/employee-dashboard-summary'
+import { EmployeeLiveVoice, type EmployeeLiveVoiceLabels } from '@/components/employees/employee-live-voice'
 import { ProfileLinkForm } from '@/components/employment/profile-link-form'
 import { EmployeeDashboardLayout } from '@/components/employees/employee-dashboard-layout'
 import { SectionHeader } from '@/components/patterns/section-header'
@@ -66,6 +68,11 @@ interface EmployeeDashboardProps {
   reminders: ReminderItem[]
   activity: EmployeeActivityItem[]
   canWriteActivity: boolean
+  canUseEmployeeAi: boolean
+  canUseEmployeeVoice: boolean
+  employeeName: string
+  aiActionsLabels: EmployeeAiActionLabels
+  liveVoiceLabels: EmployeeLiveVoiceLabels
   initialLayout: DashboardLayout
   compact: boolean
   locale: string
@@ -84,28 +91,30 @@ interface EmployeeDashboardProps {
   canStartProcess: boolean
   journeys: JourneyProjectionList
   journeyLabels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string }
+  today: string
 }
 
-export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, initialLayout, compact, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, canReportAbsence = true, canRecoverAbsence = true, canChangeAbsenceCapacity = true, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ detail, customFields, documents, reminders, activity, canWriteActivity, canUseEmployeeAi, canUseEmployeeVoice, employeeName, aiActionsLabels, liveVoiceLabels, initialLayout, compact, locale, dateFormat, timeFormat, labels, canManageEmployments, absence, absenceEmploymentOptions = [], selfReportAbsence = false, canReportAbsence = true, canRecoverAbsence = true, canChangeAbsenceCapacity = true, processWork, canReadProcesses, canStartProcess, journeys, journeyLabels, today }: EmployeeDashboardProps) {
   const employee = detail.employee
   const summary = detail.currentEmploymentSummary
-  const today = new Date().toISOString().slice(0, 10)
   const leaveEmploymentOptions = detail.employments
     .filter((employment) => employment.record_status === 'CONFIRMED' && employment.starts_on <= today && (employment.ends_on === null || employment.ends_on >= today))
     .map((employment) => ({ id: employment.id, employmentNumber: employment.employment_number ?? labels.notRecorded }))
   const selectedLeaveEmploymentId = leaveEmploymentOptions.find((employment) => detail.employments.find((candidate) => candidate.id === employment.id)?.is_primary)?.id ?? leaveEmploymentOptions[0]?.id
   const visibleFields = customFields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
+  const aiEnabled = canUseEmployeeAi || canUseEmployeeVoice
   const wide = [
-    { id: 'personal' as const, node: <EmployeeDashboardSummary detail={detail} labels={labels} /> },
+    ...(aiEnabled ? [{ id: 'aiSupport' as const, node: <AiSupportCard aiActionsLabels={aiActionsLabels} canUseEmployeeAi={canUseEmployeeAi} canUseEmployeeVoice={canUseEmployeeVoice} employeeId={employee.id} employeeName={employeeName} liveVoiceLabels={liveVoiceLabels} locale={locale} /> }] : []),
+    { id: 'personal' as const, node: <EmployeeDashboardSummary detail={detail} labels={labels} today={today} /> },
     { id: 'customFields' as const, node: <DashboardCard icon={<Sparkles className="h-4 w-4" />} title={labels.customFields} actionHref="?tab=personal" actionLabel={labels.edit}>{visibleFields.length > 0 ? <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">{visibleFields.slice(0, 9).map((field) => <DataPoint key={field.id} label={locale === 'en' ? field.labelEn : field.labelNl} value={formatCustomValue(field.value, labels.notRecorded)} />)}</dl> : <EmptyInline>{labels.customFieldsEmpty}</EmptyInline>}</DashboardCard> },
     { id: 'leave' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.leave}>{labels.leaveHistory ? <LeaveBalanceHistoryPanel employmentId={selectedLeaveEmploymentId} employmentOptions={leaveEmploymentOptions} labels={labels.leaveHistory} locale={locale} overviewHref={`/employees/${employee.id}/leave${selectedLeaveEmploymentId ? `?employmentId=${selectedLeaveEmploymentId}` : ''}`} /> : <EmptyModule title={labels.leaveDescription} labels={labels} />}</DashboardCard> },
-    { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence}><div className="space-y-4">{absence ? <AbsenceStatusCard employeeId={employee.id} absence={absence} labels={labels} locale={locale} dateFormat={dateFormat} today={today} /> : null}<AbsenceQuickForm employeeId={employee.id} employmentId={absence?.employmentId ?? (absenceEmploymentOptions.length === 1 ? absenceEmploymentOptions[0]?.id : undefined)} employmentOptions={absenceEmploymentOptions} currentCase={absence} allowReportWithOpenCase={absenceEmploymentOptions.length > 0} showReportAction={canReportAbsence} canReport={canReportAbsence} canRecover={canRecoverAbsence} canChangeCapacity={canChangeAbsenceCapacity} selfService={selfReportAbsence} recoveryMode={absence?.status === 'ACTIVE' && canRecoverAbsence ? 'link' : 'hidden'} labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, hasSafetyNet: labels.absenceHasSafetyNet, workAccident: labels.absenceWorkAccident, thirdPartyAccident: labels.absenceThirdPartyAccident, unknown: labels.absenceUnknown, yes: labels.absenceYes, no: labels.absenceNo, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, nextReview: labels.absenceCaseNextReview, capacitySave: labels.absenceCapacitySave, failed: labels.absenceSaveFailed, close: labels.absenceClose, selfServiceIntro: labels.absenceNoHistory, capacityInputMode: labels.absenceCapacityInputMode, percentageMode: labels.absenceCapacityPercentageMode, hoursMode: labels.absenceHours, scheduleUnavailable: labels.absenceCapacityScheduleUnavailable, discardTitle: labels.absenceDiscardTitle, discardDescription: labels.absenceDiscardDescription, discardConfirm: labels.absenceDiscardConfirm, discardCancel: labels.absenceDiscardCancel }} /></div></DashboardCard> },
+    { id: 'absence' as const, node: <DashboardCard icon={<HeartPulse className="h-4 w-4" />} title={labels.absence}><div className="space-y-4">{absence ? <AbsenceStatusCard employeeId={employee.id} absence={absence} labels={labels} locale={locale} dateFormat={dateFormat} today={today} /> : null}<AbsenceQuickForm employeeId={employee.id} today={today} employmentId={absence?.employmentId ?? (absenceEmploymentOptions.length === 1 ? absenceEmploymentOptions[0]?.id : undefined)} employmentOptions={absenceEmploymentOptions} currentCase={absence} allowReportWithOpenCase={absenceEmploymentOptions.length > 0} showReportAction={canReportAbsence} canReport={canReportAbsence} canRecover={canRecoverAbsence} canChangeCapacity={canChangeAbsenceCapacity} selfService={selfReportAbsence} recoveryMode={absence?.status === 'ACTIVE' && canRecoverAbsence ? 'link' : 'hidden'} labels={{ report: labels.absenceReport, startDate: labels.absenceStartDate, percentage: labels.absencePercentage, expectedRecovery: labels.absenceExpectedRecovery, hasSafetyNet: labels.absenceHasSafetyNet, workAccident: labels.absenceWorkAccident, thirdPartyAccident: labels.absenceThirdPartyAccident, unknown: labels.absenceUnknown, yes: labels.absenceYes, no: labels.absenceNo, submit: labels.absenceSubmit, recover: labels.absenceRecover, recoveredOn: labels.absenceRecoveredOn, nextReview: labels.absenceCaseNextReview, capacitySave: labels.absenceCapacitySave, failed: labels.absenceSaveFailed, close: labels.absenceClose, selfServiceIntro: labels.absenceNoHistory, capacityInputMode: labels.absenceCapacityInputMode, percentageMode: labels.absenceCapacityPercentageMode, hoursMode: labels.absenceHours, scheduleUnavailable: labels.absenceCapacityScheduleUnavailable, discardTitle: labels.absenceDiscardTitle, discardDescription: labels.absenceDiscardDescription, discardConfirm: labels.absenceDiscardConfirm, discardCancel: labels.absenceDiscardCancel }} /></div></DashboardCard> },
     { id: 'budgets' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.budgets}><EmptyModule title={labels.budgetsDescription} labels={labels} /></DashboardCard> },
-    { id: 'contracts' as const, node: <DashboardCard icon={<BriefcaseBusiness className="h-4 w-4" />} title={labels.contracts} actionHref="?tab=employments" actionLabel={labels.viewContracts}><EmploymentSummaryList employeeId={employee.id} employments={detail.employments} summaries={detail.employmentCards} locale={locale} dateFormat={dateFormat} labels={labels} canManageEmployments={canManageEmployments} /></DashboardCard> },
+    { id: 'contracts' as const, node: <DashboardCard icon={<BriefcaseBusiness className="h-4 w-4" />} title={labels.contracts} actionHref="?tab=employments" actionLabel={labels.viewContracts}><EmploymentSummaryList employeeId={employee.id} employments={detail.employments} summaries={detail.employmentCards} locale={locale} dateFormat={dateFormat} labels={labels} canManageEmployments={canManageEmployments} today={today} /></DashboardCard> },
     { id: 'activity' as const, node: <DashboardCard icon={<ClipboardList className="h-4 w-4" />} title={labels.activity}><EmployeeActivityFeed employeeId={employee.id} items={activity} locale={locale} dateFormat={dateFormat} timeFormat={timeFormat} canWrite={canWriteActivity} labels={{ placeholder: labels.activityPlaceholder, add: labels.activityAdd, save: labels.activitySave, saving: labels.activitySaving, empty: labels.activityEmpty, failed: labels.activityFailed }} /></DashboardCard> },
   ]
   const narrow = [
-    { id: 'employment' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.employment} actionHref="?tab=employments" actionLabel={labels.viewContracts} compact><EmploymentDashboardSummary employeeId={employee.id} employments={detail.employments} cards={detail.employmentCards} currentSummary={summary} canReadSalary={detail.capabilities?.canReadSalary === true} labels={labels} locale={locale} /></DashboardCard> },
+    { id: 'employment' as const, node: <DashboardCard icon={<CircleDollarSign className="h-4 w-4" />} title={labels.employment} actionHref="?tab=employments" actionLabel={labels.viewContracts} compact><EmploymentDashboardSummary employeeId={employee.id} employments={detail.employments} cards={detail.employmentCards} currentSummary={summary} canReadSalary={detail.capabilities?.canReadSalary === true} labels={labels} locale={locale} today={today} /></DashboardCard> },
     { id: 'profileLinks' as const, node: <DashboardCard icon={<ExternalLink className="h-4 w-4" />} title={labels.profileLinks} compact>{detail.profileLinks?.length ? <ul className="space-y-2">{detail.profileLinks.map((link) => <li key={link.id}><a className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href={link.url} target="_blank" rel="noreferrer">{link.label}<ExternalLink aria-hidden="true" size={14} /></a></li>)}</ul> : <EmptyInline>{labels.noProfileLinks}</EmptyInline>}{detail.capabilities?.canEditEmployee && <ProfileLinkForm employeeId={employee.id} labels={{ add: labels.addProfileLink, label: labels.linkLabel, url: labels.linkUrl, save: labels.saveLink, failed: labels.linkFailed }} />}</DashboardCard> },
     { id: 'reminders' as const, node: <DashboardCard icon={<CalendarDays className="h-4 w-4" />} title={labels.reminders} actionHref="?tab=reminders" actionLabel={labels.viewReminders} compact>{reminders.length ? <ul className="divide-y divide-border/70">{reminders.slice(0, 4).map((item) => <li className="py-3 first:pt-0 last:pb-0" key={item.recipientId}><p className="text-sm font-medium">{item.title}</p><time className="mt-1 block text-xs text-muted-foreground" dateTime={item.remindAt}>{formatDateTime(item.remindAt, { locale, dateFormat, timeFormat })}</time></li>)}</ul> : <EmptyInline>{labels.remindersEmpty}</EmptyInline>}</DashboardCard> },
     { id: 'journeys' as const, node: <JourneyDashboardCard journeys={journeys} locale={locale} labels={journeyLabels} /> },
@@ -123,6 +132,18 @@ export function EmployeeDashboard({ detail, customFields, documents, reminders, 
 
 export function EmployeeDashboardHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return <header className="flex flex-wrap items-end gap-4"><div className="min-w-0"><p className="eyebrow text-primary break-words">{title}</p><h2 id="employee-dashboard-title" className="mt-1 break-words text-2xl font-semibold tracking-tight">{subtitle}</h2></div></header>
+}
+
+function AiSupportCard({ employeeId, employeeName, locale, canUseEmployeeAi, canUseEmployeeVoice, aiActionsLabels, liveVoiceLabels }: { employeeId: string; employeeName: string; locale: string; canUseEmployeeAi: boolean; canUseEmployeeVoice: boolean; aiActionsLabels: EmployeeAiActionLabels; liveVoiceLabels: EmployeeLiveVoiceLabels }) {
+  return <DashboardCard description={canUseEmployeeAi ? aiActionsLabels.description : liveVoiceLabels.description} icon={<Sparkles className="h-4 w-4" />} title={canUseEmployeeAi ? aiActionsLabels.title : liveVoiceLabels.title}>
+    <div className="space-y-5">
+      {canUseEmployeeAi ? <EmployeeAiActions embedded employeeId={employeeId} labels={aiActionsLabels} locale={locale} /> : null}
+      {canUseEmployeeVoice ? <div className={canUseEmployeeAi ? 'border-t border-subtle pt-5' : undefined}>
+        {canUseEmployeeAi ? <div className="mb-4"><h3 className="text-sm font-semibold">{liveVoiceLabels.title}</h3><p className="mt-1 text-sm leading-6 text-muted-foreground">{liveVoiceLabels.description}</p></div> : null}
+        <EmployeeLiveVoice embedded employeeId={employeeId} employeeName={employeeName} labels={liveVoiceLabels} locale={locale} />
+      </div> : null}
+    </div>
+  </DashboardCard>
 }
 
 function JourneyDashboardCard({ journeys, locale, labels }: { journeys: JourneyProjectionList; locale: string; labels: { journeys: string; journeysDescription: string; journeysEmpty: string; journeysOpen: string; journeyProgress: string } }) {
@@ -149,6 +170,7 @@ function EmploymentSummaryList({
   dateFormat,
   labels,
   canManageEmployments,
+  today,
 }: {
   employeeId: string
   employments: EmployeeDetailViewModel['employments']
@@ -157,8 +179,8 @@ function EmploymentSummaryList({
   dateFormat: DateFormat
   labels: EmployeeDashboardLabels
   canManageEmployments: boolean
+  today: string
 }) {
-  const today = new Date().toISOString().slice(0, 10)
   const active = hasActiveEmployment(employments.map((employment) => ({ startsOn: employment.starts_on, endsOn: employment.ends_on, recordStatus: employment.record_status })), today)
   const workerTypeLabel = (workerType: string | null) => workerType === 'EMPLOYEE'
     ? labels.workerEmployee
@@ -212,8 +234,8 @@ function EmploymentSummaryList({
   </div>
 }
 
-function DashboardCard({ icon, title, actionHref, actionLabel, compact = false, children }: { icon: React.ReactNode; title: string; actionHref?: string; actionLabel?: string; compact?: boolean; children: React.ReactNode }) {
-  return <Surface className="overflow-hidden"><div className="border-b border-subtle px-4 py-3.5 sm:px-5"><SectionHeader title={<span className="flex min-w-0 items-start gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-accent text-accent-foreground">{icon}</span><span className="min-w-0 break-words">{title}</span></span>} actions={actionHref && actionLabel ? <Link href={actionHref} className="inline-flex max-w-full items-start gap-1 text-left text-xs font-semibold text-primary whitespace-normal break-words hover:underline"><ArrowUpRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{actionLabel}</Link> : undefined} /></div><div className={`p-4 sm:p-5 ${compact ? 'sm:p-4' : ''}`}>{children}</div></Surface>
+function DashboardCard({ icon, title, description, actionHref, actionLabel, compact = false, children }: { icon: React.ReactNode; title: string; description?: string; actionHref?: string; actionLabel?: string; compact?: boolean; children: React.ReactNode }) {
+  return <Surface className="overflow-hidden"><div className="border-b border-subtle px-4 py-3.5 sm:px-5"><SectionHeader description={description} title={<span className="flex min-w-0 items-start gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-accent text-accent-foreground">{icon}</span><span className="min-w-0 break-words">{title}</span></span>} actions={actionHref && actionLabel ? <Link href={actionHref} className="inline-flex max-w-full items-start gap-1 text-left text-xs font-semibold text-primary whitespace-normal break-words hover:underline"><ArrowUpRight aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{actionLabel}</Link> : undefined} /></div><div className={`p-4 sm:p-5 ${compact ? 'sm:p-4' : ''}`}>{children}</div></Surface>
 }
 
 function PlaceholderCard({ icon, title, description, labels }: { icon: React.ReactNode; title: string; description: string; labels: EmployeeDashboardLabels }) {

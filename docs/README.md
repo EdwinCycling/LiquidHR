@@ -343,6 +343,25 @@ de bekende, ongerelateerde DM-1 migration-contracttestfailure rond CASE-
 parenthesization. Strict TypeScript, ESLint, i18n (`35` namespaces),
 `git diff --check` en de Webpack-productiebuild (`258/258` statische pagina's)
 zijn groen. Deze DM-1-baseline is niet gewijzigd binnen de Employee Wizard-slice.
+## GPT-Live transport + Employee AI interaction — 2026-09-15
+
+De Employee Detail voice-422 is teruggevoerd naar een provider-400: de actuele
+OpenAI Live create-route accepteert geen `session.type` in de `session`-config.
+LiquidHR gebruikt nu `POST /v1/live/sessions` met `gpt-live-1`, server-mediated
+WebRTC en hetzelfde server-side authorization-, tool- en proposal-only model.
+Providerdiagnostiek blijft veilig beperkt tot metadata; secrets, SDP, audio,
+employee-data en volledige prompts worden niet gelogd.
+
+De gedeelde `AiProgress`-surface wordt gebruikt door de bestaande AI-resultaten.
+Employee Summary en Conversation Preparation bieden na review een expliciete
+`Opslaan in Mijn logboek`-actie naast `Kopiëren`, via het bestaande owner-only
+logbook-endpoint. DEV/TEST Supabase en de database-migrations zijn niet gewijzigd.
+Gerichte tests, strict TypeScript, ESLint, i18n en diff-check zijn groen. De
+Preview-deployment `dpl_C2FJPNEFUXCBYaRP1h2gXbcwiHB6` is `READY` op de
+AI-codecommit `7856d9456e9ef418270f8bfdd9063c12502cfd09` via
+`https://liquidhr-mxlzg2sfk-edwinitsolutions.vercel.app`; de nieuwe
+deployment-host vereist een eigen authenticated login.
+Microfoonacceptatie en React hydration `#418` blijven open.
 
 ## Document Studio DG2 + DG3 — 2026-09-07
 
@@ -488,6 +507,14 @@ De eerste product-capability bovenop de centrale AI Foundation is geïmplementee
 De kandidaatimplementatie op geïsoleerde branch `work/ai-everywhere-v1` voegt exact vier capabilities toe bovenop dezelfde AI Foundation: `EMPLOYEE_SUMMARY`, `CONVERSATION_PREPARATION`, `DEVELOPMENT_GOAL_SMART` en `VACANCY_DRAFT`. De eerste twee tonen uitsluitend leesvoorstellen in Employee Overview; SMART-doelen en vacatureblokken worden alleen na expliciete actie lokaal in het actieve formulier vervangen. Geen autonome opslag, publicatie, statuswijziging, score of beoordeling.
 
 De server laadt en minimaliseert de geautoriseerde context, controleert feature- en business-permissions, rekent Liquid Credits af en gebruikt de bestaande audit/usage-lifecycle. Medische/verzuimcontext is uitgesloten van employee-context; vacatureteksten mogen geen feiten, salaris, voorwaarden, voordelen of skills verzinnen. Zie [`LIQUIDHR_AI_EVERYWHERE_V1.md`](requirements/ai/LIQUIDHR_AI_EVERYWHERE_V1.md) en de formele deliverystatus. De lokale credit-catalogusmigration is nog niet remote toegepast; main, productie, version bump en merge blijven buiten scope.
+
+## AI Roadmap 2.0 + GPT-Live V1 — 2026-09-11
+
+De roadmap en eerste employee-context voice-slice staan in [`LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md`](requirements/ai/LIQUIDHR_AI_ROADMAP_2.0_GPT_LIVE.md). GPT-Live gebruikt server-mediated WebRTC, deelt geen permanente OpenAI-key met de browser en roept uitsluitend de bestaande Employee Summary, Conversation Preparation en SMART Goal capabilities aan. De lokale candidate is getest op contractniveau, strict TypeScript en i18n; remote migration, live OpenAI/WebRTC en authenticated persona-acceptance zijn nog open.
+
+## Conversational AI V2, Team AI en Mijn logboek — 2026-09-14
+
+De lokale implementation-candidate [`LIQUIDHR_CONVERSATIONAL_AI_V2_TEAM_AI_LOGBOOK.md`](requirements/ai/LIQUIDHR_CONVERSATIONAL_AI_V2_TEAM_AI_LOGBOOK.md) voegt een server-geautoriseerde Team AI-scope, GPT-Live voice-tools en een owner-only persoonlijk logboek toe. Direct managers blijven beperkt tot hun directe team; HR Admin/Tenant Admin kiezen een afdeling en HR Advisor gebruikt toegewezen afdelingen. AI-samenvattingen blijven voorstel-only en worden pas na review expliciet opgeslagen in Mijn logboek. De migration is lokaal voorbereid maar nog niet remote toegepast; main, Production en de leave-branch zijn buiten scope.
 
 ## Liquid Analyse AN-4/5 Mijn Analyses en Liquid Explore V1 — 2026-08-30
 

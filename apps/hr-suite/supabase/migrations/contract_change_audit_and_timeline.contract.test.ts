@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const auditTimelineSql = readFileSync('supabase/migrations/20260912072624_contract_change_audit_and_timeline.sql', 'utf8')
-const statusSql = readFileSync('supabase/migrations/20260912074130_repair_contract_terminal_selection_status.sql', 'utf8')
+const auditTimelineSql = readFileSync('supabase/migrations/20260912072624_contract_change_audit_and_timeline.sql', 'utf8').replace(/\r\n/g, '\n')
+const statusSql = readFileSync('supabase/migrations/20260912074130_repair_contract_terminal_selection_status.sql', 'utf8').replace(/\r\n/g, '\n')
 
 describe('employment contract mutation migration contracts', () => {
   it('keeps contract edits on the existing invoker and RLS boundary', () => {

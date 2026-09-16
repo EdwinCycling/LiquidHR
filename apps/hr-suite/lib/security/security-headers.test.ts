@@ -9,6 +9,6 @@ describe('securityHeaders', () => {
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff')
     expect(headers.get('X-Frame-Options')).toBe('DENY')
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin')
-    expect(headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=()')
+    expect(headers.get('Permissions-Policy')).toBe('camera=(), microphone=(self), geolocation=()')
   })
 })

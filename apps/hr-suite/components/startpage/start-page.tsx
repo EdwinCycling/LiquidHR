@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element -- administration branding is served by an authenticated route. */
 import Link from 'next/link'
-import { ArrowDown, ArrowRight, ArrowUp, CalendarDays, CircleDashed, ClipboardPlus, FileText, Gift, GripVertical, HeartPulse, ListTodo, LoaderCircle, Maximize2, MessageSquareText, Minimize2, PartyPopper, UserPlus, UserRound, Users, UsersRound } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp, CalendarDays, CircleDashed, ClipboardPlus, Eye, EyeOff, FileText, Gift, GripVertical, HeartPulse, ListTodo, LoaderCircle, LockKeyhole, Maximize2, MessageSquareText, Minimize2, PartyPopper, UserPlus, UserRound, Users, UsersRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, type DragEvent, type ReactNode } from 'react'
 import { formatDateTime } from '@/lib/preferences/formatters'
@@ -11,19 +11,22 @@ import type { StartPagePreferences, StartPageViewMode } from '@/lib/preferences/
 import type { StartPageNarrowWindow, StartPageWideWindow } from '@/lib/preferences/start-page-layout'
 import type { Locale } from '@/lib/i18n/config'
 import type { StartPageData, StartPageLeavePerson, StartPageScope } from '@/lib/startpage/service'
+import type { PersonalLogbookEntry } from '@/lib/logbook/service'
 import type { StartPageTeamAvailability, StartPageTeamAvailabilityCell } from '@/lib/startpage/team-availability-service'
 import { employeeListMyTeamHref } from '@/lib/preferences/employee-list-state'
 import { journeyProgressPercent, localizedValue, type JourneyProjection } from '@/lib/journeys/projection-domain'
 import { Badge } from '@/components/ui/badge'
 import { buttonClasses } from '@/components/ui/button'
 import { Surface } from '@/components/ui/surface'
+import { DropdownSelect } from '@/components/ui/dropdown-select'
+import { TeamLiveVoice, type TeamLiveVoiceLabels } from './team-live-voice'
 
 interface StartPageAppraisalLabels { continuousAppraisalTitle: string; continuousAppraisalDescription: string; openContinuousAppraisal: string; openManagerAppraisal: string; appraisalLatest: string; appraisalOpenActions: string; appraisalNoItems: string }
 
 interface StartPageSigningLabels { signingTitle: string; signingDescription: string; openSigning: string }
 
 interface StartPageLabels extends StartPageAppraisalLabels, StartPageSigningLabels {
-  nextLeave: string; nextHoliday: string; nextCompanyActivity: string; eyebrow: string; headline: string; subtitle: string; activeScope: string; administration: string; tenant: string; peopleInScope: string; operationalTitle: string; operationalTitleTeam: string; operationalTitleCompany: string; scopeSwitchLabel: string; scopeTeam: string; scopeCompany: string; openTeamEmployees: string; liveSource: string; documentsTitle: string; documentsDescription: string; openDocuments: string; notAvailable: string; yourPriorities: string; prioritiesBody: string; remindersTitle: string; remindersDescription: string; openReminders: string; noReminders: string; moreReminders: string; workInProgress: string; workInProgressBody: string; futureDeclarations: string; futureContracts: string; futureAssets: string; futureTasks: string; futureSource: string; processWorkTitle: string; processWorkDescription: string; processWorkOverdue: string; processWorkDueToday: string; processWorkBlocked: string; processWorkNoItems: string; processWorkOpen: string; processWorkSubject: string; openAnalysis: string; quickLinks: string; workforceDescription: string; openWorkforce: string; workforceOpenItem: string; workforceNineGrid: string; workforceNineGridDescription: string; workforceContinuousAppraisal: string; workforceContinuousAppraisalDescription: string; workforceTalentProfiles: string; workforceTalentProfilesDescription: string; workforceStarPerformers: string; workforceStarPerformersDescription: string; workforceStarPerformerTags: string; workforceStarPerformerTagsDescription: string; quickActionsTitle: string; myData: string; myDataDescription: string; myTeam: string; myTeamDescription: string; newAbsence: string; newAbsenceDescription: string; calendar: string; insights: string; updated: string; fallbackName: string; journeysTitle: string; journeysDescription: string; journeysEmpty: string; journeyMine: string; journeyParticipants: string; journeyProgress: string; journeyNextAction: string; journeyOpen: string; journeyPlanned: string; journeyActive: string; journeyPaused: string; journeyCompleted: string; absenceCasesTitle: string; absenceCasesDescription: string; noActiveAbsences: string; absenceSince: string; absenceDays: string; openAbsenceDossier: string;  absenceRecovery: string; absenceMore: string; openAbsenceOverview: string; leaveTitle: string; leaveToday: string; leaveTomorrow: string; leavePersons: string; leavePerson: string; leaveNoAbsences: string; openCalendar: string; eventsTitle: string; eventsToday: string; eventsTomorrow: string; eventsNoEvents: string; openAllEvents: string; eventBirthday: string; eventAnniversary: string; eventStarter: string; eventYears: string; kpiEmployees: string; kpiRecurringAbsence: string; kpiLongTermSick: string; openEmployees: string; teamAvailabilityTitle: string; teamAvailabilityDescription: string; teamAvailabilityPeople: string; teamAvailabilityPresence: string; teamAvailabilityHours: string; teamAvailabilityModeLabel: string; teamAvailabilityAvailable: string; teamAvailabilityNotAvailable: string; teamAvailabilityOff: string; teamAvailabilityLeave: string; teamAvailabilityAbsent: string; teamAvailabilityNoMembers: string; teamAvailabilityHoursUnit: string; layoutLabel: string; full: string; compact: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; moveUp: string; moveDown: string; drag: string
+  nextLeave: string; nextHoliday: string; nextCompanyActivity: string; eyebrow: string; headline: string; subtitle: string; activeScope: string; administration: string; tenant: string; peopleInScope: string; operationalTitle: string; operationalTitleTeam: string; operationalTitleCompany: string; scopeSwitchLabel: string; scopeTeam: string; scopeCompany: string; openTeamEmployees: string; liveSource: string; documentsTitle: string; documentsDescription: string; openDocuments: string; notAvailable: string; yourPriorities: string; prioritiesBody: string; remindersTitle: string; remindersDescription: string; openReminders: string; noReminders: string; moreReminders: string; workInProgress: string; workInProgressBody: string; futureDeclarations: string; futureContracts: string; futureAssets: string; futureTasks: string; futureSource: string; processWorkTitle: string; processWorkDescription: string; processWorkOverdue: string; processWorkDueToday: string; processWorkBlocked: string; processWorkNoItems: string; processWorkOpen: string; processWorkSubject: string; openAnalysis: string; quickLinks: string; workforceDescription: string; openWorkforce: string; workforceOpenItem: string; workforceNineGrid: string; workforceNineGridDescription: string; workforceContinuousAppraisal: string; workforceContinuousAppraisalDescription: string; workforceTalentProfiles: string; workforceTalentProfilesDescription: string; workforceStarPerformers: string; workforceStarPerformersDescription: string; workforceStarPerformerTags: string; workforceStarPerformerTagsDescription: string; quickActionsTitle: string; myData: string; myDataDescription: string; myTeam: string; myTeamDescription: string; newAbsence: string; newAbsenceDescription: string; calendar: string; insights: string; updated: string; fallbackName: string; journeysTitle: string; journeysDescription: string; journeysEmpty: string; journeyMine: string; journeyParticipants: string; journeyProgress: string; journeyNextAction: string; journeyOpen: string; journeyPlanned: string; journeyActive: string; journeyPaused: string; journeyCompleted: string; absenceCasesTitle: string; absenceCasesDescription: string; noActiveAbsences: string; absenceSince: string; absenceDays: string; openAbsenceDossier: string;  absenceRecovery: string; absenceMore: string; openAbsenceOverview: string; leaveTitle: string; leaveToday: string; leaveTomorrow: string; leavePersons: string; leavePerson: string; leaveNoAbsences: string; openCalendar: string; eventsTitle: string; eventsToday: string; eventsTomorrow: string; eventsNoEvents: string; openAllEvents: string; eventBirthday: string; eventAnniversary: string; eventStarter: string; eventYears: string; kpiEmployees: string; kpiRecurringAbsence: string; kpiLongTermSick: string; openEmployees: string; teamAvailabilityTitle: string; teamAvailabilityDescription: string; teamAvailabilityPeople: string; teamAvailabilityPresence: string; teamAvailabilityHours: string; teamAvailabilityModeLabel: string; teamAvailabilityAvailable: string; teamAvailabilityNotAvailable: string; teamAvailabilityOff: string; teamAvailabilityLeave: string; teamAvailabilityAbsent: string; teamAvailabilityNoMembers: string; teamAvailabilityHoursUnit: string; layoutLabel: string; full: string; compact: string; layoutSaving: string; layoutSaved: string; layoutFailed: string; moveUp: string; moveDown: string; drag: string; teamAiTitle: string; teamAiDescription: string; teamAiDirectScope: string; teamAiDepartmentScope: string; teamAiDepartmentLabel: string; teamAiSelectPlaceholder: string; teamAiNoDepartments: string; teamAiNoActiveMembers: string; teamAiMembers: string; teamAiMemberPreview: string; teamAiStart: string; teamAiConnecting: string; teamAiListening: string; teamAiSpeaking: string; teamAiProcessing: string; teamAiMute: string; teamAiUnmute: string; teamAiElapsed: string; teamAiPaused: string; teamAiInputLevel: string; teamAiInputMuted: string; teamAiDisabled: string; teamAiPrivacy: string; teamAiScope: string; teamAiSummaryTitle: string; teamAiSummaryDescription: string; teamAiSummaryDefaultTitle: string; teamAiSummaryTitleLabel: string; teamAiSummaryBodyLabel: string; teamAiSummarySave: string; teamAiSummarySaving: string; teamAiSummarySaved: string; teamAiSummaryFailed: string; teamAiClose: string; logbookTitle: string; logbookDescription: string; logbookOpen: string; logbookNew: string; logbookEmpty: string; logbookSourceManual: string; logbookSourceAi: string; logbookShowRecent: string; logbookHideRecent: string; logbookRecentCount: string; logbookLatest: string; logbookNoRecent: string; logbookPrivatePlaceholder: string; logbookPrivatePlaceholderDescription: string; logbookRevealFailed: string
 }
 
 interface StartPageProps { data: StartPageData; locale: Locale; dateFormat: DateFormat; timeFormat: TimeFormat; greeting: string; labels: StartPageLabels; initialPreferences: StartPagePreferences; today: string }
@@ -34,6 +37,27 @@ function formatStartPageDate(value: string, dateLocale: string, dateStyle: 'full
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : new Date(value)
   const options = dateStyle === 'numeric' ? { day: '2-digit' as const, month: '2-digit' as const, year: 'numeric' as const } : { dateStyle }
   return new Intl.DateTimeFormat(dateLocale, { ...options, timeZone: 'UTC' }).format(date)
+}
+
+function isPersonalLogbookEntry(value: unknown): value is PersonalLogbookEntry {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.id === 'string'
+    && typeof candidate.title === 'string'
+    && typeof candidate.description === 'string'
+    && (candidate.source === 'MANUAL' || candidate.source === 'AI_TEAM_SUMMARY')
+    && (candidate.sourceSessionId === null || typeof candidate.sourceSessionId === 'string')
+    && (candidate.contextName === null || typeof candidate.contextName === 'string')
+    && (candidate.contextDepartmentId === null || typeof candidate.contextDepartmentId === 'string')
+    && typeof candidate.createdAt === 'string'
+    && typeof candidate.updatedAt === 'string'
+}
+
+function parseRecentLogbookEntries(value: unknown): PersonalLogbookEntry[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+  const data = (value as Record<string, unknown>).data
+  if (!Array.isArray(data)) return []
+  return data.filter(isPersonalLogbookEntry).slice(0, 3)
 }
 
 function StartPageWindowFrame({ id, index, count, labels, onMove, onDragStart, onDragEnd, onDragOver, onDrop, children }: { id: StartPageWindowId; index: number; count: number; labels: Pick<StartPageLabels, 'moveUp' | 'moveDown' | 'drag'>; onMove: (id: StartPageWindowId, offset: -1 | 1) => void; onDragStart: (id: StartPageWindowId) => void; onDragEnd: () => void; onDragOver: (event: DragEvent<HTMLDivElement>) => void; onDrop: (id: StartPageWindowId) => void; children: ReactNode }) {
@@ -60,6 +84,114 @@ function StartPageViewToggle({ viewMode, labels, onChange }: { viewMode: StartPa
   const label = compact ? labels.full : labels.compact
   const Icon = compact ? Maximize2 : Minimize2
   return <button aria-label={`${labels.layoutLabel}: ${label}`} className="inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground transition-colors hover:bg-primary-foreground/20" onClick={() => onChange(nextViewMode)} title={label} type="button"><Icon aria-hidden="true" size={18} /></button>
+}
+
+function TeamAiWindow({ data, labels, locale }: { data: StartPageData['teamAi']; labels: StartPageLabels; locale: Locale }) {
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState(data?.departmentId ?? '')
+  if (!data) return null
+  const selectedDepartment = data.departments.find((department) => department.id === selectedDepartmentId)
+  const selectedMemberCount = selectedDepartment?.memberCount ?? 0
+  const contextName = data.mode === 'DIRECT_TEAM' ? data.contextName ?? labels.teamAiDirectScope : selectedDepartment?.name ?? labels.teamAiDepartmentScope
+  const teamVoiceLabels: TeamLiveVoiceLabels = {
+    title: labels.teamAiTitle,
+    description: labels.teamAiDescription,
+    start: labels.teamAiStart,
+    stop: labels.teamAiClose,
+    connecting: labels.teamAiConnecting,
+    listening: labels.teamAiListening,
+    speaking: labels.teamAiSpeaking,
+    processing: labels.teamAiProcessing,
+    microphoneDenied: labels.teamAiDisabled,
+    connectionFailed: labels.teamAiDisabled,
+    disabled: labels.teamAiDisabled,
+    toolFailed: labels.teamAiDisabled,
+    mute: labels.teamAiMute,
+    unmute: labels.teamAiUnmute,
+    muted: labels.teamAiPaused,
+    elapsed: labels.teamAiElapsed,
+    paused: labels.teamAiPaused,
+    inputLevel: labels.teamAiInputLevel,
+    inputMuted: labels.teamAiInputMuted,
+    closing: labels.teamAiClose,
+    privacy: labels.teamAiPrivacy,
+    scope: labels.teamAiScope,
+    summaryTitle: labels.teamAiSummaryTitle,
+    summaryDescription: labels.teamAiSummaryDescription,
+    summaryDefaultTitle: labels.teamAiSummaryDefaultTitle,
+    summaryTitleLabel: labels.teamAiSummaryTitleLabel,
+    summaryBodyLabel: labels.teamAiSummaryBodyLabel,
+    summarySave: labels.teamAiSummarySave,
+    summarySaving: labels.teamAiSummarySaving,
+    summarySaved: labels.teamAiSummarySaved,
+    summaryFailed: labels.teamAiSummaryFailed,
+    close: labels.teamAiClose,
+  }
+  const canStart = data.mode === 'DIRECT_TEAM' ? data.totalMemberCount > 0 : selectedMemberCount > 0
+  const selectedDepartmentIsEmpty = data.mode === 'DEPARTMENT_SELECTION' && Boolean(selectedDepartmentId) && selectedMemberCount === 0
+  return <section aria-labelledby="startpage-team-ai-title" className="mt-6 overflow-hidden rounded-[var(--radius-surface)] border bg-surface" data-testid="startpage-team-ai">
+    <header className="border-b bg-accent/45 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">{labels.teamAiTitle}</p><h2 className="mt-1 text-lg font-semibold" id="startpage-team-ai-title">{contextName}</h2></div><Badge tone="info">GPT-Live</Badge></div><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.teamAiDescription}</p></header>
+    <div className="grid gap-5 p-5 sm:p-6">
+      {data.mode === 'DEPARTMENT_SELECTION' ? <label className="grid gap-1.5 text-sm font-medium" htmlFor="startpage-team-ai-department">{labels.teamAiDepartmentLabel}<DropdownSelect aria-label={labels.teamAiDepartmentLabel} id="startpage-team-ai-department" onChange={(event) => setSelectedDepartmentId(event.target.value)} placeholder={labels.teamAiSelectPlaceholder} searchable searchPlaceholder={labels.teamAiSelectPlaceholder} value={selectedDepartmentId}><option disabled value="">{labels.teamAiSelectPlaceholder}</option>{data.departments.map((department) => <option disabled={department.memberCount === 0} key={department.id} value={department.id}>{department.name}</option>)}</DropdownSelect></label> : null}
+      {data.mode === 'DIRECT_TEAM' ? <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{labels.teamAiMemberPreview}</p><p className="mt-1 text-sm font-semibold">{labels.teamAiMembers.replace('{count}', String(data.totalMemberCount))}</p><ul className="mt-3 flex flex-wrap gap-2">{data.members.slice(0, 8).map((member) => <li className="rounded-full border bg-surface-subtle px-3 py-1 text-xs text-muted-foreground" key={member.employeeId}>{member.employeeName}</li>)}</ul></div> : null}
+      {data.voiceEnabled && data.aiEnabled && canStart ? <TeamLiveVoice contextName={contextName} departmentId={data.mode === 'DEPARTMENT_SELECTION' ? selectedDepartmentId : undefined} enabled={canStart} labels={teamVoiceLabels} locale={locale} /> : <p className="text-sm text-muted-foreground">{selectedDepartmentIsEmpty ? labels.teamAiNoActiveMembers : data.mode === 'DEPARTMENT_SELECTION' && !canStart ? labels.teamAiDepartmentScope : labels.teamAiDisabled}</p>}
+      {data.mode === 'DEPARTMENT_SELECTION' && data.departments.length === 0 ? <p className="text-sm text-muted-foreground">{labels.teamAiNoDepartments}</p> : null}
+    </div>
+  </section>
+}
+
+function LogbookWindow({ data, labels, locale }: { data: StartPageData['logbook']; labels: StartPageLabels; locale: Locale }) {
+  const dateLocale = locale === 'nl' ? 'nl-NL' : 'en-GB'
+  const [revealedEntries, setRevealedEntries] = useState<PersonalLogbookEntry[] | null>(null)
+  const [revealing, setRevealing] = useState(false)
+  const [revealFailed, setRevealFailed] = useState(false)
+
+  async function revealRecentEntries(): Promise<void> {
+    if (revealing || revealedEntries !== null) return
+    setRevealing(true)
+    setRevealFailed(false)
+    try {
+      const response = await fetch('/api/logbook?limit=3', { cache: 'no-store' })
+      if (!response.ok) throw new Error('logbook_reveal_failed')
+      const payload: unknown = await response.json()
+      setRevealedEntries(parseRecentLogbookEntries(payload))
+    } catch {
+      setRevealFailed(true)
+    } finally {
+      setRevealing(false)
+    }
+  }
+
+  function hideEntries(): void {
+    setRevealedEntries(null)
+    setRevealFailed(false)
+  }
+
+  const totalLabel = labels.logbookRecentCount.replace('{count}', String(data.totalCount))
+  return <section aria-labelledby="startpage-logbook-title" className="mt-6 overflow-hidden rounded-[var(--radius-surface)] border bg-surface" data-testid="startpage-logbook">
+    <header className="flex flex-wrap items-start justify-between gap-4 border-b p-5 sm:p-6">
+      <div><p className="eyebrow">{labels.logbookTitle}</p><h2 className="mt-1 text-lg font-semibold" id="startpage-logbook-title">{labels.logbookDescription}</h2></div>
+      <Link className={buttonClasses({ variant: 'secondary', size: 'sm' })} href="/logbook?new=1">{labels.logbookNew}</Link>
+    </header>
+    <div className="grid gap-3 border-b bg-surface-subtle p-5 sm:grid-cols-3 sm:p-6">
+      <p className="text-sm font-semibold">{totalLabel}</p>
+      {data.latestCreatedAt ? <time className="text-sm text-muted-foreground" dateTime={data.latestCreatedAt}>{labels.logbookLatest}: {formatStartPageDate(data.latestCreatedAt, dateLocale, 'medium')}</time> : <p className="text-sm text-muted-foreground">{labels.logbookEmpty}</p>}
+      <p className="text-sm text-muted-foreground">{labels.logbookSourceManual}: {data.manualCount} · {labels.logbookSourceAi}: {data.aiCount}</p>
+    </div>
+    {revealedEntries === null ? <>
+      <ul aria-hidden="true" className="divide-y divide-border/70">
+        {Array.from({ length: 3 }, (_, index) => <li className="flex items-center gap-3 px-5 py-4 sm:px-6" key={index}><span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground"><LockKeyhole aria-hidden="true" size={16} /></span><div className="min-w-0 flex-1"><span className="block h-3 w-2/3 rounded-full bg-muted blur-[2px]" /><span className="mt-2 block h-2 w-full rounded-full bg-muted/80 blur-[2px]" /><span className="mt-1 block h-2 w-4/5 rounded-full bg-muted/70 blur-[2px]" /></div></li>)}
+      </ul>
+      <div className="flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
+        <p className="sr-only">{labels.logbookPrivatePlaceholder}</p>
+        <button className={buttonClasses({ variant: 'primary', size: 'sm' })} disabled={revealing} onClick={() => { void revealRecentEntries() }} type="button"><Eye aria-hidden="true" />{revealing ? labels.logbookShowRecent : labels.logbookShowRecent}</button>
+        {revealFailed ? <p className="text-sm text-destructive" role="alert">{labels.logbookRevealFailed}</p> : <p className="sr-only">{labels.logbookPrivatePlaceholderDescription}</p>}
+      </div>
+    </> : <>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6"><p className="text-sm font-semibold">{labels.logbookRecentCount.replace('{count}', String(revealedEntries.length))}</p><button className={buttonClasses({ variant: 'secondary', size: 'sm' })} onClick={hideEntries} type="button"><EyeOff aria-hidden="true" />{labels.logbookHideRecent}</button></div>
+      {revealedEntries.length > 0 ? <ul className="divide-y divide-border/70">{revealedEntries.map((entry) => <li className="px-5 py-4 sm:px-6" key={entry.id}><div className="flex items-start justify-between gap-3"><p className="font-semibold">{entry.title}</p><span className="shrink-0 text-xs text-muted-foreground">{entry.source === 'AI_TEAM_SUMMARY' ? labels.logbookSourceAi : labels.logbookSourceManual}</span></div><p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{entry.description}</p><time className="mt-2 block text-xs text-muted-foreground" dateTime={entry.createdAt}>{formatStartPageDate(entry.createdAt, dateLocale, 'medium')}</time></li>)}</ul> : <p className="p-5 text-sm text-muted-foreground sm:p-6">{labels.logbookNoRecent}</p>}
+    </>}
+    <footer className="border-t px-5 py-3 sm:px-6"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-accent-foreground hover:underline" href="/logbook">{labels.logbookOpen}<ArrowRight aria-hidden="true" size={15} /></Link></footer>
+  </section>
 }
 
 function StartPageCalendarTiles(_props: { data: StartPageData; labels: Pick<StartPageLabels, 'nextLeave' | 'nextHoliday'>; nextCompanyActivityLabel: string | null }) {
@@ -226,6 +358,9 @@ export function StartPage({ data, locale, dateFormat, timeFormat, greeting, labe
         {data.isManager ? <QuickAction description={labels.myTeamDescription} href={employeeListMyTeamHref()} icon={UsersRound} label={labels.myTeam} /> : null}
         {data.canReportAbsence ? <QuickAction description={labels.newAbsenceDescription} href="/absence/new" icon={ClipboardPlus} label={labels.newAbsence} /> : null}
       </div></section> : null}
+
+      {data.teamAi ? <TeamAiWindow data={data.teamAi} labels={labels} locale={locale} /> : null}
+      <LogbookWindow data={data.logbook} labels={labels} locale={locale} />
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.38fr)_minmax(19rem,.62fr)]"><section>
         <header className="mb-5 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap items-center gap-x-3 gap-y-2"><span className="text-sm font-medium text-muted-foreground">{data.scope === 'team' ? labels.operationalTitleTeam : labels.operationalTitleCompany}</span>{data.isManager ? <Link className="inline-flex items-center gap-1 text-xs font-semibold text-accent-foreground hover:underline" href={employeeListMyTeamHref()}><UsersRound aria-hidden="true" size={14} />{labels.openTeamEmployees}</Link> : null}</div><div className="flex flex-wrap items-center justify-end gap-3"><span className="text-sm text-muted-foreground">{formatStartPageDate(today, dateLocale, 'full')}</span>{data.canSwitchScope ? <div aria-label={labels.scopeSwitchLabel} className="flex items-center rounded-full border bg-surface p-0.5" role="group"><button aria-pressed={data.scope === 'team'} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${data.scope === 'team' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => changeScope('team')} type="button">{labels.scopeTeam}</button><button aria-pressed={data.scope === 'company'} className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${data.scope === 'company' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`} onClick={() => changeScope('company')} type="button">{labels.scopeCompany}</button></div> : null}</div></header>

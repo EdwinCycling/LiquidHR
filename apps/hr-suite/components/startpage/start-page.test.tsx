@@ -22,6 +22,13 @@ const labels = new Proxy({} as StartPageLabels, {
     drag: 'Venster slepen om de volgorde te wijzigen',
     moveDown: 'Venster omlaag verplaatsen',
     moveUp: 'Venster omhoog verplaatsen',
+    logbookShowRecent: 'Toon recente notities',
+    logbookHideRecent: 'Verberg inhoud',
+    logbookPrivatePlaceholder: 'Privénotitie verborgen',
+    logbookPrivatePlaceholderDescription: 'Inhoud wordt pas getoond nadat je dit kiest.',
+    logbookRecentCount: '{count} notities',
+    logbookLatest: 'Laatste notitie',
+    logbookNoRecent: 'Nog geen notities om te tonen.',
   }[String(property)] ?? String(property)),
 })
 
@@ -52,15 +59,17 @@ const data: StartPageData = {
   recurringAbsenceCount: 0,
   reminders: [],
   scope: 'company',
+  teamAi: null,
   teamAvailability: null,
   tenantName: 'Tenant',
   upcomingEvents: [],
   workforceLinks: [],
+  logbook: { totalCount: 0, latestCreatedAt: null, manualCount: 0, aiCount: 0 },
 }
 
-function render(viewMode: 'compact' | 'full'): string {
+function render(viewMode: 'compact' | 'full', viewData: StartPageData = data): string {
   return renderToStaticMarkup(createElement(StartPage, {
-    data,
+    data: viewData,
     dateFormat: 'DMY',
     greeting: 'Goedemiddag',
     initialPreferences: { layout: DEFAULT_START_PAGE_WINDOW_LAYOUT, viewMode },
@@ -113,5 +122,52 @@ describe('StartPage view modes', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('renders the Team AI and personal logbook surfaces without expanding employee scope', () => {
+    const markup = render('full', {
+      ...data,
+      teamAi: {
+        mode: 'DIRECT_TEAM',
+        scopeType: 'DIRECT_TEAM',
+        contextName: 'Mijn team',
+        departmentId: null,
+        members: [{ employeeId: 'employee-2', employeeName: 'Maya Bos', jobTitle: 'Consultant', departmentName: 'People' }],
+        totalMemberCount: 1,
+        departments: [],
+        aiEnabled: true,
+        voiceEnabled: true,
+      },
+      logbook: { totalCount: 1, latestCreatedAt: '2026-08-29T10:00:00.000Z', manualCount: 0, aiCount: 1 },
+    })
+
+    expect(markup).toContain('data-testid="startpage-team-ai"')
+    expect(markup).toContain('GPT-Live')
+    expect(markup).toContain('Maya Bos')
+    expect(markup).toContain('data-testid="startpage-logbook"')
+    expect(markup).toContain('Toon recente notities')
+    expect(markup).toContain('Privénotitie verborgen')
+    expect(markup).not.toContain('Teamgesprek')
+    expect(markup).not.toContain('Vervolgactie.')
+  })
+
+  it('does not offer GPT-Live for a selected department without current team members', () => {
+    const markup = render('full', {
+      ...data,
+      teamAi: {
+        mode: 'DEPARTMENT_SELECTION',
+        scopeType: 'DEPARTMENT',
+        contextName: null,
+        departmentId: 'department-empty',
+        members: [],
+        totalMemberCount: 0,
+        departments: [{ id: 'department-empty', name: 'Lege afdeling', memberCount: 0 }],
+        aiEnabled: true,
+        voiceEnabled: true,
+      },
+    })
+
+    expect(markup).not.toContain('teamAiStart')
+    expect(markup).toContain('teamAiNoActiveMembers')
   })
 })

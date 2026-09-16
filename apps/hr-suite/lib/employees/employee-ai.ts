@@ -128,27 +128,28 @@ export function createEmployeeAiContextLoader(feature: EmployeeAiFeature, employ
   }
 }
 
-export function createEmployeeAiInvocationInput(feature: EmployeeAiFeature, employeeId: string, request: EmployeeAiRequest, idempotencyKey: string): Omit<AiInvocationInput, 'authContext'> {
+export function createEmployeeAiInvocationInput(feature: EmployeeAiFeature, employeeId: string, request: EmployeeAiRequest, idempotencyKey: string, origin: AiInvocationInput['origin'] = 'UI', contextType: AiInvocationInput['contextType'] = 'EMPLOYEE'): Omit<AiInvocationInput, 'authContext'> {
   return {
     featureCode: feature,
     businessObject: { type: feature === EMPLOYEE_SUMMARY_FEATURE ? 'employee-summary' : 'employee-conversation-preparation', id: businessObjectId(feature, employeeId, request) },
     idempotencyKey,
     businessPermissionCode: 'employee:read',
     businessPermissionTargetId: employeeId,
-    qualityProfile: 'EFFICIENT',
+    origin,
+    contextType,
     writingStyle: null,
   }
 }
 
 const conversationValidator = createSafeTextProposalValidator({ forbidden: /\b(score|rating|ranking|high[- ]risk|low[- ]performer|good performer|bad performer|disciplin|prestatiescore|prestatiebeoordeling|disciplinaire)\b/i })
 
-export async function runEmployeeAi(input: { employeeId: string; feature: EmployeeAiFeature; request: EmployeeAiRequest; idempotencyKey: string }): Promise<AiTextProposal> {
+export async function runEmployeeAi(input: { employeeId: string; feature: EmployeeAiFeature; request: EmployeeAiRequest; idempotencyKey: string; origin?: AiInvocationInput['origin']; contextType?: AiInvocationInput['contextType'] }): Promise<AiTextProposal> {
   const dependencies: AiRuntimeDependencies<AiTextProposal> = createServerAiRuntimeDependencies({
     contextLoader: createEmployeeAiContextLoader(input.feature, input.employeeId, input.request),
     validator: input.feature === CONVERSATION_PREPARATION_FEATURE ? conversationValidator : createAiTextProposalValidator(),
   })
   const result: AiExecutionResult<AiTextProposal> = await runAuthorizedAiInvocation(
-    createEmployeeAiInvocationInput(input.feature, input.employeeId, input.request, input.idempotencyKey),
+    createEmployeeAiInvocationInput(input.feature, input.employeeId, input.request, input.idempotencyKey, input.origin, input.contextType),
     dependencies,
   )
   if (result.kind === 'DUPLICATE') throw new AiExecutionError('DUPLICATE_COMPLETED')

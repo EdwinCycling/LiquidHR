@@ -63,7 +63,7 @@ export function createEmployeeNoteAiInvocationInput(employeeId: string, request:
     idempotencyKey,
     businessPermissionCode: 'employee-note:write',
     businessPermissionTargetId: employeeId,
-    qualityProfile: 'EFFICIENT',
+    contextType: 'EMPLOYEE',
     writingStyle: null,
   }
 }

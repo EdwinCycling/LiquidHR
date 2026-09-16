@@ -67,26 +67,27 @@ export function createDevelopmentGoalSmartContextLoader(input: DevelopmentGoalSm
   }
 }
 
-export function createDevelopmentGoalSmartInvocationInput(input: DevelopmentGoalSmartRequest, employeeId: string, idempotencyKey: string, permissionCode: GoalAiPermission = 'talent-goal:write'): Omit<AiInvocationInput, 'authContext'> {
+export function createDevelopmentGoalSmartInvocationInput(input: DevelopmentGoalSmartRequest, employeeId: string, idempotencyKey: string, permissionCode: GoalAiPermission = 'talent-goal:write', origin: AiInvocationInput['origin'] = 'UI'): Omit<AiInvocationInput, 'authContext'> {
   return {
     featureCode: DEVELOPMENT_GOAL_SMART_FEATURE,
     businessObject: { type: 'development-goal', id: businessObjectId(input, employeeId) },
     idempotencyKey,
     businessPermissionCode: permissionCode,
     businessPermissionTargetId: employeeId,
-    qualityProfile: 'EFFICIENT',
+    contextType: 'EMPLOYEE',
+    origin,
     writingStyle: null,
   }
 }
 
-export async function runDevelopmentGoalSmart(input: { request: DevelopmentGoalSmartRequest; idempotencyKey: string }): Promise<AiTextProposal> {
+export async function runDevelopmentGoalSmart(input: { request: DevelopmentGoalSmartRequest; idempotencyKey: string; origin?: AiInvocationInput['origin'] }): Promise<AiTextProposal> {
   const target = await resolveTarget(input.request)
   const dependencies: AiRuntimeDependencies<AiTextProposal> = createServerAiRuntimeDependencies({
     contextLoader: createDevelopmentGoalSmartContextLoader(input.request, target.source),
     validator: createAiTextProposalValidator(),
   })
   const result: AiExecutionResult<AiTextProposal> = await runAuthorizedAiInvocation(
-    createDevelopmentGoalSmartInvocationInput(input.request, target.employeeId, input.idempotencyKey, target.permissionCode),
+    createDevelopmentGoalSmartInvocationInput(input.request, target.employeeId, input.idempotencyKey, target.permissionCode, input.origin),
     dependencies,
   )
   if (result.kind === 'DUPLICATE') throw new AiExecutionError('DUPLICATE_COMPLETED')
