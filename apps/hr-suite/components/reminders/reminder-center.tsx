@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { ManagedReminder, ReminderItem, ReminderTargetOptions } from '@/lib/reminders/reminder-service'
-import { formatDateTime } from '@/lib/preferences/formatters'
+import { formatDateTime as formatDateTimeWithTimeZone } from '@/lib/preferences/formatters'
 import type { DateFormat, TimeFormat } from '@/lib/preferences/user-preferences'
 import { formatReminderCountdown } from '@/lib/reminders/reminder-rules'
 import { Badge } from '@/components/ui/badge'
@@ -43,11 +43,15 @@ export interface ReminderCenterLabels {
 type ReminderFilter = 'OPEN' | 'ALL' | 'COMPLETED' | 'OVERDUE'
 type ReminderSort = 'SOONEST' | 'LATEST' | 'TITLE'
 type TargetType = 'EVERYONE' | 'DEPARTMENTS' | 'EMPLOYEES'
-interface ReminderCenterProps { canManageHr: boolean; initialManaged: ManagedReminder[]; initialReminders: ReminderItem[]; labels: ReminderCenterLabels; locale: string; dateFormat: DateFormat; timeFormat: TimeFormat; targetOptions: ReminderTargetOptions }
+interface ReminderCenterProps { canManageHr: boolean; initialManaged: ManagedReminder[]; initialReminders: ReminderItem[]; initialNowIso: string; labels: ReminderCenterLabels; locale: string; dateFormat: DateFormat; timeFormat: TimeFormat; targetOptions: ReminderTargetOptions }
+
+function formatDateTime(value: string | Date, options: { locale: string; dateFormat: DateFormat; timeFormat: TimeFormat }): string {
+  return formatDateTimeWithTimeZone(value, { ...options, timeZone: 'UTC' })
+}
 
 function toIso(value: FormDataEntryValue | null): string | null { if (typeof value !== 'string' || !value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date.toISOString() }
 
-export function ReminderCenter({ canManageHr, initialManaged, initialReminders, labels, locale, dateFormat, timeFormat, targetOptions }: ReminderCenterProps) {
+export function ReminderCenter({ canManageHr, initialManaged, initialReminders, initialNowIso, labels, locale, dateFormat, timeFormat, targetOptions }: ReminderCenterProps) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -59,7 +63,7 @@ export function ReminderCenter({ canManageHr, initialManaged, initialReminders, 
   const [managedDetail, setManagedDetail] = useState<ManagedReminder | null>(null)
   const [personalCreateOpen, setPersonalCreateOpen] = useState(false)
   const [hrCreateOpen, setHrCreateOpen] = useState(false)
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState(() => new Date(initialNowIso))
   const [openSection, setOpenSection] = useState<'personal' | 'hr' | null>('personal')
 
   useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer) }, [])
