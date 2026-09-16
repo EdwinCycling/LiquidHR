@@ -1,5 +1,33 @@
 # Liquid HR documentatie-index
 
+## AI-consolidatie — 2026-09-16
+
+**Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD / MENSELIJKE MICROFOONACCEPTATIE OPEN**
+
+De actuele AI-bron staat op `main` en is lokaal en op GitHub geverifieerd op
+commit `bb5efa64426ec3b2153650e2401791da1fe2e594`. De canonical Vercel
+Preview is vanaf deze main-state gebouwd met alleen een Preview-target; er is
+geen Production-deployment of Production-configuratie gewijzigd. De eerder
+toegepaste AI-migrations staan uitsluitend op DEV/TEST Supabase-project
+`wnpfloqpjvaacobppbpk`; in deze consolidatie-run is geen remote migration
+uitgevoerd.
+
+De actuele hosted smoke heeft HR Admin op Employee Detail, Manager op Start
+en Team AI, en de read-only AI-surface, Logboek, Reminders, AI Settings,
+Insights en Leave gecontroleerd. Employee- en Team GPT-Live gaven HTTP 200,
+een SDP-answer, `session.started` en `session.closed`; de gecontroleerde
+manager-scope was `DIRECT_TEAM`. De run gebruikte een fake-audiobrowser voor
+transportbewijs; echte microfoonspraak, gesproken antwoord en menselijke
+tool-/voorstelacceptatie blijven een expliciete gebruikerstaak.
+
+De lokale gate is GREEN: `394/394` testbestanden en `1551/1551` tests,
+strict TypeScript, ESLint, i18n-pariteit, diff-check en Webpack-build met
+`279/279` gegenereerde pagina's. De laatste hydration-fix maakt Reminders
+server/client-deterministisch door een gedeelde ISO-tijdreferentie en
+UTC-formattering; de hosted controle zag geen React `#418`, page errors,
+console errors of warnings op de gecontroleerde routes. Oude AI-secties verder
+op deze pagina zijn historische snapshots en overschrijven deze status niet.
+
 ## Actual Work Bulk Hours V1 — 2026-09-15
 
 **Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / HOSTED ACCEPTANCE OPEN**

@@ -1,5 +1,38 @@
 # Actuele overdracht Liquid HR
 
+## AI-consolidatie — 2026-09-16
+
+**Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD**
+
+- Canonieke main-state: `bb5efa64426ec3b2153650e2401791da1fe2e594`, lokaal
+  gelijk aan `origin/main`. De laatste codewijziging is de hydration-safe
+  Reminders-fix; de geaccepteerde AI-implementatie is op deze main-state
+  aanwezig.
+- Deployment: gebruik de laatste in de afsluitende run vastgelegde canonical
+  Vercel Preview-URL; uitsluitend Preview, nooit Production. De deployment
+  moet `READY` zijn en het exacte id hoort naast de URL in de afsluitende
+  evidence te staan.
+- Database: DEV/TEST Supabase `wnpfloqpjvaacobppbpk`; AI-migrations waren al
+  toegepast vóór deze consolidatie. Geen migration of andere remote
+  databasewrite in deze run; Production en Leave blijven ongemoeid.
+- Hosted evidence: HR Admin Employee Detail en Manager Start/Team AI zijn
+  gecontroleerd. Beide GPT-Live routes gaven HTTP 200, SDP-answer,
+  `session.started` en `session.closed`; Team AI scope was `DIRECT_TEAM`.
+  `/hr-calendar`, `/logbook`, `/reminders`, `/settings/ai` en AI Insights
+  gaven zonder page errors of console errors/warnings een succesvolle
+  response.
+- Lokale evidence: `394/394` testbestanden, `1551/1551` tests, strict
+  TypeScript, lint, i18n, diff-check en Webpack `279/279` groen. De
+  Reminders-hydrationfix gebruikt een server/client gedeelde ISO-tijd en UTC
+  formattering en verwijdert de reproduceerbare tijdmismatch.
+- Menselijke eindgate: fake-audio WebRTC-transport is technisch bewezen; de
+  echte microfoon-/spraaktest, gesproken respons, toolinteractie,
+  proposal-only beoordeling, interrupt en logboekreview blijven bij Edwin.
+- Cleanup: verwijder uitsluitend exact bewezen obsolete AI-refs/deployments
+  nadat de canonical Preview groen is. Behoud dirty worktrees, protected
+  `.env.local` en onduidelijke refs; rapporteer ze met reden. Raak
+  `work/leave-profile-management`, Production en de dirty AI-root niet aan.
+
 ## Actual Work Bulk Hours V1 — 2026-09-15
 
 **Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**

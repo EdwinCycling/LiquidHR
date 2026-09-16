@@ -1,5 +1,35 @@
 # Implementatiestatus Liquid HR
 
+## AI-consolidatie — 2026-09-16
+
+**Status: TECHNISCH GREEN — MAIN EN CANONICAL PREVIEW GEVERIFIEERD / MICROFOONACCEPTATIE OPEN**
+
+- **Git:** `main` en `origin/main` staan op
+  `bb5efa64426ec3b2153650e2401791da1fe2e594`. De commit bevat de
+  hydration-safe Reminders-fix; de AI-code en AI-migrations waren al in de
+  geaccepteerde main-state geïntegreerd.
+- **Vercel:** de canonical deployment is een Preview-target en READY. De
+  exacte URL en deployment-id worden bij iedere nieuwe canonical deployment
+  in de overdracht vastgelegd; er is geen `--prod`-deployment uitgevoerd.
+- **Supabase:** DEV/TEST-project `wnpfloqpjvaacobppbpk` blijft de testomgeving.
+  De bestaande AI-migrations zijn daar al toegepast; deze run voerde geen
+  remote migration uit en raakte Production niet.
+- **Hosted routes:** HR Admin Employee Detail, Manager Start/Team AI,
+  `/hr-calendar`, `/logbook`, `/reminders`, `/settings/ai` en
+  `/insights?report=ai-usage` zijn gecontroleerd. Employee- en Team
+  GPT-Live-session creation gaf `200`, SDP-answer en de lifecycle-events
+  `session.started`/`session.closed`; Team AI rapporteerde `DIRECT_TEAM`.
+- **Lokale gates:** volledige suite `394/394` testbestanden en `1551/1551`
+  tests, strict TypeScript, ESLint, i18n-pariteit, `git diff --check` en
+  Webpack production build (`279/279` pagina's) zijn groen.
+- **Hydration:** Reminders gebruikt een server meegegeven ISO-tijdreferentie,
+  een deterministische eerste render en UTC-formattering; de eerdere
+  tijdafhankelijke React `#418`-mismatch is daarmee onderliggend opgelost.
+- **Acceptance boundary:** de hosted transportcontrole gebruikte fake audio.
+  Een echte microfoon, gesproken antwoord en menselijke beoordeling van
+  Employee Summary, Conversation Preparation, SMART Goal proposal-only,
+  interrupts en logboekreview zijn niet namens de gebruiker uitgevoerd.
+
 ## Actual Work Bulk Hours V1 — 2026-09-15
 
 **Status: CANDIDATE — LOKALE TECHNISCHE GATES GREEN / MAIN, DEPLOY EN HOSTED ACCEPTANCE OPEN**
