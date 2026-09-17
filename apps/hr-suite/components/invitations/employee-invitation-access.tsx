@@ -63,12 +63,10 @@ function dateLabel(value: string, locale: Locale): string {
 export function EmployeeInvitationAccess({
   access,
   locale,
-  managementRoleId,
   labels,
 }: {
   access: EmployeeInvitationAccess
   locale: Locale
-  managementRoleId: string
   labels: EmployeeInvitationAccessLabels
 }) {
   const router = useRouter()
@@ -81,17 +79,11 @@ export function EmployeeInvitationAccess({
     setMessage(null)
     try {
       const response = action === 'send'
-        ? await fetch('/api/invitations', {
+        ? await fetch('/api/invitations/employee', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: access.recipientEmail,
-            emailKind: 'PRIVATE',
-            purpose: access.invitationPurpose,
             employeeId: access.employeeId,
-            administrationId: null,
-            managementRoleId,
-            scopeType: 'TENANT',
           }),
         })
         : await fetch(`/api/invitations/${access.invitationId}/${action}`, { method: 'POST' })

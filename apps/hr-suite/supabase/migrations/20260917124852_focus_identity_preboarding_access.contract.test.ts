@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const sql = readFileSync(resolve(__dirname, '20260917124852_focus_identity_preboarding_access.sql'), 'utf8')
+const canonicalEmployeeIdOverload = readFileSync(resolve(__dirname, '20260805200000_hr_group_people_organization_roles.sql'), 'utf8')
 
 describe('Focus identity/preboarding migration contract', () => {
   it('derives preboarding from effective-dated confirmed employments', () => {
@@ -58,5 +59,13 @@ describe('Focus identity/preboarding migration contract', () => {
     expect(sql).toContain('hr_group_id')
     expect(sql).toContain('select administration.hr_group_id')
     expect(sql).toContain('grant execute on function public.accept_user_invitation(text, uuid, text) to service_role;')
+  })
+
+  it('proves the tenant and HR-group employee-id overload exists in migration history', () => {
+    expect(canonicalEmployeeIdOverload).toMatch(/create or replace function internal_security\.current_employee_id\(\s*requested_tenant_id uuid,\s*requested_hr_group_id uuid\s*\)/)
+    expect(canonicalEmployeeIdOverload).toContain('employee.tenant_id = requested_tenant_id')
+    expect(canonicalEmployeeIdOverload).toContain('employee.hr_group_id = requested_hr_group_id')
+    expect(canonicalEmployeeIdOverload).toContain('grant execute on function internal_security.current_employee_id(uuid, uuid) to authenticated;')
+    expect(sql).toContain('current_employee_id(\n          target_scope.tenant_id,\n          target_scope.hr_group_id\n        )')
   })
 })

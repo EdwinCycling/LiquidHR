@@ -10,4 +10,8 @@ export const invitationRequestSchema = z.object({
   scopeType: z.enum(['TENANT', 'ADMINISTRATION']),
 }).strict()
 
+export const businessInvitationRequestSchema = invitationRequestSchema.extend({
+  purpose: z.literal('BUSINESS_USER'),
+})
+
 export type InvitationRequest = z.infer<typeof invitationRequestSchema>

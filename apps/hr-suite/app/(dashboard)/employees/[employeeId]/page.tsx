@@ -57,7 +57,7 @@ import { getPrivateWeatherForEmployee, getWorkWeatherForContext } from '@/lib/we
 import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { normalizeInsightReturnPath } from '@/lib/insights/query-seam'
-import { getEmployeeInvitationAccess, getInvitationDefaults } from '@/lib/auth/invitation-management'
+import { getEmployeeInvitationAccess } from '@/lib/auth/invitation-management'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -179,7 +179,6 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     ? await Promise.all([
       getTranslator('invitations', locale),
       getEmployeeInvitationAccess(employeeId),
-      getInvitationDefaults(),
     ])
     : null
   const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherToday: tWeather('weatherToday'), weatherTomorrow: tWeather('weatherTomorrow'), weatherNextWorkingDay: tWeather('weatherNextWorkingDay'), weatherDayToggle: tWeather('weatherDayToggle'), weatherTodayMax: tWeather('weatherTodayMax'), weatherForecastHigh: tWeather('weatherForecastHigh'), weatherForecastLow: tWeather('weatherForecastLow'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
@@ -270,7 +269,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           </>}
          </Surface>
 
-        {invitationPage?.[1] ? <EmployeeInvitationAccess access={invitationPage[1]} locale={locale} managementRoleId={invitationPage[2].managementRoleId} labels={{
+        {invitationPage?.[1] ? <EmployeeInvitationAccess access={invitationPage[1]} locale={locale} labels={{
           title: invitationPage[0]('employeeAccessTitle'),
           description: invitationPage[0]('employeeAccessDescription'),
           status: invitationPage[0]('statusFilter'),

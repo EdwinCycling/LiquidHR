@@ -3,13 +3,15 @@ import {
   type CreateInvitationInput,
   type InvitationErrorCode,
 } from '@/lib/auth/invitation-rules'
+import { createEmployeeInvitation } from '@/lib/auth/employee-invitations'
 import { requirePermission } from '@/lib/auth/permissions'
 import { createInvitation } from '@/lib/auth/invitations'
 
 export type BulkInvitationInput = Omit<CreateInvitationInput, 'origin'>
 
 export interface BulkInvitationResult {
-  email: string
+  email: string | null
+  employeeId?: string
   ok: boolean
   invitationId?: string
   expiresAt?: string
@@ -37,6 +39,33 @@ export async function createBulkInvitations(
     } catch (error) {
       results.push({
         email: input.email,
+        ok: false,
+        errorCode: error instanceof InvitationError ? error.code : 'UNKNOWN',
+      })
+    }
+  }
+
+  return {
+    total: results.length,
+    succeeded: results.filter((result) => result.ok).length,
+    failed: results.filter((result) => !result.ok).length,
+    results,
+  }
+}
+
+export async function createBulkEmployeeInvitations(
+  employeeIds: readonly string[],
+  origin: string,
+): Promise<BulkInvitationSummary> {
+  const results: BulkInvitationResult[] = []
+  for (const employeeId of employeeIds) {
+    try {
+      const invitation = await createEmployeeInvitation(employeeId, origin)
+      results.push({ email: invitation.email, employeeId, ok: true, invitationId: invitation.id, expiresAt: invitation.expiresAt })
+    } catch (error) {
+      results.push({
+        email: null,
+        employeeId,
         ok: false,
         errorCode: error instanceof InvitationError ? error.code : 'UNKNOWN',
       })

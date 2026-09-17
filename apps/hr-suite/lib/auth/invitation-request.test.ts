@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { invitationRequestSchema } from '@/lib/auth/invitation-request'
+import { businessInvitationRequestSchema, invitationRequestSchema } from '@/lib/auth/invitation-request'
 
 describe('invitationRequestSchema', () => {
   it('accepteert een volledige preboardinguitnodiging', () => {
@@ -40,6 +40,20 @@ describe('invitationRequestSchema', () => {
       managementRoleId: '33333333-3333-4333-8333-333333333333',
       scopeType: 'TENANT',
       tenantId: 'door-client-ingevuld',
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('houdt employee activation buiten het generieke business-contract', () => {
+    const result = businessInvitationRequestSchema.safeParse({
+      email: 'employee@example.com',
+      emailKind: 'PRIVATE',
+      purpose: 'EMPLOYEE_ACTIVATION',
+      employeeId: '11111111-1111-4111-8111-111111111111',
+      administrationId: null,
+      managementRoleId: '33333333-3333-4333-8333-333333333333',
+      scopeType: 'TENANT',
     })
 
     expect(result.success).toBe(false)

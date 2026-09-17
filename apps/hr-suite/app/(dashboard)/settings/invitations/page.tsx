@@ -5,7 +5,7 @@ import { InvitationWizard, type InvitationWizardLabels } from '@/components/invi
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { buttonClasses } from '@/components/ui/button'
-import { getInvitationDefaults, listInvitationCandidates, listInvitations } from '@/lib/auth/invitation-management'
+import { listInvitationCandidates, listInvitations } from '@/lib/auth/invitation-management'
 import { AuthorizationError, AuthenticationError, requirePermission } from '@/lib/auth/permissions'
 import { ContextAccessError } from '@/lib/context/administration-context'
 import { ContextAuthenticationError } from '@/lib/context/server-context'
@@ -21,8 +21,7 @@ async function loadInvitationPageData() {
       getTranslator('invitations', 'en'),
       listInvitationCandidates(),
       listInvitations(),
-      getInvitationDefaults(),
-    ]).then(([locale, t, tNl, tEn, candidates, invitations, defaults]) => ({ locale, t, tNl, tEn, candidates, invitations, defaults }))
+    ]).then(([locale, t, tNl, tEn, candidates, invitations]) => ({ locale, t, tNl, tEn, candidates, invitations }))
   } catch (error) {
     if (error instanceof AuthenticationError || error instanceof ContextAuthenticationError) redirect('/login')
     if (error instanceof AuthorizationError || error instanceof ContextAccessError) redirect('/geen-toegang')
@@ -31,7 +30,7 @@ async function loadInvitationPageData() {
 }
 
 export default async function InvitationsPage() {
-  const { locale, t, tNl, tEn, candidates, invitations, defaults } = await loadInvitationPageData()
+  const { locale, t, tNl, tEn, candidates, invitations } = await loadInvitationPageData()
     const labels: InvitationWizardLabels = {
       stepsLabel: t('stepsLabel'),
       stepSelect: t('stepSelect'),
@@ -98,7 +97,7 @@ export default async function InvitationsPage() {
           description={t('description')}
           title={<span className="flex items-center gap-2"><UserPlus aria-hidden="true" className="size-6 text-primary" />{t('title')}</span>}
         />
-        <InvitationWizard candidates={candidates} invitations={invitations} labels={labels} locale={locale} managementRoleId={defaults.managementRoleId} />
+        <InvitationWizard candidates={candidates} invitations={invitations} labels={labels} locale={locale} />
       </PageShell>
     )
 }

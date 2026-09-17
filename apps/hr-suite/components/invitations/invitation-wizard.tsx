@@ -70,7 +70,6 @@ export interface InvitationWizardLabels {
 interface InvitationWizardProps {
   candidates: readonly InvitationCandidate[]
   invitations: readonly InvitationListItem[]
-  managementRoleId: string
   labels: InvitationWizardLabels
   locale: Locale
 }
@@ -116,7 +115,7 @@ function failureLabel(code: string | undefined, labels: InvitationWizardLabels):
   return labels.resultFailed.replace('{code}', normalized)
 }
 
-export function InvitationWizard({ candidates, invitations: initialInvitations, managementRoleId, labels, locale }: InvitationWizardProps) {
+export function InvitationWizard({ candidates, invitations: initialInvitations, labels, locale }: InvitationWizardProps) {
   const [step, setStep] = useState<WizardStep>(1)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<'ALL' | InvitationLifecycleStatus>('ALL')
@@ -170,15 +169,7 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: selectedCandidates.flatMap((candidate) => candidate.email ? [{
-            email: candidate.email,
-            emailKind: 'PRIVATE',
-            purpose: candidate.invitationPurpose,
-            employeeId: candidate.id,
-            administrationId: null,
-            managementRoleId,
-            scopeType: 'TENANT',
-          }] : []),
+          employeeIds: selectedCandidates.map((candidate) => candidate.id),
         }),
       })
       const payload = await response.json() as { data?: BulkInvitationSummary; error?: { code?: string } }
@@ -256,7 +247,7 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
         <div className="flex flex-wrap justify-between gap-2"><Button onClick={() => setStep(1)} type="button" variant="secondary"><ChevronLeft aria-hidden="true" />{labels.back}</Button><Button disabled={busy} loading={busy} onClick={() => void sendInvitations()} type="button"><Send aria-hidden="true" />{busy ? labels.sending : labels.send}</Button></div>
       </Surface> : null}
 
-      {step === 3 && summary ? <Surface className="space-y-5 p-4 sm:p-6"><div><h2 className="text-lg font-semibold">{labels.resultTitle}</h2><div className="mt-2 flex flex-wrap gap-2"><Badge tone="success">{labels.sent}: {summary.succeeded}</Badge><Badge tone={summary.failed ? 'warning' : 'neutral'}>{labels.notSent}: {summary.failed}</Badge></div></div><ul className="divide-y divide-border-subtle">{summary.results.map((result) => <li className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0" key={`${result.email}-${result.invitationId ?? result.errorCode ?? 'failed'}`}><span className="flex min-w-0 items-center gap-2 text-sm"><Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" /><span className="truncate">{result.email}</span></span>{result.ok ? <span className="text-sm text-success">{labels.resultSuccess}</span> : <span className="text-sm text-destructive">{failureLabel(result.errorCode, labels)}</span>}</li>)}</ul><Button onClick={restart} type="button" variant="secondary"><RefreshCw aria-hidden="true" />{labels.restart}</Button></Surface> : null}
+      {step === 3 && summary ? <Surface className="space-y-5 p-4 sm:p-6"><div><h2 className="text-lg font-semibold">{labels.resultTitle}</h2><div className="mt-2 flex flex-wrap gap-2"><Badge tone="success">{labels.sent}: {summary.succeeded}</Badge><Badge tone={summary.failed ? 'warning' : 'neutral'}>{labels.notSent}: {summary.failed}</Badge></div></div><ul className="divide-y divide-border-subtle">{summary.results.map((result) => { const recipient = result.email ?? result.employeeId ?? labels.actionFailed; return <li className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0" key={`${recipient}-${result.invitationId ?? result.errorCode ?? 'failed'}`}><span className="flex min-w-0 items-center gap-2 text-sm"><Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" /><span className="truncate">{recipient}</span></span>{result.ok ? <span className="text-sm text-success">{labels.resultSuccess}</span> : <span className="text-sm text-destructive">{failureLabel(result.errorCode, labels)}</span>}</li> })}</ul><Button onClick={restart} type="button" variant="secondary"><RefreshCw aria-hidden="true" />{labels.restart}</Button></Surface> : null}
 
       {actionMessage ? <p aria-live="polite" className="text-sm text-muted-foreground">{actionMessage}</p> : null}
 

@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InvitationError } from './invitation-rules'
 
-const { createInvitationMock, requirePermissionMock } = vi.hoisted(() => ({
+const { createEmployeeInvitationMock, createInvitationMock, requirePermissionMock } = vi.hoisted(() => ({
+  createEmployeeInvitationMock: vi.fn(),
   createInvitationMock: vi.fn(),
   requirePermissionMock: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/invitations', () => ({ createInvitation: createInvitationMock }))
+vi.mock('@/lib/auth/employee-invitations', () => ({ createEmployeeInvitation: createEmployeeInvitationMock }))
 vi.mock('@/lib/auth/permissions', () => ({ requirePermission: requirePermissionMock }))
 
-import { createBulkInvitations } from './bulk-invitations'
+import { createBulkEmployeeInvitations, createBulkInvitations } from './bulk-invitations'
 
 const baseInput = {
   emailKind: 'PRIVATE' as const,
@@ -50,5 +52,23 @@ describe('createBulkInvitations', () => {
       ],
     })
     expect(createInvitationMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('uses the canonical employee primitive for every employee ID', async () => {
+    createEmployeeInvitationMock
+      .mockResolvedValueOnce({ id: 'invitation-1', expiresAt: '2026-09-24T00:00:00.000Z', email: 'one@example.com', purpose: 'EMPLOYEE_ACTIVATION' })
+      .mockRejectedValueOnce(new InvitationError('EMPLOYEE_NOT_FOUND', 404))
+
+    const summary = await createBulkEmployeeInvitations([
+      'employee-1',
+      'employee-2',
+    ], 'https://liquidhr.test')
+
+    expect(createEmployeeInvitationMock).toHaveBeenNthCalledWith(1, 'employee-1', 'https://liquidhr.test')
+    expect(createEmployeeInvitationMock).toHaveBeenNthCalledWith(2, 'employee-2', 'https://liquidhr.test')
+    expect(createInvitationMock).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ total: 2, succeeded: 1, failed: 1 })
+    expect(summary.results[0]).toMatchObject({ employeeId: 'employee-1', email: 'one@example.com', ok: true })
+    expect(summary.results[1]).toMatchObject({ employeeId: 'employee-2', email: null, ok: false, errorCode: 'EMPLOYEE_NOT_FOUND' })
   })
 })
