@@ -17,6 +17,7 @@ interface FakeClientOptions {
   roleCodes?: Record<string, string>
   rolePermissions?: Record<string, string[]>
   selfPermissionCodes?: string[]
+  employments?: Array<{ starts_on: string; ends_on: string | null; record_status: 'DRAFT' | 'CONFIRMED' | 'CANCELLED'; deleted_at: string | null }>
 }
 
 function createFakeClient(options: FakeClientOptions = {}) {
@@ -52,6 +53,20 @@ function createFakeClient(options: FakeClientOptions = {}) {
             data: options.actor === undefined
               ? { id: 'employee-1', tenant_id: 'tenant-1' }
               : options.actor,
+            error: null,
+          }),
+        }
+        return builder
+      }
+
+      if (table === 'employments') {
+        const builder = {
+          select: () => builder,
+          eq: () => builder,
+          is: () => builder,
+          order: () => builder,
+          limit: vi.fn().mockResolvedValue({
+            data: options.employments ?? [],
             error: null,
           }),
         }
@@ -232,5 +247,25 @@ describe('requirePermission', () => {
       permissions: ['department:read'],
     })
     expect(client.rpc).not.toHaveBeenCalled()
+  })
+
+  it('blokkeert niet-allowlisted selfservice vóór de eerste werkdag', async () => {
+    createClient.mockResolvedValue(createFakeClient({
+      selfPermissionCodes: ['self:employee:read', 'self:leave:read'],
+      employments: [{ starts_on: '2999-01-01', ends_on: null, record_status: 'CONFIRMED', deleted_at: null }],
+    }))
+
+    await expect(requirePermission('self:leave:read')).rejects.toBeInstanceOf(AuthorizationError)
+  })
+
+  it('laat eigen bankrekeninggegevens toe tijdens preboarding met een exacte selfpermission', async () => {
+    createClient.mockResolvedValue(createFakeClient({
+      selfPermissionCodes: ['self:bank-account:read', 'self:bank-account:write'],
+      employments: [{ starts_on: '2999-01-01', ends_on: null, record_status: 'CONFIRMED', deleted_at: null }],
+    }))
+
+    await expect(requirePermission('bank-account:write', 'employee-1')).resolves.toMatchObject({
+      focusExperience: 'PREBOARDING',
+    })
   })
 })

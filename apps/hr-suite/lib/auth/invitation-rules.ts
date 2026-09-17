@@ -37,13 +37,16 @@ export interface CreatedInvitation {
 export type InvitationErrorCode =
   | InvitationRuleErrorCode
   | 'INVITATION_ALREADY_PENDING'
+  | 'INVITATION_ALREADY_ACCEPTED'
+  | 'INVITATION_NOT_FOUND'
+  | 'INVITATION_REVOKE_FAILED'
   | 'INVITATION_CREATE_FAILED'
   | 'INVITATION_DELIVERY_FAILED'
 
 export class InvitationError extends Error {
   constructor(
     readonly code: InvitationErrorCode,
-    readonly status: 400 | 409 | 502,
+    readonly status: 400 | 404 | 409 | 502,
   ) {
     super(code)
     this.name = 'InvitationError'
@@ -83,13 +86,12 @@ export function hashInvitationToken(token: string): string {
 }
 
 export function buildInvitationRedirectUrl(origin: string, token: string): string {
-  const url = new URL('/invite/accept', origin)
+  const url = new URL(`/invite/${encodeURIComponent(token)}`, origin)
   const isLocalHttp = url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)
 
   if (url.protocol !== 'https:' && !isLocalHttp) {
     throw new InvitationError('INVITATION_CREATE_FAILED', 400)
   }
 
-  url.searchParams.set('invitation', token)
   return url.toString()
 }

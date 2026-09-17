@@ -3,7 +3,18 @@ import { permissionErrorResponse } from '@/lib/auth/permissions'
 import { invitationRequestSchema } from '@/lib/auth/invitation-request'
 import { InvitationError } from '@/lib/auth/invitation-rules'
 import { createInvitation } from '@/lib/auth/invitations'
+import { listInvitations } from '@/lib/auth/invitation-management'
 import { resolveRequestOrigin } from '@/lib/auth/request-origin'
+
+export async function GET() {
+  try {
+    return NextResponse.json({ data: await listInvitations() })
+  } catch (error) {
+    const permissionResponse = permissionErrorResponse(error)
+    if (permissionResponse) return permissionResponse
+    return NextResponse.json({ error: { code: 'INTERNAL_ERROR' } }, { status: 500 })
+  }
+}
 
 export async function POST(request: NextRequest) {
   let body: unknown

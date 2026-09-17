@@ -1,6 +1,7 @@
 import 'server-only'
 
 import authEn from '@/messages/en/auth.json'
+import invitationsEn from '@/messages/en/invitations.json'
 import commonEn from '@/messages/en/common.json'
 import departmentsEn from '@/messages/en/departments.json'
 import employeesEn from '@/messages/en/employees.json'
@@ -33,6 +34,7 @@ import journeysEn from '@/messages/en/journeys.json'
 import recruitmentEn from '@/messages/en/recruitment.json'
 import setupAssistantEn from '@/messages/en/setupAssistant.json'
 import authNl from '@/messages/nl/auth.json'
+import invitationsNl from '@/messages/nl/invitations.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
 import employeesNl from '@/messages/nl/employees.json'
@@ -68,6 +70,8 @@ import documentStudioNl from '@/messages/nl/documentStudio.json'
 import documentStudioEn from '@/messages/en/documentStudio.json'
 import logbookNl from '@/messages/nl/logbook.json'
 import logbookEn from '@/messages/en/logbook.json'
+import focusNl from '@/messages/nl/focus.json'
+import focusEn from '@/messages/en/focus.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -78,6 +82,7 @@ import { createTranslator, type MessageTree, type Translator } from './translato
 const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
   nl: {
     auth: authNl,
+    invitations: invitationsNl,
     common: commonNl,
     departments: departmentsNl,
     employees: employeesNl,
@@ -111,9 +116,11 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     setupAssistant: setupAssistantNl,
     documentStudio: documentStudioNl,
     logbook: logbookNl,
+    focus: focusNl,
   },
   en: {
     auth: authEn,
+    invitations: invitationsEn,
     common: commonEn,
     departments: departmentsEn,
     employees: employeesEn,
@@ -147,6 +154,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     setupAssistant: setupAssistantEn,
     documentStudio: documentStudioEn,
     logbook: logbookEn,
+    focus: focusEn,
   },
 }
 

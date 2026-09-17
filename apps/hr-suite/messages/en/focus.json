@@ -1,0 +1,51 @@
+{
+  "back": "Back to Focus",
+  "presentation": { "label": "Presentation", "focus": "Focus", "full": "Full workspace" },
+  "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day" },
+  "home": {
+    "title": "Focus", "hello": "Hello {name}", "welcome": "Welcome {name}",
+    "employeeDescription": "Your next step and everyday essentials in one place.",
+    "managerDescription": "Your personal essentials and actions for your team in one place.",
+    "preboardingDescription": "Get ready for your first day at your own pace.",
+    "nextUp": "Your next step", "quickActions": "Quick access",
+    "noEmploymentTitle": "No active employment yet",
+    "noEmploymentDescription": "Focus becomes available once your employment is linked and confirmed. Contact HR if you have any questions.",
+    "noActionsTitle": "No actions available yet",
+    "noActionsDescription": "The areas available to you will appear here. Contact HR if you have any questions."
+  },
+  "start": {
+    "futureTitle": "You start on {date}", "oneDay": "Tomorrow is your first day.", "countdown": "{days} days until your first day.",
+    "limitedAccess": "Until your start, this space only includes your onboarding, profile, assigned documents and signing requests.",
+    "dayOneTitle": "Today is your first day", "dayOneDescription": "Welcome! Your personal workspace is now available. Explore your next step and the actions for you.",
+    "unknownTitle": "Welcome to your preparation", "unknownDescription": "Your start date is not available yet. HR can help you."
+  },
+  "journey": {
+    "title": "Your journey", "description": "Move forward with your preparation and development, one step at a time.",
+    "progress": "Progress", "completed": "{completed} of {total} completed", "nextAction": "Next action",
+    "available": "Available", "upcoming": "Coming up", "availableOn": "Available from {date}",
+    "openAction": "Open this action", "openJourney": "View your journey", "noNextAction": "There is no next action for you right now.",
+    "emptyTitle": "No journey available yet", "emptyDescription": "Your assigned journey and next step will appear here when available.",
+    "preboardingEmptyDescription": "Your preparation will appear here once HR sets up your onboarding. There is nothing you need to do right now.",
+    "status": { "PLANNED": "Planned", "ACTIVE": "Active", "PAUSED": "Paused", "COMPLETED": "Completed", "CANCELLED": "Cancelled" }
+  },
+  "actions": {
+    "journey": { "title": "My onboarding", "description": "Your preparation and next steps." },
+    "profile": { "title": "My profile", "description": "Your personal details." },
+    "documents": { "title": "My documents", "description": "Documents and signing requests for you." },
+    "leave": { "title": "My leave", "description": "Your balance and leave requests." },
+    "requests": { "title": "My requests", "description": "Track your requests." },
+    "work": { "title": "My work", "description": "Tasks that need your attention." },
+    "team": { "title": "My team", "description": "Your team in the organisation." }
+  },
+  "sections": {
+    "openSignatures": "My signing requests", "documentsSigningOnly": "Your available documents are listed with your signing requests. Contact HR about other documents.",
+    "name": "Name", "startDate": "First day", "openOnboarding": "View your onboarding",
+    "profileDescription": "View and manage your details in your existing employee profile.", "profileOpen": "Open my profile",
+    "documentsDescription": "View your documents in your existing employee file.", "documentsOpen": "Open my documents",
+    "workDescription": "View the tasks assigned to you in My work.", "workOpen": "Open My work",
+    "teamDescription": "View your team and the organisation structure in the organisation chart.", "teamOpen": "Open the organisation chart",
+    "preboardingProfile": "These are your details for your start. Complete your information through the assigned steps in your onboarding. Contact HR to make a correction.",
+    "documentsPendingTitle": "Documents for your start", "preboardingDocuments": "Open assigned documents and signing requests from your onboarding. If there is no step yet, there is nothing you need to do right now.",
+    "requestsPendingTitle": "Your requests overview will appear here", "requestsPendingDescription": "This overview is not available yet. Find your leave requests via My leave on Focus. Contact HR about other requests."
+  }
+}

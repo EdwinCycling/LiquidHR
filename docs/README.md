@@ -1313,4 +1313,8 @@ De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport
 
 De medewerkerlijst/persoonskaart-UX-slice van 2026-07-19 is geïmplementeerd: gebruikersgebonden lijstvoorkeuren zonder zoekterm, Enter-zoeken met afzonderlijk wissen, volledige klikrij, hoofdtab Overzicht vóór Persoonsgegevens en een effective-dated samenvatting van het huidige dienstverband met beschermd salaris-hover.
 
+## Focus + Identity / Preboarding candidate — 2026-09-17
+
+De geïsoleerde candidate `work/focus-identity-preboarding-20260917` bouwt de goedgekeurde `/focus` presentation over de bestaande Employee/Employment-, Journey- en Auth/invitation-architectuur. Employee, Manager en Preboarding hebben een compacte Foundation-surface; preboarding is effectief-dated en server/RLS-begrensd. Individuele en bulkuitnodigingen gebruiken de bestaande token/acceptance-lifecycle, met 7 dagen geldigheid, resend/revoke en per-recipient resultaten. De lokale codegate is groen met volledige tests, typecheck, lint, i18n en Webpack-build; authenticated browseracceptance en remote SQL-gates blijven expliciet open door beschermde env/remote governance. ESS/MSS-owned Leave, Actual Work, My Work, My Requests en workflows blijven integratiepunten; de actuele gate staat in [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md).
+
 De HR-admin-stamtabellen staan op `/master-data`: Redenen uitdienst, documentcategorieën en tenant-relatietypen zijn afzonderlijke onderdelen. Redenen uitdienst zijn landgebonden en HR-groepbreed; documentcategorieën blijven administratiegebonden. Nederland gebruikt de actuele codes 01-99 en andere landen krijgen bij ontbrekende inrichting de veilige standaardreden `Einde contract`.

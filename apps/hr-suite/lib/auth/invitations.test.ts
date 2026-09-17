@@ -66,6 +66,6 @@ describe('invitation token', () => {
   it('bouwt een veilige redirect naar de acceptatiepagina', () => {
     const url = buildInvitationRedirectUrl('https://preview.liquid-hr.example', 'a+b/c=')
 
-    expect(url).toBe('https://preview.liquid-hr.example/invite/accept?invitation=a%2Bb%2Fc%3D')
+    expect(url).toBe('https://preview.liquid-hr.example/invite/a%2Bb%2Fc%3D')
   })
 })

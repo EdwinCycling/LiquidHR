@@ -19,8 +19,18 @@ export async function createInvitation(input: CreateInvitationInput): Promise<Cr
   const auth = await requirePermission('user:invite')
   const email = normalizeInvitationEmail(input.email)
   const token = randomBytes(32).toString('base64url')
-  const expiresAt = new Date(Date.now() + (48 * 60 * 60 * 1000)).toISOString()
+  const expiresAt = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)).toISOString()
+  const redirectTo = buildInvitationRedirectUrl(input.origin, token)
   const supabase = await createClient()
+
+  const { error: expireError } = await supabase
+    .from('user_invitations')
+    .update({ status: 'EXPIRED' })
+    .eq('tenant_id', auth.tenantId)
+    .eq('email', email)
+    .eq('status', 'PENDING')
+    .lt('expires_at', new Date().toISOString())
+  if (expireError) throw new InvitationError('INVITATION_CREATE_FAILED', 400)
 
   const { data: invitation, error: insertError } = await supabase
     .from('user_invitations')
@@ -49,7 +59,6 @@ export async function createInvitation(input: CreateInvitationInput): Promise<Cr
 
   try {
     const admin = createAdminClient()
-    const redirectTo = buildInvitationRedirectUrl(input.origin, token)
     const { error: deliveryError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
     if (deliveryError) throw deliveryError
   } catch {
