@@ -4,11 +4,14 @@ import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import {
   InvitationError,
   type CreateInvitationInput,
-  type InvitationPurpose,
 } from '@/lib/auth/invitation-rules'
 import { canResendInvitation, resolveInvitationLifecycleStatus, type InvitationLifecycleStatus } from '@/lib/auth/invitation-lifecycle'
 import { createInvitation } from '@/lib/auth/invitations'
-import { resolveEmployeeInvitationPurpose } from '@/lib/auth/invitation-purpose'
+import {
+  resolveEmployeeInvitationEligibility,
+  type EmployeeInvitationEligibilityStatus,
+  type EmployeeInvitationPurpose,
+} from '@/lib/auth/invitation-purpose'
 
 type InvitationRow = Database['public']['Tables']['user_invitations']['Row']
 
@@ -33,7 +36,8 @@ export interface InvitationCandidate {
   active: boolean
   status: InvitationLifecycleStatus
   invitationId: string | null
-  invitationPurpose: InvitationPurpose
+  invitationPurpose: EmployeeInvitationPurpose | null
+  invitationEligibility: EmployeeInvitationEligibilityStatus
 }
 
 export interface InvitationDefaults {
@@ -44,7 +48,8 @@ export interface EmployeeInvitationAccess {
   employeeId: string
   employeeName: string
   recipientEmail: string | null
-  invitationPurpose: InvitationPurpose
+  invitationPurpose: EmployeeInvitationPurpose | null
+  invitationEligibility: EmployeeInvitationEligibilityStatus
   status: InvitationLifecycleStatus
   invitationId: string | null
   invitationExpiresAt: string | null
@@ -165,7 +170,7 @@ export async function listInvitationCandidates(): Promise<InvitationCandidate[]>
       : invitation
         ? resolveInvitationLifecycleStatus({ status: invitation.status, expiresAt: invitation.expires_at, employeeLinked: false })
         : 'NOT_ACTIVATED'
-    const invitationPurpose = resolveEmployeeInvitationPurpose(today, employmentsByEmployee.get(employee.id) ?? [])
+    const invitationEligibility = resolveEmployeeInvitationEligibility(today, employmentsByEmployee.get(employee.id) ?? [])
     return {
       id: employee.id,
       name: `${employee.first_name} ${employee.birth_name}`.trim(),
@@ -174,7 +179,8 @@ export async function listInvitationCandidates(): Promise<InvitationCandidate[]>
       active: employee.auth_user_id !== null,
       status,
       invitationId: invitation?.id ?? null,
-      invitationPurpose,
+      invitationPurpose: invitationEligibility.purpose,
+      invitationEligibility: invitationEligibility.status,
     }
   })
 }
@@ -220,24 +226,31 @@ export async function getEmployeeInvitationAccess(employeeId: string): Promise<E
     : latest
       ? resolveInvitationLifecycleStatus({ status: latest.status, expiresAt: latest.expires_at, employeeLinked: false })
       : 'NOT_ACTIVATED'
-  const derivedPurpose = resolveEmployeeInvitationPurpose(new Date().toISOString().slice(0, 10), (employments ?? []).map((employment) => ({
+  const invitationEligibility = resolveEmployeeInvitationEligibility(new Date().toISOString().slice(0, 10), (employments ?? []).map((employment) => ({
     startsOn: employment.starts_on,
     endsOn: employment.ends_on,
     recordStatus: employment.record_status,
     deletedAt: employment.deleted_at,
   })))
-  const invitationPurpose = latest?.purpose ?? derivedPurpose
-  const canResend = latest ? canResendInvitation({ status: latest.status, employeeLinked }) : false
+  const invitationPurpose = invitationEligibility.purpose === null
+    ? null
+    : latest?.purpose === 'PREBOARDING_EMPLOYEE' || latest?.purpose === 'EMPLOYEE_ACTIVATION'
+      ? latest.purpose
+      : invitationEligibility.purpose
+  const canResend = invitationEligibility.status === 'ELIGIBLE' && latest
+    ? canResendInvitation({ status: latest.status, employeeLinked })
+    : false
 
   return {
     employeeId: employee.id,
     employeeName: `${employee.first_name} ${employee.birth_name}`.trim(),
     recipientEmail: latest?.email ?? employee.private_email,
     invitationPurpose,
+    invitationEligibility: invitationEligibility.status,
     status,
     invitationId: latest?.id ?? null,
     invitationExpiresAt: latest?.expires_at ?? null,
-    canSend: !employeeLinked && employee.private_email !== null && status !== 'INVITED',
+    canSend: invitationEligibility.status === 'ELIGIBLE' && !employeeLinked && employee.private_email !== null && status !== 'INVITED',
     canResend,
   }
 }

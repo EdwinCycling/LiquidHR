@@ -49,6 +49,7 @@ describe('Focus access state', () => {
   it('lets an explicit browser preference override the role default, except during Preboarding', () => {
     expect(resolvePresentation({ experience: 'EMPLOYEE', activeRoles: ['EMPLOYEE'], device: 'DESKTOP', explicitPreference: 'FULL' })).toBe('FULL')
     expect(resolvePresentation({ experience: 'PREBOARDING', activeRoles: ['EMPLOYEE'], device: 'DESKTOP', explicitPreference: 'FULL' })).toBe('FOCUS')
+    expect(resolvePresentation({ experience: 'NO_EMPLOYMENT', activeRoles: ['TENANT_ADMIN'], device: 'DESKTOP', explicitPreference: 'FULL' })).toBe('FOCUS')
   })
 
   it('keeps the preboarding whitelist explicit and excludes general ESS permissions', () => {

@@ -45,6 +45,8 @@ export default async function InvitationsPage() {
       selectedCount: t('selectedCount', { count: '{count}' }),
       noCandidates: t('noCandidates'),
       noEmail: t('noEmail'),
+      notEligible: t('notEligible'),
+      employmentRequired: t('employmentRequired'),
       alreadyActive: t('alreadyActive'),
       notActivated: t('notActivated'),
       invited: t('invited'),

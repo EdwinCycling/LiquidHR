@@ -25,6 +25,8 @@ export interface EmployeeInvitationAccessLabels {
   expired: string
   revoked: string
   noEmail: string
+  notEligible: string
+  employmentRequired: string
   expires: string
   send: string
   resend: string
@@ -52,7 +54,8 @@ function statusTone(status: InvitationLifecycleStatus): BadgeTone {
   return 'neutral'
 }
 
-function purposeLabel(purpose: InvitationPurpose, labels: EmployeeInvitationAccessLabels): string {
+function purposeLabel(purpose: InvitationPurpose | null, eligible: boolean, labels: EmployeeInvitationAccessLabels): string {
+  if (!eligible || purpose === null) return labels.notEligible
   return purpose === 'PREBOARDING_EMPLOYEE' ? labels.preboarding : labels.employeeActivation
 }
 
@@ -108,9 +111,10 @@ export function EmployeeInvitationAccess({
       </div>
       <dl className="grid gap-4 text-sm sm:grid-cols-3">
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.recipient}</dt><dd className="mt-1 flex min-w-0 items-center gap-2 break-words"><Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />{access.recipientEmail ?? labels.noEmail}</dd></div>
-        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.purpose}</dt><dd className="mt-1">{purposeLabel(access.invitationPurpose, labels)}</dd></div>
+        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.purpose}</dt><dd className="mt-1">{purposeLabel(access.invitationPurpose, access.invitationEligibility === 'ELIGIBLE', labels)}</dd></div>
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.status}</dt><dd className="mt-1">{statusLabel(access.status, labels)}</dd></div>
       </dl>
+      {access.invitationEligibility !== 'ELIGIBLE' ? <p className="text-sm text-warning">{labels.employmentRequired}</p> : null}
       {access.invitationExpiresAt ? <p className="text-sm text-muted-foreground">{labels.expires.replace('{date}', dateLabel(access.invitationExpiresAt, locale))}</p> : null}
       <div className="flex flex-wrap gap-2">
         {access.canSend ? <Button disabled={busy || access.recipientEmail === null} loading={busy} onClick={() => void runAction('send')} size="sm" type="button"><Send aria-hidden="true" />{labels.send}</Button> : null}

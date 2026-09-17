@@ -82,6 +82,7 @@ function focusActions(input: {
   journey: JourneyProjection | null
 }): FocusAction[] {
   const actions: FocusAction[] = []
+  if (input.experience === 'NO_EMPLOYMENT') return actions
   const add = (key: FocusActionKey, href: string) => actions.push({ key, href })
   const permissions = new Set(input.permissions)
 
@@ -153,12 +154,12 @@ export async function getFocusHomeData(options: {
   if (!employeeId || !context.hrGroupId) {
     return {
       experience: 'NO_EMPLOYMENT',
-      presentation: 'FULL',
+      presentation: 'FOCUS',
       employee: null,
       journey: null,
       actions: [],
       isPreboarding: false,
-      canOpenFull: true,
+      canOpenFull: false,
     }
   }
 
@@ -166,18 +167,18 @@ export async function getFocusHomeData(options: {
   if (!focusData.employee) {
     return {
       experience: 'NO_EMPLOYMENT',
-      presentation: 'FULL',
+      presentation: 'FOCUS',
       employee: null,
       journey: null,
       actions: [],
       isPreboarding: false,
-      canOpenFull: true,
+      canOpenFull: false,
     }
   }
 
   const accessState = resolveEmploymentAccessState(today, focusData.employments)
   const experience = resolveFocusExperience(accessState, context.activeRoles)
-  const journeys = context.permissions.includes('self:journey:read')
+  const journeys = experience !== 'NO_EMPLOYMENT' && context.permissions.includes('self:journey:read')
     ? await getEmployeeJourneyProjections(employeeId).catch(() => [])
     : []
   const journey = featuredJourney(journeys)
@@ -202,7 +203,7 @@ export async function getFocusHomeData(options: {
     journey,
     actions: focusActions({ employeeId, experience, permissions, journey }),
     isPreboarding: experience === 'PREBOARDING',
-    canOpenFull: experience !== 'PREBOARDING',
+    canOpenFull: experience !== 'PREBOARDING' && experience !== 'NO_EMPLOYMENT',
   }
 }
 

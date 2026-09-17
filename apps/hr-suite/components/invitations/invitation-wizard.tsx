@@ -25,6 +25,8 @@ export interface InvitationWizardLabels {
   selectedCount: string
   noCandidates: string
   noEmail: string
+  notEligible: string
+  employmentRequired: string
   alreadyActive: string
   notActivated: string
   invited: string
@@ -132,8 +134,8 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
     })
   }, [candidates, query, status])
 
-  const selectedCandidates = candidates.filter((candidate) => selected.has(candidate.id))
-  const selectableCandidates = filteredCandidates.filter((candidate) => candidate.status !== 'ACTIVE' && candidate.email)
+  const selectedCandidates = candidates.filter((candidate) => selected.has(candidate.id) && candidate.invitationEligibility === 'ELIGIBLE')
+  const selectableCandidates = filteredCandidates.filter((candidate) => candidate.status !== 'ACTIVE' && candidate.email && candidate.invitationEligibility === 'ELIGIBLE')
   const selectedByLanguage = useMemo(() => {
     const groups = new Map<'nl' | 'en', InvitationCandidate[]>()
     for (const candidate of selectedCandidates) {
@@ -144,7 +146,7 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
   }, [selectedCandidates])
 
   function toggleCandidate(candidate: InvitationCandidate): void {
-    if (candidate.status === 'ACTIVE' || !candidate.email) return
+    if (candidate.status === 'ACTIVE' || !candidate.email || candidate.invitationEligibility !== 'ELIGIBLE') return
     setSelected((current) => {
       const next = new Set(current)
       if (next.has(candidate.id)) next.delete(candidate.id)
@@ -218,8 +220,8 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4"><span className="text-sm text-muted-foreground">{labels.selectedCount.replace('{count}', String(selected.size))}</span><div className="flex flex-wrap gap-2"><Button onClick={selectAll} size="sm" type="button" variant="secondary"><Check aria-hidden="true" />{labels.selectAll}</Button><Button onClick={() => setSelected(new Set())} size="sm" type="button" variant="ghost"><X aria-hidden="true" />{labels.clearAll}</Button></div></div>
         {filteredCandidates.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{labels.noCandidates}</p> : <ul className="divide-y divide-border-subtle">{filteredCandidates.map((candidate) => {
-          const disabled = candidate.status === 'ACTIVE' || !candidate.email
-          return <li className="flex items-start gap-3 py-3 first:pt-0 last:pb-0" key={candidate.id}><input aria-label={candidate.name} checked={selected.has(candidate.id)} className="mt-1 size-4 accent-primary" disabled={disabled} onChange={() => toggleCandidate(candidate)} type="checkbox" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-foreground">{candidate.name}</span><Badge tone={statusTone(candidate.status)}>{statusLabel(candidate.status, labels)}</Badge></div><p className="mt-1 truncate text-sm text-muted-foreground">{candidate.email ?? labels.noEmail}</p></div></li>
+          const disabled = candidate.status === 'ACTIVE' || !candidate.email || candidate.invitationEligibility !== 'ELIGIBLE'
+          return <li className="flex items-start gap-3 py-3 first:pt-0 last:pb-0" key={candidate.id}><input aria-label={candidate.name} checked={selected.has(candidate.id)} className="mt-1 size-4 accent-primary" disabled={disabled} onChange={() => toggleCandidate(candidate)} type="checkbox" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-foreground">{candidate.name}</span><Badge tone={candidate.invitationEligibility === 'ELIGIBLE' ? statusTone(candidate.status) : 'warning'}>{candidate.invitationEligibility === 'ELIGIBLE' ? statusLabel(candidate.status, labels) : labels.notEligible}</Badge></div><p className="mt-1 truncate text-sm text-muted-foreground">{candidate.email ?? labels.noEmail}</p>{candidate.invitationEligibility !== 'ELIGIBLE' ? <p className="mt-1 text-xs text-warning">{labels.employmentRequired}</p> : null}</div></li>
         })}</ul>}
         <div className="flex justify-end"><Button disabled={selected.size === 0} onClick={() => setStep(2)} type="button">{labels.continue}<ChevronRight aria-hidden="true" /></Button></div>
       </Surface> : null}

@@ -36,6 +36,7 @@ export interface CreatedInvitation {
 
 export type InvitationErrorCode =
   | InvitationRuleErrorCode
+  | 'EMPLOYMENT_REQUIRED'
   | 'EMPLOYEE_NOT_FOUND'
   | 'EMPLOYEE_ALREADY_ACTIVATED'
   | 'INVITATION_ALREADY_PENDING'

@@ -283,6 +283,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           expired: invitationPage[0]('expired'),
           revoked: invitationPage[0]('revoked'),
           noEmail: invitationPage[0]('noEmail'),
+          notEligible: invitationPage[0]('notEligible'),
+          employmentRequired: invitationPage[0]('employmentRequired'),
           expires: invitationPage[0]('expires', { date: '{date}' }),
           send: invitationPage[0]('send'),
           resend: invitationPage[0]('resend'),

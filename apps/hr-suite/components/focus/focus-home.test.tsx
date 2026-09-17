@@ -57,10 +57,12 @@ describe('Focus home', () => {
     expect(render(focusData({ employee: { ...focusData().employee!, effectiveEmploymentStartDate: '2026-09-16' } })).textContent).not.toContain('Vandaag is je eerste werkdag')
   })
 
-  it('does not show actions or a stale journey without employment', () => {
-    const host = render(focusData({ experience: 'NO_EMPLOYMENT', employee: null }))
+  it('does not show actions, stale journeys, or Full access without employment', () => {
+    const host = render(focusData({ experience: 'NO_EMPLOYMENT', presentation: 'FOCUS', canOpenFull: false }))
     expect(host.textContent).toContain('Nog geen actief dienstverband')
     expect(host.querySelectorAll('li a, progress')).toHaveLength(0)
+    expect(host.querySelector('a[href="/dashboard/start"]')).toBeNull()
+    expect(visibleJourneyActionHref(focusData({ experience: 'NO_EMPLOYMENT' }), '/my-signatures')).toBeNull()
   })
 
   it('renders a useful empty state when no journey or actions are available', () => {

@@ -79,7 +79,7 @@ export function resolvePresentation({
   device,
   explicitPreference,
 }: PresentationResolutionInput): FocusPresentation {
-  if (experience === 'PREBOARDING') return 'FOCUS'
+  if (experience === 'PREBOARDING' || experience === 'NO_EMPLOYMENT') return 'FOCUS'
   if (explicitPreference === 'FOCUS' || explicitPreference === 'FULL') return explicitPreference
   if (activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')) return 'FULL'
   if (device === 'PHONE' || experience === 'EMPLOYEE' || experience === 'MANAGER') return 'FOCUS'

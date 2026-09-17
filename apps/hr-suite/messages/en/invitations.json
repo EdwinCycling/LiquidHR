@@ -17,6 +17,8 @@
   "selectedCount": "{count} selected",
   "noCandidates": "No employees found.",
   "noEmail": "No private email",
+  "notEligible": "Not eligible for invitation",
+  "employmentRequired": "No active or future confirmed employment",
   "alreadyActive": "Active",
   "notActivated": "Not activated",
   "invited": "Invited",

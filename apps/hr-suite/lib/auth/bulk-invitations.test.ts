@@ -57,7 +57,7 @@ describe('createBulkInvitations', () => {
   it('uses the canonical employee primitive for every employee ID', async () => {
     createEmployeeInvitationMock
       .mockResolvedValueOnce({ id: 'invitation-1', expiresAt: '2026-09-24T00:00:00.000Z', email: 'one@example.com', purpose: 'EMPLOYEE_ACTIVATION' })
-      .mockRejectedValueOnce(new InvitationError('EMPLOYEE_NOT_FOUND', 404))
+      .mockRejectedValueOnce(new InvitationError('EMPLOYMENT_REQUIRED', 400))
 
     const summary = await createBulkEmployeeInvitations([
       'employee-1',
@@ -69,6 +69,6 @@ describe('createBulkInvitations', () => {
     expect(createInvitationMock).not.toHaveBeenCalled()
     expect(summary).toMatchObject({ total: 2, succeeded: 1, failed: 1 })
     expect(summary.results[0]).toMatchObject({ employeeId: 'employee-1', email: 'one@example.com', ok: true })
-    expect(summary.results[1]).toMatchObject({ employeeId: 'employee-2', email: null, ok: false, errorCode: 'EMPLOYEE_NOT_FOUND' })
+    expect(summary.results[1]).toMatchObject({ employeeId: 'employee-2', email: null, ok: false, errorCode: 'EMPLOYMENT_REQUIRED' })
   })
 })

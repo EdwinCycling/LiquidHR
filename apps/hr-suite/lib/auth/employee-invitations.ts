@@ -1,12 +1,12 @@
 import { createInvitation } from '@/lib/auth/invitations'
-import { resolveEmployeeInvitationPurpose } from '@/lib/auth/invitation-purpose'
-import { InvitationError, type CreatedInvitation, type InvitationPurpose } from '@/lib/auth/invitation-rules'
+import { resolveEmployeeInvitationPurpose, type EmployeeInvitationPurpose } from '@/lib/auth/invitation-purpose'
+import { InvitationError, type CreatedInvitation } from '@/lib/auth/invitation-rules'
 import { requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 
 export interface EmployeeInvitationCreated extends CreatedInvitation {
   email: string
-  purpose: InvitationPurpose
+  purpose: EmployeeInvitationPurpose
 }
 
 /**

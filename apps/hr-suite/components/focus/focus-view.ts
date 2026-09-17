@@ -23,6 +23,7 @@ export function focusDate(value: string, locale: Locale): string {
 
 // De service valideert de URL; preboarding beperkt ook het navigatieoppervlak.
 export function visibleJourneyActionHref(data: FocusHomeData, safeHref: string | null): string | null {
+  if (data.experience === 'NO_EMPLOYMENT') return null
   if (!safeHref || data.journey?.nextAction?.availability !== 'AVAILABLE') return null
   if (!isPreboardingFocus(data)) return safeHref
   const pathname = safeHref.split(/[?#]/)[0]

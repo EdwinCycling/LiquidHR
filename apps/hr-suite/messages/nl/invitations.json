@@ -17,6 +17,8 @@
   "selectedCount": "{count} geselecteerd",
   "noCandidates": "Geen medewerkers gevonden.",
   "noEmail": "Geen privé-e-mailadres",
+  "notEligible": "Niet uitnodigbaar",
+  "employmentRequired": "Geen actief of toekomstig bevestigd dienstverband",
   "alreadyActive": "Actief",
   "notActivated": "Niet geactiveerd",
   "invited": "Uitgenodigd",

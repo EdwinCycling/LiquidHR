@@ -137,4 +137,17 @@ describe('createEmployeeInvitation', () => {
     await expect(createEmployeeInvitation(employeeId, 'https://liquidhr.test')).rejects.toMatchObject({ code: 'EMPLOYEE_ALREADY_ACTIVATED' })
     expect(createInvitation).not.toHaveBeenCalled()
   })
+
+  it('rejects an employee without a confirmed current or future employment before invitation creation', async () => {
+    createClient.mockResolvedValue(fakeClient({
+      id: employeeId,
+      tenant_id: 'tenant-a',
+      hr_group_id: 'group-a',
+      private_email: 'canonical@example.com',
+      auth_user_id: null,
+    }, [{ starts_on: '2026-09-01', ends_on: '2026-09-16', record_status: 'CONFIRMED', deleted_at: null }]))
+
+    await expect(createEmployeeInvitation(employeeId, 'https://liquidhr.test')).rejects.toMatchObject({ code: 'EMPLOYMENT_REQUIRED' })
+    expect(createInvitation).not.toHaveBeenCalled()
+  })
 })
