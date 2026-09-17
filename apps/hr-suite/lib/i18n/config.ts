@@ -24,6 +24,7 @@ export const MESSAGE_NAMESPACES = [
   'hrCalendar',
   'starPerformers',
   'leave',
+  'leaveWorkflow',
   'insights',
   'workforce',
   'talent',

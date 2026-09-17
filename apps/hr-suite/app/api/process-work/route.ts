@@ -5,12 +5,16 @@ import { listProcessWork, processWorkErrorResponse } from '@/lib/process-automat
 
 const querySchema = z.object({
   hrGroupId: z.string().uuid().optional(),
+  view: z.enum(['WORK', 'REQUESTS']).default('WORK'),
   administrationId: z.string().uuid().optional(),
   tab: z.enum(['TODO', 'CLAIMED', 'WAITING', 'COMPLETED', 'ALL']).default('TODO'),
   search: z.string().trim().max(120).optional(),
   status: z.string().trim().max(40).optional(),
   processDefinitionId: z.string().uuid().optional(),
   subjectEmployeeId: z.string().uuid().optional(),
+  subjectEmploymentId: z.string().uuid().optional(),
+  businessType: z.enum(['P_MUTATION', 'LEAVE', 'ACTUAL_WORK', 'OTHER']).optional(),
+  businessCategory: z.enum(['GENERAL', 'INTERNAL_TRANSFER', 'DOCUMENT_ACKNOWLEDGEMENT', 'LEAVE_REQUEST', 'ACTUAL_WORK_ENTRY']).optional(),
   language: z.enum(['nl', 'en']).default('nl'),
   sort: z.enum(['NEEDS_ACTION', 'DEADLINE']).default('NEEDS_ACTION'),
   limit: z.coerce.number().int().min(1).max(200).default(100),

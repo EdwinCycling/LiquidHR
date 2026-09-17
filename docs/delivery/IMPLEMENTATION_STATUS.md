@@ -1,5 +1,40 @@
 # Implementatiestatus Liquid HR
 
+## ESS/MSS Workflow Unification V1 — 2026-09-17
+
+**Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**
+
+- **Branch/baseline:** geïsoleerde `work/ess-mss-workflow-unification-v1` vanaf
+  exact `origin/main` `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
+- **Process Work:** `/work` ondersteunt `WORK` en `REQUESTS`, server-side
+  business type/category/statusfilters, subjectfiltering en type-aware native
+  routing. P-mutaties blijven dynamic; Leave en Actual Work behouden hun
+  domeineigenaarschap.
+- **Leave:** self-service start, PENDING/CHANGES_REQUESTED lifecycle, manager
+  native actions en idempotente Leave booking via de bestaande ledger. De
+  compiler-geldige recipe bevat 7 stappen en 12 transities.
+- **Actual Work:** alleen metadata, projectierouting en een native read-only
+  landing; geen tweede ledger of approval-booking.
+- **Supabase DEV:** `wnpfloqpjvaacobppbpk` is bevestigd als actief `LiquidHR`
+  project. De enum-, hoofd-, advisor-index- en wrapper-execution-migrations zijn
+  toegepast. Readback bevestigde RLS/no-direct bridge access, de recipe en
+  self-service permissions. De resterende security-definer advisorregels zijn de
+  verwachte waarschuwing voor authenticated RPC-wrappers; nieuwe FK-waarschuwingen
+  zijn opgelost. De HR-fixture activeerde en publiceerde de administratiegebonden
+  recipe uitsluitend op DEV. Production is niet aangeraakt.
+- **Lokale gates:** gerichte workflow-tests `39/39`, strict TypeScript, ESLint,
+  i18n-pariteit, `git diff --check` en productiebuild groen. De volledige suite
+  is `1564/1565`; alleen de bestaande 5-seconden timeout in
+  `lib/document-generation/pdf.test.ts` faalt.
+- **Browsergate:** employee `WAITING` zonder approve-knop en directe approve
+  `403 FORBIDDEN`; manager `OPEN` en approve-route bereikt de bestaande booking-
+  adapter, die `LEAVE_INSUFFICIENT_BALANCE` teruggeeft. Readback bleef
+  `PENDING`, zonder domain commit, allocation of workflow-`TAKEN`-transactie.
+- **Open gates:** positieve persisted booking-readback en request-changes recovery.
+  Hiervoor is expliciete toestemming nodig voor één bounded DEV-opening balance
+  via de bestaande HR-ledgerflow. Er is geen Vercel-deployment, GitHub push,
+  merge of cleanup uitgevoerd.
+
 ## AI-consolidatie — 2026-09-16
 
 **Status: TECHNISCH GREEN — MAIN EN CANONICAL PREVIEW GEVERIFIEERD / MICROFOONACCEPTATIE OPEN**

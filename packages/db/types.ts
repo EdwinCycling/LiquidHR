@@ -12710,6 +12710,8 @@ export type Database = {
       process_definitions: {
         Row: {
           administration_id: string | null
+          business_category: string
+          business_type: string
           created_at: string
           created_by_user_id: string | null
           description: Json | null
@@ -12725,6 +12727,8 @@ export type Database = {
         }
         Insert: {
           administration_id?: string | null
+          business_category?: string
+          business_type?: string
           created_at?: string
           created_by_user_id?: string | null
           description?: Json | null
@@ -12740,6 +12744,8 @@ export type Database = {
         }
         Update: {
           administration_id?: string | null
+          business_category?: string
+          business_type?: string
           created_at?: string
           created_by_user_id?: string | null
           description?: Json | null
@@ -13179,7 +13185,9 @@ export type Database = {
       process_instances: {
         Row: {
           administration_id: string | null
+          business_category: string
           business_effective_date: string | null
+          business_type: string
           completed_at: string | null
           correlation_id: string | null
           created_at: string
@@ -13201,7 +13209,9 @@ export type Database = {
         }
         Insert: {
           administration_id?: string | null
+          business_category?: string
           business_effective_date?: string | null
+          business_type?: string
           completed_at?: string | null
           correlation_id?: string | null
           created_at?: string
@@ -13223,7 +13233,9 @@ export type Database = {
         }
         Update: {
           administration_id?: string | null
+          business_category?: string
           business_effective_date?: string | null
+          business_type?: string
           completed_at?: string | null
           correlation_id?: string | null
           created_at?: string
@@ -13288,6 +13300,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      process_leave_subjects: {
+        Row: {
+          administration_id: string
+          created_at: string
+          hr_group_id: string
+          leave_request_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          hr_group_id: string
+          leave_request_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          hr_group_id?: string
+          leave_request_id?: string
+          process_instance_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_leave_subjects_instance_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_leave_subjects_request_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id", "leave_request_id"]
+            isOneToOne: false
+            referencedRelation: "leave_requests"
+            referencedColumns: ["tenant_id", "hr_group_id", "administration_id", "id"]
           },
         ]
       }
@@ -13392,33 +13446,46 @@ export type Database = {
       }
       process_recipe_activations: {
         Row: {
+          administration_id: string | null
           activated_at: string
           activated_by_user_id: string
           hr_group_id: string
           id: string
           process_definition_id: string
           process_recipe_id: string
+          scope_type: Database["public"]["Enums"]["access_scope_type"]
           tenant_id: string
         }
         Insert: {
+          administration_id?: string | null
           activated_at?: string
           activated_by_user_id?: string
           hr_group_id: string
           id?: string
           process_definition_id: string
           process_recipe_id: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
           tenant_id: string
         }
         Update: {
+          administration_id?: string | null
           activated_at?: string
           activated_by_user_id?: string
           hr_group_id?: string
           id?: string
           process_definition_id?: string
           process_recipe_id?: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "process_recipe_activation_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
           {
             foreignKeyName: "process_recipe_activations_process_definition_id_fkey"
             columns: ["process_definition_id"]
@@ -13438,6 +13505,8 @@ export type Database = {
       process_recipe_catalog: {
         Row: {
           adapter_key: string
+          business_category: string
+          business_type: string
           created_at: string
           definition_json: Json
           description: Json
@@ -13449,6 +13518,8 @@ export type Database = {
         }
         Insert: {
           adapter_key: string
+          business_category?: string
+          business_type?: string
           created_at?: string
           definition_json: Json
           description: Json
@@ -13460,6 +13531,8 @@ export type Database = {
         }
         Update: {
           adapter_key?: string
+          business_category?: string
+          business_type?: string
           created_at?: string
           definition_json?: Json
           description?: Json
@@ -13822,6 +13895,8 @@ export type Database = {
           assignment_snapshot: Json
           available_at: string
           blocked_code: string | null
+          business_category: string
+          business_type: string
           claimed_at: string | null
           claimed_by_user_id: string | null
           created_at: string
@@ -13845,6 +13920,8 @@ export type Database = {
           assignment_snapshot?: Json
           available_at?: string
           blocked_code?: string | null
+          business_category?: string
+          business_type?: string
           claimed_at?: string | null
           claimed_by_user_id?: string | null
           created_at?: string
@@ -13868,6 +13945,8 @@ export type Database = {
           assignment_snapshot?: Json
           available_at?: string
           blocked_code?: string | null
+          business_category?: string
+          business_type?: string
           claimed_at?: string | null
           claimed_by_user_id?: string | null
           created_at?: string
@@ -20868,6 +20947,30 @@ export type Database = {
         }
         Returns: Json
       }
+      get_unified_process_work_item_detail: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
+      get_unified_process_work_projection: {
+        Args: {
+          requested_administration_id?: string
+          requested_business_category?: string
+          requested_business_type?: string
+          requested_hr_group_id: string
+          requested_language?: string
+          requested_limit?: number
+          requested_offset?: number
+          requested_process_definition_id?: string
+          requested_search?: string
+          requested_sort?: string
+          requested_status?: string
+          requested_subject_employee_id?: string
+          requested_subject_employment_id?: string
+          requested_tab?: string
+          requested_view?: string
+        }
+        Returns: Json
+      }
       get_salary_insights_projection: {
         Args: {
           requested_as_of: string
@@ -21032,6 +21135,18 @@ export type Database = {
           requested_expected_version: number
           requested_idempotency_key: string
           requested_step_expected_version: number
+          requested_work_item_id: string
+        }
+        Returns: Json
+      }
+      perform_leave_workflow_action: {
+        Args: {
+          requested_action: string
+          requested_correlation_id: string | null
+          requested_expected_version: number
+          requested_idempotency_key: string
+          requested_reason?: string | null
+          requested_step_expected_version: number | null
           requested_work_item_id: string
         }
         Returns: Json
@@ -21667,6 +21782,26 @@ export type Database = {
         }
         Returns: Json
       }
+      start_leave_request_workflow: {
+        Args: {
+          requested_administration_id: string
+          requested_correlation_id: string | null
+          requested_employee_id: string
+          requested_employment_id: string | null
+          requested_end_date: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_leave_type_id: string | null
+          requested_mode: Database["public"]["Enums"]["leave_request_mode"]
+          requested_priority_rule_id: string | null
+          requested_specific_end: string | null
+          requested_specific_start: string | null
+          requested_start_date: string
+          requested_tenant_id: string
+          requested_time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
+        }
+        Returns: Json
+      }
       start_talent_review_campaign: {
         Args: { requested_campaign_id: string }
         Returns: string
@@ -21742,7 +21877,7 @@ export type Database = {
           requested_expiration_months: number
           requested_hr_group_id: string
           requested_leave_profile_id: string
-          requested_leave_type_id: string
+          requested_leave_type_id: string | null
           requested_pause_leave_type_ids: string[]
           requested_rule_id: string
           requested_tenant_id: string
@@ -22008,7 +22143,7 @@ export type Database = {
       leave_bonus_award_timing: "START_OF_YEAR" | "ON_TRIGGER_DATE"
       leave_bonus_trigger_type: "AGE" | "SENIORITY"
       leave_request_mode: "PRIORITY" | "DIRECT"
-      leave_request_status: "APPROVED" | "REJECTED" | "CANCELLED"
+      leave_request_status: "APPROVED" | "REJECTED" | "CANCELLED" | "PENDING" | "CHANGES_REQUESTED"
       leave_request_time_mode:
         | "FULL_DAY"
         | "MORNING"
@@ -22468,7 +22603,7 @@ export const Constants = {
       leave_bonus_award_timing: ["START_OF_YEAR", "ON_TRIGGER_DATE"],
       leave_bonus_trigger_type: ["AGE", "SENIORITY"],
       leave_request_mode: ["PRIORITY", "DIRECT"],
-      leave_request_status: ["APPROVED", "REJECTED", "CANCELLED"],
+      leave_request_status: ["APPROVED", "REJECTED", "CANCELLED", "PENDING", "CHANGES_REQUESTED"],
       leave_request_time_mode: [
         "FULL_DAY",
         "MORNING",

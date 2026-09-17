@@ -157,9 +157,12 @@ async function validateLeaveSelection(
   if (types.data.length !== itemTypeIds.length) throw new LeaveServiceError('LEAVE_PRIORITY_RULE_INVALID', 409)
 }
 
-export async function getLeaveRequestPreview(input: LeaveRequestPreviewQuery): Promise<LeaveRequestPreview> {
+export async function getLeaveRequestPreview(
+  input: LeaveRequestPreviewQuery,
+  permission: 'leave:request' | 'self:leave:request' = 'leave:request',
+): Promise<LeaveRequestPreview> {
   const supabase = await createClient()
-  const context = await requirePermission('leave:request', input.employeeId)
+  const context = await requirePermission(permission, input.employeeId)
   const selection = await loadEmployment(supabase, context, input)
   const employment = selection.employment
   const endDate = input.endDate ?? input.startDate

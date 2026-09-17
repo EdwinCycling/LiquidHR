@@ -19,6 +19,7 @@ import documentsEn from '@/messages/en/documents.json'
 import hrCalendarEn from '@/messages/en/hrCalendar.json'
 import starPerformersEn from '@/messages/en/starPerformers.json'
 import leaveEn from '@/messages/en/leave.json'
+import leaveWorkflowEn from '@/messages/en/leaveWorkflow.json'
 import insightsEn from '@/messages/en/insights.json'
 import workforceEn from '@/messages/en/workforce.json'
 import talentEn from '@/messages/en/talent.json'
@@ -51,6 +52,7 @@ import documentsNl from '@/messages/nl/documents.json'
 import hrCalendarNl from '@/messages/nl/hrCalendar.json'
 import starPerformersNl from '@/messages/nl/starPerformers.json'
 import leaveNl from '@/messages/nl/leave.json'
+import leaveWorkflowNl from '@/messages/nl/leaveWorkflow.json'
 import insightsNl from '@/messages/nl/insights.json'
 import workforceNl from '@/messages/nl/workforce.json'
 import talentNl from '@/messages/nl/talent.json'
@@ -96,6 +98,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     hrCalendar: hrCalendarNl,
     starPerformers: starPerformersNl,
     leave: leaveNl,
+    leaveWorkflow: leaveWorkflowNl,
     insights: insightsNl,
     workforce: workforceNl,
     talent: talentNl,
@@ -132,6 +135,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     hrCalendar: hrCalendarEn,
     starPerformers: starPerformersEn,
     leave: leaveEn,
+    leaveWorkflow: leaveWorkflowEn,
     insights: insightsEn,
     workforce: workforceEn,
     talent: talentEn,
