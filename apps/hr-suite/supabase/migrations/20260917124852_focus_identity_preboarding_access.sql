@@ -461,6 +461,7 @@ as $$
       )
     )
     )
+    )
     from public.employees target_scope
     where target_scope.id = target_employee_id
       and target_scope.deleted_at is null
