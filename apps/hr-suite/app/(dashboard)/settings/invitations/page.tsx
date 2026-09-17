@@ -17,10 +17,12 @@ async function loadInvitationPageData() {
     return await Promise.all([
       getLocale(),
       getTranslator('invitations'),
+      getTranslator('invitations', 'nl'),
+      getTranslator('invitations', 'en'),
       listInvitationCandidates(),
       listInvitations(),
       getInvitationDefaults(),
-    ]).then(([locale, t, candidates, invitations, defaults]) => ({ locale, t, candidates, invitations, defaults }))
+    ]).then(([locale, t, tNl, tEn, candidates, invitations, defaults]) => ({ locale, t, tNl, tEn, candidates, invitations, defaults }))
   } catch (error) {
     if (error instanceof AuthenticationError || error instanceof ContextAuthenticationError) redirect('/login')
     if (error instanceof AuthorizationError || error instanceof ContextAccessError) redirect('/geen-toegang')
@@ -29,7 +31,7 @@ async function loadInvitationPageData() {
 }
 
 export default async function InvitationsPage() {
-  const { locale, t, candidates, invitations, defaults } = await loadInvitationPageData()
+  const { locale, t, tNl, tEn, candidates, invitations, defaults } = await loadInvitationPageData()
     const labels: InvitationWizardLabels = {
       stepsLabel: t('stepsLabel'),
       stepSelect: t('stepSelect'),
@@ -48,13 +50,27 @@ export default async function InvitationsPage() {
       notActivated: t('notActivated'),
       invited: t('invited'),
       expired: t('expired'),
-      blocked: t('blocked'),
+      revoked: t('revoked'),
       continue: t('continue'),
       reviewTitle: t('reviewTitle'),
       reviewDescription: t('reviewDescription'),
       recipient: t('recipient'),
       purpose: t('purpose'),
       preboarding: t('preboarding'),
+      employeeActivation: t('employeeActivation'),
+      language: t('language'),
+      languageDutch: t('languageDutch'),
+      languageEnglish: t('languageEnglish'),
+      mailPreviewTitle: t('mailPreview.title'),
+      mailPreviewDescription: t('mailPreview.description'),
+      mailPreviewSubject: t('mailPreview.subjectLabel'),
+      mailPreviewBody: t('mailPreview.bodyLabel'),
+      mailPreviewSecurityNote: t('mailPreview.securityNote'),
+      editableIntroductionDeferred: t('mailPreview.editableIntroductionDeferred'),
+      mailPreview: {
+        nl: { subject: tNl('mailPreview.nl.subject'), body: tNl('mailPreview.nl.body') },
+        en: { subject: tEn('mailPreview.en.subject'), body: tEn('mailPreview.en.body') },
+      },
       fixedSecurity: t('fixedSecurity'),
       send: t('send'),
       sending: t('sending'),

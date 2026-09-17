@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation'
 import { FocusJourneyCard } from '@/components/focus/focus-home'
 import { loadFocusPage } from '@/components/focus/load-focus-page'
 import { focusDate, isPreboardingFocus, visibleFocusActions } from '@/components/focus/focus-view'
-import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { buttonClasses } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
 import type { FocusActionKey } from '@/lib/focus/service'
+import { FocusShell } from '@/components/focus/focus-shell'
 
 const sections: Record<string, FocusActionKey | undefined> = {
   onboarding: 'journey', profiel: 'profile', documenten: 'documents',
@@ -42,8 +42,9 @@ export default async function FocusSectionPage({ params }: { params: Promise<{ s
   const hasJourney = data.journey && visibleFocusActions(data).some((action) => action.key === 'journey')
 
   return (
-    <main className="min-h-dvh bg-workspace">
-      <PageShell className="space-y-6 py-6 sm:py-8" width="reading">
+    <FocusShell actions={visibleFocusActions(data)} activeKey={key} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
+      journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'),
+    } }} width="reading">
         <Link className={buttonClasses({ variant: 'ghost' })} href="/focus"><ArrowLeft aria-hidden="true" />{t('back')}</Link>
         <PageHeader title={t(`actions.${key}.title`)} description={t(`actions.${key}.description`)} />
         {key === 'documents' && canReadSignatures ? <Link className={buttonClasses({ variant: 'secondary', className: 'whitespace-normal text-left' })} href="/my-signatures" prefetch={false}><FileText aria-hidden="true" />{t('sections.openSignatures')}</Link> : null}
@@ -67,7 +68,6 @@ export default async function FocusSectionPage({ params }: { params: Promise<{ s
             actions={hasJourney && key === 'documents' ? <Link className={buttonClasses({ variant: 'secondary', className: 'whitespace-normal text-left' })} href="/focus/onboarding">{t('sections.openOnboarding')}<ArrowRight aria-hidden="true" /></Link> : undefined}
           />
         )}
-      </PageShell>
-    </main>
+    </FocusShell>
   )
 }

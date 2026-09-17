@@ -21,7 +21,11 @@
   "notActivated": "Not activated",
   "invited": "Invited",
   "expired": "Invitation expired",
-  "blocked": "Blocked",
+  "revoked": "Revoked",
+  "employeeActivation": "Normal employee activation",
+  "language": "Language",
+  "languageDutch": "Dutch",
+  "languageEnglish": "English",
   "continue": "Review",
   "reviewTitle": "Review invitation",
   "reviewDescription": "Review the recipients. LiquidHR manages the secure activation link and account link.",
@@ -29,6 +33,22 @@
   "purpose": "Purpose",
   "preboarding": "Preboarding",
   "fixedSecurity": "Secure activation instructions are a fixed part of the invitation.",
+  "mailPreview": {
+    "title": "Activation email preview",
+    "description": "Recipients are grouped by their preferred language.",
+    "subjectLabel": "Subject",
+    "bodyLabel": "Message content",
+    "securityNote": "The secure activation link and final HTML rendering come from the existing Supabase Auth email template.",
+    "editableIntroductionDeferred": "An editable introduction is not included: inviteUserByEmail does not safely support per-invitation text. This subpart is intentionally deferred.",
+    "nl": {
+      "subject": "Activeer je LiquidHR-account",
+      "body": "Hallo {name},\n\nJe bent uitgenodigd voor LiquidHR. Gebruik de beveiligde activatielink in deze e-mail om je account te activeren. De link is persoonlijk en tijdelijk geldig.\n\nMet vriendelijke groet,\nLiquidHR"
+    },
+    "en": {
+      "subject": "Activate your LiquidHR account",
+      "body": "Hello {name},\n\nYou have been invited to LiquidHR. Use the secure activation link in this email to activate your account. The link is personal and expires after a limited time.\n\nKind regards,\nLiquidHR"
+    }
+  },
   "send": "Send invitations",
   "sending": "Sending…",
   "resultTitle": "Send result",
@@ -46,5 +66,7 @@
   "actionFailed": "The action failed.",
   "actionDone": "The invitation was updated.",
   "loadFailed": "The invitations could not be loaded.",
-  "inviteEmployee": "Invite employee"
+  "inviteEmployee": "Invite employee",
+  "employeeAccessTitle": "LiquidHR access",
+  "employeeAccessDescription": "Manage the invitation and activation status for this employee."
 }

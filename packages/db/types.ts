@@ -21960,7 +21960,7 @@ export type Database = {
         | "UNRESOLVED"
       income_relationship_type: "EMPLOYMENT" | "SOCIAL_BENEFIT" | "OTHER"
       invitation_email_kind: "PRIVATE" | "BUSINESS"
-      invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
+      invitation_purpose: "PREBOARDING_EMPLOYEE" | "EMPLOYEE_ACTIVATION" | "BUSINESS_USER"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
       journey_anchor_rule: "EMPLOYMENT_START_DATE" | "MANUAL_DATE"
       journey_participant_source:
@@ -22421,7 +22421,7 @@ export const Constants = {
       ],
       income_relationship_type: ["EMPLOYMENT", "SOCIAL_BENEFIT", "OTHER"],
       invitation_email_kind: ["PRIVATE", "BUSINESS"],
-      invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
+      invitation_purpose: ["PREBOARDING_EMPLOYEE", "EMPLOYEE_ACTIVATION", "BUSINESS_USER"],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
       journey_anchor_rule: ["EMPLOYMENT_START_DATE", "MANUAL_DATE"],
       journey_participant_source: [

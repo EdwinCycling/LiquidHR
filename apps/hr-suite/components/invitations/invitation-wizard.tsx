@@ -29,13 +29,23 @@ export interface InvitationWizardLabels {
   notActivated: string
   invited: string
   expired: string
-  blocked: string
+  revoked: string
   continue: string
   reviewTitle: string
   reviewDescription: string
   recipient: string
   purpose: string
   preboarding: string
+  employeeActivation: string
+  language: string
+  languageDutch: string
+  languageEnglish: string
+  mailPreviewTitle: string
+  mailPreviewDescription: string
+  mailPreviewSubject: string
+  mailPreviewBody: string
+  mailPreviewSecurityNote: string
+  editableIntroductionDeferred: string
   fixedSecurity: string
   send: string
   sending: string
@@ -54,6 +64,7 @@ export interface InvitationWizardLabels {
   working: string
   actionFailed: string
   actionDone: string
+  mailPreview: Record<'nl' | 'en', MailPreviewCopy>
 }
 
 interface InvitationWizardProps {
@@ -64,9 +75,14 @@ interface InvitationWizardProps {
   locale: Locale
 }
 
+interface MailPreviewCopy {
+  subject: string
+  body: string
+}
+
 type WizardStep = 1 | 2 | 3
 
-const statusOrder: InvitationLifecycleStatus[] = ['NOT_ACTIVATED', 'INVITED', 'EXPIRED', 'ACTIVE', 'BLOCKED']
+const statusOrder: InvitationLifecycleStatus[] = ['NOT_ACTIVATED', 'INVITED', 'EXPIRED', 'REVOKED', 'ACTIVE']
 
 function statusLabel(status: InvitationLifecycleStatus, labels: InvitationWizardLabels): string {
   return {
@@ -74,7 +90,7 @@ function statusLabel(status: InvitationLifecycleStatus, labels: InvitationWizard
     INVITED: labels.invited,
     EXPIRED: labels.expired,
     ACTIVE: labels.alreadyActive,
-    BLOCKED: labels.blocked,
+    REVOKED: labels.revoked,
   }[status]
 }
 
@@ -82,12 +98,16 @@ function statusTone(status: InvitationLifecycleStatus): BadgeTone {
   if (status === 'ACTIVE') return 'success'
   if (status === 'INVITED') return 'info'
   if (status === 'EXPIRED') return 'warning'
-  if (status === 'BLOCKED') return 'danger'
+  if (status === 'REVOKED') return 'danger'
   return 'neutral'
 }
 
 function dateLabel(value: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale === 'nl' ? 'nl-NL' : 'en-GB', { dateStyle: 'medium' }).format(new Date(value))
+}
+
+function candidateLanguage(candidate: InvitationCandidate): 'nl' | 'en' {
+  return candidate.language.toLowerCase().startsWith('en') ? 'en' : 'nl'
 }
 
 function failureLabel(code: string | undefined, labels: InvitationWizardLabels): string {
@@ -114,10 +134,18 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
   }, [candidates, query, status])
 
   const selectedCandidates = candidates.filter((candidate) => selected.has(candidate.id))
-  const selectableCandidates = filteredCandidates.filter((candidate) => candidate.status !== 'ACTIVE' && candidate.status !== 'BLOCKED' && candidate.email)
+  const selectableCandidates = filteredCandidates.filter((candidate) => candidate.status !== 'ACTIVE' && candidate.email)
+  const selectedByLanguage = useMemo(() => {
+    const groups = new Map<'nl' | 'en', InvitationCandidate[]>()
+    for (const candidate of selectedCandidates) {
+      const language = candidateLanguage(candidate)
+      groups.set(language, [...(groups.get(language) ?? []), candidate])
+    }
+    return groups
+  }, [selectedCandidates])
 
   function toggleCandidate(candidate: InvitationCandidate): void {
-    if (candidate.status === 'ACTIVE' || candidate.status === 'BLOCKED' || !candidate.email) return
+    if (candidate.status === 'ACTIVE' || !candidate.email) return
     setSelected((current) => {
       const next = new Set(current)
       if (next.has(candidate.id)) next.delete(candidate.id)
@@ -145,7 +173,7 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
           items: selectedCandidates.flatMap((candidate) => candidate.email ? [{
             email: candidate.email,
             emailKind: 'PRIVATE',
-            purpose: 'PREBOARDING_EMPLOYEE',
+            purpose: candidate.invitationPurpose,
             employeeId: candidate.id,
             administrationId: null,
             managementRoleId,
@@ -199,7 +227,7 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-4"><span className="text-sm text-muted-foreground">{labels.selectedCount.replace('{count}', String(selected.size))}</span><div className="flex flex-wrap gap-2"><Button onClick={selectAll} size="sm" type="button" variant="secondary"><Check aria-hidden="true" />{labels.selectAll}</Button><Button onClick={() => setSelected(new Set())} size="sm" type="button" variant="ghost"><X aria-hidden="true" />{labels.clearAll}</Button></div></div>
         {filteredCandidates.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{labels.noCandidates}</p> : <ul className="divide-y divide-border-subtle">{filteredCandidates.map((candidate) => {
-          const disabled = candidate.status === 'ACTIVE' || candidate.status === 'BLOCKED' || !candidate.email
+          const disabled = candidate.status === 'ACTIVE' || !candidate.email
           return <li className="flex items-start gap-3 py-3 first:pt-0 last:pb-0" key={candidate.id}><input aria-label={candidate.name} checked={selected.has(candidate.id)} className="mt-1 size-4 accent-primary" disabled={disabled} onChange={() => toggleCandidate(candidate)} type="checkbox" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-foreground">{candidate.name}</span><Badge tone={statusTone(candidate.status)}>{statusLabel(candidate.status, labels)}</Badge></div><p className="mt-1 truncate text-sm text-muted-foreground">{candidate.email ?? labels.noEmail}</p></div></li>
         })}</ul>}
         <div className="flex justify-end"><Button disabled={selected.size === 0} onClick={() => setStep(2)} type="button">{labels.continue}<ChevronRight aria-hidden="true" /></Button></div>
@@ -207,7 +235,23 @@ export function InvitationWizard({ candidates, invitations: initialInvitations, 
 
       {step === 2 ? <Surface className="space-y-5 p-4 sm:p-6">
         <div><h2 className="text-lg font-semibold">{labels.reviewTitle}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.reviewDescription}</p></div>
-        <div className="space-y-3">{selectedCandidates.map((candidate) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border-subtle p-3" key={candidate.id}><div className="flex min-w-0 items-center gap-3"><UserPlus aria-hidden="true" className="size-5 shrink-0 text-primary" /><div className="min-w-0"><p className="truncate font-medium">{candidate.name}</p><p className="truncate text-sm text-muted-foreground">{candidate.email}</p></div></div><Badge tone="info">{labels.preboarding}</Badge></div>)}</div>
+        <div className="space-y-5">
+          {Array.from(selectedByLanguage.entries()).map(([language, group]) => <section className="space-y-3" key={language}>
+            <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold">{labels.language}: {language === 'en' ? labels.languageEnglish : labels.languageDutch}</h3><Badge tone="neutral">{group.length}</Badge></div>
+            {group.map((candidate) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border-subtle p-3" key={candidate.id}><div className="flex min-w-0 items-center gap-3"><UserPlus aria-hidden="true" className="size-5 shrink-0 text-primary" /><div className="min-w-0"><p className="truncate font-medium">{candidate.name}</p><p className="truncate text-sm text-muted-foreground">{candidate.email}</p></div></div><Badge tone="info">{candidate.invitationPurpose === 'PREBOARDING_EMPLOYEE' ? labels.preboarding : labels.employeeActivation}</Badge></div>)}
+          </section>)}
+        </div>
+        {Array.from(selectedByLanguage.entries()).map(([language, group]) => {
+          const copy: MailPreviewCopy = labels.mailPreview[language]
+          const representative = group[0]
+          return <Surface className="space-y-3 p-4" key={`mail-preview-${language}`} variant="subtle">
+            <div className="flex items-start gap-3"><Mail aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" /><div><h3 className="font-semibold">{labels.mailPreviewTitle} · {language === 'en' ? labels.languageEnglish : labels.languageDutch}</h3><p className="mt-1 text-sm text-muted-foreground">{labels.mailPreviewDescription}</p></div></div>
+            <dl className="space-y-2 text-sm"><div><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.recipient}</dt><dd className="mt-1 break-words">{group.map((candidate) => candidate.email).join(', ')}</dd></div><div><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.mailPreviewSubject}</dt><dd className="mt-1 font-medium">{copy.subject}</dd></div></dl>
+            <p aria-label={labels.mailPreviewBody} className="whitespace-pre-wrap rounded-[var(--radius-control)] border border-border-subtle bg-surface p-3 text-sm text-foreground">{copy.body.replace('{name}', representative.name)}</p>
+            <p className="text-xs text-muted-foreground">{labels.mailPreviewSecurityNote}</p>
+            <p className="text-xs text-muted-foreground">{labels.editableIntroductionDeferred}</p>
+          </Surface>
+        })}
         <div className="flex items-start gap-3 rounded-[var(--radius-control)] border border-info-border bg-info-surface p-3 text-sm text-info"><ShieldCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" /><span>{labels.fixedSecurity}</span></div>
         <div className="flex flex-wrap justify-between gap-2"><Button onClick={() => setStep(1)} type="button" variant="secondary"><ChevronLeft aria-hidden="true" />{labels.back}</Button><Button disabled={busy} loading={busy} onClick={() => void sendInvitations()} type="button"><Send aria-hidden="true" />{busy ? labels.sending : labels.send}</Button></div>
       </Surface> : null}

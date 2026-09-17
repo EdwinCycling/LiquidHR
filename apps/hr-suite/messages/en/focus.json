@@ -1,5 +1,6 @@
 {
   "back": "Back to Focus",
+  "nav": { "product": "Focus", "home": "Overview", "menu": "Focus navigation" },
   "presentation": { "label": "Presentation", "focus": "Focus", "full": "Full workspace" },
   "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day" },
   "home": {

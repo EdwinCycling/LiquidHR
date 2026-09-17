@@ -3,6 +3,7 @@ import { ArrowLeft, BriefcaseBusiness, CalendarDays, Mail, Maximize2, Minimize2,
 import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
+import { EmployeeInvitationAccess } from '@/components/invitations/employee-invitation-access'
 import { PageShell } from '@/components/layout/page-shell'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { ScrollableTabs } from '@/components/patterns/scrollable-tabs'
@@ -56,6 +57,7 @@ import { getPrivateWeatherForEmployee, getWorkWeatherForContext } from '@/lib/we
 import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
 import { normalizeInsightReturnPath } from '@/lib/insights/query-seam'
+import { getEmployeeInvitationAccess, getInvitationDefaults } from '@/lib/auth/invitation-management'
 
 interface EmployeeDetailPageProps {
   params: Promise<{ employeeId: string }>
@@ -173,6 +175,13 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
   const tWeather = await getTranslator('startpage', locale)
+  const invitationPage = authContext.permissions.includes('user:invite')
+    ? await Promise.all([
+      getTranslator('invitations', locale),
+      getEmployeeInvitationAccess(employeeId),
+      getInvitationDefaults(),
+    ])
+    : null
   const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherToday: tWeather('weatherToday'), weatherTomorrow: tWeather('weatherTomorrow'), weatherNextWorkingDay: tWeather('weatherNextWorkingDay'), weatherDayToggle: tWeather('weatherDayToggle'), weatherTodayMax: tWeather('weatherTodayMax'), weatherForecastHigh: tWeather('weatherForecastHigh'), weatherForecastLow: tWeather('weatherForecastLow'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
   const canStartProcess = authContext.permissions.includes('process-instance:start') || (authContext.permissions.includes('self:process-instance:start') && authContext.employeeId === employeeId)
   const processWork = (tab === 'overview' || tab === 'processes') && canReadProcesses
@@ -259,7 +268,30 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
               <EmployeeCalendarHeader items={calendarHeader} locale={locale} labels={{ holiday: tEmployees('nextHoliday'), activity: tEmployees('nextCompanyActivity') }} />
             </div>
           </>}
-        </Surface>
+         </Surface>
+
+        {invitationPage?.[1] ? <EmployeeInvitationAccess access={invitationPage[1]} locale={locale} managementRoleId={invitationPage[2].managementRoleId} labels={{
+          title: invitationPage[0]('employeeAccessTitle'),
+          description: invitationPage[0]('employeeAccessDescription'),
+          status: invitationPage[0]('statusFilter'),
+          recipient: invitationPage[0]('recipient'),
+          purpose: invitationPage[0]('purpose'),
+          preboarding: invitationPage[0]('preboarding'),
+          employeeActivation: invitationPage[0]('employeeActivation'),
+          notActivated: invitationPage[0]('notActivated'),
+          invited: invitationPage[0]('invited'),
+          active: invitationPage[0]('alreadyActive'),
+          expired: invitationPage[0]('expired'),
+          revoked: invitationPage[0]('revoked'),
+          noEmail: invitationPage[0]('noEmail'),
+          expires: invitationPage[0]('expires', { date: '{date}' }),
+          send: invitationPage[0]('send'),
+          resend: invitationPage[0]('resend'),
+          revoke: invitationPage[0]('revoke'),
+          working: invitationPage[0]('working'),
+          actionFailed: invitationPage[0]('actionFailed'),
+          actionDone: invitationPage[0]('actionDone'),
+        }} /> : null}
 
         <nav className="mt-6" aria-label={tEmployees('tabsLabel')}>
           <ScrollableTabs ariaLabel={tEmployees('tabsLabel')} leftLabel={tEmployees('previous')} rightLabel={tEmployees('next')} contentProps={{ role: 'tablist' }}>

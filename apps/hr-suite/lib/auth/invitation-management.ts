@@ -4,9 +4,11 @@ import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import {
   InvitationError,
   type CreateInvitationInput,
+  type InvitationPurpose,
 } from '@/lib/auth/invitation-rules'
 import { canResendInvitation, resolveInvitationLifecycleStatus, type InvitationLifecycleStatus } from '@/lib/auth/invitation-lifecycle'
 import { createInvitation } from '@/lib/auth/invitations'
+import { resolveEmployeeInvitationPurpose } from '@/lib/auth/invitation-purpose'
 
 type InvitationRow = Database['public']['Tables']['user_invitations']['Row']
 
@@ -31,10 +33,23 @@ export interface InvitationCandidate {
   active: boolean
   status: InvitationLifecycleStatus
   invitationId: string | null
+  invitationPurpose: InvitationPurpose
 }
 
 export interface InvitationDefaults {
   managementRoleId: string
+}
+
+export interface EmployeeInvitationAccess {
+  employeeId: string
+  employeeName: string
+  recipientEmail: string | null
+  invitationPurpose: InvitationPurpose
+  status: InvitationLifecycleStatus
+  invitationId: string | null
+  invitationExpiresAt: string | null
+  canSend: boolean
+  canResend: boolean
 }
 
 function invitationQuery(supabase: Awaited<ReturnType<typeof createClient>>, context: AuthContext) {
@@ -113,6 +128,31 @@ export async function listInvitationCandidates(): Promise<InvitationCandidate[]>
   if (employeeError) throw employeeError
   if (invitationError) throw invitationError
 
+  const employeeIds = (employees ?? []).map((employee) => employee.id)
+  const { data: employments, error: employmentError } = employeeIds.length === 0
+    ? { data: [], error: null }
+    : await supabase
+      .from('employments')
+      .select('employee_id,starts_on,ends_on,record_status,deleted_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', context.hrGroupId ?? '')
+      .in('employee_id', employeeIds)
+      .limit(5000)
+  if (employmentError) throw employmentError
+
+  const employmentsByEmployee = new Map<string, Array<{ startsOn: string; endsOn: string | null; recordStatus: string; deletedAt: string | null }>>()
+  for (const employment of employments ?? []) {
+    const current = employmentsByEmployee.get(employment.employee_id) ?? []
+    current.push({
+      startsOn: employment.starts_on,
+      endsOn: employment.ends_on,
+      recordStatus: employment.record_status,
+      deletedAt: employment.deleted_at,
+    })
+    employmentsByEmployee.set(employment.employee_id, current)
+  }
+  const today = new Date().toISOString().slice(0, 10)
+
   const latestInvitation = new Map<string, typeof invitations[number]>()
   for (const invitation of invitations ?? []) {
     if (invitation.employee_id && !latestInvitation.has(invitation.employee_id)) latestInvitation.set(invitation.employee_id, invitation)
@@ -125,6 +165,7 @@ export async function listInvitationCandidates(): Promise<InvitationCandidate[]>
       : invitation
         ? resolveInvitationLifecycleStatus({ status: invitation.status, expiresAt: invitation.expires_at, employeeLinked: false })
         : 'NOT_ACTIVATED'
+    const invitationPurpose = resolveEmployeeInvitationPurpose(today, employmentsByEmployee.get(employee.id) ?? [])
     return {
       id: employee.id,
       name: `${employee.first_name} ${employee.birth_name}`.trim(),
@@ -133,8 +174,72 @@ export async function listInvitationCandidates(): Promise<InvitationCandidate[]>
       active: employee.auth_user_id !== null,
       status,
       invitationId: invitation?.id ?? null,
+      invitationPurpose,
     }
   })
+}
+
+export async function getEmployeeInvitationAccess(employeeId: string): Promise<EmployeeInvitationAccess | null> {
+  const context = await requirePermission('user:invite')
+  const supabase = await createClient()
+  const [{ data: employee, error: employeeError }, { data: invitations, error: invitationError }, { data: employments, error: employmentError }] = await Promise.all([
+    supabase
+      .from('employees')
+      .select('id,first_name,birth_name,private_email,auth_user_id')
+      .eq('id', employeeId)
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', context.hrGroupId ?? '')
+      .eq('is_active', true)
+      .eq('is_archived', false)
+      .is('deleted_at', null)
+      .maybeSingle(),
+    supabase
+      .from('user_invitations')
+      .select('id,email,purpose,status,expires_at,created_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('employee_id', employeeId)
+      .order('created_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('employments')
+      .select('starts_on,ends_on,record_status,deleted_at')
+      .eq('tenant_id', context.tenantId)
+      .eq('hr_group_id', context.hrGroupId ?? '')
+      .eq('employee_id', employeeId)
+      .limit(100),
+  ])
+  if (employeeError) throw employeeError
+  if (invitationError) throw invitationError
+  if (employmentError) throw employmentError
+  if (!employee) return null
+
+  const latest = invitations?.[0] ?? null
+  const employeeLinked = employee.auth_user_id !== null
+  const status = employeeLinked
+    ? 'ACTIVE'
+    : latest
+      ? resolveInvitationLifecycleStatus({ status: latest.status, expiresAt: latest.expires_at, employeeLinked: false })
+      : 'NOT_ACTIVATED'
+  const derivedPurpose = resolveEmployeeInvitationPurpose(new Date().toISOString().slice(0, 10), (employments ?? []).map((employment) => ({
+    startsOn: employment.starts_on,
+    endsOn: employment.ends_on,
+    recordStatus: employment.record_status,
+    deletedAt: employment.deleted_at,
+  })))
+  const invitationPurpose = latest?.purpose ?? derivedPurpose
+  const canResend = latest ? canResendInvitation({ status: latest.status, employeeLinked }) : false
+
+  return {
+    employeeId: employee.id,
+    employeeName: `${employee.first_name} ${employee.birth_name}`.trim(),
+    recipientEmail: latest?.email ?? employee.private_email,
+    invitationPurpose,
+    status,
+    invitationId: latest?.id ?? null,
+    invitationExpiresAt: latest?.expires_at ?? null,
+    canSend: !employeeLinked && employee.private_email !== null && status !== 'INVITED',
+    canResend,
+  }
 }
 
 export async function getInvitationDefaults(): Promise<InvitationDefaults> {

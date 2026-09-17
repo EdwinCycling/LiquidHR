@@ -21,7 +21,11 @@
   "notActivated": "Niet geactiveerd",
   "invited": "Uitgenodigd",
   "expired": "Uitnodiging verlopen",
-  "blocked": "Geblokkeerd",
+  "revoked": "Ingetrokken",
+  "employeeActivation": "Normale medewerkeractivatie",
+  "language": "Taal",
+  "languageDutch": "Nederlands",
+  "languageEnglish": "Engels",
   "continue": "Controleren",
   "reviewTitle": "Uitnodiging controleren",
   "reviewDescription": "Controleer de ontvangers. De beveiligde activatielink en accountkoppeling worden door LiquidHR beheerd.",
@@ -29,6 +33,22 @@
   "purpose": "Doel",
   "preboarding": "Preboarding",
   "fixedSecurity": "De beveiligde activatie-instructies zijn vast onderdeel van de uitnodiging.",
+  "mailPreview": {
+    "title": "Voorbeeld van de activatiemail",
+    "description": "De ontvangers zijn gegroepeerd op hun voorkeurstaal.",
+    "subjectLabel": "Onderwerp",
+    "bodyLabel": "Berichtinhoud",
+    "securityNote": "De beveiligde activatielink en de definitieve HTML-versie komen uit de bestaande Supabase Auth-mailtemplate.",
+    "editableIntroductionDeferred": "Een bewerkbare introductie is niet opgenomen: inviteUserByEmail ondersteunt geen veilige tekst per uitnodiging. Dit blijft bewust uitgesteld.",
+    "nl": {
+      "subject": "Activeer je LiquidHR-account",
+      "body": "Hallo {name},\n\nJe bent uitgenodigd voor LiquidHR. Gebruik de beveiligde activatielink in deze e-mail om je account te activeren. De link is persoonlijk en tijdelijk geldig.\n\nMet vriendelijke groet,\nLiquidHR"
+    },
+    "en": {
+      "subject": "Activate your LiquidHR account",
+      "body": "Hello {name},\n\nYou have been invited to LiquidHR. Use the secure activation link in this email to activate your account. The link is personal and expires after a limited time.\n\nKind regards,\nLiquidHR"
+    }
+  },
   "send": "Uitnodigingen versturen",
   "sending": "Versturen…",
   "resultTitle": "Verzendresultaat",
@@ -46,5 +66,7 @@
   "actionFailed": "De actie is niet gelukt.",
   "actionDone": "De uitnodiging is bijgewerkt.",
   "loadFailed": "De uitnodigingen konden niet worden geladen.",
-  "inviteEmployee": "Medewerker uitnodigen"
+  "inviteEmployee": "Medewerker uitnodigen",
+  "employeeAccessTitle": "LiquidHR-toegang",
+  "employeeAccessDescription": "Beheer de uitnodiging en activatiestatus voor deze medewerker."
 }

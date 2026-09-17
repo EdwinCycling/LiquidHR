@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, FileText, Route, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
-import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +12,7 @@ import { journeyProgressPercent, localizedValue } from '@/lib/journeys/projectio
 import { focusDate, isPreboardingFocus, visibleFocusActions } from './focus-view'
 import type { FocusPageData } from './load-focus-page'
 import { FocusPresentation } from './focus-presentation'
+import { FocusShell } from './focus-shell'
 
 const actionIcons: Record<FocusActionKey, LucideIcon> = {
   journey: Route, profile: UserRound, documents: FileText, leave: CalendarDays,
@@ -69,8 +69,9 @@ export function FocusHome(props: FocusPageData) {
   const hasJourney = data.journey && actions.some((action) => action.key === 'journey')
 
   return (
-    <main className="min-h-dvh bg-workspace">
-      <PageShell className="space-y-6 py-6 sm:py-8" width="standard">
+    <FocusShell actions={actions} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
+      journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'),
+    } }}>
         <PageHeader
           title={data.employee ? t(preboarding ? 'home.welcome' : 'home.hello', { name: data.employee.name }) : t('home.title')}
           description={<time dateTime={today}>{focusDate(today, locale)}</time>}
@@ -116,7 +117,6 @@ export function FocusHome(props: FocusPageData) {
             </div>
           </>
         )}
-      </PageShell>
-    </main>
+    </FocusShell>
   )
 }

@@ -20,7 +20,7 @@ describe('invitation lifecycle', () => {
     expect(canResendInvitation({ status: 'ACCEPTED', employeeLinked: true })).toBe(false)
   })
 
-  it('keeps expired and revoked invitations visible without exposing tokens', () => {
+  it('keeps expired and revoked invitations visible without confusing invite state with account blocking', () => {
     expect(resolveInvitationLifecycleStatus({
       status: 'PENDING',
       expiresAt: '2026-09-16T00:00:00.000Z',
@@ -30,6 +30,6 @@ describe('invitation lifecycle', () => {
       status: 'REVOKED',
       expiresAt: '2026-09-24T00:00:00.000Z',
       now: '2026-09-17T00:00:00.000Z',
-    })).toBe('BLOCKED')
+    })).toBe('REVOKED')
   })
 })

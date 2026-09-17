@@ -1,5 +1,6 @@
 {
   "back": "Terug naar Focus",
+  "nav": { "product": "Focus", "home": "Overzicht", "menu": "Focus-navigatie" },
   "presentation": { "label": "Weergave", "focus": "Focus", "full": "Volledige omgeving" },
   "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag" },
   "home": {

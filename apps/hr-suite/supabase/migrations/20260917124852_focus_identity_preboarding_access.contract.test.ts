@@ -7,6 +7,10 @@ const sql = readFileSync(resolve(__dirname, '20260917124852_focus_identity_prebo
 describe('Focus identity/preboarding migration contract', () => {
   it('derives preboarding from effective-dated confirmed employments', () => {
     expect(sql).toContain('current_employee_is_preboarding')
+    expect(sql).toContain('requested_tenant_id uuid')
+    expect(sql).toContain('requested_hr_group_id uuid')
+    expect(sql).toContain('employee.tenant_id = requested_tenant_id')
+    expect(sql).toContain('employee.hr_group_id = requested_hr_group_id')
     expect(sql).toContain("future_employment.starts_on > current_date")
     expect(sql).toContain("current_employment.starts_on <= current_date")
     expect(sql).toContain("current_employment.record_status = 'CONFIRMED'")
@@ -27,7 +31,27 @@ describe('Focus identity/preboarding migration contract', () => {
     ]) expect(sql).toContain(`'${permission}'`)
     expect(sql).not.toContain("'self:leave:read'")
     expect(sql).not.toContain("'self:employee-bsn:read'")
-    expect(sql).toContain('not internal_security.current_employee_is_preboarding()')
+    expect(sql).not.toContain('not internal_security.current_employee_is_preboarding()')
+  })
+
+  it('guards the cross-tenant and cross-HR-group regression at every reviewed caller', () => {
+    expect(sql).toContain('current_employee_has_permission(\n  requested_tenant_id uuid,\n  requested_hr_group_id uuid,')
+    expect(sql).toContain('create or replace function internal_security.current_employee_id()')
+    expect(sql).toContain("employment.starts_on <= current_date")
+    expect(sql).toContain("employment.starts_on > current_date")
+    expect(sql).toContain('current_employee_is_preboarding(\n      requested_tenant_id,\n      requested_hr_group_id\n    )')
+    expect(sql).toContain('administration.hr_group_id')
+    expect(sql).toContain('target_scope.tenant_id')
+    expect(sql).toContain('target_scope.hr_group_id')
+    expect(sql).toContain('current_employee_id(\n          target_scope.tenant_id,\n          target_scope.hr_group_id\n        )')
+    expect(sql).toContain('employee_subresource_can_read')
+    expect(sql).toContain('custom_field_value_can_read')
+    expect(sql).toContain('drop policy if exists employees_select_group')
+    expect(sql).toContain('drop policy if exists employments_select_group')
+    expect(sql).toContain('organization.tenant_id = target_scope.tenant_id')
+    expect(sql).toContain('organization.hr_group_id = target_scope.hr_group_id')
+    expect(sql).not.toContain("current_employee_has_permission('self:")
+    expect(sql).not.toContain('and not internal_security.current_employee_is_preboarding()')
   })
 
   it('preserves service-role-only invitation acceptance and writes the HR group boundary', () => {
