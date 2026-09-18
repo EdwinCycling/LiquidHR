@@ -30,5 +30,5 @@ export async function acceptInvitationAction(
   })
 
   if (!result.ok) return { code: result.code }
-  redirect('/departments')
+  redirect('/focus')
 }

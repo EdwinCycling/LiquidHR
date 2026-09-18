@@ -8,6 +8,7 @@ import { createServerPerformanceTrace } from '@/lib/performance/server-trace'
 import { getStartPageData, type StartPageScope } from '@/lib/startpage/service'
 import { getEmployeeJourneyProjections } from '@/lib/journeys/projection-service'
 import type { JourneyProjectionList } from '@/lib/journeys/projection-domain'
+import { isFullPortalAllowed } from '@/lib/focus/access-state'
 
 interface StartPageRouteProps {
   searchParams: Promise<{ scope?: string; perf?: string }>
@@ -18,6 +19,23 @@ export default async function StartPageRoute({ searchParams }: StartPageRoutePro
   const performanceTrace = createServerPerformanceTrace('/dashboard/start', perf === '1')
   const requestContext = await performanceTrace.measure('auth.context', getRequestAuthorizationContext)
   const authContext = requestContext.context
+  if (authContext.employeeId) {
+    const { data: essAccess, error: essAccessError } = await requestContext.supabase
+      .from('employee_ess_access')
+      .select('status')
+      .eq('employee_id', authContext.employeeId)
+      .eq('tenant_id', authContext.tenantId)
+      .eq('hr_group_id', authContext.hrGroupId ?? '')
+      .maybeSingle()
+    if (essAccessError) throw essAccessError
+    if (!isFullPortalAllowed({
+      experience: authContext.focusExperience ?? 'NO_EMPLOYMENT',
+      activeRoles: authContext.activeRoles,
+      employeePortalMode: authContext.employeePortalMode,
+      managerPortalMode: authContext.managerPortalMode,
+      blocked: essAccess?.status === 'BLOCKED',
+    })) redirect('/focus')
+  }
   let journeyOnly = false
   let journeyOnlyJourneys: JourneyProjectionList | undefined
   if (!authContext.permissions.includes('start-page:read')) {

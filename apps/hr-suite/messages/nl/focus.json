@@ -1,0 +1,55 @@
+{
+  "back": "Terug naar Focus",
+  "nav": { "product": "Focus", "home": "Overzicht", "menu": "Focus-navigatie" },
+  "presentation": { "label": "Weergave", "focus": "Focus", "full": "Volledige omgeving" },
+  "preview": { "title": "Je bekijkt LiquidHR als medewerker", "status": "Voorbeeldweergave · alleen lezen", "close": "Preview sluiten" },
+  "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag" },
+  "home": {
+    "title": "Focus", "hello": "Hallo {name}", "welcome": "Welkom {name}",
+    "employeeDescription": "Je volgende stap en je belangrijkste zaken bij elkaar.",
+    "managerDescription": "Je persoonlijke zaken en de acties voor je team bij elkaar.",
+    "preboardingDescription": "Bereid je rustig voor op je start.",
+    "nextUp": "Je volgende stap", "quickActions": "Snel naar",
+    "noEmploymentTitle": "Nog geen actief dienstverband",
+    "noEmploymentDescription": "Focus wordt beschikbaar zodra je dienstverband is gekoppeld en bevestigd. Neem bij vragen contact op met HR.",
+    "noActionsTitle": "Nog geen acties beschikbaar",
+    "noActionsDescription": "Hier verschijnen de onderdelen die voor jou beschikbaar zijn. Neem bij vragen contact op met HR.",
+    "blockedTitle": "Employee-toegang geblokkeerd",
+    "blockedDescription": "Je kunt je Employee-omgeving momenteel niet gebruiken. Neem contact op met HR."
+  },
+  "start": {
+    "futureTitle": "Je start op {date}", "oneDay": "Morgen is je eerste werkdag.", "countdown": "Nog {days} dagen tot je eerste werkdag.",
+    "limitedAccess": "Tot je start vind je hier alleen je onboarding, profiel en toegewezen documenten en ondertekeningen.",
+    "dayOneTitle": "Vandaag is je eerste werkdag", "dayOneDescription": "Welkom! Je persoonlijke werkomgeving is nu beschikbaar. Bekijk je volgende stap en de acties voor jou.",
+    "unknownTitle": "Welkom bij je voorbereiding", "unknownDescription": "Je startdatum is nog niet beschikbaar. HR helpt je verder."
+  },
+  "journey": {
+    "title": "Jouw journey", "description": "Stap voor stap verder met jouw voorbereiding en ontwikkeling.",
+    "progress": "Voortgang", "completed": "{completed} van {total} afgerond", "nextAction": "Volgende actie",
+    "available": "Beschikbaar", "upcoming": "Binnenkort", "availableOn": "Beschikbaar vanaf {date}",
+    "openAction": "Open deze actie", "openJourney": "Bekijk je journey", "noNextAction": "Er staat nu geen volgende actie voor je klaar.",
+    "emptyTitle": "Nog geen journey beschikbaar", "emptyDescription": "Een toegewezen journey en je volgende stap verschijnen hier zodra ze beschikbaar zijn.",
+    "preboardingEmptyDescription": "Je voorbereiding verschijnt hier zodra HR je onboarding klaarzet. Je hoeft nu niets te doen.",
+    "status": { "PLANNED": "Gepland", "ACTIVE": "Actief", "PAUSED": "Gepauzeerd", "COMPLETED": "Afgerond", "CANCELLED": "Geannuleerd" }
+  },
+  "actions": {
+    "journey": { "title": "Mijn onboarding", "description": "Je voorbereiding en volgende stappen." },
+    "profile": { "title": "Mijn profiel", "description": "Je persoonlijke gegevens." },
+    "documents": { "title": "Mijn documenten", "description": "Documenten en ondertekeningen voor jou." },
+    "leave": { "title": "Mijn verlof", "description": "Je saldo en verlofaanvragen." },
+    "requests": { "title": "Mijn aanvragen", "description": "De voortgang van je aanvragen." },
+    "work": { "title": "Mijn werk", "description": "Taken die jouw aandacht vragen." },
+    "team": { "title": "Mijn team", "description": "Je team in de organisatie." }
+  },
+  "sections": {
+    "openSignatures": "Mijn ondertekeningen", "documentsSigningOnly": "Je beschikbare documenten staan bij je ondertekeningen. Neem voor andere documenten contact op met HR.",
+    "name": "Naam", "startDate": "Eerste werkdag", "openOnboarding": "Bekijk je onboarding",
+    "profileDescription": "Bekijk en beheer je gegevens in je bestaande medewerkersprofiel.", "profileOpen": "Open mijn profiel",
+    "documentsDescription": "Bekijk je documenten in je bestaande personeelsdossier.", "documentsOpen": "Open mijn documenten",
+    "workDescription": "Bekijk de aan jou toegewezen taken in Mijn werk.", "workOpen": "Open Mijn werk",
+    "teamDescription": "Bekijk je team en de organisatiestructuur in het organigram.", "teamOpen": "Open het organigram",
+    "preboardingProfile": "Dit zijn de gegevens voor je start. Gegevens aanvullen doe je via de toegewezen stappen in je onboarding. Neem voor een correctie contact op met HR.",
+    "documentsPendingTitle": "Documenten voor je start", "preboardingDocuments": "Toegewezen documenten en ondertekeningen open je vanuit je onboarding. Staat er nog geen stap klaar? Dan hoef je nu niets te doen.",
+    "requestsPendingTitle": "Je aanvragenoverzicht komt hier", "requestsPendingDescription": "Dit overzicht is nog niet beschikbaar. Je verlofaanvragen vind je via Mijn verlof op Focus. Neem voor andere aanvragen contact op met HR."
+  }
+}

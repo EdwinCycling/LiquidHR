@@ -1,5 +1,6 @@
 export type AdministrationMode = 'SEPARATE' | 'COMBINED'
 export type SharingMode = 'FULLY_ISOLATED' | 'SHARED_COLLEAGUES'
+export type PortalMode = 'FOCUS_ONLY' | 'FOCUS_AND_FULL'
 
 export interface AdministrationContextOption {
   id: string
@@ -18,6 +19,8 @@ export interface HrGroupContextOption {
   code: string
   name: string
   description: string | null
+  employeePortalMode?: PortalMode
+  managerPortalMode?: PortalMode
   administrations: AdministrationContextOption[]
 }
 
@@ -73,6 +76,8 @@ export interface ContextHrGroupRow {
   name: string
   description: string | null
   is_active: boolean
+  employee_portal_mode?: PortalMode
+  manager_portal_mode?: PortalMode
 }
 
 export interface ContextAdministrationRow {
@@ -158,6 +163,8 @@ export function buildTenantContextOptions(input: BuildTenantContextOptionsInput)
             code: group.code,
             name: group.name,
             description: group.description,
+            employeePortalMode: group.employee_portal_mode,
+            managerPortalMode: group.manager_portal_mode,
             administrations,
           }
         })

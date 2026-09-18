@@ -46,4 +46,25 @@ describe('POST /api/invitations', () => {
       administrationId: null,
     }))
   })
+
+  it('weigert employee activation op de generieke route', async () => {
+    const request = new NextRequest('https://internal.vercel.app/api/invitations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        email: 'attacker@example.com',
+        emailKind: 'PRIVATE',
+        purpose: 'PREBOARDING_EMPLOYEE',
+        employeeId: '11111111-1111-4111-8111-111111111111',
+        administrationId: null,
+        managementRoleId: '33333333-3333-4333-8333-333333333333',
+        scopeType: 'TENANT',
+      }),
+    })
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(400)
+    expect(createInvitation).not.toHaveBeenCalled()
+  })
 })

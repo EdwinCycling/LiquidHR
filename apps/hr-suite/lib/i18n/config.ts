@@ -7,6 +7,7 @@ export const LOCALE_COOKIE = 'liquid-locale'
 export const MESSAGE_NAMESPACES = [
   'common',
   'auth',
+  'invitations',
   'navigation',
   'settings',
   'departments',
@@ -39,6 +40,7 @@ export const MESSAGE_NAMESPACES = [
   'setupAssistant',
   'documentStudio',
   'logbook',
+  'focus',
 ] as const
 
 export type MessageNamespace = (typeof MESSAGE_NAMESPACES)[number]

@@ -3,7 +3,15 @@ import { cache } from 'react'
 import { toSelfPermission } from '@/lib/auth/permission-rules'
 import { ContextAccessError, type ActiveContext } from '@/lib/context/administration-context'
 import { ContextAuthenticationError, loadActiveContext } from '@/lib/context/server-context'
+import {
+  isPreboardingAllowedSelfPermission,
+  resolveEmploymentAccessState,
+  resolveFocusExperience,
+  type EmploymentTimelineEntry,
+  type FocusExperience,
+} from '@/lib/focus/access-state'
 import { createClient } from '@/lib/supabase/server'
+import { hasActiveFocusPreviewToken } from '@/lib/focus/preview-token'
 
 export interface AuthContext {
   tenantId: string
@@ -14,6 +22,10 @@ export interface AuthContext {
   employeeId: string | null
   activeRoles: string[]
   permissions: string[]
+  focusExperience?: FocusExperience
+  effectiveEmploymentStartDate?: string | null
+  employeePortalMode?: ActiveContext['activeHrGroup']['employeePortalMode']
+  managerPortalMode?: ActiveContext['activeHrGroup']['managerPortalMode']
 }
 
 export class AuthenticationError extends Error {
@@ -41,7 +53,14 @@ interface RequestAuthorizationContext {
 // React cache is request-scoped during Server Component rendering. Keeping the
 // client and resolved context together prevents each permission check in one
 // render from repeating auth, active-context, role, and permission queries.
-export const getRequestAuthorizationContext = cache(async (): Promise<RequestAuthorizationContext> => {
+export interface RequestAuthorizationOptions {
+  allowFocusPreview?: boolean
+}
+
+export const getRequestAuthorizationContext = cache(async (options: RequestAuthorizationOptions = {}): Promise<RequestAuthorizationContext> => {
+  if (!options.allowFocusPreview && await hasActiveFocusPreviewToken()) {
+    throw new AuthorizationError('Deze Focus-preview is alleen-lezen.')
+  }
   const supabase = await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
   const userId = claimsData?.claims?.sub
@@ -57,7 +76,7 @@ export const getRequestAuthorizationContext = cache(async (): Promise<RequestAut
   }
 })
 
-const getSelfPermissions = cache(async (supabase: SupabaseServerClient, tenantId: string): Promise<string[]> => {
+export const getSelfPermissions = cache(async (supabase: SupabaseServerClient, tenantId: string): Promise<string[]> => {
   const { data: employeeRoles, error: employeeRoleError } = await supabase
     .from('management_roles')
     .select('id,tenant_id')
@@ -147,20 +166,37 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
 
   const today = new Date().toISOString().slice(0, 10)
   let assignments: Array<{ management_role_id: string }> = []
+  let actorEmployments: EmploymentTimelineEntry[] = []
   if (actor) {
-    const assignmentsQuery = supabase
-      .from('department_management')
-      .select('management_role_id')
-      .eq('employee_id', actor.id)
-      .eq('tenant_id', tenantId)
-      .eq('hr_group_id', hrGroupId)
+    const [assignmentsResult, employmentsResult] = await Promise.all([
+      supabase
+        .from('department_management')
+        .select('management_role_id')
+        .eq('employee_id', actor.id)
+        .eq('tenant_id', tenantId)
+        .eq('hr_group_id', hrGroupId)
+        .lte('effective_from', today)
+        .or(`effective_to.is.null,effective_to.gte.${today}`),
+      supabase
+        .from('employments')
+        .select('starts_on,ends_on,record_status,deleted_at')
+        .eq('employee_id', actor.id)
+        .eq('tenant_id', tenantId)
+        .eq('hr_group_id', hrGroupId)
+        .is('deleted_at', null)
+        .order('starts_on', { ascending: true })
+        .limit(100),
+    ])
 
-    const { data, error } = await assignmentsQuery
-      .lte('effective_from', today)
-      .or(`effective_to.is.null,effective_to.gte.${today}`)
-
-    if (error) throw error
-    assignments = data
+    if (assignmentsResult.error) throw assignmentsResult.error
+    if (employmentsResult.error) throw employmentsResult.error
+    assignments = assignmentsResult.data
+    actorEmployments = employmentsResult.data.map((employment) => ({
+      startsOn: employment.starts_on,
+      endsOn: employment.ends_on,
+      recordStatus: employment.record_status,
+      deletedAt: employment.deleted_at,
+    }))
   }
 
   const roleIds = [
@@ -173,6 +209,7 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
     roleCodesForRoleIds(roleIds, supabase),
     permissionCodesForRoleIds(roleIds, supabase, tenantId),
   ])
+  const accessState = resolveEmploymentAccessState(today, actorEmployments)
 
   return {
     tenantId,
@@ -182,7 +219,37 @@ async function resolveAuthContext(supabase: SupabaseServerClient, activeContext:
     employeeId: actor?.id ?? null,
     activeRoles,
     permissions,
+    focusExperience: resolveFocusExperience(accessState, activeRoles),
+    effectiveEmploymentStartDate: accessState.effectiveStartDate,
+    employeePortalMode: activeContext.activeHrGroup.employeePortalMode,
+    managerPortalMode: activeContext.activeHrGroup.managerPortalMode,
   }
+}
+
+async function assertEmployeeEssIsAvailable(
+  supabase: SupabaseServerClient,
+  context: AuthContext,
+  permissionCode: string,
+  targetEmployeeId?: string,
+): Promise<void> {
+  const isEmployeeSelfRequest = permissionCode.startsWith('self:')
+    || (context.employeeId !== null && targetEmployeeId === context.employeeId)
+  const isPrivilegedAdmin = context.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
+  if (!isEmployeeSelfRequest || isPrivilegedAdmin || !context.employeeId || !context.hrGroupId) return
+
+  if (context.focusExperience === 'NO_EMPLOYMENT' && toSelfPermission(permissionCode) !== 'self:employee:read') {
+    throw new AuthorizationError('Er is geen actief of toekomstig dienstverband voor Employee-selfservice.')
+  }
+
+  const { data, error } = await supabase
+    .from('employee_ess_access')
+    .select('status')
+    .eq('employee_id', context.employeeId)
+    .eq('tenant_id', context.tenantId)
+    .eq('hr_group_id', context.hrGroupId)
+    .maybeSingle()
+  if (error) throw error
+  if (data?.status === 'BLOCKED') throw new AuthorizationError('Je Employee-toegang is geblokkeerd.')
 }
 
 export async function requireAuthContext(existingClient?: SupabaseServerClient, existingActiveContext?: ActiveContext): Promise<AuthContext> {
@@ -203,6 +270,16 @@ export async function requireAuthContext(existingClient?: SupabaseServerClient, 
 export async function requirePermission(permissionCode: string, targetEmployeeId?: string): Promise<AuthContext> {
   const { supabase, context } = await getRequestAuthorizationContext()
 
+  await assertEmployeeEssIsAvailable(supabase, context, permissionCode, targetEmployeeId)
+
+  if (context.focusExperience === 'PREBOARDING') {
+    const isOwnRequest = permissionCode.startsWith('self:')
+      || (context.employeeId !== null && targetEmployeeId === context.employeeId)
+    if (!isOwnRequest || !isPreboardingAllowedSelfPermission(toSelfPermission(permissionCode))) {
+      throw new AuthorizationError('Deze actie is pas beschikbaar vanaf de eerste werkdag.')
+    }
+  }
+
   if (context.employeeId && targetEmployeeId === context.employeeId) {
     const selfPermissions = await getSelfPermissions(supabase, context.tenantId)
     if (!selfPermissions.includes(toSelfPermission(permissionCode))) {
@@ -217,6 +294,20 @@ export async function requirePermission(permissionCode: string, targetEmployeeId
 
 export async function requireAnyPermission(permissionCodes: readonly string[], targetEmployeeId?: string): Promise<AuthContext> {
   const { supabase, context } = await getRequestAuthorizationContext()
+
+  for (const permissionCode of permissionCodes) {
+    await assertEmployeeEssIsAvailable(supabase, context, permissionCode, targetEmployeeId)
+  }
+
+  if (context.focusExperience === 'PREBOARDING') {
+    const isOwnRequest = context.employeeId !== null && targetEmployeeId === context.employeeId
+    const allowed = permissionCodes.some((permissionCode) =>
+      (permissionCode.startsWith('self:') || isOwnRequest)
+      && isPreboardingAllowedSelfPermission(toSelfPermission(permissionCode)),
+    )
+    if (!allowed) throw new AuthorizationError('Deze actie is pas beschikbaar vanaf de eerste werkdag.')
+  }
+
   const isSelf = context.employeeId !== null && targetEmployeeId === context.employeeId
   const availablePermissions = isSelf
     ? await getSelfPermissions(supabase, context.tenantId)
