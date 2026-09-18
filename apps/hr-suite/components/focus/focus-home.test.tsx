@@ -32,6 +32,19 @@ describe('Focus home', () => {
     expect(host.textContent).not.toMatch(/\{\w+\}/)
   })
 
+  it('keeps a read-only preview navigable through preview-scoped links', () => {
+    const employeeId = focusData().employee!.id
+    const host = render(focusData({ readOnly: true, isPreview: true }))
+
+    expect(host.querySelector(`a[href="/focus/preview/${employeeId}"]`)).not.toBeNull()
+    expect(host.querySelector(`a[href="/focus/preview/${employeeId}?section=profiel"]`)).not.toBeNull()
+    expect(host.querySelector(`a[href="/focus/preview/${employeeId}?section=verlof"]`)).not.toBeNull()
+    expect(host.querySelector(`a[href="/focus/preview/${employeeId}?section=team"]`)).not.toBeNull()
+    expect(host.querySelector('nav.tabs-scroll')).not.toBeNull()
+    expect(host.querySelectorAll('nav.tabs-scroll span')).toHaveLength(0)
+    expect(host.querySelector(`a[href="/employees/${employeeId}/leave"]`)).toBeNull()
+  })
+
   it('suppresses full, leave, requests, work and team for preboarding even with stale broad actions', () => {
     const host = render(focusData({ experience: 'PREBOARDING', isPreboarding: true, employee: { ...focusData().employee!, effectiveEmploymentStartDate: '2026-09-18' } }))
     expect(host.textContent).toContain('Morgen is je eerste werkdag.')

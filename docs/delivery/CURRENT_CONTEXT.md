@@ -75,10 +75,19 @@ opgeruimd.
 - Gerichte convergence-tests: `9` bestanden, `41/41` tests groen; hieronder
   vallen Focus access/presentation, blocked-role precedence, preview-cookie,
   auth-regressie en alle genormaliseerde migration contracts.
-- Volledige technische gates: hr-suite `414/414` testbestanden en
-  `1657/1657` tests, strict TypeScript, ESLint, `git diff --check`, i18n met
+- De vorige volledige technische gate was groen met hr-suite `414/414`
+  testbestanden en `1657/1657` tests. De follow-up na deze UI-fix liep op
+  `414/415` testbestanden en `1658/1659` tests: uitsluitend de ongewijzigde
+  `lib/document-generation/pdf.test.ts` viel opnieuw uit op de vaste
+  5-seconden-timeout. Strict TypeScript, ESLint, `git diff --check`, i18n met
   `39` gelijke NL/EN-namespaces en Webpack production build met `289/289`
   pagina's zijn groen.
+- Browserfeedback op de read-only Focus-preview is in deze vervolgpatch
+  verwerkt: de preview-navigatie en Snel-naar-kaarten zijn weer klikbaar maar
+  blijven binnen `/focus/preview/<employeeId>?section=...`; zij openen nooit
+  het echte HR-dossier. De horizontale nav gebruikt de bestaande
+  `tabs-scroll` scrollbar-hide hook. Gerichte vervolgcontrole: `2` bestanden,
+  `10/10` tests, strict TypeScript, ESLint en Webpack `289/289` groen.
 - DEV Leave-precondition is coherent voor Noah Hendriks / `DEMO-035`: request
   `9df4d793-3296-4324-855f-8ef458438096` staat op `PENDING` met `480` minuten;
   de process instance staat op `RUNNING` bij `manager-approval`, work item

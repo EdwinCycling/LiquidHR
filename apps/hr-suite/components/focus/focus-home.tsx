@@ -10,6 +10,7 @@ import { daysUntil } from '@/lib/focus/access-state'
 import type { FocusActionKey } from '@/lib/focus/service'
 import { journeyProgressPercent, localizedValue } from '@/lib/journeys/projection-domain'
 import { focusDate, isPreboardingFocus, visibleFocusActions } from './focus-view'
+import { focusPreviewHref } from './focus-preview'
 import type { FocusPageData } from './load-focus-page'
 import { FocusPresentation } from './focus-presentation'
 import { FocusShell } from './focus-shell'
@@ -69,7 +70,7 @@ export function FocusHome(props: FocusPageData) {
   const hasJourney = data.journey && actions.some((action) => action.key === 'journey')
 
   return (
-    <FocusShell actions={actions} readOnly={data.readOnly} preview={data.isPreview ? { title: t('preview.title'), status: t('preview.status'), closeLabel: t('preview.close'), returnHref: '/employees' } : undefined} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
+    <FocusShell actions={actions} readOnly={data.readOnly} preview={data.isPreview && data.employee ? { title: t('preview.title'), status: t('preview.status'), closeLabel: t('preview.close'), employeeId: data.employee.id, returnHref: '/employees' } : undefined} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
       journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'),
     } }}>
         <PageHeader
@@ -110,7 +111,9 @@ export function FocusHome(props: FocusPageData) {
                   <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {actions.map((action) => {
                       const Icon = actionIcons[action.key]
-                      return <li className="min-w-0" key={action.key}>{data.readOnly ? <Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)}</span></div></div></Surface> : <Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={action.href} prefetch={false}><Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)} </span></div><ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></Surface></Link>}</li>
+                      const previewHref = data.isPreview && data.employee ? focusPreviewHref(data.employee.id, action.key) : null
+                      const card = <Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)}</span></div>{previewHref || !data.readOnly ? <ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : null}</div></Surface>
+                      return <li className="min-w-0" key={action.key}>{previewHref ? <Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={previewHref} prefetch={false}>{card}</Link> : data.readOnly ? card : <Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={action.href} prefetch={false}>{card}</Link>}</li>
                     })}
                   </ul>
                 ) : <EmptyState title={t('home.noActionsTitle')} description={t('home.noActionsDescription')} />}
