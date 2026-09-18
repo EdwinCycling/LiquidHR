@@ -2,6 +2,7 @@
   "back": "Terug naar Focus",
   "nav": { "product": "Focus", "home": "Overzicht", "menu": "Focus-navigatie" },
   "presentation": { "label": "Weergave", "focus": "Focus", "full": "Volledige omgeving" },
+  "preview": { "title": "Je bekijkt LiquidHR als medewerker", "status": "Voorbeeldweergave · alleen lezen", "close": "Preview sluiten" },
   "experience": { "EMPLOYEE": "Mijn Focus", "MANAGER": "Mijn Focus · leidinggevende", "PREBOARDING": "Voor je eerste werkdag" },
   "home": {
     "title": "Focus", "hello": "Hallo {name}", "welcome": "Welkom {name}",
@@ -12,7 +13,9 @@
     "noEmploymentTitle": "Nog geen actief dienstverband",
     "noEmploymentDescription": "Focus wordt beschikbaar zodra je dienstverband is gekoppeld en bevestigd. Neem bij vragen contact op met HR.",
     "noActionsTitle": "Nog geen acties beschikbaar",
-    "noActionsDescription": "Hier verschijnen de onderdelen die voor jou beschikbaar zijn. Neem bij vragen contact op met HR."
+    "noActionsDescription": "Hier verschijnen de onderdelen die voor jou beschikbaar zijn. Neem bij vragen contact op met HR.",
+    "blockedTitle": "Employee-toegang geblokkeerd",
+    "blockedDescription": "Je kunt je Employee-omgeving momenteel niet gebruiken. Neem contact op met HR."
   },
   "start": {
     "futureTitle": "Je start op {date}", "oneDay": "Morgen is je eerste werkdag.", "countdown": "Nog {days} dagen tot je eerste werkdag.",

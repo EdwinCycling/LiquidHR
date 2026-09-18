@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260917124852_focus_identity_preboarding_access.sql'), 'utf8')
-const canonicalEmployeeIdOverload = readFileSync(resolve(__dirname, '20260805200000_hr_group_people_organization_roles.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260917124852_focus_identity_preboarding_access.sql'), 'utf8').replaceAll('\r\n', '\n')
+const canonicalEmployeeIdOverload = readFileSync(resolve(__dirname, '20260805200000_hr_group_people_organization_roles.sql'), 'utf8').replaceAll('\r\n', '\n')
 
 describe('Focus identity/preboarding migration contract', () => {
   it('derives preboarding from effective-dated confirmed employments', () => {
@@ -36,15 +36,15 @@ describe('Focus identity/preboarding migration contract', () => {
   })
 
   it('guards the cross-tenant and cross-HR-group regression at every reviewed caller', () => {
-    expect(sql).toContain('current_employee_has_permission(\n  requested_tenant_id uuid,\n  requested_hr_group_id uuid,')
+    expect(sql).toMatch(/current_employee_has_permission\(\s*requested_tenant_id uuid,\s*requested_hr_group_id uuid,/)
     expect(sql).toContain('create or replace function internal_security.current_employee_id()')
     expect(sql).toContain("employment.starts_on <= current_date")
     expect(sql).toContain("employment.starts_on > current_date")
-    expect(sql).toContain('current_employee_is_preboarding(\n      requested_tenant_id,\n      requested_hr_group_id\n    )')
+    expect(sql).toMatch(/current_employee_is_preboarding\(\s*requested_tenant_id,\s*requested_hr_group_id\s*\)/)
     expect(sql).toContain('administration.hr_group_id')
     expect(sql).toContain('target_scope.tenant_id')
     expect(sql).toContain('target_scope.hr_group_id')
-    expect(sql).toContain('current_employee_id(\n          target_scope.tenant_id,\n          target_scope.hr_group_id\n        )')
+    expect(sql).toMatch(/current_employee_id\(\s*target_scope\.tenant_id,\s*target_scope\.hr_group_id\s*\)/)
     expect(sql).toContain('employee_subresource_can_read')
     expect(sql).toContain('custom_field_value_can_read')
     expect(sql).toContain('drop policy if exists employees_select_group')
@@ -66,6 +66,6 @@ describe('Focus identity/preboarding migration contract', () => {
     expect(canonicalEmployeeIdOverload).toContain('employee.tenant_id = requested_tenant_id')
     expect(canonicalEmployeeIdOverload).toContain('employee.hr_group_id = requested_hr_group_id')
     expect(canonicalEmployeeIdOverload).toContain('grant execute on function internal_security.current_employee_id(uuid, uuid) to authenticated;')
-    expect(sql).toContain('current_employee_id(\n          target_scope.tenant_id,\n          target_scope.hr_group_id\n        )')
+    expect(sql).toMatch(/current_employee_id\(\s*target_scope\.tenant_id,\s*target_scope\.hr_group_id\s*\)/)
   })
 })

@@ -52,10 +52,10 @@ export function FocusJourneyCard({ data, locale, t, journeyTitle, journeyActionH
       ) : (
         <p className="flex items-start gap-2 text-sm text-muted-foreground"><CheckCircle2 aria-hidden="true" className="size-5 shrink-0" />{t('journey.noNextAction')}</p>
       )}
-      <div className="flex flex-wrap gap-2">
+      {data.readOnly ? null : <div className="flex flex-wrap gap-2">
         {journeyActionHref ? <Link className={buttonClasses({ className: 'whitespace-normal text-left' })} href={journeyActionHref} prefetch={false}>{t('journey.openAction')}<ArrowRight aria-hidden="true" /></Link> : null}
         <Link className={buttonClasses({ variant: journeyActionHref ? 'secondary' : 'primary', className: 'whitespace-normal text-left' })} href={`/journeys/${journey.id}`} prefetch={false}>{t('journey.openJourney')}<ChevronRight aria-hidden="true" /></Link>
-      </div>
+      </div>}
     </Surface>
   )
 }
@@ -69,13 +69,13 @@ export function FocusHome(props: FocusPageData) {
   const hasJourney = data.journey && actions.some((action) => action.key === 'journey')
 
   return (
-    <FocusShell actions={actions} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
+    <FocusShell actions={actions} readOnly={data.readOnly} preview={data.isPreview ? { title: t('preview.title'), status: t('preview.status'), closeLabel: t('preview.close'), returnHref: '/employees' } : undefined} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
       journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'),
     } }}>
         <PageHeader
           title={data.employee ? t(preboarding ? 'home.welcome' : 'home.hello', { name: data.employee.name }) : t('home.title')}
           description={<time dateTime={today}>{focusDate(today, locale)}</time>}
-          actions={<FocusPresentation canOpenFull={data.canOpenFull} isPreboarding={preboarding} presentation={data.presentation} labels={{ label: t('presentation.label'), focus: t('presentation.focus'), full: t('presentation.full') }} />}
+          actions={<FocusPresentation canOpenFull={data.canOpenFull} isPreboarding={preboarding} readOnly={data.readOnly} presentation={data.presentation} labels={{ label: t('presentation.label'), focus: t('presentation.focus'), full: t('presentation.full') }} />}
         />
 
         {data.experience === 'NO_EMPLOYMENT' ? (
@@ -87,6 +87,7 @@ export function FocusHome(props: FocusPageData) {
               <p className="text-sm text-muted-foreground">{t(preboarding ? 'home.preboardingDescription' : data.experience === 'MANAGER' ? 'home.managerDescription' : 'home.employeeDescription')}</p>
             </div>
 
+            {data.isEssBlocked ? <Surface className="border-destructive/40 bg-destructive-surface p-4 sm:p-6" variant="subtle"><div className="flex items-start gap-3"><ShieldCheck aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-destructive" /><div className="space-y-1"><h2 className="font-semibold text-destructive">{t('home.blockedTitle')}</h2><p className="text-sm text-destructive">{t('home.blockedDescription')}</p></div></div></Surface> : null}
             {preboarding || dayOne ? (
               <Surface className="flex items-start gap-3 p-4 sm:p-6" variant="subtle">
                 <CalendarDays aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-primary" />
@@ -109,7 +110,7 @@ export function FocusHome(props: FocusPageData) {
                   <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {actions.map((action) => {
                       const Icon = actionIcons[action.key]
-                      return <li className="min-w-0" key={action.key}><Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={action.href} prefetch={false}><Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)}</span></div><ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></Surface></Link></li>
+                      return <li className="min-w-0" key={action.key}>{data.readOnly ? <Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)}</span></div></div></Surface> : <Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={action.href} prefetch={false}><Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)} </span></div><ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></Surface></Link>}</li>
                     })}
                   </ul>
                 ) : <EmptyState title={t('home.noActionsTitle')} description={t('home.noActionsDescription')} />}

@@ -2,6 +2,7 @@
   "back": "Back to Focus",
   "nav": { "product": "Focus", "home": "Overview", "menu": "Focus navigation" },
   "presentation": { "label": "Presentation", "focus": "Focus", "full": "Full workspace" },
+  "preview": { "title": "You are viewing LiquidHR as an employee", "status": "Preview · read-only", "close": "Close preview" },
   "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day" },
   "home": {
     "title": "Focus", "hello": "Hello {name}", "welcome": "Welcome {name}",
@@ -12,7 +13,9 @@
     "noEmploymentTitle": "No active employment yet",
     "noEmploymentDescription": "Focus becomes available once your employment is linked and confirmed. Contact HR if you have any questions.",
     "noActionsTitle": "No actions available yet",
-    "noActionsDescription": "The areas available to you will appear here. Contact HR if you have any questions."
+    "noActionsDescription": "The areas available to you will appear here. Contact HR if you have any questions.",
+    "blockedTitle": "Employee access is blocked",
+    "blockedDescription": "Your Employee workspace is currently unavailable. Contact HR."
   },
   "start": {
     "futureTitle": "You start on {date}", "oneDay": "Tomorrow is your first day.", "countdown": "{days} days until your first day.",

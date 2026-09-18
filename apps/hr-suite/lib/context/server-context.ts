@@ -4,6 +4,7 @@ import {
   selectActiveContext,
   type ActiveContext,
 } from '@/lib/context/administration-context'
+import type { PortalMode } from '@/lib/context/administration-context'
 import { createClient } from '@/lib/supabase/server'
 
 export const ACTIVE_TENANT_COOKIE = 'liquid-hr-tenant'
@@ -120,7 +121,7 @@ export async function loadActiveContext(userId?: string, existingClient?: Awaite
         .limit(100),
       supabase
         .from('hr_groups')
-        .select('id, tenant_id, code, name, description, is_active')
+        .select('id, tenant_id, code, name, description, is_active, employee_portal_mode, manager_portal_mode')
         .in('tenant_id', tenantIds)
         .eq('is_active', true)
         .order('name')
@@ -138,11 +139,20 @@ export async function loadActiveContext(userId?: string, existingClient?: Awaite
   if (groupError) throw groupError
   if (administrationError) throw administrationError
 
+  const normalizedHrGroups = hrGroups.map((group) => ({
+    ...group,
+    employee_portal_mode: group.employee_portal_mode === 'FOCUS_ONLY' || group.employee_portal_mode === 'FOCUS_AND_FULL'
+      ? group.employee_portal_mode as PortalMode
+      : undefined,
+    manager_portal_mode: group.manager_portal_mode === 'FOCUS_ONLY' || group.manager_portal_mode === 'FOCUS_AND_FULL'
+      ? group.manager_portal_mode as PortalMode
+      : undefined,
+  }))
   const tenantOptions = buildTenantContextOptions({
     groupAccesses: contextGroupAccesses,
     administrationAccesses,
     tenants,
-    hrGroups,
+    hrGroups: normalizedHrGroups,
     administrations,
     actorAdministrationIdsByHrGroup,
   })

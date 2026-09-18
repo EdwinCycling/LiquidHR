@@ -282,6 +282,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           active: invitationPage[0]('alreadyActive'),
           expired: invitationPage[0]('expired'),
           revoked: invitationPage[0]('revoked'),
+          blocked: invitationPage[0]('blocked'),
           noEmail: invitationPage[0]('noEmail'),
           notEligible: invitationPage[0]('notEligible'),
           employmentRequired: invitationPage[0]('employmentRequired'),
@@ -292,6 +293,12 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
           working: invitationPage[0]('working'),
           actionFailed: invitationPage[0]('actionFailed'),
           actionDone: invitationPage[0]('actionDone'),
+          lastLogin: invitationPage[0]('lastLogin'),
+          neverLoggedIn: invitationPage[0]('neverLoggedIn'),
+          block: invitationPage[0]('block'),
+          unblock: invitationPage[0]('unblock'),
+          preview: invitationPage[0]('preview'),
+          previewFailed: invitationPage[0]('previewFailed'),
         }} /> : null}
 
         <nav className="mt-6" aria-label={tEmployees('tabsLabel')}>

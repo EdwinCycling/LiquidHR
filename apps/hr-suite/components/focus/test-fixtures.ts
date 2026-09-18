@@ -31,7 +31,7 @@ export function focusData(overrides: Partial<FocusHomeData> = {}): FocusHomeData
       { key: 'work', href: '/focus/werk' },
       { key: 'team', href: '/focus/team' },
     ],
-    isPreboarding: false, canOpenFull: true,
+    isPreboarding: false, isEssBlocked: false, readOnly: false, isPreview: false, canOpenFull: true,
     ...overrides,
   }
 }

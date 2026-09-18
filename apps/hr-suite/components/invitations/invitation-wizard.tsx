@@ -30,6 +30,7 @@ export interface InvitationWizardLabels {
   alreadyActive: string
   notActivated: string
   invited: string
+  blocked: string
   expired: string
   revoked: string
   continue: string
@@ -83,12 +84,13 @@ interface MailPreviewCopy {
 
 type WizardStep = 1 | 2 | 3
 
-const statusOrder: InvitationLifecycleStatus[] = ['NOT_ACTIVATED', 'INVITED', 'EXPIRED', 'REVOKED', 'ACTIVE']
+const statusOrder: InvitationLifecycleStatus[] = ['NOT_ACTIVATED', 'INVITED', 'BLOCKED', 'EXPIRED', 'REVOKED', 'ACTIVE']
 
 function statusLabel(status: InvitationLifecycleStatus, labels: InvitationWizardLabels): string {
   return {
     NOT_ACTIVATED: labels.notActivated,
     INVITED: labels.invited,
+    BLOCKED: labels.blocked,
     EXPIRED: labels.expired,
     ACTIVE: labels.alreadyActive,
     REVOKED: labels.revoked,

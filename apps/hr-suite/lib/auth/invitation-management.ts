@@ -1,6 +1,9 @@
 import type { Database } from '@scope/db'
 import { createClient } from '@/lib/supabase/server'
 import { requirePermission, type AuthContext } from '@/lib/auth/permissions'
+import { getAuthUserLastSignInAt } from '@/lib/auth/auth-user'
+import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
+import { createEmployeeInvitation } from '@/lib/auth/employee-invitations'
 import {
   InvitationError,
   type CreateInvitationInput,
@@ -55,6 +58,11 @@ export interface EmployeeInvitationAccess {
   invitationExpiresAt: string | null
   canSend: boolean
   canResend: boolean
+  essBlocked: boolean
+  lastLoginAt: string | null
+  canBlock: boolean
+  canUnblock: boolean
+  canPreview: boolean
 }
 
 function invitationQuery(supabase: Awaited<ReturnType<typeof createClient>>, context: AuthContext) {
@@ -219,10 +227,17 @@ export async function getEmployeeInvitationAccess(employeeId: string): Promise<E
   if (employmentError) throw employmentError
   if (!employee) return null
 
+  const [essAccess, lastLoginAt] = employee.auth_user_id
+    ? await Promise.all([
+      readEmployeeEssAccess(supabase, employee.id),
+      getAuthUserLastSignInAt(employee.auth_user_id),
+    ])
+    : [{ status: 'ACTIVE', blockedAt: null, blockedByUserId: null }, null] as const
+
   const latest = invitations?.[0] ?? null
   const employeeLinked = employee.auth_user_id !== null
   const status = employeeLinked
-    ? 'ACTIVE'
+    ? essAccess.status === 'BLOCKED' ? 'BLOCKED' : 'ACTIVE'
     : latest
       ? resolveInvitationLifecycleStatus({ status: latest.status, expiresAt: latest.expires_at, employeeLinked: false })
       : 'NOT_ACTIVATED'
@@ -252,6 +267,11 @@ export async function getEmployeeInvitationAccess(employeeId: string): Promise<E
     invitationExpiresAt: latest?.expires_at ?? null,
     canSend: invitationEligibility.status === 'ELIGIBLE' && !employeeLinked && employee.private_email !== null && status !== 'INVITED',
     canResend,
+    essBlocked: essAccess.status === 'BLOCKED',
+    lastLoginAt,
+    canBlock: employeeLinked && essAccess.status !== 'BLOCKED',
+    canUnblock: employeeLinked && essAccess.status === 'BLOCKED',
+    canPreview: true,
   }
 }
 
@@ -307,6 +327,8 @@ export async function resendInvitation(id: string, origin: string): Promise<{ id
     .eq('id', id)
     .eq('status', 'PENDING')
   if (revokeError) throw new InvitationError('INVITATION_REVOKE_FAILED', 400)
+
+  if (invitation.employee_id) return createEmployeeInvitation(invitation.employee_id, origin)
 
   const input: CreateInvitationInput = {
     email: invitation.email,

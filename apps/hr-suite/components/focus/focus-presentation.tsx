@@ -13,6 +13,7 @@ interface FocusPresentationProps {
   presentation: Presentation
   canOpenFull: boolean
   isPreboarding: boolean
+  readOnly?: boolean
   labels: { label: string; focus: string; full: string }
 }
 
@@ -24,12 +25,12 @@ function savePresentation(presentation: Presentation) {
   }
 }
 
-export function FocusPresentation({ presentation, canOpenFull, isPreboarding, labels }: FocusPresentationProps) {
+export function FocusPresentation({ presentation, canOpenFull, isPreboarding, readOnly = false, labels }: FocusPresentationProps) {
   const router = useRouter()
   const fullAvailable = canOpenFull && !isPreboarding
 
   useEffect(() => {
-    if (!fullAvailable) return
+    if (!fullAvailable || readOnly) return
     let preference: string | null = null
     try {
       preference = window.localStorage.getItem(FOCUS_PRESENTATION_STORAGE_KEY)
@@ -39,11 +40,11 @@ export function FocusPresentation({ presentation, canOpenFull, isPreboarding, la
     if (preference === 'FULL' || (preference !== 'FOCUS' && presentation === 'FULL')) {
       router.replace('/dashboard/start')
     }
-  }, [fullAvailable, presentation, router])
+  }, [fullAvailable, presentation, readOnly, router])
 
   return (
     <nav aria-label={labels.label} className="flex flex-wrap items-center gap-2">
-      <Link aria-current="page" className={buttonClasses({ variant: 'secondary' })} href="/focus" onClick={() => savePresentation('FOCUS')}>{labels.focus}</Link>
+      {readOnly ? <span aria-current="page" className={buttonClasses({ variant: 'secondary' })}>{labels.focus}</span> : <Link aria-current="page" className={buttonClasses({ variant: 'secondary' })} href="/focus" onClick={() => savePresentation('FOCUS')}>{labels.focus}</Link>}
       {fullAvailable ? <Link className={buttonClasses({ variant: 'ghost', className: 'whitespace-normal text-left' })} href="/dashboard/start" onClick={() => savePresentation('FULL')} prefetch={false}><LayoutDashboard aria-hidden="true" />{labels.full}</Link> : null}
     </nav>
   )

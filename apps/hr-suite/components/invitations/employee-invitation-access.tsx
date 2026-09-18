@@ -1,6 +1,6 @@
 'use client'
 
-import { Mail, RefreshCw, Send, ShieldCheck, X } from 'lucide-react'
+import { Eye, LockKeyhole, Mail, RefreshCw, Send, ShieldCheck, UnlockKeyhole, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Badge, type BadgeTone } from '@/components/ui/badge'
@@ -24,6 +24,7 @@ export interface EmployeeInvitationAccessLabels {
   active: string
   expired: string
   revoked: string
+  blocked: string
   noEmail: string
   notEligible: string
   employmentRequired: string
@@ -34,6 +35,12 @@ export interface EmployeeInvitationAccessLabels {
   working: string
   actionFailed: string
   actionDone: string
+  lastLogin: string
+  neverLoggedIn: string
+  block: string
+  unblock: string
+  preview: string
+  previewFailed: string
 }
 
 function statusLabel(status: InvitationLifecycleStatus, labels: EmployeeInvitationAccessLabels): string {
@@ -43,6 +50,7 @@ function statusLabel(status: InvitationLifecycleStatus, labels: EmployeeInvitati
     ACTIVE: labels.active,
     EXPIRED: labels.expired,
     REVOKED: labels.revoked,
+    BLOCKED: labels.blocked,
   }[status]
 }
 
@@ -51,6 +59,7 @@ function statusTone(status: InvitationLifecycleStatus): BadgeTone {
   if (status === 'INVITED') return 'info'
   if (status === 'EXPIRED') return 'warning'
   if (status === 'REVOKED') return 'danger'
+  if (status === 'BLOCKED') return 'danger'
   return 'neutral'
 }
 
@@ -76,11 +85,23 @@ export function EmployeeInvitationAccess({
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  async function runAction(action: 'send' | 'resend' | 'revoke'): Promise<void> {
+  async function runAction(action: 'send' | 'resend' | 'revoke' | 'block' | 'unblock' | 'preview'): Promise<void> {
     if (busy) return
     setBusy(true)
     setMessage(null)
     try {
+      if (action === 'preview') {
+        const response = await fetch('/api/focus/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employeeId: access.employeeId }),
+        })
+        if (!response.ok) throw new Error('PREVIEW_ACTION_FAILED')
+        const previewWindow = window.open(`/focus/preview/${access.employeeId}`, '_blank', 'noopener,noreferrer')
+        if (!previewWindow) throw new Error('PREVIEW_ACTION_FAILED')
+        setMessage(labels.actionDone)
+        return
+      }
       const response = action === 'send'
         ? await fetch('/api/invitations/employee', {
           method: 'POST',
@@ -89,12 +110,14 @@ export function EmployeeInvitationAccess({
             employeeId: access.employeeId,
           }),
         })
-        : await fetch(`/api/invitations/${access.invitationId}/${action}`, { method: 'POST' })
+        : action === 'block' || action === 'unblock'
+          ? await fetch(`/api/employees/${access.employeeId}/ess-access`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: action === 'block' ? 'BLOCKED' : 'ACTIVE' }) })
+          : await fetch(`/api/invitations/${access.invitationId}/${action}`, { method: 'POST' })
       if (!response.ok) throw new Error('INVITATION_ACTION_FAILED')
       setMessage(labels.actionDone)
       router.refresh()
     } catch {
-      setMessage(labels.actionFailed)
+      setMessage(action === 'preview' ? labels.previewFailed : labels.actionFailed)
     } finally {
       setBusy(false)
     }
@@ -109,10 +132,11 @@ export function EmployeeInvitationAccess({
         </div>
         <Badge tone={statusTone(access.status)}>{statusLabel(access.status, labels)}</Badge>
       </div>
-      <dl className="grid gap-4 text-sm sm:grid-cols-3">
+      <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.recipient}</dt><dd className="mt-1 flex min-w-0 items-center gap-2 break-words"><Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />{access.recipientEmail ?? labels.noEmail}</dd></div>
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.purpose}</dt><dd className="mt-1">{purposeLabel(access.invitationPurpose, access.invitationEligibility === 'ELIGIBLE', labels)}</dd></div>
         <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.status}</dt><dd className="mt-1">{statusLabel(access.status, labels)}</dd></div>
+        <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{labels.lastLogin}</dt><dd className="mt-1">{access.lastLoginAt ? dateLabel(access.lastLoginAt, locale) : labels.neverLoggedIn}</dd></div>
       </dl>
       {access.invitationEligibility !== 'ELIGIBLE' ? <p className="text-sm text-warning">{labels.employmentRequired}</p> : null}
       {access.invitationExpiresAt ? <p className="text-sm text-muted-foreground">{labels.expires.replace('{date}', dateLabel(access.invitationExpiresAt, locale))}</p> : null}
@@ -120,6 +144,9 @@ export function EmployeeInvitationAccess({
         {access.canSend ? <Button disabled={busy || access.recipientEmail === null} loading={busy} onClick={() => void runAction('send')} size="sm" type="button"><Send aria-hidden="true" />{labels.send}</Button> : null}
         {access.canResend && access.invitationId ? <Button disabled={busy} loading={busy} onClick={() => void runAction('resend')} size="sm" type="button" variant="secondary"><RefreshCw aria-hidden="true" />{labels.resend}</Button> : null}
         {access.status === 'INVITED' && access.invitationId ? <Button disabled={busy} onClick={() => void runAction('revoke')} size="sm" type="button" variant="ghost"><X aria-hidden="true" />{labels.revoke}</Button> : null}
+        {access.canBlock ? <Button disabled={busy} onClick={() => void runAction('block')} size="sm" type="button" variant="danger"><LockKeyhole aria-hidden="true" />{labels.block}</Button> : null}
+        {access.canUnblock ? <Button disabled={busy} onClick={() => void runAction('unblock')} size="sm" type="button" variant="secondary"><UnlockKeyhole aria-hidden="true" />{labels.unblock}</Button> : null}
+        {access.canPreview ? <Button disabled={busy} onClick={() => void runAction('preview')} size="sm" type="button" variant="ghost"><Eye aria-hidden="true" />{labels.preview}</Button> : null}
       </div>
       {message ? <p aria-live="polite" className="text-sm text-muted-foreground">{message}</p> : null}
     </Surface>

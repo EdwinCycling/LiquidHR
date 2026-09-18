@@ -1,6 +1,7 @@
 export type FocusPresentation = 'FOCUS' | 'FULL'
 export type FocusExperience = 'EMPLOYEE' | 'MANAGER' | 'PREBOARDING' | 'NO_EMPLOYMENT'
 export type FocusDevice = 'PHONE' | 'TABLET' | 'DESKTOP'
+export type PortalMode = 'FOCUS_ONLY' | 'FOCUS_AND_FULL'
 
 export const PREBOARDING_ALLOWED_SELF_PERMISSIONS = [
   'self:employee:read',
@@ -38,6 +39,31 @@ export interface PresentationResolutionInput {
   activeRoles: readonly string[]
   device: FocusDevice
   explicitPreference?: FocusPresentation | null
+  employeePortalMode?: PortalMode
+  managerPortalMode?: PortalMode
+}
+
+export interface FullPortalPolicyInput {
+  experience: FocusExperience
+  activeRoles: readonly string[]
+  employeePortalMode?: PortalMode
+  managerPortalMode?: PortalMode
+  blocked?: boolean
+}
+
+const ADMIN_PORTAL_ROLES = new Set(['TENANT_ADMIN', 'HR_ADMIN'])
+const MANAGER_PORTAL_ROLES = new Set(['DIRECT_MANAGER', 'TEAM_LEAD'])
+
+export function resolvePortalMode(input: Pick<PresentationResolutionInput, 'activeRoles' | 'employeePortalMode' | 'managerPortalMode'>): PortalMode {
+  if (input.activeRoles.some((role) => MANAGER_PORTAL_ROLES.has(role))) return input.managerPortalMode ?? 'FOCUS_AND_FULL'
+  if (input.activeRoles.includes('EMPLOYEE')) return input.employeePortalMode ?? 'FOCUS_AND_FULL'
+  return 'FOCUS_AND_FULL'
+}
+
+export function isFullPortalAllowed(input: FullPortalPolicyInput): boolean {
+  if (input.blocked || input.experience === 'PREBOARDING' || input.experience === 'NO_EMPLOYMENT') return false
+  if (input.activeRoles.some((role) => ADMIN_PORTAL_ROLES.has(role))) return true
+  return resolvePortalMode(input) === 'FOCUS_AND_FULL'
 }
 
 export function isPreboardingAllowedSelfPermission(permissionCode: string): permissionCode is PreboardingAllowedSelfPermission {
@@ -78,10 +104,15 @@ export function resolvePresentation({
   activeRoles,
   device,
   explicitPreference,
+  employeePortalMode,
+  managerPortalMode,
 }: PresentationResolutionInput): FocusPresentation {
   if (experience === 'PREBOARDING' || experience === 'NO_EMPLOYMENT') return 'FOCUS'
+  if (activeRoles.some((role) => ADMIN_PORTAL_ROLES.has(role))) {
+    return explicitPreference === 'FOCUS' || explicitPreference === 'FULL' ? explicitPreference : 'FULL'
+  }
+  if (resolvePortalMode({ activeRoles, employeePortalMode, managerPortalMode }) === 'FOCUS_ONLY') return 'FOCUS'
   if (explicitPreference === 'FOCUS' || explicitPreference === 'FULL') return explicitPreference
-  if (activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')) return 'FULL'
   if (device === 'PHONE' || experience === 'EMPLOYEE' || experience === 'MANAGER') return 'FOCUS'
   return 'FULL'
 }

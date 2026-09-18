@@ -16,6 +16,8 @@ const administrationInputSchema = z.object({
 const groupPatchSchema = z.object({
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(1000),
+  employeePortalMode: z.enum(['FOCUS_ONLY', 'FOCUS_AND_FULL']),
+  managerPortalMode: z.enum(['FOCUS_ONLY', 'FOCUS_AND_FULL']),
 }).strict()
 
 export async function POST(request: Request) {
@@ -67,6 +69,8 @@ export async function PATCH(request: Request) {
       .update({
         name: parsed.data.name,
         description: parsed.data.description || null,
+        employee_portal_mode: parsed.data.employeePortalMode,
+        manager_portal_mode: parsed.data.managerPortalMode,
         updated_by_user_id: context.userId,
       })
       .eq('tenant_id', context.tenantId)

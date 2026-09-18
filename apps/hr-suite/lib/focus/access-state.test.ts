@@ -46,6 +46,28 @@ describe('Focus access state', () => {
     expect(resolvePresentation({ experience: 'MANAGER', activeRoles: ['DIRECT_MANAGER', 'TENANT_ADMIN'], device: 'DESKTOP' })).toBe('FULL')
   })
 
+  it('enforces HR-group portal modes while keeping administrators on Full by default', () => {
+    expect(resolvePresentation({
+      experience: 'EMPLOYEE',
+      activeRoles: ['EMPLOYEE'],
+      device: 'DESKTOP',
+      employeePortalMode: 'FOCUS_ONLY',
+      explicitPreference: 'FULL',
+    })).toBe('FOCUS')
+    expect(resolvePresentation({
+      experience: 'MANAGER',
+      activeRoles: ['DIRECT_MANAGER'],
+      device: 'DESKTOP',
+      managerPortalMode: 'FOCUS_ONLY',
+    })).toBe('FOCUS')
+    expect(resolvePresentation({
+      experience: 'MANAGER',
+      activeRoles: ['DIRECT_MANAGER', 'TENANT_ADMIN'],
+      device: 'DESKTOP',
+      managerPortalMode: 'FOCUS_ONLY',
+    })).toBe('FULL')
+  })
+
   it('lets an explicit browser preference override the role default, except during Preboarding', () => {
     expect(resolvePresentation({ experience: 'EMPLOYEE', activeRoles: ['EMPLOYEE'], device: 'DESKTOP', explicitPreference: 'FULL' })).toBe('FULL')
     expect(resolvePresentation({ experience: 'PREBOARDING', activeRoles: ['EMPLOYEE'], device: 'DESKTOP', explicitPreference: 'FULL' })).toBe('FOCUS')

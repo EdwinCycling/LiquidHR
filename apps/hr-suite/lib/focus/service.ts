@@ -5,11 +5,14 @@ import {
   localizedValue,
   type JourneyProjection,
 } from '@/lib/journeys/projection-domain'
-import { getRequestAuthorizationContext } from '@/lib/auth/permissions'
+import { AuthorizationError, getRequestAuthorizationContext, getSelfPermissions } from '@/lib/auth/permissions'
+import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { createClient } from '@/lib/supabase/server'
+import { readFocusPreviewCookie } from './preview-token'
 import {
   resolveEmploymentAccessState,
   resolveFocusExperience,
+  isFullPortalAllowed,
   resolvePresentation,
   type FocusDevice,
   type FocusPresentation,
@@ -46,6 +49,9 @@ export interface FocusHomeData {
   actions: FocusAction[]
   isPreboarding: boolean
   canOpenFull: boolean
+  isEssBlocked: boolean
+  readOnly: boolean
+  isPreview: boolean
 }
 
 function employeeName(employee: { first_name: string; birth_name: string }): string {
@@ -80,9 +86,10 @@ function focusActions(input: {
   experience: FocusHomeData['experience']
   permissions: readonly string[]
   journey: JourneyProjection | null
+  blocked?: boolean
 }): FocusAction[] {
   const actions: FocusAction[] = []
-  if (input.experience === 'NO_EMPLOYMENT') return actions
+  if (input.experience === 'NO_EMPLOYMENT' || input.blocked) return actions
   const add = (key: FocusActionKey, href: string) => actions.push({ key, href })
   const permissions = new Set(input.permissions)
 
@@ -129,6 +136,10 @@ async function readEmployeeFocusData(
   if (employeeResult.error) throw employeeResult.error
   if (employmentResult.error) throw employmentResult.error
 
+  const essAccess = employeeResult.data
+    ? await readEmployeeEssAccess(supabase, employeeResult.data.id)
+    : null
+
   return {
     employee: employeeResult.data,
     employments: (employmentResult.data ?? []).map((employment) => ({
@@ -137,6 +148,7 @@ async function readEmployeeFocusData(
       recordStatus: employment.record_status,
       deletedAt: employment.deleted_at,
     })),
+    isEssBlocked: essAccess?.status === 'BLOCKED',
   }
 }
 
@@ -160,6 +172,9 @@ export async function getFocusHomeData(options: {
       actions: [],
       isPreboarding: false,
       canOpenFull: false,
+      isEssBlocked: false,
+      readOnly: false,
+      isPreview: false,
     }
   }
 
@@ -173,6 +188,9 @@ export async function getFocusHomeData(options: {
       actions: [],
       isPreboarding: false,
       canOpenFull: false,
+      isEssBlocked: false,
+      readOnly: false,
+      isPreview: false,
     }
   }
 
@@ -185,6 +203,7 @@ export async function getFocusHomeData(options: {
   const permissions = experience === 'PREBOARDING'
     ? context.permissions.filter((permission) => permission.startsWith('self:'))
     : context.permissions
+  const isEssBlocked = focusData.isEssBlocked
 
   return {
     experience,
@@ -193,6 +212,8 @@ export async function getFocusHomeData(options: {
       activeRoles: context.activeRoles,
       device,
       explicitPreference: options.explicitPresentation,
+      employeePortalMode: context.employeePortalMode,
+      managerPortalMode: context.managerPortalMode,
     }),
     employee: {
       id: focusData.employee.id,
@@ -201,9 +222,66 @@ export async function getFocusHomeData(options: {
       effectiveEmploymentStartDate: accessState.effectiveStartDate,
     },
     journey,
-    actions: focusActions({ employeeId, experience, permissions, journey }),
+    actions: focusActions({ employeeId, experience, permissions, journey, blocked: isEssBlocked }),
     isPreboarding: experience === 'PREBOARDING',
-    canOpenFull: experience !== 'PREBOARDING' && experience !== 'NO_EMPLOYMENT',
+    canOpenFull: isFullPortalAllowed({
+      experience,
+      activeRoles: context.activeRoles,
+      employeePortalMode: context.employeePortalMode,
+      managerPortalMode: context.managerPortalMode,
+      blocked: isEssBlocked,
+    }),
+    isEssBlocked,
+    readOnly: false,
+    isPreview: false,
+  }
+}
+
+export async function getFocusPreviewData(employeeId: string, options: { today?: string } = {}): Promise<FocusHomeData> {
+  const requestContext = await getRequestAuthorizationContext({ allowFocusPreview: true })
+  const preview = await readFocusPreviewCookie()
+  if (
+    !preview
+    || preview.actorUserId !== requestContext.context.userId
+    || preview.tenantId !== requestContext.context.tenantId
+    || preview.hrGroupId !== requestContext.context.hrGroupId
+    || preview.employeeId !== employeeId
+  ) throw new AuthorizationError('Deze Focus-preview is ongeldig of verlopen.')
+  if (!requestContext.context.permissions.includes('user:invite')) throw new AuthorizationError('Je hebt geen recht om een Focus-preview te openen.')
+
+  const today = options.today ?? new Date().toISOString().slice(0, 10)
+  const focusData = await readEmployeeFocusData(
+    requestContext.supabase,
+    requestContext.context.tenantId,
+    requestContext.context.hrGroupId ?? '',
+    employeeId,
+  )
+  if (!focusData.employee) throw new AuthorizationError('Deze medewerker valt niet binnen je actieve HR-groep.')
+
+  const accessState = resolveEmploymentAccessState(today, focusData.employments)
+  const experience = resolveFocusExperience(accessState, ['EMPLOYEE'])
+  const permissions = await getSelfPermissions(requestContext.supabase, requestContext.context.tenantId)
+  const journeys = experience !== 'NO_EMPLOYMENT' && permissions.includes('self:journey:read')
+    ? await getEmployeeJourneyProjections(employeeId).catch(() => [])
+    : []
+  const journey = featuredJourney(journeys)
+
+  return {
+    experience,
+    presentation: 'FOCUS',
+    employee: {
+      id: focusData.employee.id,
+      name: employeeName(focusData.employee),
+      avatarUrl: focusData.employee.avatar_url,
+      effectiveEmploymentStartDate: accessState.effectiveStartDate,
+    },
+    journey,
+    actions: focusActions({ employeeId, experience, permissions, journey, blocked: focusData.isEssBlocked }),
+    isPreboarding: experience === 'PREBOARDING',
+    canOpenFull: false,
+    isEssBlocked: focusData.isEssBlocked,
+    readOnly: true,
+    isPreview: true,
   }
 }
 

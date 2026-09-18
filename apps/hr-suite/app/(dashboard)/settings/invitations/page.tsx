@@ -50,6 +50,7 @@ export default async function InvitationsPage() {
       alreadyActive: t('alreadyActive'),
       notActivated: t('notActivated'),
       invited: t('invited'),
+      blocked: t('blocked'),
       expired: t('expired'),
       revoked: t('revoked'),
       continue: t('continue'),
