@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260918113000_focus_no_employment_selfservice_hardening.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260918094122_focus_no_employment_selfservice_hardening.sql'), 'utf8')
 
 describe('NO_EMPLOYMENT selfservice hardening migration contract', () => {
   it('requires exact-scope active or future confirmed employment before ordinary selfservice', () => {

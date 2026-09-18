@@ -1,39 +1,38 @@
 # Implementatiestatus Liquid HR
 
-## ESS/MSS Workflow Unification V1 — 2026-09-17
+## Convergence Focus + ESS/MSS — 2026-09-18
 
-**Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**
+**Status: IMPLEMENTED ON CONVERGENCE / DEV READBACK GREEN / AUTHENTICATED ACCEPTANCE BLOCKED BY ENVIRONMENT / NOT RELEASED**
 
-- **Branch/baseline:** geïsoleerde `work/ess-mss-workflow-unification-v1` vanaf
-  exact `origin/main` `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
-- **Process Work:** `/work` ondersteunt `WORK` en `REQUESTS`, server-side
-  business type/category/statusfilters, subjectfiltering en type-aware native
-  routing. P-mutaties blijven dynamic; Leave en Actual Work behouden hun
-  domeineigenaarschap.
-- **Leave:** self-service start, PENDING/CHANGES_REQUESTED lifecycle, manager
-  native actions en idempotente Leave booking via de bestaande ledger. De
-  compiler-geldige recipe bevat 7 stappen en 12 transities.
-- **Actual Work:** alleen metadata, projectierouting en een native read-only
-  landing; geen tweede ledger of approval-booking.
-- **Supabase DEV:** `wnpfloqpjvaacobppbpk` is bevestigd als actief `LiquidHR`
-  project. De enum-, hoofd-, advisor-index- en wrapper-execution-migrations zijn
-  toegepast. Readback bevestigde RLS/no-direct bridge access, de recipe en
-  self-service permissions. De resterende security-definer advisorregels zijn de
-  verwachte waarschuwing voor authenticated RPC-wrappers; nieuwe FK-waarschuwingen
-  zijn opgelost. De HR-fixture activeerde en publiceerde de administratiegebonden
-  recipe uitsluitend op DEV. Production is niet aangeraakt.
-- **Lokale gates:** gerichte workflow-tests `39/39`, strict TypeScript, ESLint,
-  i18n-pariteit, `git diff --check` en productiebuild groen. De volledige suite
-  is `1564/1565`; alleen de bestaande 5-seconden timeout in
-  `lib/document-generation/pdf.test.ts` faalt.
-- **Browsergate:** employee `WAITING` zonder approve-knop en directe approve
-  `403 FORBIDDEN`; manager `OPEN` en approve-route bereikt de bestaande booking-
-  adapter, die `LEAVE_INSUFFICIENT_BALANCE` teruggeeft. Readback bleef
-  `PENDING`, zonder domain commit, allocation of workflow-`TAKEN`-transactie.
-- **Open gates:** positieve persisted booking-readback en request-changes recovery.
-  Hiervoor is expliciete toestemming nodig voor één bounded DEV-opening balance
-  via de bestaande HR-ledgerflow. Er is geen Vercel-deployment, GitHub push,
-  merge of cleanup uitgevoerd.
+| Gate | Status | Evidence / boundary |
+| --- | --- | --- |
+| Exact base and source refs | GREEN | `origin/main` `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`; Focus `afaadb01b908ed2766372ec838ff5f0169d6301e`; ESS/MSS `3b342630da339663201117432725da63abe08619`. |
+| Normal convergence history | GREEN | Focus merge `e3f8a07`, ESS/MSS merge `2245ef6`; no reset, force or cleanup. |
+| Schema/migration reconciliation | GREEN | DEV history has exact versions `20260917141844`, `20260917141907`, `20260917142539`, `20260917154313`, `20260917172335`, `20260917172342`, `20260917172549`, `20260918090701`, `20260918094122`; local SQL bodies were preserved and filenames normalized. |
+| Generated database types | GREEN | Official DEV typegen is retained in `packages/db/types.ts`; the previously documented local-only `company_activities` compatibility type remains because that table is absent from DEV. No generated branch definition was manually merged. |
+| Focus Full-portal enforcement | GREEN (code/tests) | Parent dashboard layout guards deep links; Employee/Manager portal-mode matrix and blocked admin/manager/employee precedence are covered. |
+| Preview isolation | GREEN (code/tests) | Cookie and clear path are `/focus/preview`; global cookie denial removed; signed preview remains read-only and actor/tenant/group/employee-bound. |
+| RLS/security review | GREEN with project-wide warnings recorded | Feature tables have RLS/policies; sensitive wrappers are authenticated-only/guarded. Advisor snapshot: security `11` INFO / `4+90+1` WARN and performance `142+402` INFO / `32` WARN; no feature-specific missing-RLS or anon finding, and no blind suppression or unrelated cleanup. |
+| Focus authenticated acceptance | BLOCKED BY ENVIRONMENT | Local `/login` was HTTP 200, but `agent-browser` failed after diagnosis and one retry with `CDP response channel closed`. |
+| Leave UI happy path + recovery | OPEN / BLOCKED BY ENVIRONMENT | DEV fixture precondition is read back; no opening balance was created and no direct ledger/SQL workaround was used. |
+| GitHub/main/Vercel/Production | NOT EXECUTED | This candidate is not merged to `main`, not deployed and did not mutate Production. |
+
+### Integrated implementation
+
+Focus is connected to the existing Employee/Employment, Journey, ESS/MSS,
+Process Automation and Leave/Actual Work ownership boundaries. The Full portal
+guard is centralized in `app/(dashboard)/layout.tsx`, so a direct `/dashboard/*`
+link cannot bypass the effective Focus experience, ESS status or portal mode.
+HR Admin remains independent of an employee ESS block, Manager work/team remains
+available in Manager mode, blocked Employee selfservice is suppressed, and
+`PREBOARDING`/`NO_EMPLOYMENT` remain fail-closed. The read-only preview no
+longer changes global authorization merely because its dedicated cookie exists.
+
+The DEV feature migration mapping and effect descriptions are maintained in
+[`CURRENT_CONTEXT.md`](CURRENT_CONTEXT.md). The final DEV type-generation,
+advisor snapshot and full local technical gates are recorded above and in
+`CURRENT_CONTEXT.md`. Authenticated browser evidence is still required before
+this candidate can be called release ready.
 
 ## AI-consolidatie — 2026-09-16
 

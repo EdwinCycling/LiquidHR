@@ -81,7 +81,7 @@ function featuredJourney(journeys: readonly JourneyProjection[]): JourneyProject
     })[0] ?? null
 }
 
-function focusActions(input: {
+export function focusActions(input: {
   employeeId: string
   experience: FocusHomeData['experience']
   permissions: readonly string[]
@@ -89,17 +89,18 @@ function focusActions(input: {
   blocked?: boolean
 }): FocusAction[] {
   const actions: FocusAction[] = []
-  if (input.experience === 'NO_EMPLOYMENT' || input.blocked) return actions
+  if (input.experience === 'NO_EMPLOYMENT') return actions
   const add = (key: FocusActionKey, href: string) => actions.push({ key, href })
   const permissions = new Set(input.permissions)
+  const canUseEmployeeSelfservice = !input.blocked
 
-  if (permissions.has('self:journey:read') && input.journey) add('journey', '/focus/onboarding')
-  if (permissions.has('self:employee:read')) add('profile', '/focus/profiel')
-  if (permissions.has('self:document:read') || permissions.has('self:document-signing:read')) add('documents', '/focus/documenten')
+  if (canUseEmployeeSelfservice && permissions.has('self:journey:read') && input.journey) add('journey', '/focus/onboarding')
+  if (canUseEmployeeSelfservice && permissions.has('self:employee:read')) add('profile', '/focus/profiel')
+  if (canUseEmployeeSelfservice && (permissions.has('self:document:read') || permissions.has('self:document-signing:read'))) add('documents', '/focus/documenten')
 
   if (input.experience !== 'PREBOARDING') {
-    if (permissions.has('self:leave:read')) add('leave', `/employees/${input.employeeId}/leave`)
-    if (permissions.has('self:process-task:read')) add('requests', '/focus/aanvragen')
+    if (canUseEmployeeSelfservice && permissions.has('self:leave:read')) add('leave', `/employees/${input.employeeId}/leave`)
+    if (canUseEmployeeSelfservice && permissions.has('self:process-task:read')) add('requests', '/focus/aanvragen')
     if (permissions.has('process-task:read') || permissions.has('process-instance:read')) add('work', '/focus/werk')
     if (permissions.has('organization-chart:read') || permissions.has('self:organization-chart:read')) add('team', '/focus/team')
   }
@@ -214,6 +215,7 @@ export async function getFocusHomeData(options: {
       explicitPreference: options.explicitPresentation,
       employeePortalMode: context.employeePortalMode,
       managerPortalMode: context.managerPortalMode,
+      blocked: isEssBlocked,
     }),
     employee: {
       id: focusData.employee.id,
@@ -238,7 +240,7 @@ export async function getFocusHomeData(options: {
 }
 
 export async function getFocusPreviewData(employeeId: string, options: { today?: string } = {}): Promise<FocusHomeData> {
-  const requestContext = await getRequestAuthorizationContext({ allowFocusPreview: true })
+  const requestContext = await getRequestAuthorizationContext()
   const preview = await readFocusPreviewCookie()
   if (
     !preview

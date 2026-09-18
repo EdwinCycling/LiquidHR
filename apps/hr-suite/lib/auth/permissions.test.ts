@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, loadActiveContext } = vi.hoisted(() => ({
+const { createClient, loadActiveContext, hasActiveFocusPreviewToken } = vi.hoisted(() => ({
   createClient: vi.fn(),
   loadActiveContext: vi.fn(),
+  hasActiveFocusPreviewToken: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/context/server-context', () => ({ loadActiveContext }))
+vi.mock('@/lib/focus/preview-token', () => ({ hasActiveFocusPreviewToken }))
 
-import { AuthorizationError, requireAuthContext, requirePermission } from './permissions'
+import { AuthorizationError, getRequestAuthorizationContext, requireAuthContext, requirePermission } from './permissions'
 
 interface FakeClientOptions {
   actor?: { id: string; tenant_id: string } | null
@@ -260,6 +262,18 @@ describe('requirePermission', () => {
       permissions: ['department:read'],
     })
     expect(client.rpc).not.toHaveBeenCalled()
+  })
+
+  it('houdt een normaal HR Admin-request geautoriseerd naast een geldige Focus-preview', async () => {
+    hasActiveFocusPreviewToken.mockResolvedValue(true)
+    createClient.mockResolvedValue(createFakeClient({
+      roleCodes: { 'tenant-admin-role': 'HR_ADMIN' },
+    }))
+
+    await expect(getRequestAuthorizationContext()).resolves.toMatchObject({
+      context: { tenantId: 'tenant-1', activeRoles: ['HR_ADMIN'] },
+    })
+    expect(hasActiveFocusPreviewToken).not.toHaveBeenCalled()
   })
 
   it('blokkeert niet-allowlisted selfservice vóór de eerste werkdag', async () => {

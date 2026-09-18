@@ -1,41 +1,104 @@
 # Actuele overdracht Liquid HR
 
-## ESS/MSS Workflow Unification V1 — 2026-09-17
+## Convergence Focus + ESS/MSS — 2026-09-18
 
-**Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**
+**Status: CODE CONVERGENCE GREEN / DEV-SCHEMA READBACK GREEN / AUTHENTICATED BROWSER ACCEPTANCE ENVIRONMENT-GATED / RELEASE OPEN**
 
-- Hervat in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ess-mss-workflow-unification-v1` op branch
-  `work/ess-mss-workflow-unification-v1`, exact basispunt
-  `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
-- `/work` heeft een uniforme `WORK`/`REQUESTS`-projectie met server-side
-  businessfacets en type-aware routing. P-mutaties blijven dynamic; Leave is
-  native via de Process Automation-adapter; Actual Work blijft ledger-owned.
-- Leave-flow: `/leave/request` -> PENDING -> employee acknowledgement ->
-  manager approve/reject/request-changes -> native booking/recovery. De
-  bridge `process_leave_subjects` is RLS fail-closed en niet direct via de Data
-  API bereikbaar. De recipe is read-back PUBLISHED als LEAVE/LEAVE_REQUEST met
-  7 stappen en 12 transities.
-- DEV `wnpfloqpjvaacobppbpk` heeft de vier slice-migrations. Readback bevestigde
-  beide self-service permissions op EMPLOYEE, authenticated-only wrappers en
-  geen nieuwe FK-indexadvisorfinding. De HR-fixture activeerde en publiceerde de
-  administratiegebonden Leave-recipe uitsluitend in DEV. Production, Vercel,
-  GitHub push/merge en cleanup zijn niet uitgevoerd.
-- Verificatie: gerichte workflow-suite `39/39`, strict TypeScript, ESLint,
-  i18n, diff-check en productiebuild groen. Volledige suite `1564/1565`; de
-  enige failure is de bestaande 5-seconden timeout in
-  `lib/document-generation/pdf.test.ts`.
-- Browserbewijs: employee zag de nieuwe aanvraag als `WAITING`, zonder approve-
-  knop; een directe approve gaf `403 FORBIDDEN`. Manager zag dezelfde aanvraag
-  als `OPEN`, maar de bestaande Leave-ledger weigerde boeken met
-  `LEAVE_INSUFFICIENT_BALANCE`; de DEV-aanvraag bleef `PENDING` met nul domain
-  commits, allocations en workflow-`TAKEN`-transacties. Request-changes recovery
-  en positieve persisted booking-readback zijn nog open. De worktree bevat een
-  genegeerde `.env.local`-testkopie naast de beschermde canonical file; geen
-  waarden zijn in bewijs of documentatie opgenomen.
-- Blokkerende vervolgstap: expliciete toestemming is nodig om via de bestaande
-  HR-ledgerflow één bounded opening-balance record op DEV voor deze synthetische
-  fixture te creëren; daarna kan dezelfde approval-flow éénmaal opnieuw worden
-  uitgevoerd.
+Deze overdracht beschrijft de enige geïntegreerde kandidaat voor deze run:
+
+- Branch: `work/convergence-focus-workflow-20260918`.
+- Worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\convergence-focus-workflow-20260918`.
+- Exacte basis: `origin/main` `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
+- Focus-bron: `origin/work/focus-access-management-20260918`
+  `afaadb01b908ed2766372ec838ff5f0169d6301e`.
+- ESS/MSS-bron: `origin/work/ess-mss-workflow-unification-v1`
+  `3b342630da339663201117432725da63abe08619`.
+- Normale mergehistorie: Focus via `e3f8a07`, daarna ESS/MSS via `2245ef6`.
+  Er is geen reset, force-push, cherry-pick-replay of branchcleanup uitgevoerd.
+
+De geïntegreerde code gebruikt Focus als presentatie- en toegangslaag bovenop
+de bestaande Employee/Employment-, Journey-, ESS/MSS-, Process Automation- en
+Leave/Actual Work-seams. De centrale Full-portalguard staat in
+`app/(dashboard)/layout.tsx`, zodat ook directe/deep-link navigatie naar
+`/dashboard/*` dezelfde policy krijgt. De policy test de twee portal modes voor
+Employee en Manager, houdt HR Admin Full onafhankelijk van geblokkeerde
+Employee ESS en houdt Manager work/team onafhankelijk van geblokkeerde
+Employee selfservice. `PREBOARDING` en `NO_EMPLOYMENT` blijven fail-closed.
+
+De preview-cookie is beperkt tot `/focus/preview`; de globale authlaag blokkeert
+niet langer ieder request wanneer zo'n cookie bestaat. De dedicated preview
+route blijft signed-token, actor-, tenant-, HR-groep- en employee-bound en
+read-only. De geblokkeerde Employee krijgt geen gewone selfservice-acties;
+Manager work/team blijft beschikbaar volgens de bestaande managerpermissions.
+
+### DEV-migrationreconciliatie
+
+DEV-project `wnpfloqpjvaacobppbpk` is uitsluitend read-only gecontroleerd. De
+remote history is 1:1 uitgelijnd met de lokale featurebestanden; de lokale
+bestandsnamen zijn zonder SQL-bodywijziging genormaliseerd naar de werkelijk
+toegepaste DEV-versies:
+
+| DEV-versie | Repositorybestand | Effect |
+| --- | --- | --- |
+| `20260917141844` | `ess_mss_workflow_unification_leave_status.sql` | `PENDING` en `CHANGES_REQUESTED` voor Leave. |
+| `20260917141907` | `ess_mss_workflow_unification_v1.sql` | Getypeerde Process/Leave-adapter, lifecycle-RPC's en RLS fail-closed bridge. |
+| `20260917142539` | `ess_mss_workflow_unification_v1_advisor_indexes.sql` | Scope-/instance-indexen voor `process_leave_subjects`. |
+| `20260917154313` | `ess_mss_workflow_unification_v1_wrapper_execution.sql` | Authenticated execution voor bestaande server-side workflow wrappers. |
+| `20260917172335` | `add_employee_activation_invitation_purpose.sql` | Activation-purpose in de invitation lifecycle. |
+| `20260917172342` | `expand_employee_invitation_purpose_constraint.sql` | Constraint-uitbreiding voor het nieuwe purpose. |
+| `20260917172549` | `focus_identity_preboarding_access.sql` | Preboarding identity/access guards en allowlisted self-permissions. |
+| `20260918090701` | `focus_access_management.sql` | `employee_ess_access`, portal modes, RLS en guarded status-RPC. |
+| `20260918094122` | `focus_no_employment_selfservice_hardening.sql` | No-employment/preboarding en blocked-ESS enforcement in permission checks. |
+
+DEV-readback bevestigt RLS op de betrokken featuretabellen, waaronder
+`employee_ess_access`, `process_leave_subjects`, `process_instances`,
+`process_work_items`, `leave_requests`, `leave_request_allocations`,
+`leave_balance_buckets` en `leave_accrual_transactions`. De gegenereerde
+`packages/db/types.ts` is in deze convergence opnieuw rechtstreeks uit DEV
+gegenereerd. Omdat DEV de bestaande lokale `company_activities`-migration niet
+bevat, blijft de eerder gedocumenteerde local-only compatibility type daarvoor
+behouden; er zijn geen generated definities uit de twee branchversies
+handmatig samengevoegd. Er is in deze run geen migration toegepast, gereset of
+opnieuw afgespeeld. Production is niet aangeraakt.
+
+De laatste Supabase-advisorreadback is projectbreed: security meldt `11`
+INFO voor RLS zonder policy, `4` WARN voor anon-uitvoerbare SECURITY DEFINER,
+`90` WARN voor authenticated-uitvoerbare SECURITY DEFINER en `1` WARN voor
+leaked-password protection. Performance meldt `142` INFO unindexed foreign
+keys, `402` INFO unused indexes en `32` WARN multiple permissive policies.
+De featuretabellen hebben geen nieuwe ontbrekende-RLS- of anon-finding in deze
+readback; bestaande projectbrede findings zijn niet blind onderdrukt of
+opgeruimd.
+
+### Huidige acceptance- en gate-status
+
+- Gerichte convergence-tests: `9` bestanden, `41/41` tests groen; hieronder
+  vallen Focus access/presentation, blocked-role precedence, preview-cookie,
+  auth-regressie en alle genormaliseerde migration contracts.
+- Volledige technische gates: hr-suite `414/414` testbestanden en
+  `1657/1657` tests, strict TypeScript, ESLint, `git diff --check`, i18n met
+  `39` gelijke NL/EN-namespaces en Webpack production build met `289/289`
+  pagina's zijn groen.
+- DEV Leave-precondition is coherent voor Noah Hendriks / `DEMO-035`: request
+  `9df4d793-3296-4324-855f-8ef458438096` staat op `PENDING` met `480` minuten;
+  de process instance staat op `RUNNING` bij `manager-approval`, work item
+  `8dfa04a5-05a6-4104-a6ca-fa5e3828860f` is `OPEN`, en er zijn geen balance-
+  bucket- of accrual-transacties. De noodzakelijke opening balance is daarom
+  nog niet aanwezig.
+- De lokale app startte vanuit deze worktree op `http://localhost:3000` en
+  `/login` gaf HTTP 200. De veilige bestaande auth-profile kon niet door
+  `agent-browser` worden gestart: na de voorgeschreven diagnose faalde één
+  gerichte retry opnieuw met `CDP response channel closed`. Focus-authenticated
+  acceptance en de geautoriseerde Leave-UI-flow zijn daarom
+  **BLOCKED BY ENVIRONMENT**; er is geen directe ledger/SQL-mutatie als
+  workaround uitgevoerd.
+- Nog open: authenticated Focus persona/negative matrix, één bounded opening
+  balance via de canonieke UI gevolgd door één Leave happy path met persisted
+  readback, en één `REQUEST_CHANGES` recovery-scenario. Deze open gates blokkeren
+  elke claim van release-, main-, Vercel- of Production-groen.
+- De canonical `apps/hr-suite/.env.local` bleef buiten Git en buiten de
+  documentatie; voor deze worktree is alleen een genegeerde lokale testkopie
+  gebruikt. Geen secretwaarde is gelezen naar output of bewijs.
 
 ## AI-consolidatie — 2026-09-16
 

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const enumMigration = readFileSync(new URL('./20260917110000_ess_mss_workflow_unification_leave_status.sql', import.meta.url), 'utf8').toLowerCase()
-const migrationSource = readFileSync(new URL('./20260917120000_ess_mss_workflow_unification_v1.sql', import.meta.url), 'utf8')
+const enumMigration = readFileSync(new URL('./20260917141844_ess_mss_workflow_unification_leave_status.sql', import.meta.url), 'utf8').toLowerCase()
+const migrationSource = readFileSync(new URL('./20260917141907_ess_mss_workflow_unification_v1.sql', import.meta.url), 'utf8')
 const migration = migrationSource.toLowerCase()
 
 describe('ESS/MSS Workflow Unification V1 migration contract', () => {
@@ -45,7 +45,7 @@ describe('ESS/MSS Workflow Unification V1 migration contract', () => {
 
   it('adds covering indexes for the new composite foreign keys', () => {
     const advisorMigration = readFileSync(
-      new URL('./20260917143000_ess_mss_workflow_unification_v1_advisor_indexes.sql', import.meta.url),
+      new URL('./20260917142539_ess_mss_workflow_unification_v1_advisor_indexes.sql', import.meta.url),
       'utf8',
     ).toLowerCase()
 
@@ -70,7 +70,7 @@ describe('ESS/MSS Workflow Unification V1 migration contract', () => {
     expect(migration).not.toMatch(/grant execute on function internal_security\.(start_leave_request_workflow_internal|perform_leave_workflow_action_internal)/)
 
     const wrapperExecutionMigration = readFileSync(
-      new URL('./20260917150000_ess_mss_workflow_unification_v1_wrapper_execution.sql', import.meta.url),
+      new URL('./20260917154313_ess_mss_workflow_unification_v1_wrapper_execution.sql', import.meta.url),
       'utf8',
     ).toLowerCase()
     expect(wrapperExecutionMigration).toContain('grant execute on function internal_security.start_leave_request_workflow_internal')

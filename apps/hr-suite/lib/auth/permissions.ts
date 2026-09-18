@@ -11,7 +11,6 @@ import {
   type FocusExperience,
 } from '@/lib/focus/access-state'
 import { createClient } from '@/lib/supabase/server'
-import { hasActiveFocusPreviewToken } from '@/lib/focus/preview-token'
 
 export interface AuthContext {
   tenantId: string
@@ -53,14 +52,7 @@ interface RequestAuthorizationContext {
 // React cache is request-scoped during Server Component rendering. Keeping the
 // client and resolved context together prevents each permission check in one
 // render from repeating auth, active-context, role, and permission queries.
-export interface RequestAuthorizationOptions {
-  allowFocusPreview?: boolean
-}
-
-export const getRequestAuthorizationContext = cache(async (options: RequestAuthorizationOptions = {}): Promise<RequestAuthorizationContext> => {
-  if (!options.allowFocusPreview && await hasActiveFocusPreviewToken()) {
-    throw new AuthorizationError('Deze Focus-preview is alleen-lezen.')
-  }
+export const getRequestAuthorizationContext = cache(async (): Promise<RequestAuthorizationContext> => {
   const supabase = await createClient()
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
   const userId = claimsData?.claims?.sub

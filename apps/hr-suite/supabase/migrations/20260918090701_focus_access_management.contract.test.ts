@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const sql = readFileSync(resolve(__dirname, '20260918100000_focus_access_management.sql'), 'utf8')
+const sql = readFileSync(resolve(__dirname, '20260918090701_focus_access_management.sql'), 'utf8')
 const employeeIdMigration = readFileSync(resolve(__dirname, '20260805200000_hr_group_people_organization_roles.sql'), 'utf8')
 
 describe('Focus access management migration contract', () => {

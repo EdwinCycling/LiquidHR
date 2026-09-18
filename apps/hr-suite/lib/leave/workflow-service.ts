@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { Database } from '@scope/db'
 
 import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
@@ -73,7 +74,7 @@ export async function startLeaveRequestWorkflow(input: LeaveWorkflowStartInput):
   if (!parsed.success) throw new LeaveServiceError('LEAVE_INPUT_INVALID', 400)
   const value = parsed.data
   const { supabase, context, employment } = await selectedEmployment(value)
-  const { data, error } = await supabase.rpc('start_leave_request_workflow', {
+  const startArgs = {
     requested_tenant_id: context.tenantId,
     requested_hr_group_id: employment.hr_group_id,
     requested_administration_id: employment.administration_id,
@@ -89,7 +90,8 @@ export async function startLeaveRequestWorkflow(input: LeaveWorkflowStartInput):
     requested_specific_end: value.specificEnd ?? null,
     requested_idempotency_key: value.idempotencyKey,
     requested_correlation_id: null,
-  })
+  } as unknown as Database['public']['Functions']['start_leave_request_workflow']['Args']
+  const { data, error } = await supabase.rpc('start_leave_request_workflow', startArgs)
   if (error) throwRpcError(error.message)
   const result = workflowResultSchema.safeParse(data)
   if (!result.success) throw new LeaveServiceError('LEAVE_WORKFLOW_RESULT_INVALID', 500)
@@ -105,7 +107,7 @@ export async function getLeaveWorkflowDetail(workItemId: string, language: 'nl' 
 export async function performLeaveWorkflowAction(input: LeaveWorkflowActionInput): Promise<LeaveWorkflowActionResult> {
   const supabase = await createClient()
   await requireAuthContext(supabase)
-  const { data, error } = await supabase.rpc('perform_leave_workflow_action', {
+  const actionArgs = {
     requested_work_item_id: input.workItemId,
     requested_action: input.action,
     requested_expected_version: input.expectedVersion,
@@ -113,7 +115,8 @@ export async function performLeaveWorkflowAction(input: LeaveWorkflowActionInput
     requested_idempotency_key: input.idempotencyKey,
     requested_correlation_id: input.correlationId ?? null,
     requested_reason: input.reason ?? null,
-  })
+  } as unknown as Database['public']['Functions']['perform_leave_workflow_action']['Args']
+  const { data, error } = await supabase.rpc('perform_leave_workflow_action', actionArgs)
   if (error) throwRpcError(error.message)
   const result = workflowActionResultSchema.safeParse(data)
   if (!result.success) throw new LeaveServiceError('LEAVE_WORKFLOW_RESULT_INVALID', 500)

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   PREBOARDING_ALLOWED_SELF_PERMISSIONS,
   daysUntil,
+  isFullPortalAllowed,
   isPreboardingAllowedSelfPermission,
   resolveEmploymentAccessState,
   resolveFocusExperience,
@@ -66,6 +67,19 @@ describe('Focus access state', () => {
       device: 'DESKTOP',
       managerPortalMode: 'FOCUS_ONLY',
     })).toBe('FULL')
+  })
+
+  it('enforces the Full portal policy for Employee and Manager deep links', () => {
+    expect(isFullPortalAllowed({ experience: 'EMPLOYEE', activeRoles: ['EMPLOYEE'], employeePortalMode: 'FOCUS_ONLY' })).toBe(false)
+    expect(isFullPortalAllowed({ experience: 'EMPLOYEE', activeRoles: ['EMPLOYEE'], employeePortalMode: 'FOCUS_AND_FULL' })).toBe(true)
+    expect(isFullPortalAllowed({ experience: 'MANAGER', activeRoles: ['DIRECT_MANAGER'], managerPortalMode: 'FOCUS_ONLY' })).toBe(false)
+    expect(isFullPortalAllowed({ experience: 'MANAGER', activeRoles: ['DIRECT_MANAGER'], managerPortalMode: 'FOCUS_AND_FULL' })).toBe(true)
+  })
+
+  it('keeps independent admin and manager Full rights when Employee ESS is blocked', () => {
+    expect(isFullPortalAllowed({ experience: 'EMPLOYEE', activeRoles: ['EMPLOYEE', 'HR_ADMIN'], blocked: true })).toBe(true)
+    expect(isFullPortalAllowed({ experience: 'MANAGER', activeRoles: ['EMPLOYEE', 'DIRECT_MANAGER'], managerPortalMode: 'FOCUS_AND_FULL', blocked: true })).toBe(true)
+    expect(isFullPortalAllowed({ experience: 'EMPLOYEE', activeRoles: ['EMPLOYEE'], blocked: true })).toBe(false)
   })
 
   it('lets an explicit browser preference override the role default, except during Preboarding', () => {

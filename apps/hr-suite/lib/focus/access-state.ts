@@ -41,6 +41,7 @@ export interface PresentationResolutionInput {
   explicitPreference?: FocusPresentation | null
   employeePortalMode?: PortalMode
   managerPortalMode?: PortalMode
+  blocked?: boolean
 }
 
 export interface FullPortalPolicyInput {
@@ -61,8 +62,12 @@ export function resolvePortalMode(input: Pick<PresentationResolutionInput, 'acti
 }
 
 export function isFullPortalAllowed(input: FullPortalPolicyInput): boolean {
-  if (input.blocked || input.experience === 'PREBOARDING' || input.experience === 'NO_EMPLOYMENT') return false
+  if (input.experience === 'PREBOARDING' || input.experience === 'NO_EMPLOYMENT') return false
   if (input.activeRoles.some((role) => ADMIN_PORTAL_ROLES.has(role))) return true
+  if (input.experience === 'MANAGER' || input.activeRoles.some((role) => MANAGER_PORTAL_ROLES.has(role))) {
+    return resolvePortalMode(input) === 'FOCUS_AND_FULL'
+  }
+  if (input.blocked) return false
   return resolvePortalMode(input) === 'FOCUS_AND_FULL'
 }
 
@@ -106,11 +111,13 @@ export function resolvePresentation({
   explicitPreference,
   employeePortalMode,
   managerPortalMode,
+  blocked,
 }: PresentationResolutionInput): FocusPresentation {
   if (experience === 'PREBOARDING' || experience === 'NO_EMPLOYMENT') return 'FOCUS'
   if (activeRoles.some((role) => ADMIN_PORTAL_ROLES.has(role))) {
     return explicitPreference === 'FOCUS' || explicitPreference === 'FULL' ? explicitPreference : 'FULL'
   }
+  if (blocked && experience === 'EMPLOYEE') return 'FOCUS'
   if (resolvePortalMode({ activeRoles, employeePortalMode, managerPortalMode }) === 'FOCUS_ONLY') return 'FOCUS'
   if (explicitPreference === 'FOCUS' || explicitPreference === 'FULL') return explicitPreference
   if (device === 'PHONE' || experience === 'EMPLOYEE' || experience === 'MANAGER') return 'FOCUS'

@@ -11,7 +11,7 @@ vi.mock('@/lib/journeys/projection-service', () => ({ getEmployeeJourneyProjecti
 vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext }))
 
 import type { createClient as createServerClient } from '@/lib/supabase/server'
-import { getFocusHomeData } from './service'
+import { focusActions, getFocusHomeData } from './service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createServerClient>>
 let supabaseClient: SupabaseServerClient
@@ -76,5 +76,20 @@ describe('Focus service lifecycle boundary', () => {
       canOpenFull: false,
     })
     expect(getEmployeeJourneyProjections).not.toHaveBeenCalled()
+  })
+
+  it('keeps manager work and team actions while suppressing blocked Employee selfservice', () => {
+    const permissions = ['self:employee:read', 'self:leave:read', 'self:process-task:read', 'process-task:read', 'organization-chart:read']
+    const blockedManagerActions = focusActions({ employeeId: 'employee-a', experience: 'MANAGER', permissions, journey: null, blocked: true })
+    const blockedEmployeeActions = focusActions({
+      employeeId: 'employee-a',
+      experience: 'EMPLOYEE',
+      permissions: ['self:employee:read', 'self:leave:read', 'self:process-task:read'],
+      journey: null,
+      blocked: true,
+    })
+
+    expect(blockedManagerActions.map((action) => action.key)).toEqual(['work', 'team'])
+    expect(blockedEmployeeActions).toEqual([])
   })
 })

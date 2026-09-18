@@ -63,18 +63,6 @@ export async function readFocusPreviewCookie(): Promise<FocusPreviewTokenPayload
   return readFocusPreviewToken(cookieStore.get(PREVIEW_COOKIE)?.value ?? null)
 }
 
-export async function hasActiveFocusPreviewToken(): Promise<boolean> {
-  try {
-    return (await readFocusPreviewCookie()) !== null
-  } catch (error) {
-    // Pure authorization-unit tests do not have a Next request store. In that
-    // context there cannot be a browser preview cookie, so normal auth keeps
-    // its existing deterministic behavior.
-    if (error instanceof Error && error.message.includes('outside a request scope')) return false
-    throw error
-  }
-}
-
 export async function setFocusPreviewCookie(payload: Omit<FocusPreviewTokenPayload, 'expiresAt'>): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.set(PREVIEW_COOKIE, createFocusPreviewToken({
@@ -84,7 +72,7 @@ export async function setFocusPreviewCookie(payload: Omit<FocusPreviewTokenPaylo
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    path: '/focus/preview',
     maxAge: PREVIEW_MAX_AGE_SECONDS,
   })
 }
@@ -95,7 +83,7 @@ export async function clearFocusPreviewCookie(): Promise<void> {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    path: '/focus/preview',
     maxAge: 0,
   })
 }

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const enumMigration = readFileSync(resolve(__dirname, '20260917130000_add_employee_activation_invitation_purpose.sql'), 'utf8')
-const constraintMigration = readFileSync(resolve(__dirname, '20260917130100_expand_employee_invitation_purpose_constraint.sql'), 'utf8')
+const enumMigration = readFileSync(resolve(__dirname, '20260917172335_add_employee_activation_invitation_purpose.sql'), 'utf8')
+const constraintMigration = readFileSync(resolve(__dirname, '20260917172342_expand_employee_invitation_purpose_constraint.sql'), 'utf8')
 
 describe('employee activation invitation purpose contract', () => {
   it('adds one backwards-compatible enum value without changing existing purposes', () => {
