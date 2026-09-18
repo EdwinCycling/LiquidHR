@@ -1,4 +1,5 @@
 import { ProcessWorkDetailView } from '@/components/process-automation/process-work-detail'
+import { redirect } from 'next/navigation'
 import { getProcessFormProjection } from '@/lib/process-automation/form-runtime-service'
 import { getProcessAutomationOperations, getProcessOutputProjection } from '@/lib/process-automation/output-service'
 import { createProcessWorkDetailLabels } from '@/lib/process-automation/process-work-detail-labels'
@@ -16,7 +17,7 @@ function first(value: string | string[] | undefined): string {
 
 function workBackHref(query: Record<string, string | string[] | undefined>): string {
   const params = new URLSearchParams()
-  for (const key of ['tab', 'search', 'status', 'processDefinitionId', 'administrationId', 'sort']) {
+  for (const key of ['view', 'tab', 'search', 'status', 'businessType', 'businessCategory', 'processDefinitionId', 'administrationId', 'sort']) {
     const value = first(query[key])
     if (value) params.set(key, value)
   }
@@ -30,6 +31,7 @@ export default async function WorkDetailPage({ params, searchParams }: WorkDetai
   const locale = await getLocale()
   const t = await getTranslator('processAutomation', locale)
   const detail = await getProcessWorkItemDetail(workItemId, locale)
+  if (detail.businessType === 'LEAVE') redirect(`/leave/requests/${detail.workItemId}`)
   const [form, outputs, operations, assignmentOptions] = await Promise.all([
     getProcessFormProjection(workItemId, locale).catch(() => null),
     getProcessOutputProjection(detail.processInstanceId, locale).catch(() => null),

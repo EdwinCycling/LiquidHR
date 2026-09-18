@@ -1,5 +1,42 @@
 # Actuele overdracht Liquid HR
 
+## ESS/MSS Workflow Unification V1 — 2026-09-17
+
+**Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**
+
+- Hervat in `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\ess-mss-workflow-unification-v1` op branch
+  `work/ess-mss-workflow-unification-v1`, exact basispunt
+  `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
+- `/work` heeft een uniforme `WORK`/`REQUESTS`-projectie met server-side
+  businessfacets en type-aware routing. P-mutaties blijven dynamic; Leave is
+  native via de Process Automation-adapter; Actual Work blijft ledger-owned.
+- Leave-flow: `/leave/request` -> PENDING -> employee acknowledgement ->
+  manager approve/reject/request-changes -> native booking/recovery. De
+  bridge `process_leave_subjects` is RLS fail-closed en niet direct via de Data
+  API bereikbaar. De recipe is read-back PUBLISHED als LEAVE/LEAVE_REQUEST met
+  7 stappen en 12 transities.
+- DEV `wnpfloqpjvaacobppbpk` heeft de vier slice-migrations. Readback bevestigde
+  beide self-service permissions op EMPLOYEE, authenticated-only wrappers en
+  geen nieuwe FK-indexadvisorfinding. De HR-fixture activeerde en publiceerde de
+  administratiegebonden Leave-recipe uitsluitend in DEV. Production, Vercel,
+  GitHub push/merge en cleanup zijn niet uitgevoerd.
+- Verificatie: gerichte workflow-suite `39/39`, strict TypeScript, ESLint,
+  i18n, diff-check en productiebuild groen. Volledige suite `1564/1565`; de
+  enige failure is de bestaande 5-seconden timeout in
+  `lib/document-generation/pdf.test.ts`.
+- Browserbewijs: employee zag de nieuwe aanvraag als `WAITING`, zonder approve-
+  knop; een directe approve gaf `403 FORBIDDEN`. Manager zag dezelfde aanvraag
+  als `OPEN`, maar de bestaande Leave-ledger weigerde boeken met
+  `LEAVE_INSUFFICIENT_BALANCE`; de DEV-aanvraag bleef `PENDING` met nul domain
+  commits, allocations en workflow-`TAKEN`-transacties. Request-changes recovery
+  en positieve persisted booking-readback zijn nog open. De worktree bevat een
+  genegeerde `.env.local`-testkopie naast de beschermde canonical file; geen
+  waarden zijn in bewijs of documentatie opgenomen.
+- Blokkerende vervolgstap: expliciete toestemming is nodig om via de bestaande
+  HR-ledgerflow één bounded opening-balance record op DEV voor deze synthetische
+  fixture te creëren; daarna kan dezelfde approval-flow éénmaal opnieuw worden
+  uitgevoerd.
+
 ## AI-consolidatie — 2026-09-16
 
 **Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD**

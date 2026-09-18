@@ -1,5 +1,37 @@
 # Liquid HR documentatie-index
 
+## ESS/MSS Workflow Unification V1 — 2026-09-17
+
+**Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**
+
+Deze slice staat op de geïsoleerde branch `work/ess-mss-workflow-unification-v1`,
+gebaseerd op exact `origin/main`
+`6f9f61b85d2b488557d066fcabdbb39e60f2b39b`. `/work` gebruikt een uniforme
+server-side projectie voor `WORK` en `REQUESTS`, met business type/category en
+native routing. P-mutaties behouden hun dynamic renderer; Leave gebruikt een
+typed Process Automation-adapter met native aanvraag/approval/booking; Actual
+Work blijft volledig ledger-owned zonder tweede bookingpad.
+
+De enum-, hoofd-, FK-index- en wrapper-execution-migrations zijn uitsluitend op
+DEV/TEST Supabase `wnpfloqpjvaacobppbpk` toegepast. Readback bevestigde de
+`LEAVE/LEAVE_REQUEST` recipe, 7 stappen/12 transities, self-service permissions,
+authenticated-only RPC wrappers en RLS op de typed bridge. De HR-fixture
+activeerde en publiceerde de administratiegebonden recipe in DEV.
+Supabase Production, Vercel, GitHub push, merge en cleanup zijn niet uitgevoerd.
+
+De gerichte workflow-suite is `39/39` groen; strict TypeScript, ESLint,
+i18n-pariteit, diff-check en productiebuild zijn groen. De volledige suite is
+`1564/1565`: alleen de bestaande 5-seconden timeout in
+`lib/document-generation/pdf.test.ts` blijft open. De authenticated browsergate
+bevestigde employee `WAITING` zonder approve-knop en `403 FORBIDDEN` op een
+ongeautoriseerde approve; manager zag `OPEN`, maar de positieve approval werd door
+de bestaande Leave-ledger terecht geweigerd met `LEAVE_INSUFFICIENT_BALANCE`.
+De aanvraag bleef `PENDING`, zonder domain commit, allocation of `TAKEN`-transactie.
+Een positieve booking-readback vereist expliciete toestemming voor één bounded
+DEV-fixturebalans via de bestaande HR-ledgerflow. Zie de volledige contracten in
+[`ESS_MSS_WORKFLOW_UNIFICATION_V1.md`](requirements/workflows/ESS_MSS_WORKFLOW_UNIFICATION_V1.md)
+en de overdracht in [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+
 ## AI-consolidatie — 2026-09-16
 
 **Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD / MENSELIJKE MICROFOONACCEPTATIE OPEN**

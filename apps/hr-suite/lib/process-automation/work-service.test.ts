@@ -22,12 +22,18 @@ function dependencies(rpc: ReturnType<typeof vi.fn>): ProcessWorkDependencies {
 }
 
 describe('process work service', () => {
-  it('pagineert administratie-filtering na de bestaande wrapper', async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: { items: [], total: 51, hasMore: false }, error: null })
+  it('geeft administratie-filtering en serverpaginering door aan de uniforme projectie', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { items: [], total: 51, hasMore: true }, error: null })
 
     const result = await listProcessWork({ language: 'nl', administrationId: '00000000-0000-4000-8000-000000000013', limit: 25, offset: 25 }, dependencies(rpc))
 
-    expect(rpc).toHaveBeenCalledWith('get_process_work_projection_with_administration', expect.objectContaining({ requested_limit: 200, requested_offset: 0 }))
+    expect(rpc).toHaveBeenCalledWith('get_unified_process_work_projection', expect.objectContaining({
+      requested_administration_id: '00000000-0000-4000-8000-000000000013',
+      requested_hr_group_id: context.hrGroupId,
+      requested_limit: 25,
+      requested_offset: 25,
+      requested_view: 'WORK',
+    }))
     expect(result).toEqual({ items: [], total: 51, hasMore: true })
   })
 

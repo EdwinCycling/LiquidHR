@@ -2630,57 +2630,6 @@ export type Database = {
           },
         ]
       }
-      // Local compatibility type: this table exists in the application rollout but not in remote dev/test schema introspection.
-      company_activities: {
-        Row: {
-          activity_date: string
-          administration_id: string | null
-          created_at: string
-          created_by: string | null
-          hr_group_id: string
-          id: string
-          is_active: boolean
-          name: string
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          activity_date: string
-          administration_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          hr_group_id: string
-          id?: string
-          is_active?: boolean
-          name: string
-          tenant_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          activity_date?: string
-          administration_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          hr_group_id?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_activities_hr_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-        ]
-      }
       company_documents: {
         Row: {
           administration_id: string | null
