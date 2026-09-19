@@ -8,10 +8,10 @@ import { getFocusHomeData, focusJourneyActionHref, focusJourneyTitle } from '@/l
 import { getLocale, getTranslator } from '@/lib/i18n/server'
 import { visibleJourneyActionHref } from './focus-view'
 
-export async function loadFocusPage() {
+export async function loadFocusPage(actAsToken?: string | null) {
   const today = new Date().toISOString().slice(0, 10)
   try {
-    const [data, locale] = await Promise.all([getFocusHomeData({ today }), getLocale()])
+    const [data, locale] = await Promise.all([getFocusHomeData({ today, actAsToken }), getLocale()])
     const t = await getTranslator('focus', locale)
     return {
       data, locale, t, today,

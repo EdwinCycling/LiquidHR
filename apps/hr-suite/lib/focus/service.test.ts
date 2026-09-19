@@ -89,7 +89,7 @@ describe('Focus service lifecycle boundary', () => {
       blocked: true,
     })
 
-    expect(blockedManagerActions.map((action) => action.key)).toEqual(['work', 'team'])
+    expect(blockedManagerActions.map((action) => action.key)).toEqual(['requests', 'work', 'team'])
     expect(blockedEmployeeActions).toEqual([])
   })
 })

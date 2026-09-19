@@ -1,8 +1,10 @@
 {
   "back": "Back to Focus",
-  "nav": { "product": "Focus", "home": "Overview", "menu": "Focus navigation" },
+  "nav": { "product": "Focus", "home": "Overview", "menu": "Focus navigation", "requests": "Requests", "leave": "Leave", "hours": "Hours", "work": "Work", "team": "Team", "more": "More", "tasks": "Tasks" },
   "presentation": { "label": "Presentation", "focus": "Focus", "full": "Full workspace" },
   "preview": { "title": "You are viewing LiquidHR as an employee", "status": "Preview · read-only", "close": "Close preview" },
+  "actAs": { "title": "ON BEHALF OF EMPLOYEE", "description": "You are acting as {name}. Actions are recorded under your name as HR Admin.", "label": "You are acting as", "stop": "Stop", "start": "Act as employee", "starting": "Opening Focus…", "failed": "Act-as could not be started." },
+  "floating": { "label": "Quick actions", "open": "Open quick actions", "close": "Close quick actions", "leave": "Request leave", "sickness": "Report sickness", "employeeSickness": "Report employee sickness", "declaration": "New expense claim", "newRequest": "New request", "comingSoon": "Expense claims will be available later." },
   "experience": { "EMPLOYEE": "My Focus", "MANAGER": "My Focus · manager", "PREBOARDING": "Before your first day" },
   "home": {
     "title": "Focus", "hello": "Hello {name}", "welcome": "Welcome {name}",
@@ -37,19 +39,35 @@
     "profile": { "title": "My profile", "description": "Your personal details." },
     "documents": { "title": "My documents", "description": "Documents and signing requests for you." },
     "leave": { "title": "My leave", "description": "Your balance and leave requests." },
+    "hours": { "title": "My hours", "description": "Your expected and recorded hours this week." },
     "requests": { "title": "My requests", "description": "Track your requests." },
     "work": { "title": "My work", "description": "Tasks that need your attention." },
-    "team": { "title": "My team", "description": "Your team in the organisation." }
+    "team": { "title": "My team", "description": "Your team in the organisation." },
+    "absence": { "title": "Report sickness", "description": "Report your first sick day to your manager." }
   },
+  "profile": { "personal": "Personal", "contact": "Contact", "relations": "Relations", "address": "Address", "work": "Work", "bank": "Bank account", "empty": "No data available.", "language": "Preferred language", "workEmail": "Work email", "workPhone": "Work phone", "privateEmail": "Private email", "privatePhone": "Private phone", "jobTitle": "Job title", "department": "Department", "startDate": "Start date", "hoursPerWeek": "Hours per week", "noAddress": "No address available.", "noRelations": "No relations recorded.", "noBank": "No bank account available.", "masked": "IBAN", "bic": "BIC", "accountHolder": "Account holder" },
+  "leave": { "balance": "Your leave balance", "upcoming": "Planned and requested", "request": "Request leave", "noBalance": "No leave balance is available yet.", "noUpcoming": "No planned leave or open request.", "hours": "hours", "status": { "PENDING": "In progress", "CHANGES_REQUESTED": "Changes requested", "APPROVED": "Approved", "REJECTED": "Rejected", "CANCELLED": "Cancelled" } },
+  "hours": { "expected": "Expected", "recorded": "Recorded", "actionNeeded": "Action needed", "noAction": "Up to date", "fill": "Fill in hours", "noData": "No hour information is available for this week.", "hours": "hours", "entryTitle": "Add hours", "type": "Hour type", "selectType": "Choose a type", "searchTypes": "Search type", "date": "Date", "hoursPlaceholder": "e.g. 7.5", "note": "Note", "save": "Save hours", "saving": "Saving…", "saved": "The hours were saved.", "failed": "The hours could not be saved.", "noTypes": "No active hour types are available." },
+  "documents": { "empty": "No documents are available yet.", "expires": "Valid until", "added": "Added on", "open": "Open document" },
+  "directory": { "title": "Who is who", "search": "Search by name, job or department", "mail": "Mail", "call": "Call", "empty": "No colleagues found.", "disabled": "The employee directory is not available." },
+  "more": { "title": "More", "description": "Open the Focus areas you use less often." },
+  "process": { "actionNeeded": "ACTION NEEDED", "empty": "There is nothing waiting for you right now.", "waiting": "Waiting for someone else", "inProgress": "In progress", "completed": "Completed", "open": "Open", "leave": "Leave request", "work": "Work action", "request": "Request" },
   "sections": {
     "openSignatures": "My signing requests", "documentsSigningOnly": "Your available documents are listed with your signing requests. Contact HR about other documents.",
     "name": "Name", "startDate": "First day", "openOnboarding": "View your onboarding",
-    "profileDescription": "View and manage your details in your existing employee profile.", "profileOpen": "Open my profile",
-    "documentsDescription": "View your documents in your existing employee file.", "documentsOpen": "Open my documents",
-    "workDescription": "View the tasks assigned to you in My work.", "workOpen": "Open My work",
-    "teamDescription": "View your team and the organisation structure in the organisation chart.", "teamOpen": "Open the organisation chart",
     "preboardingProfile": "These are your details for your start. Complete your information through the assigned steps in your onboarding. Contact HR to make a correction.",
     "documentsPendingTitle": "Documents for your start", "preboardingDocuments": "Open assigned documents and signing requests from your onboarding. If there is no step yet, there is nothing you need to do right now.",
-    "requestsPendingTitle": "Your requests overview will appear here", "requestsPendingDescription": "This overview is not available yet. Find your leave requests via My leave on Focus. Contact HR about other requests."
-  }
+    "requestsPendingTitle": "Your requests overview will appear here", "requestsPendingDescription": "This overview is not available yet. Find your leave requests via My leave on Focus. Contact HR about other requests.",
+    "leaveDescription": "View your current balance, planned leave and request leave easily.", "leaveOpen": "Request leave",
+    "hoursDescription": "View your recorded and expected hours for this week.", "hoursOpen": "View hours",
+    "requestsDescription": "See what you requested and what needs attention now.", "requestsOpen": "Open requests",
+    "workDescription": "See the actions that need your attention.", "workOpen": "Open actions",
+    "teamDescription": "See who is present today in your relevant team.", "teamOpen": "Open team",
+    "profileDescription": "View your data, contact, work and permitted extra fields.", "profileOpen": "Open profile",
+    "documentsDescription": "View documents you need or still need to sign.", "documentsOpen": "Open documents",
+    "absenceDescription": "Your manager receives and confirms your sickness report.", "absenceOpen": "Report sickness",
+    "directoryDescription": "Search colleagues and find their business contact details.", "directoryOpen": "Open directory"
+  },
+  "team": { "month": "Month", "previous": "Previous month", "next": "Next month", "today": "Today", "employee": "Colleague", "status": "Status", "present": "Present", "absent": "Absent", "available": "Present", "off": "Not scheduled", "leave": "Leave", "hours": "hours", "selectedDay": "Selected day", "reportAbsence": "Report sickness", "actAs": "Act as", "acting": "Opening Focus…", "search": "Search colleague", "mail": "Mail", "call": "Call", "noResults": "No colleagues found for {query}.", "disabled": "The employee directory is not available." },
+  "absence": { "title": "Report sickness", "description": "Report your first sick day. Your manager receives and confirms the report.", "managerTitle": "Report employee sickness", "managerDescription": "Record only the first sick day. Medical details do not belong in Focus.", "startDate": "From which date are they sick?", "submit": "Send sickness report", "submitting": "Sending…", "success": "The sickness report was sent.", "failed": "The sickness report could not be sent. Try again." }
 }

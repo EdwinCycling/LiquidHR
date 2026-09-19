@@ -21,9 +21,9 @@ export async function listEmployeeDocuments(employeeId: string) {
   return data
 }
 
-export async function listEmployeeDashboardDocuments(employeeId: string, limit = 3) {
-  await requirePermission('document:read', employeeId)
-  const supabase = await createClient()
+export async function listEmployeeDashboardDocuments(employeeId: string, limit = 3, dependencies?: { context: Awaited<ReturnType<typeof requirePermission>>; supabase: Awaited<ReturnType<typeof createClient>> }) {
+  if (!dependencies) await requirePermission('document:read', employeeId)
+  const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.from('employee_documents')
     .select('id, title, expires_on, created_at')
     .eq('employee_id', employeeId)

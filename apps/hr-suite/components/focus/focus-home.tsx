@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, FileText, Route, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
+import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, FileText, HeartPulse, Route, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import { PageHeader } from '@/components/patterns/page-header'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { Badge } from '@/components/ui/badge'
@@ -7,16 +7,19 @@ import { buttonClasses } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Surface } from '@/components/ui/surface'
 import { daysUntil } from '@/lib/focus/access-state'
+import { focusActAsHref } from '@/lib/focus/url'
 import type { FocusActionKey } from '@/lib/focus/service'
 import { journeyProgressPercent, localizedValue } from '@/lib/journeys/projection-domain'
 import { focusDate, isPreboardingFocus, visibleFocusActions } from './focus-view'
 import type { FocusPageData } from './load-focus-page'
 import { FocusPresentation } from './focus-presentation'
 import { FocusShell } from './focus-shell'
+import { FocusFloatingActions } from './focus-floating-actions'
 
 const actionIcons: Record<FocusActionKey, LucideIcon> = {
-  journey: Route, profile: UserRound, documents: FileText, leave: CalendarDays,
+  journey: Route, profile: UserRound, documents: FileText, leave: CalendarDays, hours: BriefcaseBusiness,
   requests: ClipboardList, work: BriefcaseBusiness, team: UsersRound,
+  absence: HeartPulse,
 }
 
 export function FocusJourneyCard({ data, locale, t, journeyTitle, journeyActionHref }: FocusPageData) {
@@ -69,9 +72,9 @@ export function FocusHome(props: FocusPageData) {
   const hasJourney = data.journey && actions.some((action) => action.key === 'journey')
 
   return (
-    <FocusShell actions={actions} readOnly={data.readOnly} preview={data.isPreview ? { title: t('preview.title'), status: t('preview.status'), closeLabel: t('preview.close'), returnHref: '/employees' } : undefined} labels={{ product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
-      journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'),
-    } }}>
+    <FocusShell actions={actions} actAs={data.actAs ? { title: t('actAs.title'), description: t('actAs.description'), stopLabel: t('actAs.stop'), subjectName: data.actAs.subjectName, token: data.actAs.token } : null} readOnly={data.readOnly} preview={data.isPreview ? { title: t('preview.title'), status: t('preview.status'), closeLabel: t('preview.close'), returnHref: '/employees' } : undefined} labels={{ actAsToken: data.actAs?.token, product: t('nav.product'), home: t('nav.home'), menu: t('nav.menu'), actions: {
+      journey: t('actions.journey.title'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), leave: t('actions.leave.title'), hours: t('actions.hours.title'), requests: t('actions.requests.title'), work: t('actions.work.title'), team: t('actions.team.title'), absence: t('actions.absence.title'),
+    }, bottom: { home: t('nav.home'), journey: t('nav.tasks'), profile: t('actions.profile.title'), documents: t('actions.documents.title'), requests: t('nav.requests'), leave: t('nav.leave'), hours: t('nav.hours'), work: t('nav.work'), team: t('nav.team'), more: t('nav.more') } }}>
         <PageHeader
           title={data.employee ? t(preboarding ? 'home.welcome' : 'home.hello', { name: data.employee.name }) : t('home.title')}
           description={<time dateTime={today}>{focusDate(today, locale)}</time>}
@@ -110,7 +113,7 @@ export function FocusHome(props: FocusPageData) {
                   <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {actions.map((action) => {
                       const Icon = actionIcons[action.key]
-                      return <li className="min-w-0" key={action.key}>{data.readOnly ? <Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)}</span></div></div></Surface> : <Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={action.href} prefetch={false}><Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)} </span></div><ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></Surface></Link>}</li>
+                      return <li className="min-w-0" key={action.key}>{data.readOnly ? <Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)}</span></div></div></Surface> : <Link className="block h-full rounded-[var(--radius-surface)] transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" href={focusActAsHref(action.href, data.actAs?.token)} prefetch={false}><Surface className="h-full space-y-3 p-4"><Icon aria-hidden="true" className="size-5 text-primary" /><div className="flex items-start justify-between gap-2"><div className="min-w-0"><span className="block font-semibold text-foreground">{t(`actions.${action.key}.title`)}</span><span className="mt-1 block text-sm text-muted-foreground">{t(`actions.${action.key}.description`)} </span></div><ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></Surface></Link>}</li>
                     })}
                   </ul>
                 ) : <EmptyState title={t('home.noActionsTitle')} description={t('home.noActionsDescription')} />}
@@ -118,6 +121,7 @@ export function FocusHome(props: FocusPageData) {
             </div>
           </>
         )}
+        {!data.readOnly && (data.canRequestLeave || data.canReportAbsence || data.canReportEmployeeAbsence) ? <FocusFloatingActions canRequestLeave={data.canRequestLeave} canReportEmployeeSickness={data.canReportEmployeeAbsence} canReportSickness={data.canReportAbsence} employeeSicknessHref="/focus/team" labels={{ label: t('floating.label'), openLabel: t('floating.open'), closeLabel: t('floating.close'), leave: t('floating.leave'), sickness: t('floating.sickness'), employeeSickness: t('floating.employeeSickness'), declaration: t('floating.declaration'), comingSoon: t('floating.comingSoon') }} token={data.actAs?.token} /> : null}
     </FocusShell>
   )
 }

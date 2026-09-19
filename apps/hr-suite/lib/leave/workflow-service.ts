@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { Database } from '@scope/db'
 
-import { requireAuthContext, requirePermission } from '@/lib/auth/permissions'
+import { getSelfPermissions, requireAuthContext, requirePermission, type AuthContext } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { getProcessWorkItemDetail, type ProcessWorkDetail } from '@/lib/process-automation/work-service'
 
@@ -58,9 +58,11 @@ function throwRpcError(message: string): never {
   throw new LeaveServiceError(code, status)
 }
 
-async function selectedEmployment(input: LeaveWorkflowStartInput) {
-  const supabase = await createClient()
-  const context = await requirePermission('self:leave:request', input.employeeId)
+type WorkflowDependencies = { context: AuthContext; supabase: Awaited<ReturnType<typeof createClient>> }
+
+async function selectedEmployment(input: LeaveWorkflowStartInput, dependencies?: WorkflowDependencies) {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const context = dependencies?.context ?? await requirePermission('self:leave:request', input.employeeId)
   const selection = await resolveLeaveEmployment(supabase, context, input.employeeId, input.employmentId, input.startDate)
   if (!selection.employment) {
     if (selection.options.length > 1) throw new LeaveServiceError('LEAVE_EMPLOYMENT_SELECTION_REQUIRED', 409, { options: selection.options })
@@ -69,11 +71,11 @@ async function selectedEmployment(input: LeaveWorkflowStartInput) {
   return { supabase, context, employment: selection.employment }
 }
 
-export async function startLeaveRequestWorkflow(input: LeaveWorkflowStartInput): Promise<LeaveWorkflowStartResult> {
+async function startLeaveRequestWorkflowWithDependencies(input: LeaveWorkflowStartInput, dependencies?: WorkflowDependencies): Promise<LeaveWorkflowStartResult> {
   const parsed = leaveRequestConfirmSchema.safeParse(input)
   if (!parsed.success) throw new LeaveServiceError('LEAVE_INPUT_INVALID', 400)
   const value = parsed.data
-  const { supabase, context, employment } = await selectedEmployment(value)
+  const { supabase, context, employment } = await selectedEmployment(value, dependencies)
   const startArgs = {
     requested_tenant_id: context.tenantId,
     requested_hr_group_id: employment.hr_group_id,
@@ -96,6 +98,19 @@ export async function startLeaveRequestWorkflow(input: LeaveWorkflowStartInput):
   const result = workflowResultSchema.safeParse(data)
   if (!result.success) throw new LeaveServiceError('LEAVE_WORKFLOW_RESULT_INVALID', 500)
   return result.data
+}
+
+export async function startLeaveRequestWorkflow(input: LeaveWorkflowStartInput): Promise<LeaveWorkflowStartResult> {
+  return startLeaveRequestWorkflowWithDependencies(input)
+}
+
+export async function startFocusLeaveRequestWorkflow(
+  input: LeaveWorkflowStartInput,
+  dependencies: WorkflowDependencies,
+): Promise<LeaveWorkflowStartResult> {
+  const selfPermissions = await getSelfPermissions(dependencies.supabase, dependencies.context.tenantId)
+  if (!selfPermissions.includes('self:leave:request')) throw new LeaveServiceError('LEAVE_SELF_SERVICE_FORBIDDEN', 403)
+  return startLeaveRequestWorkflowWithDependencies(input, dependencies)
 }
 
 export async function getLeaveWorkflowDetail(workItemId: string, language: 'nl' | 'en'): Promise<ProcessWorkDetail> {

@@ -27,11 +27,13 @@ export function focusData(overrides: Partial<FocusHomeData> = {}): FocusHomeData
       { key: 'profile', href: '/focus/profiel' },
       { key: 'documents', href: '/focus/documenten' },
       { key: 'leave', href: '/employees/44444444-4444-4444-8444-444444444444/leave' },
+      { key: 'hours', href: '/focus/uren' },
       { key: 'requests', href: '/focus/aanvragen' },
       { key: 'work', href: '/focus/werk' },
       { key: 'team', href: '/focus/team' },
+      { key: 'absence', href: '/focus/ziek' },
     ],
-    isPreboarding: false, isEssBlocked: false, readOnly: false, isPreview: false, canOpenFull: true,
+    isPreboarding: false, isEssBlocked: false, readOnly: false, isPreview: false, canOpenFull: true, canRequestLeave: true, canReportAbsence: true, canReportEmployeeAbsence: false, actAs: null,
     ...overrides,
   }
 }

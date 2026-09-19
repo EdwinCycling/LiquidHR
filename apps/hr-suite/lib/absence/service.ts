@@ -1,11 +1,12 @@
 import 'server-only'
 
-import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getSelfPermissions, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { isAbsenceActualDate } from './engine'
 import { resolveLeaveEmployment, type LeaveEmploymentOption } from '@/lib/leave/employment-resolver'
 import { listDirectTeamEmployeeIds } from '@/lib/organization/team-scope'
 import { absenceCaseCreateSchema, absenceCapacityChangeSchema, absenceRecoverySchema } from './schemas'
+import { registerAbsenceConfirmation } from './confirmation-service'
 
 export class AbsenceServiceError extends Error {
   constructor(public readonly code: string, public readonly status = 500) {
@@ -296,6 +297,30 @@ export async function reportEmployeeAbsence(employeeId: string, input: unknown):
   })
   if (error || typeof data !== 'string') throwAbsenceRpcError(error, 'ABSENCE_REPORT_FAILED')
   return data
+}
+
+export async function reportFocusEmployeeAbsence(
+  employeeId: string,
+  input: { startDate: string; employmentId?: string; idempotencyKey?: string },
+  context?: Awaited<ReturnType<typeof requirePermission>>,
+): Promise<string> {
+  const auth = context ?? await requirePermission('self:absence:write', employeeId)
+  const permissions = await getSelfPermissions(await createClient(), auth.tenantId)
+  if (!permissions.includes('self:absence:write')) throw new AbsenceServiceError('ABSENCE_SELF_SERVICE_FORBIDDEN', 403)
+  if (auth.employeeId !== employeeId && !auth.permissions.includes('focus:act-as-employee')) throw new AbsenceServiceError('ABSENCE_SELF_SERVICE_FORBIDDEN', 403)
+  if (!auth.hrGroupId) throw new AbsenceServiceError('ABSENCE_GROUP_REQUIRED', 403)
+  const supabase = await createClient()
+  const settings = await supabase.from('absence_settings').select('employee_self_report_enabled').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).maybeSingle()
+  if (settings.error) throw new AbsenceServiceError('ABSENCE_SETTINGS_READ_FAILED', 500)
+  if (!settings.data?.employee_self_report_enabled) throw new AbsenceServiceError('ABSENCE_SELF_REPORT_DISABLED', 403)
+  const caseId = await reportEmployeeAbsence(employeeId, {
+    employeeId,
+    employmentId: input.employmentId,
+    startDate: input.startDate,
+    idempotencyKey: input.idempotencyKey,
+  })
+  await registerAbsenceConfirmation(caseId, employeeId)
+  return caseId
 }
 
 export async function recoverEmployeeAbsence(caseId: string, input: unknown): Promise<string> {

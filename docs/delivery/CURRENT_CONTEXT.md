@@ -75,7 +75,7 @@ opgeruimd.
 - Gerichte convergence-tests: `9` bestanden, `41/41` tests groen; hieronder
   vallen Focus access/presentation, blocked-role precedence, preview-cookie,
   auth-regressie en alle genormaliseerde migration contracts.
-- Volledige technische gates: hr-suite `414/414` testbestanden en
+- Volledige technische gates: hr-suite `415/415` testbestanden en
   `1657/1657` tests, strict TypeScript, ESLint, `git diff --check`, i18n met
   `39` gelijke NL/EN-namespaces en Webpack production build met `289/289`
   pagina's zijn groen.
@@ -3482,6 +3482,16 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 - Authenticated browseracceptance is open omdat de beschermde root-`.env.local` niet naar deze worktree is gekopieerd. De anonieme lokale smoke gaf `500` door ontbrekende Supabase-configuratie in middleware. `supabase db lint --local` kon na de telemetry-blocker niet verder omdat lokale Postgres op `127.0.0.1:54322` niet draait; de nieuwe migrations zijn niet toegepast en remote advisors/typegen zijn niet geclaimd.
 - Bewust deferred: per-invite editable introduction text, omdat Supabase `inviteUserByEmail` geen veilig per-invite template-/tekstkanaal biedt; de review toont de feitelijke NL/EN preview en markeert dat de canonical Auth-template de activatielink/security-copy beheert. Leave/Actual Work/My Work/My Requests blijven bij de ESS/MSS-integratierun.
 - Protected `apps/hr-suite/.env.local`, `apps/hr-suite/next-env.d.ts`, root/main and the parallel ESS/MSS worktree remain outside scope. No remote DB write, Production change or Vercel deployment was performed.
+
+## Focus completion + act-as + absence — 2026-09-19
+
+- Status: **CODE GATE GREEN; DEV SCHEMA APPLY BLOCKED BY PRE-EXISTING MIGRATION HISTORY DRIFT; LOCAL AUTHENTICATED BROWSERGATE GREEN FOR THE BASE FOCUS ROUTES**.
+- Candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\focus-completion-act-as-20260918`, branch `work/focus-completion-act-as-20260918`, exact base `3bd31746ff40dbfcc2de54f8957379f3a8f23d61`. The parallel convergence worktree and canonical root `.env.local` were not changed.
+- Implemented: native Focus routes and mobile navigation; fixed bottom-right quick actions; employee leave and date-only sickness entry; manager team day view and absence entry seam; compact hours entry reusing Actual Work; process/request views; safe profile/documents/directory projections; short-lived audited act-as routing and banner; server-side absence confirmation seam and RLS migration.
+- Runtime hardening: Team no longer performs the timed-out nested work-pattern relation query; it uses the canonical schedule projection for the team calendar. Focus hours gracefully shows an empty state when the current fixture has no Actual Work employment projection, and manager requests remain visible when the canonical process read permission is available.
+- Verification: full HR Vitest `415/415 bestanden, 1.658/1.658 tests`, strict TypeScript, ESLint, i18n parity (`39 namespaces`), `git diff --check`, and Next/Turbopack production build (`294/294 static pages`) are green. Authenticated local browser checks used the candidate server on port `3001` with the protected env copied into the candidate only; `/focus`, `/focus/verlof`, `/focus/uren`, `/focus/aanvragen`, `/focus/profiel`, `/focus/documenten`, `/focus/wie-is-wie`, `/focus/werk`, `/focus/team` and `/focus/meer` rendered, including mobile bottom navigation and fixed quick actions. Act-as and absence write acceptance remain DB-gated.
+- Supabase: migration `20260918203815_focus_completion_act_as_absence.sql` is prepared but not applied. `supabase db push --dry-run --project-ref wnpfloqpjvaacobppbk` stops with `LegacyDbPushMissingLocalError` because the DEV project has pre-existing remote migration versions absent from this checkout. No migration repair, `db pull`, DEV mutation, Production mutation, deployment or main integration was performed.
+- Open gate: reconcile the existing DEV migration history with explicit direction, then apply and read back this migration and perform authenticated act-as/absence acceptance. Branch push is allowed; merge, main, Production and deployment remain out of scope.
 ## Conversational AI V2 human-acceptance fix round — 2026-09-14
 
 - Branch blijft `work/ai-gpt-live`; `main` en `work/leave-profile-management` zijn niet aangeraakt. De GPT-Live WebRTC-create payload gebruikt nu uitsluitend de actuele Live-vorm `POST /v1/live/sessions` met `session.model = gpt-live-1` en `transport.type = webrtc`; het verouderde `session.type` is verwijderd. Providerfouten bewaren alleen status, API-family/endpoint, model, request-ID en veilige OpenAI-foutmetadata.

@@ -134,8 +134,8 @@ export async function updateEmployeeDirectorySettings(rawInput: unknown): Promis
 }
 
 export async function getEmployeeDirectoryVisibility(dependencies?: EmployeeDirectoryReadDependencies): Promise<EmployeeDirectoryVisibility> {
-  const context = dependencies?.context ?? await requireAnyPermission(['employee-directory:read', 'employee:read'])
-  if (dependencies && !context.permissions.includes('employee-directory:read') && !context.permissions.includes('employee:read')) {
+  const context = dependencies?.context ?? await requireAnyPermission(['employee-directory:read', 'employee:read', 'self:organization-chart:read'])
+  if (dependencies && !context.permissions.includes('employee-directory:read') && !context.permissions.includes('employee:read') && !context.permissions.includes('self:organization-chart:read')) {
     throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
   }
   const adminId = administrationId(context.administrationId)
@@ -225,8 +225,8 @@ function weekStart(): string {
 }
 
 export async function getEmployeeDirectoryDetail(employeeId: string, dependencies?: EmployeeDirectoryReadDependencies): Promise<EmployeeDirectoryDetail> {
-  const context = dependencies?.context ?? await requireAnyPermission(['employee-directory:read', 'employee:read'])
-  if (dependencies && !context.permissions.includes('employee-directory:read') && !context.permissions.includes('employee:read')) {
+  const context = dependencies?.context ?? await requireAnyPermission(['employee-directory:read', 'employee:read', 'self:organization-chart:read'])
+  if (dependencies && !context.permissions.includes('employee-directory:read') && !context.permissions.includes('employee:read') && !context.permissions.includes('self:organization-chart:read')) {
     throw new AuthorizationError('Je hebt onvoldoende rechten voor deze actie.')
   }
   const adminId = administrationId(context.administrationId)

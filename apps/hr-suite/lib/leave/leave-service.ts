@@ -12,6 +12,11 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type EmploymentRow = LeaveEmployment
 type OvertimeLimitMode = Database['public']['Enums']['overtime_limit_mode']
 
+export interface LeaveReadDependencies {
+  context: Awaited<ReturnType<typeof requireAuthContext>>
+  supabase: SupabaseServerClient
+}
+
 export async function assertLeaveReadScope(
   context: Awaited<ReturnType<typeof requireAuthContext>>,
   supabase: SupabaseServerClient,
@@ -248,9 +253,9 @@ async function queryReportRows(
   return { bucketRows, transactionsRows, leaveTypeRows, carryForwards, projectedTaken }
 }
 
-export async function getLeaveBalanceReport(input: { employmentId?: string; asOfDate?: string }) {
-  const supabase = await createClient()
-  const context = await requireAuthContext(supabase)
+export async function getLeaveBalanceReport(input: { employmentId?: string; asOfDate?: string }, dependencies?: LeaveReadDependencies) {
+  const supabase = dependencies?.supabase ?? await createClient()
+  const context = dependencies?.context ?? await requireAuthContext(supabase)
   const asOfDate = input.asOfDate ?? new Date().toISOString().slice(0, 10)
   const calendarYear = Number(asOfDate.slice(0, 4))
   const selection = await loadEmployment(supabase, context, input.employmentId, asOfDate)

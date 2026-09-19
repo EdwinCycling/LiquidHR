@@ -17,12 +17,16 @@ interface Props {
   readonly employeeId: string
   readonly locale: Locale
   readonly labels: LeaveRequestPageLabels
+  readonly backHref?: string
+  readonly previewPath?: string
+  readonly submitPath?: string
+  readonly actAsToken?: string | null
 }
 
-export function LeaveRequestPage({ employeeId, locale, labels }: Props) {
+export function LeaveRequestPage({ employeeId, locale, labels, backHref = '/work?view=REQUESTS', previewPath = '/api/leave/workflow/preview', submitPath = '/api/leave/workflow', actAsToken }: Props) {
   const router = useRouter()
   const startDate = new Date().toISOString().slice(0, 10)
-  const back = () => router.push('/work?view=REQUESTS')
+  const back = () => router.push(backHref)
 
   return (
     <PageShell className="py-8" width="wide">
@@ -43,9 +47,10 @@ export function LeaveRequestPage({ employeeId, locale, labels }: Props) {
         locale={locale}
         onClose={back}
         onSuccess={back}
-        previewPath="/api/leave/workflow/preview"
+        previewPath={previewPath}
+        requestContext={{ actAsToken }}
         startDate={startDate}
-        submitPath="/api/leave/workflow"
+        submitPath={submitPath}
       />
     </PageShell>
   )

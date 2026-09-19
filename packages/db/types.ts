@@ -261,6 +261,69 @@ export type Database = {
           },
         ]
       }
+      absence_confirmations: {
+        Row: {
+          case_id: string
+          confirmed_at: string | null
+          confirmed_by_user_id: string | null
+          correction_reason: string | null
+          correction_requested_at: string | null
+          correction_requested_by_user_id: string | null
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          confirmed_at?: string | null
+          confirmed_by_user_id?: string | null
+          correction_reason?: string | null
+          correction_requested_at?: string | null
+          correction_requested_by_user_id?: string | null
+          created_at?: string
+          employee_id: string
+          hr_group_id: string
+          id?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          confirmed_at?: string | null
+          confirmed_by_user_id?: string | null
+          correction_reason?: string | null
+          correction_requested_at?: string | null
+          correction_requested_by_user_id?: string | null
+          created_at?: string
+          employee_id?: string
+          hr_group_id?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_confirmations_case_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id"]
+            isOneToOne: true
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_confirmations_employee_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
       absence_mutations: {
         Row: {
           created_at: string
@@ -21470,6 +21533,18 @@ export type Database = {
           requested_salary_structure_ids: string[]
         }
         Returns: Json
+      }
+      confirm_absence_confirmation: {
+        Args: { requested_case_id: string }
+        Returns: string
+      }
+      register_absence_confirmation: {
+        Args: { requested_case_id: string; requested_subject_employee_id?: string | null }
+        Returns: string
+      }
+      request_absence_correction: {
+        Args: { requested_case_id: string; requested_reason: string }
+        Returns: string
       }
       report_absence: {
         Args: {

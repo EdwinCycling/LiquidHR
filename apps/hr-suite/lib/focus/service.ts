@@ -8,6 +8,7 @@ import {
 import { AuthorizationError, getRequestAuthorizationContext, getSelfPermissions } from '@/lib/auth/permissions'
 import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { createClient } from '@/lib/supabase/server'
+import { resolveFocusActAsSession, type FocusActAsSession } from './act-as-token'
 import { readFocusPreviewCookie } from './preview-token'
 import {
   resolveEmploymentAccessState,
@@ -25,9 +26,11 @@ export type FocusActionKey =
   | 'profile'
   | 'documents'
   | 'leave'
+  | 'hours'
   | 'requests'
   | 'work'
   | 'team'
+  | 'absence'
 
 export interface FocusAction {
   key: FocusActionKey
@@ -52,6 +55,10 @@ export interface FocusHomeData {
   isEssBlocked: boolean
   readOnly: boolean
   isPreview: boolean
+  canRequestLeave: boolean
+  canReportAbsence: boolean
+  canReportEmployeeAbsence: boolean
+  actAs: FocusActAsSession | null
 }
 
 function employeeName(employee: { first_name: string; birth_name: string }): string {
@@ -99,10 +106,12 @@ export function focusActions(input: {
   if (canUseEmployeeSelfservice && (permissions.has('self:document:read') || permissions.has('self:document-signing:read'))) add('documents', '/focus/documenten')
 
   if (input.experience !== 'PREBOARDING') {
-    if (canUseEmployeeSelfservice && permissions.has('self:leave:read')) add('leave', `/employees/${input.employeeId}/leave`)
-    if (canUseEmployeeSelfservice && permissions.has('self:process-task:read')) add('requests', '/focus/aanvragen')
-    if (permissions.has('process-task:read') || permissions.has('process-instance:read')) add('work', '/focus/werk')
-    if (permissions.has('organization-chart:read') || permissions.has('self:organization-chart:read')) add('team', '/focus/team')
+    if (canUseEmployeeSelfservice && permissions.has('self:leave:read')) add('leave', '/focus/verlof')
+    if (canUseEmployeeSelfservice && permissions.has('self:leave:read')) add('hours', '/focus/uren')
+    if (canUseEmployeeSelfservice && permissions.has('self:absence:write')) add('absence', '/focus/ziek')
+    if ((canUseEmployeeSelfservice && permissions.has('self:process-task:read')) || (input.experience === 'MANAGER' && (permissions.has('process-task:read') || permissions.has('process-instance:read')))) add('requests', '/focus/aanvragen')
+    if ((input.experience === 'MANAGER' || canUseEmployeeSelfservice) && (permissions.has('process-task:read') || permissions.has('process-instance:read') || permissions.has('self:process-task:read') || permissions.has('self:process-instance:read'))) add('work', '/focus/werk')
+    if ((input.experience === 'MANAGER' || canUseEmployeeSelfservice) && (permissions.has('organization-chart:read') || permissions.has('self:organization-chart:read') || permissions.has('self:employee:read'))) add('team', '/focus/team')
   }
 
   return actions
@@ -157,12 +166,14 @@ export async function getFocusHomeData(options: {
   today?: string
   device?: FocusDevice
   explicitPresentation?: FocusPresentation | null
+  actAsToken?: string | null
 } = {}): Promise<FocusHomeData> {
   const requestContext = await getRequestAuthorizationContext()
   const { context, supabase } = requestContext
   const today = options.today ?? new Date().toISOString().slice(0, 10)
   const device = options.device ?? 'DESKTOP'
-  const employeeId = context.employeeId
+  const actAs = await resolveFocusActAsSession(options.actAsToken, context, supabase)
+  const employeeId = actAs?.subjectEmployeeId ?? context.employeeId
 
   if (!employeeId || !context.hrGroupId) {
     return {
@@ -176,6 +187,10 @@ export async function getFocusHomeData(options: {
       isEssBlocked: false,
       readOnly: false,
       isPreview: false,
+      canRequestLeave: false,
+      canReportAbsence: false,
+      canReportEmployeeAbsence: false,
+      actAs: null,
     }
   }
 
@@ -192,25 +207,31 @@ export async function getFocusHomeData(options: {
       isEssBlocked: false,
       readOnly: false,
       isPreview: false,
+      canRequestLeave: false,
+      canReportAbsence: false,
+      canReportEmployeeAbsence: false,
+      actAs,
     }
   }
 
   const accessState = resolveEmploymentAccessState(today, focusData.employments)
-  const experience = resolveFocusExperience(accessState, context.activeRoles)
-  const journeys = experience !== 'NO_EMPLOYMENT' && context.permissions.includes('self:journey:read')
+  const effectiveRoles = actAs ? ['EMPLOYEE'] : context.activeRoles
+  const effectivePermissions = actAs ? await getSelfPermissions(supabase, context.tenantId) : context.permissions
+  const experience = resolveFocusExperience(accessState, effectiveRoles)
+  const journeys = experience !== 'NO_EMPLOYMENT' && effectivePermissions.includes('self:journey:read')
     ? await getEmployeeJourneyProjections(employeeId).catch(() => [])
     : []
   const journey = featuredJourney(journeys)
   const permissions = experience === 'PREBOARDING'
-    ? context.permissions.filter((permission) => permission.startsWith('self:'))
-    : context.permissions
+    ? effectivePermissions.filter((permission) => permission.startsWith('self:'))
+    : effectivePermissions
   const isEssBlocked = focusData.isEssBlocked
 
   return {
     experience,
-    presentation: resolvePresentation({
+    presentation: actAs ? 'FOCUS' : resolvePresentation({
       experience,
-      activeRoles: context.activeRoles,
+      activeRoles: effectiveRoles,
       device,
       explicitPreference: options.explicitPresentation,
       employeePortalMode: context.employeePortalMode,
@@ -226,9 +247,9 @@ export async function getFocusHomeData(options: {
     journey,
     actions: focusActions({ employeeId, experience, permissions, journey, blocked: isEssBlocked }),
     isPreboarding: experience === 'PREBOARDING',
-    canOpenFull: isFullPortalAllowed({
+    canOpenFull: actAs ? false : isFullPortalAllowed({
       experience,
-      activeRoles: context.activeRoles,
+      activeRoles: effectiveRoles,
       employeePortalMode: context.employeePortalMode,
       managerPortalMode: context.managerPortalMode,
       blocked: isEssBlocked,
@@ -236,6 +257,10 @@ export async function getFocusHomeData(options: {
     isEssBlocked,
     readOnly: false,
     isPreview: false,
+    canRequestLeave: !isEssBlocked && experience === 'EMPLOYEE' && permissions.includes('self:leave:request'),
+    canReportAbsence: !isEssBlocked && experience === 'EMPLOYEE' && permissions.includes('self:absence:write'),
+    canReportEmployeeAbsence: !isEssBlocked && experience === 'MANAGER' && !actAs && permissions.includes('absence:write'),
+    actAs,
   }
 }
 
@@ -284,6 +309,10 @@ export async function getFocusPreviewData(employeeId: string, options: { today?:
     isEssBlocked: focusData.isEssBlocked,
     readOnly: true,
     isPreview: true,
+    canRequestLeave: false,
+    canReportAbsence: false,
+    canReportEmployeeAbsence: false,
+    actAs: null,
   }
 }
 

@@ -160,9 +160,10 @@ async function validateLeaveSelection(
 export async function getLeaveRequestPreview(
   input: LeaveRequestPreviewQuery,
   permission: 'leave:request' | 'self:leave:request' = 'leave:request',
+  dependencies?: { context: Awaited<ReturnType<typeof requireAuthContext>>; supabase: SupabaseServerClient },
 ): Promise<LeaveRequestPreview> {
-  const supabase = await createClient()
-  const context = await requirePermission(permission, input.employeeId)
+  const supabase = dependencies?.supabase ?? await createClient()
+  const context = dependencies?.context ?? await requirePermission(permission, input.employeeId)
   const selection = await loadEmployment(supabase, context, input)
   const employment = selection.employment
   const endDate = input.endDate ?? input.startDate
