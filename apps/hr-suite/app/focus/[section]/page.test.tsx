@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   directory: vi.fn(),
   team: vi.fn(),
   process: vi.fn(),
+  absenceWork: vi.fn(),
+  absenceState: vi.fn(),
 }))
 
 vi.mock('@/components/focus/load-focus-page', () => ({ loadFocusPage: mocks.load }))
@@ -30,6 +32,8 @@ vi.mock('@/lib/focus/section-service', () => ({
   getFocusLeaveOverview: mocks.leave,
   getFocusHoursOverview: mocks.hours,
   getFocusDirectory: mocks.directory,
+  getFocusAbsenceWork: mocks.absenceWork,
+  getFocusAbsenceState: mocks.absenceState,
 }))
 vi.mock('@/lib/focus/team-service', () => ({ loadFocusTeamCalendarForContext: mocks.team }))
 vi.mock('@/lib/process-automation/work-service', () => ({ listProcessWork: mocks.process }))
@@ -48,8 +52,10 @@ function setup(experience: 'EMPLOYEE' | 'PREBOARDING' = 'EMPLOYEE', locale: Loca
   mocks.leave.mockResolvedValue({ employmentId: null, balances: [], upcoming: [] })
   mocks.hours.mockResolvedValue({ employeeName: 'Noah Test', employmentId: 'employment-a', days: [], canEdit: false, projection: {} })
   mocks.directory.mockResolvedValue({ enabled: true, entries: [] })
-  mocks.team.mockResolvedValue({ month: '2026-09', dates: ['2026-09-17'], selectedDate: '2026-09-17', members: [], viewerMode: 'EMPLOYEE', canReportAbsence: false, canActAs: false })
+  mocks.team.mockResolvedValue({ month: '2026-09', dates: ['2026-09-17'], selectedDate: '2026-09-17', members: [], viewerMode: 'EMPLOYEE', canReportAbsence: false, canRecoverAbsence: false, canActAs: false })
   mocks.process.mockResolvedValue({ items: [], total: 0, hasMore: false })
+  mocks.absenceWork.mockResolvedValue([])
+  mocks.absenceState.mockResolvedValue(null)
   return data
 }
 

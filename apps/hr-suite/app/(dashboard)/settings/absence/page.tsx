@@ -47,8 +47,11 @@ export default async function AbsenceSettingsPage() {
           saved: t('absenceSettings.saved'),
           failed: t('absenceSettings.failed'),
           invalid: t('absenceSettings.invalid'),
-          employeeSelfReport: t('absenceSettings.title'),
-          employeeSelfReportHelp: t('absenceSettings.subtitle'),
+          employeeSelfReport: t('absenceSettings.employeeSelfReport'),
+          employeeSelfReportEnabled: t('absenceSettings.employeeSelfReportEnabled'),
+          employeeSelfReportEnabledHelp: t('absenceSettings.employeeSelfReportEnabledHelp'),
+          employeeSelfReportDisabled: t('absenceSettings.employeeSelfReportDisabled'),
+          employeeSelfReportDisabledHelp: t('absenceSettings.employeeSelfReportDisabledHelp'),
         }}
       />
       <AbsenceTaskTemplateManager

@@ -6,8 +6,10 @@ import { listEmployeeDashboardDocuments } from '@/lib/documents/document-service
 import { ActualWorkServiceError, getActualWorkEmployeeProjection, type ActualWorkEmployeeProjection } from '@/lib/actual-work/actual-work-service'
 import { getLeaveBalanceReport, type LeaveReadDependencies } from '@/lib/leave/leave-service'
 import { getEmployeeDirectoryVisibility } from '@/lib/employee-directory/service'
+import { listAbsenceConfirmations, type AbsenceConfirmation, type AbsenceConfirmationStatus } from '@/lib/absence/confirmation-service'
 import { createClient } from '@/lib/supabase/server'
 import { resolveFocusActAsSession, type FocusActAsSession } from './act-as-token'
+import { listFocusManagerEmployeeIds } from './team-service'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -38,6 +40,96 @@ export async function loadFocusSectionContext(actAsToken?: string | null): Promi
 
 export function hasFocusPermission(section: FocusSectionContext, ...permissions: string[]): boolean {
   return permissions.some((permission) => section.permissions.includes(permission))
+}
+
+export interface FocusAbsenceWorkItem {
+  caseId: string
+  confirmationId: string
+  employeeId: string
+  employeeName: string
+  firstAbsenceOn: string
+  status: Extract<AbsenceConfirmationStatus, 'PENDING' | 'CORRECTION_REQUESTED'>
+}
+
+function absenceWorkEmployeeName(row: { first_name: string; birth_name: string }): string {
+  return `${row.first_name} ${row.birth_name}`.trim()
+}
+
+export async function getFocusAbsenceWork(section: FocusSectionContext): Promise<FocusAbsenceWorkItem[]> {
+  if (section.actAs || !hasFocusPermission(section, 'absence:read', 'absence:write')) return []
+  const employeeIds = await listFocusManagerEmployeeIds(section.context, section.supabase)
+  if (!employeeIds.length) return []
+  const confirmations = (await listAbsenceConfirmations(employeeIds, { context: section.context, supabase: section.supabase }))
+    .filter((item): item is AbsenceConfirmation & { status: 'PENDING' | 'CORRECTION_REQUESTED' } => item.status === 'PENDING' || item.status === 'CORRECTION_REQUESTED')
+  if (!confirmations.length) return []
+  const caseIds = confirmations.map((item) => item.caseId)
+  const [casesResult, employeesResult] = await Promise.all([
+    section.supabase.from('absence_cases').select('id,employee_id,first_absence_on,pending_confirmation').eq('tenant_id', section.context.tenantId).eq('hr_group_id', section.context.hrGroupId ?? '').in('id', caseIds).eq('pending_confirmation', true),
+    section.supabase.from('employees').select('id,first_name,birth_name').eq('tenant_id', section.context.tenantId).eq('hr_group_id', section.context.hrGroupId ?? '').in('id', employeeIds).is('deleted_at', null),
+  ])
+  if (casesResult.error || employeesResult.error) throw new FocusSectionError('FOCUS_ABSENCE_WORK_READ_FAILED')
+  const caseById = new Map((casesResult.data ?? []).map((item) => [item.id, item]))
+  const employeeById = new Map((employeesResult.data ?? []).map((item) => [item.id, item]))
+  return confirmations.flatMap((confirmation): FocusAbsenceWorkItem[] => {
+    const absenceCase = caseById.get(confirmation.caseId)
+    const employee = employeeById.get(confirmation.employeeId)
+    if (!absenceCase || !employee) return []
+    return [{
+      caseId: confirmation.caseId,
+      confirmationId: confirmation.id,
+      employeeId: confirmation.employeeId,
+      employeeName: absenceWorkEmployeeName(employee),
+      firstAbsenceOn: absenceCase.first_absence_on,
+      status: confirmation.status,
+    }]
+  })
+}
+
+export interface FocusAbsenceState {
+  caseId: string | null
+  firstAbsenceOn: string | null
+  expectedRecoveryOn: string | null
+  pendingConfirmation: boolean
+  confirmationStatus: AbsenceConfirmationStatus | null
+}
+
+export async function getFocusAbsenceState(section: FocusSectionContext): Promise<FocusAbsenceState | null> {
+  if (!hasFocusPermission(section, 'self:absence:write', 'self:absence:read')) return null
+  const groupId = requireHrGroupId(section.context)
+  const casesResult = await section.supabase
+    .from('absence_cases')
+    .select('id,status,first_absence_on,pending_confirmation')
+    .eq('tenant_id', section.context.tenantId)
+    .eq('hr_group_id', groupId)
+    .eq('employee_id', section.employeeId)
+    .in('status', ['ACTIVE', 'RECOVERY_WINDOW'])
+    .is('archived_at', null)
+    .order('first_absence_on', { ascending: false })
+    .limit(20)
+  if (casesResult.error) throw new FocusSectionError('FOCUS_ABSENCE_READ_FAILED')
+  const cases = casesResult.data ?? []
+  if (!cases.length) return null
+  const confirmations = await listAbsenceConfirmations([section.employeeId], { context: section.context, supabase: section.supabase })
+  const currentCase = cases[0]
+  const confirmation = confirmations.find((item) => item.caseId === currentCase.id) ?? null
+  const spellResult = await section.supabase
+    .from('absence_spells')
+    .select('expected_recovery_on')
+    .eq('tenant_id', section.context.tenantId)
+    .eq('hr_group_id', groupId)
+    .eq('case_id', currentCase.id)
+    .is('recovered_on', null)
+    .order('started_on', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (spellResult.error) throw new FocusSectionError('FOCUS_ABSENCE_READ_FAILED')
+  return {
+    caseId: currentCase.id,
+    firstAbsenceOn: currentCase.first_absence_on,
+    expectedRecoveryOn: spellResult.data?.expected_recovery_on ?? null,
+    pendingConfirmation: currentCase.pending_confirmation,
+    confirmationStatus: confirmation?.status ?? null,
+  }
 }
 
 export interface FocusProfileProjection {

@@ -15,6 +15,7 @@ import type { FocusPageData } from './load-focus-page'
 import { FocusPresentation } from './focus-presentation'
 import { FocusShell } from './focus-shell'
 import { FocusFloatingActions } from './focus-floating-actions'
+import { FocusManagerHome } from './focus-manager-home'
 
 const actionIcons: Record<FocusActionKey, LucideIcon> = {
   journey: Route, profile: UserRound, documents: FileText, leave: CalendarDays, hours: BriefcaseBusiness,
@@ -101,6 +102,8 @@ export function FocusHome(props: FocusPageData) {
                 </div>
               </Surface>
             ) : null}
+
+            {data.experience === 'MANAGER' && !data.actAs && data.managerHome ? <FocusManagerHome data={data.managerHome} locale={locale} t={t} /> : null}
 
             <div className="grid min-w-0 gap-6 lg:grid-cols-2">
               <section aria-label={t('home.nextUp')} className="min-w-0 space-y-4">

@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { createTranslator } from '@/lib/i18n/translator'
 import type { FocusHomeData } from '@/lib/focus/service'
+import type { FocusManagerHomeData } from '@/lib/focus/manager-home-service'
 import type { Locale } from '@/lib/i18n/config'
 import nl from '@/messages/nl/focus.json'
 import en from '@/messages/en/focus.json'
@@ -20,6 +21,14 @@ function render(data: FocusHomeData, locale: Locale = 'nl') {
 }
 
 describe('Focus home', () => {
+  const managerHome: FocusManagerHomeData = {
+    weekStart: '2026-09-14',
+    weekEnd: '2026-09-20',
+    sick: [{ employeeId: 'sick-1', employeeName: 'Lisa de Vries', firstAbsenceOn: '2026-09-17', days: 2, pendingConfirmation: true }],
+    vacation: [{ employeeId: 'leave-1', employeeName: 'Marlou de Vries', startDate: '2026-09-16', endDate: '2026-09-16', overlapStartDate: '2026-09-16', timeMode: 'MORNING', specificStart: null, specificEnd: null }],
+    vacationTotal: 1,
+  }
+
   it.each(['nl', 'en'] as const)('renders all permitted manager actions with real %s translations and progress', (locale) => {
     const host = render(focusData({ experience: 'MANAGER' }), locale)
     expect(host.querySelector('h1')?.textContent).toContain('Noah Test')
@@ -30,6 +39,21 @@ describe('Focus home', () => {
     expect(host.querySelector('a[href="/my-signatures"]')).not.toBeNull()
     expect(host.querySelector('a[href="/dashboard/start"]')).not.toBeNull()
     expect(host.textContent).not.toMatch(/\{\w+\}/)
+  })
+
+  it('renders the two operational Manager Home cards and keeps them out of Act-as Employee', () => {
+    const managerHost = render(focusData({ experience: 'MANAGER', managerHome }))
+    expect(managerHost.textContent).toContain('Ziek in mijn team')
+    expect(managerHost.textContent).toContain('Te bevestigen')
+    expect(managerHost.textContent).toContain('Op vakantie deze week')
+    expect(managerHost.textContent).toContain('Marlou de Vries')
+    expect(managerHost.querySelector('a[href="/focus/werk"]')).not.toBeNull()
+
+    const actAsHost = render(focusData({ experience: 'MANAGER', managerHome, actAs: {
+      token: 'token', actorUserId: 'actor', tenantId: 'tenant', hrGroupId: 'group', subjectEmployeeId: 'subject', mode: 'FOCUS_ESS', expiresAt: 1, subjectName: 'Lisa de Vries',
+    } }))
+    expect(actAsHost.textContent).not.toContain('Ziek in mijn team')
+    expect(actAsHost.textContent).not.toContain('Op vakantie deze week')
   })
 
   it('suppresses full, leave, requests, work and team for preboarding even with stale broad actions', () => {

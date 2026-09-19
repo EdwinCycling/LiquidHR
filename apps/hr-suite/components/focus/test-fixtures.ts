@@ -33,7 +33,7 @@ export function focusData(overrides: Partial<FocusHomeData> = {}): FocusHomeData
       { key: 'team', href: '/focus/team' },
       { key: 'absence', href: '/focus/ziek' },
     ],
-    isPreboarding: false, isEssBlocked: false, readOnly: false, isPreview: false, canOpenFull: true, canRequestLeave: true, canReportAbsence: true, canReportEmployeeAbsence: false, actAs: null,
+    isPreboarding: false, isEssBlocked: false, readOnly: false, isPreview: false, canOpenFull: true, canRequestLeave: true, canReportAbsence: true, canReportEmployeeAbsence: false, managerHome: null, actAs: null,
     ...overrides,
   }
 }

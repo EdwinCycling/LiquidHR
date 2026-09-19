@@ -3,7 +3,7 @@
 > **Actuele scope vanaf 2026-08-05:** verzuiminstellingen zijn HR-groepgebonden; een verzuimcasus en ziekteperiode zijn altijd aan één dienstverband gekoppeld. Overlap wordt alleen binnen hetzelfde dienstverband geblokkeerd. Overlap over verschillende dienstverbanden of HR-groepen heen is toegestaan. Zie [HR-groepen: scope, inrichting en domeingrenzen](../multitenancy/HR_GROEP_SCOPE_EN_INRICHTING.md) en [FDR-0006](../../decisions/FDR-0006-parallel-verzuim-per-dienstverband.md).
 
 Status: **LEIDEND**  
-Implementatie: **STAP 8 FUNCTIONEEL GEÏMPLEMENTEERD — schema/RLS, API, UI, tests en browsercontrole uitgevoerd; Stap 9 blijft open**
+Implementatie: **STAP 8 FUNCTIONEEL GEÏMPLEMENTEERD — schema/RLS, API, UI, tests en browsercontrole uitgevoerd; Focus self-report, Manager Home en confirmation/recovery lokaal uitgewerkt, DEV DB-backed acceptance blijft open; Stap 9 blijft open**
 Scope: HR-groepgebonden verzuiminstellingen en employmentgebonden verzuimregistratie.
 
 ## 1. Doel
@@ -67,7 +67,18 @@ De drempel staat per HR-groep. De telling blijft per dienstverband/casuscontext 
 
 ## 8. Toegang
 
-De kernpermissions zijn `absence:read`, `absence:write` en `absence:recover`. Medewerker-selfservice voor de eerste ziekmelding is geïmplementeerd binnen de actieve HR-groep; herstel, capacity-wijzigingen en aanvullende casusvelden blijven server-side en met RLS begrensd. RLS en `requirePermission()` bepalen samen de tenant-, HR-groep-, employment- en casusscope.
+De kernpermissions zijn `absence:read`, `absence:write` en `absence:recover`. Medewerker-selfservice voor de eerste ziekmelding is alleen beschikbaar wanneer de medewerker `self:absence:write` heeft én de HR-groepinstelling `absence_settings.employee_self_report_enabled` aan staat. De server controleert beide voorwaarden; UI-verberging is geen autorisatiegrens. RLS en `requirePermission()` bepalen samen de tenant-, HR-groep-, employment- en casusscope.
+
+### 8.1 Focus self-report en managerbevestiging
+
+- Bij uitgeschakelde self-report staat er geen actie op Focus, `/focus/ziek` bevat geen bruikbaar meldformulier en een rechtstreeks geconstrueerde API-call wordt server-side geweigerd.
+- Een medewerker meldt alleen de eerste ziektedag via de bestaande `absence_case`/`absence_spell`-kernel. Dezelfde case en spell krijgen `pending_confirmation=true` en een `absence_confirmation`-envelop met `PENDING`; de case is operationeel AFWEZIG voor staffing, beschikbaarheid en Manager Home, maar telt niet mee als bevestigde ziekte in formele HR-KPI's en verzuimrapporten.
+- De manager ziet in `/focus/werk` alleen de geautoriseerde operationele gegevens: medewerkernaam, `Ziekmelding` en `Vanaf <date>`. De acties zijn `Bevestigen` en `Terugsturen voor correctie`; dit is geen afwijzings- of goedkeuringsmodel.
+- `Bevestigen` maakt de bestaande case operationeel actief door de pending-vlag te wissen en de confirmation idempotent op `CONFIRMED` te zetten. `Terugsturen voor correctie` hergebruikt dezelfde case/spell en zet de confirmation op `CORRECTION_REQUESTED`; er ontstaat geen tweede afwezigheidswaarheid.
+- `expectedRecoveryOn` is optioneel voor manager- en HR-rapportage en wordt opgeslagen als `absence_spells.expected_recovery_on`. Employee Focus V1 is bewust date-only: er is geen verwacht-herstelveld, herstelactie, medisch veld of vrij tekstveld.
+- De managerflow Team → medewerker → `Ziek melden` en de HR-flow in het normale medewerkerdossier schrijven rechtstreeks de canonieke actieve case binnen hun effectieve scope; er is geen Employee-confirmation nodig. Managerherstel gebruikt `/api/absence/recovery` en de bestaande `recover_absence`-service. Employee Focus V1 exposeert geen `Ik ben hersteld`.
+- Manager Home toont exact de operationele kaarten `Ziek in mijn team` en `Op vakantie deze week`. De eerste bevat bevestigde én pending cases met inclusieve kalenderdagen; de tweede gebruikt goedgekeurd verlof en de canonieke `leave_types.family = VACATION`-classificatie voor de maandag-zondagweek. Er wordt niet op naam van een verloftype gefilterd.
+- Operationele projections voor beschikbaarheid, staffing, Team en Manager Home nemen pending cases mee; formele absence-KPI's en rapporten filteren `pending_confirmation = false`. Collega’s krijgen uitsluitend PRESENT/ABSENT; geautoriseerde managers krijgen alleen operationele verzuimstatussen binnen hun team.
 
 ## 9. Ingangen
 

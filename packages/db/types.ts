@@ -146,6 +146,7 @@ export type Database = {
           is_third_party_traffic_accident: boolean | null
           is_work_accident: boolean | null
           prior_case_count_12_months: number
+          pending_confirmation: boolean
           recovery_window_ends_on: string | null
           status: Database["public"]["Enums"]["absence_case_status"]
           tenant_id: string
@@ -170,6 +171,7 @@ export type Database = {
           is_third_party_traffic_accident?: boolean | null
           is_work_accident?: boolean | null
           prior_case_count_12_months?: number
+          pending_confirmation?: boolean
           recovery_window_ends_on?: string | null
           status?: Database["public"]["Enums"]["absence_case_status"]
           tenant_id: string
@@ -194,6 +196,7 @@ export type Database = {
           is_third_party_traffic_accident?: boolean | null
           is_work_accident?: boolean | null
           prior_case_count_12_months?: number
+          pending_confirmation?: boolean
           recovery_window_ends_on?: string | null
           status?: Database["public"]["Enums"]["absence_case_status"]
           tenant_id?: string
@@ -11470,6 +11473,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           entitlement_mode: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          family: Database["public"]["Enums"]["leave_type_family"]
           hr_group_id: string
           id: string
           is_active: boolean
@@ -11493,6 +11497,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          family?: Database["public"]["Enums"]["leave_type_family"]
           hr_group_id: string
           id?: string
           is_active?: boolean
@@ -11516,6 +11521,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          family?: Database["public"]["Enums"]["leave_type_family"]
           hr_group_id?: string
           id?: string
           is_active?: boolean
@@ -21538,6 +21544,18 @@ export type Database = {
         Args: { requested_case_id: string }
         Returns: string
       }
+      report_focus_employee_absence: {
+        Args: {
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_recovery_on?: string | null
+          requested_hr_group_id: string
+          requested_idempotency_key?: string | null
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       register_absence_confirmation: {
         Args: { requested_case_id: string; requested_subject_employee_id?: string | null }
         Returns: string
@@ -21773,6 +21791,15 @@ export type Database = {
           requested_is_group_default: boolean
           requested_leave_profile_id: string
           requested_name: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      set_group_leave_type_family: {
+        Args: {
+          requested_family: Database["public"]["Enums"]["leave_type_family"]
+          requested_hr_group_id: string
+          requested_leave_type_id: string
           requested_tenant_id: string
         }
         Returns: string
@@ -22313,6 +22340,7 @@ export type Database = {
         | "WEEKLY_HOURS_FACTOR_CAP"
         | "ANNUAL_HOURS_FTE_CAP"
         | "OVERTIME_HOURS"
+      leave_type_family: "VACATION" | "OTHER"
       leave_work_hour_entry_status:
         | "PENDING"
         | "APPROVED"

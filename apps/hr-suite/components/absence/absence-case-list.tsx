@@ -9,6 +9,7 @@ interface AbsenceCaseListProps {
   labels: {
     title: string
     nowSick: string
+    pendingConfirmation: string
     nowNotSick: string
     recoveryWindow: string
     periods: string
@@ -22,12 +23,14 @@ export function AbsenceCaseList({ employeeId, compact, cases, labels }: AbsenceC
     ariaLabel={labels.title}
     empty={<p className="rounded-[var(--radius-surface)] border border-dashed border-border-subtle px-5 py-8 text-center text-sm text-muted-foreground" role="status">{labels.empty}</p>}
     items={cases.map((item) => {
-      const statusLabel = item.status === 'ACTIVE'
+      const statusLabel = item.pendingConfirmation
+        ? labels.pendingConfirmation
+        : item.status === 'ACTIVE'
         ? labels.nowSick
         : item.status === 'RECOVERY_WINDOW' && item.recoveryWindowEndsOn
           ? labels.recoveryWindow.replace('{date}', item.recoveryWindowEndsOn)
           : labels.nowNotSick
-      const tone = item.status === 'ACTIVE' ? 'danger' : item.status === 'RECOVERY_WINDOW' ? 'info' : 'success'
+      const tone = item.pendingConfirmation ? 'info' : item.status === 'ACTIVE' ? 'danger' : item.status === 'RECOVERY_WINDOW' ? 'info' : 'success'
       return {
         id: item.id,
         href: `/employees/${employeeId}?tab=absence&view=${compact ? 'compact' : 'expanded'}&caseId=${item.id}`,

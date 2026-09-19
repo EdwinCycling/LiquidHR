@@ -21,6 +21,7 @@ export interface FocusTeamCalendarMember {
   employeeName: string
   avatarUrl: string | null
   employmentId: string | null
+  activeAbsenceCaseId: string | null
   cells: FocusTeamCalendarCell[]
 }
 
@@ -31,6 +32,7 @@ export interface FocusTeamCalendar {
   members: FocusTeamCalendarMember[]
   viewerMode: FocusTeamViewerMode
   canReportAbsence: boolean
+  canRecoverAbsence: boolean
   canActAs: boolean
 }
 
@@ -94,6 +96,10 @@ async function employeeIdsForViewer(context: AuthContext, subjectEmployeeId?: st
   return context.employeeId ? [context.employeeId] : []
 }
 
+export async function listFocusManagerEmployeeIds(context: AuthContext, supabase?: SupabaseServerClient): Promise<string[]> {
+  return employeeIdsForViewer(context, undefined, supabase)
+}
+
 export async function loadFocusTeamCalendar(monthInput?: string, options?: { subjectEmployeeId?: string; privacyMode?: FocusTeamViewerMode; selectedDate?: string }): Promise<FocusTeamCalendar> {
   const requestContext = await getRequestAuthorizationContext()
   return loadFocusTeamCalendarForContext(requestContext.context, monthInput, { ...options, supabase: requestContext.supabase })
@@ -113,7 +119,7 @@ export async function loadFocusTeamCalendarForContext(
   const groupId = requireHrGroupId(context)
   const viewerMode = options?.privacyMode ?? (context.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN' || role === 'DIRECT_MANAGER') ? 'MANAGER' : 'EMPLOYEE')
   const employeeIds = await employeeIdsForViewer(context, options?.subjectEmployeeId, supabase)
-  const empty: FocusTeamCalendar = { month, dates, selectedDate, members: [], viewerMode, canReportAbsence: viewerMode === 'MANAGER' && context.permissions.includes('absence:write'), canActAs: context.permissions.includes('focus:act-as-employee') }
+  const empty: FocusTeamCalendar = { month, dates, selectedDate, members: [], viewerMode, canReportAbsence: viewerMode === 'MANAGER' && context.permissions.includes('absence:write'), canRecoverAbsence: viewerMode === 'MANAGER' && context.permissions.includes('absence:recover'), canActAs: context.permissions.includes('focus:act-as-employee') }
   if (!employeeIds.length) return empty
 
   const [employeesResult, employmentsResult] = await Promise.all([
@@ -127,7 +133,7 @@ export async function loadFocusTeamCalendarForContext(
   const [schedulesResult, leaveResult, absenceCasesResult] = await Promise.all([
     employmentIds.length ? supabase.from('employment_schedules').select('employment_id,valid_from,valid_until,sunday_hours,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours').in('employment_id', employmentIds).lte('valid_from', endDate).or(`valid_until.is.null,valid_until.gte.${startDate}`).limit(5000) : Promise.resolve({ data: [], error: null }),
     supabase.from('leave_requests').select('employee_id,start_date,end_date').eq('tenant_id', context.tenantId).eq('status', 'APPROVED').in('employee_id', employeeIds).lte('start_date', endDate).gte('end_date', startDate).limit(10000),
-    supabase.from('absence_cases').select('id,employee_id').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).in('employee_id', employeeIds).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null).lte('first_absence_on', endDate).limit(3000),
+    supabase.from('absence_cases').select('id,employee_id,status,pending_confirmation').eq('tenant_id', context.tenantId).eq('hr_group_id', groupId).in('employee_id', employeeIds).in('status', ['ACTIVE', 'RECOVERY_WINDOW']).is('archived_at', null).lte('first_absence_on', endDate).limit(3000),
   ])
   if (schedulesResult.error || leaveResult.error || absenceCasesResult.error) throw schedulesResult.error ?? leaveResult.error ?? absenceCasesResult.error
   const absenceCases = absenceCasesResult.data ?? []
@@ -139,6 +145,12 @@ export async function loadFocusTeamCalendarForContext(
   const schedulesByEmployment = new Map<string, NonNullable<typeof schedulesResult.data>>()
   for (const schedule of schedulesResult.data ?? []) schedulesByEmployment.set(schedule.employment_id, [...(schedulesByEmployment.get(schedule.employment_id) ?? []), schedule])
   const absenceEmployeeByCase = new Map(absenceCases.map((row) => [row.id, row.employee_id]))
+  const confirmedAbsenceCaseIds = new Set(absenceCases.filter((row) => !row.pending_confirmation).map((row) => row.id))
+  const openActiveAbsenceCaseIds = new Set(
+    (spellsResult.data ?? [])
+      .filter((spell) => spell.recovered_on === null && confirmedAbsenceCaseIds.has(spell.case_id))
+      .map((spell) => spell.case_id),
+  )
   const absenceSpells = (spellsResult.data ?? []).flatMap((spell) => {
     const employeeId = absenceEmployeeByCase.get(spell.case_id)
     return employeeId ? [{ employeeId, startedOn: spell.started_on, recoveredOn: spell.recovered_on }] : []
@@ -157,7 +169,7 @@ export async function loadFocusTeamCalendarForContext(
       const detailedStatus: FocusTeamCellStatus = isAbsent ? 'ABSENT' : isOnLeave ? 'LEAVE' : scheduledMinutes > 0 ? 'AVAILABLE' : 'OFF'
       return { date, status: viewerMode === 'EMPLOYEE' ? (detailedStatus === 'ABSENT' ? 'ABSENT' : 'PRESENT') : detailedStatus, scheduledMinutes }
     })
-    return { employeeId: employee.id, employeeName: `${employee.first_name} ${employee.birth_name}`.trim(), avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url), employmentId: employeeEmployments.find((item) => activeOn(selectedDate, item.starts_on, item.ends_on))?.id ?? null, cells }
+    return { employeeId: employee.id, employeeName: `${employee.first_name} ${employee.birth_name}`.trim(), avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url), employmentId: employeeEmployments.find((item) => activeOn(selectedDate, item.starts_on, item.ends_on))?.id ?? null, activeAbsenceCaseId: absenceCases.find((item) => item.employee_id === employee.id && item.status === 'ACTIVE' && openActiveAbsenceCaseIds.has(item.id))?.id ?? null, cells }
   })
   return { ...empty, members }
 }

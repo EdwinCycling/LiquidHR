@@ -288,7 +288,7 @@ export async function listLeaveCatalog() {
   const supabase = await createClient()
   const today = new Date().toISOString().slice(0, 10)
   const [leaveTypes, workHourTypes, overtimeSettings, profiles, rules, bonusRules, bonusTiers, priorityRules, priorityRuleItems, accrualRuleWorkHourTypes, accrualRulePauseTypes, leaveAccrualExceptions, exceptionEmployees, exceptionEmployments, employeeSets, employeeSetMembers, leaveTypeOvertimeWorkHours, employmentLeaveProfiles] = await Promise.all([
-    supabase.from('leave_types').select('id, name, color_code, entitlement_mode, annual_hours_cap, annual_hours_fte_cap, is_active, is_self_service, is_system, allow_limit_overrun, pin_in_calendar, requires_manager_approval, notify_manager_on_request, requires_manager_approval_on_cancellation').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
+    supabase.from('leave_types').select('id, name, color_code, family, entitlement_mode, annual_hours_cap, annual_hours_fte_cap, is_active, is_self_service, is_system, allow_limit_overrun, pin_in_calendar, requires_manager_approval, notify_manager_on_request, requires_manager_approval_on_cancellation').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
     supabase.from('work_hour_types').select('id, name, color_code, category, family, is_active, is_self_service, pin_in_calendar').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
     supabase.from('overtime_type_settings').select('id, work_hour_type_id, notify_manager_on_entry, requires_manager_approval, is_self_service, limit_mode, limit_hours, contract_hours_factor').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).limit(500),
     supabase.from('leave_profiles').select('id, name, description, is_active, is_group_default').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).order('name').limit(500),
@@ -391,6 +391,13 @@ export async function createLeaveCatalogItem(input: LeaveCatalogMutation) {
       databaseError(result.error)
     }
     if (!result.data) databaseError(null)
+    const familyResult = await supabase.rpc('set_group_leave_type_family', {
+      requested_tenant_id: context.tenantId,
+      requested_hr_group_id: hrGroupId,
+      requested_leave_type_id: result.data,
+      requested_family: input.family,
+    } as unknown as Database['public']['Functions']['set_group_leave_type_family']['Args'])
+    if (familyResult.error || !familyResult.data) databaseError(familyResult.error)
     return { kind: input.action, id: result.data }
   }
 

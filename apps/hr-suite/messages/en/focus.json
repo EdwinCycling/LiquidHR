@@ -19,6 +19,24 @@
     "blockedTitle": "Employee access is blocked",
     "blockedDescription": "Your Employee workspace is currently unavailable. Contact HR."
   },
+  "managerHome": {
+    "title": "Team overview",
+    "workLink": "My work",
+    "sickTitle": "Sick in my team",
+    "sickEmpty": "No one in your team is currently sick.",
+    "sickSince": "Since {date}",
+    "sickDay": "{days} day",
+    "sickDays": "{days} days",
+    "pending": "To confirm",
+    "vacationTitle": "On vacation this week",
+    "vacationEmpty": "No one in your team is on vacation this week.",
+    "vacationViewAll": "View all",
+    "from": "From",
+    "until": "to",
+    "morning": "morning",
+    "afternoon": "afternoon",
+    "specificHours": "{start}–{end}"
+  },
   "start": {
     "futureTitle": "You start on {date}", "oneDay": "Tomorrow is your first day.", "countdown": "{days} days until your first day.",
     "limitedAccess": "Until your start, this space only includes your onboarding, profile, assigned documents and signing requests.",
@@ -68,6 +86,6 @@
     "absenceDescription": "Your manager receives and confirms your sickness report.", "absenceOpen": "Report sickness",
     "directoryDescription": "Search colleagues and find their business contact details.", "directoryOpen": "Open directory"
   },
-  "team": { "month": "Month", "previous": "Previous month", "next": "Next month", "today": "Today", "employee": "Colleague", "status": "Status", "present": "Present", "absent": "Absent", "available": "Present", "off": "Not scheduled", "leave": "Leave", "hours": "hours", "selectedDay": "Selected day", "reportAbsence": "Report sickness", "actAs": "Act as", "acting": "Opening Focus…", "search": "Search colleague", "mail": "Mail", "call": "Call", "noResults": "No colleagues found for {query}.", "disabled": "The employee directory is not available." },
-  "absence": { "title": "Report sickness", "description": "Report your first sick day. Your manager receives and confirms the report.", "managerTitle": "Report employee sickness", "managerDescription": "Record only the first sick day. Medical details do not belong in Focus.", "startDate": "From which date are they sick?", "submit": "Send sickness report", "submitting": "Sending…", "success": "The sickness report was sent.", "failed": "The sickness report could not be sent. Try again." }
+  "team": { "month": "Month", "previous": "Previous month", "next": "Next month", "today": "Today", "employee": "Colleague", "status": "Status", "present": "Present", "absent": "Absent", "available": "Present", "off": "Not scheduled", "leave": "Leave", "hours": "hours", "selectedDay": "Selected day", "reportAbsence": "Report sickness", "reportRecovery": "Report recovery", "actAs": "Act as", "acting": "Opening Focus…", "search": "Search colleague", "mail": "Mail", "call": "Call", "noResults": "No colleagues found for {query}.", "disabled": "The employee directory is not available." },
+  "absence": { "title": "Report sickness", "description": "Report your first sick day. Your manager receives and confirms the report.", "managerTitle": "Report employee sickness", "managerDescription": "Record only the first sick day. Medical details do not belong in Focus.", "managerRecoveryTitle": "Report recovery", "managerRecoveryDescription": "Record the date on which your team member is recovered.", "startDate": "From which date are they sick?", "expectedRecoveryOn": "When do you expect to be able to work again?", "optional": "optional", "submit": "Send sickness report", "submitting": "Sending…", "success": "The sickness report was sent.", "failed": "The sickness report could not be sent. Try again.", "recoveryTitle": "I am recovered", "recoveryDescription": "Report the date on which you can work again.", "recoveryDate": "Recovered from", "recoverySubmit": "Report recovery", "recoverySubmitting": "Sending…", "recoverySuccess": "Your recovery was recorded.", "recoveryFailed": "Your recovery could not be recorded. Try again.", "pendingTitle": "Your sickness report is waiting for confirmation", "pendingDescription": "Your manager receives and confirms the sickness report.", "correctionRequestedTitle": "Your sickness report needs an adjustment", "correctionRequestedDescription": "Your manager returned the sickness report for an administrative correction.", "previewTitle": "Reporting sickness is not available in Preview", "previewDescription": "This employee view is read-only.", "workTitle": "Sickness reports", "workDescription": "Confirm a sickness report or return it for administrative correction.", "sickness": "Sickness report", "from": "From", "confirm": "Confirm", "correction": "Return for correction", "correctionSent": "The sickness report was returned for correction." }
 }

@@ -9,6 +9,7 @@ import { AuthorizationError, getRequestAuthorizationContext, getSelfPermissions 
 import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
 import { createClient } from '@/lib/supabase/server'
 import { resolveFocusActAsSession, type FocusActAsSession } from './act-as-token'
+import { loadFocusManagerHomeForContext, type FocusManagerHomeData } from './manager-home-service'
 import { readFocusPreviewCookie } from './preview-token'
 import {
   resolveEmploymentAccessState,
@@ -58,6 +59,7 @@ export interface FocusHomeData {
   canRequestLeave: boolean
   canReportAbsence: boolean
   canReportEmployeeAbsence: boolean
+  managerHome: FocusManagerHomeData | null
   actAs: FocusActAsSession | null
 }
 
@@ -94,6 +96,7 @@ export function focusActions(input: {
   permissions: readonly string[]
   journey: JourneyProjection | null
   blocked?: boolean
+  employeeSelfReportEnabled?: boolean
 }): FocusAction[] {
   const actions: FocusAction[] = []
   if (input.experience === 'NO_EMPLOYMENT') return actions
@@ -108,13 +111,27 @@ export function focusActions(input: {
   if (input.experience !== 'PREBOARDING') {
     if (canUseEmployeeSelfservice && permissions.has('self:leave:read')) add('leave', '/focus/verlof')
     if (canUseEmployeeSelfservice && permissions.has('self:leave:read')) add('hours', '/focus/uren')
-    if (canUseEmployeeSelfservice && permissions.has('self:absence:write')) add('absence', '/focus/ziek')
+    if (canUseEmployeeSelfservice && permissions.has('self:absence:write') && input.employeeSelfReportEnabled === true) add('absence', '/focus/ziek')
     if ((canUseEmployeeSelfservice && permissions.has('self:process-task:read')) || (input.experience === 'MANAGER' && (permissions.has('process-task:read') || permissions.has('process-instance:read')))) add('requests', '/focus/aanvragen')
-    if ((input.experience === 'MANAGER' || canUseEmployeeSelfservice) && (permissions.has('process-task:read') || permissions.has('process-instance:read') || permissions.has('self:process-task:read') || permissions.has('self:process-instance:read'))) add('work', '/focus/werk')
+    if ((input.experience === 'MANAGER' && (permissions.has('process-task:read') || permissions.has('process-instance:read') || permissions.has('absence:read') || permissions.has('absence:write')) || (canUseEmployeeSelfservice && (permissions.has('process-task:read') || permissions.has('process-instance:read') || permissions.has('self:process-task:read') || permissions.has('self:process-instance:read'))))) add('work', '/focus/werk')
     if ((input.experience === 'MANAGER' || canUseEmployeeSelfservice) && (permissions.has('organization-chart:read') || permissions.has('self:organization-chart:read') || permissions.has('self:employee:read'))) add('team', '/focus/team')
   }
 
   return actions
+}
+
+async function readEmployeeSelfReportEnabled(
+  supabase: SupabaseServerClient,
+  tenantId: string,
+  hrGroupId: string,
+): Promise<boolean> {
+  const result = await supabase
+    .from('absence_settings')
+    .select('employee_self_report_enabled')
+    .eq('tenant_id', tenantId)
+    .eq('hr_group_id', hrGroupId)
+    .maybeSingle()
+  return !result.error && result.data?.employee_self_report_enabled === true
 }
 
 async function readEmployeeFocusData(
@@ -190,6 +207,7 @@ export async function getFocusHomeData(options: {
       canRequestLeave: false,
       canReportAbsence: false,
       canReportEmployeeAbsence: false,
+      managerHome: null,
       actAs: null,
     }
   }
@@ -210,6 +228,7 @@ export async function getFocusHomeData(options: {
       canRequestLeave: false,
       canReportAbsence: false,
       canReportEmployeeAbsence: false,
+      managerHome: null,
       actAs,
     }
   }
@@ -226,6 +245,14 @@ export async function getFocusHomeData(options: {
     ? effectivePermissions.filter((permission) => permission.startsWith('self:'))
     : effectivePermissions
   const isEssBlocked = focusData.isEssBlocked
+  const employeeSelfReportEnabled = !isEssBlocked
+    && experience === 'EMPLOYEE'
+    && permissions.includes('self:absence:write')
+    ? await readEmployeeSelfReportEnabled(supabase, context.tenantId, context.hrGroupId)
+    : false
+  const managerHome = experience === 'MANAGER' && !actAs
+    ? await loadFocusManagerHomeForContext(context, today, supabase)
+    : null
 
   return {
     experience,
@@ -245,7 +272,7 @@ export async function getFocusHomeData(options: {
       effectiveEmploymentStartDate: accessState.effectiveStartDate,
     },
     journey,
-    actions: focusActions({ employeeId, experience, permissions, journey, blocked: isEssBlocked }),
+    actions: focusActions({ employeeId, experience, permissions, journey, blocked: isEssBlocked, employeeSelfReportEnabled }),
     isPreboarding: experience === 'PREBOARDING',
     canOpenFull: actAs ? false : isFullPortalAllowed({
       experience,
@@ -258,8 +285,9 @@ export async function getFocusHomeData(options: {
     readOnly: false,
     isPreview: false,
     canRequestLeave: !isEssBlocked && experience === 'EMPLOYEE' && permissions.includes('self:leave:request'),
-    canReportAbsence: !isEssBlocked && experience === 'EMPLOYEE' && permissions.includes('self:absence:write'),
+    canReportAbsence: !isEssBlocked && experience === 'EMPLOYEE' && permissions.includes('self:absence:write') && employeeSelfReportEnabled,
     canReportEmployeeAbsence: !isEssBlocked && experience === 'MANAGER' && !actAs && permissions.includes('absence:write'),
+    managerHome,
     actAs,
   }
 }
@@ -292,6 +320,11 @@ export async function getFocusPreviewData(employeeId: string, options: { today?:
     ? await getEmployeeJourneyProjections(employeeId).catch(() => [])
     : []
   const journey = featuredJourney(journeys)
+  const employeeSelfReportEnabled = !focusData.isEssBlocked
+    && experience === 'EMPLOYEE'
+    && permissions.includes('self:absence:write')
+    ? await readEmployeeSelfReportEnabled(requestContext.supabase, requestContext.context.tenantId, requestContext.context.hrGroupId ?? '')
+    : false
 
   return {
     experience,
@@ -303,7 +336,7 @@ export async function getFocusPreviewData(employeeId: string, options: { today?:
       effectiveEmploymentStartDate: accessState.effectiveStartDate,
     },
     journey,
-    actions: focusActions({ employeeId, experience, permissions, journey, blocked: focusData.isEssBlocked }),
+    actions: focusActions({ employeeId, experience, permissions, journey, blocked: focusData.isEssBlocked, employeeSelfReportEnabled }),
     isPreboarding: experience === 'PREBOARDING',
     canOpenFull: false,
     isEssBlocked: focusData.isEssBlocked,
@@ -312,6 +345,7 @@ export async function getFocusPreviewData(employeeId: string, options: { today?:
     canRequestLeave: false,
     canReportAbsence: false,
     canReportEmployeeAbsence: false,
+    managerHome: null,
     actAs: null,
   }
 }

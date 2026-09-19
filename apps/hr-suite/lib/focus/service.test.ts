@@ -92,4 +92,19 @@ describe('Focus service lifecycle boundary', () => {
     expect(blockedManagerActions.map((action) => action.key)).toEqual(['requests', 'work', 'team'])
     expect(blockedEmployeeActions).toEqual([])
   })
+
+  it('shows the Employee sickness action only when the permission and HR-group setting are both enabled', () => {
+    const permissions = ['self:absence:write']
+    const disabled = focusActions({ employeeId: 'employee-a', experience: 'EMPLOYEE', permissions, journey: null, employeeSelfReportEnabled: false })
+    const enabled = focusActions({ employeeId: 'employee-a', experience: 'EMPLOYEE', permissions, journey: null, employeeSelfReportEnabled: true })
+
+    expect(disabled.map((action) => action.key)).not.toContain('absence')
+    expect(enabled.map((action) => action.key)).toContain('absence')
+  })
+
+  it('keeps manager work available for an absence permission without process-task permissions', () => {
+    const actions = focusActions({ employeeId: 'employee-a', experience: 'MANAGER', permissions: ['absence:read'], journey: null })
+
+    expect(actions.map((action) => action.key)).toContain('work')
+  })
 })

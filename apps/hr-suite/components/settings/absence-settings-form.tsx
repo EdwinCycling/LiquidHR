@@ -28,7 +28,11 @@ interface AbsenceSettingsLabels {
   failed: string
   invalid: string
   employeeSelfReport: string
-  employeeSelfReportHelp: string
+  employeeSelfReportHelp?: string
+  employeeSelfReportEnabled?: string
+  employeeSelfReportEnabledHelp?: string
+  employeeSelfReportDisabled?: string
+  employeeSelfReportDisabledHelp?: string
 }
 
 export function AbsenceSettingsForm({
@@ -49,6 +53,9 @@ export function AbsenceSettingsForm({
   const [caseManager, setCaseManager] = useState(defaultCaseManagerEmployeeId ?? '')
   const [selfReport, setSelfReport] = useState(employeeSelfReportEnabled)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed' | 'invalid'>('idle')
+  const selfReportDescription = selfReport
+    ? [labels.employeeSelfReportEnabled, labels.employeeSelfReportEnabledHelp].filter(Boolean).join(': ') || labels.employeeSelfReportHelp
+    : [labels.employeeSelfReportDisabled, labels.employeeSelfReportDisabledHelp].filter(Boolean).join(': ') || labels.employeeSelfReportHelp
 
   async function save() {
     setStatus('saving')
@@ -75,7 +82,7 @@ export function AbsenceSettingsForm({
       <Surface className="grid gap-5 p-5">
         <FormField control={<TextInput max={20} min={1} onChange={(event) => setThreshold(event.target.value)} type="number" value={threshold} />} description={labels.thresholdHelp} label={labels.threshold} required />
         <FormField control={<DropdownSelect aria-label={labels.caseManager} onChange={(event) => setCaseManager(event.target.value)} searchable searchPlaceholder={labels.caseManager} value={caseManager}><option value="">{labels.noCaseManager}</option>{caseManagers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name} · {manager.employeeNumber}</option>)}</DropdownSelect>} description={labels.caseManagerHelp} label={labels.caseManager} />
-        <Switch checked={selfReport} description={labels.employeeSelfReportHelp} label={labels.employeeSelfReport} onChange={(event) => setSelfReport(event.target.checked)} />
+        <Switch checked={selfReport} description={selfReportDescription} label={labels.employeeSelfReport} onChange={(event) => setSelfReport(event.target.checked)} />
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-subtle pt-4">
           {status === 'saved' ? <span className="inline-flex items-center gap-2 text-sm font-medium text-success" role="status"><Check size={16} />{labels.saved}</span> : null}
           {status === 'failed' ? <span className="text-sm font-medium text-destructive" role="alert">{labels.failed}</span> : null}

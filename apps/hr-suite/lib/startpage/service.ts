@@ -415,7 +415,7 @@ async function countRecurringAbsence(auth: AuthContext, employeeScope: StartPage
   const hrGroupId = requireHrGroupId(auth)
   // Medewerkers met meer dan 1 verzuimcasus (recurring)
   let query = supabase.from('absence_cases').select('employee_id')
-    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).is('archived_at', null)
+    .eq('tenant_id', auth.tenantId).eq('hr_group_id', hrGroupId).eq('pending_confirmation', false).is('archived_at', null)
   if (employeeScope !== null) query = query.in('employee_id', employeeScope)
   const { data, error } = await query.limit(10000)
   if (error || !data) return null

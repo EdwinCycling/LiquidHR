@@ -19,6 +19,24 @@
     "blockedTitle": "Employee-toegang geblokkeerd",
     "blockedDescription": "Je kunt je Employee-omgeving momenteel niet gebruiken. Neem contact op met HR."
   },
+  "managerHome": {
+    "title": "Team in beeld",
+    "workLink": "Mijn werk",
+    "sickTitle": "Ziek in mijn team",
+    "sickEmpty": "Niemand in je team is momenteel ziek.",
+    "sickSince": "Sinds {date}",
+    "sickDay": "{days} dag",
+    "sickDays": "{days} dagen",
+    "pending": "Te bevestigen",
+    "vacationTitle": "Op vakantie deze week",
+    "vacationEmpty": "Niemand in je team heeft deze week vakantie.",
+    "vacationViewAll": "Bekijk alles",
+    "from": "Vanaf",
+    "until": "t/m",
+    "morning": "ochtend",
+    "afternoon": "middag",
+    "specificHours": "{start}–{end}"
+  },
   "start": {
     "futureTitle": "Je start op {date}", "oneDay": "Morgen is je eerste werkdag.", "countdown": "Nog {days} dagen tot je eerste werkdag.",
     "limitedAccess": "Tot je start vind je hier alleen je onboarding, profiel en toegewezen documenten en ondertekeningen.",
@@ -68,6 +86,6 @@
     "absenceDescription": "Je manager ontvangt je ziekmelding en bevestigt deze.", "absenceOpen": "Ziek melden",
     "directoryDescription": "Zoek collega’s en vind hun zakelijke contactgegevens.", "directoryOpen": "Wie is wie openen"
   },
-  "team": { "month": "Maand", "previous": "Vorige maand", "next": "Volgende maand", "today": "Vandaag", "employee": "Collega", "status": "Status", "present": "Aanwezig", "absent": "Afwezig", "available": "Aanwezig", "off": "Niet ingepland", "leave": "Verlof", "hours": "uur", "selectedDay": "Gekozen dag", "reportAbsence": "Ziek melden", "actAs": "Handelen als", "acting": "Focus openen…", "search": "Zoek collega", "mail": "Mail", "call": "Bel", "noResults": "Geen collega’s gevonden voor {query}.", "disabled": "De medewerkersdirectory is niet beschikbaar." },
-  "absence": { "title": "Ziek melden", "description": "Meld je eerste ziektedag. Je manager ontvangt de melding en bevestigt deze.", "managerTitle": "Medewerker ziek melden", "managerDescription": "Leg alleen de eerste ziektedag vast. Medische details horen niet in Focus.", "startDate": "Vanaf wanneer ben je ziek?", "submit": "Ziekmelding versturen", "submitting": "Versturen…", "success": "De ziekmelding is verstuurd.", "failed": "De ziekmelding kon niet worden verstuurd. Probeer het opnieuw." }
+  "team": { "month": "Maand", "previous": "Vorige maand", "next": "Volgende maand", "today": "Vandaag", "employee": "Collega", "status": "Status", "present": "Aanwezig", "absent": "Afwezig", "available": "Aanwezig", "off": "Niet ingepland", "leave": "Verlof", "hours": "uur", "selectedDay": "Gekozen dag", "reportAbsence": "Ziek melden", "reportRecovery": "Hersteld melden", "actAs": "Handelen als", "acting": "Focus openen…", "search": "Zoek collega", "mail": "Mail", "call": "Bel", "noResults": "Geen collega’s gevonden voor {query}.", "disabled": "De medewerkersdirectory is niet beschikbaar." },
+  "absence": { "title": "Ziek melden", "description": "Meld je eerste ziektedag. Je manager ontvangt de melding en bevestigt deze.", "managerTitle": "Medewerker ziek melden", "managerDescription": "Leg alleen de eerste ziektedag vast. Medische details horen niet in Focus.", "managerRecoveryTitle": "Herstel melden", "managerRecoveryDescription": "Leg de datum vast waarop je teamlid weer hersteld is.", "startDate": "Vanaf wanneer ben je ziek?", "expectedRecoveryOn": "Wanneer verwacht je weer te kunnen werken?", "optional": "optioneel", "submit": "Ziekmelding versturen", "submitting": "Versturen…", "success": "De ziekmelding is verstuurd.", "failed": "De ziekmelding kon niet worden verstuurd. Probeer het opnieuw.", "recoveryTitle": "Ik ben hersteld", "recoveryDescription": "Meld de datum waarop je weer kunt werken.", "recoveryDate": "Hersteld vanaf", "recoverySubmit": "Herstel melden", "recoverySubmitting": "Versturen…", "recoverySuccess": "Je herstel is verwerkt.", "recoveryFailed": "Het herstel kon niet worden verwerkt. Probeer het opnieuw.", "pendingTitle": "Je ziekmelding staat klaar voor bevestiging", "pendingDescription": "Je manager ontvangt de ziekmelding en bevestigt deze.", "correctionRequestedTitle": "Aanpassing van je ziekmelding nodig", "correctionRequestedDescription": "Je manager heeft de ziekmelding teruggestuurd voor een administratieve correctie.", "previewTitle": "Ziek melden is in Preview niet beschikbaar", "previewDescription": "Deze medewerkerweergave is alleen-lezen.", "workTitle": "Ziekmeldingen", "workDescription": "Bevestig een ziekmelding of stuur deze terug voor administratieve correctie.", "sickness": "Ziekmelding", "from": "Vanaf", "confirm": "Bevestigen", "correction": "Terugsturen voor correctie", "correctionSent": "De ziekmelding is teruggestuurd voor correctie." }
 }
