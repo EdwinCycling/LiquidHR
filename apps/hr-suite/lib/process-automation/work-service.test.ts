@@ -22,13 +22,67 @@ function dependencies(rpc: ReturnType<typeof vi.fn>): ProcessWorkDependencies {
 }
 
 describe('process work service', () => {
-  it('pagineert administratie-filtering na de bestaande wrapper', async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: { items: [], total: 51, hasMore: false }, error: null })
+  it('geeft administratie-filtering en serverpaginering door aan de uniforme projectie', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { items: [], total: 51, hasMore: true }, error: null })
 
     const result = await listProcessWork({ language: 'nl', administrationId: '00000000-0000-4000-8000-000000000013', limit: 25, offset: 25 }, dependencies(rpc))
 
-    expect(rpc).toHaveBeenCalledWith('get_process_work_projection_with_administration', expect.objectContaining({ requested_limit: 200, requested_offset: 0 }))
+    expect(rpc).toHaveBeenCalledWith('get_unified_process_work_projection', expect.objectContaining({
+      requested_administration_id: '00000000-0000-4000-8000-000000000013',
+      requested_hr_group_id: context.hrGroupId,
+      requested_limit: 25,
+      requested_offset: 25,
+      requested_view: 'WORK',
+    }))
     expect(result).toEqual({ items: [], total: 51, hasMore: true })
+  })
+
+  it('accepteert de employment-subjectreferentie van de uniforme projectie', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: {
+        items: [{
+          workItemId: '00000000-0000-4000-8000-000000000020',
+          processInstanceId: '00000000-0000-4000-8000-000000000021',
+          stepInstanceId: '00000000-0000-4000-8000-000000000022',
+          processDefinitionId: '00000000-0000-4000-8000-000000000023',
+          processKey: 'leave-request-v1',
+          processTitle: 'Verlofaanvraag',
+          subjectEmployeeId: '00000000-0000-4000-8000-000000000024',
+          subjectEmploymentId: '00000000-0000-4000-8000-000000000025',
+          subjectName: 'Noah Test',
+          stepKey: 'manager-approval',
+          stepTitle: 'manager-approval',
+          participantKey: 'manager',
+          assignmentMode: 'EXACTLY_ONE',
+          receivedVia: 'DIRECT',
+          assignmentExplanation: { source: 'DIRECT_MANAGER_OF_SUBJECT' },
+          status: 'OPEN',
+          instanceStatus: 'RUNNING',
+          currentStepKey: 'manager-approval',
+          instanceVersion: 1,
+          expectedVersion: 1,
+          claimedByUserId: null,
+          assigneeEmployeeId: '00000000-0000-4000-8000-000000000026',
+          claimedAt: null,
+          availableAt: '2026-09-20T00:00:00.000Z',
+          deadlineAt: null,
+          createdAt: '2026-09-20T00:00:00.000Z',
+          updatedAt: '2026-09-20T00:00:00.000Z',
+          canAct: true,
+          canClaim: true,
+          isOverdue: false,
+          businessType: 'LEAVE',
+          businessCategory: 'LEAVE_REQUEST',
+          businessStatus: 'OPEN',
+          leaveRequestId: '00000000-0000-4000-8000-000000000027',
+        }],
+        total: 1,
+        hasMore: false,
+      },
+      error: null,
+    })
+
+    await expect(listProcessWork({ language: 'nl' }, dependencies(rpc))).resolves.toMatchObject({ total: 1 })
   })
 
   it('levert counts voor alle bestaande tabs vanuit dezelfde projection', async () => {

@@ -285,7 +285,7 @@ export async function getLeaveInsightsReport(query: LeaveInsightsQuery): Promise
   const employeeSetMembers: LeaveInsightsEmployeeSetMemberFact[] = ((employeeSetMembersResult.data ?? []) as EmployeeSetMemberRow[]).map((row) => ({ employeeSetId: row.employee_set_id, employeeId: row.employee_id, validFrom: row.valid_from, validUntil: row.valid_until }))
   const rulePauseTypes: LeaveInsightsRulePauseTypeFact[] = ((pauseTypesResult.data ?? []) as PauseTypeRow[]).map((row) => ({ accrualRuleId: row.accrual_rule_id, pauseLeaveTypeId: row.pause_leave_type_id }))
   const absenceResult = context.permissions.includes('absence:read')
-    ? await supabase.from('absence_cases').select('employment_id,first_absence_on,status,archived_at').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).in('employment_id', employmentIds).lte('first_absence_on', query.periodEnd).limit(10000)
+    ? await supabase.from('absence_cases').select('employment_id,first_absence_on,status,archived_at').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).eq('pending_confirmation', false).in('employment_id', employmentIds).lte('first_absence_on', query.periodEnd).limit(10000)
     : { data: [], error: null }
   if (absenceResult.error) fail(absenceResult.error)
   const absences: LeaveInsightsAbsenceFact[] = (absenceResult.data as AbsenceCaseRow[] | null ?? [])

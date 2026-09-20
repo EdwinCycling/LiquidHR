@@ -41,3 +41,4 @@ after insert or update of email on auth.users
 for each row execute function internal_security.link_employee_from_auth_user();
 
 drop function if exists public.bootstrap_current_employee();
+

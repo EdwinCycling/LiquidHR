@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = 'supabase/migrations/20260912145426_leave_accrual_engine_v1.sql'
-const cohortMigrationPath = 'supabase/migrations/20260912160000_leave_migration_opening_balance_cohorts.sql'
-const idempotencyMigrationPath = 'supabase/migrations/20260912193500_leave_accrual_source_key_conflict.sql'
+const migrationPath = 'supabase/migrations/20260912150853_leave_accrual_engine_v1.sql'
+const cohortMigrationPath = 'supabase/migrations/20260912184117_leave_migration_opening_balance_cohorts.sql'
+const idempotencyMigrationPath = 'supabase/migrations/20260912193619_leave_accrual_source_key_conflict.sql'
 
 describe('Leave Engine V1 accrual posting migration', () => {
   it('seals the automatic accrual write boundary with HR-group authorization', async () => {

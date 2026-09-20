@@ -1,5 +1,138 @@
 # Actuele overdracht Liquid HR
 
+## Focus DEV act-as alignment and completion acceptance — 2026-09-20
+
+**Status: DEV-GREEN / FULL LOCAL TECHNICAL GATES GREEN / FINAL MAIN-PRODUCTION RELEASE GATE OPEN**
+
+- Candidate worktree/branch: `.codex-worktrees/focus-completion-act-as-20260918` /
+  `work/focus-completion-act-as-20260918`.
+- DEV-only target: Supabase `wnpfloqpjvaacobppbpk`, existing demo tenant
+  `liquid-hr-demo-holding` / `Planeten`. Production and global roles were not
+  changed.
+- The tenant-specific `TENANT_ADMIN` override now receives the existing
+  `focus:act-as-employee` capability through the canonical
+  `role_permissions` migration `20260920170000_grant_focus_act_as_demo_tenant_admin`.
+  DEV readback confirms global and tenant-specific TENANT_ADMIN rows, with no
+  EMPLOYEE or DIRECT_MANAGER rows in the target tenant.
+- The existing audit contract is now able to persist the scoped Act-as START and
+  STOP rows through `20260920171000_allow_focus_act_as_audit_events` and the
+  authenticated-only INSERT grant in `20260920172000_grant_focus_act_as_audit_insert`.
+  The positive HR Admin flow and STOP readback are green; Manager and Employee
+  direct API attempts both return 403 without audit mutation.
+- Focus profile self-edit was browser-tested with a temporary first-name change,
+  readback and immediate restore. Mobile `390x844` checks for `/focus`,
+  `/focus/profiel`, `/focus/verlof`, `/focus/aanvragen` and `/focus/team` all
+  reported no horizontal overflow. Screenshots and bounded fixture notes are in
+  `.artifacts/focus-acceptance-20260920/README.md`.
+- Final local gates: full Vitest `432/432` files and `1698/1698` tests with
+  `--testTimeout=30000`, strict TypeScript, ESLint, i18n `39` equal namespaces,
+  Next/Webpack build `296/296` static pages and `git diff --check` are green.
+  Supabase type generation and advisors were also run; project-wide advisor
+  findings remain explicitly open and are not silently suppressed.
+- The exact final Git commit/push and the main/Production release gate remain
+  separate from this DEV acceptance. Protected `.env.local` and the existing
+  user-owned migration reconciliation note remain outside the staged scope.
+
+## Convergence Focus + ESS/MSS — 2026-09-18
+
+**Status: CODE CONVERGENCE GREEN / DEV-SCHEMA READBACK GREEN / AUTHENTICATED BROWSER ACCEPTANCE ENVIRONMENT-GATED / RELEASE OPEN**
+
+Deze overdracht beschrijft de enige geïntegreerde kandidaat voor deze run:
+
+- Branch: `work/convergence-focus-workflow-20260918`.
+- Worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\convergence-focus-workflow-20260918`.
+- Exacte basis: `origin/main` `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
+- Focus-bron: `origin/work/focus-access-management-20260918`
+  `afaadb01b908ed2766372ec838ff5f0169d6301e`.
+- ESS/MSS-bron: `origin/work/ess-mss-workflow-unification-v1`
+  `3b342630da339663201117432725da63abe08619`.
+- Normale mergehistorie: Focus via `e3f8a07`, daarna ESS/MSS via `2245ef6`.
+  Er is geen reset, force-push, cherry-pick-replay of branchcleanup uitgevoerd.
+
+De geïntegreerde code gebruikt Focus als presentatie- en toegangslaag bovenop
+de bestaande Employee/Employment-, Journey-, ESS/MSS-, Process Automation- en
+Leave/Actual Work-seams. De centrale Full-portalguard staat in
+`app/(dashboard)/layout.tsx`, zodat ook directe/deep-link navigatie naar
+`/dashboard/*` dezelfde policy krijgt. De policy test de twee portal modes voor
+Employee en Manager, houdt HR Admin Full onafhankelijk van geblokkeerde
+Employee ESS en houdt Manager work/team onafhankelijk van geblokkeerde
+Employee selfservice. `PREBOARDING` en `NO_EMPLOYMENT` blijven fail-closed.
+
+De preview-cookie is beperkt tot `/focus/preview`; de globale authlaag blokkeert
+niet langer ieder request wanneer zo'n cookie bestaat. De dedicated preview
+route blijft signed-token, actor-, tenant-, HR-groep- en employee-bound en
+read-only. De geblokkeerde Employee krijgt geen gewone selfservice-acties;
+Manager work/team blijft beschikbaar volgens de bestaande managerpermissions.
+
+### DEV-migrationreconciliatie
+
+DEV-project `wnpfloqpjvaacobppbpk` is uitsluitend read-only gecontroleerd. De
+remote history is 1:1 uitgelijnd met de lokale featurebestanden; de lokale
+bestandsnamen zijn zonder SQL-bodywijziging genormaliseerd naar de werkelijk
+toegepaste DEV-versies:
+
+| DEV-versie | Repositorybestand | Effect |
+| --- | --- | --- |
+| `20260917141844` | `ess_mss_workflow_unification_leave_status.sql` | `PENDING` en `CHANGES_REQUESTED` voor Leave. |
+| `20260917141907` | `ess_mss_workflow_unification_v1.sql` | Getypeerde Process/Leave-adapter, lifecycle-RPC's en RLS fail-closed bridge. |
+| `20260917142539` | `ess_mss_workflow_unification_v1_advisor_indexes.sql` | Scope-/instance-indexen voor `process_leave_subjects`. |
+| `20260917154313` | `ess_mss_workflow_unification_v1_wrapper_execution.sql` | Authenticated execution voor bestaande server-side workflow wrappers. |
+| `20260917172335` | `add_employee_activation_invitation_purpose.sql` | Activation-purpose in de invitation lifecycle. |
+| `20260917172342` | `expand_employee_invitation_purpose_constraint.sql` | Constraint-uitbreiding voor het nieuwe purpose. |
+| `20260917172549` | `focus_identity_preboarding_access.sql` | Preboarding identity/access guards en allowlisted self-permissions. |
+| `20260918090701` | `focus_access_management.sql` | `employee_ess_access`, portal modes, RLS en guarded status-RPC. |
+| `20260918094122` | `focus_no_employment_selfservice_hardening.sql` | No-employment/preboarding en blocked-ESS enforcement in permission checks. |
+
+DEV-readback bevestigt RLS op de betrokken featuretabellen, waaronder
+`employee_ess_access`, `process_leave_subjects`, `process_instances`,
+`process_work_items`, `leave_requests`, `leave_request_allocations`,
+`leave_balance_buckets` en `leave_accrual_transactions`. De gegenereerde
+`packages/db/types.ts` is in deze convergence opnieuw rechtstreeks uit DEV
+gegenereerd. Omdat DEV de bestaande lokale `company_activities`-migration niet
+bevat, blijft de eerder gedocumenteerde local-only compatibility type daarvoor
+behouden; er zijn geen generated definities uit de twee branchversies
+handmatig samengevoegd. Er is in deze run geen migration toegepast, gereset of
+opnieuw afgespeeld. Production is niet aangeraakt.
+
+De laatste Supabase-advisorreadback is projectbreed: security meldt `11`
+INFO voor RLS zonder policy, `4` WARN voor anon-uitvoerbare SECURITY DEFINER,
+`90` WARN voor authenticated-uitvoerbare SECURITY DEFINER en `1` WARN voor
+leaked-password protection. Performance meldt `142` INFO unindexed foreign
+keys, `402` INFO unused indexes en `32` WARN multiple permissive policies.
+De featuretabellen hebben geen nieuwe ontbrekende-RLS- of anon-finding in deze
+readback; bestaande projectbrede findings zijn niet blind onderdrukt of
+opgeruimd.
+
+### Huidige acceptance- en gate-status
+
+- Gerichte convergence-tests: `9` bestanden, `41/41` tests groen; hieronder
+  vallen Focus access/presentation, blocked-role precedence, preview-cookie,
+  auth-regressie en alle genormaliseerde migration contracts.
+- Volledige technische gates: hr-suite `415/415` testbestanden en
+  `1657/1657` tests, strict TypeScript, ESLint, `git diff --check`, i18n met
+  `39` gelijke NL/EN-namespaces en Webpack production build met `289/289`
+  pagina's zijn groen.
+- DEV Leave-precondition is coherent voor Noah Hendriks / `DEMO-035`: request
+  `9df4d793-3296-4324-855f-8ef458438096` staat op `PENDING` met `480` minuten;
+  de process instance staat op `RUNNING` bij `manager-approval`, work item
+  `8dfa04a5-05a6-4104-a6ca-fa5e3828860f` is `OPEN`, en er zijn geen balance-
+  bucket- of accrual-transacties. De noodzakelijke opening balance is daarom
+  nog niet aanwezig.
+- De lokale app startte vanuit deze worktree op `http://localhost:3000` en
+  `/login` gaf HTTP 200. De veilige bestaande auth-profile kon niet door
+  `agent-browser` worden gestart: na de voorgeschreven diagnose faalde één
+  gerichte retry opnieuw met `CDP response channel closed`. Focus-authenticated
+  acceptance en de geautoriseerde Leave-UI-flow zijn daarom
+  **BLOCKED BY ENVIRONMENT**; er is geen directe ledger/SQL-mutatie als
+  workaround uitgevoerd.
+- Nog open: authenticated Focus persona/negative matrix, één bounded opening
+  balance via de canonieke UI gevolgd door één Leave happy path met persisted
+  readback, en één `REQUEST_CHANGES` recovery-scenario. Deze open gates blokkeren
+  elke claim van release-, main-, Vercel- of Production-groen.
+- De canonical `apps/hr-suite/.env.local` bleef buiten Git en buiten de
+  documentatie; voor deze worktree is alleen een genegeerde lokale testkopie
+  gebruikt. Geen secretwaarde is gelezen naar output of bewijs.
+
 ## AI-consolidatie — 2026-09-16
 
 **Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD**
@@ -3368,9 +3501,47 @@ Roosterdagen interpreteren `uu,mm`, `uu:mm` en `uu.mm` als uren en minuten: `7,3
 - DEV acceptance via HR Admin UI is geslaagd voor Planeten: `Standaard verlof Planeten` is actief en standaard; `Test afwijkend verlofprofiel` is actief en niet-standaard; `Test afwijkende regeling` is actief met prioriteit 10 en gekoppeld aan het afwijkende profiel. De type-detailpagina toont geen no-default-warning meer.
 - Beperkte remote readback bevestigt migration aanwezig, index en trigger aanwezig, save-RPC `SECURITY INVOKER` met alleen authenticated execute, Planeten 2 profielen/1 default/1 set, `TEST-BOUNDARY` 0 employees/0 employments en Test BV 0 tenants. Supabase typegen is uitgevoerd en het nieuwe RPC-type matcht `packages/db/types.ts`; advisors tonen alleen bestaande projectbrede waarschuwingen/INFO’s.
 - Verificatie: targeted leave/schema/migration tests 17/17, volledige Vitest 1381/1382 met één bestaande Document Studio contracttestfailure, strict TypeScript, ESLint, i18n, diff-check en Webpack-productiebuild groen. Een frisse HR Admin-browserrun heeft geen console errors; Manager/Medewerker negative acceptance is groen. Turbopack faalt alleen door de bekende ongeldige worktree `node_modules/next`-symlink. Push/deploy en membership van een synthetic employee zijn niet uitgevoerd.
+
+## Focus + Identity / Preboarding — 2026-09-17
+
+- Geïsoleerde candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\focus-identity-preboarding-20260917`, branch `work/focus-identity-preboarding-20260917`, exact base `origin/main` `6f9f61b85d2b488557d066fcabdbb39e60f2b39b`.
+- Scope: `/focus` employee/manager/preboarding presentation, explicit browser Focus/Full preference, existing Journey projection seam, invitation list/individual resend/revoke, three-step bulk invitation wizard, 7-day token lifetime, `/focus` post-acceptance routing, effective-dated preboarding transition and server/RLS allowlist.
+- Reused existing Employee/Employment, Journey projection, Auth/invitation, `user_access`/HR-group and Foundation components. No parallel identity, workflow, Leave, Actual Work, My Work or My Requests domain was added.
+- Review-remediatie: preboarding evaluation is nu tenant/HR-group scoped in `current_employee_is_preboarding`, alle actuele employee/employment/organization/custom-field/subresource callers gebruiken de row-scope, en de legacy employee selector prefereert een actieve employment boven een future-only link. De cross-tenant contracttest borgt de tenant-B-versus-actieve-tenant-A-regel; RLS is niet versoepeld.
+- Review-remediatie: revoked is uitsluitend een invitation lifecycle-status; BLOCKED is uit deze V1-presentatie verwijderd totdat canonical account access blocking bestaat. Employee detail heeft nu de HR-only access surface met status, ontvanger, purpose, expiry, send/resend/revoke. Bulk invitations onderscheiden `EMPLOYEE_ACTIVATION` van `PREBOARDING_EMPLOYEE`; language grouping en fixed mail previews zijn toegevoegd.
+- Round-2 trust boundary: `/api/invitations/employee` accepteert alleen `employeeId`. De server resolveert onder de exacte authenticated tenant + actieve HR-groep de employee, canonical private email, confirmed employments, effectieve purpose, global `EMPLOYEE` role en tenant-scope; daarna gebruikt hij dezelfde bestaande invitation primitive. Bulk stuurt alleen employee IDs en gebruikt dezelfde primitive per employee. De business route blijft afzonderlijk `BUSINESS_USER`-gebaseerd. Crafted email/purpose/role/scope, cross-tenant/cross-group en duplicate-active-identity regressies zijn negatief getest.
+- Migration proof: `internal_security.current_employee_id(uuid, uuid)` is in repository history bewezen in `apps/hr-suite/supabase/migrations/20260805200000_hr_group_people_organization_roles.sql:205-226`; de definitie filtert op `auth.uid()`, tenant en HR-groep en grant alleen `authenticated`. De Focus migration gebruikt deze bestaande overload; het contracttest leest de historische bron en controleert tegelijk de Focus-callers.
+- Local verification: current targeted review/security set `20 bestanden / 107 tests` groen. De volledige HR-suite is met `--testTimeout=30000` volledig groen: `407/407` bestanden en `1621/1621` tests; de standaard 5s-run raakte alleen de bestaande PDF-render timeout. Strict TypeScript, ESLint, i18n parity `38 namespaces`, `git diff --check` en Webpack-productiebuild (`284` static pages) zijn groen. De standaard Turbopack-build blijft geblokkeerd door de bekende ongeldige worktree-`node_modules/next`-symlink.
+- Authenticated browseracceptance is open omdat de beschermde root-`.env.local` niet naar deze worktree is gekopieerd. De anonieme lokale smoke gaf `500` door ontbrekende Supabase-configuratie in middleware. `supabase db lint --local` kon na de telemetry-blocker niet verder omdat lokale Postgres op `127.0.0.1:54322` niet draait; de nieuwe migrations zijn niet toegepast en remote advisors/typegen zijn niet geclaimd.
+- Bewust deferred: per-invite editable introduction text, omdat Supabase `inviteUserByEmail` geen veilig per-invite template-/tekstkanaal biedt; de review toont de feitelijke NL/EN preview en markeert dat de canonical Auth-template de activatielink/security-copy beheert. Leave/Actual Work/My Work/My Requests blijven bij de ESS/MSS-integratierun.
+- Protected `apps/hr-suite/.env.local`, `apps/hr-suite/next-env.d.ts`, root/main and the parallel ESS/MSS worktree remain outside scope. No remote DB write, Production change or Vercel deployment was performed.
+
+## Focus completion + act-as + absence — 2026-09-19
+
+- Status: **LOCAL CODE GATE GREEN; DEV SCHEMA APPLY AND DB-BACKED ABSENCE ACCEPTANCE BLOCKED BY PRE-EXISTING MIGRATION HISTORY DRIFT; BASE FOCUS BROWSERGATE REMAINS SEPARATE**.
+- Candidate: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\focus-completion-act-as-20260918`, branch `work/focus-completion-act-as-20260918`, baseline `3bd31746ff40dbfcc2de54f8957379f3a8f23d61`, current HEAD `5d6a165f35f274e400d447f3dec22d511220d879`. The parallel convergence worktree and canonical root `.env.local` were not changed.
+- Implemented: native Focus routes and mobile navigation; fixed bottom-right quick actions; employee leave and date-only sickness entry; manager team day view and absence entry seam; compact hours entry reusing Actual Work; process/request views; safe profile/documents/directory projections; short-lived audited act-as routing and banner; server-side absence confirmation seam and RLS migration.
+- Absence state model: `absence_cases` plus the canonical `absence_spells` remain the only absence truth. Employee self-report and administrative correction reuse that case/spell and set `pending_confirmation=true` with an `absence_confirmations` envelope in `PENDING` or `CORRECTION_REQUESTED`. Pending cases are operationally AFWEZIG for staffing, availability, Team and Manager Home, but remain excluded from formal absence-KPI/report reads. Manager `Bevestigen` clears the pending flag and marks the envelope `CONFIRMED` idempotently; manager/HR direct report writes an active case without Employee-style confirmation.
+- Absence UX/privacy: self-report is exposed only when both `self:absence:write` and `absence_settings.employee_self_report_enabled` are true. `/focus/ziek` and the report API fail closed when either gate is absent. Employee Focus is first-sickness-date-only and has no recovery action. `/focus/werk` shows the scoped employee name, `Ziekmelding`, start date, `Bevestigen` and `Terugsturen voor correctie`; no medical data or free-text reason is accepted. Optional `expectedRecoveryOn` maps only from manager/HR flows to `absence_spells.expected_recovery_on`. Recovery reuses `/api/absence/recovery` and `recover_absence`; colleague projections remain PRESENT/ABSENT only.
+- Manager Home is Manager-only and direct-team scoped. It renders exactly `Ziek in mijn team` and `Op vakantie deze week`; sick days use inclusive `firstAbsenceOn` → today, while vacation uses approved Leave allocations classified by `leave_types.family = VACATION`, the NL Monday-Sunday week, partial-day modes and full approved date ranges. Act-as Employee receives neither card nor manager controls.
+- Runtime hardening: Team no longer performs the timed-out nested work-pattern relation query; it uses the canonical schedule projection for the team calendar. Focus hours gracefully shows an empty state when the current fixture has no Actual Work employment projection, and manager requests remain visible when the canonical process read permission is available.
+- Verification: focused absence/Focus set `38/38` tests are green, including the Manager Home read model, NL week/day calculations, vacation family filtering, Manager cards and Act-as suppression. Full HR Vitest is `419/419` files and `1.675/1.675` tests; strict TypeScript, ESLint, i18n parity (`39 namespaces`), `git diff --check` and Next/Turbopack production build (`296/296 static pages`) are green. Authenticated browser and DB-backed write/readback gates remain open.
+- Supabase: migration `20260918203815_focus_completion_act_as_absence.sql` is prepared but not applied. The safe dry-run reached the Supabase CLI but stopped before schema inspection with `LegacyPlatformAuthRequiredError` because no access token is available in this session; no migration repair, `db pull`, DEV mutation, Production mutation, deployment, main integration or push was performed. Repository history documents the known DEV migration-history drift as the next reconciliation gate.
+- Open gate: reconcile the existing DEV migration history with explicit direction, then apply and read back this migration and perform the authenticated permission/settings, pending-confirmation, manager-work, correction, recovery and privacy acceptance. Branch push, merge, main, Production and deployment remain out of scope.
 ## Conversational AI V2 human-acceptance fix round — 2026-09-14
 
 - Branch blijft `work/ai-gpt-live`; `main` en `work/leave-profile-management` zijn niet aangeraakt. De GPT-Live WebRTC-create payload gebruikt nu uitsluitend de actuele Live-vorm `POST /v1/live/sessions` met `session.model = gpt-live-1` en `transport.type = webrtc`; het verouderde `session.type` is verwijderd. Providerfouten bewaren alleen status, API-family/endpoint, model, request-ID en veilige OpenAI-foutmetadata.
 - De bestaande Team- en Employee-voice-delegatie bevat nu daarnaast de smalle `create_personal_reminder`-capability. Deze roept uitsluitend de bestaande actor-gebonden `createPersonalReminder`-service aan, vereist een expliciete/aanvaarde bevestiging en absolute toekomstige timestamp, accepteert geen tenant-, actor-, employee-, team- of department-targets en gebruikt geen HR-reminder/publish-pad. De capability schrijft geen Liquid Credits; een veilige auditregel bevat alleen bron/capability/actor/reminder/statusmetadata.
 - De Start-page logbook-preview laadt server-side alleen tellingen en laatste timestamp. Notitie-inhoud komt pas na expliciete `Toon recente notities`-actie in de client; `Verberg inhoud` wist de clientstaat. De bestaande Logbook CRUD-flow is in een schone Manager-browserflow opnieuw gecontroleerd met POST/PATCH/DELETE 201/200/200 en zonder applicatie-consolefouten. Het eerder gemelde `startTime`/VM32-signaal kwam niet uit LiquidHR-appscripts en is niet als productbug gereproduceerd.
 - Verificatie kandidaat: gerichte voice/reminder/start-page tests 41/41, strict TypeScript, lint, i18n (36 namespaces) en Next production build groen. Volledige suite: 1.416/1.418 tests groen; de twee bekende niet-gerelateerde failures blijven de Document Studio CASE-contracttest en de 5s PDF-render-timeout. Open vóór eindacceptatie: één replacement Preview, authenticated Team/Employee smoke, en menselijke Manager/HR-microfoon/audio-acceptatie inclusief tool flows, interruption en console/network review.
+
+## Focus access management — 2026-09-18
+
+- Geïsoleerde worktree: `C:\Users\Edwin\Documents\Apps\LiquidHR\.codex-worktrees\focus-access-management-20260918`; branch `work/focus-access-management-20260918`; exact base `5ab7496204ffd0ec4defb99a219997908b5fb815`.
+- Scope afgerond: Employee Detail heeft de complete LiquidHR-toegangssurface; individuele en bulk employee invitations gebruiken de server-canonical employee-activation primitive; invitation lifecycle blijft gescheiden van employee ESS access. ESS blokkeren/deblokkeren gebruikt uitsluitend `employee_ess_access` en de bestaande permission/RLS-grenzen; `user_access` en Auth worden niet gemuteerd. Last successful login komt uit canonical Supabase Auth. HR Admin heeft een read-only `/focus/preview/[employeeId]`-pad met signed, kortlevende preview-cookie en server-side read-only enforcement.
+- Portal modes zijn toegevoegd aan `hr_groups`: `employee_portal_mode` en `manager_portal_mode`. Focus/Full wordt server-side afgeleid; opgeslagen Full-voorkeuren overrulen geen `FOCUS_ONLY`, en `NO_EMPLOYMENT`, PREBOARDING en geblokkeerde ESS-contexten krijgen geen gewone Employee ESS-capability-surface.
+- DEV-readback: migrations zijn na expliciete autorisatie toegepast op Supabase DEV-project `wnpfloqpjvaacobppbk`. Remote history registreert `20260918090701 focus_access_management` en `20260918094122 focus_no_employment_selfservice_hardening`. Readback bevestigde de tenant + HR-group guards, future-employment guard en blocked-ESS guard in de scoped permission function, plus aanwezigheid van de bestaande `internal_security.current_employee_id(uuid, uuid)` overload. Geen Production-migratie, Vercel-deploy of andere-worktree-mutatie.
+- Supabase typegen is opnieuw uitgevoerd naar `packages/db/types.ts`; de bestaande application-compatibility type voor `company_activities` is behouden omdat die niet door de DEV-generator wordt geëxporteerd. Supabase advisors zijn uitgevoerd: alleen projectbrede bestaande waarschuwingen/INFO’s blijven zichtbaar; de nieuwe `employee_ess_access` kreeg geen ontbrekende-RLS-policy finding. De nieuwe scope-index verschijnt uitsluitend als verwachte unused-index INFO zolang de tabel nog weinig verkeer heeft.
+- Verificatie: targeted review/security `12 bestanden / 58 tests`; volledige Vitest `410 bestanden / 1.634 tests`; strict TypeScript, ESLint, i18n-pariteit (`38 namespaces`), `git diff --check` en Next/Webpack-productiebuild (`286/286 static pages`) zijn groen.
+- Browser: authenticated hosted acceptance is environment-gated. De bestaande `agent-browser` harness sloot herhaaldelijk het CDP response channel voordat de flow kon starten. Er zijn geen Auth-users, invitations, tokens, fixturedata of SMTP-/mailinstellingen gemuteerd; de eerder gesloten Pien Preboarding-gate blijft gesloten.
+- Bewust deferred naar de parallelle ESS/MSS-run: backend-integratie van Leave, Actual Work, My Work en My Requests en gedeelde work-item adapters. Editable per-invite introduction blijft deferred omdat `inviteUserByEmail` geen veilig per-invite template-/tekstkanaal biedt; de review gebruikt de feitelijke vaste NL/EN canonical mail preview.

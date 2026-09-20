@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const sql = readFileSync('supabase/migrations/20260907071315_document_generation_dg2_dg3_distribution_signing.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20260907085714_document_generation_dg2_dg3_distribution_signing.sql', 'utf8')
 
 describe('DG2/DG3 distribution and signing migration contract', () => {
   it('adds scoped batch distribution around immutable DG1 snapshots', () => {

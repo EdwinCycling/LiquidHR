@@ -231,3 +231,4 @@ $$;
 
 revoke all on function public.create_employee_address_with_reminders(uuid, uuid, uuid, text, text, text, text, text, text, text, text, text, text, text, date, date, text[]) from public, anon;
 grant execute on function public.create_employee_address_with_reminders(uuid, uuid, uuid, text, text, text, text, text, text, text, text, text, text, text, date, date, text[]) to authenticated;
+

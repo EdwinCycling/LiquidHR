@@ -19,6 +19,8 @@ type ActualWorkBulkLimit = Pick<Tables<'actual_work_type_limits'>, 'limit_scope'
 type ActualWorkBulkSchedule = Pick<Tables<'employment_schedules'>, 'employment_id' | 'valid_from' | 'valid_until' | 'part_time_factor' | 'fulltime_hours_per_week' | 'average_hours_per_week'>
 type ActualWorkAuth = Awaited<ReturnType<typeof authForGroup>>
 
+export type ActualWorkReadDependencies = ActualWorkAuth
+
 export type ActualWorkBulkProjection = {
   month: string
   days: string[]
@@ -248,8 +250,8 @@ export type ActualWorkEmployeeProjection = {
   schedule: Pick<Tables<'employment_schedules'>, 'valid_from' | 'valid_until' | 'part_time_factor' | 'fulltime_hours_per_week' | 'average_hours_per_week' | 'monday_hours' | 'tuesday_hours' | 'wednesday_hours' | 'thursday_hours' | 'friday_hours' | 'saturday_hours' | 'sunday_hours'>[]
 }
 
-export async function getActualWorkEmployeeProjection(input: { employeeId: string; employmentId?: string; month: string }): Promise<ActualWorkEmployeeProjection> {
-  const { context, hrGroupId, supabase } = await authForGroup('leave:read', input.employeeId)
+export async function getActualWorkEmployeeProjection(input: { employeeId: string; employmentId?: string; month: string }, dependencies?: ActualWorkReadDependencies): Promise<ActualWorkEmployeeProjection> {
+  const { context, hrGroupId, supabase } = dependencies ?? await authForGroup('leave:read', input.employeeId)
   const from = monthStart(input.month)
   const to = addMonth(from)
   let employmentQuery = supabase.from('employments').select('id,employee_id,administration_id,starts_on,ends_on').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('employee_id', input.employeeId).eq('record_status', 'CONFIRMED').is('deleted_at', null)

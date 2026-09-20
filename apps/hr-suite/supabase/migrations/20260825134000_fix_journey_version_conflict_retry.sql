@@ -43,3 +43,4 @@ begin
   return jsonb_build_object('id', journey_row.id, 'status', journey_row.status, 'version', journey_row.version);
 end;
 $$;
+

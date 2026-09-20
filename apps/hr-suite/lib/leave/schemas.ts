@@ -55,6 +55,7 @@ const leaveTypeInput = z.object({
   id: z.string().trim().min(1).max(100).optional(),
   name: z.string().trim().min(1).max(160),
   colorCode: z.string().trim().min(1).max(32),
+  family: z.enum(['VACATION', 'OTHER']).default('OTHER'),
   entitlementMode: z.enum(['ACCRUAL', 'UNLIMITED', 'ANNUAL_HOURS_CAP', 'ANNUAL_HOURS_FTE_CAP', 'OVERTIME_HOURS']),
   annualHoursCap: z.number().finite().nonnegative().nullable().optional(),
   annualHoursFteCap: z.number().finite().nonnegative().nullable().optional(),

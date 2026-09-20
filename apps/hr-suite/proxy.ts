@@ -55,7 +55,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === '/login' && isAuthenticated) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard/start'
+    url.pathname = '/focus'
     return NextResponse.redirect(url)
   }
 

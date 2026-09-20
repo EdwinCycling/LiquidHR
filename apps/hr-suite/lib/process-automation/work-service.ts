@@ -14,6 +14,7 @@ const workItemSchema = z.object({
   processKey: z.string(),
   processTitle: z.string(),
   subjectEmployeeId: databaseUuidSchema.nullable(),
+  subjectEmploymentId: databaseUuidSchema.nullable(),
   subjectName: z.string().nullable(),
   stepKey: z.string(),
   stepTitle: z.string(),
@@ -36,6 +37,10 @@ const workItemSchema = z.object({
   canAct: z.boolean(),
   canClaim: z.boolean(),
   isOverdue: z.boolean(),
+  businessType: z.enum(['P_MUTATION', 'LEAVE', 'ACTUAL_WORK', 'OTHER']),
+  businessCategory: z.enum(['GENERAL', 'INTERNAL_TRANSFER', 'DOCUMENT_ACKNOWLEDGEMENT', 'LEAVE_REQUEST', 'ACTUAL_WORK_ENTRY']),
+  businessStatus: z.string(),
+  leaveRequestId: databaseUuidSchema.nullable(),
 }).strict()
 
 const workListSchema = z.object({
@@ -125,6 +130,29 @@ const workDetailSchema = z.object({
   steps: z.array(detailStepSchema),
   workItems: z.array(detailWorkItemSchema),
   timeline: z.array(timelineEventSchema),
+  businessType: z.enum(['P_MUTATION', 'LEAVE', 'ACTUAL_WORK', 'OTHER']),
+  businessCategory: z.enum(['GENERAL', 'INTERNAL_TRANSFER', 'DOCUMENT_ACKNOWLEDGEMENT', 'LEAVE_REQUEST', 'ACTUAL_WORK_ENTRY']),
+  businessStatus: z.string(),
+  leaveRequestId: databaseUuidSchema.nullable(),
+  leaveRequest: z.object({
+    id: databaseUuidSchema,
+    employeeId: databaseUuidSchema,
+    employmentId: databaseUuidSchema,
+    requestMode: z.enum(['PRIORITY', 'DIRECT']),
+    priorityRuleId: databaseUuidSchema.nullable(),
+    priorityRuleName: z.string().nullable(),
+    leaveTypeId: databaseUuidSchema.nullable(),
+    leaveTypeName: z.string().nullable(),
+    startDate: z.string(),
+    endDate: z.string(),
+    timeMode: z.enum(['FULL_DAY', 'MORNING', 'AFTERNOON', 'SPECIFIC_HOURS']),
+    specificStart: z.string().nullable(),
+    specificEnd: z.string().nullable(),
+    requestedMinutes: z.number().int().positive(),
+    status: z.enum(['PENDING', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED']),
+    source: z.string(),
+    updatedAt: z.string(),
+  }).nullable(),
 }).strict()
 
 export type ProcessWorkItem = z.infer<typeof workItemSchema>
@@ -140,11 +168,15 @@ export interface ProcessWorkAssignmentOption {
 }
 export type ProcessWorkTab = 'TODO' | 'CLAIMED' | 'WAITING' | 'COMPLETED' | 'ALL'
 export type ProcessWorkSort = 'NEEDS_ACTION' | 'DEADLINE'
+export type ProcessWorkView = 'WORK' | 'REQUESTS'
+export type ProcessWorkBusinessType = 'P_MUTATION' | 'LEAVE' | 'ACTUAL_WORK' | 'OTHER'
+export type ProcessWorkBusinessCategory = 'GENERAL' | 'INTERNAL_TRANSFER' | 'DOCUMENT_ACKNOWLEDGEMENT' | 'LEAVE_REQUEST' | 'ACTUAL_WORK_ENTRY'
 
 export type ProcessWorkTabCounts = Record<ProcessWorkTab, number>
 
 export interface ProcessWorkListInput {
   readonly hrGroupId?: string
+  readonly view?: ProcessWorkView
   readonly administrationId?: string
   readonly tab?: ProcessWorkTab
   readonly search?: string
@@ -152,6 +184,8 @@ export interface ProcessWorkListInput {
   readonly processDefinitionId?: string
   readonly subjectEmployeeId?: string
   readonly subjectEmploymentId?: string
+  readonly businessType?: ProcessWorkBusinessType
+  readonly businessCategory?: ProcessWorkBusinessCategory
   readonly language: 'nl' | 'en'
   readonly sort?: ProcessWorkSort
   readonly limit?: number
@@ -219,41 +253,30 @@ async function authorizedClient(dependencies?: ProcessWorkDependencies) {
 export async function listProcessWork(input: ProcessWorkListInput, dependencies?: ProcessWorkDependencies): Promise<ProcessWorkList> {
   const { supabase, context } = await authorizedClient(dependencies)
   const pagination = boundedPagination(input)
-  const administrationFiltered = Boolean(input.administrationId)
   const request = {
-    requested_hr_group_id: input.hrGroupId ?? context.hrGroupId!,
-    requested_administration_id: input.administrationId,
+    requested_hr_group_id: context.hrGroupId!,
+    requested_view: input.view ?? 'WORK',
     requested_tab: input.tab ?? 'TODO',
     requested_search: input.search?.trim() || undefined,
     requested_status: input.status || undefined,
+    requested_business_type: input.businessType,
+    requested_business_category: input.businessCategory,
     requested_process_definition_id: input.processDefinitionId,
+    requested_administration_id: input.administrationId,
     requested_language: input.language,
     requested_sort: input.sort ?? 'NEEDS_ACTION',
-    // De bestaande administratie-wrapper filtert pas na het pagineren. Lees
-    // daarom eerst het ondersteunde maximum en pas daarna de gevraagde pagina.
-    requested_limit: administrationFiltered ? 200 : pagination.limit,
-    requested_offset: administrationFiltered ? 0 : pagination.offset,
+    requested_limit: pagination.limit,
+    requested_offset: pagination.offset,
   }
-  const { data, error } = input.subjectEmploymentId
-    ? await supabase.rpc('get_process_work_projection_for_employment', {
-      ...request,
-      requested_employment_id: input.subjectEmploymentId,
-    })
-    : await supabase.rpc('get_process_work_projection_with_administration', {
-      ...request,
-      requested_subject_employee_id: input.subjectEmployeeId,
-    })
+  const { data, error } = await supabase.rpc('get_unified_process_work_projection', {
+    ...request,
+    requested_subject_employee_id: input.subjectEmployeeId,
+    requested_subject_employment_id: input.subjectEmploymentId,
+  })
   if (error) throwRpcError(error.message)
   const parsed = workListSchema.safeParse(data)
   if (!parsed.success) throw new ProcessWorkError('PROCESS_WORK_PROJECTION_FAILED', 500)
-  if (!administrationFiltered) return parsed.data
-
-  const items = parsed.data.items.slice(pagination.offset, pagination.offset + pagination.limit)
-  return {
-    items,
-    total: parsed.data.total,
-    hasMore: parsed.data.total > pagination.offset + pagination.limit,
-  }
+  return parsed.data
 }
 
 export async function listProcessWorkTabCounts(
@@ -297,7 +320,7 @@ export async function listProcessWorkFilterOptions(dependencies?: ProcessWorkDep
 
 export async function getProcessWorkItemDetail(workItemId: string, language: 'nl' | 'en'): Promise<ProcessWorkDetail> {
   const { supabase } = await authorizedClient()
-  const { data, error } = await supabase.rpc('get_process_work_item_detail', {
+  const { data, error } = await supabase.rpc('get_unified_process_work_item_detail', {
     requested_work_item_id: workItemId,
     requested_language: language,
   })
@@ -309,7 +332,7 @@ export async function getProcessWorkItemDetail(workItemId: string, language: 'nl
 
 export async function getProcessWorkItemAssignmentOptions(workItemId: string): Promise<ReadonlyArray<ProcessWorkAssignmentOption>> {
   const { supabase } = await authorizedClient()
-  const { data: detailData, error: detailError } = await supabase.rpc('get_process_work_item_detail', {
+  const { data: detailData, error: detailError } = await supabase.rpc('get_unified_process_work_item_detail', {
     requested_work_item_id: workItemId,
     requested_language: 'nl',
   })

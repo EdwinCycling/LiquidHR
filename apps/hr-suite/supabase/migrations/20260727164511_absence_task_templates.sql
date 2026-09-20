@@ -21,25 +21,20 @@ create table public.absence_task_templates (
   constraint absence_task_templates_evidence_required_check check (not evidence_required or evidence_category is not null),
   constraint absence_task_templates_source_guard check ((source = 'SYSTEM') = is_system),
   constraint absence_task_templates_validity_check check (valid_until is null or valid_from is null or valid_until > valid_from)
-);
-
+)
 create index absence_task_templates_administration_active_idx
-  on public.absence_task_templates (tenant_id, administration_id, is_active, due_after_effective_days);
-
-alter table public.absence_task_templates enable row level security;
-
+  on public.absence_task_templates (tenant_id, administration_id, is_active, due_after_effective_days)
+alter table public.absence_task_templates enable row level security
 create policy absence_task_templates_select on public.absence_task_templates
   for select to authenticated
-  using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:read')));
-
+  using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:read')))
 create policy absence_task_templates_insert on public.absence_task_templates
   for insert to authenticated
   with check (
     source = 'CUSTOM'
     and is_system = false
     and (select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:write'))
-  );
-
+  )
 create policy absence_task_templates_update on public.absence_task_templates
   for update to authenticated
   using (
@@ -51,15 +46,12 @@ create policy absence_task_templates_update on public.absence_task_templates
     source = 'CUSTOM'
     and is_system = false
     and (select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:write'))
-  );
-
-grant select, insert, update on table public.absence_task_templates to authenticated;
-revoke all on table public.absence_task_templates from anon;
-
+  )
+grant select, insert, update on table public.absence_task_templates to authenticated
+revoke all on table public.absence_task_templates from anon
 create trigger absence_task_templates_updated_at
   before update on public.absence_task_templates
-  for each row execute function internal_security.set_updated_at();
-
+  for each row execute function internal_security.set_updated_at()
 create trigger absence_task_templates_audit
   after insert or update on public.absence_task_templates
-  for each row execute function internal_security.audit_hr_change('absence_task_template');
+  for each row execute function internal_security.audit_hr_change('absence_task_template')

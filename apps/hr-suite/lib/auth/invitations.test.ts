@@ -33,6 +33,16 @@ describe('validateInvitationRules', () => {
     })).toEqual({ ok: false, code: 'EMPLOYEE_REQUIRED' })
   })
 
+  it('accepteert normale medewerkeractivatie zonder preboarding-purpose', () => {
+    expect(validateInvitationRules({
+      purpose: 'EMPLOYEE_ACTIVATION',
+      emailKind: 'PRIVATE',
+      employeeId: '11111111-1111-1111-1111-111111111111',
+      administrationId: null,
+      scopeType: 'TENANT',
+    })).toEqual({ ok: true })
+  })
+
   it('vereist een administratie voor administratiescope', () => {
     expect(validateInvitationRules({
       purpose: 'BUSINESS_USER',
@@ -66,6 +76,6 @@ describe('invitation token', () => {
   it('bouwt een veilige redirect naar de acceptatiepagina', () => {
     const url = buildInvitationRedirectUrl('https://preview.liquid-hr.example', 'a+b/c=')
 
-    expect(url).toBe('https://preview.liquid-hr.example/invite/accept?invitation=a%2Bb%2Fc%3D')
+    expect(url).toBe('https://preview.liquid-hr.example/invite/a%2Bb%2Fc%3D')
   })
 })

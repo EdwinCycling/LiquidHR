@@ -14,7 +14,7 @@ type RequestMode = 'PRIORITY' | 'DIRECT'
 type TimeMode = 'FULL_DAY' | 'MORNING' | 'AFTERNOON' | 'SPECIFIC_HOURS'
 type EmploymentOption = LeaveRequestPreview['employmentSelection']['options'][number]
 
-type Labels = {
+export type LeaveRequestDialogLabels = {
   title: string
   description: string
   employment: string
@@ -58,15 +58,26 @@ export function LeaveRequestDialog({
   locale,
   labels,
   onClose,
+  submitPath = '/api/leave/request',
+  previewPath = '/api/leave/request/preview',
+  allowStartDateChange = false,
+  requestContext,
+  onSuccess,
 }: {
   employeeId: string
   startDate: string
   initialMode: RequestMode
   locale: Locale
-  labels: Labels
+  labels: LeaveRequestDialogLabels
   onClose: () => void
+  submitPath?: string
+  previewPath?: string
+  allowStartDateChange?: boolean
+  requestContext?: { actAsToken?: string | null }
+  onSuccess?: () => void
 }) {
   const [mode, setMode] = useState<RequestMode>(initialMode)
+  const [requestStartDate, setRequestStartDate] = useState(startDate)
   const [endDate, setEndDate] = useState(startDate)
   const [timeMode, setTimeMode] = useState<TimeMode>('FULL_DAY')
   const [specificStart, setSpecificStart] = useState('09:00')
@@ -81,10 +92,11 @@ export function LeaveRequestDialog({
 
   useEffect(() => {
     const controller = new AbortController()
-    const params = new URLSearchParams({ employeeId, startDate, mode })
+    const params = new URLSearchParams({ employeeId, startDate: requestStartDate, mode })
     if (endDate) params.set('endDate', endDate)
     if (employmentId) params.set('employmentId', employmentId)
-    fetch(`/api/leave/request/preview?${params.toString()}`, { signal: controller.signal })
+    if (requestContext?.actAsToken) params.set('actAs', requestContext.actAsToken)
+    fetch(`${previewPath}?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json() as unknown
         if (!response.ok) {
@@ -109,7 +121,7 @@ export function LeaveRequestDialog({
         setState('error')
       })
     return () => controller.abort()
-  }, [employeeId, startDate, endDate, employmentId, mode])
+  }, [employeeId, requestStartDate, endDate, employmentId, mode, previewPath, requestContext?.actAsToken])
 
   const selectedType = useMemo(() => preview?.types.find((type) => type.id === leaveTypeId) ?? null, [leaveTypeId, preview])
   const totalMinutes = timeMode === 'FULL_DAY'
@@ -126,8 +138,17 @@ export function LeaveRequestDialog({
   function updateEndDate(value: string): void {
     markDirty()
     setState('loading')
-    setEndDate(value || startDate)
-    if (value !== startDate) setTimeMode('FULL_DAY')
+    setEndDate(value || requestStartDate)
+    if (value !== requestStartDate) setTimeMode('FULL_DAY')
+  }
+
+  function updateStartDate(value: string): void {
+    const nextStartDate = value || startDate
+    markDirty()
+    setState('loading')
+    setRequestStartDate(nextStartDate)
+    setEndDate((current) => current < nextStartDate ? nextStartDate : current)
+    setTimeMode('FULL_DAY')
   }
 
   async function confirm(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -138,7 +159,7 @@ export function LeaveRequestDialog({
     const idempotencyKey = await createLeaveRequestIdempotencyKey([
       employeeId,
       preview.employmentId,
-      startDate,
+      requestStartDate,
       endDate,
       mode,
       selectedOption,
@@ -147,7 +168,7 @@ export function LeaveRequestDialog({
       timeMode === 'SPECIFIC_HOURS' ? specificEnd : '',
     ])
     try {
-      const response = await fetch('/api/leave/request', {
+      const response = await fetch(submitPath, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -156,12 +177,13 @@ export function LeaveRequestDialog({
           mode,
           leaveTypeId: mode === 'DIRECT' ? leaveTypeId : null,
           priorityRuleId: mode === 'PRIORITY' ? priorityRuleId : null,
-          startDate,
-          endDate: endDate || startDate,
+          startDate: requestStartDate,
+          endDate: endDate || requestStartDate,
           timeMode,
           specificStart: timeMode === 'SPECIFIC_HOURS' ? specificStart : null,
           specificEnd: timeMode === 'SPECIFIC_HOURS' ? specificEnd : null,
           idempotencyKey,
+          actAs: requestContext?.actAsToken ?? null,
         }),
       })
       if (!response.ok) {
@@ -170,6 +192,7 @@ export function LeaveRequestDialog({
       }
       setDirty(false)
       setState('success')
+      onSuccess?.()
     } catch {
       setState('error')
     }
@@ -218,8 +241,8 @@ export function LeaveRequestDialog({
           />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField control={<TextInput readOnly type="date" value={startDate} />} label={labels.startDate} />
-            <FormField control={<TextInput min={startDate} onChange={(event) => updateEndDate(event.currentTarget.value)} type="date" value={endDate} />} label={labels.endDate} />
+            <FormField control={<TextInput onChange={(event) => updateStartDate(event.currentTarget.value)} readOnly={!allowStartDateChange} type="date" value={requestStartDate} />} label={labels.startDate} />
+            <FormField control={<TextInput min={requestStartDate} onChange={(event) => updateEndDate(event.currentTarget.value)} type="date" value={endDate} />} label={labels.endDate} />
           </div>
 
           {employmentOptions.length ? (
@@ -267,9 +290,9 @@ export function LeaveRequestDialog({
             }}
             options={[
               { value: 'FULL_DAY', label: labels.fullDay },
-              { disabled: endDate !== startDate, value: 'MORNING', label: labels.morning },
-              { disabled: endDate !== startDate, value: 'AFTERNOON', label: labels.afternoon },
-              { disabled: endDate !== startDate, value: 'SPECIFIC_HOURS', label: labels.specificHours },
+              { disabled: endDate !== requestStartDate, value: 'MORNING', label: labels.morning },
+              { disabled: endDate !== requestStartDate, value: 'AFTERNOON', label: labels.afternoon },
+              { disabled: endDate !== requestStartDate, value: 'SPECIFIC_HOURS', label: labels.specificHours },
             ]}
             value={timeMode}
           />

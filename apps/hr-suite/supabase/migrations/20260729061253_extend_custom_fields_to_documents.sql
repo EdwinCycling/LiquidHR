@@ -1,5 +1,3 @@
--- The document dossier is the second supported custom-field entity. Values are
--- kept on the private document record; they inherit its existing RLS scope.
 alter type public.custom_field_entity_type add value if not exists 'DOCUMENT';
 
 alter table public.employee_documents

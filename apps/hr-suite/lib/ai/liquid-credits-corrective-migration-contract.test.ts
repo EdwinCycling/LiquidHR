@@ -6,7 +6,7 @@ const migration = readFileSync(join(
   process.cwd(),
   'supabase',
   'migrations',
-  '20260828162449_ai_liquid_credits_wave1b_corrective.sql',
+  '20260828142639_ai_liquid_credits_wave1b_corrective.sql',
 ), 'utf8').replace(/\r\n/g, '\n')
 
 const internalFunctions = [

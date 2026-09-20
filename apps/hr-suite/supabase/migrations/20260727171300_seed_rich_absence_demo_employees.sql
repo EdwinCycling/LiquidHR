@@ -593,4 +593,4 @@ begin
     is_system = excluded.is_system,
     created_by_user_id = excluded.created_by_user_id;
 end;
-$$;
+$$

@@ -73,3 +73,4 @@ with check ((select internal_security.current_user_has_permission(
 
 revoke all on public.statutory_minimum_wages from anon;
 grant select, insert, update, delete on public.statutory_minimum_wages to authenticated;
+

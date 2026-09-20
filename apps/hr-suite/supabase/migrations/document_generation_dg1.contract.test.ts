@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-const sql = readFileSync('supabase/migrations/20260904100000_document_generation_dg1.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20260904093131_document_generation_dg1.sql', 'utf8')
 describe('DG1 migration contract', () => {
   it('creates immutable scoped snapshot, idempotency, and dossier storage', () => {
     expect(sql).toContain("create type public.document_generation_status as enum ('PREVIEW', 'FINAL')")

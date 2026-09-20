@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = 'supabase/migrations/20260913100000_leave_accrual_exception_rule_overlay.sql'
+const migrationPath = 'supabase/migrations/20260913123613_leave_accrual_exception_rule_overlay.sql'
 
 describe('Leave accrual exception rule overlay migration', () => {
   it('returns the base rule together with the employment exception overlay', async () => {

@@ -1,5 +1,3 @@
--- Employee notes are a separate, role-controlled employee-level record.
--- Managers can read and edit notes; only HR Admin can delete them.
 insert into public.permissions (code, name, category, description)
 values
   ('employee-note:read', 'Medewerkersnotities bekijken', 'MEDEWERKER', 'Notities op een medewerker bekijken.'),

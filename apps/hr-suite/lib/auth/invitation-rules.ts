@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 
 export type InvitationEmailKind = 'PRIVATE' | 'BUSINESS'
-export type InvitationPurpose = 'PREBOARDING_EMPLOYEE' | 'BUSINESS_USER'
+export type InvitationPurpose = 'PREBOARDING_EMPLOYEE' | 'EMPLOYEE_ACTIVATION' | 'BUSINESS_USER'
 export type InvitationScopeType = 'TENANT' | 'ADMINISTRATION'
 
 export type InvitationRuleErrorCode =
@@ -36,14 +36,20 @@ export interface CreatedInvitation {
 
 export type InvitationErrorCode =
   | InvitationRuleErrorCode
+  | 'EMPLOYMENT_REQUIRED'
+  | 'EMPLOYEE_NOT_FOUND'
+  | 'EMPLOYEE_ALREADY_ACTIVATED'
   | 'INVITATION_ALREADY_PENDING'
+  | 'INVITATION_ALREADY_ACCEPTED'
+  | 'INVITATION_NOT_FOUND'
+  | 'INVITATION_REVOKE_FAILED'
   | 'INVITATION_CREATE_FAILED'
   | 'INVITATION_DELIVERY_FAILED'
 
 export class InvitationError extends Error {
   constructor(
     readonly code: InvitationErrorCode,
-    readonly status: 400 | 409 | 502,
+    readonly status: 400 | 404 | 409 | 502,
   ) {
     super(code)
     this.name = 'InvitationError'
@@ -59,11 +65,11 @@ export function validateInvitationRules(input: InvitationRuleInput): InvitationR
     return { ok: false, code: 'BUSINESS_EMAIL_REQUIRED' }
   }
 
-  if (input.purpose === 'PREBOARDING_EMPLOYEE' && input.emailKind !== 'PRIVATE') {
+  if ((input.purpose === 'PREBOARDING_EMPLOYEE' || input.purpose === 'EMPLOYEE_ACTIVATION') && input.emailKind !== 'PRIVATE') {
     return { ok: false, code: 'PRIVATE_EMAIL_REQUIRED' }
   }
 
-  if (input.purpose === 'PREBOARDING_EMPLOYEE' && !input.employeeId) {
+  if ((input.purpose === 'PREBOARDING_EMPLOYEE' || input.purpose === 'EMPLOYEE_ACTIVATION') && !input.employeeId) {
     return { ok: false, code: 'EMPLOYEE_REQUIRED' }
   }
 
@@ -83,13 +89,12 @@ export function hashInvitationToken(token: string): string {
 }
 
 export function buildInvitationRedirectUrl(origin: string, token: string): string {
-  const url = new URL('/invite/accept', origin)
+  const url = new URL(`/invite/${encodeURIComponent(token)}`, origin)
   const isLocalHttp = url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)
 
   if (url.protocol !== 'https:' && !isLocalHttp) {
     throw new InvitationError('INVITATION_CREATE_FAILED', 400)
   }
 
-  url.searchParams.set('invitation', token)
   return url.toString()
 }

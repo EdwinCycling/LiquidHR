@@ -147,7 +147,7 @@ export async function getAbsenceInsightReport(query: AbsenceInsightQuery): Promi
     supabase.from('departments').select('id,name').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('is_active', true).order('name').limit(500),
     supabase.from('employee_organizations').select('employee_id,employment_id,department_id,effective_from,effective_to').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('administration_id', administrationId).lte('effective_from', query.endDate).or(`effective_to.is.null,effective_to.gte.${query.startDate}`).limit(10000),
     supabase.from('employment_schedules').select('employment_id,schedule_type,monday_hours,tuesday_hours,wednesday_hours,thursday_hours,friday_hours,saturday_hours,sunday_hours,part_time_factor,valid_from,valid_until').eq('tenant_id', context.tenantId).eq('administration_id', administrationId).lte('valid_from', query.endDate).or(`valid_until.is.null,valid_until.gte.${query.startDate}`).limit(10000),
-    supabase.from('absence_cases').select('id,employee_id,employment_id,status,first_absence_on,archived_at').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).is('archived_at', null).lte('first_absence_on', query.endDate).limit(10000),
+    supabase.from('absence_cases').select('id,employee_id,employment_id,status,first_absence_on,archived_at').eq('tenant_id', context.tenantId).eq('hr_group_id', hrGroupId).eq('pending_confirmation', false).is('archived_at', null).lte('first_absence_on', query.endDate).limit(10000),
   ])
   if (employmentResult.error) fail(employmentResult.error)
   if (departmentsResult.error) fail(departmentsResult.error)

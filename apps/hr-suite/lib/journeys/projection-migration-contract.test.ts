@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260812130813_journeys_step3_projection_and_outcomes.sql'), 'utf8')
-const nextActionContractMigration = readFileSync(join(process.cwd(), 'supabase/migrations/20260812161000_journeys_step3_projection_next_action_contract.sql'), 'utf8')
+const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260812134246_journeys_step3_projection_and_outcomes.sql'), 'utf8')
+const nextActionContractMigration = readFileSync(join(process.cwd(), 'supabase/migrations/20260812151101_journeys_step3_projection_next_action_contract_key.sql'), 'utf8')
 
 describe('Journeys stap 3 migratiecontract', () => {
   it('registreert actor permissions en een append-only outcome-tabel met RLS', () => {

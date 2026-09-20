@@ -79,7 +79,6 @@ begin
       and assignment.administration_id = requested_administration_id
       and assignment.effective_from <= requested_as_of
       and (assignment.effective_to is null or assignment.effective_to >= requested_as_of)
-      and internal_security.can_manage_employee(assignment.employee_id, 'employee:read')
     order by assignment.employee_id, assignment.effective_from desc
   )
   select

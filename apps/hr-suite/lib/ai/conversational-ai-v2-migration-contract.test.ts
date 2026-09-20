@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260914100000_conversational_ai_v2_team_logbook.sql'), 'utf8')
+const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260914154120_conversational_ai_v2_team_logbook.sql'), 'utf8')
   .replace(/\r\n/g, '\n')
   .toLowerCase()
 

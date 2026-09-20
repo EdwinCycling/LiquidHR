@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = new URL('../../supabase/migrations/20260830143757_saved_analysis_definitions.sql', import.meta.url)
+const migrationPath = new URL('../../supabase/migrations/20260831093310_20260830143757_saved_analysis_definitions.sql', import.meta.url)
 const migration = readFileSync(migrationPath, 'utf8').replaceAll('\r\n', '\n')
 
 describe('saved analysis migration contract', () => {

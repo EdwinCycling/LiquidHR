@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { AuthorizationError, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
+import { AuthorizationError, getSelfPermissions, requireAuthContext, requireHrGroupId, requirePermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { isAbsenceActualDate } from './engine'
 import { resolveLeaveEmployment, type LeaveEmploymentOption } from '@/lib/leave/employment-resolver'
@@ -74,6 +74,7 @@ export interface AbsenceCaseSummary {
   id: string
   employmentId: string
   status: 'ACTIVE' | 'RECOVERY_WINDOW' | 'CLOSED'
+  pendingConfirmation: boolean
   firstAbsenceOn: string
   effectiveClockStartOn: string
   recoveryWindowEndsOn: string | null
@@ -92,6 +93,7 @@ function mapCase(row: {
   id: string
   employment_id: string
   status: AbsenceCaseSummary['status']
+  pending_confirmation: boolean
   first_absence_on: string
   effective_clock_start_on: string
   recovery_window_ends_on: string | null
@@ -108,6 +110,7 @@ function mapCase(row: {
     id: row.id,
     employmentId: row.employment_id,
     status: row.status,
+    pendingConfirmation: row.pending_confirmation,
     firstAbsenceOn: row.first_absence_on,
     effectiveClockStartOn: row.effective_clock_start_on,
     recoveryWindowEndsOn: row.recovery_window_ends_on,
@@ -150,7 +153,7 @@ export async function listEmployeeAbsence(employeeId: string): Promise<AbsenceCa
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('absence_cases')
-    .select('id,employment_id,status,first_absence_on,effective_clock_start_on,recovery_window_ends_on,closed_at,created_at,has_sickness_benefit_safety_net,is_work_accident,is_third_party_traffic_accident,is_frequent_absence,prior_case_count_12_months,frequent_absence_threshold')
+    .select('id,employment_id,status,pending_confirmation,first_absence_on,effective_clock_start_on,recovery_window_ends_on,closed_at,created_at,has_sickness_benefit_safety_net,is_work_accident,is_third_party_traffic_accident,is_frequent_absence,prior_case_count_12_months,frequent_absence_threshold')
     .eq('tenant_id', auth.tenantId)
     .eq('hr_group_id', hrGroupId)
     .eq('employee_id', employeeId)
@@ -298,10 +301,55 @@ export async function reportEmployeeAbsence(employeeId: string, input: unknown):
   return data
 }
 
+export async function reportFocusEmployeeAbsence(
+  employeeId: string,
+  input: { startDate: string; employmentId?: string; idempotencyKey?: string },
+  context?: Awaited<ReturnType<typeof requirePermission>>,
+): Promise<string> {
+  const auth = context ?? await requirePermission('self:absence:write', employeeId)
+  const permissions = await getSelfPermissions(await createClient(), auth.tenantId)
+  if (!permissions.includes('self:absence:write')) throw new AbsenceServiceError('ABSENCE_SELF_SERVICE_FORBIDDEN', 403)
+  if (auth.employeeId !== employeeId && !auth.permissions.includes('focus:act-as-employee')) throw new AbsenceServiceError('ABSENCE_SELF_SERVICE_FORBIDDEN', 403)
+  if (!auth.hrGroupId) throw new AbsenceServiceError('ABSENCE_GROUP_REQUIRED', 403)
+  const supabase = await createClient()
+  if (auth.employeeId === employeeId) {
+    const settings = await supabase.rpc('get_employee_self_report_enabled', {
+      requested_tenant_id: auth.tenantId,
+      requested_hr_group_id: auth.hrGroupId,
+    })
+    if (settings.error) throw new AbsenceServiceError('ABSENCE_SETTINGS_READ_FAILED', 500)
+    if (settings.data !== true) throw new AbsenceServiceError('ABSENCE_SELF_REPORT_DISABLED', 403)
+  } else {
+    const settings = await supabase.from('absence_settings').select('employee_self_report_enabled').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).maybeSingle()
+    if (settings.error) throw new AbsenceServiceError('ABSENCE_SETTINGS_READ_FAILED', 500)
+    if (!settings.data?.employee_self_report_enabled) throw new AbsenceServiceError('ABSENCE_SELF_REPORT_DISABLED', 403)
+  }
+  const selection = await resolveLeaveEmployment(supabase, auth, employeeId, input.employmentId, input.startDate)
+  if (!selection.employment) {
+    if (!input.employmentId && selection.options.length > 1) throw new AbsenceEmploymentRequiredError(selection.options)
+    throw new AbsenceServiceError('ABSENCE_EMPLOYMENT_INVALID', 422)
+  }
+  assertAbsenceActualDate(input.startDate)
+  const result = await supabase.rpc('report_focus_employee_absence', {
+    requested_tenant_id: auth.tenantId,
+    requested_hr_group_id: auth.hrGroupId,
+    requested_employee_id: employeeId,
+    requested_employment_id: selection.employment.id,
+    requested_start_date: input.startDate,
+    requested_expected_recovery_on: null,
+    requested_idempotency_key: input.idempotencyKey,
+  })
+  if (result.error || typeof result.data !== 'string') throwAbsenceRpcError(result.error, 'ABSENCE_REPORT_FAILED')
+  return result.data
+}
+
 export async function recoverEmployeeAbsence(caseId: string, input: unknown): Promise<string> {
   const parsed = absenceRecoverySchema.parse({ ...(typeof input === 'object' && input !== null ? input : {}), caseId })
   assertAbsenceActualDate(parsed.recoveredOn)
-  await requirePermission('absence:recover')
+  const auth = await requireAuthContext()
+  if (!auth.permissions.includes('absence:recover') && !auth.permissions.includes('self:absence:write')) {
+    throw new AbsenceServiceError('ABSENCE_FORBIDDEN', 403)
+  }
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('recover_absence', {
     requested_case_id: caseId,
@@ -350,6 +398,11 @@ function throwAbsenceRpcError(error: { message?: string } | null, fallback: stri
     'ABSENCE_DATE_IN_FUTURE',
     'ABSENCE_DATE_ORDER_INVALID',
     'ABSENCE_SELF_SERVICE_FIELDS_FORBIDDEN',
+    'ABSENCE_SELF_REPORT_DISABLED',
+    'ABSENCE_SELF_SERVICE_FORBIDDEN',
+    'ABSENCE_CORRECTION_DATE_UNSUPPORTED',
+    'ABSENCE_CONFIRMATION_STATE_INVALID',
+    'ABSENCE_CONFIRMATION_ALREADY_CONFIRMED',
     'ABSENCE_ACTIVE_SPELL_EXISTS',
     'ABSENCE_OVERLAP',
     'ABSENCE_NO_OPEN_SPELL',
@@ -357,6 +410,6 @@ function throwAbsenceRpcError(error: { message?: string } | null, fallback: stri
   ])
   const candidate = error?.message?.trim() ?? ''
   const code = knownCodes.has(candidate) ? candidate : fallback
-  const status = code === 'ABSENCE_FORBIDDEN' ? 403 : code === 'ABSENCE_CASE_NOT_FOUND' ? 404 : code === 'ABSENCE_ACTIVE_SPELL_EXISTS' || code === 'ABSENCE_OVERLAP' || code === 'ABSENCE_IDEMPOTENCY_CONFLICT' ? 409 : code === fallback ? 500 : 422
+  const status = code === 'ABSENCE_FORBIDDEN' || code === 'ABSENCE_SELF_REPORT_DISABLED' || code === 'ABSENCE_SELF_SERVICE_FORBIDDEN' ? 403 : code === 'ABSENCE_CASE_NOT_FOUND' ? 404 : code === 'ABSENCE_ACTIVE_SPELL_EXISTS' || code === 'ABSENCE_OVERLAP' || code === 'ABSENCE_IDEMPOTENCY_CONFLICT' ? 409 : code === fallback ? 500 : 422
   throw new AbsenceServiceError(code, status)
 }

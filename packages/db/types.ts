@@ -146,6 +146,7 @@ export type Database = {
           is_third_party_traffic_accident: boolean | null
           is_work_accident: boolean | null
           prior_case_count_12_months: number
+          pending_confirmation: boolean
           recovery_window_ends_on: string | null
           status: Database["public"]["Enums"]["absence_case_status"]
           tenant_id: string
@@ -170,6 +171,7 @@ export type Database = {
           is_third_party_traffic_accident?: boolean | null
           is_work_accident?: boolean | null
           prior_case_count_12_months?: number
+          pending_confirmation?: boolean
           recovery_window_ends_on?: string | null
           status?: Database["public"]["Enums"]["absence_case_status"]
           tenant_id: string
@@ -194,6 +196,7 @@ export type Database = {
           is_third_party_traffic_accident?: boolean | null
           is_work_accident?: boolean | null
           prior_case_count_12_months?: number
+          pending_confirmation?: boolean
           recovery_window_ends_on?: string | null
           status?: Database["public"]["Enums"]["absence_case_status"]
           tenant_id?: string
@@ -258,6 +261,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_confirmations: {
+        Row: {
+          case_id: string
+          confirmed_at: string | null
+          confirmed_by_user_id: string | null
+          correction_reason: string | null
+          correction_requested_at: string | null
+          correction_requested_by_user_id: string | null
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          confirmed_at?: string | null
+          confirmed_by_user_id?: string | null
+          correction_reason?: string | null
+          correction_requested_at?: string | null
+          correction_requested_by_user_id?: string | null
+          created_at?: string
+          employee_id: string
+          hr_group_id: string
+          id?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          confirmed_at?: string | null
+          confirmed_by_user_id?: string | null
+          correction_reason?: string | null
+          correction_requested_at?: string | null
+          correction_requested_by_user_id?: string | null
+          created_at?: string
+          employee_id?: string
+          hr_group_id?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_confirmations_case_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "case_id"]
+            isOneToOne: true
+            referencedRelation: "absence_cases"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "absence_confirmations_employee_scope_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
           },
         ]
       }
@@ -1689,6 +1755,7 @@ export type Database = {
           conversation_style: string
           created_at: string
           employee_ai_enabled: boolean
+          employee_note_save_enabled: boolean
           end_summary_enabled: boolean
           hr_group_id: string
           id: string
@@ -1696,13 +1763,12 @@ export type Database = {
           quality_profile: string
           role_policies: Json
           team_ai_enabled: boolean
+          team_logbook_save_enabled: boolean
           tenant_id: string
           updated_at: string
           updated_by: string | null
           voice_enabled: boolean
           voice_id: string
-          employee_note_save_enabled: boolean
-          team_logbook_save_enabled: boolean
         }
         Insert: {
           ai_enabled?: boolean
@@ -1711,6 +1777,7 @@ export type Database = {
           conversation_style?: string
           created_at?: string
           employee_ai_enabled?: boolean
+          employee_note_save_enabled?: boolean
           end_summary_enabled?: boolean
           hr_group_id: string
           id?: string
@@ -1718,13 +1785,12 @@ export type Database = {
           quality_profile?: string
           role_policies?: Json
           team_ai_enabled?: boolean
+          team_logbook_save_enabled?: boolean
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
           voice_enabled?: boolean
           voice_id?: string
-          employee_note_save_enabled?: boolean
-          team_logbook_save_enabled?: boolean
         }
         Update: {
           ai_enabled?: boolean
@@ -1733,6 +1799,7 @@ export type Database = {
           conversation_style?: string
           created_at?: string
           employee_ai_enabled?: boolean
+          employee_note_save_enabled?: boolean
           end_summary_enabled?: boolean
           hr_group_id?: string
           id?: string
@@ -1740,22 +1807,21 @@ export type Database = {
           quality_profile?: string
           role_policies?: Json
           team_ai_enabled?: boolean
+          team_logbook_save_enabled?: boolean
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
           voice_enabled?: boolean
           voice_id?: string
-          employee_note_save_enabled?: boolean
-          team_logbook_save_enabled?: boolean
         }
         Relationships: [
           {
             foreignKeyName: "ai_group_settings_scope_fkey"
             columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
-          }
+          },
         ]
       }
       ai_invocations: {
@@ -1899,433 +1965,6 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      ai_team_sessions: {
-        Row: {
-          actor_employee_id: string | null
-          actor_user_id: string
-          administration_id: string | null
-          authorized_employee_count: number
-          billable_voice_units: number
-          context_department_id: string | null
-          context_name_snapshot: string
-          conversation_type: string
-          duration_seconds: number | null
-          ended_at: string | null
-          hr_group_id: string
-          id: string
-          model_id: string
-          scope_type: string
-          started_at: string
-          status: string
-          tenant_id: string
-          tool_call_count: number
-          termination_reason: string | null
-          voice_credit_status: string
-          voice_credits: number
-        }
-        Insert: {
-          actor_employee_id?: string | null
-          actor_user_id: string
-          administration_id?: string | null
-          authorized_employee_count: number
-          billable_voice_units?: number
-          context_department_id?: string | null
-          context_name_snapshot: string
-          conversation_type?: string
-          duration_seconds?: number | null
-          ended_at?: string | null
-          hr_group_id: string
-          id?: string
-          model_id: string
-          scope_type: string
-          started_at?: string
-          status: string
-          tenant_id: string
-          tool_call_count?: number
-          termination_reason?: string | null
-          voice_credit_status?: string
-          voice_credits?: number
-        }
-        Update: {
-          actor_employee_id?: string | null
-          actor_user_id?: string
-          administration_id?: string | null
-          authorized_employee_count?: number
-          billable_voice_units?: number
-          context_department_id?: string | null
-          context_name_snapshot?: string
-          conversation_type?: string
-          duration_seconds?: number | null
-          ended_at?: string | null
-          hr_group_id?: string
-          id?: string
-          model_id?: string
-          scope_type?: string
-          started_at?: string
-          status?: string
-          tenant_id?: string
-          tool_call_count?: number
-          termination_reason?: string | null
-          voice_credit_status?: string
-          voice_credits?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_team_sessions_actor_employee_fkey"
-            columns: ["tenant_id", "hr_group_id", "actor_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_team_sessions_administration_fkey"
-            columns: ["tenant_id", "hr_group_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_team_sessions_department_fkey"
-            columns: ["tenant_id", "hr_group_id", "context_department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_team_sessions_tenant_hr_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_team_sessions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      ai_team_session_members: {
-        Row: {
-          created_at: string
-          employee_id: string
-          hr_group_id: string
-          session_id: string
-          tenant_id: string
-        }
-        Insert: {
-          created_at?: string
-          employee_id: string
-          hr_group_id: string
-          session_id: string
-          tenant_id: string
-        }
-        Update: {
-          created_at?: string
-          employee_id?: string
-          hr_group_id?: string
-          session_id?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_team_session_members_employee_fkey"
-            columns: ["tenant_id", "hr_group_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_team_session_members_session_fkey"
-            columns: ["tenant_id", "hr_group_id", "session_id"]
-            isOneToOne: false
-            referencedRelation: "ai_team_sessions"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          }
-        ]
-      }
-      ai_voice_sessions: {
-        Row: {
-          actor_employee_id: string | null
-          actor_user_id: string
-          billable_voice_units: number
-          duration_seconds: number | null
-          employee_id: string
-          ended_at: string | null
-          hr_group_id: string
-          id: string
-          model_id: string
-          started_at: string
-          status: string
-          tenant_id: string
-          tool_call_count: number
-          termination_reason: string | null
-          voice_credit_status: string
-          voice_credits: number
-        }
-        Insert: {
-          actor_employee_id?: string | null
-          actor_user_id: string
-          billable_voice_units?: number
-          duration_seconds?: number | null
-          employee_id: string
-          ended_at?: string | null
-          hr_group_id: string
-          id: string
-          model_id: string
-          started_at?: string
-          status: string
-          tenant_id: string
-          tool_call_count?: number
-          termination_reason?: string | null
-          voice_credit_status?: string
-          voice_credits?: number
-        }
-        Update: {
-          actor_employee_id?: string | null
-          actor_user_id?: string
-          billable_voice_units?: number
-          duration_seconds?: number | null
-          employee_id?: string
-          ended_at?: string | null
-          hr_group_id?: string
-          id?: string
-          model_id?: string
-          started_at?: string
-          status?: string
-          tenant_id?: string
-          tool_call_count?: number
-          termination_reason?: string | null
-          voice_credit_status?: string
-          voice_credits?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_voice_sessions_actor_employee_fkey"
-            columns: ["tenant_id", "actor_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_voice_sessions_employee_fkey"
-            columns: ["tenant_id", "employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_voice_sessions_tenant_hr_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "ai_voice_sessions_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      ai_voice_credit_charge_allocations: {
-        Row: {
-          allocation_id: string
-          charge_id: string
-          created_at: string
-          hr_group_id: string
-          id: string
-          settled_credits: number
-          tenant_id: string
-        }
-        Insert: {
-          allocation_id: string
-          charge_id: string
-          created_at?: string
-          hr_group_id: string
-          id?: string
-          settled_credits: number
-          tenant_id: string
-        }
-        Update: {
-          allocation_id?: string
-          charge_id?: string
-          created_at?: string
-          hr_group_id?: string
-          id?: string
-          settled_credits?: number
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_voice_credit_charge_allocations_charge_fkey"
-            columns: ["charge_id"]
-            isOneToOne: false
-            referencedRelation: "ai_voice_credit_charges"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_voice_credit_charge_allocations_allocation_fkey"
-            columns: ["tenant_id", "hr_group_id", "allocation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_credit_allocations"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          }
-        ]
-      }
-      ai_voice_credit_charges: {
-        Row: {
-          actor_user_id: string
-          billable_voice_units: number
-          charge_reference: string
-          context_type: string
-          created_at: string
-          credit_amount: number
-          duration_seconds: number
-          ended_at: string
-          hr_group_id: string
-          id: string
-          period_month: string
-          session_status: string
-          source_session_id: string
-          started_at: string
-          tenant_id: string
-          termination_reason: string
-        }
-        Insert: {
-          actor_user_id: string
-          billable_voice_units: number
-          charge_reference: string
-          context_type: string
-          created_at?: string
-          credit_amount: number
-          duration_seconds: number
-          ended_at: string
-          hr_group_id: string
-          id?: string
-          period_month: string
-          session_status: string
-          source_session_id: string
-          started_at: string
-          tenant_id: string
-          termination_reason: string
-        }
-        Update: {
-          actor_user_id?: string
-          billable_voice_units?: number
-          charge_reference?: string
-          context_type?: string
-          created_at?: string
-          credit_amount?: number
-          duration_seconds?: number
-          ended_at?: string
-          hr_group_id?: string
-          id?: string
-          period_month?: string
-          session_status?: string
-          source_session_id?: string
-          started_at?: string
-          tenant_id?: string
-          termination_reason?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_voice_credit_charges_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          }
-        ]
-      }
-      personal_logbook_entries: {
-        Row: {
-          administration_id: string | null
-          context_department_id: string | null
-          context_name_snapshot: string | null
-          created_at: string
-          description: string
-          hr_group_id: string
-          id: string
-          owner_user_id: string
-          source: string
-          source_session_id: string | null
-          tenant_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          administration_id?: string | null
-          context_department_id?: string | null
-          context_name_snapshot?: string | null
-          created_at?: string
-          description?: string
-          hr_group_id: string
-          id?: string
-          owner_user_id: string
-          source: string
-          source_session_id?: string | null
-          tenant_id: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          administration_id?: string | null
-          context_department_id?: string | null
-          context_name_snapshot?: string | null
-          created_at?: string
-          description?: string
-          hr_group_id?: string
-          id?: string
-          owner_user_id?: string
-          source?: string
-          source_session_id?: string | null
-          tenant_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "personal_logbook_entries_administration_fkey"
-            columns: ["tenant_id", "administration_id"]
-            isOneToOne: false
-            referencedRelation: "administrations"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "personal_logbook_entries_department_fkey"
-            columns: ["tenant_id", "hr_group_id", "context_department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "personal_logbook_entries_session_fkey"
-            columns: ["tenant_id", "hr_group_id", "source_session_id"]
-            isOneToOne: false
-            referencedRelation: "ai_team_sessions"
-            referencedColumns: ["tenant_id", "hr_group_id", "id"]
-          },
-          {
-            foreignKeyName: "personal_logbook_entries_tenant_hr_group_fkey"
-            columns: ["tenant_id", "hr_group_id"]
-            isOneToOne: false
-            referencedRelation: "hr_groups"
-            referencedColumns: ["tenant_id", "id"]
-          },
-          {
-            foreignKeyName: "personal_logbook_entries_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          }
         ]
       }
       ai_memory_items: {
@@ -2508,6 +2147,153 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_team_session_members: {
+        Row: {
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          session_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          hr_group_id: string
+          session_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          hr_group_id?: string
+          session_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_team_session_members_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_team_session_members_session_fkey"
+            columns: ["tenant_id", "hr_group_id", "session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_team_sessions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+        ]
+      }
+      ai_team_sessions: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string
+          administration_id: string | null
+          authorized_employee_count: number
+          billable_voice_units: number
+          context_department_id: string | null
+          context_name_snapshot: string
+          conversation_type: string
+          duration_seconds: number | null
+          ended_at: string | null
+          hr_group_id: string
+          id: string
+          model_id: string
+          scope_type: string
+          started_at: string
+          status: string
+          tenant_id: string
+          termination_reason: string | null
+          tool_call_count: number
+          voice_credit_status: string
+          voice_credits: number
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id: string
+          administration_id?: string | null
+          authorized_employee_count: number
+          billable_voice_units?: number
+          context_department_id?: string | null
+          context_name_snapshot: string
+          conversation_type?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          hr_group_id: string
+          id?: string
+          model_id: string
+          scope_type: string
+          started_at?: string
+          status: string
+          tenant_id: string
+          termination_reason?: string | null
+          tool_call_count?: number
+          voice_credit_status?: string
+          voice_credits?: number
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          administration_id?: string | null
+          authorized_employee_count?: number
+          billable_voice_units?: number
+          context_department_id?: string | null
+          context_name_snapshot?: string
+          conversation_type?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          hr_group_id?: string
+          id?: string
+          model_id?: string
+          scope_type?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          termination_reason?: string | null
+          tool_call_count?: number
+          voice_credit_status?: string
+          voice_credits?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_team_sessions_actor_employee_fkey"
+            columns: ["tenant_id", "hr_group_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_team_sessions_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_team_sessions_department_fkey"
+            columns: ["tenant_id", "hr_group_id", "context_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_team_sessions_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_team_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_technical_usage: {
         Row: {
           actor_user_id: string
@@ -2637,6 +2423,202 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_user_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_voice_credit_charge_allocations: {
+        Row: {
+          allocation_id: string
+          charge_id: string
+          created_at: string
+          hr_group_id: string
+          id: string
+          settled_credits: number
+          tenant_id: string
+        }
+        Insert: {
+          allocation_id: string
+          charge_id: string
+          created_at?: string
+          hr_group_id: string
+          id?: string
+          settled_credits: number
+          tenant_id: string
+        }
+        Update: {
+          allocation_id?: string
+          charge_id?: string
+          created_at?: string
+          hr_group_id?: string
+          id?: string
+          settled_credits?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_voice_credit_charge_allocations_allocation_fkey"
+            columns: ["tenant_id", "hr_group_id", "allocation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_allocations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_credit_charge_allocations_charge_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "ai_voice_credit_charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_voice_credit_charges: {
+        Row: {
+          actor_user_id: string
+          billable_voice_units: number
+          charge_reference: string
+          context_type: string
+          created_at: string
+          credit_amount: number
+          duration_seconds: number
+          ended_at: string
+          hr_group_id: string
+          id: string
+          period_month: string
+          session_status: string
+          source_session_id: string
+          started_at: string
+          tenant_id: string
+          termination_reason: string
+        }
+        Insert: {
+          actor_user_id: string
+          billable_voice_units: number
+          charge_reference: string
+          context_type: string
+          created_at?: string
+          credit_amount: number
+          duration_seconds: number
+          ended_at: string
+          hr_group_id: string
+          id?: string
+          period_month: string
+          session_status: string
+          source_session_id: string
+          started_at: string
+          tenant_id: string
+          termination_reason: string
+        }
+        Update: {
+          actor_user_id?: string
+          billable_voice_units?: number
+          charge_reference?: string
+          context_type?: string
+          created_at?: string
+          credit_amount?: number
+          duration_seconds?: number
+          ended_at?: string
+          hr_group_id?: string
+          id?: string
+          period_month?: string
+          session_status?: string
+          source_session_id?: string
+          started_at?: string
+          tenant_id?: string
+          termination_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_voice_credit_charges_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      ai_voice_sessions: {
+        Row: {
+          actor_employee_id: string | null
+          actor_user_id: string
+          billable_voice_units: number
+          duration_seconds: number | null
+          employee_id: string
+          ended_at: string | null
+          hr_group_id: string
+          id: string
+          model_id: string
+          started_at: string
+          status: string
+          tenant_id: string
+          termination_reason: string | null
+          tool_call_count: number
+          voice_credit_status: string
+          voice_credits: number
+        }
+        Insert: {
+          actor_employee_id?: string | null
+          actor_user_id: string
+          billable_voice_units?: number
+          duration_seconds?: number | null
+          employee_id: string
+          ended_at?: string | null
+          hr_group_id: string
+          id: string
+          model_id: string
+          started_at?: string
+          status: string
+          tenant_id: string
+          termination_reason?: string | null
+          tool_call_count?: number
+          voice_credit_status?: string
+          voice_credits?: number
+        }
+        Update: {
+          actor_employee_id?: string | null
+          actor_user_id?: string
+          billable_voice_units?: number
+          duration_seconds?: number | null
+          employee_id?: string
+          ended_at?: string | null
+          hr_group_id?: string
+          id?: string
+          model_id?: string
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          termination_reason?: string | null
+          tool_call_count?: number
+          voice_credit_status?: string
+          voice_credits?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_voice_sessions_actor_employee_fkey"
+            columns: ["tenant_id", "actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_sessions_employee_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_sessions_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "ai_voice_sessions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5267,6 +5249,54 @@ export type Database = {
             columns: ["tenant_id", "employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      employee_ess_access: {
+        Row: {
+          blocked_at: string | null
+          blocked_by_user_id: string | null
+          created_at: string
+          employee_id: string
+          hr_group_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_at?: string | null
+          blocked_by_user_id?: string | null
+          created_at?: string
+          employee_id: string
+          hr_group_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_at?: string | null
+          blocked_by_user_id?: string | null
+          created_at?: string
+          employee_id?: string
+          hr_group_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_ess_access_employee_scope_fkey"
+            columns: ["tenant_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_ess_access_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
           },
         ]
@@ -8402,8 +8432,10 @@ export type Database = {
           created_at: string
           created_by_user_id: string | null
           description: string | null
+          employee_portal_mode: string
           id: string
           is_active: boolean
+          manager_portal_mode: string
           name: string
           tenant_id: string
           updated_at: string
@@ -8414,8 +8446,10 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string | null
           description?: string | null
+          employee_portal_mode?: string
           id?: string
           is_active?: boolean
+          manager_portal_mode?: string
           name: string
           tenant_id: string
           updated_at?: string
@@ -8426,8 +8460,10 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string | null
           description?: string | null
+          employee_portal_mode?: string
           id?: string
           is_active?: boolean
+          manager_portal_mode?: string
           name?: string
           tenant_id?: string
           updated_at?: string
@@ -11437,6 +11473,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           entitlement_mode: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          family: Database["public"]["Enums"]["leave_type_family"]
           hr_group_id: string
           id: string
           is_active: boolean
@@ -11460,6 +11497,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          family?: Database["public"]["Enums"]["leave_type_family"]
           hr_group_id: string
           id?: string
           is_active?: boolean
@@ -11483,6 +11521,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entitlement_mode?: Database["public"]["Enums"]["leave_type_entitlement_mode"]
+          family?: Database["public"]["Enums"]["leave_type_family"]
           hr_group_id?: string
           id?: string
           is_active?: boolean
@@ -12536,6 +12575,90 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_logbook_entries: {
+        Row: {
+          administration_id: string | null
+          context_department_id: string | null
+          context_name_snapshot: string | null
+          created_at: string
+          description: string
+          hr_group_id: string
+          id: string
+          owner_user_id: string
+          source: string
+          source_session_id: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          administration_id?: string | null
+          context_department_id?: string | null
+          context_name_snapshot?: string | null
+          created_at?: string
+          description?: string
+          hr_group_id: string
+          id?: string
+          owner_user_id: string
+          source: string
+          source_session_id?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          administration_id?: string | null
+          context_department_id?: string | null
+          context_name_snapshot?: string | null
+          created_at?: string
+          description?: string
+          hr_group_id?: string
+          id?: string
+          owner_user_id?: string
+          source?: string
+          source_session_id?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_logbook_entries_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "personal_logbook_entries_department_fkey"
+            columns: ["tenant_id", "hr_group_id", "context_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "personal_logbook_entries_session_fkey"
+            columns: ["tenant_id", "hr_group_id", "source_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_team_sessions"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "personal_logbook_entries_tenant_hr_group_fkey"
+            columns: ["tenant_id", "hr_group_id"]
+            isOneToOne: false
+            referencedRelation: "hr_groups"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "personal_logbook_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_audit_logs: {
         Row: {
           action: string
@@ -12710,6 +12833,8 @@ export type Database = {
       process_definitions: {
         Row: {
           administration_id: string | null
+          business_category: string
+          business_type: string
           created_at: string
           created_by_user_id: string | null
           description: Json | null
@@ -12725,6 +12850,8 @@ export type Database = {
         }
         Insert: {
           administration_id?: string | null
+          business_category?: string
+          business_type?: string
           created_at?: string
           created_by_user_id?: string | null
           description?: Json | null
@@ -12740,6 +12867,8 @@ export type Database = {
         }
         Update: {
           administration_id?: string | null
+          business_category?: string
+          business_type?: string
           created_at?: string
           created_by_user_id?: string | null
           description?: Json | null
@@ -13179,7 +13308,9 @@ export type Database = {
       process_instances: {
         Row: {
           administration_id: string | null
+          business_category: string
           business_effective_date: string | null
+          business_type: string
           completed_at: string | null
           correlation_id: string | null
           created_at: string
@@ -13201,7 +13332,9 @@ export type Database = {
         }
         Insert: {
           administration_id?: string | null
+          business_category?: string
           business_effective_date?: string | null
+          business_type?: string
           completed_at?: string | null
           correlation_id?: string | null
           created_at?: string
@@ -13223,7 +13356,9 @@ export type Database = {
         }
         Update: {
           administration_id?: string | null
+          business_category?: string
           business_effective_date?: string | null
+          business_type?: string
           completed_at?: string | null
           correlation_id?: string | null
           created_at?: string
@@ -13288,6 +13423,58 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hr_groups"
             referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      process_leave_subjects: {
+        Row: {
+          administration_id: string
+          created_at: string
+          hr_group_id: string
+          leave_request_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Insert: {
+          administration_id: string
+          created_at?: string
+          hr_group_id: string
+          leave_request_id: string
+          process_instance_id: string
+          tenant_id: string
+        }
+        Update: {
+          administration_id?: string
+          created_at?: string
+          hr_group_id?: string
+          leave_request_id?: string
+          process_instance_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_leave_subjects_instance_fkey"
+            columns: ["tenant_id", "hr_group_id", "process_instance_id"]
+            isOneToOne: false
+            referencedRelation: "process_instances"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
+          {
+            foreignKeyName: "process_leave_subjects_request_fkey"
+            columns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "leave_request_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "leave_requests"
+            referencedColumns: [
+              "tenant_id",
+              "hr_group_id",
+              "administration_id",
+              "id",
+            ]
           },
         ]
       }
@@ -13394,31 +13581,44 @@ export type Database = {
         Row: {
           activated_at: string
           activated_by_user_id: string
+          administration_id: string | null
           hr_group_id: string
           id: string
           process_definition_id: string
           process_recipe_id: string
+          scope_type: Database["public"]["Enums"]["access_scope_type"]
           tenant_id: string
         }
         Insert: {
           activated_at?: string
           activated_by_user_id?: string
+          administration_id?: string | null
           hr_group_id: string
           id?: string
           process_definition_id: string
           process_recipe_id: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
           tenant_id: string
         }
         Update: {
           activated_at?: string
           activated_by_user_id?: string
+          administration_id?: string | null
           hr_group_id?: string
           id?: string
           process_definition_id?: string
           process_recipe_id?: string
+          scope_type?: Database["public"]["Enums"]["access_scope_type"]
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "process_recipe_activation_administration_fkey"
+            columns: ["tenant_id", "hr_group_id", "administration_id"]
+            isOneToOne: false
+            referencedRelation: "administrations"
+            referencedColumns: ["tenant_id", "hr_group_id", "id"]
+          },
           {
             foreignKeyName: "process_recipe_activations_process_definition_id_fkey"
             columns: ["process_definition_id"]
@@ -13438,6 +13638,8 @@ export type Database = {
       process_recipe_catalog: {
         Row: {
           adapter_key: string
+          business_category: string
+          business_type: string
           created_at: string
           definition_json: Json
           description: Json
@@ -13449,6 +13651,8 @@ export type Database = {
         }
         Insert: {
           adapter_key: string
+          business_category?: string
+          business_type?: string
           created_at?: string
           definition_json: Json
           description: Json
@@ -13460,6 +13664,8 @@ export type Database = {
         }
         Update: {
           adapter_key?: string
+          business_category?: string
+          business_type?: string
           created_at?: string
           definition_json?: Json
           description?: Json
@@ -13822,6 +14028,8 @@ export type Database = {
           assignment_snapshot: Json
           available_at: string
           blocked_code: string | null
+          business_category: string
+          business_type: string
           claimed_at: string | null
           claimed_by_user_id: string | null
           created_at: string
@@ -13845,6 +14053,8 @@ export type Database = {
           assignment_snapshot?: Json
           available_at?: string
           blocked_code?: string | null
+          business_category?: string
+          business_type?: string
           claimed_at?: string | null
           claimed_by_user_id?: string | null
           created_at?: string
@@ -13868,6 +14078,8 @@ export type Database = {
           assignment_snapshot?: Json
           available_at?: string
           blocked_code?: string | null
+          business_category?: string
+          business_type?: string
           claimed_at?: string | null
           claimed_by_user_id?: string | null
           created_at?: string
@@ -20569,19 +20781,6 @@ export type Database = {
         Args: { requested_as_of_date: string }
         Returns: number
       }
-      finalize_document_generation: {
-        Args: {
-          requested_actor_user_id: string
-          requested_file_size: number
-          requested_idempotency_key: string
-          requested_pdf_hash: string
-          requested_renderer_version: string
-          requested_request_hash: string
-          requested_snapshot_id: string
-          requested_storage_key: string
-        }
-        Returns: Json
-      }
       finalize_ai_voice_session: {
         Args: {
           requested_actor_user_id: string
@@ -20601,6 +20800,19 @@ export type Database = {
           finalized: boolean
           voice_credits: number
         }[]
+      }
+      finalize_document_generation: {
+        Args: {
+          requested_actor_user_id: string
+          requested_file_size: number
+          requested_idempotency_key: string
+          requested_pdf_hash: string
+          requested_renderer_version: string
+          requested_request_hash: string
+          requested_snapshot_id: string
+          requested_storage_key: string
+        }
+        Returns: Json
       }
       finalize_document_studio_asset_server: {
         Args: { requested_asset_id: string }
@@ -20705,6 +20917,10 @@ export type Database = {
           requested_tenant_id: string
         }
         Returns: Json
+      }
+      get_employee_self_report_enabled: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: boolean
       }
       get_internal_transfer_preview: {
         Args: { requested_work_item_id: string }
@@ -20883,6 +21099,30 @@ export type Database = {
         }
         Returns: Json
       }
+      get_unified_process_work_item_detail: {
+        Args: { requested_language?: string; requested_work_item_id: string }
+        Returns: Json
+      }
+      get_unified_process_work_projection: {
+        Args: {
+          requested_administration_id?: string
+          requested_business_category?: string
+          requested_business_type?: string
+          requested_hr_group_id: string
+          requested_language?: string
+          requested_limit?: number
+          requested_offset?: number
+          requested_process_definition_id?: string
+          requested_search?: string
+          requested_sort?: string
+          requested_status?: string
+          requested_subject_employee_id?: string
+          requested_subject_employment_id?: string
+          requested_tab?: string
+          requested_view?: string
+        }
+        Returns: Json
+      }
       grant_ai_controlled_test_credits: {
         Args: {
           requested_credit_amount: number
@@ -21022,6 +21262,18 @@ export type Database = {
           requested_connection_id: string
           requested_hr_group_id: string
           requested_tenant_id: string
+        }
+        Returns: Json
+      }
+      perform_leave_workflow_action: {
+        Args: {
+          requested_action: string
+          requested_correlation_id: string
+          requested_expected_version: number
+          requested_idempotency_key: string
+          requested_reason?: string
+          requested_step_expected_version: number
+          requested_work_item_id: string
         }
         Returns: Json
       }
@@ -21292,6 +21544,30 @@ export type Database = {
         }
         Returns: Json
       }
+      confirm_absence_confirmation: {
+        Args: { requested_case_id: string }
+        Returns: string
+      }
+      report_focus_employee_absence: {
+        Args: {
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_expected_recovery_on?: string | null
+          requested_hr_group_id: string
+          requested_idempotency_key?: string | null
+          requested_start_date: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
+      register_absence_confirmation: {
+        Args: { requested_case_id: string; requested_subject_employee_id?: string | null }
+        Returns: string
+      }
+      request_absence_correction: {
+        Args: { requested_case_id: string; requested_reason: string }
+        Returns: string
+      }
       report_absence: {
         Args: {
           requested_absence_percentage: number
@@ -21523,6 +21799,15 @@ export type Database = {
         }
         Returns: string
       }
+      set_group_leave_type_family: {
+        Args: {
+          requested_family: Database["public"]["Enums"]["leave_type_family"]
+          requested_hr_group_id: string
+          requested_leave_type_id: string
+          requested_tenant_id: string
+        }
+        Returns: string
+      }
       save_group_leave_type: {
         Args: {
           requested_allow_limit_overrun: boolean
@@ -21615,6 +21900,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_employee_ess_access: {
+        Args: { requested_status: string; target_employee_id: string }
+        Returns: string
+      }
       set_recruitment_library_item_enabled: {
         Args: { requested_is_enabled: boolean; requested_item_id: string }
         Returns: Json
@@ -21645,6 +21934,26 @@ export type Database = {
           requested_idempotency_key: string
           requested_process_definition_id: string
           requested_subject_employee_id: string
+        }
+        Returns: Json
+      }
+      start_leave_request_workflow: {
+        Args: {
+          requested_administration_id: string
+          requested_correlation_id: string
+          requested_employee_id: string
+          requested_employment_id: string
+          requested_end_date: string
+          requested_hr_group_id: string
+          requested_idempotency_key: string
+          requested_leave_type_id: string
+          requested_mode: Database["public"]["Enums"]["leave_request_mode"]
+          requested_priority_rule_id: string
+          requested_specific_end: string
+          requested_specific_start: string
+          requested_start_date: string
+          requested_tenant_id: string
+          requested_time_mode: Database["public"]["Enums"]["leave_request_time_mode"]
         }
         Returns: Json
       }
@@ -21960,7 +22269,10 @@ export type Database = {
         | "UNRESOLVED"
       income_relationship_type: "EMPLOYMENT" | "SOCIAL_BENEFIT" | "OTHER"
       invitation_email_kind: "PRIVATE" | "BUSINESS"
-      invitation_purpose: "PREBOARDING_EMPLOYEE" | "BUSINESS_USER"
+      invitation_purpose:
+        | "PREBOARDING_EMPLOYEE"
+        | "BUSINESS_USER"
+        | "EMPLOYEE_ACTIVATION"
       invitation_status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
       journey_anchor_rule: "EMPLOYMENT_START_DATE" | "MANUAL_DATE"
       journey_participant_source:
@@ -22008,7 +22320,12 @@ export type Database = {
       leave_bonus_award_timing: "START_OF_YEAR" | "ON_TRIGGER_DATE"
       leave_bonus_trigger_type: "AGE" | "SENIORITY"
       leave_request_mode: "PRIORITY" | "DIRECT"
-      leave_request_status: "APPROVED" | "REJECTED" | "CANCELLED"
+      leave_request_status:
+        | "APPROVED"
+        | "REJECTED"
+        | "CANCELLED"
+        | "PENDING"
+        | "CHANGES_REQUESTED"
       leave_request_time_mode:
         | "FULL_DAY"
         | "MORNING"
@@ -22027,6 +22344,7 @@ export type Database = {
         | "WEEKLY_HOURS_FACTOR_CAP"
         | "ANNUAL_HOURS_FTE_CAP"
         | "OVERTIME_HOURS"
+      leave_type_family: "VACATION" | "OTHER"
       leave_work_hour_entry_status:
         | "PENDING"
         | "APPROVED"
@@ -22421,7 +22739,11 @@ export const Constants = {
       ],
       income_relationship_type: ["EMPLOYMENT", "SOCIAL_BENEFIT", "OTHER"],
       invitation_email_kind: ["PRIVATE", "BUSINESS"],
-      invitation_purpose: ["PREBOARDING_EMPLOYEE", "BUSINESS_USER"],
+      invitation_purpose: [
+        "PREBOARDING_EMPLOYEE",
+        "BUSINESS_USER",
+        "EMPLOYEE_ACTIVATION",
+      ],
       invitation_status: ["PENDING", "ACCEPTED", "REVOKED", "EXPIRED"],
       journey_anchor_rule: ["EMPLOYMENT_START_DATE", "MANUAL_DATE"],
       journey_participant_source: [
@@ -22468,7 +22790,13 @@ export const Constants = {
       leave_bonus_award_timing: ["START_OF_YEAR", "ON_TRIGGER_DATE"],
       leave_bonus_trigger_type: ["AGE", "SENIORITY"],
       leave_request_mode: ["PRIORITY", "DIRECT"],
-      leave_request_status: ["APPROVED", "REJECTED", "CANCELLED"],
+      leave_request_status: [
+        "APPROVED",
+        "REJECTED",
+        "CANCELLED",
+        "PENDING",
+        "CHANGES_REQUESTED",
+      ],
       leave_request_time_mode: [
         "FULL_DAY",
         "MORNING",

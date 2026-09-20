@@ -3,11 +3,15 @@ import { z } from 'zod'
 export const invitationRequestSchema = z.object({
   email: z.string().trim().email().max(254),
   emailKind: z.enum(['PRIVATE', 'BUSINESS']),
-  purpose: z.enum(['PREBOARDING_EMPLOYEE', 'BUSINESS_USER']),
+  purpose: z.enum(['PREBOARDING_EMPLOYEE', 'EMPLOYEE_ACTIVATION', 'BUSINESS_USER']),
   employeeId: z.uuid().nullable().optional(),
   administrationId: z.uuid().nullable().optional(),
   managementRoleId: z.uuid(),
   scopeType: z.enum(['TENANT', 'ADMINISTRATION']),
 }).strict()
+
+export const businessInvitationRequestSchema = invitationRequestSchema.extend({
+  purpose: z.literal('BUSINESS_USER'),
+})
 
 export type InvitationRequest = z.infer<typeof invitationRequestSchema>

@@ -1,5 +1,4 @@
-create type public.absence_case_status as enum ('ACTIVE', 'RECOVERY_WINDOW', 'CLOSED');
-
+create type public.absence_case_status as enum ('ACTIVE', 'RECOVERY_WINDOW', 'CLOSED')
 create table public.absence_settings (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -13,8 +12,7 @@ create table public.absence_settings (
   constraint absence_settings_default_manager_fkey
     foreign key (tenant_id, default_case_manager_employee_id) references public.employees(tenant_id, id) on delete set null,
   constraint absence_settings_administration_unique unique (tenant_id, administration_id)
-);
-
+)
 create table public.absence_cases (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -51,13 +49,11 @@ create table public.absence_cases (
     (status = 'RECOVERY_WINDOW' and recovery_window_ends_on is not null)
     or (status <> 'RECOVERY_WINDOW')
   )
-);
-
+)
 create unique index absence_cases_one_open_per_employment_idx
   on public.absence_cases (tenant_id, administration_id, employment_id)
-  where status in ('ACTIVE', 'RECOVERY_WINDOW') and archived_at is null;
-create index absence_cases_employee_idx on public.absence_cases (tenant_id, administration_id, employee_id, first_absence_on desc);
-
+  where status in ('ACTIVE', 'RECOVERY_WINDOW') and archived_at is null
+create index absence_cases_employee_idx on public.absence_cases (tenant_id, administration_id, employee_id, first_absence_on desc)
 create table public.absence_spells (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -76,10 +72,9 @@ create table public.absence_spells (
   constraint absence_spells_tenant_id_key unique (tenant_id, id),
   constraint absence_spells_case_tenant_fkey foreign key (tenant_id, case_id)
     references public.absence_cases(tenant_id, id) on delete cascade
-);
-create unique index absence_spells_one_open_idx on public.absence_spells (tenant_id, case_id) where recovered_on is null;
-create index absence_spells_case_idx on public.absence_spells (tenant_id, case_id, started_on desc);
-
+)
+create unique index absence_spells_one_open_idx on public.absence_spells (tenant_id, case_id) where recovered_on is null
+create index absence_spells_case_idx on public.absence_spells (tenant_id, case_id, started_on desc)
 create table public.absence_capacity_changes (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -95,9 +90,8 @@ create table public.absence_capacity_changes (
   constraint absence_capacity_changes_spell_tenant_fkey foreign key (tenant_id, spell_id)
     references public.absence_spells(tenant_id, id) on delete cascade,
   constraint absence_capacity_changes_case_spell_unique unique (case_id, spell_id, effective_on)
-);
-create index absence_capacity_changes_spell_idx on public.absence_capacity_changes (tenant_id, spell_id, effective_on desc);
-
+)
+create index absence_capacity_changes_spell_idx on public.absence_capacity_changes (tenant_id, spell_id, effective_on desc)
 create table public.absence_mutations (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -106,8 +100,7 @@ create table public.absence_mutations (
   result_case_id uuid references public.absence_cases(id) on delete cascade,
   created_at timestamptz not null default timezone('utc', now()),
   constraint absence_mutations_key_unique unique (tenant_id, operation_key)
-);
-
+)
 insert into public.permissions (code, name, category, description)
 values
   ('absence:read', 'Verzuim bekijken', 'Verzuim', 'Operationele verzuimgegevens bekijken binnen de geldige scope.'),
@@ -115,8 +108,7 @@ values
   ('absence:recover', 'Herstel registreren', 'Verzuim', 'Een herstelmelding registreren.'),
   ('absence-settings:read', 'Verzuiminstellingen bekijken', 'Verzuim', 'Verzuiminstellingen bekijken.'),
   ('absence-settings:write', 'Verzuiminstellingen beheren', 'Verzuim', 'Verzuiminstellingen beheren.')
-on conflict (code) do update set name = excluded.name, category = excluded.category, description = excluded.description;
-
+on conflict (code) do update set name = excluded.name, category = excluded.category, description = excluded.description
 insert into public.role_permissions (management_role_id, permission_id)
 select role.id, permission.id
 from public.management_roles role
@@ -124,8 +116,7 @@ cross join public.permissions permission
 where role.code in ('TENANT_ADMIN', 'DIRECT_MANAGER')
   and role.tenant_id is null
   and permission.code in ('absence:read', 'absence:write', 'absence:recover')
-on conflict do nothing;
-
+on conflict do nothing
 insert into public.role_permissions (management_role_id, permission_id)
 select role.id, permission.id
 from public.management_roles role
@@ -133,52 +124,44 @@ cross join public.permissions permission
 where role.code = 'TENANT_ADMIN'
   and role.tenant_id is null
   and permission.code in ('absence-settings:read', 'absence-settings:write')
-on conflict do nothing;
-
-alter table public.absence_settings enable row level security;
-alter table public.absence_cases enable row level security;
-alter table public.absence_spells enable row level security;
-alter table public.absence_capacity_changes enable row level security;
-alter table public.absence_mutations enable row level security;
-
+on conflict do nothing
+alter table public.absence_settings enable row level security
+alter table public.absence_cases enable row level security
+alter table public.absence_spells enable row level security
+alter table public.absence_capacity_changes enable row level security
+alter table public.absence_mutations enable row level security
 create policy absence_settings_select on public.absence_settings for select to authenticated
-  using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:read')));
+  using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:read')))
 create policy absence_settings_write on public.absence_settings for all to authenticated
   using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:write')))
-  with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:write')));
-
+  with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'absence-settings:write')))
 create policy absence_cases_select on public.absence_cases for select to authenticated
-  using ((select internal_security.can_manage_employee(employee_id, 'absence:read')));
+  using ((select internal_security.can_manage_employee(employee_id, 'absence:read')))
 create policy absence_cases_insert on public.absence_cases for insert to authenticated
-  with check ((select internal_security.can_manage_employee(employee_id, 'absence:write')));
+  with check ((select internal_security.can_manage_employee(employee_id, 'absence:write')))
 create policy absence_cases_update on public.absence_cases for update to authenticated
   using ((select internal_security.can_manage_employee(employee_id, 'absence:write')))
-  with check ((select internal_security.can_manage_employee(employee_id, 'absence:write')));
-
+  with check ((select internal_security.can_manage_employee(employee_id, 'absence:write')))
 create policy absence_spells_select on public.absence_spells for select to authenticated
-  using (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:read')));
+  using (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:read')))
 create policy absence_spells_insert on public.absence_spells for insert to authenticated
-  with check (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')));
+  with check (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')))
 create policy absence_spells_update on public.absence_spells for update to authenticated
   using (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')))
-  with check (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')));
-
+  with check (exists (select 1 from public.absence_cases c where c.id = absence_spells.case_id and c.tenant_id = absence_spells.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')))
 create policy absence_capacity_select on public.absence_capacity_changes for select to authenticated
-  using (exists (select 1 from public.absence_cases c where c.id = absence_capacity_changes.case_id and c.tenant_id = absence_capacity_changes.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:read')));
+  using (exists (select 1 from public.absence_cases c where c.id = absence_capacity_changes.case_id and c.tenant_id = absence_capacity_changes.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:read')))
 create policy absence_capacity_insert on public.absence_capacity_changes for insert to authenticated
-  with check (exists (select 1 from public.absence_cases c where c.id = absence_capacity_changes.case_id and c.tenant_id = absence_capacity_changes.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')));
-
-revoke all on table public.absence_mutations from anon, authenticated;
-grant select, insert, update on table public.absence_settings, public.absence_cases, public.absence_spells, public.absence_capacity_changes to authenticated;
-revoke delete on table public.absence_settings, public.absence_cases, public.absence_spells, public.absence_capacity_changes from authenticated;
-
-create trigger absence_settings_updated_at before update on public.absence_settings for each row execute function internal_security.set_updated_at();
-create trigger absence_cases_updated_at before update on public.absence_cases for each row execute function internal_security.set_updated_at();
-create trigger absence_spells_updated_at before update on public.absence_spells for each row execute function internal_security.set_updated_at();
-create trigger audit_absence_cases after insert or update or delete on public.absence_cases for each row execute function internal_security.audit_hr_change('absence_case');
-create trigger audit_absence_spells after insert or update or delete on public.absence_spells for each row execute function internal_security.audit_hr_change('absence_spell');
-create trigger audit_absence_capacity after insert or update or delete on public.absence_capacity_changes for each row execute function internal_security.audit_hr_change('absence_capacity_change');
-
+  with check (exists (select 1 from public.absence_cases c where c.id = absence_capacity_changes.case_id and c.tenant_id = absence_capacity_changes.tenant_id and internal_security.can_manage_employee(c.employee_id, 'absence:write')))
+revoke all on table public.absence_mutations from anon, authenticated
+grant select, insert, update on table public.absence_settings, public.absence_cases, public.absence_spells, public.absence_capacity_changes to authenticated
+revoke delete on table public.absence_settings, public.absence_cases, public.absence_spells, public.absence_capacity_changes from authenticated
+create trigger absence_settings_updated_at before update on public.absence_settings for each row execute function internal_security.set_updated_at()
+create trigger absence_cases_updated_at before update on public.absence_cases for each row execute function internal_security.set_updated_at()
+create trigger absence_spells_updated_at before update on public.absence_spells for each row execute function internal_security.set_updated_at()
+create trigger audit_absence_cases after insert or update or delete on public.absence_cases for each row execute function internal_security.audit_hr_change('absence_case')
+create trigger audit_absence_spells after insert or update or delete on public.absence_spells for each row execute function internal_security.audit_hr_change('absence_spell')
+create trigger audit_absence_capacity after insert or update or delete on public.absence_capacity_changes for each row execute function internal_security.audit_hr_change('absence_capacity_change')
 create or replace function public.report_absence(
   requested_tenant_id uuid,
   requested_administration_id uuid,
@@ -240,11 +223,9 @@ begin
   if requested_idempotency_key is not null then insert into public.absence_mutations (tenant_id, operation_key, operation_type, result_case_id) values (requested_tenant_id, requested_idempotency_key, 'REPORT', case_record.id) on conflict do nothing; end if;
   return case_record.id;
 end;
-$$;
-
-revoke all on function public.report_absence(uuid, uuid, uuid, uuid, date, numeric, date, boolean, boolean, boolean, text) from public, anon;
-grant execute on function public.report_absence(uuid, uuid, uuid, uuid, date, numeric, date, boolean, boolean, boolean, text) to authenticated;
-
+$$
+revoke all on function public.report_absence(uuid, uuid, uuid, uuid, date, numeric, date, boolean, boolean, boolean, text) from public, anon
+grant execute on function public.report_absence(uuid, uuid, uuid, uuid, date, numeric, date, boolean, boolean, boolean, text) to authenticated
 create or replace function public.recover_absence(requested_case_id uuid, requested_recovered_on date, requested_idempotency_key text default null)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
 declare case_record public.absence_cases%rowtype; begin
@@ -254,6 +235,6 @@ declare case_record public.absence_cases%rowtype; begin
   if not found then raise exception 'ABSENCE_NO_OPEN_SPELL' using errcode = '23514'; end if;
   update public.absence_cases set status = 'RECOVERY_WINDOW', recovery_window_ends_on = requested_recovered_on + 28, updated_at = timezone('utc', now()) where id = requested_case_id;
   return requested_case_id;
-end; $$;
-revoke all on function public.recover_absence(uuid, date, text) from public, anon;
-grant execute on function public.recover_absence(uuid, date, text) to authenticated;
+end; $$
+revoke all on function public.recover_absence(uuid, date, text) from public, anon
+grant execute on function public.recover_absence(uuid, date, text) to authenticated

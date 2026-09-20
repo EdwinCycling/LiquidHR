@@ -50,7 +50,7 @@ describe('guided recruitment migration contract', () => {
     expect(sql).toContain("date_bin(interval '15 minutes'")
     expect(sql).toContain('for update skip locked')
     expect(sql).toContain('recruitment_claim_public_intake(uuid, text, text)')
-    expect(sql).toContain('recruitment_cleanup_public_intake(integer)')
+    expect(sql).toContain('recruitment_cleanup_public_intake(requested_limit integer default 100)')
     expect(sql).toContain('grant execute on function public.recruitment_claim_public_intake(uuid, text, text) to service_role')
     expect(sql).toContain('grant execute on function public.recruitment_submit_public_application(uuid, text, jsonb, text, text) to anon, authenticated, service_role')
     expect(sql).toContain('grant execute on function public.recruitment_cleanup_public_intake(integer) to service_role')

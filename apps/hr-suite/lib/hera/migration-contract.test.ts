@@ -2,11 +2,11 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
 const migrationUrl = new URL(
-  '../../supabase/migrations/20260717100000_harden_hera_memory_and_preferences.sql',
+  '../../supabase/migrations/20260717063601_harden_hera_memory_and_preferences.sql',
   import.meta.url,
 )
 const messageMetadataMigrationUrl = new URL(
-  '../../supabase/migrations/20260717101000_add_hera_message_metadata.sql',
+  '../../supabase/migrations/20260717070234_add_hera_message_metadata.sql',
   import.meta.url,
 )
 

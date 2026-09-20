@@ -196,3 +196,4 @@ $$;
 
 revoke all on function public.save_actual_work_entry(uuid, uuid, uuid, uuid, uuid, uuid, uuid, public.actual_work_entry_granularity, date, date, date, numeric, public.leave_work_hour_entry_status, text, public.actual_work_revision_operation, text) from public, anon;
 grant execute on function public.save_actual_work_entry(uuid, uuid, uuid, uuid, uuid, uuid, uuid, public.actual_work_entry_granularity, date, date, date, numeric, public.leave_work_hour_entry_status, text, public.actual_work_revision_operation, text) to authenticated;
+

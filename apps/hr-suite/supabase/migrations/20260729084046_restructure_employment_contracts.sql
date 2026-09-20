@@ -544,3 +544,4 @@ grant select, insert, update, delete on public.flex_phases to authenticated;
 grant select, insert, update, delete on public.salary_frequencies to authenticated;
 grant select, insert, update, delete on public.cost_carriers to authenticated;
 grant select, insert, update on public.employment_contracts to authenticated;
+

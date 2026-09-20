@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, CalendarDays, CheckCircle2, ChevronDown, HeartPulse, ShieldAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AbsenceQuickForm } from '@/components/absence/absence-quick-form'
+import { AbsenceConfirmationActions } from '@/components/absence/absence-confirmation-actions'
 import { DetailColumns } from '@/components/layout/detail-columns'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -25,6 +26,7 @@ interface AbsenceCaseDetailProps {
     heading: string
     back: string
     status: string
+    pendingConfirmation: string
     firstAbsence: string
     effectiveClockStart: string
     recoveryWindowEnds: string
@@ -75,11 +77,18 @@ interface AbsenceCaseDetailProps {
     discardCancel?: string
     canRecover?: boolean
     canChangeCapacity?: boolean
+    canConfirm?: boolean
+    confirmationCorrection?: string
+    confirmationCorrectionSent?: string
+    confirmationFailed?: string
+    confirmationConfirm?: string
   }
 }
 
 export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, absenceCase, locale, dateFormat, labels }: AbsenceCaseDetailProps) {
-  const statusLabel = absenceCase.status === 'ACTIVE'
+  const statusLabel = absenceCase.pendingConfirmation
+    ? labels.pendingConfirmation
+    : absenceCase.status === 'ACTIVE'
     ? labels.nowSick
     : absenceCase.status === 'RECOVERY_WINDOW' && absenceCase.recoveryWindowEndsOn
       ? labels.recoveryWindow.replace('{date}', formatDate(absenceCase.recoveryWindowEndsOn, { locale, dateFormat }))
@@ -88,7 +97,7 @@ export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, ab
   const resolvedEmploymentId = absenceCase.employmentId ?? employmentId
   const canRecover = labels.canRecover ?? true
   const canChangeCapacity = labels.canChangeCapacity ?? true
-  const hasActions = absenceCase.status === 'ACTIVE' && (canRecover || canChangeCapacity)
+  const hasActions = !absenceCase.pendingConfirmation && absenceCase.status === 'ACTIVE' && (canRecover || canChangeCapacity)
 
   const caseContent: ReactNode = <>
     <Surface className="p-5">
@@ -116,7 +125,7 @@ export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, ab
           const startedOn = formatDate(spell.startedOn, { locale, dateFormat })
           const reportedAt = formatDate(spell.reportedAt, { locale, dateFormat })
           const expectedRecovery = spell.expectedRecoveryOn ? formatDate(spell.expectedRecoveryOn, { locale, dateFormat }) : labels.noValue
-          const status = spell.recoveredOn ? <Badge tone="success"><CheckCircle2 aria-hidden="true" className="mr-1 inline size-3.5" />{labels.recoveredOn}</Badge> : <Badge tone="danger">{labels.nowSick}</Badge>
+          const status = spell.recoveredOn ? <Badge tone="success"><CheckCircle2 aria-hidden="true" className="mr-1 inline size-3.5" />{labels.recoveredOn}</Badge> : <Badge tone={absenceCase.pendingConfirmation ? 'info' : 'danger'}>{absenceCase.pendingConfirmation ? labels.pendingConfirmation : labels.nowSick}</Badge>
           return <details key={spell.id} className="group rounded-[var(--radius-control)] border border-border/70 bg-background">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
               <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 font-semibold"><span>{startedOn}</span>{status}</span><span className="mt-1 block break-words text-xs text-muted-foreground">{labels.reportedAt}: {reportedAt} · {labels.expectedRecovery}: {expectedRecovery} · {labels.capacity}: {spell.absencePercentage === null ? labels.noValue : `${spell.absencePercentage}%`}</span></span>
@@ -141,7 +150,7 @@ export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, ab
     <div className="mt-4">
       <AbsenceQuickForm employeeId={employeeId} today={today} employmentId={resolvedEmploymentId} currentCase={absenceCase} recoveryMode="form" showReportAction={false} canRecover={canRecover} canChangeCapacity={canChangeCapacity} labels={{ report: labels.report, startDate: labels.startDate, percentage: labels.percentage, expectedRecovery: labels.expectedRecoveryInput, hasSafetyNet: labels.safetyNet, workAccident: labels.workAccident, thirdPartyAccident: labels.thirdPartyAccident, unknown: labels.unknown, yes: labels.yes, no: labels.no, submit: labels.submit, recover: labels.better, partialRecover: labels.partialRecover, capacitySave: labels.capacitySave, recoveredOn: labels.recoveredOn, capacityEffectiveOn: labels.capacityEffectiveOn, nextReview: labels.nextReview, failed: labels.saveFailed, close: labels.close, employment: labels.employment, employmentPlaceholder: labels.employmentPlaceholder, employmentSearch: labels.employmentSearch, capacityInputMode: labels.capacityInputMode, percentageMode: labels.percentageMode, hoursMode: labels.hoursMode, capacityHours: labels.absenceHours, scheduleUnavailable: labels.scheduleUnavailable, discardTitle: labels.discardTitle, discardDescription: labels.discardDescription, discardConfirm: labels.discardConfirm, discardCancel: labels.discardCancel }} />
     </div>
-  </Surface> : null
+  </Surface> : absenceCase.pendingConfirmation && labels.canConfirm && labels.confirmationConfirm && labels.confirmationCorrection && labels.confirmationCorrectionSent && labels.confirmationFailed ? <AbsenceConfirmationActions caseId={absenceCase.id} labels={{ confirm: labels.confirmationConfirm, correction: labels.confirmationCorrection, correctionSent: labels.confirmationCorrectionSent, failed: labels.confirmationFailed }} /> : null
 
   return <div className="space-y-5">
     <Link prefetch={false} href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
@@ -150,7 +159,7 @@ export function AbsenceCaseDetail({ employeeId, today, employmentId, compact, ab
     <SectionHeader
       title={labels.heading.replace('{date}', formatDate(absenceCase.firstAbsenceOn, { locale, dateFormat }))}
       description={labels.dossier}
-      actions={<Badge tone={absenceCase.status === 'ACTIVE' ? 'danger' : absenceCase.status === 'RECOVERY_WINDOW' ? 'info' : 'success'}>{statusLabel}</Badge>}
+      actions={<Badge tone={absenceCase.pendingConfirmation ? 'info' : absenceCase.status === 'ACTIVE' ? 'danger' : absenceCase.status === 'RECOVERY_WINDOW' ? 'info' : 'success'}>{statusLabel}</Badge>}
     />
 
     {actionPanel ? <DetailColumns main={<div className="space-y-5">{caseContent}</div>} aside={actionPanel} /> : <div className="space-y-5">{caseContent}</div>}

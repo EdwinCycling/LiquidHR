@@ -1,5 +1,63 @@
 # Liquid HR documentatie-index
 
+## Focus DEV Act-as alignment and completion — 2026-09-20
+
+**Status: DEV-GREEN / LOKALE EINDGATES GREEN / MAIN-PRODUCTION RELEASE GATE OPEN**
+
+De bestaande tenant-specifieke `TENANT_ADMIN`-override van de DEV-demo-tenant
+`liquid-hr-demo-holding` is via de canonieke `role_permissions`-configuratie
+uitgelijnd met het bestaande globale contract voor `focus:act-as-employee`.
+De drie DEV-migrations voor capability, audit-eventpolicy en authenticated-only
+audit INSERT zijn toegepast op `wnpfloqpjvaacobppbpk`; Production en globale
+rollen zijn niet gewijzigd.
+
+Authenticated acceptance is groen voor HR Admin/TENANT_ADMIN START → employee
+Focus → STOP en rood/403 zoals bedoeld voor Test Manager en Test Employee.
+Remote readback toont precies de START/STOP-auditsporen voor Noah en nul
+Act-as-capabilityrijen voor EMPLOYEE/DIRECT_MANAGER in de targettenant.
+Profiel self-edit is met readback getest en hersteld; de mobiele matrix op
+`390x844` heeft op de kernroutes geen horizontale overflow. Volledige evidence,
+screenshots, fixturegrenzen en open releasegrenzen staan in
+[`focus-acceptance-20260920/README.md`](../.artifacts/focus-acceptance-20260920/README.md).
+
+De lokale eindgates zijn groen: `432/432` testbestanden en `1698/1698` tests,
+strict TypeScript, ESLint, i18n-pariteit met `39` namespaces,
+Webpack-productiebuild met `296/296` statische pagina's en `git diff --check`.
+Deze status is DEV-only; main-integratie, Production-migratie en Production-
+deployment blijven de expliciete volgende releasegate.
+
+## ESS/MSS Workflow Unification V1 — 2026-09-17
+
+**Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**
+
+Deze slice staat op de geïsoleerde branch `work/ess-mss-workflow-unification-v1`,
+gebaseerd op exact `origin/main`
+`6f9f61b85d2b488557d066fcabdbb39e60f2b39b`. `/work` gebruikt een uniforme
+server-side projectie voor `WORK` en `REQUESTS`, met business type/category en
+native routing. P-mutaties behouden hun dynamic renderer; Leave gebruikt een
+typed Process Automation-adapter met native aanvraag/approval/booking; Actual
+Work blijft volledig ledger-owned zonder tweede bookingpad.
+
+De enum-, hoofd-, FK-index- en wrapper-execution-migrations zijn uitsluitend op
+DEV/TEST Supabase `wnpfloqpjvaacobppbpk` toegepast. Readback bevestigde de
+`LEAVE/LEAVE_REQUEST` recipe, 7 stappen/12 transities, self-service permissions,
+authenticated-only RPC wrappers en RLS op de typed bridge. De HR-fixture
+activeerde en publiceerde de administratiegebonden recipe in DEV.
+Supabase Production, Vercel, GitHub push, merge en cleanup zijn niet uitgevoerd.
+
+De gerichte workflow-suite is `39/39` groen; strict TypeScript, ESLint,
+i18n-pariteit, diff-check en productiebuild zijn groen. De volledige suite is
+`1564/1565`: alleen de bestaande 5-seconden timeout in
+`lib/document-generation/pdf.test.ts` blijft open. De authenticated browsergate
+bevestigde employee `WAITING` zonder approve-knop en `403 FORBIDDEN` op een
+ongeautoriseerde approve; manager zag `OPEN`, maar de positieve approval werd door
+de bestaande Leave-ledger terecht geweigerd met `LEAVE_INSUFFICIENT_BALANCE`.
+De aanvraag bleef `PENDING`, zonder domain commit, allocation of `TAKEN`-transactie.
+Een positieve booking-readback vereist expliciete toestemming voor één bounded
+DEV-fixturebalans via de bestaande HR-ledgerflow. Zie de volledige contracten in
+[`ESS_MSS_WORKFLOW_UNIFICATION_V1.md`](requirements/workflows/ESS_MSS_WORKFLOW_UNIFICATION_V1.md)
+en de overdracht in [`CURRENT_CONTEXT.md`](delivery/CURRENT_CONTEXT.md).
+
 ## AI-consolidatie — 2026-09-16
 
 **Status: TECHNISCH GREEN — MAIN GEPUSHT / CANONICAL PREVIEW GEVERIFIEERD / MENSELIJKE MICROFOONACCEPTATIE OPEN**
@@ -1227,7 +1285,7 @@ Adresinvoer: [`requirements/core-hr/ADRESINVOER.md`](requirements/core-hr/ADRESI
 | Bedrijf en locatie per dienstverband | [`requirements/employment/BEDRIJF_EN_LOCATIE_PER_DIENSTVERBAND.md`](requirements/employment/BEDRIJF_EN_LOCATIE_PER_DIENSTVERBAND.md) | LEIDEND | GEDEELTELIJK — lokale schema/RLS/RPC, API, eigen dienstverbandtab, read-only bedrijfskaart en locatie-opvolging zijn toegevoegd; remote migratie en authenticated browserbewijs volgen |
 | Verlof: opbouw-, saldo- en configuratie-engine | [`requirements/leave/VERLOF_OPBOUW_ENGINE.md`](requirements/leave/VERLOF_OPBOUW_ENGINE.md) | LEIDEND | LEAVE V1 COMPLEET — bestaande schema/RLS, cutover/cohort-engine, catalogus/API, effectieve voorrangsregels, auditeerbare startsaldo/correcties, saldo-/jaaroverzicht en acceptance-readback zijn groen; latere productuitbreidingen blijven afzonderlijke scope |
 | Verlof: HR-admin aanvragen vanuit kalender | [`requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md`](requirements/leave/VERLOF_AANVRAAG_HR_ADMIN.md) | LEIDEND | LEAVE V1 COMPLEET — geautoriseerde HR-adminflow, directe en priority/FIFO-allocatie, canonieke kalenderprojectie, 12-maands overzicht en eigen/direct-report read-scope zijn groen; ESS-notificaties blijven afzonderlijke scope |
-| Verzuim en herstel | [`requirements/absence/VERZUIM_EN_HERSTEL.md`](requirements/absence/VERZUIM_EN_HERSTEL.md) | LEIDEND | GEDEELTELIJK — schema/RLS/RPC, API, dashboardvenster, startpagina, kalenderactie, medewerker-tab, herstel, instellingen en verzuimrapportage zijn live; voorziening en verdere WvP blijven open |
+| Verzuim en herstel | [`requirements/absence/VERZUIM_EN_HERSTEL.md`](requirements/absence/VERZUIM_EN_HERSTEL.md) | LEIDEND | GEDEELTELIJK — canonieke verzuim-/herstelkernel, Focus self-report gating, pending manager confirmation, correctie, recovery, privacyprojecties en de twee operationele Manager Home-kaarten zijn lokaal uitgewerkt; DEV migration reconciliation en DB-backed acceptance blijven open |
 | WvP Poortwachter | [`requirements/absence/WVP_POORTWACHTER_ENGINE.md`](requirements/absence/WVP_POORTWACHTER_ENGINE.md) | LEIDEND | GEDEELTELIJK — HR Admin kan eigen niet-wettelijke taaktemplates beheren; wettelijke milestone-engine, casustaken, dossier en signaleringen blijven open totdat de set inhoudelijk is bevestigd |
 | Verzuiminstellingen | [`requirements/absence/VERZUIM_INSTELLINGEN.md`](requirements/absence/VERZUIM_INSTELLINGEN.md) | LEIDEND | GEDEELTELIJK — drempel, geldige standaardcasemanager en eigen taaktemplates zijn administratiegebonden beschikbaar; contacttypen en documentcategorieën blijven open |
 | Rapportages en Inzichten | [`requirements/reports/RAPPORTAGES_EN_INZICHTEN.md`](requirements/reports/RAPPORTAGES_EN_INZICHTEN.md) | LEIDEND | GEDEELTELIJK — medewerkerprojecties, Aankomende gebeurtenissen, Verzuim en Bradford factor zijn live; verlof, voorziening en WvP volgen per rapport; de oude globale Dashboard-bestemming is vervangen door Analyse |
@@ -1312,5 +1370,15 @@ Het autorisatiebeheer en grafische rechtenoverzicht zijn beschreven in [`superpo
 De HR-instellingenhub, tenantmodules, repeterende werkpatronen, feestdagenimport en gecombineerde medewerkerskalender zijn beschreven in [`requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md`](requirements/settings/INSTELLINGEN_MODULES_ROOSTERS_FEESTDAGEN_KALENDER.md) en ontworpen in [`superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md`](superpowers/specs/2026-07-18-settings-modules-rosters-holidays-calendar-design.md).
 
 De medewerkerlijst/persoonskaart-UX-slice van 2026-07-19 is geïmplementeerd: gebruikersgebonden lijstvoorkeuren zonder zoekterm, Enter-zoeken met afzonderlijk wissen, volledige klikrij, hoofdtab Overzicht vóór Persoonsgegevens en een effective-dated samenvatting van het huidige dienstverband met beschermd salaris-hover.
+
+## Focus + Identity / Preboarding candidate — 2026-09-17
+
+De geïsoleerde candidate `work/focus-identity-preboarding-20260917` bouwt de goedgekeurde `/focus` presentation over de bestaande Employee/Employment-, Journey- en Auth/invitation-architectuur. Employee, Manager en Preboarding hebben een compacte Foundation-surface; preboarding is effectief-dated en server/RLS-begrensd. Individuele employee-activatie accepteert server-side alleen een employee-id en canonicaliseert email, purpose, management role en scope binnen tenant + HR-groep; bulk gebruikt dezelfde primitive per employee. Business invitations blijven een afzonderlijk `BUSINESS_USER`-pad. Individuele en bulkuitnodigingen gebruiken de bestaande token/acceptance-lifecycle, met 7 dagen geldigheid, resend/revoke en per-recipient resultaten. De lokale codegate is groen met volledige tests, typecheck, lint, i18n en Webpack-build; authenticated browseracceptance en remote SQL-gates blijven expliciet open door beschermde env/remote governance. ESS/MSS-owned Leave, Actual Work, My Work, My Requests en workflows blijven integratiepunten; de actuele gate staat in [`delivery/IMPLEMENTATION_STATUS.md`](delivery/IMPLEMENTATION_STATUS.md).
+
+## Focus access management — 2026-09-18
+
+De geïsoleerde branch `work/focus-access-management-20260918` bouwt de vervolg-slice op de bestaande Focus/Identity/Preboarding-architectuur. De HR Employee Detail access card, canonical employee invitations, afzonderlijke ESS ACTIVE/BLOCKED-status, Auth last-login readback, read-only HR Focus preview en HR-group portal modes zijn geïmplementeerd met server- en RLS-enforcement. `NO_EMPLOYMENT` krijgt geen gewone Employee ESS-capabilities en een opgeslagen Full-voorkeur kan een `FOCUS_ONLY`-policy niet omzeilen.
+
+De twee migrations zijn na expliciete autorisatie op DEV `wnpfloqpjvaacobppbk` toegepast en gecontroleerd. De lokale codegate is groen: 58 targeted tests, 1.634 full-suite tests, strict TypeScript, ESLint, i18n, diff-check en Webpack/Next build. Authenticated browseracceptance blijft environment-gated door een herhaald `CDP response channel closed` in de bestaande browserharness; er zijn geen Auth-, invitation-, fixture- of mailmutaties uitgevoerd. Leave, Actual Work, My Work en My Requests blijven integratiepunten voor de andere ESS/MSS-run; er is niet gemerged of gedeployed.
 
 De HR-admin-stamtabellen staan op `/master-data`: Redenen uitdienst, documentcategorieën en tenant-relatietypen zijn afzonderlijke onderdelen. Redenen uitdienst zijn landgebonden en HR-groepbreed; documentcategorieën blijven administratiegebonden. Nederland gebruikt de actuele codes 01-99 en andere landen krijgen bij ontbrekende inrichting de veilige standaardreden `Einde contract`.

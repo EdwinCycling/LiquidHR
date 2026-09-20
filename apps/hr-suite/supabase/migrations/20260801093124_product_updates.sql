@@ -164,4 +164,3 @@ where management_role.code = 'TENANT_ADMIN'
   and management_role.deleted_at is null
 on conflict do nothing;
 
-

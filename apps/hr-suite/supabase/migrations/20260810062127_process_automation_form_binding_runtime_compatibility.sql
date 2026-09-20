@@ -1,5 +1,4 @@
-begin;
-
+begin
 -- Keep the published form projection/save RPCs unchanged. Binding-aware
 -- callers use the private wrappers created below, so existing forms retain
 -- their exact runtime contract while the new registry is rolled out.
@@ -195,10 +194,8 @@ begin
 
   return null;
 end;
-$$;
-
-revoke all on function internal_security.process_form_binding_value(jsonb, uuid, uuid, uuid, jsonb) from public, anon, authenticated;
-
+$$
+revoke all on function internal_security.process_form_binding_value(jsonb, uuid, uuid, uuid, jsonb) from public, anon, authenticated
 -- Create a binding-aware copy of the projection. The existing shared
 -- projection remains untouched and keeps serving legacy form callers.
 do $create_projection_wrapper$
@@ -263,8 +260,7 @@ begin
   function_definition := replace(function_definition, conditions_fragment, conditions_replacement);
   execute function_definition;
 end;
-$create_projection_wrapper$;
-
+$create_projection_wrapper$
 -- Create a binding-aware copy of the save path. It rejects forged writes to
 -- DOMAIN_READ/COMPUTED and evaluates conditions against server values.
 do $create_save_wrapper$
@@ -318,13 +314,11 @@ begin
   function_definition := replace(function_definition, visibility_fragment, visibility_replacement);
   execute function_definition;
 end;
-$create_save_wrapper$;
-
-revoke all on function internal_security.get_process_form_projection_with_bindings(uuid, text) from public, anon, authenticated;
-revoke all on function internal_security.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) from public, anon, authenticated;
-grant execute on function internal_security.get_process_form_projection_with_bindings(uuid, text) to authenticated;
-grant execute on function internal_security.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) to authenticated;
-
+$create_save_wrapper$
+revoke all on function internal_security.get_process_form_projection_with_bindings(uuid, text) from public, anon, authenticated
+revoke all on function internal_security.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) from public, anon, authenticated
+grant execute on function internal_security.get_process_form_projection_with_bindings(uuid, text) to authenticated
+grant execute on function internal_security.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) to authenticated
 create or replace function public.get_process_form_projection_with_bindings(
   requested_work_item_id uuid,
   requested_language text default 'nl'
@@ -334,8 +328,7 @@ language sql
 set search_path = ''
 as $$
   select internal_security.get_process_form_projection_with_bindings(requested_work_item_id, requested_language);
-$$;
-
+$$
 create or replace function public.save_process_form_response_with_bindings(
   requested_work_item_id uuid,
   requested_expected_revision bigint,
@@ -353,11 +346,9 @@ as $$
     requested_work_item_id, requested_expected_revision, requested_expected_version,
     requested_values, requested_idempotency_key, requested_correlation_id, requested_language
   );
-$$;
-
-revoke all on function public.get_process_form_projection_with_bindings(uuid, text) from public, anon, authenticated;
-revoke all on function public.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) from public, anon, authenticated;
-grant execute on function public.get_process_form_projection_with_bindings(uuid, text) to authenticated;
-grant execute on function public.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) to authenticated;
-
-commit;
+$$
+revoke all on function public.get_process_form_projection_with_bindings(uuid, text) from public, anon, authenticated
+revoke all on function public.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) from public, anon, authenticated
+grant execute on function public.get_process_form_projection_with_bindings(uuid, text) to authenticated
+grant execute on function public.save_process_form_response_with_bindings(uuid, bigint, bigint, jsonb, text, uuid, text) to authenticated
+commit

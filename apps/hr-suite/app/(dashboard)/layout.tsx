@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { AuthenticationError, getRequestAuthorizationContext } from '@/lib/auth/permissions'
+import { readEmployeeEssAccess } from '@/lib/auth/employee-ess-access'
+import { isFullPortalAllowed } from '@/lib/focus/access-state'
 import { INSIGHT_REPORTS } from '@/lib/insights/report-catalog'
 import { ANALYSIS_PERMISSION } from '@/lib/insights/analysis-contract'
 import { ContextAccessError } from '@/lib/context/administration-context'
@@ -33,6 +35,14 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   }
 
   const { supabase, context: authContext, activeContext: context, email } = requestContext
+  const employeeEssAccess = authContext.employeeId ? await readEmployeeEssAccess(supabase, authContext.employeeId) : null
+  if (authContext.employeeId && !isFullPortalAllowed({
+    experience: authContext.focusExperience ?? 'NO_EMPLOYMENT',
+    activeRoles: authContext.activeRoles,
+    employeePortalMode: authContext.employeePortalMode,
+    managerPortalMode: authContext.managerPortalMode,
+    blocked: employeeEssAccess?.status === 'BLOCKED',
+  })) redirect('/focus')
   const canReadEmployees = authContext.permissions.includes('employee:read') || authContext.permissions.includes('employee-directory:read')
   const canReadStartPage = authContext.permissions.includes('start-page:read')
   const canReadWorkforce = authContext.permissions.includes('workforce:read') || (

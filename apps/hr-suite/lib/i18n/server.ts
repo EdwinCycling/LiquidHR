@@ -1,6 +1,7 @@
 import 'server-only'
 
 import authEn from '@/messages/en/auth.json'
+import invitationsEn from '@/messages/en/invitations.json'
 import commonEn from '@/messages/en/common.json'
 import departmentsEn from '@/messages/en/departments.json'
 import employeesEn from '@/messages/en/employees.json'
@@ -19,6 +20,7 @@ import documentsEn from '@/messages/en/documents.json'
 import hrCalendarEn from '@/messages/en/hrCalendar.json'
 import starPerformersEn from '@/messages/en/starPerformers.json'
 import leaveEn from '@/messages/en/leave.json'
+import leaveWorkflowEn from '@/messages/en/leaveWorkflow.json'
 import insightsEn from '@/messages/en/insights.json'
 import workforceEn from '@/messages/en/workforce.json'
 import talentEn from '@/messages/en/talent.json'
@@ -33,6 +35,7 @@ import journeysEn from '@/messages/en/journeys.json'
 import recruitmentEn from '@/messages/en/recruitment.json'
 import setupAssistantEn from '@/messages/en/setupAssistant.json'
 import authNl from '@/messages/nl/auth.json'
+import invitationsNl from '@/messages/nl/invitations.json'
 import commonNl from '@/messages/nl/common.json'
 import departmentsNl from '@/messages/nl/departments.json'
 import employeesNl from '@/messages/nl/employees.json'
@@ -51,6 +54,7 @@ import documentsNl from '@/messages/nl/documents.json'
 import hrCalendarNl from '@/messages/nl/hrCalendar.json'
 import starPerformersNl from '@/messages/nl/starPerformers.json'
 import leaveNl from '@/messages/nl/leave.json'
+import leaveWorkflowNl from '@/messages/nl/leaveWorkflow.json'
 import insightsNl from '@/messages/nl/insights.json'
 import workforceNl from '@/messages/nl/workforce.json'
 import talentNl from '@/messages/nl/talent.json'
@@ -68,6 +72,8 @@ import documentStudioNl from '@/messages/nl/documentStudio.json'
 import documentStudioEn from '@/messages/en/documentStudio.json'
 import logbookNl from '@/messages/nl/logbook.json'
 import logbookEn from '@/messages/en/logbook.json'
+import focusNl from '@/messages/nl/focus.json'
+import focusEn from '@/messages/en/focus.json'
 import { getUserPreferences } from '@/lib/preferences/server'
 import {
   type Locale,
@@ -78,6 +84,7 @@ import { createTranslator, type MessageTree, type Translator } from './translato
 const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
   nl: {
     auth: authNl,
+    invitations: invitationsNl,
     common: commonNl,
     departments: departmentsNl,
     employees: employeesNl,
@@ -96,6 +103,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     hrCalendar: hrCalendarNl,
     starPerformers: starPerformersNl,
     leave: leaveNl,
+    leaveWorkflow: leaveWorkflowNl,
     insights: insightsNl,
     workforce: workforceNl,
     talent: talentNl,
@@ -111,9 +119,11 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     setupAssistant: setupAssistantNl,
     documentStudio: documentStudioNl,
     logbook: logbookNl,
+    focus: focusNl,
   },
   en: {
     auth: authEn,
+    invitations: invitationsEn,
     common: commonEn,
     departments: departmentsEn,
     employees: employeesEn,
@@ -132,6 +142,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     hrCalendar: hrCalendarEn,
     starPerformers: starPerformersEn,
     leave: leaveEn,
+    leaveWorkflow: leaveWorkflowEn,
     insights: insightsEn,
     workforce: workforceEn,
     talent: talentEn,
@@ -147,6 +158,7 @@ const MESSAGES: Record<Locale, Record<MessageNamespace, MessageTree>> = {
     setupAssistant: setupAssistantEn,
     documentStudio: documentStudioEn,
     logbook: logbookEn,
+    focus: focusEn,
   },
 }
 

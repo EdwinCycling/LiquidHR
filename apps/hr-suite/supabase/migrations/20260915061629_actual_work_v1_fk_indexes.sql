@@ -19,3 +19,4 @@ create index if not exists actual_work_revisions_actor_user_idx
   on public.actual_work_revisions (actor_user_id);
 
 commit;
+
