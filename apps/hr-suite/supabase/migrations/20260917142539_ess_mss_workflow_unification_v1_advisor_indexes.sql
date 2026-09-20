@@ -11,3 +11,4 @@ create index if not exists process_recipe_activations_recipe_idx
   on public.process_recipe_activations (process_recipe_id);
 
 commit;
+

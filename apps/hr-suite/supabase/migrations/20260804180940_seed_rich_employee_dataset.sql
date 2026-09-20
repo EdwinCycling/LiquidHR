@@ -38,6 +38,7 @@ declare
   v_actor uuid;
 begin
   select access.user_id
+
   into v_actor
   from public.user_access access
   where access.is_active
@@ -78,6 +79,7 @@ begin
       (
         select administration.id
         from public.administrations administration
+
         where administration.tenant_id = employee.tenant_id
           and administration.is_active
         order by administration.code
@@ -118,6 +120,7 @@ begin
   from public.administrations administration
   where administration.is_active
     and exists (
+
       select 1 from rich_people person
       where person.administration_id = administration.id
     )
@@ -159,6 +162,7 @@ begin
     description = excluded.description,
     is_active = true;
 
+
   insert into public.job_groups (id, tenant_id, code, name, description, is_active)
   select
     md5('liquidhr-rich-v1:job-group:' || tenant.id::text || ':' || slot.value::text)::uuid,
@@ -198,6 +202,7 @@ begin
   insert into public.cost_centers (id, tenant_id, administration_id, code, name, is_active)
   select
     md5('liquidhr-rich-v1:cost-center:' || person.administration_id::text || ':' || slot.value::text)::uuid,
+
     administration.tenant_id,
     administration.id,
     'RICH-CC-' || lpad(slot.value::text, 2, '0'),
@@ -238,6 +243,7 @@ begin
   where person.is_active
     and person.administration_id is not null
     and not exists (
+
       select 1
       from public.employee_administration_assignments assignment
       where assignment.employee_id = person.employee_id
@@ -278,6 +284,7 @@ begin
         current_date - 365
       )
     ),
+
     null,
     coalesce(person.original_hire_date, current_date - 365),
     coalesce(person.original_hire_date, current_date - 365),
@@ -318,6 +325,7 @@ begin
     null,
     labor_condition.id,
     'INDEFINITE',
+
     greatest(
       current_date - 365,
       coalesce(
@@ -358,6 +366,7 @@ begin
   on conflict (id) do update set
     labor_condition_set_id = excluded.labor_condition_set_id,
     duration_type = excluded.duration_type,
+
     ends_on = excluded.ends_on;
 
   create temporary table rich_scope on commit drop as
@@ -398,6 +407,7 @@ begin
     'EMPLOYMENT',
     coalesce(scope.employment_starts_on, current_date - 365),
     scope.employment_ends_on,
+
     'DRAFT'
   from rich_scope scope
   where scope.employment_id is not null
@@ -438,6 +448,7 @@ begin
     scope.employment_ends_on
   from rich_scope scope
   where scope.employment_id is not null
+
     and exists (
       select 1
       from public.income_relationships relationship
@@ -478,6 +489,7 @@ begin
     marital_status = coalesce(employee.marital_status, case mod(person.sequence_no, 5) when 0 then 'MARRIED' when 1 then 'SINGLE' when 2 then 'REGISTERED_PARTNERSHIP' when 3 then 'DIVORCED' else 'SINGLE' end::public.marital_status),
     education_level = coalesce(employee.education_level, case mod(person.sequence_no, 4) when 0 then 'MBO' when 1 then 'HBO' when 2 then 'WO' else 'HBO' end::public.education_level),
     custom_fields = employee.custom_fields || jsonb_build_object(
+
       'rich_test_fixture', 'liquidhr-rich-v1',
       'synthetic_profile_index', person.sequence_no,
       'performance_scenarios', jsonb_build_array(
@@ -518,6 +530,7 @@ begin
     'Synthetisch primair adres voor testdoeleinden.'
   from rich_people person
   where not exists (
+
     select 1 from public.employee_addresses existing_address
     where existing_address.employee_id = person.employee_id
       and existing_address.deleted_at is null
@@ -558,6 +571,7 @@ begin
   from rich_people person
   where not exists (
     select 1 from public.employee_addresses existing_address
+
     where existing_address.id = md5('liquidhr-rich-v1:secondary-address:' || person.employee_id::text)::uuid
   )
   on conflict (id) do update set
@@ -598,6 +612,7 @@ begin
 
   insert into public.employee_bank_accounts (
     id, tenant_id, employee_id, iban_ciphertext, iban_last_four, bic,
+
     account_holder, description, is_primary
   )
   select
@@ -638,6 +653,7 @@ begin
     '+31 30 ' || lpad((600000 + person.sequence_no * 173)::text, 6, '0'),
     '+31 6 ' || lpad((700000 + person.sequence_no * 179)::text, 6, '0'),
     'partner-' || person.sequence_no::text || '@liquidhr.invalid',
+
     'Synthetische relatie voor testdoeleinden.'
   from rich_people person
   on conflict (id) do update set
@@ -677,6 +693,7 @@ begin
     last_name = excluded.last_name,
     notes = excluded.notes,
     deleted_at = null;
+
 
   -- Organisatie: iedere medewerker krijgt een afdeling, functie, locatie en
   -- waar mogelijk een directe testmanager. Bestaande actuele plaatsingen
@@ -718,6 +735,7 @@ begin
     where existing.employee_id = target.employee_id
       and existing.administration_id = target.resolved_administration_id
       and existing.effective_from <= current_date
+
       and (existing.effective_to is null or existing.effective_to >= current_date)
     order by existing.effective_from desc
     limit 1
@@ -758,6 +776,7 @@ begin
   )
   select
     md5('liquidhr-rich-v1:organization:' || target.employee_id::text)::uuid,
+
     target.tenant_id,
     target.employee_id,
     target.department_id,
@@ -798,6 +817,7 @@ begin
   -- dienstverband waarvoor de bestaande demo nog geen actuele regel heeft.
   insert into public.employment_schedules (
     id, tenant_id, administration_id, employee_id, employment_id,
+
     schedule_type, start_week, average_days_per_week, average_hours_per_week,
     part_time_factor, time_for_time_accrual, monday_hours, tuesday_hours,
     wednesday_hours, thursday_hours, friday_hours, saturday_hours, sunday_hours,
@@ -838,6 +858,7 @@ begin
   on conflict (id) do update set
     average_days_per_week = excluded.average_days_per_week,
     average_hours_per_week = excluded.average_hours_per_week,
+
     part_time_factor = excluded.part_time_factor,
     valid_until = excluded.valid_until,
     is_on_call = excluded.is_on_call,
@@ -878,6 +899,7 @@ begin
   ) frequency on true
   where scope.employment_id is not null
     and not exists (
+
       select 1 from public.employment_salaries salary
       where salary.employment_id = scope.employment_id
         and salary.valid_from <= current_date
@@ -918,6 +940,7 @@ begin
         and condition.valid_from <= current_date
         and (condition.valid_until is null or condition.valid_until >= current_date)
     )
+
   on conflict (id) do update set
     employment_contract_id = excluded.employment_contract_id,
     condition_group = excluded.condition_group,
@@ -958,6 +981,7 @@ begin
     insert into public.absence_cases (
       id, tenant_id, administration_id, employee_id, employment_id, status,
       first_absence_on, effective_clock_start_on, case_manager_employee_id,
+
       has_sickness_benefit_safety_net, is_work_accident,
       is_third_party_traffic_accident, prior_case_count_12_months,
       frequent_absence_threshold, is_frequent_absence, closed_at,
@@ -998,6 +1022,7 @@ begin
     )
     select
       md5('liquidhr-rich-v1:absence-spell:' || scope.employee_id::text)::uuid,
+
       scope.tenant_id,
       md5('liquidhr-rich-v1:absence-case:' || scope.employee_id::text)::uuid,
       current_date - (90 + scope.sequence_no)::integer,
@@ -1038,6 +1063,7 @@ begin
     on conflict (id) do update set
       effective_on = excluded.effective_on,
       absence_percentage = excluded.absence_percentage,
+
       expected_next_review_on = excluded.expected_next_review_on,
       created_by_user_id = excluded.created_by_user_id;
 
@@ -1077,4 +1103,4 @@ begin
       message = excluded.message;
   end if;
 end;
-$$;
+$$;

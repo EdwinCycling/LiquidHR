@@ -25,7 +25,6 @@ alter table public.job_group_jobs
   drop constraint if exists job_group_jobs_administration_same_tenant_fkey,
   drop column if exists administration_id;
 
--- Blueprint rule: every job belongs to exactly one tenant job group.
 create unique index if not exists job_group_jobs_tenant_job_unique
   on public.job_group_jobs (tenant_id, job_id);
 
@@ -97,8 +96,6 @@ $function$;
 revoke all on function public.create_job_with_revision(uuid, jsonb) from public, anon;
 grant execute on function public.create_job_with_revision(uuid, jsonb) to authenticated;
 
--- Keep one explicit administration-scoped demo department so the two scopes
--- remain testable without manufacturing a second domain model.
 insert into public.departments (
   id,
   tenant_id,

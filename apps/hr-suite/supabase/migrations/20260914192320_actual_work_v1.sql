@@ -545,7 +545,8 @@ grant execute on function public.save_actual_work_entry(uuid, uuid, uuid, uuid, 
 revoke all on function public.close_actual_work_period(uuid, uuid, date, date) from public, anon;
 grant execute on function public.close_actual_work_period(uuid, uuid, date, date) to authenticated;
 
--- Deterministic DEV configuration for the Planeten/Jupiter test scope.
+-- Deterministic DEV configuration for the Planeten/Jupiter test scope. The
+-- TEST-BOUNDARY group is deliberately not referenced by this seed.
 do $$
 declare
   seed_tenant_id uuid := '07249eb9-545c-883b-b26b-d52f83b4f4a1';
@@ -630,3 +631,4 @@ end;
 $$;
 
 commit;
+

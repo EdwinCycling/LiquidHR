@@ -209,3 +209,4 @@ revoke all on function public.apply_employment_cost_allocation(
 grant execute on function public.apply_employment_cost_allocation(
   uuid, date, jsonb, text, text[], jsonb
 ) to authenticated;
+

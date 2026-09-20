@@ -1,15 +1,13 @@
 -- Journeys stap 1: HR-groepbrede templateconfiguratie en immutable publicatie.
 -- Runtime Journeys, participants, materialisatie en outcomes vallen expliciet buiten deze migratie.
 
-alter table public.tenant_modules drop constraint if exists tenant_modules_module_code_check;
+alter table public.tenant_modules drop constraint if exists tenant_modules_module_code_check
 alter table public.tenant_modules add constraint tenant_modules_module_code_check
-  check (module_code in ('HERA','REMINDERS','TALENT','SURVEYS','ENPS','TEAM_COMPASS','JOURNEYS','DOCUMENTS'));
-
+  check (module_code in ('HERA','REMINDERS','TALENT','SURVEYS','ENPS','TEAM_COMPASS','JOURNEYS','DOCUMENTS'))
 insert into public.tenant_modules (tenant_id, module_code, is_enabled, enabled_at)
 select tenant.id, 'JOURNEYS', false, null
 from public.tenants tenant
-on conflict (tenant_id, module_code) do nothing;
-
+on conflict (tenant_id, module_code) do nothing
 insert into public.permissions (code, name, category, description) values
   ('journey-template:read', 'Journey templates lezen', 'Journeys', 'Templates en gepubliceerde versies binnen de actieve HR-groep raadplegen.'),
   ('journey-template:write', 'Journey templates beheren', 'Journeys', 'Drafts, fases, rollen, momenten, topics en audiences beheren.'),
@@ -23,8 +21,7 @@ insert into public.permissions (code, name, category, description) values
 on conflict (code) do update set
   name = excluded.name,
   category = excluded.category,
-  description = excluded.description;
-
+  description = excluded.description
 insert into public.role_permissions (management_role_id, permission_id)
 select role.id, permission.id
 from public.management_roles role
@@ -35,16 +32,14 @@ where role.code = 'TENANT_ADMIN'
     'journey:read', 'journey:write', 'self:journey:read', 'self:journey:write',
     'journey-participation:read', 'journey-participation:write'
   )
-on conflict do nothing;
-
-create type public.journey_template_lifecycle as enum ('DRAFT', 'PUBLISHED', 'RETIRED');
-create type public.journey_template_version_status as enum ('DRAFT', 'PUBLISHED');
-create type public.journey_type as enum ('PREBOARDING', 'ONBOARDING', 'REBOARDING', 'INTERNAL_TRANSFER', 'PROMOTION', 'RETURN', 'OFFBOARDING', 'CUSTOM');
-create type public.journey_anchor_rule as enum ('EMPLOYMENT_START_DATE', 'MANUAL_DATE');
-create type public.journey_role_cardinality as enum ('ONE', 'MANY');
-create type public.journey_role_resolver_type as enum ('TARGET_EMPLOYEE', 'DIRECT_MANAGER', 'DEPARTMENT_MANAGER', 'SPECIFIC_EMPLOYEE', 'MANUAL');
-create type public.journey_topic_type as enum ('INFORMATION', 'ACTION', 'CHECK_IN', 'DOCUMENT');
-
+on conflict do nothing
+create type public.journey_template_lifecycle as enum ('DRAFT', 'PUBLISHED', 'RETIRED')
+create type public.journey_template_version_status as enum ('DRAFT', 'PUBLISHED')
+create type public.journey_type as enum ('PREBOARDING', 'ONBOARDING', 'REBOARDING', 'INTERNAL_TRANSFER', 'PROMOTION', 'RETURN', 'OFFBOARDING', 'CUSTOM')
+create type public.journey_anchor_rule as enum ('EMPLOYMENT_START_DATE', 'MANUAL_DATE')
+create type public.journey_role_cardinality as enum ('ONE', 'MANY')
+create type public.journey_role_resolver_type as enum ('TARGET_EMPLOYEE', 'DIRECT_MANAGER', 'DEPARTMENT_MANAGER', 'SPECIFIC_EMPLOYEE', 'MANUAL')
+create type public.journey_topic_type as enum ('INFORMATION', 'ACTION', 'CHECK_IN', 'DOCUMENT')
 create table public.journey_templates (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -62,8 +57,7 @@ create table public.journey_templates (
   unique (tenant_id, hr_group_id, id),
   unique (tenant_id, hr_group_id, key),
   foreign key (tenant_id, hr_group_id) references public.hr_groups(tenant_id, id) on delete cascade
-);
-
+)
 create table public.journey_template_versions (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -85,22 +79,19 @@ create table public.journey_template_versions (
     (status = 'DRAFT' and version_number is null and published_at is null and published_by_user_id is null)
     or (status = 'PUBLISHED' and version_number is not null and version_number > 0 and published_at is not null and published_by_user_id is not null)
   )
-);
-
+)
 create unique index journey_template_versions_one_draft_idx
   on public.journey_template_versions (tenant_id, hr_group_id, template_id)
-  where status = 'DRAFT';
+  where status = 'DRAFT'
 create unique index journey_template_versions_number_idx
   on public.journey_template_versions (tenant_id, hr_group_id, template_id, version_number)
-  where status = 'PUBLISHED';
+  where status = 'PUBLISHED'
 create unique index journey_template_versions_source_revision_idx
   on public.journey_template_versions (tenant_id, hr_group_id, template_id, revision)
-  where status = 'PUBLISHED';
-
+  where status = 'PUBLISHED'
 alter table public.journey_templates add constraint journey_templates_current_version_fk
   foreign key (tenant_id, hr_group_id, current_published_version_id)
-  references public.journey_template_versions(tenant_id, hr_group_id, id);
-
+  references public.journey_template_versions(tenant_id, hr_group_id, id)
 create table public.journey_template_phases (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -113,8 +104,7 @@ create table public.journey_template_phases (
   unique (tenant_id, hr_group_id, template_version_id, key),
   unique (tenant_id, hr_group_id, template_version_id, sort_order),
   foreign key (tenant_id, hr_group_id, template_version_id) references public.journey_template_versions(tenant_id, hr_group_id, id) on delete cascade
-);
-
+)
 create table public.journey_template_roles (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -135,8 +125,7 @@ create table public.journey_template_roles (
   foreign key (tenant_id, hr_group_id, resolver_employee_id) references public.employees(tenant_id, hr_group_id, id),
   check ((resolver_type = 'SPECIFIC_EMPLOYEE') = (resolver_employee_id is not null)),
   check ((resolver_type = 'DEPARTMENT_MANAGER') = (resolver_role_code is not null))
-);
-
+)
 create table public.journey_template_moments (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -153,8 +142,7 @@ create table public.journey_template_moments (
   unique (tenant_id, hr_group_id, template_version_id, sort_order),
   foreign key (tenant_id, hr_group_id, template_version_id) references public.journey_template_versions(tenant_id, hr_group_id, id) on delete cascade,
   foreign key (tenant_id, hr_group_id, template_version_id, phase_id) references public.journey_template_phases(tenant_id, hr_group_id, template_version_id, id)
-);
-
+)
 create table public.journey_template_topics (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -176,8 +164,7 @@ create table public.journey_template_topics (
   foreign key (tenant_id, hr_group_id, template_version_id, moment_id) references public.journey_template_moments(tenant_id, hr_group_id, template_version_id, id),
   foreign key (tenant_id, hr_group_id, template_version_id, owner_role_id) references public.journey_template_roles(tenant_id, hr_group_id, template_version_id, id),
   check ((topic_type = 'ACTION' and action_url is not null) or (topic_type <> 'ACTION' and action_url is null))
-);
-
+)
 create table public.journey_template_topic_audiences (
   tenant_id uuid not null,
   hr_group_id uuid not null,
@@ -188,16 +175,14 @@ create table public.journey_template_topic_audiences (
   foreign key (tenant_id, hr_group_id, template_version_id) references public.journey_template_versions(tenant_id, hr_group_id, id) on delete cascade,
   foreign key (tenant_id, hr_group_id, template_version_id, topic_id) references public.journey_template_topics(tenant_id, hr_group_id, template_version_id, id) on delete cascade,
   foreign key (tenant_id, hr_group_id, template_version_id, role_id) references public.journey_template_roles(tenant_id, hr_group_id, template_version_id, id)
-);
-
-create index journey_templates_scope_idx on public.journey_templates (tenant_id, hr_group_id, lifecycle, updated_at desc);
-create index journey_template_versions_template_idx on public.journey_template_versions (tenant_id, hr_group_id, template_id, status);
-create index journey_template_phases_version_idx on public.journey_template_phases (tenant_id, hr_group_id, template_version_id, sort_order);
-create index journey_template_roles_version_idx on public.journey_template_roles (tenant_id, hr_group_id, template_version_id, sort_order);
-create index journey_template_moments_version_idx on public.journey_template_moments (tenant_id, hr_group_id, template_version_id, sort_order);
-create index journey_template_topics_version_idx on public.journey_template_topics (tenant_id, hr_group_id, template_version_id, moment_id, sort_order);
-create index journey_template_topic_audiences_role_idx on public.journey_template_topic_audiences (tenant_id, hr_group_id, template_version_id, role_id);
-
+)
+create index journey_templates_scope_idx on public.journey_templates (tenant_id, hr_group_id, lifecycle, updated_at desc)
+create index journey_template_versions_template_idx on public.journey_template_versions (tenant_id, hr_group_id, template_id, status)
+create index journey_template_phases_version_idx on public.journey_template_phases (tenant_id, hr_group_id, template_version_id, sort_order)
+create index journey_template_roles_version_idx on public.journey_template_roles (tenant_id, hr_group_id, template_version_id, sort_order)
+create index journey_template_moments_version_idx on public.journey_template_moments (tenant_id, hr_group_id, template_version_id, sort_order)
+create index journey_template_topics_version_idx on public.journey_template_topics (tenant_id, hr_group_id, template_version_id, moment_id, sort_order)
+create index journey_template_topic_audiences_role_idx on public.journey_template_topic_audiences (tenant_id, hr_group_id, template_version_id, role_id)
 create or replace function internal_security.journeys_module_enabled(requested_tenant_id uuid)
 returns boolean
 language sql
@@ -211,11 +196,9 @@ as $$
       and module.module_code = 'JOURNEYS'
       and module.is_enabled
   );
-$$;
-
-revoke all on function internal_security.journeys_module_enabled(uuid) from public, anon, authenticated;
-grant execute on function internal_security.journeys_module_enabled(uuid) to authenticated;
-
+$$
+revoke all on function internal_security.journeys_module_enabled(uuid) from public, anon, authenticated
+grant execute on function internal_security.journeys_module_enabled(uuid) to authenticated
 create or replace function internal_security.populate_journey_template_draft(
   requested_tenant_id uuid,
   requested_hr_group_id uuid,
@@ -303,10 +286,8 @@ begin
     end loop;
   end loop;
 end;
-$$;
-
-revoke all on function internal_security.populate_journey_template_draft(uuid, uuid, uuid, jsonb) from public, anon, authenticated;
-
+$$
+revoke all on function internal_security.populate_journey_template_draft(uuid, uuid, uuid, jsonb) from public, anon, authenticated
 create or replace function internal_security.create_journey_template_draft_internal(
   requested_tenant_id uuid,
   requested_hr_group_id uuid,
@@ -354,8 +335,7 @@ begin
 
   return pg_catalog.jsonb_build_object('id', template_row.id, 'draftId', version_row.id, 'revision', 1);
 end;
-$$;
-
+$$
 create or replace function internal_security.save_journey_template_draft_internal(
   requested_draft_id uuid,
   requested_expected_revision integer,
@@ -402,8 +382,7 @@ begin
     pg_catalog.jsonb_build_object('event', 'JOURNEY_TEMPLATE_DRAFT_SAVED', 'draftId', requested_draft_id, 'revision', next_revision));
   return pg_catalog.jsonb_build_object('id', version_row.template_id, 'draftId', requested_draft_id, 'revision', next_revision);
 end;
-$$;
-
+$$
 create or replace function internal_security.publish_journey_template_internal(
   requested_draft_id uuid,
   requested_expected_revision integer
@@ -507,8 +486,7 @@ begin
   return pg_catalog.jsonb_build_object('id', draft_row.template_id, 'draftId', requested_draft_id,
     'publishedVersionId', published_row.id, 'versionNumber', next_version, 'revision', draft_row.revision);
 end;
-$$;
-
+$$
 create or replace function internal_security.retire_journey_template_internal(requested_template_id uuid)
 returns jsonb
 language plpgsql
@@ -532,39 +510,35 @@ begin
     pg_catalog.jsonb_build_object('event', 'JOURNEY_TEMPLATE_RETIRED'));
   return pg_catalog.jsonb_build_object('id', template_row.id, 'lifecycle', 'RETIRED');
 end;
-$$;
-
-revoke all on function internal_security.create_journey_template_draft_internal(uuid, uuid, text, jsonb) from public, anon, authenticated;
-revoke all on function internal_security.save_journey_template_draft_internal(uuid, integer, jsonb) from public, anon, authenticated;
-revoke all on function internal_security.publish_journey_template_internal(uuid, integer) from public, anon, authenticated;
-revoke all on function internal_security.retire_journey_template_internal(uuid) from public, anon, authenticated;
-
+$$
+revoke all on function internal_security.create_journey_template_draft_internal(uuid, uuid, text, jsonb) from public, anon, authenticated
+revoke all on function internal_security.save_journey_template_draft_internal(uuid, integer, jsonb) from public, anon, authenticated
+revoke all on function internal_security.publish_journey_template_internal(uuid, integer) from public, anon, authenticated
+revoke all on function internal_security.retire_journey_template_internal(uuid) from public, anon, authenticated
 create or replace function public.create_journey_template_draft(requested_tenant_id uuid, requested_hr_group_id uuid, requested_key text, requested_draft jsonb)
 returns jsonb language sql security invoker set search_path = pg_catalog
-as $$ select internal_security.create_journey_template_draft_internal($1, $2, $3, $4); $$;
+as $$ select internal_security.create_journey_template_draft_internal($1, $2, $3, $4); $$
 create or replace function public.save_journey_template_draft(requested_draft_id uuid, requested_expected_revision integer, requested_draft jsonb)
 returns jsonb language sql security invoker set search_path = pg_catalog
-as $$ select internal_security.save_journey_template_draft_internal($1, $2, $3); $$;
+as $$ select internal_security.save_journey_template_draft_internal($1, $2, $3); $$
 create or replace function public.publish_journey_template(requested_draft_id uuid, requested_expected_revision integer)
 returns jsonb language sql security invoker set search_path = pg_catalog
-as $$ select internal_security.publish_journey_template_internal($1, $2); $$;
+as $$ select internal_security.publish_journey_template_internal($1, $2); $$
 create or replace function public.retire_journey_template(requested_template_id uuid)
 returns jsonb language sql security invoker set search_path = pg_catalog
-as $$ select internal_security.retire_journey_template_internal($1); $$;
-
-revoke all on function public.create_journey_template_draft(uuid, uuid, text, jsonb) from public, anon;
-revoke all on function public.save_journey_template_draft(uuid, integer, jsonb) from public, anon;
-revoke all on function public.publish_journey_template(uuid, integer) from public, anon;
-revoke all on function public.retire_journey_template(uuid) from public, anon;
-grant execute on function public.create_journey_template_draft(uuid, uuid, text, jsonb) to authenticated;
-grant execute on function public.save_journey_template_draft(uuid, integer, jsonb) to authenticated;
-grant execute on function public.publish_journey_template(uuid, integer) to authenticated;
-grant execute on function public.retire_journey_template(uuid) to authenticated;
-grant execute on function internal_security.create_journey_template_draft_internal(uuid, uuid, text, jsonb) to authenticated;
-grant execute on function internal_security.save_journey_template_draft_internal(uuid, integer, jsonb) to authenticated;
-grant execute on function internal_security.publish_journey_template_internal(uuid, integer) to authenticated;
-grant execute on function internal_security.retire_journey_template_internal(uuid) to authenticated;
-
+as $$ select internal_security.retire_journey_template_internal($1); $$
+revoke all on function public.create_journey_template_draft(uuid, uuid, text, jsonb) from public, anon
+revoke all on function public.save_journey_template_draft(uuid, integer, jsonb) from public, anon
+revoke all on function public.publish_journey_template(uuid, integer) from public, anon
+revoke all on function public.retire_journey_template(uuid) from public, anon
+grant execute on function public.create_journey_template_draft(uuid, uuid, text, jsonb) to authenticated
+grant execute on function public.save_journey_template_draft(uuid, integer, jsonb) to authenticated
+grant execute on function public.publish_journey_template(uuid, integer) to authenticated
+grant execute on function public.retire_journey_template(uuid) to authenticated
+grant execute on function internal_security.create_journey_template_draft_internal(uuid, uuid, text, jsonb) to authenticated
+grant execute on function internal_security.save_journey_template_draft_internal(uuid, integer, jsonb) to authenticated
+grant execute on function internal_security.publish_journey_template_internal(uuid, integer) to authenticated
+grant execute on function internal_security.retire_journey_template_internal(uuid) to authenticated
 create or replace function internal_security.protect_published_journey_template_content()
 returns trigger
 language plpgsql
@@ -576,8 +550,7 @@ begin
   if tg_op = 'DELETE' then return old; end if;
   return new;
 end;
-$$;
-
+$$
 create or replace function internal_security.protect_published_journey_template_child()
 returns trigger
 language plpgsql
@@ -591,96 +564,90 @@ begin
   if tg_op = 'DELETE' then return old; end if;
   return new;
 end;
-$$;
-
+$$
 create trigger protect_published_journey_template_content before update or delete on public.journey_template_versions
-for each row execute function internal_security.protect_published_journey_template_content();
+for each row execute function internal_security.protect_published_journey_template_content()
 create trigger protect_published_journey_template_phases before update or delete on public.journey_template_phases
-for each row execute function internal_security.protect_published_journey_template_child();
+for each row execute function internal_security.protect_published_journey_template_child()
 create trigger protect_published_journey_template_roles before update or delete on public.journey_template_roles
-for each row execute function internal_security.protect_published_journey_template_child();
+for each row execute function internal_security.protect_published_journey_template_child()
 create trigger protect_published_journey_template_moments before update or delete on public.journey_template_moments
-for each row execute function internal_security.protect_published_journey_template_child();
+for each row execute function internal_security.protect_published_journey_template_child()
 create trigger protect_published_journey_template_topics before update or delete on public.journey_template_topics
-for each row execute function internal_security.protect_published_journey_template_child();
+for each row execute function internal_security.protect_published_journey_template_child()
 create trigger protect_published_journey_template_audiences before update or delete on public.journey_template_topic_audiences
-for each row execute function internal_security.protect_published_journey_template_child();
-
-revoke all on function internal_security.protect_published_journey_template_content() from public, anon, authenticated;
-revoke all on function internal_security.protect_published_journey_template_child() from public, anon, authenticated;
-
-alter table public.journey_templates enable row level security;
-alter table public.journey_template_versions enable row level security;
-alter table public.journey_template_phases enable row level security;
-alter table public.journey_template_roles enable row level security;
-alter table public.journey_template_moments enable row level security;
-alter table public.journey_template_topics enable row level security;
-alter table public.journey_template_topic_audiences enable row level security;
-
+for each row execute function internal_security.protect_published_journey_template_child()
+revoke all on function internal_security.protect_published_journey_template_content() from public, anon, authenticated
+revoke all on function internal_security.protect_published_journey_template_child() from public, anon, authenticated
+alter table public.journey_templates enable row level security
+alter table public.journey_template_versions enable row level security
+alter table public.journey_template_phases enable row level security
+alter table public.journey_template_roles enable row level security
+alter table public.journey_template_moments enable row level security
+alter table public.journey_template_topics enable row level security
+alter table public.journey_template_topic_audiences enable row level security
 create policy journey_templates_read on public.journey_templates for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
+)
 create policy journey_template_versions_read on public.journey_template_versions for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
+)
 create policy journey_template_phases_read on public.journey_template_phases for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
+)
 create policy journey_template_roles_read on public.journey_template_roles for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
+)
 create policy journey_template_moments_read on public.journey_template_moments for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
+)
 create policy journey_template_topics_read on public.journey_template_topics for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
+)
 create policy journey_template_topic_audiences_read on public.journey_template_topic_audiences for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   ((select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:read'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:write'))
    or (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey-template:publish')))
-);
-
-revoke all on table public.journey_templates from public, anon, authenticated;
-revoke all on table public.journey_template_versions from public, anon, authenticated;
-revoke all on table public.journey_template_phases from public, anon, authenticated;
-revoke all on table public.journey_template_roles from public, anon, authenticated;
-revoke all on table public.journey_template_moments from public, anon, authenticated;
-revoke all on table public.journey_template_topics from public, anon, authenticated;
-revoke all on table public.journey_template_topic_audiences from public, anon, authenticated;
-revoke all on table public.journey_templates from anon;
-revoke all on table public.journey_template_versions from anon;
-revoke all on table public.journey_template_phases from anon;
-revoke all on table public.journey_template_roles from anon;
-revoke all on table public.journey_template_moments from anon;
-revoke all on table public.journey_template_topics from anon;
-revoke all on table public.journey_template_topic_audiences from anon;
-grant select on table public.journey_templates to authenticated;
-grant select on table public.journey_template_versions to authenticated;
-grant select on table public.journey_template_phases to authenticated;
-grant select on table public.journey_template_roles to authenticated;
-grant select on table public.journey_template_moments to authenticated;
-grant select on table public.journey_template_topics to authenticated;
-grant select on table public.journey_template_topic_audiences to authenticated;
-
+)
+revoke all on table public.journey_templates from public, anon, authenticated
+revoke all on table public.journey_template_versions from public, anon, authenticated
+revoke all on table public.journey_template_phases from public, anon, authenticated
+revoke all on table public.journey_template_roles from public, anon, authenticated
+revoke all on table public.journey_template_moments from public, anon, authenticated
+revoke all on table public.journey_template_topics from public, anon, authenticated
+revoke all on table public.journey_template_topic_audiences from public, anon, authenticated
+revoke all on table public.journey_templates from anon
+revoke all on table public.journey_template_versions from anon
+revoke all on table public.journey_template_phases from anon
+revoke all on table public.journey_template_roles from anon
+revoke all on table public.journey_template_moments from anon
+revoke all on table public.journey_template_topics from anon
+revoke all on table public.journey_template_topic_audiences from anon
+grant select on table public.journey_templates to authenticated
+grant select on table public.journey_template_versions to authenticated
+grant select on table public.journey_template_phases to authenticated
+grant select on table public.journey_template_roles to authenticated
+grant select on table public.journey_template_moments to authenticated
+grant select on table public.journey_template_topics to authenticated
+grant select on table public.journey_template_topic_audiences to authenticated
 comment on function public.publish_journey_template(uuid, integer) is
-  'Publiceert atomair een immutable Journey-templateversie na module-, HR-groep-, permission- en revisionchecks.';
+  'Publiceert atomair een immutable Journey-templateversie na module-, HR-groep-, permission- en revisionchecks.'

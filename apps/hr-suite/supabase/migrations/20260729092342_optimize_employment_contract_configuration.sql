@@ -122,3 +122,4 @@ on public.statutory_minimum_wages for delete to authenticated
 using ((select internal_security.current_user_has_permission(
   tenant_id, administration_id, 'salary:write'
 )));
+

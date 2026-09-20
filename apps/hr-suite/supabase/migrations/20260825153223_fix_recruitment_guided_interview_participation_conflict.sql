@@ -32,3 +32,4 @@ begin
   return jsonb_build_object('id', interview_row.id, 'applicationId', interview_row.application_id, 'preparationCount', jsonb_array_length(interview_row.preparation_snapshot), 'questionCount', jsonb_array_length(interview_row.questions_snapshot), 'criteriaCount', jsonb_array_length(interview_row.criteria_snapshot));
 end;
 $$;
+

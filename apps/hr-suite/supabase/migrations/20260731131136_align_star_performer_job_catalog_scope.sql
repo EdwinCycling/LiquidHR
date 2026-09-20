@@ -124,3 +124,4 @@ $$;
 
 revoke all on function public.upsert_star_performer_assessment(uuid, jsonb) from public, anon;
 grant execute on function public.upsert_star_performer_assessment(uuid, jsonb) to authenticated;
+

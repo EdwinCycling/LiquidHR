@@ -13,3 +13,4 @@ create index setup_step_completion_updated_by_idx
   on public.setup_step_completion (updated_by);
 
 commit;
+

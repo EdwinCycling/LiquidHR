@@ -18,3 +18,4 @@ alter table public.user_invitations
   );
 
 commit;
+

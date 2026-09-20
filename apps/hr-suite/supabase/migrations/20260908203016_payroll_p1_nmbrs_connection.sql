@@ -134,4 +134,3 @@ comment on table payroll_private.payroll_oauth_states is 'Server-only, one-time 
 
 commit;
 
-

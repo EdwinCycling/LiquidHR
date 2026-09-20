@@ -56,7 +56,6 @@ begin
 
   return requested_case_id;
 end;
-$$;
-
-revoke all on function internal_security.recover_absence(uuid, date, text) from public, anon;
-grant execute on function internal_security.recover_absence(uuid, date, text) to authenticated;
+$$
+revoke all on function internal_security.recover_absence(uuid, date, text) from public, anon
+grant execute on function internal_security.recover_absence(uuid, date, text) to authenticated

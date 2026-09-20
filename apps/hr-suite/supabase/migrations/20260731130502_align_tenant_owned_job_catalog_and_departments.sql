@@ -433,3 +433,4 @@ comment on column public.job_revisions.administration_id is 'Deprecated compatib
 comment on column public.departments.scope_type is 'TENANT for shared organization structure; ADMINISTRATION only for explicitly legal-entity-bound departments.';
 
 commit;
+

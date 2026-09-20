@@ -13,10 +13,8 @@ begin
   end if;
   return new;
 end;
-$$;
-
-revoke all on function internal_security.guard_absence_task_template_identity() from public, anon, authenticated;
-
+$$
+revoke all on function internal_security.guard_absence_task_template_identity() from public, anon, authenticated
 create trigger absence_task_templates_identity_guard
   before update on public.absence_task_templates
-  for each row execute function internal_security.guard_absence_task_template_identity();
+  for each row execute function internal_security.guard_absence_task_template_identity()

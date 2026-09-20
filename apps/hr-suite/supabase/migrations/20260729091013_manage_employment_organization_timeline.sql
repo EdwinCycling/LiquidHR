@@ -105,3 +105,4 @@ revoke all on function public.manage_employment_organization_timeline(
 grant execute on function public.manage_employment_organization_timeline(
   uuid, uuid, date, uuid, uuid
 ) to authenticated;
+

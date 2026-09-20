@@ -19,4 +19,4 @@ values
 on conflict (feature_code, quality_profile) do update
 set charge_reference = excluded.charge_reference,
     credit_amount = excluded.credit_amount,
-    config_version = excluded.config_version;
+    config_version = excluded.config_version

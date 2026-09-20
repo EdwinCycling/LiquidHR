@@ -88,7 +88,7 @@ insert into public.departments (
 )
 values
   (md5('department:HOLDING:BOARD')::uuid, md5('tenant:liquid-hr-demo-holding')::uuid, md5('administration:liquid-holding')::uuid, null, 'BOARD', 'Directie', 'Bestuur en concernleiding.'),
-  (md5('department:HOLDING:FIN')::uuid, md5('tenant:liquid-hr-demo-holding')::uuid, md5('administration:liquid-holding')::uuid, md5('department:HOLDING:BOARD')::uuid, 'FIN', 'Finance & Control', 'Financiën en concerncontrol.'),
+  (md5('department:HOLDING:FIN')::uuid, md5('tenant:liquid-hr-demo-holding')::uuid, md5('administration:liquid-holding')::uuid, md5('department:HOLDING:BOARD')::uuid, 'FIN', 'Finance & Control', 'Financi�n en concerncontrol.'),
   (md5('department:HOLDING:HR')::uuid, md5('tenant:liquid-hr-demo-holding')::uuid, md5('administration:liquid-holding')::uuid, md5('department:HOLDING:BOARD')::uuid, 'HR', 'People & Culture', 'HR-beleid en organisatieontwikkeling.'),
   (md5('department:SERVICES:ROOT')::uuid, md5('tenant:liquid-hr-demo-holding')::uuid, md5('administration:liquid-services')::uuid, null, 'ROOT', 'Services', 'Directie van de dienstenorganisatie.'),
   (md5('department:SERVICES:IT')::uuid, md5('tenant:liquid-hr-demo-holding')::uuid, md5('administration:liquid-services')::uuid, md5('department:SERVICES:ROOT')::uuid, 'IT', 'Digital & IT', 'Softwareontwikkeling en IT-beheer.'),
@@ -180,7 +180,7 @@ with source as (
   select
     number,
     (array['Anne','Mohammed','Iris','Ruben','Fatima','Jesse','Kim','Ravi','Eline','Thomas'])[number] as first_name,
-    (array['Van den Berg','Ait Taleb','Verhoeven','Kuiper','Öztürk','Willems','Hoekstra','Sharma','Prins','Koster'])[number] as last_name,
+    (array['Van den Berg','Ait Taleb','Verhoeven','Kuiper','�zt�rk','Willems','Hoekstra','Sharma','Prins','Koster'])[number] as last_name,
     (array['Groningen','Assen','Drachten','Leeuwarden','Hoogeveen'])[((number - 1) % 5) + 1] as city
   from generate_series(1, 10) number
 )
@@ -289,7 +289,7 @@ select
     when substring(employee.employee_number from 6)::integer in (1, 6, 28) then 'Directeur'
     when substring(employee.employee_number from 6)::integer % 7 = 0 then 'Teamleider'
     when substring(employee.employee_number from 6)::integer between 7 and 27 then (array['Software engineer','HR-consultant','Implementatieconsultant','Accountmanager'])[((substring(employee.employee_number from 6)::integer - 1) % 4) + 1]
-    when substring(employee.employee_number from 6)::integer >= 29 then (array['Logistiek planner','Servicemedewerker','Facilitair coördinator'])[((substring(employee.employee_number from 6)::integer - 1) % 3) + 1]
+    when substring(employee.employee_number from 6)::integer >= 29 then (array['Logistiek planner','Servicemedewerker','Facilitair co�rdinator'])[((substring(employee.employee_number from 6)::integer - 1) % 3) + 1]
     else 'Concernspecialist'
   end as job_title,
   'CC-' || lpad(substring(employee.employee_number from 6), 3, '0') as cost_bearer
@@ -412,7 +412,8 @@ begin
       and access.scope_type = 'TENANT'
       and access.is_active
   ) <> 1 then
-    raise exception 'Edwin moet exact één actieve tenantbrede demo-toegang hebben.';
+    raise exception 'Edwin moet exact ��n actieve tenantbrede demo-toegang hebben.';
   end if;
 end
 $$;
+

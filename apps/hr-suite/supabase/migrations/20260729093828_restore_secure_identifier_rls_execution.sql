@@ -5,3 +5,4 @@ grant execute on function internal_security.employee_secure_identifier_can_read(
 to authenticated;
 grant execute on function internal_security.employee_secure_identifier_can_write(uuid, uuid)
 to authenticated;
+

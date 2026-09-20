@@ -3,3 +3,4 @@
 -- newly added enum labels usable after the migration transaction commits.
 alter type public.leave_request_status add value if not exists 'PENDING';
 alter type public.leave_request_status add value if not exists 'CHANGES_REQUESTED';
+

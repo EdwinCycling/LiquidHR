@@ -63,3 +63,4 @@ $$;
 revoke all on function internal_security.audit_talent_assessment_response() from public, anon, authenticated;
 
 commit;
+

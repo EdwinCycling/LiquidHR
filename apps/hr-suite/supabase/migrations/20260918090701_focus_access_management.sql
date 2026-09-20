@@ -318,3 +318,4 @@ revoke all on function public.set_employee_ess_access(uuid, text) from public, a
 grant execute on function public.set_employee_ess_access(uuid, text) to authenticated;
 
 commit;
+

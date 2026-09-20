@@ -424,4 +424,3 @@ comment on table public.payroll_audit_events is 'Append-only Payroll-governance-
 
 commit;
 
-

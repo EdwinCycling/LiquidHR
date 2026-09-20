@@ -112,3 +112,4 @@ using (false)
 with check (false);
 
 grant select, insert, update, delete on table public.employees to authenticated;
+

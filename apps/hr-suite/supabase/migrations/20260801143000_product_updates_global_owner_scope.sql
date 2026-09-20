@@ -4,18 +4,15 @@
 
 alter table public.product_updates
   alter column tenant_id drop not null,
-  alter column starts_at drop not null;
-
+  alter column starts_at drop not null
 alter table public.product_updates
-  drop constraint product_updates_dates_valid;
-
+  drop constraint product_updates_dates_valid
 alter table public.product_updates
   add constraint product_updates_dates_valid check (
     starts_at is null
     or ends_at is null
     or ends_at >= starts_at
-  );
-
+  )
 create or replace function internal_security.current_user_has_global_permission(
   requested_permission_code text
 )
@@ -40,8 +37,7 @@ as $$
         and role.deleted_at is null
         and permission.code = requested_permission_code
     );
-$$;
-
+$$
 create or replace function internal_security.current_user_has_any_permission(
   requested_permission_code text
 )
@@ -65,13 +61,11 @@ as $$
         and role.deleted_at is null
         and permission.code = requested_permission_code
     );
-$$;
-
-revoke all on function internal_security.current_user_has_global_permission(text) from public, anon, authenticated;
-revoke all on function internal_security.current_user_has_any_permission(text) from public, anon, authenticated;
-grant execute on function internal_security.current_user_has_global_permission(text) to authenticated;
-grant execute on function internal_security.current_user_has_any_permission(text) to authenticated;
-
+$$
+revoke all on function internal_security.current_user_has_global_permission(text) from public, anon, authenticated
+revoke all on function internal_security.current_user_has_any_permission(text) from public, anon, authenticated
+grant execute on function internal_security.current_user_has_global_permission(text) to authenticated
+grant execute on function internal_security.current_user_has_any_permission(text) to authenticated
 create or replace function internal_security.current_user_has_audience_role(
   requested_tenant_id uuid,
   requested_role_codes text[]
@@ -111,13 +105,11 @@ as $$
       and management_role.deleted_at is null
       and management_role.code = any(requested_role_codes)
   );
-$$;
-
-drop policy product_updates_select_scoped on public.product_updates;
-drop policy product_updates_insert_scoped on public.product_updates;
-drop policy product_updates_update_scoped on public.product_updates;
-drop policy product_updates_delete_scoped on public.product_updates;
-
+$$
+drop policy product_updates_select_scoped on public.product_updates
+drop policy product_updates_insert_scoped on public.product_updates
+drop policy product_updates_update_scoped on public.product_updates
+drop policy product_updates_delete_scoped on public.product_updates
 create policy product_updates_select_scoped
 on public.product_updates for select to authenticated
 using (
@@ -147,8 +139,7 @@ using (
       )
     )
   )
-);
-
+)
 create policy product_updates_insert_scoped
 on public.product_updates for insert to authenticated
 with check (
@@ -160,8 +151,7 @@ with check (
     tenant_id is not null
     and internal_security.current_user_has_permission(tenant_id, null, 'product-updates:write')
   )
-);
-
+)
 create policy product_updates_update_scoped
 on public.product_updates for update to authenticated
 using (
@@ -183,8 +173,7 @@ with check (
     tenant_id is not null
     and internal_security.current_user_has_permission(tenant_id, null, 'product-updates:write')
   )
-);
-
+)
 create policy product_updates_delete_scoped
 on public.product_updates for delete to authenticated
 using (
@@ -196,8 +185,7 @@ using (
     tenant_id is not null
     and internal_security.current_user_has_permission(tenant_id, null, 'product-updates:write')
   )
-);
-
+)
 insert into public.permissions (code, name, category, description)
 values (
   'product-updates:global-write',
@@ -208,8 +196,7 @@ values (
 on conflict (code) do update
 set name = excluded.name,
     category = excluded.category,
-    description = excluded.description;
-
+    description = excluded.description
 insert into public.role_permissions (management_role_id, permission_id)
 select management_role.id, permission.id
 from public.management_roles management_role
@@ -218,4 +205,4 @@ where management_role.code = 'TENANT_ADMIN'
   and management_role.tenant_id is null
   and management_role.is_active
   and management_role.deleted_at is null
-on conflict do nothing;
+on conflict do nothing

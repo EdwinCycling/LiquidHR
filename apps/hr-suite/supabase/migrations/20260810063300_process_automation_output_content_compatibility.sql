@@ -1,5 +1,4 @@
-begin;
-
+begin
 -- Published Studio versions wrap the compiled definition in `content`, while
 -- legacy P7 recipes keep the definition at the top level. Normalize both
 -- paths at the shared output boundary so every compiled process can enqueue
@@ -99,10 +98,8 @@ begin
 
   return new;
 end;
-$$;
-
-revoke all on function internal_security.enqueue_process_workflow_jobs() from public, anon, authenticated;
-
+$$
+revoke all on function internal_security.enqueue_process_workflow_jobs() from public, anon, authenticated
 create or replace function internal_security.process_output_source(
   requested_process_instance_id uuid,
   requested_language text default 'nl'
@@ -242,8 +239,6 @@ begin
     'fieldValues', field_values
   );
 end;
-$$;
-
-revoke all on function internal_security.process_output_source(uuid, text) from public, anon, authenticated;
-
-commit;
+$$
+revoke all on function internal_security.process_output_source(uuid, text) from public, anon, authenticated
+commit

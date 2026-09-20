@@ -49,7 +49,6 @@ begin
     on conflict (tenant_id, hr_group_id, journey_id, moment_id, participant_id) do nothing;
   end loop;
 end;
-$$;
-
-revoke all on function internal_security.create_journey_reminders_internal(uuid) from public, anon, authenticated;
-grant execute on function internal_security.create_journey_reminders_internal(uuid) to authenticated;
+$$
+revoke all on function internal_security.create_journey_reminders_internal(uuid) from public, anon, authenticated
+grant execute on function internal_security.create_journey_reminders_internal(uuid) to authenticated

@@ -26,7 +26,6 @@ grant execute on function internal_security.perform_leave_workflow_action_intern
 grant execute on function internal_security.get_unified_process_work_projection(
   uuid, text, text, text, text, text, text, uuid, uuid, uuid, uuid, text, text, integer, integer
 ) to authenticated;
-
 grant execute on function internal_security.get_unified_process_work_item_detail(uuid, text)
   to authenticated;
 

@@ -2208,3 +2208,4 @@ comment on column public.process_work_items.business_category is 'Canonieke busi
 comment on table public.process_leave_subjects is 'Getypeerde Leave-adapterlink; geen directe Data API-toegang.';
 
 commit;
+

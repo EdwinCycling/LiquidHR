@@ -173,3 +173,4 @@ revoke all on function public.manage_employment_contract(uuid, uuid, jsonb)
 from public, anon;
 grant execute on function public.manage_employment_contract(uuid, uuid, jsonb)
 to authenticated;
+

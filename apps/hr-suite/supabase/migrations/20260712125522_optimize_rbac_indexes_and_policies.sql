@@ -38,3 +38,4 @@ using (
   internal_security.has_tenant_access(tenant_id)
   and internal_security.can_manage_employee(internal_security.current_employee_id(), 'department:write')
 );
+

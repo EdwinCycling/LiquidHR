@@ -321,3 +321,4 @@ join public.permissions permission on permission.code in ('self:read', 'self:emp
 where management_role.code = 'EMPLOYEE'
   and management_role.tenant_id is null
 on conflict do nothing;
+

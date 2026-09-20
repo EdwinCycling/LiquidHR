@@ -50,13 +50,11 @@ begin
     raise exception 'DIRECT_MANAGER_ROLE_NOT_FOUND';
   end if;
 
-  -- Maak de bestaande synthetische managerrelatie naar Yara leeg.
   update public.employee_organizations organization
   set direct_manager_id = null,
       direct_manager_deputy_id = null
   where organization.direct_manager_id = v_yara_id;
 
-  -- Yara en haar roltoewijzing staan in dezelfde afdeling.
   update public.employee_organizations organization
   set department_id = v_department_id,
       direct_manager_id = null,
@@ -75,7 +73,6 @@ begin
     and assignment.effective_from <= current_date
     and (assignment.effective_to is null or assignment.effective_to >= current_date);
 
-  -- Vier medewerkers blijven in Test Operations en rapporteren direct aan Yara.
   update public.employee_organizations organization
   set direct_manager_id = v_yara_id,
       direct_manager_deputy_id = null,

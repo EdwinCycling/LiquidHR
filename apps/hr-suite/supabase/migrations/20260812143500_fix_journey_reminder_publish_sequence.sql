@@ -38,7 +38,6 @@ begin
     on conflict(tenant_id,hr_group_id,journey_id,moment_id,participant_id) do nothing;
     update public.reminders set status='PUBLISHED',published_at=timezone('utc',now()),updated_at=timezone('utc',now()) where id=reminder_id;
   end loop;
-end; $$;
-
-revoke all on function internal_security.create_journey_reminders_internal(uuid) from public,anon,authenticated;
-grant execute on function internal_security.create_journey_reminders_internal(uuid) to authenticated;
+end; $$
+revoke all on function internal_security.create_journey_reminders_internal(uuid) from public,anon,authenticated
+grant execute on function internal_security.create_journey_reminders_internal(uuid) to authenticated

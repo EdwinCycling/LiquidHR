@@ -1,8 +1,7 @@
 -- Journeys stap 2: gepinde runtime, concrete participants, HR-lifecycle en reminderadapter.
 -- Self-/participantprojecties en topicoutcomes worden pas in stap 3 ontsloten.
 
-begin;
-
+begin
 insert into public.role_permissions (management_role_id, permission_id)
 select role.id, permission.id
 from public.management_roles role
@@ -12,14 +11,12 @@ where role.code in ('TENANT_ADMIN', 'HR_ADMIN')
     'journey-template:read', 'journey-template:write', 'journey-template:publish',
     'journey:read', 'journey:write'
   )
-on conflict do nothing;
-
-create type public.journey_status as enum ('PLANNED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED');
-create type public.journey_participant_status as enum ('ASSIGNED', 'ACTIVE', 'REPLACED', 'REMOVED');
-create type public.journey_participant_source as enum ('TARGET_EMPLOYEE', 'DIRECT_MANAGER', 'DEPARTMENT_MANAGER', 'SPECIFIC_EMPLOYEE', 'MANUAL');
-create type public.journey_topic_status as enum ('PENDING', 'COMPLETED', 'SKIPPED');
-create type public.journey_reminder_link_status as enum ('ACTIVE', 'SUSPENDED', 'CANCELLED');
-
+on conflict do nothing
+create type public.journey_status as enum ('PLANNED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED')
+create type public.journey_participant_status as enum ('ASSIGNED', 'ACTIVE', 'REPLACED', 'REMOVED')
+create type public.journey_participant_source as enum ('TARGET_EMPLOYEE', 'DIRECT_MANAGER', 'DEPARTMENT_MANAGER', 'SPECIFIC_EMPLOYEE', 'MANUAL')
+create type public.journey_topic_status as enum ('PENDING', 'COMPLETED', 'SKIPPED')
+create type public.journey_reminder_link_status as enum ('ACTIVE', 'SUSPENDED', 'CANCELLED')
 create table public.journeys (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -55,8 +52,7 @@ create table public.journeys (
     or (status = 'CANCELLED' and cancelled_at is not null and completed_at is null)
     or (status in ('PLANNED', 'ACTIVE') and paused_at is null and completed_at is null and cancelled_at is null)
   )
-);
-
+)
 create table public.journey_phases (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -70,8 +66,7 @@ create table public.journey_phases (
   unique (tenant_id, hr_group_id, journey_id, key),
   foreign key (tenant_id, hr_group_id, journey_id) references public.journeys(tenant_id, hr_group_id, id) on delete cascade,
   foreign key (template_phase_id) references public.journey_template_phases(id)
-);
-
+)
 create table public.journey_participants (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -96,8 +91,7 @@ create table public.journey_participants (
   foreign key (tenant_id, hr_group_id, employee_id) references public.employees(tenant_id, hr_group_id, id),
   foreign key (replaced_by_participant_id) references public.journey_participants(id),
   check ((status in ('REPLACED', 'REMOVED')) = (ended_at is not null))
-);
-
+)
 create table public.journey_participant_changes (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -111,8 +105,7 @@ create table public.journey_participant_changes (
   foreign key (tenant_id, hr_group_id, journey_id) references public.journeys(tenant_id, hr_group_id, id) on delete cascade,
   foreign key (previous_participant_id) references public.journey_participants(id),
   foreign key (replacement_participant_id) references public.journey_participants(id)
-);
-
+)
 create table public.journey_moments (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -133,8 +126,7 @@ create table public.journey_moments (
   foreign key (tenant_id, hr_group_id, journey_id, phase_id) references public.journey_phases(tenant_id, hr_group_id, journey_id, id),
   foreign key (template_moment_id) references public.journey_template_moments(id),
   check (available_on <= scheduled_on)
-);
-
+)
 create table public.journey_topics (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -158,8 +150,7 @@ create table public.journey_topics (
   foreign key (tenant_id, hr_group_id, journey_id, moment_id) references public.journey_moments(tenant_id, hr_group_id, journey_id, id),
   foreign key (template_topic_id) references public.journey_template_topics(id),
   check ((status = 'PENDING' and completed_at is null) or (status <> 'PENDING' and completed_at is not null))
-);
-
+)
 create table public.journey_topic_assignments (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -174,8 +165,7 @@ create table public.journey_topic_assignments (
   foreign key (tenant_id, hr_group_id, journey_id) references public.journeys(tenant_id, hr_group_id, id) on delete cascade,
   foreign key (tenant_id, hr_group_id, journey_id, topic_id) references public.journey_topics(tenant_id, hr_group_id, journey_id, id) on delete cascade,
   foreign key (tenant_id, hr_group_id, journey_id, participant_id) references public.journey_participants(tenant_id, hr_group_id, journey_id, id)
-);
-
+)
 create table public.journey_reminder_links (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -193,37 +183,35 @@ create table public.journey_reminder_links (
   foreign key (tenant_id, hr_group_id, journey_id, moment_id) references public.journey_moments(tenant_id, hr_group_id, journey_id, id) on delete cascade,
   foreign key (tenant_id, hr_group_id, journey_id, participant_id) references public.journey_participants(tenant_id, hr_group_id, journey_id, id),
   foreign key (reminder_id) references public.reminders(id) on delete cascade
-);
-
-create index journeys_scope_status_idx on public.journeys (tenant_id, hr_group_id, status, anchor_date, updated_at desc);
-create index journeys_target_idx on public.journeys (tenant_id, hr_group_id, target_employee_id, updated_at desc);
-create index journeys_template_id_idx on public.journeys (template_id);
-create index journeys_template_version_id_idx on public.journeys (template_version_id);
-create index journeys_employment_id_idx on public.journeys (employment_id) where employment_id is not null;
-create index journeys_created_by_user_id_idx on public.journeys (created_by_user_id);
-create index journeys_updated_by_user_id_idx on public.journeys (updated_by_user_id);
-create index journey_phases_journey_idx on public.journey_phases (tenant_id, hr_group_id, journey_id, sort_order);
-create index journey_phases_template_phase_id_idx on public.journey_phases (template_phase_id);
-create index journey_participants_journey_idx on public.journey_participants (tenant_id, hr_group_id, journey_id, status, role_key);
-create index journey_participants_employee_idx on public.journey_participants (tenant_id, hr_group_id, employee_id, status);
-create index journey_participants_template_role_id_idx on public.journey_participants (template_role_id);
-create index journey_participants_replaced_by_idx on public.journey_participants (replaced_by_participant_id) where replaced_by_participant_id is not null;
-create index journey_participant_changes_journey_idx on public.journey_participant_changes (tenant_id, hr_group_id, journey_id, changed_at desc);
-create index journey_participant_changes_previous_idx on public.journey_participant_changes (previous_participant_id);
-create index journey_participant_changes_replacement_idx on public.journey_participant_changes (replacement_participant_id);
-create index journey_participant_changes_user_idx on public.journey_participant_changes (changed_by_user_id);
-create index journey_moments_journey_idx on public.journey_moments (tenant_id, hr_group_id, journey_id, scheduled_on, sort_order);
-create index journey_moments_phase_id_idx on public.journey_moments (phase_id);
-create index journey_moments_template_moment_id_idx on public.journey_moments (template_moment_id);
-create index journey_topics_journey_idx on public.journey_topics (tenant_id, hr_group_id, journey_id, status, sort_order);
-create index journey_topics_moment_idx on public.journey_topics (moment_id, status);
-create index journey_topics_template_topic_id_idx on public.journey_topics (template_topic_id);
-create index journey_topic_assignments_participant_idx on public.journey_topic_assignments (participant_id, topic_id);
-create index journey_topic_assignments_topic_idx on public.journey_topic_assignments (topic_id, participant_id);
-create index journey_reminder_links_journey_idx on public.journey_reminder_links (tenant_id, hr_group_id, journey_id, status);
-create index journey_reminder_links_moment_id_idx on public.journey_reminder_links (moment_id);
-create index journey_reminder_links_participant_id_idx on public.journey_reminder_links (participant_id);
-
+)
+create index journeys_scope_status_idx on public.journeys (tenant_id, hr_group_id, status, anchor_date, updated_at desc)
+create index journeys_target_idx on public.journeys (tenant_id, hr_group_id, target_employee_id, updated_at desc)
+create index journeys_template_id_idx on public.journeys (template_id)
+create index journeys_template_version_id_idx on public.journeys (template_version_id)
+create index journeys_employment_id_idx on public.journeys (employment_id) where employment_id is not null
+create index journeys_created_by_user_id_idx on public.journeys (created_by_user_id)
+create index journeys_updated_by_user_id_idx on public.journeys (updated_by_user_id)
+create index journey_phases_journey_idx on public.journey_phases (tenant_id, hr_group_id, journey_id, sort_order)
+create index journey_phases_template_phase_id_idx on public.journey_phases (template_phase_id)
+create index journey_participants_journey_idx on public.journey_participants (tenant_id, hr_group_id, journey_id, status, role_key)
+create index journey_participants_employee_idx on public.journey_participants (tenant_id, hr_group_id, employee_id, status)
+create index journey_participants_template_role_id_idx on public.journey_participants (template_role_id)
+create index journey_participants_replaced_by_idx on public.journey_participants (replaced_by_participant_id) where replaced_by_participant_id is not null
+create index journey_participant_changes_journey_idx on public.journey_participant_changes (tenant_id, hr_group_id, journey_id, changed_at desc)
+create index journey_participant_changes_previous_idx on public.journey_participant_changes (previous_participant_id)
+create index journey_participant_changes_replacement_idx on public.journey_participant_changes (replacement_participant_id)
+create index journey_participant_changes_user_idx on public.journey_participant_changes (changed_by_user_id)
+create index journey_moments_journey_idx on public.journey_moments (tenant_id, hr_group_id, journey_id, scheduled_on, sort_order)
+create index journey_moments_phase_id_idx on public.journey_moments (phase_id)
+create index journey_moments_template_moment_id_idx on public.journey_moments (template_moment_id)
+create index journey_topics_journey_idx on public.journey_topics (tenant_id, hr_group_id, journey_id, status, sort_order)
+create index journey_topics_moment_idx on public.journey_topics (moment_id, status)
+create index journey_topics_template_topic_id_idx on public.journey_topics (template_topic_id)
+create index journey_topic_assignments_participant_idx on public.journey_topic_assignments (participant_id, topic_id)
+create index journey_topic_assignments_topic_idx on public.journey_topic_assignments (topic_id, participant_id)
+create index journey_reminder_links_journey_idx on public.journey_reminder_links (tenant_id, hr_group_id, journey_id, status)
+create index journey_reminder_links_moment_id_idx on public.journey_reminder_links (moment_id)
+create index journey_reminder_links_participant_id_idx on public.journey_reminder_links (participant_id)
 create or replace function internal_security.activate_journey_internal(
   requested_tenant_id uuid,
   requested_hr_group_id uuid,
@@ -381,8 +369,7 @@ exception
     if found then return jsonb_build_object('id', journey_row.id, 'version', journey_row.version, 'idempotentReplay', true); end if;
     raise;
 end;
-$$;
-
+$$
 -- Correcte reminderadapter met expliciete moment-ID; apart gehouden om de activatietransactie kort en toetsbaar te houden.
 create or replace function internal_security.create_journey_reminders_internal(requested_journey_id uuid)
 returns void
@@ -433,8 +420,7 @@ begin
     on conflict (tenant_id, hr_group_id, journey_id, moment_id, participant_id) do nothing;
   end loop;
 end;
-$$;
-
+$$
 create or replace function internal_security.transition_journey_internal(requested_journey_id uuid, requested_expected_version integer, requested_action text)
 returns jsonb language plpgsql security definer set search_path = pg_catalog
 as $$
@@ -477,8 +463,7 @@ begin
   values (journey_row.tenant_id, 'journey', journey_row.id, actor_id, 'UPDATE', jsonb_build_object('event', 'JOURNEY_STATUS_CHANGED', 'action', requested_action, 'status', target_status, 'version', journey_row.version));
   return jsonb_build_object('id', journey_row.id, 'status', journey_row.status, 'version', journey_row.version);
 end;
-$$;
-
+$$
 create or replace function internal_security.replace_journey_participant_internal(
   requested_journey_id uuid, requested_participant_id uuid, requested_replacement_employee_id uuid,
   requested_expected_version integer, requested_reason text
@@ -534,8 +519,7 @@ begin
   values (journey_row.tenant_id, 'journey', journey_row.id, actor_id, 'UPDATE', jsonb_build_object('event', 'JOURNEY_PARTICIPANT_REPLACED', 'roleKey', previous_row.role_key, 'previousEmployeeId', previous_row.employee_id, 'replacementEmployeeId', requested_replacement_employee_id, 'version', journey_row.version));
   return jsonb_build_object('id', journey_row.id, 'participantId', replacement_row.id, 'version', journey_row.version);
 end;
-$$;
-
+$$
 -- De activatiekern materialiseert eerst; reminders worden daarna nog binnen dezelfde RPC-transactie gemaakt.
 create or replace function public.activate_journey(
   requested_tenant_id uuid, requested_hr_group_id uuid, requested_template_version_id uuid,
@@ -550,87 +534,81 @@ begin
   if coalesce((result ->> 'idempotentReplay')::boolean, false) is false then perform internal_security.create_journey_reminders_internal((result ->> 'id')::uuid); end if;
   return result;
 end;
-$$;
+$$
 create or replace function public.transition_journey(requested_journey_id uuid, requested_expected_version integer, requested_action text)
-returns jsonb language sql security invoker set search_path = pg_catalog as $$ select internal_security.transition_journey_internal($1, $2, $3); $$;
+returns jsonb language sql security invoker set search_path = pg_catalog as $$ select internal_security.transition_journey_internal($1, $2, $3); $$
 create or replace function public.replace_journey_participant(requested_journey_id uuid, requested_participant_id uuid, requested_replacement_employee_id uuid, requested_expected_version integer, requested_reason text)
-returns jsonb language sql security invoker set search_path = pg_catalog as $$ select internal_security.replace_journey_participant_internal($1, $2, $3, $4, $5); $$;
-
-revoke all on function internal_security.activate_journey_internal(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) from public, anon, authenticated;
-revoke all on function internal_security.create_journey_reminders_internal(uuid) from public, anon, authenticated;
-revoke all on function internal_security.transition_journey_internal(uuid, integer, text) from public, anon, authenticated;
-revoke all on function internal_security.replace_journey_participant_internal(uuid, uuid, uuid, integer, text) from public, anon, authenticated;
-grant execute on function internal_security.activate_journey_internal(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) to authenticated;
-grant execute on function internal_security.create_journey_reminders_internal(uuid) to authenticated;
-grant execute on function internal_security.transition_journey_internal(uuid, integer, text) to authenticated;
-grant execute on function internal_security.replace_journey_participant_internal(uuid, uuid, uuid, integer, text) to authenticated;
-revoke all on function public.activate_journey(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) from public, anon;
-revoke all on function public.transition_journey(uuid, integer, text) from public, anon;
-revoke all on function public.replace_journey_participant(uuid, uuid, uuid, integer, text) from public, anon;
-grant execute on function public.activate_journey(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) to authenticated;
-grant execute on function public.transition_journey(uuid, integer, text) to authenticated;
-grant execute on function public.replace_journey_participant(uuid, uuid, uuid, integer, text) to authenticated;
-
-alter table public.journeys enable row level security;
-alter table public.journey_phases enable row level security;
-alter table public.journey_participants enable row level security;
-alter table public.journey_participant_changes enable row level security;
-alter table public.journey_moments enable row level security;
-alter table public.journey_topics enable row level security;
-alter table public.journey_topic_assignments enable row level security;
-alter table public.journey_reminder_links enable row level security;
-
+returns jsonb language sql security invoker set search_path = pg_catalog as $$ select internal_security.replace_journey_participant_internal($1, $2, $3, $4, $5); $$
+revoke all on function internal_security.activate_journey_internal(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) from public, anon, authenticated
+revoke all on function internal_security.create_journey_reminders_internal(uuid) from public, anon, authenticated
+revoke all on function internal_security.transition_journey_internal(uuid, integer, text) from public, anon, authenticated
+revoke all on function internal_security.replace_journey_participant_internal(uuid, uuid, uuid, integer, text) from public, anon, authenticated
+grant execute on function internal_security.activate_journey_internal(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) to authenticated
+grant execute on function internal_security.create_journey_reminders_internal(uuid) to authenticated
+grant execute on function internal_security.transition_journey_internal(uuid, integer, text) to authenticated
+grant execute on function internal_security.replace_journey_participant_internal(uuid, uuid, uuid, integer, text) to authenticated
+revoke all on function public.activate_journey(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) from public, anon
+revoke all on function public.transition_journey(uuid, integer, text) from public, anon
+revoke all on function public.replace_journey_participant(uuid, uuid, uuid, integer, text) from public, anon
+grant execute on function public.activate_journey(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) to authenticated
+grant execute on function public.transition_journey(uuid, integer, text) to authenticated
+grant execute on function public.replace_journey_participant(uuid, uuid, uuid, integer, text) to authenticated
+alter table public.journeys enable row level security
+alter table public.journey_phases enable row level security
+alter table public.journey_participants enable row level security
+alter table public.journey_participant_changes enable row level security
+alter table public.journey_moments enable row level security
+alter table public.journey_topics enable row level security
+alter table public.journey_topic_assignments enable row level security
+alter table public.journey_reminder_links enable row level security
 create policy journeys_hr_read on public.journeys for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_phases_hr_read on public.journey_phases for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_participants_hr_read on public.journey_participants for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_participant_changes_hr_read on public.journey_participant_changes for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_moments_hr_read on public.journey_moments for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_topics_hr_read on public.journey_topics for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_topic_assignments_hr_read on public.journey_topic_assignments for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
+)
 create policy journey_reminder_links_hr_read on public.journey_reminder_links for select to authenticated using (
   (select internal_security.journeys_module_enabled(tenant_id)) and
   (select internal_security.current_user_has_hr_group_permission(tenant_id, hr_group_id, 'journey:read'))
-);
-
-revoke all on table public.journeys from public, anon, authenticated;
-revoke all on table public.journey_phases from public, anon, authenticated;
-revoke all on table public.journey_participants from public, anon, authenticated;
-revoke all on table public.journey_participant_changes from public, anon, authenticated;
-revoke all on table public.journey_moments from public, anon, authenticated;
-revoke all on table public.journey_topics from public, anon, authenticated;
-revoke all on table public.journey_topic_assignments from public, anon, authenticated;
-revoke all on table public.journey_reminder_links from public, anon, authenticated;
-grant select on table public.journeys to authenticated;
-grant select on table public.journey_phases to authenticated;
-grant select on table public.journey_participants to authenticated;
-grant select on table public.journey_participant_changes to authenticated;
-grant select on table public.journey_moments to authenticated;
-grant select on table public.journey_topics to authenticated;
-grant select on table public.journey_topic_assignments to authenticated;
-grant select on table public.journey_reminder_links to authenticated;
-
+)
+revoke all on table public.journeys from public, anon, authenticated
+revoke all on table public.journey_phases from public, anon, authenticated
+revoke all on table public.journey_participants from public, anon, authenticated
+revoke all on table public.journey_participant_changes from public, anon, authenticated
+revoke all on table public.journey_moments from public, anon, authenticated
+revoke all on table public.journey_topics from public, anon, authenticated
+revoke all on table public.journey_topic_assignments from public, anon, authenticated
+revoke all on table public.journey_reminder_links from public, anon, authenticated
+grant select on table public.journeys to authenticated
+grant select on table public.journey_phases to authenticated
+grant select on table public.journey_participants to authenticated
+grant select on table public.journey_participant_changes to authenticated
+grant select on table public.journey_moments to authenticated
+grant select on table public.journey_topics to authenticated
+grant select on table public.journey_topic_assignments to authenticated
+grant select on table public.journey_reminder_links to authenticated
 comment on function public.activate_journey(uuid, uuid, uuid, uuid, uuid, date, text, jsonb) is
-  'Activeert idempotent en transactioneel een gepinde Journey-snapshot en maakt concrete reminders in de bestaande Tijdhub-infrastructuur.';
-
-commit;
+  'Activeert idempotent en transactioneel een gepinde Journey-snapshot en maakt concrete reminders in de bestaande Tijdhub-infrastructuur.'
+commit

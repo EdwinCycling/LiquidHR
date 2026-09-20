@@ -28,4 +28,3 @@ create index if not exists payroll_sync_runs_started_by_user_idx
 
 commit;
 
-

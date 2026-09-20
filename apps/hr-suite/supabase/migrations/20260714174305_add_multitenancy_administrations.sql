@@ -194,7 +194,7 @@ insert into public.management_roles (code, name, description, is_system)
 values (
   'TENANT_ADMIN',
   'Hoofdbeheerder',
-  'Beheert alle toegestane administraties binnen één tenant.',
+  'Beheert alle toegestane administraties binnen ��n tenant.',
   true
 )
 on conflict (code) where tenant_id is null do update
@@ -207,7 +207,7 @@ values (
   'tenant:combine',
   'Administraties combineren',
   'Tenant & administraties',
-  'Combineert gescheiden administraties eenmalig tot één operationele HR-omgeving.'
+  'Combineert gescheiden administraties eenmalig tot ��n operationele HR-omgeving.'
 )
 on conflict (code) do update
 set name = excluded.name,
@@ -320,7 +320,7 @@ begin
     )
     select 1 from ancestors where id = new.id
   ) then
-    raise exception 'De administratiehiërarchie mag geen cyclus bevatten.';
+    raise exception 'De administratiehi�rarchie mag geen cyclus bevatten.';
   end if;
 
   return new;
@@ -902,3 +902,4 @@ grant execute on function internal_security.current_user_has_permission(uuid, uu
 grant execute on function internal_security.current_employee_id() to authenticated;
 grant execute on function internal_security.can_manage_employee(uuid, text) to authenticated;
 grant execute on function internal_security.combine_tenant_administrations(uuid) to authenticated;
+

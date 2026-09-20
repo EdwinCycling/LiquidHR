@@ -5,8 +5,7 @@ create type public.overtime_limit_mode as enum (
   'MONTHLY_HOURS',
   'YEARLY_HOURS',
   'CONTRACT_HOURS_FACTOR'
-);
-
+)
 create table public.overtime_type_settings (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -36,8 +35,7 @@ create table public.overtime_type_settings (
   ),
   unique (tenant_id, administration_id, work_hour_type_id),
   unique (tenant_id, administration_id, id)
-);
-
+)
 create table public.overtime_type_exceptions (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null,
@@ -69,11 +67,9 @@ create table public.overtime_type_exceptions (
   ),
   unique (tenant_id, administration_id, work_hour_type_id, employee_id),
   unique (tenant_id, administration_id, id)
-);
-
+)
 create index overtime_type_exceptions_employee_idx
-  on public.overtime_type_exceptions (tenant_id, administration_id, employee_id, work_hour_type_id);
-
+  on public.overtime_type_exceptions (tenant_id, administration_id, employee_id, work_hour_type_id)
 create or replace function internal_security.prevent_leave_catalog_identity_mutation()
 returns trigger
 language plpgsql
@@ -109,8 +105,7 @@ begin
   end if;
   return new;
 end;
-$$;
-
+$$
 create or replace function internal_security.prevent_leave_accrual_rule_identity_mutation()
 returns trigger
 language plpgsql
@@ -139,8 +134,7 @@ begin
   end if;
   return new;
 end;
-$$;
-
+$$
 create or replace function internal_security.validate_overtime_exception_employee()
 returns trigger
 language plpgsql
@@ -161,61 +155,54 @@ begin
   end if;
   return new;
 end;
-$$;
-
+$$
 create trigger leave_types_identity_immutable
 before update on public.leave_types
-for each row execute function internal_security.prevent_leave_catalog_identity_mutation();
+for each row execute function internal_security.prevent_leave_catalog_identity_mutation()
 create trigger work_hour_types_identity_immutable
 before update on public.work_hour_types
-for each row execute function internal_security.prevent_leave_catalog_identity_mutation();
+for each row execute function internal_security.prevent_leave_catalog_identity_mutation()
 create trigger leave_accrual_rules_identity_immutable
 before update or delete on public.leave_accrual_rules
-for each row execute function internal_security.prevent_leave_accrual_rule_identity_mutation();
+for each row execute function internal_security.prevent_leave_accrual_rule_identity_mutation()
 create trigger overtime_type_settings_updated
 before update on public.overtime_type_settings
-for each row execute function internal_security.set_updated_at();
+for each row execute function internal_security.set_updated_at()
 create trigger overtime_type_exceptions_updated
 before update on public.overtime_type_exceptions
-for each row execute function internal_security.set_updated_at();
+for each row execute function internal_security.set_updated_at()
 create trigger overtime_type_exceptions_employee_valid
 before insert or update on public.overtime_type_exceptions
-for each row execute function internal_security.validate_overtime_exception_employee();
-
+for each row execute function internal_security.validate_overtime_exception_employee()
 create trigger audit_overtime_type_settings after insert or update or delete on public.overtime_type_settings
-for each row execute function internal_security.audit_configuration_change('overtime_type_settings');
+for each row execute function internal_security.audit_configuration_change('overtime_type_settings')
 create trigger audit_overtime_type_exceptions after insert or update or delete on public.overtime_type_exceptions
-for each row execute function internal_security.audit_configuration_change('overtime_type_exception');
-
-alter table public.overtime_type_settings enable row level security;
-alter table public.overtime_type_exceptions enable row level security;
-
+for each row execute function internal_security.audit_configuration_change('overtime_type_exception')
+alter table public.overtime_type_settings enable row level security
+alter table public.overtime_type_exceptions enable row level security
 create policy overtime_type_settings_read on public.overtime_type_settings for select to authenticated
-using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:read')));
+using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:read')))
 create policy overtime_type_settings_write on public.overtime_type_settings for insert to authenticated
-with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')));
+with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
 create policy overtime_type_settings_update on public.overtime_type_settings for update to authenticated
 using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
-with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')));
-
+with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
 create policy overtime_type_exceptions_read on public.overtime_type_exceptions for select to authenticated
-using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:read')));
+using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:read')))
 create policy overtime_type_exceptions_write on public.overtime_type_exceptions for insert to authenticated
-with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')));
+with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
 create policy overtime_type_exceptions_update on public.overtime_type_exceptions for update to authenticated
 using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
-with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')));
+with check ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
 create policy overtime_type_exceptions_delete on public.overtime_type_exceptions for delete to authenticated
-using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')));
-
-grant select, insert, update on table public.overtime_type_settings to authenticated;
-grant select, insert, update, delete on table public.overtime_type_exceptions to authenticated;
-revoke all on function internal_security.prevent_leave_catalog_identity_mutation() from public, anon, authenticated;
-revoke all on function internal_security.prevent_leave_accrual_rule_identity_mutation() from public, anon, authenticated;
-revoke all on function internal_security.validate_overtime_exception_employee() from public, anon, authenticated;
-
+using ((select internal_security.current_user_has_permission(tenant_id, administration_id, 'leave:write')))
+grant select, insert, update on table public.overtime_type_settings to authenticated
+grant select, insert, update, delete on table public.overtime_type_exceptions to authenticated
+revoke all on function internal_security.prevent_leave_catalog_identity_mutation() from public, anon, authenticated
+revoke all on function internal_security.prevent_leave_accrual_rule_identity_mutation() from public, anon, authenticated
+revoke all on function internal_security.validate_overtime_exception_employee() from public, anon, authenticated
 insert into public.overtime_type_settings (tenant_id, administration_id, work_hour_type_id)
 select tenant_id, administration_id, id
 from public.work_hour_types
 where category = 'OVERTIME'
-on conflict (tenant_id, administration_id, work_hour_type_id) do nothing;
+on conflict (tenant_id, administration_id, work_hour_type_id) do nothing

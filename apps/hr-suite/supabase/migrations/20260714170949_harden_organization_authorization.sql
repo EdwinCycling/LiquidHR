@@ -317,3 +317,4 @@ for each row execute function internal_security.validate_management_role_deputy(
 
 revoke all on function internal_security.validate_department_parent() from public, anon, authenticated;
 revoke all on function internal_security.validate_management_role_deputy() from public, anon, authenticated;
+

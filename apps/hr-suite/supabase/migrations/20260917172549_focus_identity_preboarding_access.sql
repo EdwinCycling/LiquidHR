@@ -925,3 +925,4 @@ revoke all on function public.accept_user_invitation(text, uuid, text) from publ
 grant execute on function public.accept_user_invitation(text, uuid, text) to service_role;
 
 commit;
+
