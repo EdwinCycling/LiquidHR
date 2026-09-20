@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const sql = readFileSync(resolve(__dirname, '20260918090701_focus_access_management.sql'), 'utf8')
-const employeeIdMigration = readFileSync(resolve(__dirname, '20260805200000_hr_group_people_organization_roles.sql'), 'utf8')
+const employeeIdMigration = readFileSync(resolve(__dirname, '20260805181522_hr_group_people_organization_roles.sql'), 'utf8')
 
 describe('Focus access management migration contract', () => {
   it('backfills existing groups to Full and defaults new groups to the approved modes', () => {

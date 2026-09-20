@@ -119,4 +119,16 @@ describe('Focus section route boundaries', () => {
     expect(await render('aanvragen')).not.toContain('href="/work"')
     expect(await render('werk')).not.toContain('href="/work"')
   })
+
+  it('does not restrict the manager work queue to the manager employee', async () => {
+    const data = setup()
+    data.experience = 'MANAGER'
+    const workMarkup = await render('werk')
+
+    expect(workMarkup).toContain('Mijn werk')
+    expect(mocks.process).toHaveBeenCalledWith(
+      expect.objectContaining({ view: 'WORK', tab: 'TODO', subjectEmployeeId: undefined }),
+      expect.anything(),
+    )
+  })
 })

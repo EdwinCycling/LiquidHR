@@ -1,5 +1,38 @@
 # Actuele overdracht Liquid HR
 
+## Focus DEV act-as alignment and completion acceptance — 2026-09-20
+
+**Status: DEV-GREEN / FULL LOCAL TECHNICAL GATES GREEN / FINAL MAIN-PRODUCTION RELEASE GATE OPEN**
+
+- Candidate worktree/branch: `.codex-worktrees/focus-completion-act-as-20260918` /
+  `work/focus-completion-act-as-20260918`.
+- DEV-only target: Supabase `wnpfloqpjvaacobppbpk`, existing demo tenant
+  `liquid-hr-demo-holding` / `Planeten`. Production and global roles were not
+  changed.
+- The tenant-specific `TENANT_ADMIN` override now receives the existing
+  `focus:act-as-employee` capability through the canonical
+  `role_permissions` migration `20260920170000_grant_focus_act_as_demo_tenant_admin`.
+  DEV readback confirms global and tenant-specific TENANT_ADMIN rows, with no
+  EMPLOYEE or DIRECT_MANAGER rows in the target tenant.
+- The existing audit contract is now able to persist the scoped Act-as START and
+  STOP rows through `20260920171000_allow_focus_act_as_audit_events` and the
+  authenticated-only INSERT grant in `20260920172000_grant_focus_act_as_audit_insert`.
+  The positive HR Admin flow and STOP readback are green; Manager and Employee
+  direct API attempts both return 403 without audit mutation.
+- Focus profile self-edit was browser-tested with a temporary first-name change,
+  readback and immediate restore. Mobile `390x844` checks for `/focus`,
+  `/focus/profiel`, `/focus/verlof`, `/focus/aanvragen` and `/focus/team` all
+  reported no horizontal overflow. Screenshots and bounded fixture notes are in
+  `.artifacts/focus-acceptance-20260920/README.md`.
+- Final local gates: full Vitest `432/432` files and `1698/1698` tests with
+  `--testTimeout=30000`, strict TypeScript, ESLint, i18n `39` equal namespaces,
+  Next/Webpack build `296/296` static pages and `git diff --check` are green.
+  Supabase type generation and advisors were also run; project-wide advisor
+  findings remain explicitly open and are not silently suppressed.
+- The exact final Git commit/push and the main/Production release gate remain
+  separate from this DEV acceptance. Protected `.env.local` and the existing
+  user-owned migration reconciliation note remain outside the staged scope.
+
 ## Convergence Focus + ESS/MSS — 2026-09-18
 
 **Status: CODE CONVERGENCE GREEN / DEV-SCHEMA READBACK GREEN / AUTHENTICATED BROWSER ACCEPTANCE ENVIRONMENT-GATED / RELEASE OPEN**

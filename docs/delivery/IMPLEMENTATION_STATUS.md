@@ -2464,3 +2464,27 @@ Lokale verificatie: 17/17 targeted leave/schema/migration tests, strict TypeScri
 - Privacy: Focus accepts no medical/free-text reason. Employee colleague views remain PRESENT/ABSENT only; manager operational status remains scoped to the effective team. Confirmation/correction uses the same absence case/spell and does not create a duplicate absence truth. Employee Focus V1 exposes no recovery action.
 - Verification: focused absence/Focus tests `38/38` are green; full HR Vitest is `419/419` files and `1.675/1.675` tests; strict TypeScript, ESLint, i18n parity (`39 namespaces`), `git diff --check` and Next/Turbopack production build (`296/296 static pages`) are green. Authenticated browser and DB-backed acceptance are not claimed because the migration is not applied and the current session has no Supabase access token.
 - SQL/remote gate: migration `20260918203815_focus_completion_act_as_absence.sql` is pending. The safe dry-run reached the Supabase CLI but stopped before schema inspection with `LegacyPlatformAuthRequiredError` because no access token is available in this session. Do not repair history or run `db pull` without explicit direction; no DEV/Production remote mutation, main merge, push or deployment was performed. Repository history documents the known DEV migration-history drift as the next reconciliation gate.
+## Focus DEV Act-as alignment and completion — 2026-09-20
+
+**Status: DEV-GREEN / LOKALE EINDGATES GREEN / MAIN-PRODUCTION RELEASE GATE OPEN**
+
+- DEV-only capability alignment for the existing demo-tenant
+  `TENANT_ADMIN` is implemented through the canonical `role_permissions`
+  migration `20260920170000_grant_focus_act_as_demo_tenant_admin`.
+- Scoped Act-as audit persistence is implemented through
+  `20260920171000_allow_focus_act_as_audit_events` and
+  `20260920172000_grant_focus_act_as_audit_insert`. HR Admin positive,
+  Manager negative and Employee negative acceptance are green; remote START,
+  STOP, role-permission and zero-negative-role readback is recorded in the
+  acceptance artifact.
+- Focus profile self-edit, absence/Leave readbacks and the `390x844` mobile
+  matrix were re-run against the real local app. No Production or global-role
+  mutation occurred.
+- Final local gates: full Vitest `432/432` files and `1698/1698` tests with
+  `--testTimeout=30000`, strict TypeScript, ESLint, i18n `39` namespaces,
+  Webpack build `296/296` static pages and `git diff --check` green. Supabase
+  typegen and advisors were run; existing project-wide advisor notices remain
+  explicit.
+- Main integration, Production migration/deployment and final release approval
+  remain separate gates. Protected `.env.local` and the existing untracked
+  migration reconciliation note are outside the staged scope.

@@ -17,6 +17,15 @@ const workflowResultSchema = z.object({
   businessStatus: z.string(),
 }).passthrough()
 
+function defaultBusinessStatus(status: string): string {
+  if (status === 'APPROVED') return 'COMPLETED'
+  if (status === 'PENDING') return 'WAITING'
+  if (status === 'CHANGES_REQUESTED') return 'CHANGES_REQUESTED'
+  if (status === 'REJECTED') return 'REJECTED'
+  if (status === 'CANCELLED') return 'CANCELLED'
+  return status
+}
+
 const workflowActionResultSchema = z.object({
   processInstanceId: z.string().uuid(),
   status: z.string(),
@@ -25,9 +34,13 @@ const workflowActionResultSchema = z.object({
   correlationId: z.string().uuid().nullable(),
   eventId: z.string().uuid().nullable(),
   requestId: z.string().uuid(),
-  leaveRequestId: z.string().uuid(),
-  businessStatus: z.string(),
-}).passthrough()
+  leaveRequestId: z.string().uuid().optional(),
+  businessStatus: z.string().optional(),
+}).passthrough().transform((value) => ({
+  ...value,
+  leaveRequestId: value.leaveRequestId ?? value.requestId,
+  businessStatus: value.businessStatus ?? defaultBusinessStatus(value.status),
+}))
 
 export type LeaveWorkflowStartInput = LeaveRequestConfirmInput
 export type LeaveWorkflowStartResult = z.infer<typeof workflowResultSchema>
@@ -113,6 +126,12 @@ export async function startFocusLeaveRequestWorkflow(
   return startLeaveRequestWorkflowWithDependencies(input, dependencies)
 }
 
+export function normalizeLeaveWorkflowActionResult(data: unknown): LeaveWorkflowActionResult {
+  const result = workflowActionResultSchema.safeParse(data)
+  if (!result.success) throw new LeaveServiceError('LEAVE_WORKFLOW_RESULT_INVALID', 500)
+  return result.data
+}
+
 export async function getLeaveWorkflowDetail(workItemId: string, language: 'nl' | 'en'): Promise<ProcessWorkDetail> {
   const detail = await getProcessWorkItemDetail(workItemId, language)
   if (detail.businessType !== 'LEAVE' || !detail.leaveRequest) throw new LeaveServiceError('LEAVE_WORKFLOW_NOT_FOUND', 404)
@@ -133,7 +152,5 @@ export async function performLeaveWorkflowAction(input: LeaveWorkflowActionInput
   } as unknown as Database['public']['Functions']['perform_leave_workflow_action']['Args']
   const { data, error } = await supabase.rpc('perform_leave_workflow_action', actionArgs)
   if (error) throwRpcError(error.message)
-  const result = workflowActionResultSchema.safeParse(data)
-  if (!result.success) throw new LeaveServiceError('LEAVE_WORKFLOW_RESULT_INVALID', 500)
-  return result.data
+  return normalizeLeaveWorkflowActionResult(data)
 }

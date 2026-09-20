@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260915140000_ai_admin_settings_voice_accounting.sql'), 'utf8').toLowerCase()
+const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260915163650_ai_admin_settings_voice_accounting.sql'), 'utf8').toLowerCase()
 
 describe('AI administration and voice accounting migration contract', () => {
   it('stores only HR-group governance settings and protects them with scoped admin RLS', () => {

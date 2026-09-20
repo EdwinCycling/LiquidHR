@@ -312,9 +312,18 @@ export async function reportFocusEmployeeAbsence(
   if (auth.employeeId !== employeeId && !auth.permissions.includes('focus:act-as-employee')) throw new AbsenceServiceError('ABSENCE_SELF_SERVICE_FORBIDDEN', 403)
   if (!auth.hrGroupId) throw new AbsenceServiceError('ABSENCE_GROUP_REQUIRED', 403)
   const supabase = await createClient()
-  const settings = await supabase.from('absence_settings').select('employee_self_report_enabled').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).maybeSingle()
-  if (settings.error) throw new AbsenceServiceError('ABSENCE_SETTINGS_READ_FAILED', 500)
-  if (!settings.data?.employee_self_report_enabled) throw new AbsenceServiceError('ABSENCE_SELF_REPORT_DISABLED', 403)
+  if (auth.employeeId === employeeId) {
+    const settings = await supabase.rpc('get_employee_self_report_enabled', {
+      requested_tenant_id: auth.tenantId,
+      requested_hr_group_id: auth.hrGroupId,
+    })
+    if (settings.error) throw new AbsenceServiceError('ABSENCE_SETTINGS_READ_FAILED', 500)
+    if (settings.data !== true) throw new AbsenceServiceError('ABSENCE_SELF_REPORT_DISABLED', 403)
+  } else {
+    const settings = await supabase.from('absence_settings').select('employee_self_report_enabled').eq('tenant_id', auth.tenantId).eq('hr_group_id', auth.hrGroupId).maybeSingle()
+    if (settings.error) throw new AbsenceServiceError('ABSENCE_SETTINGS_READ_FAILED', 500)
+    if (!settings.data?.employee_self_report_enabled) throw new AbsenceServiceError('ABSENCE_SELF_REPORT_DISABLED', 403)
+  }
   const selection = await resolveLeaveEmployment(supabase, auth, employeeId, input.employmentId, input.startDate)
   if (!selection.employment) {
     if (!input.employmentId && selection.options.length > 1) throw new AbsenceEmploymentRequiredError(selection.options)

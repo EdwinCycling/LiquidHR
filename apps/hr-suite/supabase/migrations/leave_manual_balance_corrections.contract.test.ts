@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = 'supabase/migrations/20260913090000_leave_manual_balance_corrections.sql'
+const migrationPath = 'supabase/migrations/20260913092334_leave_manual_balance_corrections.sql'
 const foundationPath = 'supabase/migrations/20260722142551_add_leave_engine_foundation.sql'
 
 describe('Leave manual balance corrections migration', () => {

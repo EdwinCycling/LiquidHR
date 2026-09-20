@@ -27,7 +27,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const caseId = await reportFocusEmployeeAbsence(employeeId, input, requestContext.context)
     return NextResponse.json({ data: caseId }, { status: 201 })
   } catch (error) {
-    if (error instanceof AbsenceServiceError) return NextResponse.json({ error: error.code }, { status: error.status })
+    if (error instanceof AbsenceServiceError) {
+      return NextResponse.json({ error: error.code }, { status: error.status })
+    }
     return NextResponse.json({ error: 'ABSENCE_REPORT_FAILED' }, { status: 500 })
   }
 }

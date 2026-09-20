@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const sql = readFileSync(resolve(__dirname, '20260917172549_focus_identity_preboarding_access.sql'), 'utf8').replaceAll('\r\n', '\n')
-const canonicalEmployeeIdOverload = readFileSync(resolve(__dirname, '20260805200000_hr_group_people_organization_roles.sql'), 'utf8').replaceAll('\r\n', '\n')
+const canonicalEmployeeIdOverload = readFileSync(resolve(__dirname, '20260805181522_hr_group_people_organization_roles.sql'), 'utf8').replaceAll('\r\n', '\n')
 
 describe('Focus identity/preboarding migration contract', () => {
   it('derives preboarding from effective-dated confirmed employments', () => {

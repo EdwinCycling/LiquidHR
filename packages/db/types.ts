@@ -20918,6 +20918,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_employee_self_report_enabled: {
+        Args: { requested_hr_group_id: string; requested_tenant_id: string }
+        Returns: boolean
+      }
       get_internal_transfer_preview: {
         Args: { requested_work_item_id: string }
         Returns: Json

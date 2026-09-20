@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = 'supabase/migrations/20260912120000_leave_profile_default_management.sql'
+const migrationPath = 'supabase/migrations/20260912123318_leave_profile_default_management.sql'
 
 describe('Leave profile default management migration', () => {
   it('enforces normalized names, active defaults and archive safeguards', async () => {

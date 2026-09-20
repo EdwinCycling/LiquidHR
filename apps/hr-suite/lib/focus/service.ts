@@ -114,7 +114,7 @@ export function focusActions(input: {
     if (canUseEmployeeSelfservice && permissions.has('self:absence:write') && input.employeeSelfReportEnabled === true) add('absence', '/focus/ziek')
     if ((canUseEmployeeSelfservice && permissions.has('self:process-task:read')) || (input.experience === 'MANAGER' && (permissions.has('process-task:read') || permissions.has('process-instance:read')))) add('requests', '/focus/aanvragen')
     if ((input.experience === 'MANAGER' && (permissions.has('process-task:read') || permissions.has('process-instance:read') || permissions.has('absence:read') || permissions.has('absence:write')) || (canUseEmployeeSelfservice && (permissions.has('process-task:read') || permissions.has('process-instance:read') || permissions.has('self:process-task:read') || permissions.has('self:process-instance:read'))))) add('work', '/focus/werk')
-    if ((input.experience === 'MANAGER' || canUseEmployeeSelfservice) && (permissions.has('organization-chart:read') || permissions.has('self:organization-chart:read') || permissions.has('self:employee:read'))) add('team', '/focus/team')
+    if ((input.experience === 'MANAGER' || canUseEmployeeSelfservice) && (permissions.has('organization-chart:read') || permissions.has('self:organization-chart:read') || permissions.has('self:employee:read') || (input.experience === 'MANAGER' && (permissions.has('absence:read') || permissions.has('absence:write'))))) add('team', '/focus/team')
   }
 
   return actions
@@ -125,13 +125,11 @@ async function readEmployeeSelfReportEnabled(
   tenantId: string,
   hrGroupId: string,
 ): Promise<boolean> {
-  const result = await supabase
-    .from('absence_settings')
-    .select('employee_self_report_enabled')
-    .eq('tenant_id', tenantId)
-    .eq('hr_group_id', hrGroupId)
-    .maybeSingle()
-  return !result.error && result.data?.employee_self_report_enabled === true
+  const result = await supabase.rpc('get_employee_self_report_enabled', {
+    requested_tenant_id: tenantId,
+    requested_hr_group_id: hrGroupId,
+  })
+  return !result.error && result.data === true
 }
 
 async function readEmployeeFocusData(

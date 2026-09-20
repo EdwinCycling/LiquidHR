@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260828115844_ai_provider_safety_fup.sql'), 'utf8')
+const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/20260828124612_ai_provider_safety_fup.sql'), 'utf8')
 
 describe('provider safety migration contract', () => {
   it('maakt service-only lease storage met RLS en zonder contentvelden', () => {

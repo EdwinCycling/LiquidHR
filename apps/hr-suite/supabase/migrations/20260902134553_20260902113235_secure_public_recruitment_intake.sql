@@ -258,3 +258,6 @@ grant execute on function public.recruitment_claim_public_intake(uuid, text, tex
 
 revoke all on function public.recruitment_submit_public_application(uuid, text, jsonb, text, text) from public;
 grant execute on function public.recruitment_submit_public_application(uuid, text, jsonb, text, text) to anon, authenticated, service_role;
+
+revoke all on function public.recruitment_cleanup_public_intake(integer) from public, anon, authenticated;
+grant execute on function public.recruitment_cleanup_public_intake(integer) to service_role;

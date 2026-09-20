@@ -14,6 +14,7 @@ const workItemSchema = z.object({
   processKey: z.string(),
   processTitle: z.string(),
   subjectEmployeeId: databaseUuidSchema.nullable(),
+  subjectEmploymentId: databaseUuidSchema.nullable(),
   subjectName: z.string().nullable(),
   stepKey: z.string(),
   stepTitle: z.string(),

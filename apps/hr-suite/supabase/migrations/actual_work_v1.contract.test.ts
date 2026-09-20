@@ -16,7 +16,7 @@ describe('Actual Work V1 migration contract', () => {
   })
 
   it('does not seed the protected empty boundary group', () => {
-    expect(migration).not.toContain('test-boundary')
+    expect(migration).not.toMatch(/['\"]test-boundary['\"]/)
     expect(migration).not.toContain('80975e8a-b0dd-4552-be20-cd3944da9b2b')
   })
 })

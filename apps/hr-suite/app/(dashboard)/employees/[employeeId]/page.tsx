@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { EmployeePersonCard } from '@/components/employees/employee-person-card'
 import { EmployeeInvitationAccess } from '@/components/invitations/employee-invitation-access'
+import { FocusActAsButton } from '@/components/focus/focus-act-as-button'
 import { PageShell } from '@/components/layout/page-shell'
 import { SectionHeader } from '@/components/patterns/section-header'
 import { ScrollableTabs } from '@/components/patterns/scrollable-tabs'
@@ -174,6 +175,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
   const [detail, customFields, reminders, roleAssignments, canManageEmployments, locale, preferences, tEmployees, tEmployment, tErrors, tCustomFields, tDocuments, documents, documentOptions, canReadDocuments, canWriteDocuments, canDeleteDocuments, dashboardDocuments, dashboardLayout, dashboardActivity, canWriteActivity, payslips, canReadPayslips, absenceCases, selfReport, journeys, notes, canReadNotes, canWriteNotes, canDeleteNotes, canUseAi] = pageData
   performanceTrace.finish()
   const tProcess = await getTranslator('processAutomation', locale)
+  const tFocus = await getTranslator('focus', locale)
   const tWeather = await getTranslator('startpage', locale)
   const invitationPage = authContext.permissions.includes('user:invite')
     ? await Promise.all([
@@ -183,6 +185,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
     : null
   const weatherLabels = { weatherTitle: tWeather('weatherTitle'), weatherOpen: tWeather('weatherOpen'), weatherClose: tWeather('weatherClose'), weatherUnavailable: tWeather('weatherUnavailable'), weatherToday: tWeather('weatherToday'), weatherTomorrow: tWeather('weatherTomorrow'), weatherNextWorkingDay: tWeather('weatherNextWorkingDay'), weatherDayToggle: tWeather('weatherDayToggle'), weatherTodayMax: tWeather('weatherTodayMax'), weatherForecastHigh: tWeather('weatherForecastHigh'), weatherForecastLow: tWeather('weatherForecastLow'), weatherPressureUp: tWeather('weatherPressureUp'), weatherPressureDown: tWeather('weatherPressureDown'), weatherPressureSteady: tWeather('weatherPressureSteady'), weatherHumidity: tWeather('weatherHumidity'), weatherWind: tWeather('weatherWind'), weatherPressure: tWeather('weatherPressure'), weatherLocationToggle: tWeather('weatherLocationToggle'), weatherWork: tWeather('weatherWork'), weatherHome: tWeather('weatherHome') }
   const canStartProcess = authContext.permissions.includes('process-instance:start') || (authContext.permissions.includes('self:process-instance:start') && authContext.employeeId === employeeId)
+  const canActAsEmployee = authContext.employeeId !== employeeId
+    && authContext.permissions.includes('focus:act-as-employee')
+    && authContext.activeRoles.some((role) => role === 'TENANT_ADMIN' || role === 'HR_ADMIN')
   const processWork = (tab === 'overview' || tab === 'processes') && canReadProcesses
     ? await listProcessWork({ subjectEmployeeId: employeeId, tab: 'ALL', language: locale }).catch(() => null)
     : null
@@ -256,6 +261,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: Emplo
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2 md:max-w-[15rem] md:justify-end">
                   <EmployeeWeatherDrawer homeWeather={privateWeather} labels={weatherLabels} locale={locale} weather={workWeather} />
+                  {canActAsEmployee ? <FocusActAsButton employeeId={employeeId} errorLabel={tFocus('actAs.failed')} label={tFocus('actAs.start')} loadingLabel={tFocus('actAs.starting')} /> : null}
                   <Link aria-label={tEmployees('compact')} href={`/employees/${employeeId}?tab=${tab}&view=compact`} prefetch={false} title={tEmployees('compact')} className="button-secondary inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center p-0"><Minimize2 aria-hidden="true" size={18} /></Link>
                   <EmployeeArchiveToggle headerStyle employeeId={employeeId} archived={detail.employee.isArchived} hasActiveEmployment={detail.employments.some((employment) => employment.record_status === 'CONFIRMED')} labels={{ archive: tEmployees('archiveEmployee'), unarchive: tEmployees('unarchiveEmployee'), archiveTitle: tEmployees('archiveConfirmTitle'), unarchiveTitle: tEmployees('unarchiveConfirmTitle'), archiveBody: tEmployees('archiveConfirmBody'), archiveAction: tEmployees('archiveConfirmAction'), cancel: tEmployees('archiveCancel'), saved: tEmployees('archiveSaved'), failed: tEmployees('archiveFailed'), notFound: tEmployees('archiveNotFound'), hasActiveEmployment: tEmployees('hasActiveEmployment') }} />
                 </div>

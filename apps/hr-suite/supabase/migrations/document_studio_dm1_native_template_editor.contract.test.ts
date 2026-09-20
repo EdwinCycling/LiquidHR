@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 
-const migrationPath = 'supabase/migrations/20260902132228_document_studio_dm1_native_template_editor.sql'
+const migrationPath = 'supabase/migrations/20260903114306_document_studio_dm1_native_template_editor.sql'
 const readMigration = async () => (await readFile(migrationPath, 'utf8')).replace(/\r\n/g, '\n')
 
 describe('Document Studio DM-1 migration candidate', () => {

@@ -93,12 +93,16 @@ export interface FocusAbsenceState {
   confirmationStatus: AbsenceConfirmationStatus | null
 }
 
-export async function getFocusAbsenceState(section: FocusSectionContext): Promise<FocusAbsenceState | null> {
+export function isFocusAbsenceCaseVisible(absenceCase: { status: string; recovery_window_ends_on: string | null }, today: string): boolean {
+  return absenceCase.status !== 'RECOVERY_WINDOW' || absenceCase.recovery_window_ends_on === null || absenceCase.recovery_window_ends_on >= today
+}
+
+export async function getFocusAbsenceState(section: FocusSectionContext, today = new Date().toISOString().slice(0, 10)): Promise<FocusAbsenceState | null> {
   if (!hasFocusPermission(section, 'self:absence:write', 'self:absence:read')) return null
   const groupId = requireHrGroupId(section.context)
   const casesResult = await section.supabase
     .from('absence_cases')
-    .select('id,status,first_absence_on,pending_confirmation')
+    .select('id,status,first_absence_on,pending_confirmation,recovery_window_ends_on')
     .eq('tenant_id', section.context.tenantId)
     .eq('hr_group_id', groupId)
     .eq('employee_id', section.employeeId)
@@ -110,7 +114,8 @@ export async function getFocusAbsenceState(section: FocusSectionContext): Promis
   const cases = casesResult.data ?? []
   if (!cases.length) return null
   const confirmations = await listAbsenceConfirmations([section.employeeId], { context: section.context, supabase: section.supabase })
-  const currentCase = cases[0]
+  const currentCase = cases.find((absenceCase) => isFocusAbsenceCaseVisible(absenceCase, today))
+  if (!currentCase) return null
   const confirmation = confirmations.find((item) => item.caseId === currentCase.id) ?? null
   const spellResult = await section.supabase
     .from('absence_spells')
@@ -133,6 +138,10 @@ export async function getFocusAbsenceState(section: FocusSectionContext): Promis
 }
 
 export interface FocusProfileProjection {
+  employeeId: string
+  firstName: string
+  updatedAt: string
+  canEdit: boolean
   name: string
   avatarUrl: string | null
   personal: Array<{ key: 'language'; value: string }>
@@ -160,7 +169,7 @@ export async function getFocusProfileProjection(section: FocusSectionContext): P
   const groupId = requireHrGroupId(section.context)
   const today = new Date().toISOString().slice(0, 10)
   const [employeeResult, employmentResult, addressResult, relationsResult, bankResult] = await Promise.all([
-    section.supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name,avatar_url,private_email,private_phone,private_mobile,work_email,work_phone,work_phone_ext,work_mobile,preferred_language').eq('tenant_id', section.context.tenantId).eq('hr_group_id', groupId).eq('id', section.employeeId).is('deleted_at', null).maybeSingle(),
+    section.supabase.from('employees').select('id,first_name,birth_name_prefix,birth_name,avatar_url,private_email,private_phone,private_mobile,work_email,work_phone,work_phone_ext,work_mobile,preferred_language,updated_at').eq('tenant_id', section.context.tenantId).eq('hr_group_id', groupId).eq('id', section.employeeId).is('deleted_at', null).maybeSingle(),
     section.supabase.from('employments').select('id,starts_on,ends_on,is_primary,administration_id').eq('tenant_id', section.context.tenantId).eq('hr_group_id', groupId).eq('employee_id', section.employeeId).eq('record_status', 'CONFIRMED').is('deleted_at', null).lte('starts_on', today).or(`ends_on.is.null,ends_on.gte.${today}`).order('is_primary', { ascending: false }).order('starts_on', { ascending: false }).limit(20),
     section.supabase.from('employee_addresses').select('address_type,address_line_1,address_line_2,street,house_number,house_number_addition,postal_code,city,region,country_code').eq('tenant_id', section.context.tenantId).eq('employee_id', section.employeeId).is('deleted_at', null).order('valid_from', { ascending: false }).limit(5),
     section.supabase.from('employee_relations').select('relation_type,first_name,prefix,last_name,email,phone,mobile,is_emergency_contact').eq('tenant_id', section.context.tenantId).eq('employee_id', section.employeeId).is('deleted_at', null).order('is_emergency_contact', { ascending: false }).limit(20),
@@ -185,6 +194,10 @@ export async function getFocusProfileProjection(section: FocusSectionContext): P
   const address = addressResult.data?.[0]
   const relationLabel = (value: string | null): string => value?.trim() || '—'
   return {
+    employeeId: employee.id,
+    firstName: employee.first_name,
+    updatedAt: employee.updated_at,
+    canEdit: !section.actAs && hasFocusPermission(section, 'self:employee:write'),
     name: displayName(employee),
     avatarUrl: employeeAvatarHref(employee.id, employee.avatar_url),
     personal: [

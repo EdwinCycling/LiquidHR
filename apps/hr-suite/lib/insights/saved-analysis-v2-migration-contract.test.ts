@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = new URL('../../supabase/migrations/20260902090000_enable_saved_analysis_v2.sql', import.meta.url)
+const migrationPath = new URL('../../supabase/migrations/20260902133926_20260902090000_enable_saved_analysis_v2.sql', import.meta.url)
 const migration = readFileSync(migrationPath, 'utf8').replaceAll('\r\n', '\n')
 
 describe('V2 saved-analysis forward migration candidate', () => {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 
-const originalMigrationPath = 'supabase/migrations/20260902132228_document_studio_dm1_native_template_editor.sql'
-const followUpMigrationPath = 'supabase/migrations/20260903121602_document_studio_public_wrapper_execution.sql'
+const originalMigrationPath = 'supabase/migrations/20260903114306_document_studio_dm1_native_template_editor.sql'
+const followUpMigrationPath = 'supabase/migrations/20260903125537_document_studio_public_wrapper_execution.sql'
 
 const wrappers = [
   {

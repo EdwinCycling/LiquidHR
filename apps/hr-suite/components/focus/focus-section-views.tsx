@@ -5,6 +5,7 @@ import { SectionHeader } from '@/components/patterns/section-header'
 import { Surface } from '@/components/ui/surface'
 import { buttonClasses } from '@/components/ui/button'
 import type { FocusDirectoryEntry, FocusHoursOverview, FocusLeaveOverview, FocusProfileProjection } from '@/lib/focus/section-service'
+import { FocusProfileEditor, type FocusProfileEditorLabels } from './focus-profile-editor'
 
 export interface FocusProfileLabels {
   personal: string
@@ -30,6 +31,12 @@ export interface FocusProfileLabels {
   masked: string
   bic: string
   accountHolder: string
+  editTitle: string
+  firstName: string
+  save: string
+  saving: string
+  saved: string
+  failed: string
 }
 
 const profileLabels: Record<string, keyof FocusProfileLabels> = {
@@ -47,9 +54,10 @@ const profileLabels: Record<string, keyof FocusProfileLabels> = {
 export function FocusProfileView({ profile, labels }: { profile: FocusProfileProjection; labels: FocusProfileLabels }) {
   const label = (key: string): string => labels[profileLabels[key] ?? 'empty'] as string
   return <div className="space-y-5">
-    <Surface className="flex items-start gap-4 p-4 sm:p-6">
+    <Surface className="flex flex-wrap items-start gap-4 p-4 sm:p-6">
       <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-primary"><UserRound aria-hidden="true" className="size-6" /></div>
-      <div><h2 className="text-xl font-semibold">{profile.name}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.personal}</p></div>
+      <div className="min-w-0 flex-1"><h2 className="text-xl font-semibold">{profile.name}</h2><p className="mt-1 text-sm text-muted-foreground">{labels.personal}</p></div>
+      {profile.canEdit ? <FocusProfileEditor employeeId={profile.employeeId} firstName={profile.firstName} labels={{ editTitle: labels.editTitle, firstName: labels.firstName, save: labels.save, saving: labels.saving, saved: labels.saved, failed: labels.failed } satisfies FocusProfileEditorLabels} updatedAt={profile.updatedAt} /> : null}
     </Surface>
     <div className="grid gap-5 lg:grid-cols-2">
       <ProfileSection title={labels.personal} empty={labels.empty}>

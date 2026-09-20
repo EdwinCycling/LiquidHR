@@ -1,5 +1,31 @@
 # Liquid HR documentatie-index
 
+## Focus DEV Act-as alignment and completion — 2026-09-20
+
+**Status: DEV-GREEN / LOKALE EINDGATES GREEN / MAIN-PRODUCTION RELEASE GATE OPEN**
+
+De bestaande tenant-specifieke `TENANT_ADMIN`-override van de DEV-demo-tenant
+`liquid-hr-demo-holding` is via de canonieke `role_permissions`-configuratie
+uitgelijnd met het bestaande globale contract voor `focus:act-as-employee`.
+De drie DEV-migrations voor capability, audit-eventpolicy en authenticated-only
+audit INSERT zijn toegepast op `wnpfloqpjvaacobppbpk`; Production en globale
+rollen zijn niet gewijzigd.
+
+Authenticated acceptance is groen voor HR Admin/TENANT_ADMIN START → employee
+Focus → STOP en rood/403 zoals bedoeld voor Test Manager en Test Employee.
+Remote readback toont precies de START/STOP-auditsporen voor Noah en nul
+Act-as-capabilityrijen voor EMPLOYEE/DIRECT_MANAGER in de targettenant.
+Profiel self-edit is met readback getest en hersteld; de mobiele matrix op
+`390x844` heeft op de kernroutes geen horizontale overflow. Volledige evidence,
+screenshots, fixturegrenzen en open releasegrenzen staan in
+[`focus-acceptance-20260920/README.md`](../.artifacts/focus-acceptance-20260920/README.md).
+
+De lokale eindgates zijn groen: `432/432` testbestanden en `1698/1698` tests,
+strict TypeScript, ESLint, i18n-pariteit met `39` namespaces,
+Webpack-productiebuild met `296/296` statische pagina's en `git diff --check`.
+Deze status is DEV-only; main-integratie, Production-migratie en Production-
+deployment blijven de expliciete volgende releasegate.
+
 ## ESS/MSS Workflow Unification V1 — 2026-09-17
 
 **Status: DEV MIGRATIONS GREEN / LOKALE TECHNISCHE GATES GREEN / AUTHENTICATED BROWSERACCEPTATIE GEBLOKKEERD OP DEV-FIXTUREBALANS**

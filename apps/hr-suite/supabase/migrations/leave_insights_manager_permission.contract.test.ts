@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
-const migrationPath = 'supabase/migrations/20260914100000_leave_insights_manager_permission.sql'
+const migrationPath = 'supabase/migrations/20260914142023_leave_insights_manager_permission.sql'
 
 describe('Leave Insights manager permission migration', () => {
   it('is additive, transactional and keeps provision/audit permissions separate', async () => {

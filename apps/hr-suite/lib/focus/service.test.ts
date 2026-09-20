@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createClient, getEmployeeJourneyProjections, getRequestAuthorizationContext } = vi.hoisted(() => ({
+const { createClient, getEmployeeJourneyProjections, getRequestAuthorizationContext, readEmployeeEssAccess } = vi.hoisted(() => ({
   createClient: vi.fn(),
   getEmployeeJourneyProjections: vi.fn(),
   getRequestAuthorizationContext: vi.fn(),
+  readEmployeeEssAccess: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({ createClient }))
 vi.mock('@/lib/journeys/projection-service', () => ({ getEmployeeJourneyProjections }))
 vi.mock('@/lib/auth/permissions', () => ({ getRequestAuthorizationContext }))
+vi.mock('@/lib/auth/employee-ess-access', () => ({ readEmployeeEssAccess }))
 
 import type { createClient as createServerClient } from '@/lib/supabase/server'
 import { focusActions, getFocusHomeData } from './service'
@@ -57,6 +59,7 @@ describe('Focus service lifecycle boundary', () => {
       supabase: supabaseClient,
     }))
     getEmployeeJourneyProjections.mockResolvedValue([])
+    readEmployeeEssAccess.mockResolvedValue({ status: 'ACTIVE', blockedAt: null, blockedByUserId: null })
   })
 
   it('returns no ESS actions or Full presentation for an employee without current or future employment', async () => {
@@ -102,9 +105,39 @@ describe('Focus service lifecycle boundary', () => {
     expect(enabled.map((action) => action.key)).toContain('absence')
   })
 
+  it('reads the self-report setting through the scoped RPC for an employee', async () => {
+    getRequestAuthorizationContext.mockImplementation(async () => ({
+      context: {
+        tenantId: 'tenant-a',
+        hrGroupId: 'group-a',
+        employeeId: 'employee-a',
+        activeRoles: ['EMPLOYEE'],
+        permissions: ['self:absence:write', 'self:employee:read'],
+      },
+      supabase: supabaseClient,
+    }))
+    const employeeQuery = query({ id: 'employee-a', first_name: 'Noah', birth_name: 'Hendriks', avatar_url: null })
+    const employmentQuery = query([{ starts_on: '2026-01-01', ends_on: null, record_status: 'CONFIRMED', deleted_at: null }])
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
+    supabaseClient = {
+      from: vi.fn((table: string) => table === 'employees' ? employeeQuery : employmentQuery),
+      rpc,
+    } as unknown as SupabaseServerClient
+
+    const data = await getFocusHomeData({ today: '2026-09-20', device: 'DESKTOP' })
+
+    expect(rpc).toHaveBeenCalledWith('get_employee_self_report_enabled', {
+      requested_tenant_id: 'tenant-a',
+      requested_hr_group_id: 'group-a',
+    })
+    expect(data.actions.map((action) => action.key)).toContain('absence')
+    expect(data.canReportAbsence).toBe(true)
+  })
+
   it('keeps manager work available for an absence permission without process-task permissions', () => {
     const actions = focusActions({ employeeId: 'employee-a', experience: 'MANAGER', permissions: ['absence:read'], journey: null })
 
     expect(actions.map((action) => action.key)).toContain('work')
+    expect(actions.map((action) => action.key)).toContain('team')
   })
 })

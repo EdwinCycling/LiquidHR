@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const integrationMigration = readFileSync(new URL('./20260915122119_actual_work_leave_accrual_integration.sql', import.meta.url), 'utf8').toLowerCase()
+const integrationMigration = readFileSync(new URL('./20260915122914_20260915122119_actual_work_leave_accrual_integration.sql', import.meta.url), 'utf8').toLowerCase()
 const actualWorkMigration = readFileSync(new URL('./20260914192320_actual_work_v1.sql', import.meta.url), 'utf8').toLowerCase()
 
 describe('Actual Work worked-hours leave accrual integration migration contract', () => {
