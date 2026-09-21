@@ -1,22 +1,28 @@
-# DOC02 — Template rendering
+# DOC02 — Document Template Rendering
 
-- **Status:** READY (GJ01R: WAITING_FOR_DEV_MAIL)
+- **Run ID:** DOC02
+- **Name:** Document template rendering torture test
+- **Status:** READY
 - **Execution mode:** ISOLATED_FIXTURE
 - **Mutation risk:** MEDIUM
-- **Expected runtime class:** MEDIUM
-- **Required personas:** HR, Manager, Employee
-- **External dependencies:** Template editor, renderer, storage, dossier, signing
-- **Preferred fixture isolation:** Use a dedicated acceptance template, not a product template. Test placeholders, missing/invalid data, render/PDF/hash/storage, audience/privacy, filename/content type, idempotency and viewer/download/signing readback.
+- **Expected runtime:** LONG
+- **Required personas:** HR Admin, Manager in scope, Employee self, Other Employee, Act-as Employee, out-of-scope Manager
+- **External dependencies:** Document Studio template/schema, renderer/PDF/storage/hash, dossier, signing and Auth
+- **Preferred branch name:** `work/acceptance-DOC02-YYYYMMDD`
+- **Fixture isolation strategy:** Use a dedicated acceptance template and disposable controlled document data; never edit or replace a product template used by another run
+- **Harness reference:** [HARNESS-V2.md](../HARNESS-V2.md)
+- **Reporting reference:** [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
 
-## Harness and reporting
+## Dedicated template and rendering matrix
 
-- Harness: [HARNESS-V2.md](../HARNESS-V2.md)
-- Reporting: [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
-- Branch: work/acceptance-<run-id>-YYYYMMDD`n- Baseline: exact current origin/main SHA; DEV project wnpfloqpjvaacobppbpk`n
-## Acceptance scope
+Use a dedicated acceptance template, not a product template. Discover and test known placeholders, free placeholders, temporal placeholders, optional values, missing values, invalid schema, names, dates, amount formatting and special characters. Record the expected exact rendered output and compare PDF/text/metadata after rendering.
 
-Use a dedicated acceptance template, not a product template. Test placeholders, missing/invalid data, render/PDF/hash/storage, audience/privacy, filename/content type, idempotency and viewer/download/signing readback.
+Verify template validation, draft/activate lifecycle, render idempotency, filename/content type, storage key/hash, unresolved-marker absence, viewer/download, refresh/relogin and error paths. Test invalid or missing data without corrupting the template or generating a misleading final document.
 
-## Evidence and verdict
+## Exact before/after persistence
 
-Record run ID, actor/subject, before/after persistence, negative probes, responsive evidence, quality gates, commit and remote SHA. Verdict is GREEN only when every in-scope assertion is proven; otherwise use PARTIAL/BLOCKED with one primary classification and the exact unproven boundary.
+Record exact before/after counts and identifiers for batches, batch items, snapshots, dossier links, signing requests and signing events. One controlled render must not create duplicates on double click, repeated submit or bounded retry. Read back status transitions and downstream dossier/signing projections.
+
+## Audience and signing matrix
+
+Prove Employee self view/download/sign where contracted; Other Employee denial; HR lifecycle visibility; HR direct signing denial when Employee-only; Act-as behavior; Manager denial; out-of-scope denial; and cross-tenant denial when safe. Every negative case must have no data leak, business mutation, revision/event mutation or false-success audit.

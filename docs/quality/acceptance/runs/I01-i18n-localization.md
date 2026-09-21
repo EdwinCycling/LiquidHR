@@ -1,22 +1,24 @@
-# I01 — i18n / localization
+# I01 — i18n / Localization
 
-- **Status:** READY (GJ01R: WAITING_FOR_DEV_MAIL)
+- **Run ID:** I01
+- **Name:** Dutch/English localization and formatting parity
+- **Status:** READY
 - **Execution mode:** PARALLEL_SAFE
 - **Mutation risk:** LOW
-- **Expected runtime class:** MEDIUM
-- **Required personas:** Owner, HR, Manager, Employee
-- **External dependencies:** NL/EN message namespaces, dates, numbers and errors
-- **Preferred fixture isolation:** Switch NL/EN across representative routes; verify key parity, no raw keys, pluralization, dates/numbers/currency, validation/errors, RTL-safe layout assumptions and persisted locale.
+- **Expected runtime:** MEDIUM
+- **Required personas:** HR Admin, Manager in scope, Employee self
+- **External dependencies:** NL/EN message namespaces, locale persistence, date/time/number formatting and representative domain routes
+- **Preferred branch name:** `work/acceptance-I01-YYYYMMDD`
+- **Fixture isolation strategy:** Read-mostly representative routes; no business writes and no invented Belgium/Germany/RTL scope
+- **Harness reference:** [HARNESS-V2.md](../HARNESS-V2.md)
+- **Reporting reference:** [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
 
-## Harness and reporting
+## Representative route matrix
 
-- Harness: [HARNESS-V2.md](../HARNESS-V2.md)
-- Reporting: [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
-- Branch: work/acceptance-<run-id>-YYYYMMDD`n- Baseline: exact current origin/main SHA; DEV project wnpfloqpjvaacobppbpk`n
-## Acceptance scope
+Switch NL/EN and inspect HR, Manager, Employee Focus, Settings, Leave, Absence, Actual Work, Documents, Talent and Recruitment. Check raw keys, mixed language, interpolation, pluralization, validation, statuses, notifications, empty states and buttons. Verify locale persistence through refresh and relogin.
 
-Switch NL/EN across representative routes; verify key parity, no raw keys, pluralization, dates/numbers/currency, validation/errors, RTL-safe layout assumptions and persisted locale.
+## Formatting matrix
 
-## Evidence and verdict
+Verify dates, date ranges, times, durations, percentages, currency, decimals, thousands separators, week numbers and timezone-sensitive values. Compare UI/API/readback and prove presentation changes do not change canonical persisted values. Test error and audit text as well as success text.
 
-Record run ID, actor/subject, before/after persistence, negative probes, responsive evidence, quality gates, commit and remote SHA. Verdict is GREEN only when every in-scope assertion is proven; otherwise use PARTIAL/BLOCKED with one primary classification and the exact unproven boundary.
+International employee fields are tested only where current implementation exists. Do not invent RTL or additional country scope. Missing parity is recorded as a concrete i18n defect, not hidden with fallback copy.

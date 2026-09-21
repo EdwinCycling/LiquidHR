@@ -1,22 +1,30 @@
 # P01 — Process Automation
 
-- **Status:** READY (GJ01R: WAITING_FOR_DEV_MAIL)
+- **Run ID:** P01
+- **Name:** Process Automation runtime and canonical-domain acceptance
+- **Status:** READY
 - **Execution mode:** SOLO
-- **Mutation risk:** LONG
-- **Expected runtime class:** LONG
-- **Required personas:** Employee, Manager, HR, owner
-- **External dependencies:** Recipes, requests, approvals, outputs
-- **Preferred fixture isolation:** Inventory representative process; start/form/manager/request changes/correction/approve/output/complete. Test stale/wrong actor/double approval/direct bypass and exact state/event/ledger readback.
+- **Mutation risk:** HIGH
+- **Expected runtime:** LONG
+- **Required personas:** HR Admin, Manager in scope, Manager out of scope, Employee self, Other Employee, owner where configured
+- **External dependencies:** Recipes, definitions, steps, assignments, variables, forms, approvals, deadlines, reminders, outputs, document acknowledgement and worker/runtime processing
+- **Preferred branch name:** `work/acceptance-P01-YYYYMMDD`
+- **Fixture isolation strategy:** One disposable process definition/recipe and one unique runtime instance; no shared Leave/Absence/Actual Work ledger mutation unless the process contract explicitly owns a controlled fixture
+- **Harness reference:** [HARNESS-V2.md](../HARNESS-V2.md)
+- **Reporting reference:** [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
 
-## Harness and reporting
+## Inventory
 
-- Harness: [HARNESS-V2.md](../HARNESS-V2.md)
-- Reporting: [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
-- Branch: work/acceptance-<run-id>-YYYYMMDD`n- Baseline: exact current origin/main SHA; DEV project wnpfloqpjvaacobppbpk`n
-## Acceptance scope
+Inventory definitions, recipes, steps, assignments, variables, forms, approvals, request changes, deadlines, reminders, outputs, document acknowledgement, runtime states, work items, Mijn werk and Mijn aanvragen. Record routes/pages/APIs/RPCs/actions, configuration, permissions, lifecycle transitions, list/detail, projections and audit/history.
 
-Inventory representative process; start/form/manager/request changes/correction/approve/output/complete. Test stale/wrong actor/double approval/direct bypass and exact state/event/ledger readback.
+## Representative flow
 
-## Evidence and verdict
+Run the canonical sequence:
 
-Record run ID, actor/subject, before/after persistence, negative probes, responsive evidence, quality gates, commit and remote SHA. Verdict is GREEN only when every in-scope assertion is proven; otherwise use PARTIAL/BLOCKED with one primary classification and the exact unproven boundary.
+`start → form → Manager task → request changes → Employee correction → approval → output/action → completion`.
+
+Read back process instance, work items, assignments, variables, events, output/document references and final state after every transition. Prove UI, API and DB/read-model consistency, refresh/relogin behavior, idempotency, deadline/reminder behavior and empty/first-use states.
+
+## Negative and ownership gates
+
+Test unauthorized start, wrong actor, double approval, stale work item, direct step skip, invalid form payload, out-of-scope Manager and direct API/RPC bypass. Prove no duplicate output, false audit, revision mutation or hidden data leak. Demonstrate that Process Automation routes to canonical business domains and does not duplicate Leave, Absence or Actual Work ownership. Any conflicting ownership is `PRODUCT_DECISION` or `SECURITY_STOP`, never silently accepted.

@@ -1,22 +1,34 @@
 # F01 — Settings
 
-- **Status:** READY (GJ01R: WAITING_FOR_DEV_MAIL)
+- **Run ID:** F01
+- **Name:** Complete settings inventory and controlled round-trip acceptance
+- **Status:** READY
 - **Execution mode:** SOLO
 - **Mutation risk:** HIGH
-- **Expected runtime class:** LONG
-- **Required personas:** Owner, HR, Manager, Employee
-- **External dependencies:** Settings APIs, audit, module flags and tenant config
-- **Preferred fixture isolation:** Inventory settings; read → change → save → readback → refresh → relogin → downstream → restore. Cover invalid, duplicate, conflict, module-off, direct API denial and audit evidence.
+- **Expected runtime:** LONG
+- **Required personas:** HR Admin, Manager in scope, Manager out of scope, Employee self
+- **External dependencies:** All enabled settings modules, Auth, audit/history and downstream read models
+- **Preferred branch name:** `work/acceptance-F01-YYYYMMDD`
+- **Fixture isolation strategy:** One dedicated DEV tenant/group/configuration snapshot; capture and restore every changed value immediately
+- **Harness reference:** [HARNESS-V2.md](../HARNESS-V2.md)
+- **Reporting reference:** [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
 
-## Harness and reporting
+## Inventory
 
-- Harness: [HARNESS-V2.md](../HARNESS-V2.md)
-- Reporting: [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
-- Branch: work/acceptance-<run-id>-YYYYMMDD`n- Baseline: exact current origin/main SHA; DEV project wnpfloqpjvaacobppbpk`n
-## Acceptance scope
+Inventory every materially implemented setting and record route/page/API/RPC/action, permissions, scope, lifecycle and audit/history for: HR groups; companies/administrations; locations; jobs and job groups; employment configuration; Leave; Absence; Actual Work; work patterns; holidays; modules; Directory; Employee self-service; Manager self-service; Focus policy/mode; Documents; Journeys; Talent; dashboard/widget settings; reminders/notifications; AI settings/governance/credits; Payroll/provider settings; roles and configuration.
 
-Inventory settings; read → change → save → readback → refresh → relogin → downstream → restore. Cover invalid, duplicate, conflict, module-off, direct API denial and audit evidence.
+## Controlled round-trip for every editable setting
 
-## Evidence and verdict
+For each setting:
 
-Record run ID, actor/subject, before/after persistence, negative probes, responsive evidence, quality gates, commit and remote SHA. Verdict is GREEN only when every in-scope assertion is proven; otherwise use PARTIAL/BLOCKED with one primary classification and the exact unproven boundary.
+`read current → controlled change → save via UI → DB/read-model readback → hard refresh → relogin when meaningful → downstream effect → restore original → restoration readback`.
+
+Record actor, subject, before/after row counts, audit/revision/event and downstream projection. Use a unique run ID and never leave a setting changed.
+
+## Validation and authorization matrix
+
+Test required fields, invalid values, duplicates, conflicts where implemented, module-off behavior, direct API/RPC mutation, role access, audit creation, tenant/group/administration scope and Manager/Employee denial. Verify list/detail consistency, empty/first-use states, refresh/relogin persistence, close/archive/delete behavior, error paths and mobile usability. Test direct ID substitution and cross-group IDs where safe.
+
+## Release boundary
+
+Do not broaden permissions to make a settings screen pass. If a setting's intended scope is undefined, classify `PRODUCT_DECISION`. Any failed restore, unexpected downstream mutation, cross-tenant read or security leak is a `SECURITY_STOP` until isolated.

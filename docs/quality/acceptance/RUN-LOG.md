@@ -1,18 +1,22 @@
 # Acceptance Run Log
 
-Detailed screenshots and probes remain in the corresponding `.artifacts` directory and are not copied here.
+This log contains only known historical outcomes. Detailed screenshots, traces and probes remain under the corresponding `.artifacts` directory and are not moved into the durable Acceptance Library.
 
 | Run | Result | Proven scope | Open boundary |
 |---|---|---|---|
 | A01 | GREEN | Full DEV persona acceptance for Focus, Absence and Leave | Regression maintenance |
-| GJ01 | PARTIAL / EXTERNAL_BLOCKER | HR journey, preview, responsive checks; `databaseUuid` fix | Authenticated future Employee leg; DEV Auth mail delivery returned 502 |
-| GJ02 | GREEN | Batch → item → snapshot → dossier → signing → SIGNED; document access and negative role checks | DOC02 rendering |
-| GJ03 | GREEN | Employee Actual Work create/edit through canonical service/RPC/RLS; validation, privacy and projections | AW02 rules/concurrency |
+| GJ01 | PARTIAL / EXTERNAL_BLOCKER | HR journey, preview, restrictions and responsive checks | Authenticated future Employee leg; DEV Auth mail delivery returned HTTP 502 |
+| GJ02 | GREEN | Canonical batch → snapshot → dossier → signing → SIGNED lifecycle | DOC02 rendering follow-up |
+| GJ03 | GREEN | Employee Actual Work create/edit through canonical service/RPC/RLS | AW02 rules/concurrency follow-up |
+| T01/F01/F02/F03/S01/T02/R01/P01/F04/F05/I01 | READY | Specification prepared; not executed by this library pass | Future isolated acceptance runs |
+| GJ01R | WAITING_FOR_DEV_MAIL | Follow-up scope specified; not executed here | DEV mail dependency |
+| DOC02/AW02 | READY | Follow-up scope specified; not executed here | Dedicated fixture gate |
 
-Historical commit anchors: GJ01 `a4e0af5`; GJ02 `4d0bfdd`; GJ03 `65f8abe`; overnight handoff `d792a7c`.
+## Historical commit anchors
 
-GJ01 used Test test100 with start date 2026-10-01. The normal invitation endpoint returned HTTP 502 twice; invitations were revoked. One controlled DEV Auth identity was established through fixture-auth bootstrap; one identity, two revoked invitations and zero employee Auth links were read back. Normal login ended at `/geen-toegang`, so authenticated preboarding Focus and start-date transition were not proven. Preview responsive checks were green.
+- GJ01: `a4e0af5` — onboarding acceptance
+- GJ02: `4d0bfdd` — documents/signing acceptance
+- GJ03: `65f8abe` — Employee Actual Work acceptance
+- Overnight closure: `7f915ea` — final reports and metadata guard
 
-GJ02 proved one completed batch, final item, final PDF snapshot with storage/hash, employee dossier link and signing request with PREPARED and SIGNED events. Focus Documents viewer/download was corrected to use the secure canonical service query. Employee own actions passed; generation, HR direct signing and Manager/out-of-scope paths failed closed.
-
-GJ03 added `self:actual-work:write`, own-row RLS insert/update/read and HR-only delete while retaining the security-invoker RPC. One Employee row was created at 1.75 hours and corrected to 2.0; revisions and totals read back. Foreign reads/writes, Manager misuse, closed periods, future dates, inactive types and approved Leave overlap failed closed without ledger mutation.
+No historical SHA or completed result is changed by this content-hardening pass. This pass itself runs no acceptance journey, makes no Supabase change and makes no business mutation.

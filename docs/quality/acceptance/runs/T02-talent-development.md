@@ -1,22 +1,30 @@
-# T02 — Talent development
+# T02 — Talent Development
 
-- **Status:** READY (GJ01R: WAITING_FOR_DEV_MAIL)
+- **Run ID:** T02
+- **Name:** Talent development golden journey
+- **Status:** READY
 - **Execution mode:** ISOLATED_FIXTURE
 - **Mutation risk:** MEDIUM
-- **Expected runtime class:** MEDIUM
-- **Required personas:** Employee, Manager, HR
-- **External dependencies:** Goals, development plans, reviews and history
-- **Preferred fixture isolation:** Golden journey for role/privacy/history/version: create, assign, update, submit, review, feedback, reopen/correct, duplicate/stale actor and direct API negatives with downstream readback.
+- **Expected runtime:** LONG
+- **Required personas:** HR Admin, Manager in scope, Manager out of scope, Employee self, Other Employee
+- **External dependencies:** Continuous Appraisal, Goals, POP, Skills/Competencies, Talent profiles, notifications and history
+- **Preferred branch name:** `work/acceptance-T02-YYYYMMDD`
+- **Fixture isolation strategy:** One dedicated Employee, manager and development cycle/profile; unique goals, skills and POP records; do not alter an existing review cycle
+- **Harness reference:** [HARNESS-V2.md](../HARNESS-V2.md)
+- **Reporting reference:** [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
 
-## Harness and reporting
+## Discovery and role matrix
 
-- Harness: [HARNESS-V2.md](../HARNESS-V2.md)
-- Reporting: [REPORTING-STANDARD.md](../REPORTING-STANDARD.md)
-- Branch: work/acceptance-<run-id>-YYYYMMDD`n- Baseline: exact current origin/main SHA; DEV project wnpfloqpjvaacobppbpk`n
-## Acceptance scope
+Inventory Continuous Appraisal, Goals, POP, Skills/Competencies and Talent profile routes, pages, APIs, RPCs/actions, configuration, states, permissions, list/detail, projections and audit/history. Record required skills, current/required levels, gaps, profile versions and privacy rules.
 
-Golden journey for role/privacy/history/version: create, assign, update, submit, review, feedback, reopen/correct, duplicate/stale actor and direct API negatives with downstream readback.
+## Golden journey
 
-## Evidence and verdict
+Execute and persist read back:
 
-Record run ID, actor/subject, before/after persistence, negative probes, responsive evidence, quality gates, commit and remote SHA. Verdict is GREEN only when every in-scope assertion is proven; otherwise use PARTIAL/BLOCKED with one primary classification and the exact unproven boundary.
+`profile → skills → development goal → Manager interaction → appraisal/feedback → development action → progress/update → HR/Talent projection`.
+
+Cover skill catalogue, profile requirements, required level/current level/gap, versioning, goal lifecycle, POP lifecycle, appraisal timeline, comments/feedback, development actions, progress updates, history and notifications. Prove refresh/relogin, empty/first-use states, duplicate/idempotency, close/archive and invalid/stale payload behavior.
+
+## Privacy and cross-module safety
+
+HR sees intended organization scope; Manager sees only in-scope Employee data; Employee sees self data and contracted feedback; Other Employee and out-of-scope Manager are denied. Use direct IDs and API/RPC substitution. Prove no unintended 9-grid mutation, no raw private assessment leak, no cross-tenant read/write and no false audit. Record downstream HR/Talent projections and exact current versions.
