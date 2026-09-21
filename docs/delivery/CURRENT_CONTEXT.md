@@ -1,5 +1,14 @@
 # Actuele overdracht Liquid HR
 
+## Final consolidation — 2026-09-21
+
+**Status: PARTIAL / REVIEW REQUIRED — Acceptance Library geïntegreerd; bredere worktree-cleanup afgebroken na protected-state incident**
+
+- Acceptance Library V2 is als documentation-only mergecommit `09e623fc3a079a0efea00ddeacc458fadf781763` geïntegreerd op release-main. De GJ-tip `7f915ea4a20d2b6f2b48d081b6d056aca3212069` en Acceptance-tip `a58ae599d5aebb675fdcd22dee30515a84327c34` zijn aantoonbaar ancestors van deze main-tip.
+- `origin/main` is normaal bijgewerkt en gelijk aan lokale `main`. De completed GJ- en Acceptance-branches zijn lokaal en remote verwijderd; Vercel bewaart de huidige Production-deployment en één directe READY-rollback. Supabase, Production-data, migratiehistorie, Auth-identiteiten en businessrecords zijn niet gewijzigd.
+- De bredere cleanup is bewust gestopt nadat nested worktree-opruiming onverwacht tracked root-bestanden verwijderde en de canonical `apps/hr-suite/.env.local` tijdelijk ontbrak. De tracked bestanden zijn uit `HEAD` hersteld en `.env.local` is zonder secret-readback uit een bestaande LiquidHR DEV-worktree-copy hersteld. De hoofdwerkboom bevat nu alleen de vooraf bekende generated `apps/hr-suite/next-env.d.ts`-wijziging.
+- Open REVIEW: de resterende oude branches/worktrees met unieke commits of onduidelijke gebruikersstatus, plus fully-merged refs waarvan de worktree-cleanup door het incident niet verder is uitgevoerd. Herhaal geen nested worktree-delete zonder eerst de oorzaak van de collateral te onderzoeken.
+
 ## Release 1.20260921.1 — 2026-09-21
 
 **Status: PRODUCTION GREEN / GJ01 PARTIAL-EXTERNAL-BLOCKER / GJ02 GREEN / GJ03 GREEN**
