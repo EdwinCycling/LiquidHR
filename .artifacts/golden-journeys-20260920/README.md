@@ -58,6 +58,7 @@ because no destructive cleanup was authorized. It is explicitly separated in
 the evidence report and is not a duplicate Employee submission.
 
 GJ03 evidence: `.artifacts/golden-journeys-20260920/actual-work/`
+GJ03 product/evidence commit: `65f8abe test: complete GJ03 employee actual work acceptance`
 
 ## Combined quality gate
 

@@ -90,6 +90,8 @@
   30s timeout; strict TypeScript, ESLint, i18n and Next build 296/296 are
   green. Supabase type generation and security/performance advisors ran;
   project-wide existing advisor findings remain recorded in the GJ03 report.
+  GJ03 product/evidence commit is `65f8abe` and was pushed normally to the
+  overnight branch.
 
 ## Focus DEV act-as alignment and completion acceptance — 2026-09-20
 
