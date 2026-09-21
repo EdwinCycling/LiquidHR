@@ -1,5 +1,43 @@
 # Liquid HR documentatie-index
 
+## Release 1.20260921.1 — 2026-09-21
+
+**Status: PRODUCTION GREEN / GJ01 PARTIAL-EXTERNAL-BLOCKER / GJ02 GREEN / GJ03 GREEN**
+
+De geaccepteerde branch `work/post-release-golden-journeys-20260920` is vanaf
+exact `7f915ea4a20d2b6f2b48d081b6d056aca3212069` fast-forward geïntegreerd op
+de vorige main-baseline `874098d9c0675d17774ad027c7a8b4fbadb37c39`. De release-
+versionering staat uitsluitend in `apps/hr-suite/lib/app-version.ts` op
+`1.20260921.1`; commit `a0bb108559bf8733926c8205ae2b23323bd2a89b` bevat de
+version bump en de bestaande version-regressiontest.
+
+De gebonden releasegate is groen: 7/7 gerichte bestanden en 21/21 tests,
+strict TypeScript, ESLint, NL/EN i18n-pariteit (39 namespaces),
+`git diff --check` en Next production build `296/296`.
+
+De goedgekeurde Actual Work-migratie
+`20260921100000 / actual_work_employee_self_service` stond al exact één keer
+in de gekoppelde LiquidHR Supabase-history; opnieuw toepassen is daarom bewust
+niet gedaan. Readback bevestigt de permission `self:actual-work:write`, één
+globale EMPLOYEE-binding, RLS op de relevante tabellen, SECURITY INVOKER voor
+`save_actual_work_entry`, uitsluitend `authenticated` execute en geen nieuwe
+Actual Work-businessrijen door deze releaseactie.
+
+Vercel Production deployment `dpl_DPFLRe7QB4rVe1nQAobZWGuUEfUf` is `READY`,
+met alias `liquid-hr-hr-suite.vercel.app`, Node `24.x` en remote build
+`296/296`. De deploybron is uit de exacte main-SHA opgebouwd en geverifieerd
+als `a0bb108559bf8733926c8205ae2b23323bd2a89b`; directe CLI-uploads leveren
+geen afzonderlijk `gitSource`-veld in de deployment-inspectie. Read-only
+Production browser smoke laadde login en liet alle beschermde shell-, Focus-,
+Settings-, Documenten- en Uren-routes correct naar login redirecteren; de
+browserruntime meldde 0 errors en 0 warnings. Er zijn geen loginacties,
+uitnodigingen, documenten of Actual Work-rijen aangemaakt.
+
+GJ01 blijft uitsluitend **PARTIAL / EXTERNAL_BLOCKER** door DEV Supabase Auth
+mail delivery HTTP 502; niet opnieuw geprobeerd of aangepast in deze release.
+GJ02 en GJ03 zijn GREEN. Follow-up: GJ01R uitvoeren zodra deterministische
+DEV Auth-maildelivery is hersteld.
+
 ## Focus DEV Act-as alignment and completion — 2026-09-20
 
 **Status: DEV-GREEN / LOKALE EINDGATES GREEN / MAIN-PRODUCTION RELEASE GATE OPEN**

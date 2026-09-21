@@ -1,5 +1,38 @@
 # Actuele overdracht Liquid HR
 
+## Release 1.20260921.1 — 2026-09-21
+
+**Status: PRODUCTION GREEN / GJ01 PARTIAL-EXTERNAL-BLOCKER / GJ02 GREEN / GJ03 GREEN**
+
+- Previous main: `874098d9c0675d17774ad027c7a8b4fbadb37c39`.
+- Accepted source: `work/post-release-golden-journeys-20260920` at
+  `7f915ea4a20d2b6f2b48d081b6d056aca3212069`; direct fast-forward integration
+  is recorded in release main.
+- Release version: `1.20260921.1`; version/release commit:
+  `a0bb108559bf8733926c8205ae2b23323bd2a89b`.
+- Bounded gate: 7/7 targeted files and 21/21 tests, strict TypeScript, ESLint,
+  39 equal NL/EN namespaces, diff-check and Next build 296/296 GREEN.
+- Production migration: `20260921100000 / actual_work_employee_self_service`
+  was already registered exactly once in the linked canonical Supabase history;
+  no duplicate apply was performed. Readback is GREEN for permission,
+  EMPLOYEE binding, RLS, SECURITY INVOKER RPC, authenticated-only execute and
+  unchanged Actual Work business counts during this release action.
+- Final Vercel Production: deployment
+  `dpl_DPFLRe7QB4rVe1nQAobZWGuUEfUf`, `READY`, alias
+  `liquid-hr-hr-suite.vercel.app`, Node `24.x`, remote build 296/296. The
+  deploy input was built from exact main SHA
+  `a0bb108559bf8733926c8205ae2b23323bd2a89b`; direct CLI deployment metadata
+  exposes no separate `gitSource` field.
+- Safe Production smoke: login loaded; `/`, dashboard, Focus, Settings,
+  Focus Documenten and Focus Uren all reached the authentication boundary;
+  browser runtime 0 errors / 0 warnings. No authentication, invitation,
+  document or Actual Work mutation was performed. The terminal HTTP fallback
+  was unavailable because Windows Schannel returned `SEC_E_NO_CREDENTIALS`;
+  browser verification completed successfully.
+- GJ01 remains **PARTIAL / EXTERNAL_BLOCKER** only because DEV Supabase Auth
+  mail delivery returned HTTP 502. Do not retry in this release. GJ02 and GJ03
+  are GREEN. Follow-up is GJ01R after deterministic DEV mail recovery.
+
 ## Overnight Golden Journeys — 2026-09-21
 
 **Status: GJ01 CODE/DEV-PREVIEW GREEN / AUTHENTICATED PREBOARDING BLOCKED BY DEV AUTH MAIL DELIVERY / GJ02 GREEN / GJ03 GREEN / OVERNIGHT BLOCKED BY GJ01**
