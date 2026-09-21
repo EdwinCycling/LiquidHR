@@ -38,6 +38,10 @@ mail delivery HTTP 502; niet opnieuw geprobeerd of aangepast in deze release.
 GJ02 en GJ03 zijn GREEN. Follow-up: GJ01R uitvoeren zodra deterministische
 DEV Auth-maildelivery is hersteld.
 
+## Canonical Acceptance Library V2 — 2026-09-21
+
+Documentation-only acceptance source of truth on work/acceptance-library-20260921, based on exact release SHA 874098d9c0675d17774ad027c7a8b4fbadb37c39. No acceptance journeys or database mutations were run for this library. See [Acceptance Library V2](quality/acceptance/README.md).
+
 ## Focus DEV Act-as alignment and completion — 2026-09-20
 
 **Status: DEV-GREEN / LOKALE EINDGATES GREEN / MAIN-PRODUCTION RELEASE GATE OPEN**

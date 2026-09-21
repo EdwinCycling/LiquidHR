@@ -126,6 +126,12 @@
   GJ03 product/evidence commit is `65f8abe` and was pushed normally to the
   overnight branch.
 
+## Acceptance Library V2 — 2026-09-21
+
+- Documentation-only branch: work/acceptance-library-20260921, based on exact origin/main SHA 874098d9c0675d17774ad027c7a8b4fbadb37c39.
+- Canonical library: [docs/quality/acceptance/README.md](../quality/acceptance/README.md).
+- No GJ01/GJ02/GJ03 acceptance execution, business mutation, Supabase mutation, merge or deploy was performed in this documentation task.
+
 ## Focus DEV act-as alignment and completion acceptance — 2026-09-20
 
 **Status: DEV-GREEN / FULL LOCAL TECHNICAL GATES GREEN / FINAL MAIN-PRODUCTION RELEASE GATE OPEN**
