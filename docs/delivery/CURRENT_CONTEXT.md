@@ -25,6 +25,33 @@
   focused regression test. No role, permission, RLS or Production change was
   made. Evidence is under `.artifacts/golden-journeys-20260920/onboarding/`.
 
+## GJ02 — Documents / Document Studio / Signing — 2026-09-21
+
+**Status: GREEN / DEV lifecycle and authenticated persona gates complete / GJ03 open**
+
+- The existing active `TEST DG1 Generation Acceptance` template version
+  `59388dd0-022e-4617-89bc-e11888a798f2` was loaded without opening or creating
+  a draft. It is `ACTIVE`, `VALID`, native schema v1 and has an empty
+  placeholder manifest; no replacement variant was invented.
+- The normal HR distribution workbench created exactly one Noah batch
+  `1135255b-eb2d-4288-9f3c-04c6975ada49`, one `FINAL` snapshot
+  `82b65813-4080-4de2-8eeb-3303fdf38b4c`, one dossier link and one signing
+  request `c3c51295-3902-4746-98fc-c9282ac767f3`. DEV readback is one requested,
+  one final, zero failed; resolved JSON has no unresolved placeholder markers.
+- Normal Employee login opened Focus Documents, viewer and download; the new
+  Focus list controls are implemented in `components/focus/focus-documents.tsx`
+  using the existing employee-scoped download/viewer path. One legitimate Noah
+  signing click persisted `SIGNED` with `PREPARED,SIGNED` events. Existing
+  historical signing rows were not clicked.
+- Employee cross-document reads returned no other-employee rows and Employee
+  generation returned HTTP 403 without a new snapshot. HR signing status is
+  visible; HR direct signing returned HTTP 403, HR act-as has no signing action,
+  and Manager target/out-of-scope document API reads returned HTTP 403.
+- GJ02 evidence is under `.artifacts/golden-journeys-20260920/documents/`.
+  Targeted 11 files/20 tests, typecheck, lint, i18n, diff-check and Next build
+  296/296 are green. The same branch and exact release baseline continue into
+  GJ03.
+
 ## Focus DEV act-as alignment and completion acceptance — 2026-09-20
 
 **Status: DEV-GREEN / FULL LOCAL TECHNICAL GATES GREEN / FINAL MAIN-PRODUCTION RELEASE GATE OPEN**

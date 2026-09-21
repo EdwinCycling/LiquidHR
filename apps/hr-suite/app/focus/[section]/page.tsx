@@ -7,6 +7,7 @@ import { FocusDirectoryView, FocusHoursView, FocusLeaveView, FocusProfileView, t
 import { FocusJourneyCard } from '@/components/focus/focus-home'
 import { FocusHoursEntryForm } from '@/components/focus/focus-hours-entry-form'
 import { FocusLeaveRequest } from '@/components/focus/focus-leave-request'
+import { FocusDocuments } from '@/components/focus/focus-documents'
 import { FocusProcessList } from '@/components/focus/focus-process-list'
 import { FocusShell } from '@/components/focus/focus-shell'
 import { FocusTeamCalendarView } from '@/components/focus/focus-team-calendar'
@@ -70,7 +71,8 @@ export default async function FocusSectionPage({ params, searchParams = Promise.
     content = <FocusProfileView labels={profileLabels} profile={profile} />
   } else if (kind === 'documents') {
     const documents = await getFocusDocuments(context)
-    content = documents.length ? <section className="space-y-3">{documents.map((document) => <Surface className="flex flex-wrap items-center gap-3 p-4" key={document.id}><FileText aria-hidden="true" className="size-5 shrink-0 text-primary" /><div className="min-w-0 flex-1"><p className="font-medium">{document.title}</p><p className="mt-1 text-sm text-muted-foreground">{document.expiresOn ? `${t('documents.expires')}: ${document.expiresOn}` : `${t('documents.added')}: ${document.createdAt.slice(0, 10)}`}</p></div></Surface>)}</section> : <EmptyState icon={<FileText />} title={t('actions.documents.title')} description={t('documents.empty')} />
+    const documentLabels = await getTranslator('documents', locale)
+    content = documents.length ? <FocusDocuments employeeId={employeeId} documents={documents} labels={{ added: t('documents.added'), expires: t('documents.expires'), open: documentLabels('view'), download: documentLabels('download'), close: documentLabels('viewerClose'), unsupported: documentLabels('viewerUnsupported') }} /> : <EmptyState icon={<FileText />} title={t('actions.documents.title')} description={t('documents.empty')} />
   } else if (kind === 'leave') {
     const overview = await getFocusLeaveOverview(context)
     const request = query.request === '1' && data.canRequestLeave

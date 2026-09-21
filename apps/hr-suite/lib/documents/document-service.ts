@@ -25,7 +25,7 @@ export async function listEmployeeDashboardDocuments(employeeId: string, limit =
   if (!dependencies) await requirePermission('document:read', employeeId)
   const supabase = dependencies?.supabase ?? await createClient()
   const { data, error } = await supabase.from('employee_documents')
-    .select('id, title, expires_on, created_at')
+    .select('id, title, expires_on, created_at, original_filename, content_type')
     .eq('employee_id', employeeId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -36,6 +36,8 @@ export async function listEmployeeDashboardDocuments(employeeId: string, limit =
     title: document.title,
     expiresOn: document.expires_on,
     createdAt: document.created_at,
+    originalFilename: document.original_filename,
+    contentType: document.content_type,
   }))
 }
 

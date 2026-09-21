@@ -1,0 +1,26 @@
+{
+  "templateVersionId": "59388dd0-022e-4617-89bc-e11888a798f2",
+  "targetEmployeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+  "targetEmployeeLabel": "Noah Hendriks · DEMO-035",
+  "templateView": {
+    "path": "/document-studio/templates/cec95879-72c4-4c9c-8eff-839b0948262a",
+    "activeTemplateVisible": true,
+    "immutableActionsVisible": true,
+    "draftEditorOpened": false
+  },
+  "distribution": {
+    "httpStatus": 201,
+    "batchId": "1135255b-eb2d-4288-9f3c-04c6975ada49",
+    "status": "COMPLETED",
+    "detail": {
+      "path": "/document-studio/distributions/1135255b-eb2d-4288-9f3c-04c6975ada49",
+      "finalStatusVisible": true,
+      "prepareButtonCount": 1
+    }
+  },
+  "signingPreparation": {
+    "httpStatus": 201,
+    "signingRequestId": "c3c51295-3902-4746-98fc-c9282ac767f3",
+    "status": "PENDING"
+  }
+}

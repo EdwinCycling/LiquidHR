@@ -1,0 +1,98 @@
+{
+  "targetEmployeeId": "c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+  "otherEmployeeId": "9048f02b-4fdc-3c4c-e1aa-fd339660029c",
+  "documentId": "2e5a82ef-3c07-474f-abfa-70e9a18f4b0f",
+  "requestId": "c3c51295-3902-4746-98fc-c9282ac767f3",
+  "focusDocuments": {
+    "desktop": {
+      "path": "/focus/documenten",
+      "titleVisible": true,
+      "metadataVisible": true,
+      "openOrDownloadControlVisible": true,
+      "documentLinks": [
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/2e5a82ef-3c07-474f-abfa-70e9a18f4b0f/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/18a2d53c-bd71-49a9-ad4d-a8ba466c01b5/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/ac4eef39-9ffc-4423-8025-fa902f7eb479/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/b13394b8-49b0-4371-988b-563a2f264015/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/ae287f3b-c783-4072-812f-c6e610bee917/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/3e4b46ca-1348-42e5-a501-58da88e73045/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/bdf261f4-70ae-4e2a-969e-770ccc1baebb/download"
+        },
+        {
+          "text": "Downloaden",
+          "href": "/api/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13/documents/861e9ae7-e2d5-41e2-a3dd-c0c08d13a3c5/download"
+        }
+      ],
+      "hrOnlyMetadataAbsent": true
+    }
+  },
+  "signing": {
+    "before": {
+      "path": "/my-signatures",
+      "requestVisible": true,
+      "targetRequestStatus": "SIGNED",
+      "signButtonCount": 0
+    },
+    "complete": {
+      "alreadyVerified": true,
+      "status": "SIGNED",
+      "noSecondClick": true
+    },
+    "after": {
+      "status": 200,
+      "count": 2,
+      "signedRequestCount": 2
+    }
+  },
+  "dossier": {
+    "path": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+    "titleVisible": true,
+    "targetViewButtonCount": 1,
+    "targetMenuButtonCount": 1,
+    "downloadLinkCountBeforeMenu": 0,
+    "viewerVisible": true,
+    "downloadLinkCountAfterMenu": 1,
+    "downloadResponse": {
+      "status": 307,
+      "contentType": null,
+      "redirectPresent": true
+    }
+  },
+  "negativeChecks": {
+    "ownDocuments": {
+      "status": 200,
+      "count": 17,
+      "targetTitlePresent": true
+    },
+    "otherEmployeeDocuments": {
+      "status": 200,
+      "count": 0,
+      "targetTitlePresent": false,
+      "code": null
+    },
+    "generationAsEmployee": {
+      "status": 403,
+      "code": null
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "hr": {
+    "employeePage": {
+      "path": "/employees/c6b1c7a9-c250-3d19-b1a0-87e317e80b13",
+      "actAsButtonCount": 1
+    },
+    "targetDocuments": {
+      "status": 200,
+      "count": 7,
+      "targetTitlePresent": false,
+      "targetDocumentIdPresent": false,
+      "code": null
+    },
+    "signingOverview": {
+      "path": "/document-studio/signing",
+      "signedStatusVisible": true,
+      "requestIdVisible": false
+    },
+    "signingNegative": {
+      "status": 403,
+      "code": "DOCUMENT_SIGNING_EMPLOYEE_REQUIRED"
+    },
+    "actAsFocus": {
+      "path": "/focus/documenten",
+      "targetDocumentVisible": false,
+      "signingActionAbsent": true,
+      "actingBannerVisible": true
+    }
+  },
+  "manager": {
+    "focus": {
+      "path": "/focus/documenten",
+      "targetDocumentVisible": false
+    },
+    "targetDocuments": {
+      "status": 403,
+      "count": 0,
+      "targetTitlePresent": false,
+      "targetDocumentIdPresent": false,
+      "code": null
+    },
+    "outOfScopeDocuments": {
+      "status": 403,
+      "count": 0,
+      "targetTitlePresent": false,
+      "targetDocumentIdPresent": false,
+      "code": null
+    },
+    "outOfScopeRoute": {
+      "finalPath": "/employees",
+      "targetDocumentVisible": false
+    }
+  }
+}
